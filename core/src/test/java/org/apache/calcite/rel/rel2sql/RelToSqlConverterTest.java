@@ -1031,40 +1031,66 @@ public class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescAndNullsFirstShouldBeEmulated() {
+  @Test public void testSelectOrderByDescNullsFirst() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls first";
+    // Hive and MSSQL do not support NULLS FIRST, so need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL DESC, product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    final String mssqlExpected = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 0 ELSE 1 END, [product_id] DESC";
+    sql(query)
+        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscAndNullsLastShouldBeEmulated() {
+  @Test public void testSelectOrderByAscNullsLast() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
+    // Hive and MSSQL do not support NULLS LAST, so need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id IS NULL, product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    final String mssqlExpected = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
+    sql(query)
+        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByAscNullsFirstShouldNotAddNullEmulation() {
+  @Test public void testSelectOrderByAscNullsFirst() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls first";
+    // Hive and MSSQL do not support NULLS FIRST, but nulls sort low, so no
+    // need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    final String mssqlExpected = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id]";
+    sql(query)
+        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
-  @Test public void testHiveSelectQueryWithOrderByDescNullsLastShouldNotAddNullEmulation() {
+  @Test public void testSelectOrderByDescNullsLast() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" desc nulls last";
+    // Hive and MSSQL do not support NULLS LAST, but nulls sort low, so no
+    // need to emulate
     final String expected = "SELECT product_id\n"
         + "FROM foodmart.product\n"
         + "ORDER BY product_id DESC";
-    sql(query).dialect(HiveSqlDialect.DEFAULT).ok(expected);
+    final String mssqlExpected = "SELECT [product_id]\n"
+        + "FROM [foodmart].[product]\n"
+        + "ORDER BY [product_id] DESC";
+    sql(query)
+        .dialect(HiveSqlDialect.DEFAULT).ok(expected)
+        .dialect(MssqlSqlDialect.DEFAULT).ok(mssqlExpected);
   }
 
   @Test public void testHiveSubstring() {
@@ -1368,10 +1394,10 @@ public class RelToSqlConverterTest {
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedMssql10 = "SELECT TOP (100) [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id]";
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]";
     final String expectedMssql = "SELECT [product_id]\n"
         + "FROM [foodmart].[product]\n"
-        + "ORDER BY [product_id]\n"
+        + "ORDER BY CASE WHEN [product_id] IS NULL THEN 1 ELSE 0 END, [product_id]\n"
         + "FETCH NEXT 100 ROWS ONLY";
     final String expectedSybase = "SELECT TOP (100) product_id\n"
         + "FROM foodmart.product\n"

@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlCall;
@@ -28,9 +29,11 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 
 /**
@@ -42,7 +45,8 @@ public class MssqlSqlDialect extends SqlDialect {
       new MssqlSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.MSSQL)
           .withIdentifierQuoteString("[")
-          .withCaseSensitive(false));
+          .withCaseSensitive(false)
+          .withNullCollation(NullCollation.LOW));
 
   private static final SqlFunction MSSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
@@ -59,6 +63,50 @@ public class MssqlSqlDialect extends SqlDialect {
     // MSSQL 2008 (version 10) and earlier only supports TOP
     // MSSQL 2012 (version 11) and higher supports OFFSET and FETCH
     top = context.databaseMajorVersion() < 11;
+  }
+
+  /** {@inheritDoc}
+   *
+   * <p>MSSQL does not support NULLS FIRST, so we emulate using CASE
+   * expressions. For example,
+   *
+   * <blockquote>{@code ORDER BY x NULLS FIRST}</blockquote>
+   *
+   * <p>becomes
+   *
+   * <blockquote>
+   *   {@code ORDER BY CASE WHEN x IS NULL THEN 0 ELSE 1 END, x}
+   * </blockquote>
+   */
+  @Override public SqlNode emulateNullDirection(SqlNode node,
+      boolean nullsFirst, boolean desc) {
+    // Default ordering preserved
+    if (nullCollation.isDefaultOrder(nullsFirst, desc)) {
+      return null;
+    }
+
+    // Grouping node should preserve grouping, no emulation needed
+    if (node.getKind() == SqlKind.GROUPING) {
+      return node;
+    }
+
+    // Emulate nulls first/last with case ordering
+    final SqlParserPos pos = SqlParserPos.ZERO;
+    final SqlNodeList whenList =
+        SqlNodeList.of(SqlStdOperatorTable.IS_NULL.createCall(pos, node));
+
+    final SqlNode oneLiteral = SqlLiteral.createExactNumeric("1", pos);
+    final SqlNode zeroLiteral = SqlLiteral.createExactNumeric("0", pos);
+
+    if (nullsFirst) {
+      // IS NULL THEN 0 ELSE 1 END
+      return SqlStdOperatorTable.CASE.createCall(null, pos,
+          null, whenList, SqlNodeList.of(zeroLiteral), oneLiteral);
+    } else {
+      // IS NULL THEN 1 ELSE 0 END
+      return SqlStdOperatorTable.CASE.createCall(null, pos,
+          null, whenList, SqlNodeList.of(oneLiteral), zeroLiteral);
+    }
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
