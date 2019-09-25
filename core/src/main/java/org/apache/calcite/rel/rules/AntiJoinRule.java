@@ -65,11 +65,11 @@ public class AntiJoinRule extends RelOptRule {
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
-    Project project = call.rel(0);
-    Filter filter = call.rel(1);
-    Join join = call.rel(2);
-    RelNode left = call.rel(3);
-    Aggregate aggregate = call.rel(4);
+    final Project project = call.rel(0);
+    final Filter filter = call.rel(1);
+    final Join join = call.rel(2);
+    final RelNode left = call.rel(3);
+    final Aggregate aggregate = call.rel(4);
 
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
@@ -92,9 +92,8 @@ public class AntiJoinRule extends RelOptRule {
       if (cond instanceof RexCall) {
         final RexCall rexCall = (RexCall) cond;
         if (rexCall.op == SqlStdOperatorTable.IS_NULL) {
-          final RexNode operand = rexCall.operands.get(0);
-          if (operand instanceof RexInputRef) {
-            final RexInputRef inputRef = (RexInputRef) operand;
+          if (rexCall.operands.get(0) instanceof RexInputRef) {
+            final RexInputRef inputRef = (RexInputRef) rexCall.operands.get(0);
             final int idxOnAggregate =
                 inputRef.getIndex() - left.getRowType().getFieldCount();
             if (!aggregate.getRowType().getFieldList()
@@ -134,10 +133,8 @@ public class AntiJoinRule extends RelOptRule {
     final ImmutableIntList newRightKeys = ImmutableIntList.copyOf(newRightKeyBuilder);
     relBuilder.push(aggregate.getInput());
 
-    final RexNode newCondition =
-        RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
-            joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys,
-            rexBuilder);
+    final RexNode newCondition = RelOptUtil.createEquiJoinCondition(relBuilder.peek(2, 0),
+        joinInfo.leftKeys, relBuilder.peek(2, 1), newRightKeys, rexBuilder);
     relBuilder.antiJoin(newCondition);
     if (!residualConditions.isEmpty()) {
       relBuilder.filter(RexUtil.composeConjunction(rexBuilder, residualConditions));
