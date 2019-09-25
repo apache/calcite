@@ -16,10 +16,13 @@
  */
 
 /**
- * <h1>SQL Implicit Type Cast</h1>
- * <h2>Work Flow</h2>
- * This package contains rules for implicit type coercion, it works during the process of sql
- * validation. The transformation entrance are all kinds of checkers. i.e.
+ * <h2>SQL Implicit Type Cast</h2>
+ *
+ * <h3>Work Flow</h3>
+ *
+ * <p>This package contains rules for implicit type coercion, it works during
+ * the process of SQL validation. The transformation entrance are all kinds of
+ * checkers. i.e.
  * {@link org.apache.calcite.sql.type.AssignableOperandTypeChecker AssignableOperandTypeChecker},
  * {@link org.apache.calcite.sql.type.ComparableOperandTypeChecker ComparableOperandTypeChecker}
  * {@link org.apache.calcite.sql.type.CompositeOperandTypeChecker CompositeOperandTypeChecker},
@@ -52,9 +55,11 @@
  * eagerly here: the result expression would be transformed to "1 &gt; cast('1' as int)" and
  * the result would be true.
  *
- * <h2>Conversion SQL Contexts</h2>
- * The supported conversion contexts are:
+ * <h3>Conversion SQL Contexts</h3>
+ *
+ * <p>The supported conversion contexts are:
  * <a href="https://docs.google.com/document/d/1g2RUnLXyp_LjUlO-wbblKuP5hqEu3a_2Mt2k4dh6RwU/edit?usp=sharing">Conversion Expressions</a>
+ *
  * <p>Strategies for Finding Common Type:</p>
  * <ul>
  *   <li>If the operator has expected data types, just take them as the desired one. i.e. the UDF.
@@ -70,8 +75,9 @@
  *   or promote to STRING.</li>
  * </ul>
  *
- * <h2>Type Conversion Matrix</h2>
- * See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
+ * <h3>Type Conversion Matrix</h3>
+ *
+ * <p>See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>.
  */
 @PackageMarker
 package org.apache.calcite.sql.validate.implicit;

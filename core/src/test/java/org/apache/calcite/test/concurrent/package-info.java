@@ -31,9 +31,9 @@
  * <code>mtsql</code> format, as described below. An instance of
  * <code>ConcurrentCommandScript</code> parses and executes a script.</p>
  *
- * <h3>Script Format</h3>
+ * <h2>Script Format</h2>
  *
- * <h4>Syntax:</h4>
+ * <h3>Syntax:</h3>
  *
  * <p>The syntactic structure of an <i>mtsql</i> script is:
  *
@@ -62,14 +62,14 @@
  *     can
  *     span lines and ends with a semicolon.
  *
- * <h4>Semantics:</h4>
+ * <h3>Semantics:</h3>
  *
  * <p>Running a section means running its commands in sequence.
  *     First the setup section (if any) is run.
  *     Next all the thread sections are run at once, each in its own thread.
  *     When all these threads complete, the cleanup section (if any) is run.
  *
- * <h4>Synchronization:</h4>
+ * <h3>Synchronization:</h3>
  *
  * <p>The threads are synchronized by inserting synchronization points
  * (&#64;sync).</p>
@@ -88,7 +88,7 @@
  * antonym &#64;enable.</p>
  *
  *
- * <h4>Error handling: </h4>
+ * <h3>Error handling:</h3>
  *
  * <p>When a sql command fails, the rest of its section is skipped. However, if
  * the attribute <i>force</i> is true the error is ignored, and the section
@@ -103,7 +103,7 @@
  * cleanup section runs. If the setup section quits, then only the cleanup
  * section is run.</p>
  *
- * <h4>Basic Commands (allowed in any section):</h4>
+ * <h3>Basic Commands (allowed in any section):</h3>
  *
  * <blockquote><pre>
  * &lt;SQL statement&gt;:
@@ -116,7 +116,7 @@
  *   Inclusions may nest.
  * </pre></blockquote>
  *
- * <h4>Threaded Commands (allowed only in a &#64;thread section):</h4>
+ * <h3>Threaded Commands (allowed only in a &#64;thread section):</h3>
  *
  * <blockquote><pre>
  * &#64;sleep N        -- thread sleeps for N milliseconds
@@ -163,7 +163,7 @@
  *     line ends with a single '\'.
  * </pre></blockquote>
  *
- * <h4>Substituted Variables</h4>
+ * <h3>Substituted Variables</h3>
  *
  * <p>Needed mainly to pass arguments to the command of &#64;shell, but also
  *     useful to
@@ -191,7 +191,7 @@
  *     different value when the script is run, by employing a phrase
  *     VAR=VALUE on the mtsql command line.</p>
  *
- * <h4>Stand-Alone Tool</h4>
+ * <h3>Stand-Alone Tool</h3>
  *
  * <p>A command-line tool that runs an mtsql script against a specified JDBC
  *     connection,a nd prints the query results. (But see &#64;print command to
@@ -208,7 +208,7 @@
  *     declared at the beginning of the script(s) in a &#64;var command.</p>
  *
  *
- * <h4>Example Script</h4>
+ * <h3>Example Script</h3>
  *
  * <blockquote><pre>-- redundant:
  * &#64;nolockstep
