@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -3533,6 +3534,13 @@ public class SqlParserTest {
     sql("explain plan with type for (values (true))")
         .ok("EXPLAIN PLAN INCLUDING ATTRIBUTES WITH TYPE FOR\n"
             + "(VALUES (ROW(TRUE)))");
+  }
+
+  @Test public void testExplainJsonFormat() {
+    final String sql = "explain plan as json for select * from emps";
+    TesterImpl tester = (TesterImpl) getTester();
+    SqlExplain sqlExplain = (SqlExplain) tester.parseStmtsAndHandleEx(sql).get(0);
+    assertEquals(sqlExplain.isJson(), true);
   }
 
   @Test public void testDescribeSchema() {
