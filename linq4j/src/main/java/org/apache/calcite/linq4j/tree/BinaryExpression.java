@@ -99,6 +99,29 @@ public class BinaryExpression extends Expression {
       default:
         throw cannotEvaluate();
       }
+    case Mod:
+      switch (primitive) {
+      case INT:
+        return (Integer) expression0.evaluate(evaluator) % (Integer) expression1
+            .evaluate(evaluator);
+      case SHORT:
+        return (Short) expression0.evaluate(evaluator) % (Short) expression1
+            .evaluate(evaluator);
+      case BYTE:
+        return (Byte) expression0.evaluate(evaluator) % (Byte) expression1
+            .evaluate(evaluator);
+      case FLOAT:
+        return (Float) expression0.evaluate(evaluator) % (Float) expression1
+            .evaluate(evaluator);
+      case DOUBLE:
+        return (Double) expression0.evaluate(evaluator)
+            % (Double) expression1.evaluate(evaluator);
+      case LONG:
+        return (Long) expression0.evaluate(evaluator)
+            % (Long) expression1.evaluate(evaluator);
+      default:
+        throw cannotEvaluate();
+      }
     case Equal:
       return expression0.evaluate(evaluator)
           .equals(expression1.evaluate(evaluator));

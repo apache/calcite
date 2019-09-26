@@ -322,6 +322,47 @@ public class ExpressionTest {
     assertEquals(3.0f, n, 0f);
   }
 
+  @Test public void testLambdaCallsBinaryMod() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+            Expressions.parameter(Integer.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 1 to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+            Expressions.mod(
+                    paramExpr,
+                    Expressions.constant(2)),
+            Arrays.asList(paramExpr));
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+            "new org.apache.calcite.linq4j.function.Function1() {\n"
+                    + "  public int apply(int arg) {\n"
+                    + "    return arg % 2;\n"
+                    + "  }\n"
+                    + "  public Object apply(Integer arg) {\n"
+                    + "    return apply(\n"
+                    + "      arg.intValue());\n"
+                    + "  }\n"
+                    + "  public Object apply(Object arg) {\n"
+                    + "    return apply(\n"
+                    + "      (Integer) arg);\n"
+                    + "  }\n"
+                    + "}\n",
+            s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 3
+    Integer n = (Integer) lambdaExpr.compile().dynamicInvoke(3);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg % 2)
+    // 1
+    assertEquals(1, n, 0);
+  }
+
   @Test public void testLambdaPrimitiveTwoArgs() {
     // Parameters for the lambda expression.
     ParameterExpression paramExpr =
