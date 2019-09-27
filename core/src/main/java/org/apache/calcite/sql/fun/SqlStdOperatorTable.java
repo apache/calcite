@@ -2252,9 +2252,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
         }
       };
 
-  /** The {@code TUMBLE} group function. */
+  /** The {@code TUMBLE} group function.
+   * This operator is renamed to "$TUMBLE" because TUMBLE is added to parser and
+   * "$" means TUMBLE will not be looked up by name. The real motivation of adding
+   * TUMBLE to parser is that, we are planning to support TUMBLE as a table
+   * function(see [CALCITE-3272]). It turns out that it will require non-trivial changes
+   * to reuse "TUMBLE" as operator names for both TUMBLE group function and TUMBLE
+   * table function. Thus the resolution is to let parser recognize TUMBLE group function
+   * so that TUMBLE group function can be renamed. "TUMBLE" as a name will only be used by
+   * TUMBLE table function. This design also makes TUMBLE group function deprecation easier
+   * as TUMBLE group function should be deprecated after its replacement(TUMBLE table
+   * function) is mature. See [CALCITE-3340] for more context about this design.
+   */
   public static final SqlGroupedWindowFunction TUMBLE =
-      new SqlGroupedWindowFunction(SqlKind.TUMBLE.name(), SqlKind.TUMBLE,
+      new SqlGroupedWindowFunction("$TUMBLE", SqlKind.TUMBLE,
           null, ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_TIME),

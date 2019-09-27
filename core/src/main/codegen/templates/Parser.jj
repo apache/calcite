@@ -5267,6 +5267,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayFunctionCall() { return node; }
     |
         node = JsonArrayAggFunctionCall() { return node; }
+    |
+        node = GroupByWindowingCall() { return node; }
     )
 }
 
@@ -5837,6 +5839,40 @@ SqlCall TimestampDiffFunctionCall() :
         return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
             s.end(this), args);
     }
+}
+
+SqlCall GroupByWindowingCall():
+{
+    final Span s;
+    List<SqlNode> args = new ArrayList<SqlNode>();
+    SqlNode e;
+}
+{
+    <TUMBLE> { s = span(); }
+    <LPAREN>
+    (
+        e =  SimpleIdentifier() {
+            args.add(e);
+        }
+    |
+        e = DateTimeLiteral() {
+            args.add(e);
+        }
+    )
+    <COMMA>
+    e = IntervalLiteral() {
+        args.add(e);
+    }
+    (
+        <COMMA>
+        e = DateTimeLiteral() {
+            args.add(e);
+        }
+    )?
+    <RPAREN> {
+        return SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
+    }
+
 }
 
 SqlCall MatchRecognizeFunctionCall() :
@@ -7121,6 +7157,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
 |   < UNBOUNDED: "UNBOUNDED" >

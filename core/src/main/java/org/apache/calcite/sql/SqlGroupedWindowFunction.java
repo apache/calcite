@@ -128,6 +128,16 @@ public class SqlGroupedWindowFunction extends SqlFunction {
     // make the method abstract.
     return call.getOperandMonotonicity(0).unstrict();
   }
+
+  // Should return "TUMBLE" as the operator name for {@code TUMBLE} group function.
+  @Override public String getName() {
+    String opName = super.getName();
+    if (opName.equals("$TUMBLE")) {
+      return getKind().name();
+    } else {
+      return opName;
+    }
+  }
 }
 
 // End SqlGroupedWindowFunction.java

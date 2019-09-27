@@ -978,6 +978,8 @@ public enum SqlKind {
   // Group functions
 
   /** The {@code TUMBLE} group function. */
+  // TODO: Change comments here when CALCITE-3272 is done.
+  // TUMBLE will be table-value function.
   TUMBLE,
 
   /** The {@code TUMBLE_START} auxiliary function of
