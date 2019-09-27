@@ -17,11 +17,13 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -40,6 +42,7 @@ import com.google.common.collect.ImmutableSet;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
@@ -711,6 +714,53 @@ public class RexBuilderTest {
     assertThat(result.getOffset(), is(node.getOffset()));
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
     assertThat(result.getType().getPrecision(), is(PRECISION));
+  }
+
+  @Test public void testGetValueAsString() throws UnsupportedEncodingException {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType binaryType = typeFactory.createSqlType(SqlTypeName.BINARY);
+
+    final RexLiteral decimalLiteral = builder.makeBigintLiteral(new BigDecimal("10"));
+    assertThat(decimalLiteral.getValueAs(String.class), is("10"));
+
+    final RexLiteral intLiteral = (RexLiteral) builder.makeLiteral(10, intType, true);
+    assertThat(intLiteral.getValueAs(String.class), is("10"));
+
+    final RexLiteral binaryLiteral = (RexLiteral) builder.makeLiteral(
+        new ByteString("10".getBytes("UTF-8")), binaryType, false);
+    byte[] bytes = binaryLiteral.getValueAs(byte[].class);
+    assertThat(new ByteString(bytes).toString(), is("3130"));
+    assertThat(binaryLiteral.getValueAs(String.class), is("3130"));
+
+    final RexLiteral dateLiteral = builder.makeDateLiteral(new DateString("2019-09-29"));
+    assertThat(dateLiteral.getValueAs(String.class), is("2019-09-29"));
+
+    final RexLiteral timeLiteral = builder.makeTimeLiteral(new TimeString("14:58:03"), 0);
+    assertThat(timeLiteral.getValueAs(String.class), is("14:58:03"));
+
+    final RexLiteral timeWithLocalZoneLiteral =
+        builder.makeTimeWithLocalTimeZoneLiteral(new TimeString("14:58:03"), 0);
+    assertThat(timeWithLocalZoneLiteral.getValueAs(String.class), is("14:58:03"));
+
+    final RexLiteral timestampLiteral =
+        builder.makeTimestampLiteral(new TimestampString("2019-09-29 14:58:03"), 0);
+    assertThat(timestampLiteral.getValueAs(String.class), is("2019-09-29 14:58:03"));
+
+    final RexLiteral timestampWithLocalZoneLiteral = builder
+        .makeTimestampWithLocalTimeZoneLiteral(new TimestampString("2019-09-29 14:58:03"), 0);
+    assertThat(timestampWithLocalZoneLiteral.getValueAs(String.class), is("2019-09-29 14:58:03"));
+
+    final RexLiteral intervalLiteral = builder.makeIntervalLiteral(
+        new BigDecimal("86400"),
+        new SqlIntervalQualifier(
+            TimeUnit.SECOND,
+            TimeUnit.SECOND,
+            SqlParserPos.ZERO));
+    assertThat(intervalLiteral.getValueAs(Integer.class).toString(), is("86400"));
+    assertThat(intervalLiteral.getValueAs(String.class), is("86.4"));
   }
 
   private void checkBigDecimalLiteral(RexBuilder builder, String val) {

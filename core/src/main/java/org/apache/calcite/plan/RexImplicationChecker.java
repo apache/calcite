@@ -28,6 +28,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -463,7 +465,7 @@ public class RexImplicationChecker {
 
     private void updateUnaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = RexUtil.removeCast(operands.get(0));
+      RexNode first = removeCastIfCastable(operands.get(0));
 
       if (first.isA(SqlKind.INPUT_REF)) {
         updateUsage(call.getOperator(), (RexInputRef) first, null);
@@ -472,8 +474,8 @@ public class RexImplicationChecker {
 
     private void updateBinaryOpUsage(RexCall call) {
       final List<RexNode> operands = call.getOperands();
-      RexNode first = RexUtil.removeCast(operands.get(0));
-      RexNode second = RexUtil.removeCast(operands.get(1));
+      RexNode first = removeCastIfCastable(operands.get(0));
+      RexNode second = removeCastIfCastable(operands.get(1));
 
       if (first.isA(SqlKind.INPUT_REF)
           && second.isA(SqlKind.LITERAL)) {
@@ -484,6 +486,21 @@ public class RexImplicationChecker {
           && second.isA(SqlKind.INPUT_REF)) {
         updateUsage(reverse(call.getOperator()), (RexInputRef) second, first);
       }
+    }
+
+    /**
+     * Removes cast if raw type can be cast to target type.
+     */
+    private RexNode removeCastIfCastable(RexNode rexNode) {
+      RelDataType toType = rexNode.getType();
+      RexNode origin = RexUtil.removeCast(rexNode);
+      if (SqlTypeUtil.canCastFrom(toType, origin.getType(), true)) {
+        return origin;
+      }
+      throw new UnsupportedOperationException(
+          String.format(
+              Locale.ROOT, "Cannot cast %s to %s",
+              origin.getType().getSqlTypeName(), toType.getSqlTypeName()));
     }
 
     private SqlOperator reverse(SqlOperator op) {
