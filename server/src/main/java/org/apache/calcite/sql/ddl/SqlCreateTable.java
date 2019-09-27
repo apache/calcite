@@ -207,7 +207,7 @@ public class SqlCreateTable extends SqlCreate
               int iColumn, InitializerContext context) {
             final ColumnDef c = columns.get(iColumn);
             if (c.expr != null) {
-              // REVIEW Danny 2019-10-09: Should we support validation for DDL nodes ?
+              // REVIEW Danny 2019-10-09: Should we support validation for DDL nodes?
               final SqlNode validated = context.validateExpression(storedRowType, c.expr);
               // The explicit specified type should have the same nullability
               // with the column expression inferred type,

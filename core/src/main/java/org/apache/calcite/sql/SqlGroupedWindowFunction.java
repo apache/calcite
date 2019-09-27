@@ -128,6 +128,13 @@ public class SqlGroupedWindowFunction extends SqlFunction {
     // make the method abstract.
     return call.getOperandMonotonicity(0).unstrict();
   }
+
+  @Override public String getName() {
+    // Always rename the name of the SqlKind. The tumble operator is called
+    // "$TUMBLE", so that it does not clash with a user-defined table function
+    // "TUMBLE", but we want the name to be "TUMBLE".
+    return getKind().name();
+  }
 }
 
 // End SqlGroupedWindowFunction.java

@@ -821,6 +821,23 @@ SqlNodeList ParenthesizedQueryOrCommaListWithDefault(
 }
 
 /**
+ * Parses function parameter lists.
+ * If the list starts with DISTINCT or ALL, it is discarded.
+ */
+List UnquantifiedFunctionParameterList(
+    ExprContext exprContext) :
+{
+    final List args;
+}
+{
+    args = FunctionParameterList(exprContext) {
+        final SqlLiteral quantifier = (SqlLiteral) args.get(0);
+        args.remove(0); // remove DISTINCT or ALL, if present
+        return args;
+    }
+}
+
+/**
  * Parses function parameter lists including DISTINCT keyword recognition,
  * DEFAULT, and named argument assignment.
  */
@@ -5267,6 +5284,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayFunctionCall() { return node; }
     |
         node = JsonArrayAggFunctionCall() { return node; }
+    |
+        node = GroupByWindowingCall() { return node; }
     )
 }
 
@@ -5836,6 +5855,22 @@ SqlCall TimestampDiffFunctionCall() :
     <RPAREN> {
         return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
             s.end(this), args);
+    }
+}
+
+/**
+ * Parses a call to a grouping function inside the GROUP BY clause,
+ * for example {@code TUMBLE(rowtime, INTERVAL '1' MINUTE)}.
+ */
+SqlCall GroupByWindowingCall():
+{
+    final Span s;
+    final List<SqlNode> args;
+}
+{
+    <TUMBLE> { s = span(); }
+    args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        return SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
     }
 }
 
@@ -7121,6 +7156,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
 |   < UNBOUNDED: "UNBOUNDED" >
