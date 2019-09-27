@@ -35,7 +35,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 public class HsqldbSqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
       new HsqldbSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HSQLDB));
+          .withDatabaseProduct(DatabaseProduct.HSQLDB)
+          .withCaseSensitive(false));
 
   /** Creates an HsqldbSqlDialect. */
   public HsqldbSqlDialect(Context context) {
