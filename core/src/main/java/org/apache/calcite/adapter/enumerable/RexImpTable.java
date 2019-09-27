@@ -2235,7 +2235,7 @@ public class RexImpTable {
    *
    * <p>Use this, as opposed to {@link MethodImplementor}, if the SQL function
    * is overloaded; then you can use one implementor for several overloads. */
-  private static class MethodNameImplementor implements NotNullImplementor {
+  public static class MethodNameImplementor implements NotNullImplementor {
     protected final String methodName;
 
     MethodNameImplementor(String methodName) {

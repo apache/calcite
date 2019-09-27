@@ -16,9 +16,17 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.Blocks;
+import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MemberDeclaration;
+import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -29,12 +37,25 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import static org.apache.calcite.adapter.enumerable.EnumUtils.BRIDGE_METHODS;
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_EXPRS;
+import static org.apache.calcite.adapter.enumerable.EnumUtils.NO_PARAMS;
 
 /** Implementation of {@link org.apache.calcite.rel.core.TableFunctionScan} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -61,28 +82,127 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    BlockBuilder bb = new BlockBuilder();
-     // Non-array user-specified types are not supported yet
-    final JavaRowFormat format;
-    if (getElementType() == null) {
-      format = JavaRowFormat.ARRAY;
-    } else if (rowType.getFieldCount() == 1 && isQueryable()) {
-      format = JavaRowFormat.SCALAR;
-    } else if (getElementType() instanceof Class
-        && Object[].class.isAssignableFrom((Class) getElementType())) {
-      format = JavaRowFormat.ARRAY;
+    if (getCall().getKind().equals(SqlKind.TUMBLE)) {
+      final JavaTypeFactory typeFactory = implementor.getTypeFactory();
+      final BlockBuilder builder = new BlockBuilder();
+      // TODO: only supports one input now. Can extend to multiple inputs when needed.
+      final EnumerableRel child = (EnumerableRel) getInputs().get(0);
+
+      final Result result =
+          implementor.visitChild(this, 0, child, pref);
+
+      final PhysType physType = PhysTypeImpl.of(
+          typeFactory, getRowType(), pref.prefer(result.format));
+
+      Type outputJavaType = physType.getJavaRowType();
+      final Type enumeratorType =
+          Types.of(Enumerator.class, outputJavaType);
+      Type inputJavaType = result.physType.getJavaRowType();
+      ParameterExpression inputEnumerator =
+          Expressions.parameter(
+              Types.of(Enumerator.class, inputJavaType), "inputEnumerator");
+      Expression input =
+          RexToLixTranslator.convert(
+              Expressions.call(
+                  inputEnumerator,
+                  BuiltInMethod.ENUMERATOR_CURRENT.method),
+              inputJavaType);
+
+      BlockStatement moveNextBody =
+          Blocks.toFunctionBlock(
+              Expressions.call(
+                  inputEnumerator,
+                  BuiltInMethod.ENUMERATOR_MOVE_NEXT.method));
+
+      final BlockBuilder builder3 = new BlockBuilder();
+      final SqlConformance conformance =
+          (SqlConformance) implementor.map.getOrDefault("_conformance",
+              SqlConformanceEnum.DEFAULT);
+
+      List<Expression> expressions =
+          RexToLixTranslator.translateTableFunction(
+              typeFactory,
+              conformance,
+              builder3,
+              DataContext.ROOT,
+              new RexToLixTranslator.InputGetterImpl(
+                  Collections.singletonList(
+                      Pair.of(input, result.physType))),
+              (RexCall) getCall(), getInputs().get(0));
+      builder3.add(Expressions.return_(null, physType.record(expressions)));
+      BlockStatement currentBody = builder3.toBlock();
+
+      final Expression inputEnumerable = builder.append(
+          "inputEnumerable", result.block, false);
+      final Expression body =
+          Expressions.new_(enumeratorType, NO_EXPRS,
+              Expressions.list(
+                  Expressions.fieldDecl(Modifier.PUBLIC | Modifier.FINAL,
+                      inputEnumerator,
+                      Expressions.call(
+                          inputEnumerable,
+                          BuiltInMethod.ENUMERABLE_ENUMERATOR.method)),
+                  EnumUtils.overridingMethodDecl(
+                      BuiltInMethod.ENUMERATOR_RESET.method,
+                      NO_PARAMS,
+                      Blocks.toFunctionBlock(
+                          Expressions.call(
+                              inputEnumerator,
+                              BuiltInMethod.ENUMERATOR_RESET.method))),
+                  EnumUtils.overridingMethodDecl(
+                      BuiltInMethod.ENUMERATOR_MOVE_NEXT.method,
+                      NO_PARAMS,
+                      moveNextBody),
+                  EnumUtils.overridingMethodDecl(
+                      BuiltInMethod.ENUMERATOR_CLOSE.method,
+                      NO_PARAMS,
+                      Blocks.toFunctionBlock(
+                          Expressions.call(
+                              inputEnumerator,
+                              BuiltInMethod.ENUMERATOR_CLOSE.method))),
+                  Expressions.methodDecl(
+                      Modifier.PUBLIC,
+                      BRIDGE_METHODS ? Object.class : outputJavaType, "current",
+                      NO_PARAMS,
+                      currentBody)));
+      builder.add(
+          Expressions.return_(null,
+              Expressions.new_(
+                  BuiltInMethod.ABSTRACT_ENUMERABLE_CTOR.constructor,
+                  NO_EXPRS,
+                  ImmutableList.<MemberDeclaration>of(
+                      Expressions.methodDecl(
+                          Modifier.PUBLIC,
+                          enumeratorType,
+                          BuiltInMethod.ENUMERABLE_ENUMERATOR.method.getName(),
+                          NO_PARAMS,
+                          Blocks.toFunctionBlock(body))))));
+
+      return implementor.result(physType, builder.toBlock());
     } else {
-      format = JavaRowFormat.CUSTOM;
+      BlockBuilder bb = new BlockBuilder();
+      // Non-array user-specified types are not supported yet
+      final JavaRowFormat format;
+      if (getElementType() == null) {
+        format = JavaRowFormat.ARRAY;
+      } else if (rowType.getFieldCount() == 1 && isQueryable()) {
+        format = JavaRowFormat.SCALAR;
+      } else if (getElementType() instanceof Class
+          && Object[].class.isAssignableFrom((Class) getElementType())) {
+        format = JavaRowFormat.ARRAY;
+      } else {
+        format = JavaRowFormat.CUSTOM;
+      }
+      final PhysType physType =
+          PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
+              false);
+      RexToLixTranslator t = RexToLixTranslator.forAggregation(
+          (JavaTypeFactory) getCluster().getTypeFactory(), bb, null,
+          implementor.getConformance());
+      t = t.setCorrelates(implementor.allCorrelateVariables);
+      bb.add(Expressions.return_(null, t.translate(getCall())));
+      return implementor.result(physType, bb.toBlock());
     }
-    final PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), format,
-            false);
-    RexToLixTranslator t = RexToLixTranslator.forAggregation(
-        (JavaTypeFactory) getCluster().getTypeFactory(), bb, null,
-        implementor.getConformance());
-    t = t.setCorrelates(implementor.allCorrelateVariables);
-    bb.add(Expressions.return_(null, t.translate(getCall())));
-    return implementor.result(physType, bb.toBlock());
   }
 
   private boolean isQueryable() {

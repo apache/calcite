@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.RexImpTable.MethodNameImplementor;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
@@ -32,6 +33,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexBuilder;
@@ -64,6 +66,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -168,6 +171,19 @@ public class RexToLixTranslator {
         null, null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
+  }
+
+  public static List<Expression> translateTableFunction(JavaTypeFactory typeFactory,
+                                                  SqlConformance conformance,
+                                                  BlockBuilder blockBuilder,
+                                                  Expression root,
+                                                  InputGetter inputGetter,
+                                                  RexCall rexCall,
+                                                  RelNode input) {
+    return new RexToLixTranslator(null, typeFactory, root, inputGetter,
+            blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+            null, null)
+            .translateTableFunctionCall(rexCall, input);
   }
 
   /** Creates a translator for translating aggregate functions. */
@@ -938,6 +954,49 @@ public class RexToLixTranslator {
       }
     }
     return list;
+  }
+
+  private List<Expression> translateTableFunctionCall(RexCall rexCall, RelNode input) {
+    if (rexCall.op.getKind() == SqlKind.TUMBLE) {
+      // construct a input ref over watermarked column.
+      // Before DESCRIPTOR is implemented, the second parameter of TUMBLE
+      // is a string, which is one of the column from input.
+      assert rexCall.getOperands().get(1) instanceof RexLiteral;
+      String watermarkedColumnName =
+          ((RexLiteral) rexCall.getOperands().get(1)).getValueAs(String.class);
+      int watermarkedColumnIndex = -1;
+      List<RexNode> schemaForwardInputRefs = new ArrayList<>();
+      for (int i = 0; i < input.getRowType().getFieldCount(); i++) {
+        if (watermarkedColumnName.equals(input.getRowType().getFieldNames().get(i))) {
+          watermarkedColumnIndex = i;
+        }
+        schemaForwardInputRefs.add(builder.makeInputRef(input, i));
+      }
+      assert watermarkedColumnIndex > -1
+          && watermarkedColumnIndex < input.getRowType().getFieldCount();
+
+      List<Expression> translatedOperands = translateList(schemaForwardInputRefs);
+
+      // convert the third parameter, which should be a literal for an interval.
+      assert rexCall.getOperands().get(2) instanceof RexLiteral;
+      Expression intervalExpression = translate(rexCall.getOperands().get(2));
+
+      List<Expression> translatedOperandsForTumble = new ArrayList<>();
+      translatedOperandsForTumble.add(translatedOperands.get(watermarkedColumnIndex));
+      translatedOperandsForTumble.add(intervalExpression);
+      // compute the window_start
+      MethodNameImplementor windowStartMethod = new MethodNameImplementor("tumbleWindowStart");
+      translatedOperands.add(
+          windowStartMethod.implement(this, rexCall, translatedOperandsForTumble));
+      // compute the window_end
+      MethodNameImplementor windowEndMethod = new MethodNameImplementor("tumbleWindowEnd");
+      translatedOperands.add(
+          windowEndMethod.implement(this, rexCall, translatedOperandsForTumble));
+
+      return translatedOperands;
+    } else {
+      return Arrays.asList(translate(rexCall));
+    }
   }
 
   public static Expression translateCondition(RexProgram program,
