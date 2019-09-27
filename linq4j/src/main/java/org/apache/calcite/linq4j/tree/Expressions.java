@@ -88,7 +88,7 @@ public abstract class Expressions {
 
   /**
    * Creates a BinaryExpression that represents an arithmetic
-   * mod operation that does not have overflow checking.
+   * mod operation.
    */
   public static BinaryExpression mod(Expression left, Expression right) {
     return makeBinary(ExpressionType.Mod, left, right);
