@@ -2485,6 +2485,24 @@ LogicalValues(tuples=[[{ 11, 1, 10 }, { 23, 3, 20 }]])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceValuesNull">
+        <Resource name="sql">
+            <![CDATA[insert into EMPNULLABLES(EMPNO, ENAME, JOB) (select 0, 'null', NULL)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[false])
+  LogicalProject(EMPNO=[0], ENAME=['null'], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
+    LogicalValues(tuples=[[{ 0 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[false])
+  LogicalValues(tuples=[[{ 0, 'null', null, null, null, null, null, null, null }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceValuesToEmpty">
         <Resource name="sql">
             <![CDATA[select a + b as x, b, a from (values (10, 1), (30, 7)) as t(a, b) where a - b < 0]]>
@@ -4781,11 +4799,19 @@ LogicalProject(ENAME=[$1])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-ProjectRel(DNAME=[$10], ENAME=[$1])
-  FilterRel(condition=[=($10, 'Propane')])
-    JoinRel(condition=[=($7, $9)], joinType=[inner])
-      TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      TableAccessRel(table=[[CATALOG, SALES, DEPT]])
+LogicalProject(DNAME=[$10], ENAME=[$1])
+  LogicalFilter(condition=[=($10, 'Propane')])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalCalc(expr#0..10=[{inputs}], expr#11=[=($t7, $t9)], expr#12=['Propane':VARCHAR(10)], expr#13=[=($t10, $t12)], expr#14=[AND($t11, $t13)], DNAME=[$t10], ENAME=[$t1], $condition=[$t14])
+  LogicalJoin(condition=[true], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>
@@ -5014,11 +5040,20 @@ LogicalProject(ENAME=[$1])
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-UnionRel(all=[true])
-  ProjectRel(EXPR$0=[UPPER($1)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
-  ProjectRel(EXPR$0=[LOWER($1)])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalUnion(all=[true])
+  LogicalProject(EXPR$0=[UPPER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[LOWER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[UPPER($t1)], EXPR$0=[$t9])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(EXPR$0=[LOWER($1)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -5070,7 +5105,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
     </TestCase>
     <TestCase name="testTransitiveInferenceJoin">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno where e.deptno > 7]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno where e.deptno > 7]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5094,7 +5130,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceProject">
         <Resource name="sql">
-            <![CDATA[select 1 from (select * from sales.emp where deptno > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from (select * from sales.emp where deptno > 7) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5120,7 +5157,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceAggregate">
         <Resource name="sql">
-            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7
+group by deptno) d inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5148,7 +5186,10 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceUnion">
         <Resource name="sql">
-            <![CDATA[select 1 from (select deptno from sales.emp where deptno > 7 union all select deptno from sales.emp where deptno > 10) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from
+(select deptno from sales.emp where deptno > 7
+union all select deptno from sales.emp where deptno > 10) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5182,7 +5223,10 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceJoin3way">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno  where d.deptno > 7]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno
+inner join sales.emp f on e.deptno = f.deptno
+where d.deptno > 7]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5212,12 +5256,11 @@ LogicalProject(EXPR$0=[1])
     <TestCase name="testTransitiveInferenceUnionAlwaysTrue">
         <Resource name="sql">
             <![CDATA[select d.deptno, e.deptno from
-                (select deptno from sales.emp where deptno < 4) d
-            inner join
-                (select deptno from sales.emp where deptno > 7
-                union all
-                select deptno from sales.emp) e
-            on d.deptno = e.deptno ]]>
+(select deptno from sales.emp where deptno < 4) d
+inner join
+(select deptno from sales.emp where deptno > 7
+union all select deptno from sales.emp) e
+on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5253,8 +5296,10 @@ LogicalProject(DEPTNO=[$0], DEPTNO0=[$1])
     </TestCase>
     <TestCase name="testTransitiveInferenceJoin3wayAgg">
         <Resource name="sql">
-            <![CDATA[select 1 from (select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d inner join
-            sales.emp e on d.deptno = e.deptno inner join sales.emp f on e.deptno = f.deptno ]]>
+            <![CDATA[select 1 from
+(select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d
+inner join sales.emp e on d.deptno = e.deptno
+inner join sales.emp f on e.deptno = f.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5287,7 +5332,9 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceLeftOuterJoin">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d left outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+            <![CDATA[select 1 from sales.emp d
+left outer join sales.emp e on d.deptno = e.deptno
+where d.deptno > 7 and e.deptno > 9]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5313,7 +5360,9 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceRightOuterJoin">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d right outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+            <![CDATA[select 1 from sales.emp d
+right outer join sales.emp e on d.deptno = e.deptno
+where d.deptno > 7 and e.deptno > 9]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5339,7 +5388,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceFullOuterJoin">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d full outer join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
+            <![CDATA[select 1 from sales.emp d full outer join sales.emp e
+on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5362,7 +5412,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferencePreventProjectPullUp">
         <Resource name="sql">
-            <![CDATA[select 1 from (select comm as deptno from sales.emp where deptno > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from (select comm as deptno from sales.emp where deptno > 7) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5387,7 +5438,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferencePullUpThruAlias">
         <Resource name="sql">
-            <![CDATA[select 1 from (select comm as deptno from sales.emp where comm > 7) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from (select comm as deptno from sales.emp where comm > 7) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5413,7 +5465,9 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceConjunctInPullUp">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno in (7, 9) or d.deptno > 10]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno
+where d.deptno in (7, 9) or d.deptno > 10]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5437,7 +5491,9 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceNoPullUpExprs">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno in (7, 9) or d.comm > 10]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno
+where d.deptno in (7, 9) or d.comm > 10]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5460,7 +5516,13 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceUnion3way">
         <Resource name="sql">
-            <![CDATA[select 1 from (select deptno from sales.emp where deptno > 7 union all select deptno from sales.emp where deptno > 10 union all select deptno from sales.emp where deptno > 1) d inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from
+(select deptno from sales.emp where deptno > 7
+union all
+select deptno from sales.emp where deptno > 10
+union all
+select deptno from sales.emp where deptno > 1) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5502,55 +5564,55 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceUnion3wayOr">
         <Resource name="sql">
-            <![CDATA[
-select 1 from (
-    select empno, deptno from sales.emp where deptno > 7 or empno < 10
-    union all
-    select empno, deptno from sales.emp where deptno > 10 or empno < deptno
-    union all
-    select empno, deptno from sales.emp where deptno > 1) d
-inner join sales.emp e on d.deptno = e.deptno ]]>
+            <![CDATA[select 1 from
+(select empno, deptno from sales.emp where deptno > 7 or empno < 10
+union all
+select empno, deptno from sales.emp where deptno > 10 or empno < deptno
+union all
+select empno, deptno from sales.emp where deptno > 1) d
+inner join sales.emp e on d.deptno = e.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-ProjectRel(EXPR$0=[1])
-  JoinRel(condition=[=($1, $9)], joinType=[inner])
-    UnionRel(all=[true])
-      UnionRel(all=[true])
-        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-          FilterRel(condition=[OR(>($7, 7), <($0, 10))])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-          FilterRel(condition=[OR(>($7, 10), <($0, $7))])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-        FilterRel(condition=[>($7, 1)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($1, $9)], joinType=[inner])
+    LogicalUnion(all=[true])
+      LogicalUnion(all=[true])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalFilter(condition=[OR(>($7, 7), <($0, 10))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalFilter(condition=[OR(>($7, 10), <($0, $7))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalFilter(condition=[>($7, 1)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-ProjectRel(EXPR$0=[1])
-  JoinRel(condition=[=($1, $9)], joinType=[inner])
-    UnionRel(all=[true])
-      UnionRel(all=[true])
-        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-          FilterRel(condition=[OR(>($7, 7), <($0, 10))])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-        ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-          FilterRel(condition=[OR(>($7, 10), <($0, $7))])
-            TableAccessRel(table=[[CATALOG, SALES, EMP]])
-      ProjectRel(EMPNO=[$0], DEPTNO=[$7])
-        FilterRel(condition=[>($7, 1)])
-          TableAccessRel(table=[[CATALOG, SALES, EMP]])
-    TableAccessRel(table=[[CATALOG, SALES, EMP]])
+LogicalProject(EXPR$0=[1])
+  LogicalJoin(condition=[=($1, $9)], joinType=[inner])
+    LogicalUnion(all=[true])
+      LogicalUnion(all=[true])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalFilter(condition=[OR(>($7, 7), <($0, 10))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+          LogicalFilter(condition=[OR(>($7, 10), <($0, $7))])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], DEPTNO=[$7])
+        LogicalFilter(condition=[>($7, 1)])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testTransitiveInferenceConstantEquiPredicate">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where 1 = 1]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno  where 1 = 1]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5594,7 +5656,10 @@ ProjectRel(EXPR$0=[1])
     </TestCase>
     <TestCase name="testTransitiveInferenceComplexPredicate">
         <Resource name="sql">
-            <![CDATA[select 1 from sales.emp d inner join sales.emp e on d.deptno = e.deptno  where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno and d.comm + d.deptno > d.comm/2]]>
+            <![CDATA[select 1 from sales.emp d
+inner join sales.emp e on d.deptno = e.deptno
+where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno
+and d.comm + d.deptno > d.comm/2]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5620,7 +5685,8 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testPullConstantIntoProject">
         <Resource name="sql">
-            <![CDATA[select deptno, deptno + 1, empno + deptno from sales.emp where deptno = 10]]>
+            <![CDATA[select deptno, deptno + 1, empno + deptno
+from sales.emp where deptno = 10]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -5639,7 +5705,8 @@ LogicalProject(DEPTNO=[10], EXPR$1=[11], EXPR$2=[+($0, 10)])
     </TestCase>
     <TestCase name="testPullConstantIntoFilter">
         <Resource name="sql">
-            <![CDATA[select * from (select * from sales.emp where deptno = 10) where deptno + 5 > empno]]>
+            <![CDATA[select * from (select * from sales.emp where deptno = 10)
+where deptno + 5 > empno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6130,8 +6197,7 @@ LogicalAggregate(group=[{0, 2}])
     </TestCase>
     <TestCase name="testSimplifyFilter">
         <Resource name="sql">
-            <![CDATA[select *
-from (select * from sales.emp where deptno > 10)
+            <![CDATA[select * from (select * from sales.emp where deptno > 10)
 where empno > 3 and deptno > 5]]>
         </Resource>
         <Resource name="planBefore">
@@ -6155,9 +6221,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testPullConstantIntoJoin">
         <Resource name="sql">
-            <![CDATA[select *
-    from (select * from sales.emp where empno = 10) as e
-    left join sales.dept as d on e.empno = d.deptno]]>
+            <![CDATA[select * from (select * from sales.emp where empno = 10) as e
+left join sales.dept as d on e.empno = d.deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -6183,9 +6248,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     </TestCase>
     <TestCase name="testPullConstantIntoJoin2">
         <Resource name="sql">
-            <![CDATA[select *
-    from (select * from sales.emp where empno = 10) as e
-    join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5]]>
+            <![CDATA[select * from (select * from sales.emp where empno = 10) as e
+join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -7568,6 +7632,26 @@ LogicalProject(QX=[CASE(=($0, 1), 1, IS NOT NULL(1), 2, null:INTEGER)])
             <![CDATA[
 LogicalProject(QX=[CAST(CASE(=($0, 1), 1, 2)):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testReduceCastsNullable">
+        <Resource name="sql">
+            <![CDATA[insert into sales.dept(deptno, name)
+select empno, cast(job as varchar(128)) from sales.EMPNULLABLES]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
+  LogicalProject(DEPTNO=[$0], NAME=[CAST($2):VARCHAR(128)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t2):VARCHAR(128)], expr#10=[CAST($t9):VARCHAR(10) NOT NULL], DEPTNO=[$t0], NAME=[$t10])
+    LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
         </Resource>
     </TestCase>

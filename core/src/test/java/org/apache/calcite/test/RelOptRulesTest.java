@@ -58,10 +58,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
-import org.apache.calcite.rel.metadata.ChainedRelMetadataProvider;
-import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
-import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateCaseToFilterRule;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateExtractProjectRule;
@@ -166,7 +162,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -179,9 +174,7 @@ import static org.apache.calcite.plan.RelOptRule.none;
 import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.apache.calcite.plan.RelOptRule.operandJ;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for rules in {@code org.apache.calcite.rel} and subpackages.
@@ -1873,14 +1866,13 @@ public class RelOptRulesTest extends RelOptTestBase {
     SqlToRelTestBase.assertValid(output);
   }
 
-  @Ignore("cycles")
   @Test public void testMergeFilterWithJoinCondition() throws Exception {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(TableScanRule.INSTANCE)
         .addRuleInstance(JoinExtractFilterRule.INSTANCE)
         .addRuleInstance(FilterToCalcRule.INSTANCE)
-        .addRuleInstance(CalcMergeRule.INSTANCE)
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(CalcMergeRule.INSTANCE)
         .build();
 
     checkPlanning(program,
@@ -2140,27 +2132,19 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).checkUnchanged();
   }
 
-  @Ignore("cycles")
   @Test public void testHeterogeneousConversion() throws Exception {
     // This one tests the planner's ability to correctly
     // apply different converters on top of a common
     // sub-expression.  The common sub-expression is the
     // reference to the table sales.emps.  On top of that
     // are two projections, unioned at the top.  For one
-    // of the projections, we force a Fennel implementation.
-    // For the other, we force a Java implementation.
-    // Then, we request conversion from Fennel to Java,
-    // and verify that it only applies to one usage of the
-    // table, not both (which would be incorrect).
+    // of the projections, transfer it to calc, for the other,
+    // keep it unchanged.
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(TableScanRule.INSTANCE)
-        .addRuleInstance(ProjectToCalcRule.INSTANCE)
-
-            // Control the calc conversion.
+        // Control the calc conversion.
         .addMatchLimit(1)
-
-            // Let the converter rule fire to its heart's content.
-        .addMatchLimit(HepProgram.MATCH_UNTIL_FIXPOINT)
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
         .build();
 
     checkPlanning(program,
@@ -2934,7 +2918,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkPlanning(program, sql);
   }
 
-  @Ignore // Calcite does not support INSERT yet
   @Test public void testReduceValuesNull() throws Exception {
     // The NULL literal presents pitfalls for value-reduction. Only
     // an INSERT statement contains un-CASTed NULL values.
@@ -2942,7 +2925,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ValuesReduceRule.PROJECT_INSTANCE)
         .build();
     checkPlanning(program,
-        "insert into sales.depts(deptno,name) values (NULL, 'null')");
+        "insert into EMPNULLABLES(EMPNO, ENAME, JOB) (select 0, 'null', NULL)");
   }
 
   @Test public void testReduceValuesToEmpty() throws Exception {
@@ -3244,7 +3227,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     }
   }
 
-  @Ignore // Calcite does not support INSERT yet
   @Test public void testReduceCastsNullable() throws Exception {
     HepProgram program = new HepProgramBuilder()
 
@@ -3260,8 +3242,8 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(ReduceExpressionsRule.CALC_INSTANCE)
         .build();
     checkPlanning(program,
-        "insert into sales.depts(name) "
-            + "select cast(gender as varchar(128)) from sales.emps");
+        "insert into sales.dept(deptno, name) "
+            + "select empno, cast(job as varchar(128)) from sales.empnullables");
   }
 
   private void basePushAggThroughUnion() throws Exception {
@@ -3660,138 +3642,192 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  private void transitiveInference(RelOptRule... extraRules) throws Exception {
-    final DiffRepository diffRepos = getDiffRepos();
-    final String sql = diffRepos.expand(null, "${sql}");
-
+  /**
+   * Create a {@link HepProgram} with common transitive rules.
+   */
+  private HepProgram getTransitiveProgram() {
     final HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterJoinRule.DUMB_FILTER_ON_JOIN)
         .addRuleInstance(FilterJoinRule.JOIN)
         .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
         .addRuleInstance(FilterSetOpTransposeRule.INSTANCE)
         .build();
-    final HepPlanner planner = new HepPlanner(program);
-
-    final RelRoot root = tester.convertSqlToRel(sql);
-    final RelNode relInitial = root.rel;
-
-    assertThat(relInitial, notNullValue());
-
-    List<RelMetadataProvider> list = new ArrayList<>();
-    list.add(DefaultRelMetadataProvider.INSTANCE);
-    planner.registerMetadataProviders(list);
-    RelMetadataProvider plannerChain = ChainedRelMetadataProvider.of(list);
-    relInitial.getCluster().setMetadataProvider(
-        new CachingRelMetadataProvider(plannerChain, planner));
-
-    planner.setRoot(relInitial);
-    RelNode relBefore = planner.findBestExp();
-
-    String planBefore = NL + RelOptUtil.toString(relBefore);
-    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-
-    HepProgram program2 = new HepProgramBuilder()
-        .addMatchOrder(HepMatchOrder.BOTTOM_UP)
-        .addRuleInstance(FilterJoinRule.DUMB_FILTER_ON_JOIN)
-        .addRuleInstance(FilterJoinRule.JOIN)
-        .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-        .addRuleInstance(FilterSetOpTransposeRule.INSTANCE)
-        .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
-        .addRuleCollection(Arrays.asList(extraRules))
-        .build();
-    final HepPlanner planner2 = new HepPlanner(program2);
-    planner.registerMetadataProviders(list);
-    planner2.setRoot(relBefore);
-    RelNode relAfter = planner2.findBestExp();
-
-    String planAfter = NL + RelOptUtil.toString(relAfter);
-    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    return program;
   }
 
   @Test public void testTransitiveInferenceJoin() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno where e.deptno > 7";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceProject() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from (select * from sales.emp where deptno > 7) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceAggregate() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from (select deptno, count(*) from sales.emp where deptno > 7\n"
+        + "group by deptno) d inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceUnion() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from\n"
+        + "(select deptno from sales.emp where deptno > 7\n"
+        + "union all select deptno from sales.emp where deptno > 10) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceJoin3way() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno\n"
+        + "inner join sales.emp f on e.deptno = f.deptno\n"
+        + "where d.deptno > 7";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceJoin3wayAgg() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from\n"
+        + "(select deptno, count(*) from sales.emp where deptno > 7 group by deptno) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno\n"
+        + "inner join sales.emp f on e.deptno = f.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceLeftOuterJoin() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "left outer join sales.emp e on d.deptno = e.deptno\n"
+        + "where d.deptno > 7 and e.deptno > 9";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceRightOuterJoin() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "right outer join sales.emp e on d.deptno = e.deptno\n"
+        + "where d.deptno > 7 and e.deptno > 9";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceFullOuterJoin() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d full outer join sales.emp e\n"
+        + "on d.deptno = e.deptno  where d.deptno > 7 and e.deptno > 9";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
   }
 
   @Test public void testTransitiveInferencePreventProjectPullUp()
       throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from (select comm as deptno from sales.emp where deptno > 7) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
   }
 
   @Test public void testTransitiveInferencePullUpThruAlias() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from (select comm as deptno from sales.emp where comm > 7) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceConjunctInPullUp() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno\n"
+        + "where d.deptno in (7, 9) or d.deptno > 10";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceNoPullUpExprs() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno\n"
+        + "where d.deptno in (7, 9) or d.comm > 10";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
   }
 
   @Test public void testTransitiveInferenceUnion3way() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from\n"
+        + "(select deptno from sales.emp where deptno > 7\n"
+        + "union all\n"
+        + "select deptno from sales.emp where deptno > 10\n"
+        + "union all\n"
+        + "select deptno from sales.emp where deptno > 1) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
-  @Ignore("not working")
   @Test public void testTransitiveInferenceUnion3wayOr() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from\n"
+        + "(select empno, deptno from sales.emp where deptno > 7 or empno < 10\n"
+        + "union all\n"
+        + "select empno, deptno from sales.emp where deptno > 10 or empno < deptno\n"
+        + "union all\n"
+        + "select empno, deptno from sales.emp where deptno > 1) d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-443">[CALCITE-443]
    * getPredicates from a union is not correct</a>. */
   @Test public void testTransitiveInferenceUnionAlwaysTrue() throws Exception {
-    transitiveInference();
+    final String sql = "select d.deptno, e.deptno from\n"
+        + "(select deptno from sales.emp where deptno < 4) d\n"
+        + "inner join\n"
+        + "(select deptno from sales.emp where deptno > 7\n"
+        + "union all select deptno from sales.emp) e\n"
+        + "on d.deptno = e.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testTransitiveInferenceConstantEquiPredicate()
       throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno  where 1 = 1";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).checkUnchanged();
   }
 
   @Test public void testTransitiveInferenceComplexPredicate() throws Exception {
-    transitiveInference();
+    final String sql = "select 1 from sales.emp d\n"
+        + "inner join sales.emp e on d.deptno = e.deptno\n"
+        + "where d.deptno > 7 and e.sal = e.deptno and d.comm = d.deptno\n"
+        + "and d.comm + d.deptno > d.comm/2";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE).check();
   }
 
   @Test public void testPullConstantIntoProject() throws Exception {
-    transitiveInference(ReduceExpressionsRule.PROJECT_INSTANCE);
+    final String sql = "select deptno, deptno + 1, empno + deptno\n"
+        + "from sales.emp where deptno = 10";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE,
+            ReduceExpressionsRule.PROJECT_INSTANCE)
+        .check();
   }
 
   @Test public void testPullConstantIntoFilter() throws Exception {
-    transitiveInference(ReduceExpressionsRule.FILTER_INSTANCE);
+    final String sql = "select * from (select * from sales.emp where deptno = 10)\n"
+        + "where deptno + 5 > empno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE,
+            ReduceExpressionsRule.FILTER_INSTANCE)
+        .check();
   }
 
   /** Test case for
@@ -3799,17 +3835,35 @@ public class RelOptRulesTest extends RelOptTestBase {
    * Remove predicates from Filter if they can be proved to be always true or
    * false</a>. */
   @Test public void testSimplifyFilter() throws Exception {
-    transitiveInference(ReduceExpressionsRule.FILTER_INSTANCE);
+    final String sql = "select * from (select * from sales.emp where deptno > 10)\n"
+        + "where empno > 3 and deptno > 5";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE,
+            ReduceExpressionsRule.FILTER_INSTANCE)
+        .check();
   }
 
   @Test public void testPullConstantIntoJoin() throws Exception {
-    transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE);
+    final String sql = "select * from (select * from sales.emp where empno = 10) as e\n"
+        + "left join sales.dept as d on e.empno = d.deptno";
+    sql(sql).withPre(getTransitiveProgram())
+        .withRule(JoinPushTransitivePredicatesRule.INSTANCE,
+            ReduceExpressionsRule.JOIN_INSTANCE)
+        .check();
   }
 
   @Test public void testPullConstantIntoJoin2() throws Exception {
-    transitiveInference(ReduceExpressionsRule.JOIN_INSTANCE,
-        ReduceExpressionsRule.PROJECT_INSTANCE,
-        FilterProjectTransposeRule.INSTANCE);
+    final String sql = "select * from (select * from sales.emp where empno = 10) as e\n"
+        + "join sales.dept as d on e.empno = d.deptno and e.deptno + e.empno = d.deptno + 5";
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(JoinPushTransitivePredicatesRule.INSTANCE)
+        .addRuleCollection(
+            ImmutableList.of(
+                ReduceExpressionsRule.PROJECT_INSTANCE,
+                FilterProjectTransposeRule.INSTANCE,
+                ReduceExpressionsRule.JOIN_INSTANCE))
+        .build();
+    sql(sql).withPre(getTransitiveProgram()).with(program).check();
   }
 
   /** Test case for
