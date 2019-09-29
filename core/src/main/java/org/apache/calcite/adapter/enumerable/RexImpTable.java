@@ -88,6 +88,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.GreaterThanOrEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThan;
 import static org.apache.calcite.linq4j.tree.ExpressionType.LessThanOrEqual;
+import static org.apache.calcite.linq4j.tree.ExpressionType.Mod;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Multiply;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Not;
@@ -345,6 +346,7 @@ public class RexImpTable {
     defineBinary(PLUS, Add, NullPolicy.STRICT, "plus");
     defineBinary(MINUS, Subtract, NullPolicy.STRICT, "minus");
     defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
+    defineBinary(MOD, Mod, NullPolicy.STRICT, "mod");
     defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
     defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
     defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
