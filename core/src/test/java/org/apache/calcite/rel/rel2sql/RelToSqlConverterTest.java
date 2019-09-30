@@ -555,15 +555,15 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testGroupByAliasReplacementWithGroupByExpression() {
-    String query = "select (\"product_id\" + 1) as product_id, "
-        + "(\"product_id\" + 2) as prod_id, count(1) as num_records"
+    String query = "select \"product_class_id\" + \"product_id\" as product_id, "
+        + "\"product_id\" + 2 as prod_id, count(1) as num_records"
         + " from \"product\""
-        + " group by (\"product_id\" + 1), (\"product_id\" + 2)";
-    final String expected = "SELECT product_id + 1 AS PRODUCT_ID,"
+        + " group by \"product_class_id\" + \"product_id\", \"product_id\" + 2";
+    final String expected = "SELECT product_class_id + product_id AS PRODUCT_ID,"
         + " product_id + 2 AS PROD_ID,"
         + " COUNT(*) AS NUM_RECORDS\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY product_id + 1, PROD_ID";
+        + "GROUP BY product_class_id + product_id, PROD_ID";
     sql(query).withBigQuery().ok(expected);
   }
 
