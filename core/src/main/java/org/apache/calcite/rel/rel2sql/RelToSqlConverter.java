@@ -404,13 +404,12 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> list, String alias) {
-    boolean present = false;
     for (SqlIdentifier node : list) {
       if (node.toString().equalsIgnoreCase(alias)) {
-        present = true;
+        return true;
       }
     }
-    return present;
+    return false;
   }
 
   private void extractSqlIdentifiers(List<SqlIdentifier> list, SqlNode node) {
