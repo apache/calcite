@@ -367,11 +367,11 @@ public class RelToSqlConverter extends SqlImplementor
           && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
       } else if (isGroupByAlias) {
-        List<SqlIdentifier> list = new ArrayList<>();
+        List<SqlIdentifier> identifierList = new ArrayList<>();
         SqlNode node = builder.context.field(key);
         String alias = builder.context.field(key, true).toString();
-        extractSqlIdentifiers(list, node);
-        isGroupByAlias = !checkIfAliasMatchesIdentifier(list, alias);
+        extractSqlIdentifiers(identifierList, node);
+        isGroupByAlias = !checkIfAliasMatchesIdentifier(identifierList, alias);
       }
       SqlNode field = builder.context.field(key, isGroupByAlias);
       groupKeys.add(field);
@@ -404,8 +404,8 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> list, String alias) {
-    for (SqlIdentifier node : list) {
+  private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias) {
+    for (SqlIdentifier node : identifierList) {
       if (node.toString().equalsIgnoreCase(alias)) {
         return true;
       }
@@ -413,9 +413,9 @@ public class RelToSqlConverter extends SqlImplementor
     return false;
   }
 
-  private void extractSqlIdentifiers(List<SqlIdentifier> list, SqlNode node) {
+  private void extractSqlIdentifiers(List<SqlIdentifier> identifierList, SqlNode node) {
     if (node instanceof SqlIdentifier) {
-      list.add((SqlIdentifier) node);
+      identifierList.add((SqlIdentifier) node);
     } else if (node instanceof SqlCase) {
       SqlCase caseNode = (SqlCase) node;
       SqlNode exprNode = caseNode.getValueOperand();
@@ -423,19 +423,19 @@ public class RelToSqlConverter extends SqlImplementor
       SqlNodeList thenList = caseNode.getThenOperands();
       SqlNode elseNode = caseNode.getElseOperand();
       if (null != exprNode) {
-        extractSqlIdentifiers(list, exprNode);
+        extractSqlIdentifiers(identifierList, exprNode);
       }
       whenList.forEach(whenNode ->
-          extractSqlIdentifiers(list, whenNode));
+          extractSqlIdentifiers(identifierList, whenNode));
       thenList.forEach(thenNode ->
-          extractSqlIdentifiers(list, thenNode));
+          extractSqlIdentifiers(identifierList, thenNode));
       if (null != elseNode) {
-        extractSqlIdentifiers(list, elseNode);
+        extractSqlIdentifiers(identifierList, elseNode);
       }
     } else if (node instanceof SqlBasicCall) {
       List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
       nodeList.forEach(sqlNode ->
-          extractSqlIdentifiers(list, sqlNode));
+          extractSqlIdentifiers(identifierList, sqlNode));
     }
   }
 
