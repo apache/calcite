@@ -322,6 +322,30 @@ public class ExpressionTest {
     assertEquals(3.0f, n, 0f);
   }
 
+  @Test public void testLambdaCallsBinaryPowerInteger() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+            Expressions.parameter(Integer.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 2 to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+            Expressions.power(
+                    paramExpr,
+                    Expressions.constant(2)),
+            Arrays.asList(paramExpr));
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 3.
+    Double n = (Double) lambdaExpr.compile().dynamicInvoke(3);
+
+    // This code example produces the following output:
+    //
+    // arg => Math.pow(3,2)
+    // 9.0
+    assertEquals(9.0, n, 0);
+  }
+
   @Test public void testLambdaPrimitiveTwoArgs() {
     // Parameters for the lambda expression.
     ParameterExpression paramExpr =

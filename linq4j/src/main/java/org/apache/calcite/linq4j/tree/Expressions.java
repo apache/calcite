@@ -2272,7 +2272,7 @@ public abstract class Expressions {
    */
   // REVIEW: In Java this is a call to a lib function, Math.pow.
   public static BinaryExpression power(Expression left, Expression right) {
-    throw Extensions.todo();
+    return makeBinary(ExpressionType.Power, left, right);
   }
 
   /**

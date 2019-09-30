@@ -217,6 +217,23 @@ public class BinaryExpression extends Expression {
       default:
         throw cannotEvaluate();
       }
+    case Power:
+      switch (primitive) {
+        case INT:
+          return Math.pow((Integer)expression0.evaluate(evaluator), (Integer)expression1.evaluate(evaluator));
+        case SHORT:
+          return Math.pow((Short) expression0.evaluate(evaluator), (Short) expression1.evaluate(evaluator));
+        case BYTE:
+          return Math.pow((Byte) expression0.evaluate(evaluator), (Byte) expression1.evaluate(evaluator));
+        case FLOAT:
+          return Math.pow((Float) expression0.evaluate(evaluator), (Float) expression1.evaluate(evaluator));
+        case DOUBLE:
+          return Math.pow((Double) expression0.evaluate(evaluator), (Double) expression1.evaluate(evaluator));
+        case LONG:
+          return Math.pow((Long) expression0.evaluate(evaluator), (Long) expression1.evaluate(evaluator));
+        default:
+          throw cannotEvaluate();
+      }
     case NotEqual:
       return !expression0.evaluate(evaluator)
           .equals(expression1.evaluate(evaluator));
