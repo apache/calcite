@@ -81,6 +81,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
