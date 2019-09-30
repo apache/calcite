@@ -413,29 +413,29 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   private void extractSqlIdentifiers(List<SqlIdentifier> list, SqlNode node) {
-      if (node instanceof SqlIdentifier) {
-        list.add((SqlIdentifier) node);
-      } else if (node instanceof SqlCase) {
-        SqlCase caseNode = (SqlCase) node;
-        SqlNode exprNode = caseNode.getValueOperand();
-        SqlNodeList whenList = caseNode.getWhenOperands();
-        SqlNodeList thenList = caseNode.getThenOperands();
-        SqlNode elseNode = caseNode.getElseOperand();
-        if (null != exprNode) {
-          extractSqlIdentifiers(list, exprNode);
-        }
-        whenList.forEach(whenNode ->
-            extractSqlIdentifiers(list, whenNode));
-        thenList.forEach(thenNode ->
-            extractSqlIdentifiers(list, thenNode));
-        if (null != elseNode) {
-          extractSqlIdentifiers(list, elseNode);
-        }
-      } else if (node instanceof SqlBasicCall) {
-        List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
-        nodeList.forEach(sqlNode ->
-            extractSqlIdentifiers(list, sqlNode));
+    if (node instanceof SqlIdentifier) {
+      list.add((SqlIdentifier) node);
+    } else if (node instanceof SqlCase) {
+      SqlCase caseNode = (SqlCase) node;
+      SqlNode exprNode = caseNode.getValueOperand();
+      SqlNodeList whenList = caseNode.getWhenOperands();
+      SqlNodeList thenList = caseNode.getThenOperands();
+      SqlNode elseNode = caseNode.getElseOperand();
+      if (null != exprNode) {
+        extractSqlIdentifiers(list, exprNode);
       }
+      whenList.forEach(whenNode ->
+          extractSqlIdentifiers(list, whenNode));
+      thenList.forEach(thenNode ->
+          extractSqlIdentifiers(list, thenNode));
+      if (null != elseNode) {
+        extractSqlIdentifiers(list, elseNode);
+      }
+    } else if (node instanceof SqlBasicCall) {
+      List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
+      nodeList.forEach(sqlNode ->
+          extractSqlIdentifiers(list, sqlNode));
+    }
   }
 
   private SqlNode groupItem(List<SqlNode> groupKeys,
