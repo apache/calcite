@@ -11945,4 +11945,35 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT($0)], EXPR$2=[BIT_O
 ]]>
         </Resource>
     </TestCase>
+
+    <TestCase name="testProjectJoinTransposeItem">
+        <Resource name="sql">
+            <![CDATA[select t1.c_nationkey[0], t2.c_nationkey[0] from sales.customer as t1 left outer join sales.customer as t2 on t1.c_nationkey[0] = t2.c_nationkey[0]]]]>
+
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[ITEM($0, 0)], EXPR$1=[ITEM($2, 0)])
+  LogicalJoin(condition=[=($1, $3)], joinType=[left])
+    LogicalProject(C_NATIONKEY=[$0], $f1=[ITEM($0, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject(C_NATIONKEY=[$0], $f1=[ITEM($0, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(EXPR$0=[$1], EXPR$1=[$3])
+  LogicalJoin(condition=[=($0, $2)], joinType=[left])
+    LogicalProject($f1=[$1], ITEM=[ITEM($0, 0)])
+      LogicalProject(C_NATIONKEY=[$0], $f1=[ITEM($0, 0)])
+        LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+    LogicalProject($f1=[$1], ITEM=[ITEM($0, 0)])
+      LogicalProject(C_NATIONKEY=[$0], $f1=[ITEM($0, 0)])
+        LogicalTableScan(table=[[CATALOG, SALES, CUSTOMER]])
+]]>
+        </Resource>
+    </TestCase>
+
 </Root>
