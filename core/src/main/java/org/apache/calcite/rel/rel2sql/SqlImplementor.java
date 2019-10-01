@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
@@ -1145,9 +1146,11 @@ public abstract class SqlImplementor {
       clauseList.appendAll(clauses);
       Context newContext;
       final SqlNodeList selectList = select.getSelectList();
+      final RelNode relNode = rel;
       if (selectList != null) {
         boolean keepColumnAliasFinal = keepColumnAlias;
         newContext = new Context(dialect, selectList.size()) {
+
           public SqlNode field(int ordinal) {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
@@ -1170,6 +1173,22 @@ public abstract class SqlImplementor {
             }
             return selectItem;
           }
+
+          @Override public SqlImplementor implementor() {
+            final RelNode scalarSubQuery = relNode.accept(new RexShuttle() {
+              @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
+                if (subQuery.getOperator() == SqlStdOperatorTable.SCALAR_QUERY) {
+                  return subQuery;
+                }
+                return null;
+              }
+            });
+            if (scalarSubQuery != null) {
+              return SqlImplementor.this;
+            } else {
+              return super.implementor();
+            }
+          }
         };
       } else {
         boolean qualified =
@@ -1179,8 +1198,8 @@ public abstract class SqlImplementor {
         // if our aliases map has a single element:  <neededAlias, rowType>,
         // then we don't need to rewrite the alias but otherwise, it should be updated.
         if (needNew
-                && neededAlias != null
-                && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
+            && neededAlias != null
+            && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
           final Map<String, RelDataType> newAliases =
               ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
           newContext = aliasContext(newAliases, qualified);
