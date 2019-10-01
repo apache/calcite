@@ -626,6 +626,29 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   }
 
+  @Test public void testItemStrong() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+
+    final ImmutableBitSet c0 = ImmutableBitSet.of(0);
+    final RelDataType intArray = typeFactory.createArrayType(intType, -1);
+    RexInputRef inputRef = rexBuilder.makeInputRef(intArray, 0);
+
+    RexNode rexNode = item(inputRef, literal(0));
+
+    assertThat(Strong.isStrong(rexNode), is(true));
+
+    assertThat(Strong.isNull(rexNode, c0), is(true));
+
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType mapType = typeFactory.createMapType(varcharType, varcharType);
+
+    inputRef = rexBuilder.makeInputRef(mapType, 0);
+    rexNode = item(inputRef, literal("abc"));
+    assertThat(Strong.isStrong(rexNode), is(true));
+
+    assertThat(Strong.isNull(rexNode, c0), is(true));
+  }
+
   @Test public void xAndNotX() {
     checkSimplify2(
         and(vBool(), not(vBool()),

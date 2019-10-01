@@ -6313,6 +6313,18 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "bit_or(deptno) from emp";
     sql(sql).withRule(AggregateExpandDistinctAggregatesRule.INSTANCE).check();
   }
+
+  @Test public void testProjectJoinTransposeItem() {
+    ProjectJoinTransposeRule projectJoinTransposeRule =
+        new ProjectJoinTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+
+    String query = "select t1.c_nationkey[0], t2.c_nationkey[0] "
+        + "from sales.customer as t1 left outer join sales.customer as t2 "
+        + "on t1.c_nationkey[0] = t2.c_nationkey[0]";
+
+    sql(query).withTester(t -> createDynamicTester()).withRule(projectJoinTransposeRule).check();
+  }
+
 }
 
 // End RelOptRulesTest.java
