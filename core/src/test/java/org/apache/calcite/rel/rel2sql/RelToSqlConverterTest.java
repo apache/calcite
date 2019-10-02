@@ -816,6 +816,28 @@ public class RelToSqlConverterTest {
     sql(query).withHive().ok(expected);
   }
 
+  @Test public void testBigQueryCast() {
+    String query = "select cast(cast(\"employee_id\" as varchar) as bigint), "
+            + "cast(cast(\"employee_id\" as varchar) as varbinary), "
+            + "cast(cast(\"employee_id\" as varchar) as timestamp), "
+            + "cast(cast(\"employee_id\" as varchar) as double), "
+            + "cast(cast(\"employee_id\" as varchar) as decimal), "
+            + "cast(cast(\"employee_id\" as varchar) as date), "
+            + "cast(cast(\"employee_id\" as varchar) as time), "
+            + "cast(cast(\"employee_id\" as varchar) as boolean) "
+            + "from \"foodmart\".\"reserve_employee\" ";
+    final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS BYTES), "
+            + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
+            + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
+            + "CAST(CAST(employee_id AS STRING) AS NUMERIC), "
+            + "CAST(CAST(employee_id AS STRING) AS DATE), "
+            + "CAST(CAST(employee_id AS STRING) AS TIME), "
+            + "CAST(CAST(employee_id AS STRING) AS BOOL)\n"
+            + "FROM foodmart.reserve_employee";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
