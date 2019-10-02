@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -701,12 +702,15 @@ public class LoptMultiJoin {
     // references in the left factor.
     final RelNode left = getJoinFactor(leftFactor);
     final RelMetadataQuery mq = left.getCluster().getMetadataQuery();
-    final Map<Integer, Integer> leftFactorColMapping = new HashMap<>();
+    final Map<String, Integer> leftFactorColMapping = new HashMap<>();
     for (int i = 0; i < left.getRowType().getFieldCount(); i++) {
       final RelColumnOrigin colOrigin = mq.getColumnOrigin(left, i);
+      List<String> qualifiedNames = colOrigin.getOriginTable().getQualifiedName();
+      String key =
+          colOrigin.getOriginColumnOrdinal() + "#" + Arrays.toString(qualifiedNames.toArray());
       if (colOrigin != null) {
         leftFactorColMapping.put(
-            colOrigin.getOriginColumnOrdinal(),
+            key,
             i);
       }
     }
@@ -721,8 +725,11 @@ public class LoptMultiJoin {
       if (colOrigin == null) {
         continue;
       }
+      List<String> qualifiedNames = colOrigin.getOriginTable().getQualifiedName();
+      String key =
+          colOrigin.getOriginColumnOrdinal() + "#" + Arrays.toString(qualifiedNames.toArray());
       Integer leftOffset =
-          leftFactorColMapping.get(colOrigin.getOriginColumnOrdinal());
+          leftFactorColMapping.get(key);
       if (leftOffset == null) {
         continue;
       }
