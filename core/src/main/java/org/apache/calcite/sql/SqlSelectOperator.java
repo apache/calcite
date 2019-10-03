@@ -217,32 +217,33 @@ public class SqlSelectOperator extends SqlOperator {
       } else {
         if (writer.getDialect().getConformance().isGroupByOrdinal()) {
           for (SqlNode groupKey : select.groupBy.getList()) {
-            writer.sep(",");
-            if (groupKey.getKind() == SqlKind.LITERAL) {
-              select.selectList.getList().
-                  forEach(new Consumer<SqlNode>() {
-                    @Override public void accept(SqlNode selectSqlNode) {
-                      SqlNode literalNode = selectSqlNode;
-                      if (literalNode.getKind() == SqlKind.AS) {
-                        literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
+            if (!groupKey.toString().equalsIgnoreCase("NULL")) {
+              writer.sep(",");
+              if (groupKey.getKind() == SqlKind.LITERAL) {
+                select.selectList.getList().
+                    forEach(new Consumer<SqlNode>() {
+                      @Override public void accept(SqlNode selectSqlNode) {
+                        SqlNode literalNode = selectSqlNode;
+                        if (literalNode.getKind() == SqlKind.AS) {
+                          literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
+                          if (SqlKind.CAST == literalNode.getKind()) {
+                            literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
+                          }
+                        }
                         if (SqlKind.CAST == literalNode.getKind()) {
-
                           literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
                         }
+                        if (literalNode == groupKey) {
+                          String ordinal = String.valueOf(
+                              select.selectList.getList().indexOf(selectSqlNode) + 1);
+                          SqlLiteral.createExactNumeric(ordinal,
+                              SqlParserPos.ZERO).unparse(writer, 2, 3);
+                        }
                       }
-                      if (SqlKind.CAST == literalNode.getKind()) {
-                        literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
-                      }
-                      if (literalNode == groupKey) {
-                        String ordinal = String.valueOf(
-                            select.selectList.getList().indexOf(selectSqlNode) + 1);
-                        SqlLiteral.createExactNumeric(ordinal,
-                            SqlParserPos.ZERO).unparse(writer, 2, 3);
-                      }
-                    }
-                  });
-            } else {
-              groupKey.unparse(writer, 2, 3);
+                    });
+              } else {
+                groupKey.unparse(writer, 2, 3);
+              }
             }
           }
         } else {
