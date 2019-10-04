@@ -36,28 +36,28 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * AssocInnerOuterRule applies limited associativity on inner join and outer join.
+ * AsscomOuterOuterRule applies limited r-asscom property on outer join and outer join.
  *
- * Rule 22.
+ * Rule 25.
  */
-public class AssocInnerOuterRule extends RelOptRule {
+public class AsscomOuterOuterRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** Instance of the current rule. */
-  public static final AssocInnerOuterRule INSTANCE = new AssocInnerOuterRule(
+  public static final AsscomOuterOuterRule INSTANCE = new AsscomOuterOuterRule(
       operand(Join.class,
           operand(RelSubset.class, any()),
           operand(Join.class, any())), null);
 
   //~ Constructors -----------------------------------------------------------
 
-  public AssocInnerOuterRule(RelOptRuleOperand operand,
+  public AsscomOuterOuterRule(RelOptRuleOperand operand,
       String description, RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, description);
   }
 
-  public AssocInnerOuterRule(RelOptRuleOperand operand, String description) {
+  public AsscomOuterOuterRule(RelOptRuleOperand operand, String description) {
     this(operand, description, RelFactories.LOGICAL_BUILDER);
   }
 
@@ -66,14 +66,14 @@ public class AssocInnerOuterRule extends RelOptRule {
   @Override public void onMatch(final RelOptRuleCall call) {
     // Gets the two original join operators.
     Join topLeftJoin = call.rel(0);
-    Join bottomInnerJoin = call.rel(1);
+    Join bottomLeftJoin = call.rel(1);
 
     // Makes sure the join types match the rule.
     if (topLeftJoin.getJoinType() != JoinRelType.LEFT) {
       LOGGER.debug("The top join is not an left outer join.");
       return;
-    } else if (bottomInnerJoin.getJoinType() != JoinRelType.INNER) {
-      LOGGER.debug("The bottom join is not a inner join.");
+    } else if (bottomLeftJoin.getJoinType() != JoinRelType.LEFT) {
+      LOGGER.debug("The bottom join is not a left outer join.");
       return;
     }
 
@@ -82,29 +82,29 @@ public class AssocInnerOuterRule extends RelOptRule {
         topLeftJoin.getTraitSet(),
         topLeftJoin.getCondition(),
         topLeftJoin.getLeft(),
-        bottomInnerJoin.getLeft(),
+        bottomLeftJoin.getRight(),
         JoinRelType.LEFT,
         topLeftJoin.isSemiJoinDone());
-    final Join newTopLeftJoin = bottomInnerJoin.copy(
-        bottomInnerJoin.getTraitSet(),
-        bottomInnerJoin.getCondition(),
+    final Join newTopLeftJoin = bottomLeftJoin.copy(
+        bottomLeftJoin.getTraitSet(),
+        bottomLeftJoin.getCondition(),
         newBottomLeftJoin,
-        bottomInnerJoin.getRight(),
+        bottomLeftJoin.getLeft(),
         JoinRelType.LEFT,
-        bottomInnerJoin.isSemiJoinDone());
+        bottomLeftJoin.isSemiJoinDone());
 
     // Determines the nullification attribute.
     List<RelDataTypeField> nullifyFieldList =
-        bottomInnerJoin.getLeft().getRowType().getFieldList();
+        bottomLeftJoin.getRight().getRowType().getFieldList();
     List<RexNode> nullificationList = nullifyFieldList.stream()
         .map(field -> new RexInputRef(field.getIndex(), field.getType()))
         .collect(Collectors.toList());
 
     // Builds the transformed relational tree.
     final RelNode transformedNode = call.builder().push(newTopLeftJoin)
-        .nullify(bottomInnerJoin.getCondition(), nullificationList).bestMatch().build();
+        .nullify(bottomLeftJoin.getCondition(), nullificationList).bestMatch().build();
     call.transformTo(transformedNode);
   }
 }
 
-// End AssocInnerOuterRule.java
+// End AsscomOuterOuterRule.java

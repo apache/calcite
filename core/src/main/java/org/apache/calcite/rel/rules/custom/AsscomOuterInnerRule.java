@@ -24,40 +24,34 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
- * AssocInnerOuterRule applies limited associativity on inner join and outer join.
+ * AsscomOuterInnerRule applies limited r-asscom property on outer join and inner join.
  *
- * Rule 22.
+ * Rule 23.
  */
-public class AssocInnerOuterRule extends RelOptRule {
+public class AsscomOuterInnerRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   /** Instance of the current rule. */
-  public static final AssocInnerOuterRule INSTANCE = new AssocInnerOuterRule(
+  public static final AsscomOuterInnerRule INSTANCE = new AsscomOuterInnerRule(
       operand(Join.class,
           operand(RelSubset.class, any()),
           operand(Join.class, any())), null);
 
   //~ Constructors -----------------------------------------------------------
 
-  public AssocInnerOuterRule(RelOptRuleOperand operand,
+  public AsscomOuterInnerRule(RelOptRuleOperand operand,
       String description, RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, description);
   }
 
-  public AssocInnerOuterRule(RelOptRuleOperand operand, String description) {
+  public AsscomOuterInnerRule(RelOptRuleOperand operand, String description) {
     this(operand, description, RelFactories.LOGICAL_BUILDER);
   }
 
@@ -65,46 +59,38 @@ public class AssocInnerOuterRule extends RelOptRule {
 
   @Override public void onMatch(final RelOptRuleCall call) {
     // Gets the two original join operators.
-    Join topLeftJoin = call.rel(0);
-    Join bottomInnerJoin = call.rel(1);
+    Join topInnerJoin = call.rel(0);
+    Join bottomLeftJoin = call.rel(1);
 
     // Makes sure the join types match the rule.
-    if (topLeftJoin.getJoinType() != JoinRelType.LEFT) {
-      LOGGER.debug("The top join is not an left outer join.");
+    if (topInnerJoin.getJoinType() != JoinRelType.INNER) {
+      LOGGER.debug("The top join is not an inner join.");
       return;
-    } else if (bottomInnerJoin.getJoinType() != JoinRelType.INNER) {
-      LOGGER.debug("The bottom join is not a inner join.");
+    } else if (bottomLeftJoin.getJoinType() != JoinRelType.LEFT) {
+      LOGGER.debug("The bottom join is not a left outer join.");
       return;
     }
 
     // The new operators.
-    final Join newBottomLeftJoin = topLeftJoin.copy(
-        topLeftJoin.getTraitSet(),
-        topLeftJoin.getCondition(),
-        topLeftJoin.getLeft(),
-        bottomInnerJoin.getLeft(),
-        JoinRelType.LEFT,
-        topLeftJoin.isSemiJoinDone());
-    final Join newTopLeftJoin = bottomInnerJoin.copy(
-        bottomInnerJoin.getTraitSet(),
-        bottomInnerJoin.getCondition(),
-        newBottomLeftJoin,
-        bottomInnerJoin.getRight(),
-        JoinRelType.LEFT,
-        bottomInnerJoin.isSemiJoinDone());
-
-    // Determines the nullification attribute.
-    List<RelDataTypeField> nullifyFieldList =
-        bottomInnerJoin.getLeft().getRowType().getFieldList();
-    List<RexNode> nullificationList = nullifyFieldList.stream()
-        .map(field -> new RexInputRef(field.getIndex(), field.getType()))
-        .collect(Collectors.toList());
+    final Join newBottomInnerJoin = topInnerJoin.copy(
+        topInnerJoin.getTraitSet(),
+        topInnerJoin.getCondition(),
+        topInnerJoin.getLeft(),
+        bottomLeftJoin.getRight(),
+        JoinRelType.INNER,
+        topInnerJoin.isSemiJoinDone());
+    final Join newTopInnerJoin = bottomLeftJoin.copy(
+        bottomLeftJoin.getTraitSet(),
+        bottomLeftJoin.getCondition(),
+        bottomLeftJoin.getLeft(),
+        newBottomInnerJoin,
+        JoinRelType.INNER,
+        bottomLeftJoin.isSemiJoinDone());
 
     // Builds the transformed relational tree.
-    final RelNode transformedNode = call.builder().push(newTopLeftJoin)
-        .nullify(bottomInnerJoin.getCondition(), nullificationList).bestMatch().build();
+    final RelNode transformedNode = call.builder().push(newTopInnerJoin).build();
     call.transformTo(transformedNode);
   }
 }
 
-// End AssocInnerOuterRule.java
+// End AsscomOuterInnerRule.java
