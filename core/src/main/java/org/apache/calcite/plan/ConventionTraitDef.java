@@ -34,7 +34,7 @@ import com.google.common.collect.Multimap;
 import java.util.List;
 
 /**
- * Definition of the the convention trait.
+ * Definition of the convention trait.
  * A new set of conversion information is created for
  * each planner that registers at least one {@link ConverterRule} instance.
  *
