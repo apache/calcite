@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules.custom;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -26,7 +27,6 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -36,83 +36,74 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * NullifyJoinRule nullifies a 1-sided outer join or inner join operator in the
- * following way:
- * 1) 1-sided outer join: nullify the null-producing side;
- * 2) inner join: nullify both sides;
+ * AssocInnerOuterRule applies limited associativity on inner join and outer join.
+ *
+ * Rule 22.
  */
-public class NullifyJoinRule extends RelOptRule {
+public class AssocInnerOuterRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  /** Instance of the rule that nullifies inner, left outer or right outer join. */
-  public static final NullifyJoinRule INSTANCE =
-      new NullifyJoinRule(operand(Join.class, any()), null);
+  /** Instance of the current rule. */
+  public static final AssocInnerOuterRule INSTANCE = new AssocInnerOuterRule(
+      operand(Join.class,
+          operand(RelSubset.class, any()),
+          operand(Join.class, any())), null);
 
   //~ Constructors -----------------------------------------------------------
 
-  public NullifyJoinRule(RelOptRuleOperand operand,
+  public AssocInnerOuterRule(RelOptRuleOperand operand,
       String description, RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, description);
   }
 
-  public NullifyJoinRule(RelOptRuleOperand operand, String description) {
+  public AssocInnerOuterRule(RelOptRuleOperand operand, String description) {
     this(operand, description, RelFactories.LOGICAL_BUILDER);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(final RelOptRuleCall call) {
-    RelBuilder builder = call.builder();
+    // Gets the two original join operators.
+    Join topLeftJoin = call.rel(0);
+    Join bottomInnerJoin = call.rel(1);
 
-    // The join operator at the current node.
-    final Join join = call.rel(0);
-    final JoinRelType joinType = join.getJoinType();
-    if (!joinType.canApplyNullify()) {
-      LOGGER.debug("Invalid join relation type for nullify: " + joinType.toString());
+    // Makes sure the join types match the rule.
+    if (topLeftJoin.getJoinType() != JoinRelType.LEFT) {
+      LOGGER.debug("The top join is not an left outer join.");
+      return;
+    } else if (bottomInnerJoin.getJoinType() != JoinRelType.INNER) {
+      LOGGER.debug("The bottom join is not a inner join.");
       return;
     }
 
-    // The new join operator (as outer-cartesian product).
-    final RelNode outerCartesianJoin = join.copy(
-        join.getTraitSet(),
-        builder.literal(true),  // Uses a literal condition which is always true.
-        join.getLeft(),
-        join.getRight(),
-        JoinRelType.OUTER_CARTESIAN,
-        join.isSemiJoinDone());
+    // The new operators.
+    final Join newBottomLeftJoin = topLeftJoin.copy(
+        topLeftJoin.getTraitSet(),
+        topLeftJoin.getCondition(),
+        topLeftJoin.getLeft(),
+        bottomInnerJoin.getLeft(),
+        JoinRelType.LEFT,
+        topLeftJoin.isSemiJoinDone());
+    final Join newTopLeftJoin = bottomInnerJoin.copy(
+        bottomInnerJoin.getTraitSet(),
+        bottomInnerJoin.getCondition(),
+        newBottomLeftJoin,
+        bottomInnerJoin.getRight(),
+        JoinRelType.LEFT,
+        bottomInnerJoin.isSemiJoinDone());
 
-    // Determines the nullification attribute list based on the join type.
-    List<RelDataTypeField> joinFieldList = outerCartesianJoin.getRowType().getFieldList();
-    List<RelDataTypeField> nullifyFieldList;
-    int leftFieldCount = join.getLeft().getRowType().getFieldCount();
-    switch (joinType) {
-    case LEFT:
-      nullifyFieldList = joinFieldList.subList(leftFieldCount, joinFieldList.size());
-      break;
-    case RIGHT:
-      nullifyFieldList = joinFieldList.subList(0, leftFieldCount);
-      break;
-    case INNER:
-      nullifyFieldList = joinFieldList;
-      break;
-    default:
-      throw new AssertionError(joinType);
-    }
+    // Determines the nullification attribute.
+    List<RelDataTypeField> nullifyFieldList = bottomInnerJoin.getRowType().getFieldList();
     List<RexNode> nullificationList = nullifyFieldList.stream()
         .map(field -> new RexInputRef(field.getIndex(), field.getType()))
         .collect(Collectors.toList());
 
-    // Determines the nullification condition.
-    RexNode nullificationCondition = join.getCondition();
-
     // Builds the transformed relational tree.
-    final RelNode transformedNode = builder.push(outerCartesianJoin)
-        .nullify(nullificationCondition, nullificationList)
-        .bestMatch()
-        .build();
+    final RelNode transformedNode = call.builder().push(newTopLeftJoin)
+        .nullify(bottomInnerJoin.getCondition(), nullificationList).bestMatch().build();
     call.transformTo(transformedNode);
   }
 }
 
-// End NullifyJoinRule.java
+// End AssocInnerOuterRule.java

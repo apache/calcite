@@ -70,7 +70,7 @@ public class Runner {
     // A single left outer join.
     String sqlQuery = "select e.name, d.depName "
         + "from p.employees e left join p.departments d on e.depID = d.depID";
-    buildAndTransformQuery(planner, sqlQuery);
+    // buildAndTransformQuery(planner, sqlQuery);
 
     // Two joins (left outer join + inner join).
     sqlQuery = "select e.name, d.depName, c.cmpName "

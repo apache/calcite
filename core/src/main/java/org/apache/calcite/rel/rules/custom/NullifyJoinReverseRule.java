@@ -19,46 +19,57 @@ package org.apache.calcite.rel.rules.custom;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.BestMatch;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Nullify;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.trace.CalciteTrace;
+
+import org.slf4j.Logger;
+
+import java.util.List;
 
 /**
- * BestMatchReduceRule is able to reduce two consecutive best-match operators
- * into one. In the current implementation, the outer one will be eliminated.
- *
- * There is no reverse rule for this rule because NullifyJoinReverseRule will
- * assume an appropriate best-match operator exists.
+ * NullifyJoinReverseRule converts a nullified join (i.e., nullification operator
+ * + outer cartesian product) backs to either a 1-sided outer join or inner join.
  */
-public class BestMatchReduceRule extends RelOptRule {
+public class NullifyJoinReverseRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
+  private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
-  /** Instance of the rule that reduces two best-match operators. */
-  public static final BestMatchReduceRule INSTANCE = new BestMatchReduceRule(
-      operand(BestMatch.class, operand(BestMatch.class, any())), null);
+  /** Instance of the rule that reverses the nullification process. */
+  public static final NullifyJoinReverseRule INSTANCE =
+      new NullifyJoinReverseRule(operand(Nullify.class, operand(Join.class, any())), null);
 
   //~ Constructors -----------------------------------------------------------
 
-  public BestMatchReduceRule(RelOptRuleOperand operand,
+  public NullifyJoinReverseRule(RelOptRuleOperand operand,
       String description, RelBuilderFactory relBuilderFactory) {
     super(operand, relBuilderFactory, description);
   }
 
-  public BestMatchReduceRule(RelOptRuleOperand operand, String description) {
+  public NullifyJoinReverseRule(RelOptRuleOperand operand, String description) {
     this(operand, description, RelFactories.LOGICAL_BUILDER);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public void onMatch(final RelOptRuleCall call) {
-    // Gets the inner best-match operator.
-    BestMatch innerBestMatch = call.rel(1);
+    // The nullification operator at the top.
+    final Nullify nullify = call.rel(0);
 
-    // Eliminates the outer one.
-    RelNode reducedNode = call.builder().push(innerBestMatch).build();
-    call.transformTo(reducedNode);
+    // The join operator at the bottom.
+    final Join join = call.rel(1);
+    if (join.getJoinType() != JoinRelType.OUTER_CARTESIAN) {
+      LOGGER.debug("Nullification reverse should only be applied when the join is an outer cartesian product");
+      return;
+    }
+
+    // Checks which join type should be converted back to.
+    final List<RelDataTypeField> joinFieldList = join.getRowType().getFieldList();
   }
 }
 
-// End BestMatchReduceRule.java
+// End NullifyJoinReverseRule.java
