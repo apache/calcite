@@ -20,8 +20,12 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -360,6 +364,75 @@ public class InterpreterTest {
     sql(sql).returnsRows();
   }
 
+  @Test public void testInterpretInnerJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "join\n"
+        + "(select x, y from (values (1, 'd'), (2, 'c')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows("[1, a, 1, d]", "[2, b, 2, c]");
+  }
+
+  @Test public void testInterpretLeftOutJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "left join\n"
+        + "(select x, y from (values (1, 'd')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows("[1, a, 1, d]", "[2, b, null, null]", "[3, c, null, null]");
+  }
+
+  @Test public void testInterpretRightOutJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'd')) as t2(x, y)) t2\n"
+        + "right join\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "on t2.x = t.x";
+    sql(sql).returnsRows("[1, d, 1, a]", "[null, null, 2, b]", "[null, null, 3, c]");
+  }
+
+  @Test public void testInterpretSemanticSemiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x in\n"
+        + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
+    sql(sql).returnsRows("[1, a]", "[3, c]");
+  }
+
+  @Test public void testInterpretSemiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x in\n"
+        + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
+    SqlNode validate = planner.validate(planner.parse(sql));
+    RelNode convert = planner.rel(validate).rel;
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SemiJoinRule.PROJECT)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(convert);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final Interpreter interpreter = new Interpreter(dataContext, relNode);
+    assertRows(interpreter, true, "[1, a]", "[3, c]");
+  }
+
+  @Test public void testInterpretAntiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x not in \n"
+        + "(select x from (values (1, 'd')) as t2(x, y))";
+    sql(sql).returnsRows("[2, b]", "[3, c]");
+  }
+
+  @Test public void testInterpretFullJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "full join\n"
+        + "(select x, y from (values (1, 'd'), (2, 'c'), (4, 'x')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows(
+        "[1, a, 1, d]",
+        "[2, b, 2, c]",
+        "[3, c, null, null]",
+        "[null, null, 4, x]");
+  }
 }
 
 // End InterpreterTest.java
