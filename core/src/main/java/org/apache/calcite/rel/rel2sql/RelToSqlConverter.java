@@ -53,7 +53,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
@@ -69,7 +68,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -90,7 +88,6 @@ import com.google.common.collect.Ordering;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -366,13 +363,13 @@ public class RelToSqlConverter extends SqlImplementor
       if (builder.context.field(key).getKind() == SqlKind.LITERAL
           && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
-      } else if (isGroupByAlias) {
+      } /*else if (isGroupByAlias) {
         List<SqlIdentifier> identifierList = new ArrayList<>();
         SqlNode node = builder.context.field(key);
         String alias = builder.context.field(key, true).toString();
         extractSqlIdentifiers(identifierList, node);
         isGroupByAlias = !checkIfAliasMatchesIdentifier(identifierList, alias);
-      }
+      }*/
       SqlNode field = builder.context.field(key, isGroupByAlias);
       groupKeys.add(field);
     }
@@ -404,16 +401,17 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 
-  private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias) {
+  /*private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias)
+  {
     for (SqlIdentifier node : identifierList) {
       if (node.toString().equalsIgnoreCase(alias)) {
         return true;
       }
     }
     return false;
-  }
+  }*/
 
-  private void extractSqlIdentifiers(List<SqlIdentifier> identifierList, SqlNode node) {
+  /*private void extractSqlIdentifiers(List<SqlIdentifier> identifierList, SqlNode node) {
     if (node instanceof SqlIdentifier) {
       identifierList.add((SqlIdentifier) node);
     } else if (node instanceof SqlCase) {
@@ -437,7 +435,7 @@ public class RelToSqlConverter extends SqlImplementor
       nodeList.forEach(sqlNode ->
           extractSqlIdentifiers(identifierList, sqlNode));
     }
-  }
+  }*/
 
   private SqlNode groupItem(List<SqlNode> groupKeys,
       ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {

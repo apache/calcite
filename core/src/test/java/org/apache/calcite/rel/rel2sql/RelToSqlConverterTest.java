@@ -554,7 +554,7 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testGroupByAliasReplacementWithGroupByExpression() {
+  /*@Test public void testGroupByAliasReplacementWithGroupByExpression() {
     String query = "select \"product_class_id\" + \"product_id\" as product_id, "
         + "\"product_id\" + 2 as prod_id, count(1) as num_records"
         + " from \"product\""
@@ -578,7 +578,7 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.product\n"
         + "GROUP BY CASE WHEN product_id = 1 THEN product_id ELSE 1234 END";
     sql(query).withBigQuery().ok(expected);
-  }
+  }*/
 
   @Test public void testCastDecimal1() {
     final String query = "select -0.0000000123\n"
