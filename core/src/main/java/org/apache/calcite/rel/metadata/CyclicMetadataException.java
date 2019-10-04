@@ -21,15 +21,9 @@ package org.apache.calcite.rel.metadata;
  * computing metadata.
  */
 public class CyclicMetadataException extends RuntimeException {
-  /** Singleton instance. Since this exception is thrown for signaling purposes,
-   * rather than on an actual error, re-using a singleton instance saves the
-   * effort of constructing an exception instance. */
-  @SuppressWarnings("ThrowableInstanceNeverThrown")
-  public static final CyclicMetadataException INSTANCE =
-      new CyclicMetadataException();
 
   /** Creates a CyclicMetadataException. */
-  private CyclicMetadataException() {
+  public CyclicMetadataException() {
     super();
   }
 }
