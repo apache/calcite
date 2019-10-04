@@ -45,6 +45,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -69,17 +70,36 @@ public class JavaTypeFactoryImpl
     super(typeSystem);
   }
 
+  /**
+   * Create a structured {@link RelDataType} from java type,
+   * throw exception if recursion is found.
+   */
   public RelDataType createStructType(Class type) {
+    Map<Type, Type> edges = new HashMap<>();
+    return createStructType(type, edges);
+  }
+
+  private RelDataType createStructType(Class type, Map<Type, Type> edges) {
+    Type checkType = edges.get(type);
+    while (checkType != null) {
+      if (checkType.equals(type)) {
+        throw new RuntimeException(
+            String.format(Locale.ROOT,
+                "Recursion in %s for creating struct type",
+                type.getTypeName()));
+      }
+      checkType = edges.get(checkType);
+    }
     final List<RelDataTypeField> list = new ArrayList<>();
     for (Field field : type.getFields()) {
       if (!Modifier.isStatic(field.getModifiers())) {
-        // FIXME: watch out for recursion
         final Type fieldType = fieldType(field);
+        edges.put(type, fieldType);
         list.add(
             new RelDataTypeFieldImpl(
                 field.getName(),
                 list.size(),
-                createType(fieldType)));
+                createType(fieldType, edges)));
       }
     }
     return canonize(new JavaRecordType(list, type));
@@ -107,7 +127,16 @@ public class JavaTypeFactoryImpl
     return klass;
   }
 
+  /**
+   * Create a {@link RelDataType} from java type,
+   * throw exception if recursion is found.
+   */
   public RelDataType createType(Type type) {
+    Map<Type, Type> edges = new HashMap<>();
+    return createType(type, edges);
+  }
+
+  private RelDataType createType(Type type, Map<Type, Type> edges) {
     if (type instanceof RelDataType) {
       return (RelDataType) type;
     }
@@ -155,7 +184,7 @@ public class JavaTypeFactoryImpl
           createTypeWithNullability(createSqlType(SqlTypeName.ANY), true),
           createTypeWithNullability(createSqlType(SqlTypeName.ANY), true));
     } else {
-      return createStructType(clazz);
+      return createStructType(clazz, edges);
     }
   }
 

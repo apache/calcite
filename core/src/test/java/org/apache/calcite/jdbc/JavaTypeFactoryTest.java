@@ -26,9 +26,11 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
 import java.lang.reflect.Type;
+import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test for {@link org.apache.calcite.jdbc.JavaTypeFactoryImpl}.
@@ -89,6 +91,27 @@ public final class JavaTypeFactoryTest {
         SqlTests.getTypeString(sqlStructType));
   }
 
+  @Test public void testRecursion() {
+    try {
+      TYPE_FACTORY.createStructType(RecursionStruct.class);
+      fail();
+    } catch (RuntimeException e) {
+      assertEquals(e.getMessage(),
+          String.format(Locale.ROOT,
+              "Recursion in %s for creating struct type",
+              RecursionStruct.class.getTypeName()));
+    }
+    try {
+      TYPE_FACTORY.createStructType(RecursionStruct1.class);
+      fail();
+    } catch (RuntimeException e) {
+      assertEquals(e.getMessage(),
+          String.format(Locale.ROOT,
+              "Recursion in %s for creating struct type",
+              RecursionStruct1.class.getTypeName()));
+    }
+  }
+
   private void assertRecordType(Type actual) {
     String errorMessage =
         "Type {" + actual.getTypeName() + "} is not a subtype of Types.RecordType";
@@ -104,6 +127,24 @@ public final class JavaTypeFactoryTest {
   private static class TwoFieldStruct {
     public Integer intField;
     public String strField;
+  }
+
+  /***/
+  private static class  RecursionStruct {
+    public Integer intField;
+    public RecursionStruct next;
+  }
+
+  /***/
+  private static class  RecursionStruct1 {
+    public Integer intField;
+    public RecursionStruct2 struct2;
+  }
+
+  /***/
+  private static class  RecursionStruct2 {
+    public Integer intField;
+    public RecursionStruct1 struct1;
   }
 }
 
