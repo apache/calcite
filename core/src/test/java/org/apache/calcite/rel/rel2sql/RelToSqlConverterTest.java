@@ -51,6 +51,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
@@ -567,7 +568,36 @@ public class RelToSqlConverterTest {
                     .mapToObj(i -> builder.equals(builder.field("EMPNO"), builder.literal(i)))
                     .collect(Collectors.toList())))
         .build();
-    assertThat(toSql(root), notNullValue());
+    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    final SqlNode sqlNode = new RelToSqlConverter(dialect)
+        .visitChild(0, root).asStatement();
+    final String sqlString = sqlNode.accept(new SqlShuttle())
+        .toSqlString(dialect).getSql();
+    assertThat(sqlString, notNullValue());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
+   * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
+  @Test public void testBalancedBinaryCall() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("EMP")
+        .filter(
+            builder.and(
+                builder.or(
+                    IntStream.range(0, 4)
+                        .mapToObj(i -> builder.equals(builder.field("EMPNO"), builder.literal(i)))
+                        .collect(Collectors.toList())),
+                builder.or(
+                    IntStream.range(5, 8)
+                        .mapToObj(i -> builder.equals(builder.field("DEPTNO"), builder.literal(i)))
+                        .collect(Collectors.toList()))))
+        .build();
+    final String expected =
+        "(\"EMPNO\" = 0 OR \"EMPNO\" = 1 OR (\"EMPNO\" = 2 OR \"EMPNO\" = 3))"
+        + " AND (\"DEPTNO\" = 5 OR (\"DEPTNO\" = 6 OR \"DEPTNO\" = 7))";
+    assertTrue(toSql(root).contains(expected));
   }
 
   /** Test case for

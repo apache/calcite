@@ -141,7 +141,10 @@ public class JdbcAdapterTest {
         .planHasSql(
             "SELECT \"store_id\", \"store_name\"\n"
             + "FROM \"foodmart\".\"store\"\n"
-            + "WHERE \"store_name\" = 'Store 1' OR \"store_name\" = 'Store 10' OR \"store_name\" = 'Store 11' OR \"store_name\" = 'Store 15' OR \"store_name\" = 'Store 16' OR \"store_name\" = 'Store 24' OR \"store_name\" = 'Store 3' OR \"store_name\" = 'Store 7'")
+            + "WHERE \"store_name\" = 'Store 1' OR \"store_name\" = 'Store 10'"
+                + " OR (\"store_name\" = 'Store 11' OR \"store_name\" = 'Store 15')"
+                + " OR (\"store_name\" = 'Store 16' OR \"store_name\" = 'Store 24'"
+                + " OR (\"store_name\" = 'Store 3' OR \"store_name\" = 'Store 7'))")
         .returns("store_id=1; store_name=Store 1\n"
             + "store_id=3; store_name=Store 3\n"
             + "store_id=7; store_name=Store 7\n"
