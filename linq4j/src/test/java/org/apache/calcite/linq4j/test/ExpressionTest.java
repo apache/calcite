@@ -1536,7 +1536,7 @@ public class ExpressionTest {
   }
 
   @Test public void testTenElementsSetLiteral() throws Exception {
-    Set set = new HashSet(); // for consistent output
+    Set set = new LinkedHashSet(); // for consistent output
     for (int i = 0; i < 10; i++) {
       set.add(i);
     }
