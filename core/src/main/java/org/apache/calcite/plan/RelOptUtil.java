@@ -1046,6 +1046,46 @@ public abstract class RelOptUtil {
         filter.getCluster().getRexBuilder(), nonEquiList, true);
   }
 
+  /**
+   * Checks whether a given list of attributes is the subset of another list
+   * of attributes.
+   *
+   * @param a is the given list of attributes.
+   * @param b is another given list of attributes.
+   * @return true if a is the subset of b; false otherwise.
+   */
+  private static boolean isSubSet(List<RelDataTypeField> a, List<RelDataTypeField> b) {
+    Set<RelDataTypeField> set = new HashSet<>(b);
+    for (RelDataTypeField attribute: a) {
+      if (!set.contains(attribute)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Checks whether a given list of attributes is the subset of another list of list
+   * of attributes.
+   *
+   * @param a is the given list of attributes.
+   * @param others is the list of list of attributes.
+   * @return true if a is the subset of others; false otherwise.
+   */
+  @SafeVarargs public static boolean isSubSet(List<RelDataTypeField> a, List<RelDataTypeField>... others) {
+    if (others.length == 0) {
+      return false;
+    }
+
+    // Puts everything together.
+    List<RelDataTypeField> all = new ArrayList<>(others[0]);
+    for (int i = 1; i < others.length; i++) {
+      all.addAll(others[i]);
+    }
+    return isSubSet(a, all);
+  }
+
   private static void splitJoinCondition(
       List<RelDataTypeField> sysFieldList,
       List<RelNode> inputs,

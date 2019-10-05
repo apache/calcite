@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules.custom;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
@@ -69,6 +70,12 @@ public class AssocOuterInnerRule extends RelOptRule {
       return;
     } else if (bottomLeftJoin.getJoinType() != JoinRelType.LEFT) {
       LOGGER.debug("The bottom join is not a left outer join.");
+      return;
+    } else if (!RelOptUtil.isSubSet(
+        topInnerJoin.getCondition().getType().getFieldList(),
+        topInnerJoin.getRight().getRowType().getFieldList(),
+        bottomLeftJoin.getRight().getRowType().getFieldList())) {
+      LOGGER.debug("Not a subset of attributes.");
       return;
     }
 
