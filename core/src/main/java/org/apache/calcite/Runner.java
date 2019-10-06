@@ -44,12 +44,6 @@ import org.apache.calcite.tools.Programs;
  */
 public class Runner {
   public static void main(String[] args) throws Exception {
-    // Builds the schema.
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
-    final SchemaPlus defaultSchema = rootSchema.add("p", new ReflectiveSchema(new People()));
-
-    // Creates the planner.
-    final SqlParser.Config parserConfig = SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     final Program programs = Programs.ofRules(
         NullifyJoinRule.INSTANCE,
         NullifyPullUpRule.INSTANCE,
@@ -60,6 +54,34 @@ public class Runner {
         JoinAssociateRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
+
+    // A single left outer join.
+    String sqlQuery = "select e.name, d.depName "
+        + "from p.employees e left join p.departments d on e.depID = d.depID";
+    buildAndTransformQuery(programs, sqlQuery);
+
+    // Two joins (left outer join + inner join).
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.employees e left join p.departments d on e.depID = d.depID "
+        + "left join p.companies c on d.cmpID = c.cmpID";
+    buildAndTransformQuery(programs, sqlQuery);
+  }
+
+  /**
+   * This method emulates the whole life cycle of a given SQL query: parse, validate build and
+   * transform. It will close the planner after usage.
+   *
+   * @param programs is the set of transformation rules to be used.
+   * @param sqlQuery is the original SQL query in its string representation.
+   * @throws Exception when there is error during any step.
+   */
+  private static void buildAndTransformQuery(final Program programs, final String sqlQuery) throws Exception {
+    // Builds the schema.
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus defaultSchema = rootSchema.add("p", new ReflectiveSchema(new People()));
+
+    // Creates the planner.
+    final SqlParser.Config parserConfig = SqlParser.configBuilder().setLex(Lex.MYSQL).build();
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(defaultSchema)
@@ -67,30 +89,6 @@ public class Runner {
         .build();
     final Planner planner = Frameworks.getPlanner(config);
 
-    // A single left outer join.
-    String sqlQuery = "select e.name, d.depName "
-        + "from p.employees e left join p.departments d on e.depID = d.depID";
-    // buildAndTransformQuery(planner, sqlQuery);
-
-    // Two joins (left outer join + inner join).
-    sqlQuery = "select e.name, d.depName, c.cmpName "
-        + "from p.employees e left join p.departments d on e.depID = d.depID "
-        + "left join p.companies c on d.cmpID = c.cmpID";
-    buildAndTransformQuery(planner, sqlQuery);
-
-    // Closes the planner eventually.
-    planner.close();
-  }
-
-  /**
-   * This method emulates the whole life cycle of a given SQL query: parse, validate build and
-   * transform. It will close and reset the planner after usage.
-   *
-   * @param planner is the planner to be used during the life cycle.
-   * @param sqlQuery is the original SQL query in its string representation.
-   * @throws Exception when there is error during any step.
-   */
-  private static void buildAndTransformQuery(Planner planner, String sqlQuery) throws Exception {
     System.out.println("============================ Start ============================");
 
     // Parses, validates and builds the query.
@@ -106,11 +104,10 @@ public class Runner {
     System.out.println("After transformation:\n");
     System.out.println(RelOptUtil.toString(transformedNode));
 
-    // Closes and resets the planner.
-    planner.close();
-    planner.reset();
-
     System.out.println("============================= End =============================\n");
+
+    // Closes the planner.
+    planner.close();
   }
 
   /**
