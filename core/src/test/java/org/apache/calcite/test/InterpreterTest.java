@@ -118,6 +118,16 @@ public class InterpreterTest {
     assertRows(interpreter, "[c]", "[b]", "[a]");
   }
 
+  @Test public void testInterpretMultiset() throws Exception {
+    final String sql = "select multiset['a', 'b', 'c']";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+
+    final Interpreter interpreter = new Interpreter(dataContext, convert);
+    assertRows(interpreter, "[[a, b, c]]");
+  }
+
   private static void assertRows(Interpreter interpreter, String... rows) {
     assertRows(interpreter, false, rows);
   }
