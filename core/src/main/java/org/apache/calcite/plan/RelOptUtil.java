@@ -125,6 +125,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -1047,43 +1049,31 @@ public abstract class RelOptUtil {
   }
 
   /**
-   * Checks whether a given list of attributes is the subset of another list
-   * of attributes.
+   * Checks whether a given predicate is referring to any attribute in a given list.
    *
-   * @param a is the given list of attributes.
-   * @param b is another given list of attributes.
-   * @return true if a is the subset of b; false otherwise.
-   */
-  private static boolean isSubSet(List<RelDataTypeField> a, List<RelDataTypeField> b) {
-    Set<RelDataTypeField> set = new HashSet<>(b);
-    for (RelDataTypeField attribute: a) {
-      if (!set.contains(attribute)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Checks whether a given list of attributes is the subset of another list of list
-   * of attributes.
    *
-   * @param a is the given list of attributes.
-   * @param others is the list of list of attributes.
-   * @return true if a is the subset of others; false otherwise.
+   * @param condition is the given predicate.
+   * @param fields is the given list of attributes.
+   * @return true if not referring to any attribute; false otherwise.
    */
-  @SafeVarargs public static boolean isSubSet(List<RelDataTypeField> a, List<RelDataTypeField>... others) {
-    if (others.length == 0) {
+  public static boolean isNotReferringTo(RexNode condition, List<RelDataTypeField> fields) {
+    if (!(condition instanceof RexCall)) {
       return false;
     }
 
-    // Puts everything together.
-    List<RelDataTypeField> all = new ArrayList<>(others[0]);
-    for (int i = 1; i < others.length; i++) {
-      all.addAll(others[i]);
+    // Converts to RexNode format.
+    Set<RexNode> set = fields.stream()
+        .map(field -> new RexInputRef(field.getIndex(), field.getType()))
+        .collect(Collectors.toSet());
+
+    // Checks whether the set contains each attribute.
+    RexCall call = (RexCall) condition;
+    for (RexNode attribute: call.getOperands()) {
+      if (set.contains(attribute)) {
+        return false;
+      }
     }
-    return isSubSet(a, all);
+    return true;
   }
 
   private static void splitJoinCondition(

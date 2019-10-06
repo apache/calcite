@@ -25,7 +25,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -71,10 +70,12 @@ public class AssocOuterInnerRule extends RelOptRule {
     } else if (bottomLeftJoin.getJoinType() != JoinRelType.LEFT) {
       LOGGER.debug("The bottom join is not a left outer join.");
       return;
-    } else if (!RelOptUtil.isSubSet(
-        topInnerJoin.getCondition().getType().getFieldList(),
-        topInnerJoin.getRight().getRowType().getFieldList(),
-        bottomLeftJoin.getRight().getRowType().getFieldList())) {
+    }
+
+    // Makes sure the join condition is referring to the correct set of fields.
+    int bottomLeftJoinLeft = bottomLeftJoin.getLeft().getRowType().getFieldCount();
+    if (!RelOptUtil.isNotReferringTo(topInnerJoin.getCondition(),
+        topInnerJoin.getRowType().getFieldList().subList(0, bottomLeftJoinLeft))) {
       LOGGER.debug("Not a subset of attributes.");
       return;
     }

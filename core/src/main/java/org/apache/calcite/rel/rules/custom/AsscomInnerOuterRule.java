@@ -76,10 +76,14 @@ public class AsscomInnerOuterRule extends RelOptRule {
     } else if (bottomInnerJoin.getJoinType() != JoinRelType.INNER) {
       LOGGER.debug("The bottom join is not an inner join.");
       return;
-    } else if (!RelOptUtil.isSubSet(
-        topLeftJoin.getCondition().getType().getFieldList(),
-        topLeftJoin.getLeft().getRowType().getFieldList(),
-        bottomInnerJoin.getRight().getRowType().getFieldList())) {
+    }
+
+    // Makes sure the join condition is referring to the correct set of fields.
+    int topLeftJoinLeft = topLeftJoin.getLeft().getRowType().getFieldCount();
+    int bottomInnerJoinRight = bottomInnerJoin.getRight().getRowType().getFieldCount();
+    List<RelDataTypeField> fields = topLeftJoin.getRowType().getFieldList();
+    if (!RelOptUtil.isNotReferringTo(topLeftJoin.getCondition(),
+        fields.subList(topLeftJoinLeft, fields.size() - bottomInnerJoinRight))) {
       LOGGER.debug("Not a subset of attributes.");
       return;
     }

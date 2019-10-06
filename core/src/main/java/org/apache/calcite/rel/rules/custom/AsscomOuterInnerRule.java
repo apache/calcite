@@ -25,10 +25,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
+
+import java.util.List;
 
 /**
  * AsscomOuterInnerRule applies limited r-asscom property on outer join and inner join.
@@ -70,10 +73,14 @@ public class AsscomOuterInnerRule extends RelOptRule {
     } else if (bottomLeftJoin.getJoinType() != JoinRelType.LEFT) {
       LOGGER.debug("The bottom join is not a left outer join.");
       return;
-    } else if (!RelOptUtil.isSubSet(
-        topInnerJoin.getCondition().getType().getFieldList(),
-        topInnerJoin.getLeft().getRowType().getFieldList(),
-        bottomLeftJoin.getRight().getRowType().getFieldList())) {
+    }
+
+    // Makes sure the join condition is referring to the correct set of fields.
+    int topInnerJoinLeft = topInnerJoin.getLeft().getRowType().getFieldCount();
+    int bottomLeftJoinRight = bottomLeftJoin.getRight().getRowType().getFieldCount();
+    List<RelDataTypeField> fields = topInnerJoin.getRowType().getFieldList();
+    if (!RelOptUtil.isNotReferringTo(topInnerJoin.getCondition(),
+        fields.subList(topInnerJoinLeft, fields.size() - bottomLeftJoinRight))) {
       LOGGER.debug("Not a subset of attributes.");
       return;
     }

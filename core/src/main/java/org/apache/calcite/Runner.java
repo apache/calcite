@@ -23,13 +23,8 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rules.JoinAssociateRule;
-import org.apache.calcite.rel.rules.JoinCommuteRule;
-import org.apache.calcite.rel.rules.custom.BestMatchOverNullifyRule;
-import org.apache.calcite.rel.rules.custom.BestMatchPullUpRule;
-import org.apache.calcite.rel.rules.custom.BestMatchReduceRule;
+import org.apache.calcite.rel.rules.custom.AssocOuterInnerRule;
 import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
-import org.apache.calcite.rel.rules.custom.NullifyPullUpRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -44,26 +39,31 @@ import org.apache.calcite.tools.Programs;
  */
 public class Runner {
   public static void main(String[] args) throws Exception {
-    final Program programs = Programs.ofRules(
-        NullifyJoinRule.INSTANCE,
-        NullifyPullUpRule.INSTANCE,
-        BestMatchReduceRule.INSTANCE,
-        BestMatchPullUpRule.INSTANCE,
-        BestMatchOverNullifyRule.INSTANCE,
-        JoinCommuteRule.INSTANCE,
-        JoinAssociateRule.INSTANCE,
+    // A single inner join.
+    String sqlQuery = "select e.name, d.depName "
+        + "from p.employees e join p.departments d on e.depID = d.depID";
+    Program programs = Programs.ofRules(
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
+    buildAndTransformQuery(programs, sqlQuery);
 
     // A single left outer join.
-    String sqlQuery = "select e.name, d.depName "
+    sqlQuery = "select e.name, d.depName "
         + "from p.employees e left join p.departments d on e.depID = d.depID";
+    programs = Programs.ofRules(
+        NullifyJoinRule.INSTANCE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
     buildAndTransformQuery(programs, sqlQuery);
 
     // Two joins (left outer join + inner join).
     sqlQuery = "select e.name, d.depName, c.cmpName "
         + "from p.employees e left join p.departments d on e.depID = d.depID "
-        + "left join p.companies c on d.cmpID = c.cmpID";
+        + "inner join p.companies c on d.cmpID = c.cmpID";
+    programs = Programs.ofRules(
+        AssocOuterInnerRule.INSTANCE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
     buildAndTransformQuery(programs, sqlQuery);
   }
 
