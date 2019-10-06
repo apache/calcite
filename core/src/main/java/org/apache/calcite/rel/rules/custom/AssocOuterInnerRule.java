@@ -102,4 +102,4 @@ public class AssocOuterInnerRule extends RelOptRule {
   }
 }
 
-// End OuterJoinAssociateRule.java
+// End AssocOuterInnerRule.java

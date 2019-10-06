@@ -63,7 +63,7 @@ public class NullifyJoinReverseRule extends RelOptRule {
     // The join operator at the bottom.
     final Join join = call.rel(1);
     if (join.getJoinType() != JoinRelType.OUTER_CARTESIAN) {
-      LOGGER.debug("Nullification reverse should only be applied when the join is an outer cartesian product");
+      LOGGER.debug("Should only be applied when the join is an outer cartesian product");
       return;
     }
 

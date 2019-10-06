@@ -75,7 +75,8 @@ public class Runner {
    * @param sqlQuery is the original SQL query in its string representation.
    * @throws Exception when there is error during any step.
    */
-  private static void buildAndTransformQuery(final Program programs, final String sqlQuery) throws Exception {
+  private static void buildAndTransformQuery(
+      final Program programs, final String sqlQuery) throws Exception {
     // Builds the schema.
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus defaultSchema = rootSchema.add("p", new ReflectiveSchema(new People()));
