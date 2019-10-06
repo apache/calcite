@@ -18,6 +18,7 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Match;
@@ -88,6 +89,10 @@ public class Nodes {
 
     public void visit(Match match) {
       node = new MatchNode(this, match);
+    }
+
+    public void visit(Collect collect) {
+      node = new CollectNode(this, collect);
     }
   }
 }
