@@ -64,7 +64,9 @@ public class Runner {
         AssocOuterInnerRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
+    RelOptUtil.disableTypeCheck = true;
     buildAndTransformQuery(programs, sqlQuery);
+    RelOptUtil.disableTypeCheck = false;
   }
 
   /**

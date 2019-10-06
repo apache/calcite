@@ -139,6 +139,11 @@ public abstract class RelOptUtil {
 
   public static final double EPSILON = 1.0e-5;
 
+  /**
+   * A feature flag to decide whether we should disable typeCheck temporarily.
+   */
+  public static boolean disableTypeCheck = false;
+
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<Filter>
@@ -349,7 +354,7 @@ public abstract class RelOptUtil {
           || type2.getSqlTypeName() == SqlTypeName.ANY) {
         continue;
       }
-      if (!type1.equals(type2)) {
+      if (!type1.equals(type2) && !disableTypeCheck) {
         return false;
       }
     }
