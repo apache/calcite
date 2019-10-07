@@ -23,6 +23,11 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.custom.AsscomInnerOuterRule;
+import org.apache.calcite.rel.rules.custom.AsscomOuterInnerRule;
+import org.apache.calcite.rel.rules.custom.AsscomOuterOuterRule;
+import org.apache.calcite.rel.rules.custom.AssocInnerOuterRule;
 import org.apache.calcite.rel.rules.custom.AssocOuterInnerRule;
 import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
@@ -38,35 +43,84 @@ import org.apache.calcite.tools.Programs;
  * A runner class for manual testing.
  */
 public class Runner {
+  private static int count = 1;
+
   public static void main(String[] args) throws Exception {
-    // A single inner join.
+    // 1. A single inner join.
     String sqlQuery = "select e.name, d.depName "
         + "from p.employees e join p.departments d on e.depID = d.depID";
     Program programs = Programs.ofRules(
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
-    buildAndTransformQuery(programs, sqlQuery);
+    buildAndTransformQuery(programs, sqlQuery, false);
 
-    // A single left outer join.
+    // 2. A single left outer join.
     sqlQuery = "select e.name, d.depName "
         + "from p.employees e left join p.departments d on e.depID = d.depID";
     programs = Programs.ofRules(
         NullifyJoinRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
-    buildAndTransformQuery(programs, sqlQuery);
+    buildAndTransformQuery(programs, sqlQuery, false);
 
-    // Two joins (left outer join + inner join).
+    // 3. Two joins (left outer join + inner join) - for Rule 21.
     sqlQuery = "select e.name, d.depName, c.cmpName "
-        + "from p.employees e left join p.departments d on e.depID = d.depID "
+        + "from p.employees e "
+        + "left join p.departments d on e.depID = d.depID "
         + "inner join p.companies c on d.cmpID = c.cmpID";
     programs = Programs.ofRules(
         AssocOuterInnerRule.INSTANCE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_JOIN_RULE);
-    RelOptUtil.disableTypeCheck = true;
-    buildAndTransformQuery(programs, sqlQuery);
-    RelOptUtil.disableTypeCheck = false;
+    buildAndTransformQuery(programs, sqlQuery, true);
+
+    // 4. Two joins (inner join + left outer join) - for Rule 22.
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.departments d "
+        + "inner join p.employees e on d.depID = e.depID "
+        + "right join p.companies c on d.cmpID = c.cmpID";
+    programs = Programs.ofRules(
+        AssocInnerOuterRule.INSTANCE,
+        JoinCommuteRule.SWAP_OUTER,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
+    buildAndTransformQuery(programs, sqlQuery, true);
+
+    // 5. Two joins (left outer join + inner join) - for Rule 23.
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.employees e "
+        + "left join p.departments d on e.depID = d.depID "
+        + "inner join p.companies c on d.cmpID = c.cmpID";
+    programs = Programs.ofRules(
+        AsscomOuterInnerRule.INSTANCE,
+        JoinCommuteRule.INSTANCE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
+    buildAndTransformQuery(programs, sqlQuery, true);
+
+    // 6. Two joins (inner join + left outer join) - for Rule 24.
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.employees e "
+        + "inner join p.departments d on e.depID = d.depID "
+        + "right join p.companies c on d.cmpID = c.cmpID";
+    programs = Programs.ofRules(
+        AsscomInnerOuterRule.INSTANCE,
+        JoinCommuteRule.SWAP_OUTER,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
+    buildAndTransformQuery(programs, sqlQuery, true);
+
+    // 7. Two joins (left outer join + left outer join) - for Rule 25.
+    sqlQuery = "select e.name, d.depName, c.cmpName "
+        + "from p.employees e "
+        + "left join p.departments d on e.depID = d.depID "
+        + "right join p.companies c on d.cmpID = c.cmpID";
+    programs = Programs.ofRules(
+        AsscomOuterOuterRule.INSTANCE,
+        JoinCommuteRule.SWAP_OUTER,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE);
+    buildAndTransformQuery(programs, sqlQuery, true);
   }
 
   /**
@@ -75,10 +129,11 @@ public class Runner {
    *
    * @param programs is the set of transformation rules to be used.
    * @param sqlQuery is the original SQL query in its string representation.
+   * @param ignoreTypeCheck indicates whether type check should be turned off.
    * @throws Exception when there is error during any step.
    */
-  private static void buildAndTransformQuery(
-      final Program programs, final String sqlQuery) throws Exception {
+  private static void buildAndTransformQuery(final Program programs,
+      final String sqlQuery, final boolean ignoreTypeCheck) throws Exception {
     // Builds the schema.
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus defaultSchema = rootSchema.add("p", new ReflectiveSchema(new People()));
@@ -93,6 +148,10 @@ public class Runner {
     final Planner planner = Frameworks.getPlanner(config);
 
     System.out.println("============================ Start ============================");
+    System.out.println("Transaction ID: " + count++);
+    if (ignoreTypeCheck) {
+      RelOptUtil.disableTypeCheck = true;
+    }
 
     // Parses, validates and builds the query.
     SqlNode parse = planner.parse(sqlQuery);
@@ -107,6 +166,9 @@ public class Runner {
     System.out.println("After transformation:\n");
     System.out.println(RelOptUtil.toString(transformedNode));
 
+    if (ignoreTypeCheck) {
+      RelOptUtil.disableTypeCheck = false;
+    }
     System.out.println("============================= End =============================\n");
 
     // Closes the planner.
@@ -120,7 +182,12 @@ public class Runner {
         new Employee(10, 1, "Daniel"),
         new Employee(20, 1, "Mark"),
         new Employee(30, 2, "Smith"),
-        new Employee(40, 3, "Armstrong")
+        new Employee(40, 3, "Armstrong"),
+        new Employee(50, 2, "Gabriel"),
+        new Employee(60, 5, "Daniel"),
+        new Employee(70, 7, "Joe"),
+        new Employee(80, 2, "Kim"),
+        new Employee(90, 1, "Gino")
     };
 
     public final Department[] departments = {

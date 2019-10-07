@@ -67,7 +67,7 @@ public class AssocInnerOuterRule extends RelOptRule {
   @Override public void onMatch(final RelOptRuleCall call) {
     // Gets the two original join operators.
     Join topLeftJoin = call.rel(0);
-    Join bottomInnerJoin = call.rel(1);
+    Join bottomInnerJoin = call.rel(2);
 
     // Makes sure the join types match the rule.
     if (topLeftJoin.getJoinType() != JoinRelType.LEFT) {

@@ -26,10 +26,14 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
 
@@ -67,7 +71,7 @@ public class AsscomInnerOuterRule extends RelOptRule {
   @Override public void onMatch(final RelOptRuleCall call) {
     // Gets the two original join operators.
     Join topLeftJoin = call.rel(0);
-    Join bottomInnerJoin = call.rel(1);
+    Join bottomInnerJoin = call.rel(2);
 
     // Makes sure the join types match the rule.
     if (topLeftJoin.getJoinType() != JoinRelType.LEFT) {
@@ -88,17 +92,23 @@ public class AsscomInnerOuterRule extends RelOptRule {
       return;
     }
 
+    // Replaces the variables in the predicates later.
+    final RexBuilder rexBuilder = topLeftJoin.getCluster().getRexBuilder();
+    int bottomInnerJoinLeft = bottomInnerJoin.getLeft().getRowType().getFieldCount();
+    final VariableReplacer replacer = new VariableReplacer(
+        rexBuilder, topLeftJoinLeft, bottomInnerJoinLeft, bottomInnerJoinRight);
+
     // The new operators.
     final Join newBottomLeftJoin = topLeftJoin.copy(
         topLeftJoin.getTraitSet(),
-        topLeftJoin.getCondition(),
+        replacer.replace(topLeftJoin.getCondition(), 0),
         topLeftJoin.getLeft(),
         bottomInnerJoin.getRight(),
         JoinRelType.LEFT,
         topLeftJoin.isSemiJoinDone());
     final Join newTopLeftJoin = bottomInnerJoin.copy(
         bottomInnerJoin.getTraitSet(),
-        bottomInnerJoin.getCondition(),
+        replacer.replace(bottomInnerJoin.getCondition(), 0),
         newBottomLeftJoin,
         bottomInnerJoin.getLeft(),
         JoinRelType.LEFT,
@@ -115,6 +125,53 @@ public class AsscomInnerOuterRule extends RelOptRule {
     final RelNode transformedNode = call.builder().push(newTopLeftJoin)
         .nullify(bottomInnerJoin.getCondition(), nullificationList).bestMatch().build();
     call.transformTo(transformedNode);
+  }
+
+  /**
+   * A utility inner class to replace the index of attributes.
+   */
+  private static class VariableReplacer {
+    private final RexBuilder rexBuilder;
+    private final int topLeft;
+    private final int bottomLeft;
+    private final int bottomRight;
+
+    VariableReplacer(RexBuilder rexBuilder, int topLeft, int bottomLeft, int bottomRight) {
+      this.rexBuilder = rexBuilder;
+      this.topLeft = topLeft;
+      this.bottomLeft = bottomLeft;
+      this.bottomRight = bottomRight;
+    }
+
+    RexNode replace(RexNode rex, int offset) {
+      if (rex instanceof RexCall) {
+        final RexCall call = (RexCall) rex;
+
+        // Converts each operand in the predicate.
+        ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+        call.operands.forEach(operand -> builder.add(replace(operand, offset)));
+
+        // Re-builds the predicate.
+        return call.clone(call.getType(), builder.build());
+      } else if (rex instanceof RexInputRef) {
+        final RexInputRef var = (RexInputRef) rex;
+
+        // Computes its index after transformation.
+        int newIndex;
+        if (var.getIndex() < topLeft) {
+          newIndex = var.getIndex();
+        } else if (var.getIndex() < topLeft + bottomLeft) {
+          newIndex = var.getIndex() + bottomRight;
+        } else {
+          newIndex = var.getIndex() - bottomLeft;
+        }
+
+        // Re-builds the attribute.
+        return rexBuilder.makeInputRef(var.getType(), newIndex - offset);
+      } else {
+        return rex;
+      }
+    }
   }
 }
 
