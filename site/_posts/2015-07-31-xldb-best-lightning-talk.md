@@ -25,7 +25,7 @@ limitations under the License.
 -->
 
 Julian Hyde's talk Apache Calcite: One planner fits all won
-[Best Lightning Talk](http://www.xldb.org/archives/2015/05/best-lightning-talks-selected/)
+[Best Lightning Talk](https://www.xldb.org/archives/2015/05/best-lightning-talks-selected/)
 at the XLDB-2015 conference (with Eric Tschetter's talk "Sketchy
 Approximations").
 
@@ -37,5 +37,5 @@ As a result of winning Best Lightning Talk, Julian will get a 30
 minute keynote speaking slot at XLDB-2016.
 
 The talk is available in
-[slides](http://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)
+[slides](https://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)
 and [video](https://www.youtube.com/watch?v=5_MyORYjq3w).

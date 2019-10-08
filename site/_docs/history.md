@@ -4894,7 +4894,7 @@ This is the first release under the Apache incubator process.
 * Improve exception message in `AvaticaConnection`; add
   `ExceptionMessageTest`.
 * Implement micro-benchmarks via
-  <a href="http://openjdk.java.net/projects/code-tools/jmh/">JMH</a>.
+  <a href="https://openjdk.java.net/projects/code-tools/jmh/">JMH</a>.
 
 #### API changes
 
@@ -5230,7 +5230,7 @@ This is the first release under the Apache incubator process.
       instance.
 * Convert files to `us-ascii`.
 * Work around
-  [<a href="http://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>].
+  [<a href="https://jira.codehaus.org/browse/JANINO-169">JANINO-169</a>].
 * Refactor SQL validator testing infrastructure so SQL parser is
   configurable.
 * Add `optiq-mat-plugin` to README.

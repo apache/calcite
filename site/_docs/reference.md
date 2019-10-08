@@ -1862,9 +1862,9 @@ In the following:
 
 In the "C" (for "compatibility") column, "o" indicates that the function
 implements the OpenGIS Simple Features Implementation Specification for SQL,
-[version 1.2.1](http://www.opengeospatial.org/standards/sfs);
+[version 1.2.1](https://www.opengeospatial.org/standards/sfs);
 "p" indicates that the function is a
-[PostGIS](http://www.postgis.net/docs/reference.html) extension to OpenGIS.
+[PostGIS](https://www.postgis.net/docs/reference.html) extension to OpenGIS.
 
 #### Geometry conversion functions (2D)
 

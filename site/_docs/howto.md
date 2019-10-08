@@ -501,7 +501,7 @@ ball because that would be
 
 ## Set up Maven repository credentials (for Calcite committers)
 
-Follow the instructions [here](http://www.apache.org/dev/publishing-maven-artifacts.html#dev-env) to add your credentials to your maven configuration.
+Follow the instructions [here](https://www.apache.org/dev/publishing-maven-artifacts.html#dev-env) to add your credentials to your maven configuration.
 
 ## Making a snapshot (for Calcite committers)
 
