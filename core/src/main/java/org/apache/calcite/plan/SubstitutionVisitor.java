@@ -17,25 +17,22 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.mutable.Holder;
 import org.apache.calcite.rel.mutable.MutableAggregate;
 import org.apache.calcite.rel.mutable.MutableCalc;
 import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableJoin;
-import org.apache.calcite.rel.mutable.MutableProject;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
+import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -129,19 +126,14 @@ public class SubstitutionVisitor {
   protected static final ImmutableList<UnifyRule> DEFAULT_RULES =
       ImmutableList.of(
           TrivialRule.INSTANCE,
-//          ScanToProjectUnifyRule.INSTANCE,
-//          ProjectToProjectUnifyRule.INSTANCE,
-//          FilterToProjectUnifyRule.INSTANCE,
-//          ProjectToFilterUnifyRule.INSTANCE,
-//          FilterToFilterUnifyRule.INSTANCE,
-//          AggregateOnProjectToAggregateUnifyRule.INSTANCE,
           ScanToCalcUnifyRule.INSTANCE,
           CalcToCalcUnifyRule.INSTANCE,
           JoinOnLeftCalcToJoinUnifyRule.INSTANCE,
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
-          AggregateOnCalcToAggUnifyRule.INSTANCE);
+          AggregateOnCalcToAggUnifyRule.INSTANCE,
+          UnionToUnionUnifyRule.INSTANCE);
 
   /**
    * Factory for a builder for relational expressions.
@@ -1032,232 +1024,6 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.core.TableScan}. */
-  private static class ScanToProjectUnifyRule extends AbstractUnifyRule {
-    public static final ScanToProjectUnifyRule INSTANCE =
-        new ScanToProjectUnifyRule();
-
-    private ScanToProjectUnifyRule() {
-      super(any(MutableScan.class),
-          any(MutableProject.class), 0);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      final MutableProject target = (MutableProject) call.target;
-      final MutableScan query = (MutableScan) call.query;
-      // We do not need to check query's parent type to avoid duplication
-      // of ProjectToProjectUnifyRule or FilterToProjectUnifyRule, since
-      // SubstitutionVisitor performs a top-down match.
-      if (!query.equals(target.getInput())) {
-        return null;
-      }
-      final RexShuttle shuttle = getRexShuttle(target);
-      final RexBuilder rexBuilder = target.cluster.getRexBuilder();
-      final List<RexNode> newProjects;
-      try {
-        newProjects = (List<RexNode>)
-            shuttle.apply(rexBuilder.identityProjects(query.rowType));
-      } catch (MatchFailed e) {
-        return null;
-      }
-      final MutableProject newProject =
-          MutableProject.of(query.rowType, target, newProjects);
-      final MutableRel newProject2 = MutableRels.strip(newProject);
-      return call.result(newProject2);
-    }
-  }
-
-  /** Implementation of {@link UnifyRule} that matches
-   * {@link org.apache.calcite.rel.core.Project}. */
-  private static class ProjectToProjectUnifyRule extends AbstractUnifyRule {
-    public static final ProjectToProjectUnifyRule INSTANCE =
-        new ProjectToProjectUnifyRule();
-
-    private ProjectToProjectUnifyRule() {
-      super(operand(MutableProject.class, query(0)),
-          operand(MutableProject.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      final MutableProject target = (MutableProject) call.target;
-      final MutableProject query = (MutableProject) call.query;
-      final RexShuttle shuttle = getRexShuttle(target);
-      final List<RexNode> newProjects;
-      try {
-        newProjects = shuttle.apply(query.projects);
-      } catch (MatchFailed e) {
-        return null;
-      }
-      final MutableProject newProject =
-          MutableProject.of(query.rowType, target, newProjects);
-      final MutableRel newProject2 = MutableRels.strip(newProject);
-      return call.result(newProject2);
-    }
-  }
-
-
-  /** Implementation of {@link UnifyRule} that matches a {@link MutableFilter}
-   * to a {@link MutableProject}. */
-  private static class FilterToProjectUnifyRule extends AbstractUnifyRule {
-    public static final FilterToProjectUnifyRule INSTANCE =
-        new FilterToProjectUnifyRule();
-
-    private FilterToProjectUnifyRule() {
-      super(operand(MutableFilter.class, query(0)),
-          operand(MutableProject.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      // Child of projectTarget is equivalent to child of filterQuery.
-      try {
-        // TODO: make sure that constants are ok
-        final MutableProject target = (MutableProject) call.target;
-        final RexShuttle shuttle = getRexShuttle(target);
-        final RexNode newCondition;
-        final MutableFilter query = (MutableFilter) call.query;
-        try {
-          newCondition = query.condition.accept(shuttle);
-        } catch (MatchFailed e) {
-          return null;
-        }
-        final MutableFilter newFilter = MutableFilter.of(target, newCondition);
-        if (query.getParent() instanceof MutableProject) {
-          final MutableRel inverse =
-              invert(((MutableProject) query.getParent()).getNamedProjects(),
-                  newFilter, shuttle);
-          return call.create(query.getParent()).result(inverse);
-        } else {
-          final MutableRel inverse = invert(query, newFilter, target);
-          return call.result(inverse);
-        }
-      } catch (MatchFailed e) {
-        return null;
-      }
-    }
-
-    protected MutableRel invert(List<Pair<RexNode, String>> namedProjects,
-        MutableRel input,
-        RexShuttle shuttle) {
-      LOGGER.trace("SubstitutionVisitor: invert:\nprojects: {}\ninput: {}\nproject: {}\n",
-          namedProjects, input, shuttle);
-      final List<RexNode> exprList = new ArrayList<>();
-      final RexBuilder rexBuilder = input.cluster.getRexBuilder();
-      final List<RexNode> projects = Pair.left(namedProjects);
-      for (RexNode expr : projects) {
-        exprList.add(rexBuilder.makeZeroLiteral(expr.getType()));
-      }
-      for (Ord<RexNode> expr : Ord.zip(projects)) {
-        final RexNode node = expr.e.accept(shuttle);
-        if (node == null) {
-          throw MatchFailed.INSTANCE;
-        }
-        exprList.set(expr.i, node);
-      }
-      return MutableProject.of(input, exprList, Pair.right(namedProjects));
-    }
-
-    protected MutableRel invert(MutableRel model, MutableRel input,
-        MutableProject project) {
-      LOGGER.trace("SubstitutionVisitor: invert:\nmodel: {}\ninput: {}\nproject: {}\n",
-          model, input, project);
-      if (project.projects.size() < model.rowType.getFieldCount()) {
-        throw MatchFailed.INSTANCE;
-      }
-      final List<RexNode> exprList = new ArrayList<>();
-      final RexBuilder rexBuilder = model.cluster.getRexBuilder();
-      for (int i = 0; i < model.rowType.getFieldCount(); i++) {
-        exprList.add(null);
-      }
-      for (Ord<RexNode> expr : Ord.zip(project.projects)) {
-        if (expr.e instanceof RexInputRef) {
-          final int target = ((RexInputRef) expr.e).getIndex();
-          if (exprList.get(target) == null) {
-            exprList.set(target,
-                rexBuilder.ensureType(expr.e.getType(),
-                    RexInputRef.of(expr.i, input.rowType),
-                    false));
-          }
-        }
-      }
-      if (exprList.indexOf(null) != -1) {
-        throw MatchFailed.INSTANCE;
-      }
-      return MutableProject.of(model.rowType, input, exprList);
-    }
-  }
-
-  /** Implementation of {@link UnifyRule} that matches a
-   * {@link MutableFilter}. */
-  private static class FilterToFilterUnifyRule extends AbstractUnifyRule {
-    public static final FilterToFilterUnifyRule INSTANCE =
-        new FilterToFilterUnifyRule();
-
-    private FilterToFilterUnifyRule() {
-      super(operand(MutableFilter.class, query(0)),
-          operand(MutableFilter.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      // in.query can be rewritten in terms of in.target if its condition
-      // is weaker. For example:
-      //   query: SELECT * FROM t WHERE x = 1 AND y = 2
-      //   target: SELECT * FROM t WHERE x = 1
-      // transforms to
-      //   result: SELECT * FROM (target) WHERE y = 2
-      final MutableFilter query = (MutableFilter) call.query;
-      final MutableFilter target = (MutableFilter) call.target;
-      final MutableFilter newFilter =
-          createFilter(call, query, target);
-      if (newFilter == null) {
-        return null;
-      }
-      return call.result(newFilter);
-    }
-
-    MutableFilter createFilter(UnifyRuleCall call, MutableFilter query,
-        MutableFilter target) {
-      final RexNode newCondition =
-          splitFilter(call.getSimplify(), query.condition,
-              target.condition);
-      if (newCondition == null) {
-        // Could not map query onto target.
-        return null;
-      }
-      if (newCondition.isAlwaysTrue()) {
-        return target;
-      }
-      return MutableFilter.of(target, newCondition);
-    }
-  }
-
-  /** Implementation of {@link UnifyRule} that matches a {@link MutableProject}
-   * to a {@link MutableFilter}. */
-  private static class ProjectToFilterUnifyRule extends AbstractUnifyRule {
-    public static final ProjectToFilterUnifyRule INSTANCE =
-        new ProjectToFilterUnifyRule();
-
-    private ProjectToFilterUnifyRule() {
-      super(operand(MutableProject.class, query(0)),
-          operand(MutableFilter.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      if (call.query.getParent() instanceof MutableFilter) {
-        final UnifyRuleCall in2 = call.create(call.query.getParent());
-        final MutableFilter query = (MutableFilter) in2.query;
-        final MutableFilter target = (MutableFilter) in2.target;
-        final MutableFilter newFilter =
-            FilterToFilterUnifyRule.INSTANCE.createFilter(call, query, target);
-        if (newFilter == null) {
-          return null;
-        }
-        return in2.result(query.replaceInParent(newFilter));
-      }
-      return null;
-    }
-  }
-
   /**
    * A {@link SubstitutionVisitor.UnifyRule} that matches a
    * {@link MutableScan} to a {@link MutableCalc} which has {@link MutableScan} as child.
@@ -1771,7 +1537,7 @@ public class SubstitutionVisitor {
     }
   }
 
-  /** Implementation of {@link UnifyRule} that matches a
+  /** A {@link UnifyRule} that matches a
    * {@link org.apache.calcite.rel.core.Aggregate} to a
    * {@link org.apache.calcite.rel.core.Aggregate}, provided
    * that they have the same child. */
@@ -1805,6 +1571,38 @@ public class SubstitutionVisitor {
         return null;
       }
       return tryMergeParentCalcAndGenResult(call, result);
+    }
+  }
+
+  /**
+   * {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableUnion} to a {@link MutableUnion} where the query and target
+   * have the same inputs but might not have the same order.
+   */
+  private static class UnionToUnionUnifyRule extends AbstractUnifyRule {
+    public static final UnionToUnionUnifyRule INSTANCE = new UnionToUnionUnifyRule();
+
+    private UnionToUnionUnifyRule() {
+      super(any(MutableUnion.class), any(MutableUnion.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableUnion query = (MutableUnion) call.query;
+      final MutableUnion target = (MutableUnion) call.target;
+      List<MutableRel> queryInputs = query.getInputs();
+      List<MutableRel> targetInputs = target.getInputs();
+      if (queryInputs.size() == targetInputs.size()) {
+        for (MutableRel rel: queryInputs) {
+          int index = targetInputs.indexOf(rel);
+          if (index == -1) {
+            return null;
+          } else {
+            targetInputs.remove(index);
+          }
+        }
+        return call.result(target);
+      }
+      return null;
     }
   }
 
@@ -1994,65 +1792,6 @@ public class SubstitutionVisitor {
     return result;
   }
 
-  /** Implementation of {@link UnifyRule} that matches a
-   * {@link MutableAggregate} on
-   * a {@link MutableProject} query to an {@link MutableAggregate} target.
-   *
-   * <p>The rule is necessary when we unify query=Aggregate(x) with
-   * target=Aggregate(x, y). Query will tend to have an extra Project(x) on its
-   * input, which this rule knows is safe to ignore.</p> */
-  private static class AggregateOnProjectToAggregateUnifyRule
-      extends AbstractUnifyRule {
-    public static final AggregateOnProjectToAggregateUnifyRule INSTANCE =
-        new AggregateOnProjectToAggregateUnifyRule();
-
-    private AggregateOnProjectToAggregateUnifyRule() {
-      super(
-          operand(MutableAggregate.class,
-              operand(MutableProject.class, query(0))),
-          operand(MutableAggregate.class, target(0)), 1);
-    }
-
-    public UnifyResult apply(UnifyRuleCall call) {
-      final MutableAggregate query = (MutableAggregate) call.query;
-      final MutableAggregate target = (MutableAggregate) call.target;
-      if (!(query.getInput() instanceof MutableProject)) {
-        return null;
-      }
-      final MutableProject project = (MutableProject) query.getInput();
-      if (project.getInput() != target.getInput()) {
-        return null;
-      }
-      final Mappings.TargetMapping mapping = project.getMapping();
-      if (mapping == null) {
-        return null;
-      }
-      Mapping inverseMapping = mapping.inverse();
-      final MutableAggregate aggregate2 =
-          permute(query, project.getInput(), inverseMapping);
-      final MutableRel unifiedAggregate = unifyAggregates(aggregate2, null, target);
-      if (unifiedAggregate == null) {
-        return null;
-      }
-      MutableRel result = unifiedAggregate;
-      // Add Project if the mapping breaks order of fields in GroupSet
-      if (!Mappings.keepsOrdering(mapping)) {
-        final List<Integer> posList = new ArrayList<>();
-        final int fieldCount = aggregate2.rowType.getFieldCount();
-        for (int group: aggregate2.groupSet) {
-          if (inverseMapping.getTargetOpt(group) != -1) {
-            posList.add(inverseMapping.getTarget(group));
-          }
-        }
-        for (int i = posList.size(); i < fieldCount; i++) {
-          posList.add(i);
-        }
-        result = MutableRels.createProject(unifiedAggregate, posList);
-      }
-      return call.result(result);
-    }
-  }
-
   public static SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN
@@ -2069,10 +1808,6 @@ public class SubstitutionVisitor {
 
   /** Builds a shuttle that stores a list of expressions, and can map incoming
    * expressions to references to them. */
-  protected static RexShuttle getRexShuttle(MutableProject target) {
-    return getRexShuttle(target.projects);
-  }
-
   private static RexShuttle getRexShuttle(List<RexNode> rexNodes) {
     final Map<RexNode, Integer> map = new HashMap<>();
     for (RexNode e : rexNodes) {
@@ -2274,55 +2009,6 @@ public class SubstitutionVisitor {
           visit(input);
         }
       }
-    }
-  }
-
-  /**
-   * Rule that converts a {@link org.apache.calcite.rel.logical.LogicalFilter}
-   * on top of a {@link org.apache.calcite.rel.logical.LogicalProject} into a
-   * trivial filter (on a boolean column).
-   */
-  public static class FilterOnProjectRule extends RelOptRule {
-    public static final FilterOnProjectRule INSTANCE =
-        new FilterOnProjectRule(RelFactories.LOGICAL_BUILDER);
-
-    /**
-     * Creates a FilterOnProjectRule.
-     *
-     * @param relBuilderFactory Builder for relational expressions
-     */
-    public FilterOnProjectRule(RelBuilderFactory relBuilderFactory) {
-      super(
-          operandJ(LogicalFilter.class, null,
-              filter -> filter.getCondition() instanceof RexInputRef,
-              some(operand(LogicalProject.class, any()))),
-          relBuilderFactory, null);
-    }
-
-    public void onMatch(RelOptRuleCall call) {
-      final LogicalFilter filter = call.rel(0);
-      final LogicalProject project = call.rel(1);
-
-      final List<RexNode> newProjects = new ArrayList<>(project.getProjects());
-      newProjects.add(filter.getCondition());
-
-      final RelOptCluster cluster = filter.getCluster();
-      RelDataType newRowType =
-          cluster.getTypeFactory().builder()
-              .addAll(project.getRowType().getFieldList())
-              .add("condition", Util.last(newProjects).getType())
-              .build();
-      final RelNode newProject =
-          project.copy(project.getTraitSet(),
-              project.getInput(),
-              newProjects,
-              newRowType);
-
-      final RexInputRef newCondition =
-          cluster.getRexBuilder().makeInputRef(newProject,
-              newProjects.size() - 1);
-
-      call.transformTo(LogicalFilter.create(newProject, newCondition));
     }
   }
 }

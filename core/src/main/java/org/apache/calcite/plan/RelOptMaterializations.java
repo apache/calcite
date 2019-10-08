@@ -221,8 +221,7 @@ public abstract class RelOptMaterializations {
     hepPlanner.setRoot(root);
     root = hepPlanner.findBestExp();
 
-    return new MaterializedViewSubstitutionVisitor(target, root)
-            .go(materialization.tableRel);
+    return new SubstitutionVisitor(target, root).go(materialization.tableRel);
   }
 
   /**
