@@ -26,19 +26,11 @@ limitations under the License.
 
 # Upcoming talks
 
-* September 8th-12th, 2019
-  [ApacheCon North America 2019](https://www.apachecon.com/acna19/)
-  (Las Vegas, Nevada)
-  * Building BigData Query Optimization with Apache Calcite – Best
-    Practices from Alibaba MaxCompute (Haisheng Yuan)
-  * Combining schema-on-read and schema-provisioning in Apache Drill
-    (Aman Sinha)
-  * Simple, Portable data pipelines with Apache Beam SQL
-    (Andrew Pilloud)
-  * One SQL to Rule Them All – a Syntactically Idiomatic Approach to
-    Management of Streams and Tables (Kenneth Knowles, Julian Hyde)
-  * Unifying Batch and Stream Data Processing with Apache Calcite and
-    Apache Beam (Khai Tran)
+## Fast federated SQL with Apache Calcite (Chris Baynes)
+
+At [ApacheCon Europe 2019](https://aceu19.apachecon.com/), Berlin, Germany, October 24, 2019; 
+[[summary](https://aceu19.apachecon.com/session/fast-federated-sql-apache-calcite)].   
+
 
 # Project Members
 
