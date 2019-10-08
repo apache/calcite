@@ -28,22 +28,22 @@ limitations under the License.
 
 ## Fast federated SQL with Apache Calcite (Chris Baynes)
 
-At [ApacheCon Europe 2019](https://aceu19.apachecon.com/), Berlin, Germany, October 24, 2019; 
-[[summary](https://aceu19.apachecon.com/session/fast-federated-sql-apache-calcite)].   
+At [ApacheCon Europe 2019](https://aceu19.apachecon.com/), Berlin, Germany, October 24, 2019;
+[[summary](https://aceu19.apachecon.com/session/fast-federated-sql-apache-calcite)].
 
 
 # Project Members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="http://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% unless c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endunless %}{% endfor %}
 
 Emeritus members
 
 Name (Apache ID) | Github | Org | Role
 :--------------- | :----- | :-- | :---
-{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="http://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
+{% for c in site.data.contributors %}{% if c.emeritus %}{% if c.homepage %}<a href="{{ c.homepage }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %} (<a href="https://people.apache.org/phonebook.html?uid={{ c.apacheId }}">{{ c.apacheId }}</a>) | <a href="https://github.com/{{ c.githubId }}"><img width="64" src="{% unless c.avatar %}https://github.com/{{ c.githubId }}.png{% else %}{{ c.avatar }}{% endunless %}"></a> | {{ c.org }} | {{ c.role }}
 {% endif %}{% endfor %}
 
 # Mailing Lists
@@ -69,7 +69,7 @@ Need help with Calcite? Try these resources:
   The best option is to send email to the developers list
   [dev@calcite.apache.org](mailto:dev@calcite.apache.org). All
   of the historic traffic is available in the
-  [archive](http://mail-archives.apache.org/mod_mbox/calcite-dev/). To
+  [archive](https://mail-archives.apache.org/mod_mbox/calcite-dev/). To
   subscribe to the user list, please send email to
   [dev-subscribe@calcite.apache.org](mailto:dev-subscribe@calcite.apache.org).
 * **Bug Reports**.
@@ -77,7 +77,7 @@ Need help with Calcite? Try these resources:
   [Calcite Jira](https://issues.apache.org/jira/browse/CALCITE). We welcome
   patches and pull-requests!
 * **StackOverflow**.
-  [StackOverflow](http://stackoverflow.com/questions/tagged/calcite) is a wonderful resource for
+  [StackOverflow](https://stackoverflow.com/questions/tagged/calcite) is a wonderful resource for
   any developer. Take a look over there to see if someone has answered
   your question.
 * **Browse the code**.
@@ -115,9 +115,9 @@ At ApacheCon North America, 2018;
 
 ## Apache Calcite: One planner fits all
 
-Voted [Best Lightning Talk at XLDB-2015](http://www.xldb.org/archives/2015/05/best-lightning-talks-selected/);
+Voted [Best Lightning Talk at XLDB-2015](https://www.xldb.org/archives/2015/05/best-lightning-talks-selected/);
 [[video](https://www.youtube.com/watch?v=5_MyORYjq3w)],
-[[slides](http://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)].
+[[slides](https://www.slideshare.net/julianhyde/apache-calcite-one-planner-fits-all)].
 
 {% oembed https://www.youtube.com/watch?v=5_MyORYjq3w %}
 
@@ -125,7 +125,7 @@ Voted [Best Lightning Talk at XLDB-2015](http://www.xldb.org/archives/2015/05/be
 
 At Hadoop Summit, San Jose, CA, 2016
 [[video](https://www.youtube.com/watch?v=b7HENkvd1uU)],
-[[slides](http://www.slideshare.net/julianhyde/streaming-sql-63554778)],
+[[slides](https://www.slideshare.net/julianhyde/streaming-sql-63554778)],
 [[pdf](https://github.com/julianhyde/share/blob/master/slides/calcite-streaming-sql-san-jose-2016.pdf?raw=true)].
 
 {% oembed https://www.youtube.com/watch?v=b7HENkvd1uU %}
@@ -134,7 +134,7 @@ At Hadoop Summit, San Jose, CA, 2016
 
 At Hadoop Summit, San Jose, CA, 2016
 [[video](https://www.youtube.com/watch?v=gz9X7JD8BAU)],
-[[slides](http://www.slideshare.net/julianhyde/costbased-query-optimization-in-apache-phoenix-using-apache-calcite)],
+[[slides](https://www.slideshare.net/julianhyde/costbased-query-optimization-in-apache-phoenix-using-apache-calcite)],
 [[pdf](https://github.com/julianhyde/share/blob/master/slides/phoenix-on-calcite-hadoop-summit-2016.pdf?raw=true)].
 
 {% oembed https://www.youtube.com/watch?v=gz9X7JD8BAU %}
@@ -143,7 +143,7 @@ At Hadoop Summit, San Jose, CA, 2016
 
 As Hadoop Summit, Dublin, 2016
 [[video](https://www.youtube.com/watch?v=fHZqbe3iPMc)],
-[[slides](http://www.slideshare.net/julianhyde/planning-with-polyalgebra-bringing-together-relational-complex-and-machine-learning-algebra)].
+[[slides](https://www.slideshare.net/julianhyde/planning-with-polyalgebra-bringing-together-relational-complex-and-machine-learning-algebra)].
 
 {% oembed https://www.youtube.com/watch?v=fHZqbe3iPMc %}
 
@@ -154,4 +154,4 @@ As Hadoop Summit, Dublin, 2016
 * <a href="https://github.com/julianhyde/share/blob/master/slides/dmmq-summit-2014.pdf?raw=true">Discardable, in-memory materialized query for Hadoop</a> (<a href="https://www.youtube.com/watch?v=CziGOa8GXqI">video</a>) (Hadoop Summit, 2014)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-nosql-now-2013.pdf?raw=true">SQL Now!</a> (NoSQL Now! conference, 2013)
 * <a href="https://github.com/julianhyde/share/blob/master/slides/optiq-drill-user-group-2013.pdf?raw=true">Drill / SQL / Optiq</a> (2013)
-* <a href="http://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)
+* <a href="https://www.slideshare.net/julianhyde/how-to-integrate-splunk-with-any-data-solution">How to integrate Splunk with any data solution</a> (Splunk User Conference, 2012)

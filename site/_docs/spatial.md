@@ -24,10 +24,10 @@ limitations under the License.
 
 Calcite is [aiming](https://issues.apache.org/jira/browse/CALCITE-1968) to implement
 OpenGIS Simple Features Implementation Specification for SQL,
-[version 1.2.1](http://www.opengeospatial.org/standards/sfs),
+[version 1.2.1](https://www.opengeospatial.org/standards/sfs),
 a standard implemented by spatial databases such as
 [PostGIS](https://postgis.net/)
-and [H2GIS](http://www.h2gis.org/).
+and [H2GIS](https://www.h2gis.org/).
 
 We also aim to add optimizer support for
 [spatial indexes](https://issues.apache.org/jira/browse/CALCITE-1861)

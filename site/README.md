@@ -113,7 +113,7 @@ see the results at
 This process also publishes Avatica's web site. Avatica's web site has
 separate source (under `avatica/site`) but configures Jekyll to
 generate files to `site/target/avatica`, which becomes an
-[avatica](http://calcite.apache.org/avatica)
+[avatica](https://calcite.apache.org/avatica)
 sub-directory when deployed. See
 [Avatica site README](../avatica/site/README.md).
 
