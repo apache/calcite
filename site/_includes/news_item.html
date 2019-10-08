@@ -37,12 +37,12 @@ limitations under the License.
           {% if c.homepage %}
             {% assign homepage = c.homepage %}
           {% else %}
-            {% capture homepage %}http://github.com/{{ c.githubId }}{% endcapture %}
+            {% capture homepage %}https://github.com/{{ c.githubId }}{% endcapture %}
           {% endif %}
           {% if c.avatar %}
             {% assign avatar = c.avatar %}
           {% else %}
-            {% capture avatar %}http://github.com/{{ c.githubId }}.png{% endcapture %}
+            {% capture avatar %}https://github.com/{{ c.githubId }}.png{% endcapture %}
           {% endif %}
         {% endif %}
       {% endfor %}
