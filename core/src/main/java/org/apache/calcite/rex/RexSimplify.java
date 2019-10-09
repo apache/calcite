@@ -753,9 +753,9 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
-       if (!isSafeExpression(a)) {
-         return null;
-       }
+      if (!isSafeExpression(a)) {
+        return null;
+      }
       // "f" is a strong and safe operator, so "f(operand0, operand1) IS NOT NULL"
       // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
@@ -1030,6 +1030,8 @@ public class RexSimplify {
       Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
 
       safeOps.addAll(SqlKind.COMPARISON);
+      safeOps.add(SqlKind.PLUS_PREFIX);
+      safeOps.add(SqlKind.MINUS_PREFIX);
       safeOps.add(SqlKind.IS_FALSE);
       safeOps.add(SqlKind.IS_NOT_FALSE);
       safeOps.add(SqlKind.IS_TRUE);

@@ -300,8 +300,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(program.normalize(rexBuilder, simplify).toString(),
         is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
             + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], expr#6=[+($t0, $t4)], "
-            + "expr#7=[5], expr#8=[>($t4, $t7)], expr#9=[false], expr#10=[true], "
-            + "expr#11=[CASE($t8, $t9, $t10)], a=[$t5], b=[$t6], $condition=[$t11])"));
+            + "expr#7=[5], expr#8=[>($t4, $t7)], expr#9=[false], expr#10=[IS NOT NULL($t4)], "
+            + "expr#11=[true], expr#12=[CASE($t8, $t9, $t10, $t11, $t9)], a=[$t5], "
+            + "b=[$t6], $condition=[$t12])"));
   }
 
   /**
@@ -319,11 +320,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
             + "$condition=[$t16])"));
 
     assertThat(program.normalize(rexBuilder, simplify).toString(),
-        is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)],"
-            + " expr#3=[1], expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[>($t4, $t7)], "
-            + "expr#9=[false], expr#10=[true], expr#11=[CASE($t8, $t9, $t10)], "
-            + "a=[$t5], b=[$t6], $condition=[$t11])"));
+        is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
+            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], expr#6=[+($t0, $t4)],"
+            + " expr#7=[5], expr#8=[>($t4, $t7)], expr#9=[false], expr#10=[IS NOT NULL($t4)],"
+            + " expr#11=[true], expr#12=[CASE($t8, $t9, $t10, $t11, $t9)], a=[$t5],"
+            + " b=[$t6], $condition=[$t12])"));
   }
 
   /**
@@ -1269,7 +1270,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(isNull(nullBool), "true");
   }
 
-  @Test public void testUnsafeSimplify(){
+
+  @Test public void testUnsafeSimplify() {
     // "(x + y) is null" should not simplify to "x is null or y is null"
     checkSimplifyUnchanged(isNull(plus(vInt(0), vInt(1))));
     checkSimplifyUnchanged(isNull(plus(vInt(0), vIntNotNull(1))));
@@ -1308,23 +1310,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     // "(x / y) is null" should not simplify to "x is null or y is null"
     checkSimplifyUnchanged(isNull(div(vInt(2), literal(1))));
-    checkSimplifyUnchanged(isNull(div(vIntNotNull(2),literal(1))));
+    checkSimplifyUnchanged(isNull(div(vIntNotNull(2), literal(1))));
 
     // "(x / y) is not null" should not simplify to "x is not null and y is not null"
     checkSimplifyUnchanged(isNotNull(div(vInt(2), literal(1))));
     checkSimplifyUnchanged(isNotNull(div(vIntNotNull(2), literal(1))));
-
-    // "(+x) is null" should not simplify to "+x is null"
-    checkSimplifyUnchanged(isNull(unaryPlus(vInt(2))));
-
-    // "(+x) is not null" should not simplify to "+x is not null"
-    checkSimplifyUnchanged(isNotNull(unaryPlus(vInt(2))));
-
-    // "(-x) is null" should not simplify to "-x is null"
-    checkSimplifyUnchanged(isNull(unaryMinus(vInt(2))));
-
-    // "(-x) is not null" should not simplify to "-x is not null"
-    checkSimplifyUnchanged(isNotNull(unaryMinus(vInt(2))));
   }
 
   @Test public void simplifyStrong() {
@@ -2052,13 +2042,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "false");
     checkSimplify(
         isNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
-        "IS NULL(+($0))");
+        "IS NULL($0)");
     checkSimplify(
         isNotNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
         "true");
     checkSimplify(
         isNotNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
-        "IS NOT NULL(+($0))");
+        "IS NOT NULL($0)");
     // test simplify operand of redundant cast
     checkSimplify(isNull(cast(i2, intType)), "false");
     checkSimplify(isNotNull(cast(i2, intType)), "true");
@@ -2814,9 +2804,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
         isNotNull(coalesce(unaryPlus(vInt(1)), vIntNotNull(0)));
     RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
 
-    assertEquals(expr,s);
     assertThat(expr.isAlwaysTrue(), is(true));
-    assertThat(s.isAlwaysTrue(), is(true));
+    assertThat(s, is(trueLiteral));
   }
 
   @Test public void testIsNullSimplificationWithIsDistinctFrom() {

@@ -204,7 +204,7 @@ public class RexCall extends RexNode {
     // This reduction allows us to convert it to a semi-join.
     switch (getKind()) {
     case IS_NOT_NULL:
-      return !operands.get(0).getType().isNullable();
+      return RexSimplify.isSafeExpression(this) && !operands.get(0).getType().isNullable();
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
@@ -221,7 +221,7 @@ public class RexCall extends RexNode {
   @Override public boolean isAlwaysFalse() {
     switch (getKind()) {
     case IS_NULL:
-      return !operands.get(0).getType().isNullable();
+      return RexSimplify.isSafeExpression(this) && !operands.get(0).getType().isNullable();
     case IS_NOT_TRUE:
     case IS_FALSE:
     case NOT:
