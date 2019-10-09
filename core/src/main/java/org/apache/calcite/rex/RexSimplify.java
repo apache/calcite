@@ -753,7 +753,10 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(true);
     case ANY:
-      // "f" is a strong operator, so "f(operand0, operand1) IS NOT NULL"
+       if (!isSafeExpression(a)) {
+         return null;
+       }
+      // "f" is a strong and safe operator, so "f(operand0, operand1) IS NOT NULL"
       // simplifies to "operand0 IS NOT NULL AND operand1 IS NOT NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
@@ -802,7 +805,10 @@ public class RexSimplify {
     case NOT_NULL:
       return rexBuilder.makeLiteral(false);
     case ANY:
-      // "f" is a strong operator, so "f(operand0, operand1) IS NULL" simplifies
+      if (!isSafeExpression(a)) {
+        return null;
+      }
+      // "f" is a strong and safe operator, so "f(operand0, operand1) IS NULL" simplifies
       // to "operand0 IS NULL OR operand1 IS NULL"
       final List<RexNode> operands = new ArrayList<>();
       for (RexNode operand : ((RexCall) a).getOperands()) {
@@ -1024,11 +1030,6 @@ public class RexSimplify {
       Set<SqlKind> safeOps = EnumSet.noneOf(SqlKind.class);
 
       safeOps.addAll(SqlKind.COMPARISON);
-      safeOps.add(SqlKind.PLUS_PREFIX);
-      safeOps.add(SqlKind.MINUS_PREFIX);
-      safeOps.add(SqlKind.PLUS);
-      safeOps.add(SqlKind.MINUS);
-      safeOps.add(SqlKind.TIMES);
       safeOps.add(SqlKind.IS_FALSE);
       safeOps.add(SqlKind.IS_NOT_FALSE);
       safeOps.add(SqlKind.IS_TRUE);
@@ -1116,14 +1117,19 @@ public class RexSimplify {
 
   }
 
-  /** Analyzes a given {@link RexNode} and decides whenever it is safe to
+  /**
+   * Analyzes a given {@link RexNode} and decides whenever it is safe to
    * unwind.
-  *
-  * <p>"Safe" means that it only contains a combination of known good operators.
-  *
-  * <p>Division is an unsafe operator; consider the following:
-  * <pre>case when a &gt; 0 then 1 / a else null end</pre>
-  */
+   *
+   * <p>"Safe" means that it only contains a combination of known good operators.
+   *
+   * <p>Division is an unsafe operator; consider the following:
+   * <pre>case when a &gt; 0 then 1 / a else null end</pre>
+   *
+   * <p>TIMES、PLUS、MINUS、PLUS_PREFIX、MINUS_PREFIX are also unsafe operators
+   * because they may lead overflow.</p>
+   *
+   **/
   static boolean isSafeExpression(RexNode r) {
     return r.accept(SafeRexVisitor.INSTANCE);
   }
