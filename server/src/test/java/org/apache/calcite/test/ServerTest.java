@@ -60,6 +60,7 @@ public class ServerTest {
                 SqlDdlParserImpl.class.getName() + "#FACTORY")
             .set(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED,
                 "true")
+            .set(CalciteConnectionProperty.FUN, "standard,oracle")
             .build());
   }
 
@@ -413,6 +414,43 @@ public class ServerTest {
           + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], proj#0..1=[{exprs}], J=[$t3])\n"
           + "  EnumerableTableScan(table=[[T]])\n";
       try (ResultSet r = s.executeQuery("explain plan for " + sql)) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), isLinux(plan));
+      }
+    }
+  }
+
+  @Test public void testVirtualColumnWithFunctions() throws Exception {
+    try (Connection c = connect();
+         Statement s = c.createStatement()) {
+      // Test builtin and library functions.
+      final String create = "create table t1 (\n"
+          + " h varchar(3) not null,\n"
+          + " i varchar(3),\n"
+          + " j int not null as (char_length(h)) virtual,\n"
+          + " k varchar(3) null as (trim(i)) virtual)";
+      boolean b = s.execute(create);
+      assertThat(b, is(false));
+
+      int x = s.executeUpdate("insert into t1 (h, i) values ('abc', 'de ')");
+      assertThat(x, is(1));
+
+      // In plan, "j" is replaced by "char_length(h)".
+      final String select = "select * from t1";
+      try (ResultSet r = s.executeQuery(select)) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getString(1), is("abc"));
+        assertThat(r.getString(2), is("de "));
+        assertThat(r.getInt(3), is(3));
+        assertThat(r.getString(4), is("de"));
+        assertThat(r.next(), is(false));
+      }
+
+      final String plan = ""
+          + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t0)], "
+          + "expr#3=[FLAG(BOTH)], expr#4=[' '], expr#5=[TRIM($t3, $t4, $t1)], proj#0..2=[{exprs}], K=[$t5])\n"
+          + "  EnumerableTableScan(table=[[T1]])\n";
+      try (ResultSet r = s.executeQuery("explain plan for " + select)) {
         assertThat(r.next(), is(true));
         assertThat(r.getString(1), isLinux(plan));
       }
