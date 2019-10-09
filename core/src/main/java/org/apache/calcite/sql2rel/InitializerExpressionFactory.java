@@ -62,6 +62,10 @@ public interface InitializerExpressionFactory {
    * Creates an expression which evaluates to the default value for a
    * particular column.
    *
+   * <p>If the default value comes from a un-validated {@link org.apache.calcite.sql.SqlNode},
+   * make sure to invoke {@link InitializerContext#validateExpression} first before you actually
+   * do the conversion with method {@link InitializerContext#convertExpression}.
+   *
    * @param table   the table containing the column
    * @param iColumn the 0-based offset of the column in the table
    * @param context Context for creating the expression

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql2rel;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlNode;
@@ -25,6 +26,8 @@ import org.apache.calcite.sql.SqlNode;
  */
 public interface InitializerContext {
   RexBuilder getRexBuilder();
+
+  SqlNode validateExpression(RelDataType rowType, SqlNode expr);
 
   RexNode convertExpression(SqlNode e);
 }
