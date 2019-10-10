@@ -133,7 +133,8 @@ public class SubstitutionVisitor {
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnCalcToAggUnifyRule.INSTANCE,
-          UnionToUnionUnifyRule.INSTANCE);
+          UnionToUnionUnifyRule.INSTANCE,
+          UnionOnCalcsToUnionUnifyRule.INSTANCE);
 
   /**
    * Factory for a builder for relational expressions.
@@ -1589,21 +1590,92 @@ public class SubstitutionVisitor {
     public UnifyResult apply(UnifyRuleCall call) {
       final MutableUnion query = (MutableUnion) call.query;
       final MutableUnion target = (MutableUnion) call.target;
-      List<MutableRel> queryInputs = query.getInputs();
-      List<MutableRel> targetInputs = target.getInputs();
-      if (queryInputs.size() == targetInputs.size()) {
-        for (MutableRel rel: queryInputs) {
-          int index = targetInputs.indexOf(rel);
-          if (index == -1) {
-            return null;
-          } else {
-            targetInputs.remove(index);
-          }
-        }
+      final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
+      final List<MutableRel> targetInputs = new ArrayList<>(target.getInputs());
+      if (query.isAll() == target.isAll()
+          && sameRelCollectionNoOrderConsidered(queryInputs, targetInputs)) {
         return call.result(target);
       }
       return null;
     }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableUnion}
+   * which has {@link MutableCalc} as child to a {@link MutableUnion}.
+   * We try to pull up the {@link MutableCalc} to top of {@link MutableUnion},
+   * then match the {@link MutableUnion} in query to {@link MutableUnion} in target.
+   */
+  private static class UnionOnCalcsToUnionUnifyRule extends AbstractUnifyRule {
+    public static final UnionOnCalcsToUnionUnifyRule INSTANCE =
+        new UnionOnCalcsToUnionUnifyRule();
+
+    private UnionOnCalcsToUnionUnifyRule() {
+      super(any(MutableUnion.class), any(MutableUnion.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableUnion query = (MutableUnion) call.query;
+      final MutableUnion target = (MutableUnion) call.target;
+      final List<MutableCalc> queryInputs = new ArrayList<>();
+      final List<MutableRel> queryGrandInputs = new ArrayList<>();
+      List<MutableRel> targetInputs = new ArrayList<>(target.getInputs());
+
+      final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+
+      for (MutableRel rel: query.getInputs()) {
+        if (rel instanceof MutableCalc) {
+          queryInputs.add((MutableCalc) rel);
+          queryGrandInputs.add(((MutableCalc) rel).getInput());
+        } else {
+          return null;
+        }
+      }
+
+      if (query.isAll() && target.isAll()
+          && sameRelCollectionNoOrderConsidered(queryGrandInputs, targetInputs)) {
+        Pair<RexNode, List<RexNode>> queryInputExplained0 =
+            explainCalc(queryInputs.get(0));
+        for (int i = 1; i < queryGrandInputs.size(); i++) {
+          Pair<RexNode, List<RexNode>> queryInputExplained =
+              explainCalc(queryInputs.get(i));
+          // Matching fails when filtering conditions are not equal or projects are not equal.
+          if (!splitFilter(call.getSimplify(), queryInputExplained0.left,
+              queryInputExplained.left).isAlwaysTrue()) {
+            return null;
+          }
+          for (Pair<RexNode, RexNode> pair : Pair.zip(
+              queryInputExplained0.right, queryInputExplained.right)) {
+            if (!pair.left.equals(pair.right)) {
+              return null;
+            }
+          }
+        }
+        RexProgram compenRexProgram = RexProgram.create(
+            target.rowType, queryInputExplained0.right, queryInputExplained0.left,
+            query.rowType, rexBuilder);
+        MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
+        return tryMergeParentCalcAndGenResult(call, compenCalc);
+      }
+
+      return null;
+    }
+  }
+
+  private static boolean sameRelCollectionNoOrderConsidered(
+      List<MutableRel> list0, List<MutableRel> list1) {
+    if (list0.size() == list1.size()) {
+      for (MutableRel rel: list0) {
+        int index = list1.indexOf(rel);
+        if (index == -1) {
+          return false;
+        } else {
+          list1.remove(index);
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   private static int fieldCnt(MutableRel rel) {

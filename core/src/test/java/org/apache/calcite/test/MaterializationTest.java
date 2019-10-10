@@ -2779,6 +2779,25 @@ public class MaterializationTest {
     checkNoMaterialize(sql0 + " union " + sql1, sql0 + " union all " + sql1,
         HR_FKUK_MODEL);
   }
+  @Test public void testUnionOnCalcsToUnion() {
+    String mv = ""
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" > 300\n"
+        + "union all\n"
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" < 100";
+    String query = ""
+        + "select \"deptno\", \"salary\" * 2\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" > 300 and \"salary\" > 100\n"
+        + "union all\n"
+        + "select \"deptno\", \"salary\" * 2\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" < 100 and \"salary\" > 100";
+    checkMaterialize(mv, query);
+  }
 
   private static <E> List<List<List<E>>> list3(E[][][] as) {
     final ImmutableList.Builder<List<List<E>>> builder =
