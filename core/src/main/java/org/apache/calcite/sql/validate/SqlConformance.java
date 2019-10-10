@@ -393,6 +393,21 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowExtendedTrim();
+
+  /**
+   * Whether interval literals should allow plural time units
+   * such as "YEARS" and "DAYS" in interval literals.
+   *
+   * <p>Under strict behavior, {@code INTERVAL '2' DAY} is valid
+   * and {@code INTERVAL '2' DAYS} is invalid;
+   * PostgreSQL allows both; Oracle only allows singular time units.
+   *
+   * <p>Among the built-in conformance levels, true in
+   * {@link SqlConformanceEnum#BABEL},
+   * {@link SqlConformanceEnum#LENIENT};
+   * false otherwise.
+   */
+  boolean allowPluralTimeUnits();
 }
 
 // End SqlConformance.java

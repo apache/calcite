@@ -463,6 +463,7 @@ DATABASE,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
 **DAY**,
+DAYS,
 **DEALLOCATE**,
 **DEC**,
 DECADE,
@@ -563,6 +564,7 @@ GRANTED,
 HIERARCHY,
 **HOLD**,
 **HOUR**,
+HOURS,
 **IDENTITY**,
 IGNORE,
 IMMEDIATE,
@@ -651,11 +653,13 @@ MILLISECOND,
 **MIN**,
 **MINUS**,
 **MINUTE**,
+MINUTES,
 MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
 **MONTH**,
+MONTHS,
 MORE,
 **MULTISET**,
 MUMPS,
@@ -810,6 +814,7 @@ SCOPE_SCHEMA,
 **SCROLL**,
 **SEARCH**,
 **SECOND**,
+SECONDS,
 SECTION,
 SECURITY,
 **SEEK**,
@@ -994,6 +999,7 @@ WRAPPER,
 WRITE,
 XML,
 **YEAR**,
+YEARS,
 ZONE.
 {% comment %} end {% endcomment %}
 
@@ -1061,6 +1067,10 @@ Note:
   it will rely on the supplied time zone to provide correct semantics.
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
+* Interval literals may only use time units
+  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
+  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
