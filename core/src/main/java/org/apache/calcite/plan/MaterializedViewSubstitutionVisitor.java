@@ -199,7 +199,8 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
       final MutableUnion target = (MutableUnion) call.target;
       List<MutableRel> queryInputs = query.getInputs();
       List<MutableRel> targetInputs = target.getInputs();
-      if (queryInputs.size() == targetInputs.size()) {
+      if (query.isAll() == target.isAll()
+          && queryInputs.size() == targetInputs.size()) {
         for (MutableRel rel: queryInputs) {
           int index = targetInputs.indexOf(rel);
           if (index == -1) {
