@@ -3336,19 +3336,16 @@ public class SqlToRelConverter {
         .anyMatch(f -> ief.generationStrategy(table, f.getIndex()) == ColumnStrategy.VIRTUAL);
 
     if (hasVirtualFields) {
-      // Lazily create a blackboard that contains all non-generated columns.
-      final Supplier<Blackboard> bb = () -> {
-        RexNode sourceRef = rexBuilder.makeRangeReference(scan);
-        return createInsertBlackboard(table, sourceRef,
-            table.getRowType().getFieldNames());
-      };
+      final RexNode sourceRef = rexBuilder.makeRangeReference(scan);
+      final Blackboard bb = createInsertBlackboard(table, sourceRef,
+          table.getRowType().getFieldNames());
       final List<RexNode> list = new ArrayList<>();
       for (RelDataTypeField f : table.getRowType().getFieldList()) {
         final ColumnStrategy strategy =
             ief.generationStrategy(table, f.getIndex());
         switch (strategy) {
         case VIRTUAL:
-          list.add(ief.newColumnDefaultValue(table, f.getIndex(), bb.get()));
+          list.add(ief.newColumnDefaultValue(table, f.getIndex(), bb));
           break;
         default:
           list.add(
@@ -3358,7 +3355,12 @@ public class SqlToRelConverter {
       }
       relBuilder.push(scan);
       relBuilder.project(list);
-      return relBuilder.build();
+      final RelNode project = relBuilder.build();
+      if (ief.postExpressionConversionHook() != null) {
+        return ief.postExpressionConversionHook().apply(bb, project);
+      } else {
+        return project;
+      }
     }
 
     return scan;
