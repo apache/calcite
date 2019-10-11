@@ -428,7 +428,7 @@ public class ServerTest {
           + " h varchar(3) not null,\n"
           + " i varchar(3),\n"
           + " j int not null as (char_length(h)) virtual,\n"
-          + " k varchar(3) null as (trim(i)) virtual)";
+          + " k varchar(3) null as (rtrim(i)) virtual)";
       boolean b = s.execute(create);
       assertThat(b, is(false));
 
@@ -448,7 +448,8 @@ public class ServerTest {
 
       final String plan = ""
           + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CHAR_LENGTH($t0)], "
-          + "expr#3=[FLAG(BOTH)], expr#4=[' '], expr#5=[TRIM($t3, $t4, $t1)], proj#0..2=[{exprs}], K=[$t5])\n"
+          + "expr#3=[FLAG(TRAILING)], expr#4=[' '], "
+          + "expr#5=[TRIM($t3, $t4, $t1)], proj#0..2=[{exprs}], K=[$t5])\n"
           + "  EnumerableTableScan(table=[[T1]])\n";
       try (ResultSet r = s.executeQuery("explain plan for " + select)) {
         assertThat(r.next(), is(true));

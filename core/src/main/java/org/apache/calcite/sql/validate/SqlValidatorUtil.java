@@ -1202,7 +1202,7 @@ public class SqlValidatorUtil {
         false,
         false,
         "",
-        new ExplicitTablesSchema(tableMap));
+        new ExplicitTableSchema(tableMap));
 
     return new CalciteCatalogReader(
         schema,
@@ -1329,10 +1329,10 @@ public class SqlValidatorUtil {
   /**
    * A {@link AbstractSchema} that can specify the table map explicitly.
    */
-  private static class ExplicitTablesSchema extends AbstractSchema {
+  private static class ExplicitTableSchema extends AbstractSchema {
     private final Map<String, Table> tableMap;
 
-    ExplicitTablesSchema(Map<String, Table> tableMap) {
+    ExplicitTableSchema(Map<String, Table> tableMap) {
       this.tableMap = Objects.requireNonNull(tableMap);
     }
 

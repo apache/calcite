@@ -17,12 +17,14 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * InitializerExpressionFactory supplies default values for INSERT, UPDATE, and NEW.
@@ -76,6 +78,18 @@ public interface InitializerExpressionFactory {
       RelOptTable table,
       int iColumn,
       InitializerContext context);
+
+  /**
+   * Creates a hook function to customize the relational expression right after the column
+   * expressions are converted. Usually the relational expression is a projection
+   * above a table scan.
+   *
+   * @return a hook function to transform the relational expression
+   * right after the column expression conversion to a customized one
+   *
+   * @see #newColumnDefaultValue(RelOptTable, int, InitializerContext)
+   */
+  BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook();
 
   /**
    * Creates an expression which evaluates to the initializer expression for a
