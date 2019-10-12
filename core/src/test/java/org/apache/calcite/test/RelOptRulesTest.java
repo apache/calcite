@@ -6497,6 +6497,53 @@ public class RelOptRulesTest extends RelOptTestBase {
     String planAfter = NL + RelOptUtil.toString(relAfter);
     getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
   }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3404">[CALCITE-3404]
+   * Treat agg expressions that can ignore distinct constraint as distinct
+   * in AggregateExpandDistinctAggregatesRule
+   * when all the other agg expressions are distinct and have same arguments</a>
+   */
+  @Test public void testMaxReuseDistinctAttrWithMixedOptionality() {
+    final String sql = "select sum(distinct deptno), count(distinct deptno), "
+        + "max(deptno) from emp";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testMinReuseDistinctAttrWithMixedOptionality() {
+    final String sql = "select sum(distinct deptno), count(distinct deptno), "
+        + "min(deptno) from emp";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testBitAndReuseDistinctAttrWithMixedOptionality() {
+    final String sql = "select sum(distinct deptno), count(distinct deptno), "
+        + "bit_and(deptno) from emp";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testBitOrReuseDistinctAttrWithMixedOptionality() {
+    final String sql = "select sum(distinct deptno), count(distinct deptno), "
+        + "bit_or(deptno) from emp";
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
 }
 
 // End RelOptRulesTest.java
