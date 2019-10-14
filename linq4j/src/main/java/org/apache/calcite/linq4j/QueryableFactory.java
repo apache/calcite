@@ -240,7 +240,7 @@ public interface QueryableFactory<T> {
    * using the default equality comparer to compare values. (Defined
    * by Queryable.)
    */
-  Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable);
+  Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable, boolean all);
 
   /**
    * Produces the set difference of two sequences by
@@ -248,7 +248,7 @@ public interface QueryableFactory<T> {
    * values.
    */
   Queryable<T> except(Queryable<T> source, Enumerable<T> enumerable,
-      EqualityComparer<T> comparer);
+      EqualityComparer<T> comparer, boolean all);
 
   /**
    * Returns the first element of a sequence. (Defined
@@ -383,7 +383,7 @@ public interface QueryableFactory<T> {
    * using the default equality comparer to compare values. (Defined
    * by Queryable.)
    */
-  Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable);
+  Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable, boolean all);
 
   /**
    * Produces the set intersection of two sequences by
@@ -391,7 +391,7 @@ public interface QueryableFactory<T> {
    * values.
    */
   Queryable<T> intersect(Queryable<T> source, Enumerable<T> enumerable,
-      EqualityComparer<T> comparer);
+      EqualityComparer<T> comparer, boolean all);
 
   /**
    * Correlates the elements of two sequences based on

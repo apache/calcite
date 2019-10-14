@@ -215,13 +215,13 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.elementAtOrDefault(getThis(), index);
   }
 
-  public Enumerable<T> except(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.except(getThis(), enumerable1);
+  public Enumerable<T> except(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1,
-      EqualityComparer<T> comparer) {
-    return EnumerableDefaults.except(getThis(), enumerable1, comparer);
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, comparer, all);
   }
 
   public T first() {
@@ -327,13 +327,13 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         innerKeySelector, resultSelector, comparer);
   }
 
-  public Enumerable<T> intersect(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1);
+  public Enumerable<T> intersect(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1,
-      EqualityComparer<T> comparer) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer);
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer, all);
   }
 
   public <C extends Collection<? super T>> C into(C sink) {

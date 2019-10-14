@@ -303,19 +303,19 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
   }
 
   public Queryable<T> except(final Queryable<T> source,
-      final Enumerable<T> enumerable) {
+      final Enumerable<T> enumerable, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
-        factory.except(source, enumerable);
+        factory.except(source, enumerable, all);
       }
     };
   }
 
   public Queryable<T> except(final Queryable<T> source,
-      final Enumerable<T> enumerable, final EqualityComparer<T> comparer) {
+      final Enumerable<T> enumerable, final EqualityComparer<T> comparer, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
-        factory.except(source, enumerable, comparer);
+        factory.except(source, enumerable, comparer, all);
       }
     };
   }
@@ -472,19 +472,19 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
   }
 
   public Queryable<T> intersect(final Queryable<T> source,
-      final Enumerable<T> enumerable) {
+      final Enumerable<T> enumerable, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
-        factory.intersect(source, enumerable);
+        factory.intersect(source, enumerable, all);
       }
     };
   }
 
   public Queryable<T> intersect(final Queryable<T> source,
-      final Enumerable<T> enumerable, final EqualityComparer<T> comparer) {
+      final Enumerable<T> enumerable, final EqualityComparer<T> comparer, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
-        factory.intersect(source, enumerable, comparer);
+        factory.intersect(source, enumerable, comparer, all);
       }
     };
   }

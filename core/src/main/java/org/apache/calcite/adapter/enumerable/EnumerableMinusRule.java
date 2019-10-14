@@ -34,15 +34,12 @@ class EnumerableMinusRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalMinus minus = (LogicalMinus) rel;
-    if (minus.all) {
-      return null; // EXCEPT ALL not implemented
-    }
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet =
         rel.getTraitSet().replace(
             EnumerableConvention.INSTANCE);
     return new EnumerableMinus(rel.getCluster(), traitSet,
-        convertList(minus.getInputs(), out), false);
+        convertList(minus.getInputs(), out), minus.all);
   }
 }
 

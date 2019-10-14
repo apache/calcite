@@ -302,7 +302,7 @@ public interface ExtendedEnumerable<TSource> {
    * using the default equality comparer to compare values. (Defined
    * by Enumerable.)
    */
-  Enumerable<TSource> except(Enumerable<TSource> enumerable1);
+  Enumerable<TSource> except(Enumerable<TSource> enumerable1, boolean all);
 
   /**
    * Produces the set difference of two sequences by
@@ -310,7 +310,7 @@ public interface ExtendedEnumerable<TSource> {
    * values.
    */
   Enumerable<TSource> except(Enumerable<TSource> enumerable1,
-      EqualityComparer<TSource> comparer);
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Returns the first element of a sequence. (Defined
@@ -469,7 +469,7 @@ public interface ExtendedEnumerable<TSource> {
    * using the default equality comparer to compare values. (Defined
    * by Enumerable.)
    */
-  Enumerable<TSource> intersect(Enumerable<TSource> enumerable1);
+  Enumerable<TSource> intersect(Enumerable<TSource> enumerable1, boolean all);
 
   /**
    * Produces the set intersection of two sequences by
@@ -477,7 +477,7 @@ public interface ExtendedEnumerable<TSource> {
    * values.
    */
   Enumerable<TSource> intersect(Enumerable<TSource> enumerable1,
-      EqualityComparer<TSource> comparer);
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Copies the contents of this sequence into a collection.

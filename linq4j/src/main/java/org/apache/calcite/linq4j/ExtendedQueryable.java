@@ -191,7 +191,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using the default equality comparer to compare values. (Defined
    * by Queryable.)
    */
-  Queryable<TSource> except(Enumerable<TSource> enumerable);
+  Queryable<TSource> except(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set difference of two sequences by
@@ -199,7 +199,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * values.
    */
   Queryable<TSource> except(Enumerable<TSource> enumerable,
-      EqualityComparer<TSource> comparer);
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Returns the first element of a sequence that
@@ -327,7 +327,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * using the default equality comparer to compare values. (Defined
    * by Queryable.)
    */
-  Queryable<TSource> intersect(Enumerable<TSource> enumerable);
+  Queryable<TSource> intersect(Enumerable<TSource> enumerable, boolean all);
 
   /**
    * Produces the set intersection of two sequences by
@@ -335,7 +335,7 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
    * values.
    */
   Queryable<TSource> intersect(Enumerable<TSource> enumerable,
-      EqualityComparer<TSource> comparer);
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Correlates the elements of two sequences based on
