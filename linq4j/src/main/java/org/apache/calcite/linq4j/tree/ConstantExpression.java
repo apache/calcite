@@ -147,7 +147,7 @@ public class ConstantExpression extends Expression {
       try {
         final int scale = bigDecimal.scale();
         final long exact = bigDecimal.scaleByPowerOfTen(scale).longValueExact();
-        writer.append("new java.math.BigDecimal(").append(exact).append("L");
+        writer.append("java.math.BigDecimal.valueOf(").append(exact).append("L");
         if (scale != 0) {
           writer.append(", ").append(scale);
         }

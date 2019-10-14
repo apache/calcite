@@ -455,7 +455,7 @@ public class ExpressionTest {
                 Expressions.constant(4L, Long.class))));
 
     assertEquals(
-        "new java.math.BigDecimal(31415926L, 7)",
+        "java.math.BigDecimal.valueOf(31415926L, 7)",
         Expressions.toString(
             Expressions.constant(
                 BigDecimal.valueOf(314159260, 8))));
@@ -1252,12 +1252,27 @@ public class ExpressionTest {
             + "    104L,\n"
             + "    105.0F,\n"
             + "    106.0D,\n"
-            + "    new java.math.BigDecimal(107L),\n"
+            + "    java.math.BigDecimal.valueOf(107L),\n"
             + "    new java.math.BigInteger(\"108\"),\n"
             + "    \"109\",\n"
             + "    null)}",
         constant.toString());
     constant.accept(new Shuttle());
+  }
+
+  @Test public void testBigDecimalConstantExpression() {
+    assertEquals("java.math.BigDecimal.valueOf(104L)",
+        Expressions.toString(Expressions.constant("104", BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1L, -3)",
+        Expressions.toString(Expressions.constant("1000", BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1L, -3)",
+        Expressions.toString(Expressions.constant(1000, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(107L)",
+        Expressions.toString(Expressions.constant(107, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(199999999999999L)",
+        Expressions.toString(Expressions.constant(199999999999999L, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1234L, 2)",
+        Expressions.toString(Expressions.constant(12.34, BigDecimal.class)));
   }
 
   @Test public void testClassDecl() {
