@@ -104,9 +104,9 @@ public class HepPlannerTest extends RelOptTestBase {
         new CoerceInputsRule(LogicalIntersect.class, false,
             RelFactories.LOGICAL_BUILDER));
 
-    checkPlanning(planner,
-        "(select name from dept union select ename from emp)"
-            + " intersect (select fname from customer.contact)");
+    final String sql = "(select name from dept union select ename from emp)\n"
+        + "intersect (select fname from customer.contact)";
+    sql(sql).with(planner).check();
   }
 
   @Test public void testRuleDescription() throws Exception {
@@ -121,9 +121,8 @@ public class HepPlannerTest extends RelOptTestBase {
 
     planner.addRule(FilterToCalcRule.INSTANCE);
 
-    checkPlanning(
-        planner,
-        "select name from sales.dept where deptno=12");
+    final String sql = "select name from sales.dept where deptno=12";
+    sql(sql).with(planner).check();
   }
 
   /**
@@ -177,8 +176,7 @@ public class HepPlannerTest extends RelOptTestBase {
     programBuilder.addMatchLimit(1);
     programBuilder.addRuleInstance(UnionToDistinctRule.INSTANCE);
 
-    checkPlanning(
-        programBuilder.build(), UNION_TREE);
+    sql(UNION_TREE).with(programBuilder.build()).check();
   }
 
   @Test public void testMatchLimitOneBottomUp() throws Exception {
@@ -189,8 +187,7 @@ public class HepPlannerTest extends RelOptTestBase {
     programBuilder.addMatchOrder(HepMatchOrder.BOTTOM_UP);
     programBuilder.addRuleInstance(UnionToDistinctRule.INSTANCE);
 
-    checkPlanning(
-        programBuilder.build(), UNION_TREE);
+    sql(UNION_TREE).with(programBuilder.build()).check();
   }
 
   @Test public void testMatchUntilFixpoint() throws Exception {
@@ -200,8 +197,7 @@ public class HepPlannerTest extends RelOptTestBase {
     programBuilder.addMatchLimit(HepProgram.MATCH_UNTIL_FIXPOINT);
     programBuilder.addRuleInstance(UnionToDistinctRule.INSTANCE);
 
-    checkPlanning(
-        programBuilder.build(), UNION_TREE);
+    sql(UNION_TREE).with(programBuilder.build()).check();
   }
 
   @Test public void testReplaceCommonSubexpression() throws Exception {
@@ -212,10 +208,9 @@ public class HepPlannerTest extends RelOptTestBase {
     // rewriting something used as a common sub-expression
     // twice by the same parent (the join in this case).
 
-    checkPlanning(
-        ProjectRemoveRule.INSTANCE,
-        "select d1.deptno from (select * from dept) d1,"
-            + " (select * from dept) d2");
+    final String sql = "select d1.deptno from (select * from dept) d1,\n"
+        + "(select * from dept) d2";
+    sql(sql).withRule(ProjectRemoveRule.INSTANCE).check();
   }
 
   /** Tests that if two relational expressions are equivalent, the planner
@@ -257,9 +252,9 @@ public class HepPlannerTest extends RelOptTestBase {
     HepProgramBuilder programBuilder = HepProgram.builder();
     programBuilder.addSubprogram(subprogramBuilder.build());
 
-    checkPlanning(
-        programBuilder.build(),
-        "select upper(ename) from (select lower(ename) as ename from emp where empno = 100)");
+    final String sql = "select upper(ename) from\n"
+        + "(select lower(ename) as ename from emp where empno = 100)";
+    sql(sql).with(programBuilder.build()).check();
   }
 
   @Test public void testGroup() throws Exception {
@@ -273,9 +268,8 @@ public class HepPlannerTest extends RelOptTestBase {
     programBuilder.addRuleInstance(FilterToCalcRule.INSTANCE);
     programBuilder.addGroupEnd();
 
-    checkPlanning(
-        programBuilder.build(),
-        "select upper(name) from dept where deptno=20");
+    final String sql = "select upper(name) from dept where deptno=20";
+    sql(sql).with(programBuilder.build()).check();
   }
 
   @Test public void testGC() throws Exception {
@@ -302,9 +296,11 @@ public class HepPlannerTest extends RelOptTestBase {
             programBuilder.build());
     String query = "(select n_nationkey from SALES.CUSTOMER) union all\n"
         + "(select n_name from CUSTOMER_MODIFIABLEVIEW)";
-    Tester tester = createDynamicTester()
-        .withDecorrelation(true);
-    checkPlanning(tester, programBuilder.build(), planner, query, true);
+    sql(query).withTester(t -> createDynamicTester())
+        .withDecorrelation(true)
+        .with(programBuilder.build())
+        .with(planner)
+        .checkUnchanged();
   }
 
   @Test public void testRuleApplyCount() {
