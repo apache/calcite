@@ -20,8 +20,10 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Collect;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Match;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -77,6 +79,14 @@ public class Nodes {
 
     public void visit(Union union) {
       node = new UnionNode(this, union);
+    }
+
+    public void visit(Minus minus) {
+      node = new MinusNode(this, minus);
+    }
+
+    public void visit(Intersect intersect) {
+      node = new IntersectNode(this, intersect);
     }
 
     public void visit(Join join) {
