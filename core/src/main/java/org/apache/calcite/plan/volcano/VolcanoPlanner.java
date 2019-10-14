@@ -40,6 +40,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.SubstitutionVisitor.UnifyRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
@@ -218,6 +219,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private final List<RelOptMaterialization> materializations =
       new ArrayList<>();
 
+  private ImmutableList<UnifyRule> materializationRules = ImmutableList.of();
+
   /**
    * Map of lattices by the qualified name of their star table.
    */
@@ -311,6 +314,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return ImmutableList.copyOf(materializations);
   }
 
+  @Override public void registerMaterializationRules(List<UnifyRule> rules) {
+    materializationRules = ImmutableList.copyOf(rules);
+  }
+
   @Override public void addMaterialization(
       RelOptMaterialization materialization) {
     materializations.add(materialization);
@@ -334,7 +341,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
-        RelOptMaterializations.useMaterializedViews(originalRoot, materializations);
+        RelOptMaterializations.useMaterializedViews(
+            originalRoot, materializations, materializationRules);
     for (Pair<RelNode, List<RelOptMaterialization>> use : materializationUses) {
       RelNode rel = use.left;
       Hook.SUB.run(rel);

@@ -30,9 +30,11 @@ import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelReferentialConstraintImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -41,6 +43,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.JdbcTest.Department;
 import org.apache.calcite.test.JdbcTest.Dependent;
@@ -50,6 +53,7 @@ import org.apache.calcite.test.JdbcTest.Location;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.JsonBuilder;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
 import org.apache.calcite.util.mapping.IntPair;
@@ -221,18 +225,25 @@ public class MaterializationTest {
         RuleSets.ofList(ImmutableList.of()));
   }
 
-
   private void checkMaterialize(String materialize, String query, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
     checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
-        rules).sameResultWithMaterializationsDisabled();
+        rules, ImmutableList.of()).sameResultWithMaterializationsDisabled();
+  }
+
+  private void checkMaterialize(String materialize, String query, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      final List<SubstitutionVisitor.UnifyRule> materializationRules) {
+    checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
+      rules, materializationRules).sameResultWithMaterializationsDisabled();
   }
 
   /** Checks that a given query can use a materialized view with a given
    * definition. */
   private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
       String query, String name, boolean existing, String model,
-      Consumer<ResultSet> explainChecker, final RuleSet rules) {
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      final List<SubstitutionVisitor.UnifyRule> materializationRules) {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.AssertQuery that = CalciteAssert.that()
@@ -241,11 +252,12 @@ public class MaterializationTest {
           .enableMaterializations(true);
 
       // Add any additional rules required for the test
-      if (rules.iterator().hasNext()) {
+      if (rules.iterator().hasNext() || !materializationRules.isEmpty()) {
         that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           for (RelOptRule rule : rules) {
             planner.addRule(rule);
           }
+          planner.registerMaterializationRules(materializationRules);
         });
       }
 
@@ -2141,7 +2153,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableValues(tuples=[[{ 'noname' }]])"),
-        RuleSets.ofList(ImmutableList.of()))
+        RuleSets.ofList(ImmutableList.of()), ImmutableList.of())
         .returnsValue("noname");
   }
 
@@ -2485,6 +2497,64 @@ public class MaterializationTest {
     String sql1 = "select * from \"emps\" where \"empid\" > 200";
     checkNoMaterialize(sql0 + " union " + sql1, sql0 + " union all " + sql1,
         HR_FKUK_MODEL);
+  }
+
+  @Test public void checkRegisterAdditionalMaterializationRules() {
+    String mv = "select * from \"emps\" where \"name\" like 'ABC%'";
+    String query = "select * from \"emps\" where \"name\" like 'ABCD%'";
+    checkMaterialize(mv, query, HR_FKUK_MODEL, CONTAINS_M0,
+        RuleSets.ofList(ImmutableList.of()),
+        ImmutableList.of(CustomizedMaterializationRule.INSTANCE));
+  }
+
+  /**
+   * A customized materialization rule, which match expression of 'LIKE'
+   * and match by compensation.
+   */
+  private static class CustomizedMaterializationRule
+      extends SubstitutionVisitor.AbstractUnifyRule {
+
+    public static final CustomizedMaterializationRule INSTANCE =
+        new CustomizedMaterializationRule();
+
+    private CustomizedMaterializationRule() {
+      super(operand(MutableFilter.class, query(0)),
+          operand(MutableFilter.class, target(0)), 1);
+    }
+
+    @Override protected SubstitutionVisitor.UnifyResult apply(
+        SubstitutionVisitor.UnifyRuleCall call) {
+      final MutableFilter query = (MutableFilter) call.query;
+      final MutableFilter target = (MutableFilter) call.target;
+      final List parsedQ = parseLikeCondition(query.condition);
+      final List parsedT = parseLikeCondition(target.condition);
+      if (parsedQ != null && parsedT != null) {
+        if (parsedQ.get(0).equals(parsedT.get(0))) {
+          String literalQ = ((NlsString) parsedQ.get(1)).getValue();
+          String literalT = ((NlsString) parsedT.get(1)).getValue();
+          if (literalQ.endsWith("%") && literalT.endsWith("%")
+              && !literalQ.equals(literalT)
+              && literalQ.startsWith(literalT.substring(0, literalT.length() - 1))) {
+            MutableFilter newFilter = MutableFilter.of(target, query.condition);
+            return call.result(newFilter);
+          }
+        }
+      }
+      return null;
+    }
+
+    private List parseLikeCondition(RexNode rexNode) {
+      if (rexNode instanceof RexCall) {
+        RexCall rexCall = (RexCall) rexNode;
+        if (rexCall.getKind() == SqlKind.LIKE
+            && rexCall.operands.get(0) instanceof RexInputRef
+            && rexCall.operands.get(1) instanceof RexLiteral) {
+          return ImmutableList.of(rexCall.operands.get(0),
+              ((RexLiteral) (rexCall.operands.get(1))).getValue());
+        }
+      }
+      return null;
+    }
   }
 
   private static <E> List<List<List<E>>> list3(E[][][] as) {

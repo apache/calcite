@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.plan.SubstitutionVisitor.UnifyRule;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -192,6 +193,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public RelOptPlanner chooseDelegate() {
     return this;
+  }
+
+  public void registerMaterializationRules(List<UnifyRule> rules) {
+    // ignore - this planner does not support materializations
   }
 
   public void addMaterialization(RelOptMaterialization materialization) {

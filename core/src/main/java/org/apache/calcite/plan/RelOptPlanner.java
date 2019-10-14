@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.plan.SubstitutionVisitor.UnifyRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.CachingRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -156,6 +157,16 @@ public interface RelOptPlanner {
    * knowledge. Right now, the local planner retains control.
    */
   RelOptPlanner chooseDelegate();
+
+  /**
+   * In addition to the internal defined materialization matching rules in
+   * {@link org.apache.calcite.plan.MaterializedViewSubstitutionVisitor}
+   * and {@link org.apache.calcite.plan.SubstitutionVisitor}, this method
+   * allows user to SET self defined {@link SubstitutionVisitor.UnifyRule}s,
+   * thus to extend the ability of substitution based materialization
+   * matching in different scenarios.
+   */
+  void registerMaterializationRules(List<UnifyRule> rules);
 
   /**
    * Defines a pair of relational expressions that are equivalent.

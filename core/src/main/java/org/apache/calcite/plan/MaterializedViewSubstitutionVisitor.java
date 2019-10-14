@@ -46,12 +46,23 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
           .build();
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_) {
-    super(target_, query_, EXTENDED_RULES);
+    this(target_, query_, ImmutableList.of());
   }
 
   public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_,
-      RelBuilderFactory relBuilderFactory) {
-    super(target_, query_, EXTENDED_RULES, relBuilderFactory);
+      List<SubstitutionVisitor.UnifyRule> additionalRules) {
+    super(target_, query_,
+        ImmutableList.<SubstitutionVisitor.UnifyRule>builder()
+            .addAll(EXTENDED_RULES).addAll(additionalRules).build());
+  }
+
+  public MaterializedViewSubstitutionVisitor(RelNode target_, RelNode query_,
+      RelBuilderFactory relBuilderFactory,
+      List<SubstitutionVisitor.UnifyRule> additionalRules) {
+    super(target_, query_,
+        ImmutableList.<SubstitutionVisitor.UnifyRule>builder()
+            .addAll(EXTENDED_RULES).addAll(additionalRules).build(),
+        relBuilderFactory);
   }
 
   public List<RelNode> go(RelNode replacement_) {

@@ -801,7 +801,7 @@ public class SubstitutionVisitor {
    * <p>The rule declares the query and target types; this allows the
    * engine to fire only a few rules in a given context.</p>
    */
-  protected abstract static class UnifyRule {
+  public abstract static class UnifyRule {
     protected final int slotCount;
     protected final Operand queryOperand;
     protected final Operand targetOperand;
@@ -868,7 +868,7 @@ public class SubstitutionVisitor {
   /**
    * Arguments to an application of a {@link UnifyRule}.
    */
-  protected class UnifyRuleCall {
+  public class UnifyRuleCall {
     protected final UnifyRule rule;
     public final MutableRel query;
     public final MutableRel target;
@@ -918,7 +918,7 @@ public class SubstitutionVisitor {
    * generated a {@code result} that is equivalent to {@code query} and
    * contains {@code target}.
    */
-  protected static class UnifyResult {
+  public static class UnifyResult {
     private final UnifyRuleCall call;
     // equivalent to "query", contains "result"
     private final MutableRel result;
@@ -932,7 +932,7 @@ public class SubstitutionVisitor {
   }
 
   /** Abstract base class for implementing {@link UnifyRule}. */
-  protected abstract static class AbstractUnifyRule extends UnifyRule {
+  public abstract static class AbstractUnifyRule extends UnifyRule {
     public AbstractUnifyRule(Operand queryOperand, Operand targetOperand,
         int slotCount) {
       super(slotCount, queryOperand, targetOperand);
@@ -1474,7 +1474,7 @@ public class SubstitutionVisitor {
   }
 
   /** Operand to a {@link UnifyRule}. */
-  protected abstract static class Operand {
+  public abstract static class Operand {
     protected final Class<? extends MutableRel> clazz;
 
     protected Operand(Class<? extends MutableRel> clazz) {
