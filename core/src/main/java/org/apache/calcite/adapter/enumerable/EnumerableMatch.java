@@ -176,8 +176,9 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     // Add loop variable initialization
     builder2.add(
         Expressions.declare(0, row_,
-            Types.castIfNecessary(inputPhysType.getJavaRowType(),
-                Expressions.call(rows_, BuiltInMethod.LIST_GET.method, i_))));
+            RexToLixTranslator.convert(
+                Expressions.call(rows_, BuiltInMethod.LIST_GET.method, i_),
+                inputPhysType.getJavaRowType())));
 
     RexBuilder rexBuilder = new RexBuilder(implementor.getTypeFactory());
     RexProgramBuilder rexProgramBuilder =
@@ -475,9 +476,10 @@ public class EnumerableMatch extends Match implements EnumerableRel {
       return Expressions.condition(
           Expressions.greaterThanOrEqual(this.index, Expressions.constant(0)),
           generator.apply(
-              Types.castIfNecessary(physType.getJavaRowType(),
+              RexToLixTranslator.convert(
                   Expressions.call(this.passedRows,
-                      BuiltInMethod.LIST_GET.method, this.index)))
+                      BuiltInMethod.LIST_GET.method, this.index),
+                  physType.getJavaRowType()))
               .field(list, index, storageType),
           Expressions.constant(null));
     }
