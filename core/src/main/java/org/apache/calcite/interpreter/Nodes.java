@@ -23,9 +23,9 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
@@ -75,8 +75,8 @@ public class Nodes {
       node = new SortNode(this, sort);
     }
 
-    public void visit(Union union) {
-      node = new UnionNode(this, union);
+    public void visit(SetOp setOp) {
+      node = new SetOpNode(this, setOp);
     }
 
     public void visit(Join join) {

@@ -258,6 +258,108 @@ public class InterpreterTest {
     sql(sql).returnsRowsUnordered("[0]", "[10]", "[20]", "[30]");
   }
 
+  @Test public void testInterpretUnionWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "union\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    sql(sql).returnsRows("[null, null]");
+  }
+
+  @Test public void testInterpretUnionAllWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "union all\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    sql(sql).returnsRows("[null, null]", "[null, null]", "[null, null]");
+  }
+
+  @Test public void testInterpretIntersect() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
+        + "intersect\n"
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    sql(sql).returnsRows("[1, a]");
+  }
+
+  @Test public void testInterpretIntersectAll() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
+        + "intersect all\n"
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    sql(sql).returnsRows("[1, a]");
+  }
+
+  @Test public void testInterpretIntersectWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "intersect\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    sql(sql).returnsRows("[null, null]");
+  }
+
+  @Test public void testInterpretIntersectAllWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "intersect all\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    sql(sql).returnsRows("[null, null]");
+  }
+
+  @Test public void testInterpretMinus() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
+        + "except\n"
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    sql(sql).returnsRows("[2, b]", "[3, c]");
+  }
+
+  @Test public void testDuplicateRowInterpretMinus() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
+        + "except\n"
+        + "(select x, y from (values (2, 'b')) as t2(x, y))";
+    sql(sql).returnsRows();
+  }
+
+  @Test public void testInterpretMinusAll() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
+        + "except all\n"
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    sql(sql).returnsRows("[2, b]", "[2, b]", "[3, c]");
+  }
+
+  @Test public void testDuplicateRowInterpretMinusAll() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
+        + "except all\n"
+        + "(select x, y from (values (2, 'b')) as t2(x, y))\n";
+    sql(sql).returnsRows("[2, b]");
+  }
+
+  @Test public void testInterpretMinusAllWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "except all\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
+    sql(sql).returnsRows("[null, null]");
+  }
+
+  @Test public void testInterpretMinusWithNullValue() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
+        + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
+        + "except\n"
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
+    sql(sql).returnsRows();
+  }
+
 }
 
 // End InterpreterTest.java
