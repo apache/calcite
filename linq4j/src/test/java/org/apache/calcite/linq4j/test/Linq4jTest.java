@@ -830,20 +830,20 @@ public class Linq4jTest {
   }
 
   @Test public void testConcat() {
-    assertEquals(
-        5,
+    assertThat(
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .count());
+            .count(),
+        is(5));
   }
 
   @Test public void testUnion() {
-    assertEquals(
-        5,
+    assertThat(
         Linq4j.asEnumerable(emps)
             .union(Linq4j.asEnumerable(badEmps))
             .union(Linq4j.asEnumerable(emps))
-            .count());
+            .count(),
+        is(5));
   }
 
   @Test public void testIntersect() {
@@ -851,11 +851,25 @@ public class Linq4jTest {
         new Employee(150, "Theodore", 10),
         emps[3],
     };
-    assertEquals(
-        1,
+    assertThat(
         Linq4j.asEnumerable(emps)
-            .intersect(Linq4j.asEnumerable(emps2))
-            .count());
+            .intersect(Linq4j.asEnumerable(emps2), false)
+            .count(),
+        is(1));
+  }
+
+  @Test public void testIntersectAll() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[3],
+        emps[3]
+    };
+    assertThat(
+        Linq4j.asEnumerable(emps2)
+            .intersect(Linq4j.asEnumerable(emps), true)
+            .count(),
+        is(1));
   }
 
   @Test public void testExcept() {
@@ -863,11 +877,25 @@ public class Linq4jTest {
         new Employee(150, "Theodore", 10),
         emps[3],
     };
-    assertEquals(
-        3,
+    assertThat(
         Linq4j.asEnumerable(emps)
-            .except(Linq4j.asEnumerable(emps2))
-            .count());
+            .except(Linq4j.asEnumerable(emps2), false)
+            .count(),
+        is(3));
+  }
+
+  @Test public void testExceptAll() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        new Employee(150, "Theodore", 10),
+        emps[0],
+        emps[1]
+    };
+    assertThat(
+        Linq4j.asEnumerable(emps2)
+            .except(Linq4j.asEnumerable(emps), true)
+            .count(),
+        is(2));
   }
 
   @Test public void testDistinct() {
@@ -877,11 +905,11 @@ public class Linq4jTest {
         emps[0],
         emps[3],
     };
-    assertEquals(
-        3,
+    assertThat(
         Linq4j.asEnumerable(emps2)
             .distinct()
-            .count());
+            .count(),
+        is(3));
   }
 
   @Test public void testDistinctWithEqualityComparer() {

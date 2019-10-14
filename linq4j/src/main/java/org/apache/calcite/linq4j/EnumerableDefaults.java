@@ -36,6 +36,7 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
@@ -528,45 +529,67 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set = new HashSet<>();
-    source0.into(set);
+    return except(source0, source1, false);
+  }
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  public static <TSource> Enumerable<TSource> except(
+      Enumerable<TSource> source0, Enumerable<TSource> source1, boolean all) {
+    Collection<TSource> collection = all ? HashMultiset.create() : new HashSet<>();
+    source0.into(collection);
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        set.remove(o);
+        collection.remove(o);
       }
-      return Linq4j.asEnumerable(set);
+      return Linq4j.asEnumerable(collection);
     }
   }
 
   /**
    * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer) {
+    return except(source0, source1, comparer, false);
+  }
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  public static <TSource> Enumerable<TSource> except(
+      Enumerable<TSource> source0, Enumerable<TSource> source1,
+      EqualityComparer<TSource> comparer, boolean all) {
     if (comparer == Functions.identityComparer()) {
-      return except(source0, source1);
+      return except(source0, source1, all);
     }
-    Set<Wrapped<TSource>> set = new HashSet<>();
+    Collection<Wrapped<TSource>> collection = all ? HashMultiset.create() : new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
-    source0.select(wrapper).into(set);
+    source0.select(wrapper).into(collection);
     try (Enumerator<Wrapped<TSource>> os =
              source1.select(wrapper).enumerator()) {
       while (os.moveNext()) {
         Wrapped<TSource> o = os.current();
-        set.remove(o);
+        collection.remove(o);
       }
     }
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
-    return Linq4j.asEnumerable(set).select(unwrapper);
+    return Linq4j.asEnumerable(collection).select(unwrapper);
   }
 
   /**
@@ -945,50 +968,72 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates.(Defined by Enumerable.)
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set0 = new HashSet<>();
-    source0.into(set0);
-    Set<TSource> set1 = new HashSet<>();
-    try (Enumerator<TSource> os = source1.enumerator()) {
+    return intersect(source0, source1, false);
+  }
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  public static <TSource> Enumerable<TSource> intersect(
+      Enumerable<TSource> source0, Enumerable<TSource> source1, boolean all) {
+    Collection<TSource> set1 = all ? HashMultiset.create() : new HashSet<>();
+    source1.into(set1);
+    Collection<TSource> resultCollection = all ? HashMultiset.create() : new HashSet<>();
+    try (Enumerator<TSource> os = source0.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
-        if (set0.contains(o)) {
-          set1.add(o);
+        if (set1.remove(o)) {
+          resultCollection.add(o);
         }
       }
     }
-    return Linq4j.asEnumerable(set1);
+    return Linq4j.asEnumerable(resultCollection);
   }
 
   /**
    * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1,
       EqualityComparer<TSource> comparer) {
+    return intersect(source0, source1, comparer, false);
+  }
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  public static <TSource> Enumerable<TSource> intersect(
+      Enumerable<TSource> source0, Enumerable<TSource> source1,
+      EqualityComparer<TSource> comparer, boolean all) {
     if (comparer == Functions.identityComparer()) {
-      return intersect(source0, source1);
+      return intersect(source0, source1, all);
     }
-    Set<Wrapped<TSource>> set0 = new HashSet<>();
+    Collection<Wrapped<TSource>> collection = all ? HashMultiset.create() : new HashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
-    source0.select(wrapper).into(set0);
-    Set<Wrapped<TSource>> set1 = new HashSet<>();
-    try (Enumerator<Wrapped<TSource>> os = source1.select(wrapper).enumerator()) {
+    source1.select(wrapper).into(collection);
+    Collection<Wrapped<TSource>> resultCollection = all ? HashMultiset.create() : new HashSet<>();
+    try (Enumerator<Wrapped<TSource>> os = source0.select(wrapper).enumerator()) {
       while (os.moveNext()) {
         Wrapped<TSource> o = os.current();
-        if (set0.contains(o)) {
-          set1.add(o);
+        if (collection.remove(o)) {
+          resultCollection.add(o);
         }
       }
     }
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
-    return Linq4j.asEnumerable(set1).select(unwrapper);
+    return Linq4j.asEnumerable(resultCollection).select(unwrapper);
   }
 
   /**
