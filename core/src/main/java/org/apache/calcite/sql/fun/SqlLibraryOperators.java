@@ -124,7 +124,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It has similar semantics to standard SQL's
    * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {ORACLE, BIGQUERY})
   public static final SqlFunction SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -181,6 +181,9 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction REGEXP_EXTRACT = new SqlRegexpSubstrFunction();
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
