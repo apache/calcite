@@ -2834,6 +2834,35 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test
+  public void testFunctionWithStructInput() {
+    final String sql =
+        "select json_type(skill) from sales.dept_nested";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testAggregateFunctionForStructInput() {
+    final String sql = "select "
+        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
+        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
+        + "max(skill) as max_skill, min(skill) as min_skill, "
+        + "any_value(skill) as any_value_skill "
+        + "from sales.dept_nested";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testAggregateFunctionForStructInputByName() {
+    final String sql = "select "
+        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
+        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
+        + "max(skill) as max_skill, min(skill) as min_skill, "
+        + "any_value(skill) as any_value_skill "
+        + "from sales.dept_nested group by name";
+    sql(sql).ok();
+  }
+
+  @Test
   public void testNestedPrimitiveFieldAccess() {
     final String sql =
         "select dn.skill['desc'] from sales.dept_nested dn";
