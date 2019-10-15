@@ -27,11 +27,12 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -126,26 +127,27 @@ public abstract class ProjectTableScanRule extends RelOptRule {
           (Bindables.BindableTableScan) scan;
       filtersPushDown = bindableScan.filters;
       projectsPushDown = selectedColumns.stream()
-          .map(col -> bindableScan.projects.get(col)).collect(Collectors.toList());
+          .map(col -> bindableScan.projects.get(col))
+          .collect(Collectors.toList());
     } else {
       filtersPushDown = ImmutableList.of();
       projectsPushDown = selectedColumns;
     }
     Bindables.BindableTableScan newScan = Bindables.BindableTableScan.create(
         scan.getCluster(), scan.getTable(), filtersPushDown, projectsPushDown);
-    final List<RexNode> newProjectRexNodes = new RexShuttle() {
-      @Override public RexNode visitInputRef(RexInputRef inputRef) {
-        int newIdx = selectedColumns.indexOf(inputRef.getIndex());
-        assert newIdx != -1;
-        return new RexInputRef(newIdx, inputRef.getType());
-      }
-    }.apply(project.getProjects());
+    Mapping mapping =
+        Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
+    final List<RexNode> newProjectRexNodes =
+        ImmutableList.copyOf(RexUtil.apply(mapping, project.getProjects()));
 
     if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
       call.transformTo(newScan);
     } else {
       call.transformTo(
-          call.builder().push(newScan).project(newProjectRexNodes).build());
+          call.builder()
+              .push(newScan)
+              .project(newProjectRexNodes)
+              .build());
     }
   }
 }
