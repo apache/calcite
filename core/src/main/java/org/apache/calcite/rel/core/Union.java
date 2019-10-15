@@ -62,7 +62,7 @@ public abstract class Union extends SetOp {
 
   @Deprecated // to be removed before 2.0
   public static double estimateRowCount(RelNode rel) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return RelMdUtil.getUnionAllRowCount(mq, (Union) rel);
   }
 }
