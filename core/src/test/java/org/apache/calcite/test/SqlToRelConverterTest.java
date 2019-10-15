@@ -2721,8 +2721,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]
    * Dynamic Table / Dynamic Star support</a>
    */
-  @Test
-  public void testSelectFromDynamicTable() throws Exception {
+  @Test public void testSelectFromDynamicTable() throws Exception {
     final String sql = "select n_nationkey, n_name from SALES.NATION";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
@@ -2731,8 +2730,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testSelectStarFromDynamicTable() throws Exception {
+  @Test public void testSelectStarFromDynamicTable() throws Exception {
     final String sql = "select * from SALES.NATION";
     sql(sql).with(getTesterWithDynamicTable()).ok();
   }
@@ -2754,8 +2752,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testReferDynamicStarInSelectOB() throws Exception {
+  @Test public void testReferDynamicStarInSelectOB() throws Exception {
     final String sql = "select n_nationkey, n_name\n"
         + "from (select * from SALES.NATION)\n"
         + "order by n_regionkey";
@@ -2766,8 +2763,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testDynamicStarInTableJoin() throws Exception {
+  @Test public void testDynamicStarInTableJoin() throws Exception {
     final String sql = "select * from "
         + " (select * from SALES.NATION) T1, "
         + " (SELECT * from SALES.CUSTOMER) T2 "
@@ -2787,8 +2783,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2900">[CALCITE-2900]
    * RelStructuredTypeFlattener generates wrong types on nested columns</a>.
    */
-  @Test
-  public void testNestedColumnType() {
+  @Test public void testNestedColumnType() {
     final String sql =
         "select empa.home_address.zip from sales.emp_address empa where empa.home_address.city = 'abc'";
     sql(sql).ok();
@@ -2798,8 +2793,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
    * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
    */
-  @Test
-  public void testSelectNestedColumnType() {
+  @Test public void testSelectNestedColumnType() {
     final String sql =
         "select\n"
             + "  char_length(coord.\"unit\") as unit_length\n"
@@ -2819,50 +2813,69 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test
-  public void testNestedStructFieldAccess() {
+  @Test public void testNestedStructFieldAccess() {
     final String sql =
         "select dn.skill['others'] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testNestedStructPrimitiveFieldAccess() {
+  @Test public void testNestedStructPrimitiveFieldAccess() {
     final String sql =
         "select dn.skill['others']['a'] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testNestedPrimitiveFieldAccess() {
+  @Test public void testFunctionWithStructInput() {
+    final String sql =
+        "select json_type(skill) from sales.dept_nested";
+    sql(sql).ok();
+  }
+
+  @Test public void testAggregateFunctionForStructInput() {
+    final String sql = "select "
+        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
+        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
+        + "max(skill) as max_skill, min(skill) as min_skill, "
+        + "any_value(skill) as any_value_skill "
+        + "from sales.dept_nested";
+    sql(sql).ok();
+  }
+
+  @Test public void testAggregateFunctionForStructInputByName() {
+    final String sql = "select "
+        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
+        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
+        + "max(skill) as max_skill, min(skill) as min_skill, "
+        + "any_value(skill) as any_value_skill "
+        + "from sales.dept_nested group by name";
+    sql(sql).ok();
+  }
+
+  @Test public void testNestedPrimitiveFieldAccess() {
     final String sql =
         "select dn.skill['desc'] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testArrayElementNestedPrimitive() {
+  @Test public void testArrayElementNestedPrimitive() {
     final String sql =
         "select dn.employees[0]['empno'] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testArrayElementDoublyNestedPrimitive() {
+  @Test public void testArrayElementDoublyNestedPrimitive() {
     final String sql =
         "select dn.employees[0]['detail']['skills'][0]['type'] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testArrayElementDoublyNestedStruct() {
+  @Test public void testArrayElementDoublyNestedStruct() {
     final String sql =
         "select dn.employees[0]['detail']['skills'][0] from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-  @Test
-  public void testArrayElementThreeTimesNestedStruct() {
+  @Test public void testArrayElementThreeTimesNestedStruct() {
     final String sql =
         "select dn.employees[0]['detail']['skills'][0]['others'] from sales.dept_nested dn";
     sql(sql).ok();
@@ -2873,8 +2886,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
    * AssertionError when GROUP BY nested field</a>.
    */
-  @Test
-  public void testGroupByNestedColumn() {
+  @Test public void testGroupByNestedColumn() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
@@ -2892,8 +2904,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Similar to {@link #testGroupByNestedColumn()},
    * but with grouping sets.
    */
-  @Test
-  public void testGroupingSetsWithNestedColumn() {
+  @Test public void testGroupingSetsWithNestedColumn() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
@@ -2914,8 +2925,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Similar to {@link #testGroupByNestedColumn()},
    * but with cube.
    */
-  @Test
-  public void testGroupByCubeWithNestedColumn() {
+  @Test public void testGroupByCubeWithNestedColumn() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
@@ -2963,8 +2973,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testReferDynamicStarInSelectWhereGB() throws Exception {
+  @Test public void testReferDynamicStarInSelectWhereGB() throws Exception {
     final String sql = "select n_regionkey, count(*) as cnt from "
         + "(select * from SALES.NATION) where n_nationkey > 5 "
         + "group by n_regionkey";
@@ -2975,8 +2984,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testDynamicStarInJoinAndSubQ() throws Exception {
+  @Test public void testDynamicStarInJoinAndSubQ() throws Exception {
     final String sql = "select * from "
         + " (select * from SALES.NATION T1, "
         + " SALES.CUSTOMER T2 where T1.n_nationkey = T2.c_nationkey)";
@@ -2987,8 +2995,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testStarJoinStaticDynTable() throws Exception {
+  @Test public void testStarJoinStaticDynTable() throws Exception {
     final String sql = "select * from SALES.NATION N, SALES.REGION as R "
         + "where N.n_regionkey = R.r_regionkey";
     sql(sql).with(getTesterWithDynamicTable()).ok();
@@ -2998,8 +3005,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testGrpByColFromStarInSubQuery() throws Exception {
+  @Test public void testGrpByColFromStarInSubQuery() throws Exception {
     final String sql = "SELECT n.n_nationkey AS col "
         + " from (SELECT * FROM SALES.NATION) as n "
         + " group by n.n_nationkey";
@@ -3010,8 +3016,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test case for Dynamic Table / Dynamic Star support
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1150">[CALCITE-1150]</a>
    */
-  @Test
-  public void testDynStarInExistSubQ() throws Exception {
+  @Test public void testDynStarInExistSubQ() throws Exception {
     final String sql = "select *\n"
         + "from SALES.REGION where exists (select * from SALES.NATION)";
     sql(sql).with(getTesterWithDynamicTable()).ok();
