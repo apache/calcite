@@ -473,6 +473,17 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
             + " DECIMAL(19, 0) NOT NULL T1_DECIMAL,"
             + " FLOAT NOT NULL T1_SMALLINT,"
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
+    // (int) union (int) union (varchar(20))
+    sql("select t1_int from t1 "
+        + "union select t2_int from t2 "
+        + "union select t1_varchar20 from t1")
+        .columnType("VARCHAR NOT NULL");
+
+    // (varchar(20)) union (int) union (int)
+    sql("select t1_varchar20 from t1 "
+        + "union select t2_int from t2 "
+        + "union select t1_int from t1")
+        .columnType("VARCHAR NOT NULL");
 
     // intersect
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
