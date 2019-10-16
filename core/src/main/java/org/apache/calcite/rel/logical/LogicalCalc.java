@@ -52,7 +52,7 @@ import java.util.Set;
  *
  * <ul>
  * <li>{@link FilterToCalcRule} creates this from a {@link LogicalFilter}
- * <li>{@link ProjectToCalcRule} creates this from a {@link LogicalFilter}
+ * <li>{@link ProjectToCalcRule} creates this from a {@link LogicalProject}
  * <li>{@link org.apache.calcite.rel.rules.FilterCalcMergeRule}
  *     merges this with a {@link LogicalFilter}
  * <li>{@link org.apache.calcite.rel.rules.ProjectCalcMergeRule}
