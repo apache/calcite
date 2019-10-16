@@ -297,22 +297,23 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param scope       validator scope
    * @param query       node to inferred type
    * @param columnIndex column index to update
-   * @param targetType1 desired column type
+   * @param desiredType desired column type
    */
   protected void updateInferredColumnType(
       SqlValidatorScope scope,
       SqlNode query,
       int columnIndex,
-      RelDataType targetType1) {
+      RelDataType desiredType) {
     final RelDataType rowType = validator.deriveType(scope, query);
     assert rowType.isStruct();
+    assert columnIndex < rowType.getFieldList().size();
 
     final List<Map.Entry<String, RelDataType>> fieldList = new ArrayList<>();
     for (int i = 0; i < rowType.getFieldCount(); i++) {
       final RelDataTypeField field = rowType.getFieldList().get(i);
       final String name = field.getName();
       final RelDataType type = field.getType();
-      final RelDataType targetType = i == columnIndex ? targetType1 : type;
+      final RelDataType targetType = i == columnIndex ? desiredType : type;
       fieldList.add(Pair.of(name, targetType));
     }
     updateInferredType(query, factory.createStructType(fieldList));
