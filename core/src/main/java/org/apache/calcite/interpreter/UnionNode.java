@@ -27,6 +27,7 @@ import java.util.Set;
  * Interpreter node that implements a
  * {@link org.apache.calcite.rel.core.Union}.
  */
+@Deprecated // Use {@link org.apache.calcite.interpreter.SetOpNode}
 public class UnionNode implements Node {
   private final ImmutableList<Source> sources;
   private final Sink sink;

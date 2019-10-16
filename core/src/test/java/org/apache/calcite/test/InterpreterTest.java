@@ -151,16 +151,25 @@ public class InterpreterTest {
     assertThat(list, equalTo(expected));
   }
 
-  /** Tests executing a simple plan using an interpreter. */
-  @Test public void testInterpretTable() throws Exception {
-    SqlNode parse =
-        planner.parse("select * from \"hr\".\"emps\" order by \"empid\"");
-
+  /**
+   * Interprets the sql and checks result with specified rows.
+   */
+  private void interpretSqlAndCheck(String sql,
+      boolean unordered, String... rows) throws Exception {
+    SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;
-
     final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
+    assertRows(interpreter, unordered, rows);
+  }
+
+  private void interpretSqlAndCheck(String sql, String... rows) throws Exception {
+    interpretSqlAndCheck(sql, false, rows);
+  }
+
+  /** Tests executing a simple plan using an interpreter. */
+  @Test public void testInterpretTable() throws Exception {
+    interpretSqlAndCheck("select * from \"hr\".\"emps\" order by \"empid\"",
         "[100, 10, Bill, 10000.0, 1000]",
         "[110, 10, Theodore, 11500.0, 250]",
         "[150, 10, Sebastian, 7000.0, null]",
@@ -171,14 +180,7 @@ public class InterpreterTest {
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretScannableTable() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
-    SqlNode parse =
-        planner.parse("select * from \"beatles\" order by \"i\"");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
+    interpretSqlAndCheck("select * from \"beatles\" order by \"i\"",
         "[4, John]",
         "[4, Paul]",
         "[5, Ringo]",
@@ -187,53 +189,23 @@ public class InterpreterTest {
 
   @Test public void testAggregateCount() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
-    SqlNode parse =
-        planner.parse("select  count(*) from \"beatles\"");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
-        "[4]");
+    interpretSqlAndCheck("select count(*) from \"beatles\"", "[4]");
   }
 
   @Test public void testAggregateMax() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
-    SqlNode parse =
-        planner.parse("select  max(\"i\") from \"beatles\"");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
-        "[6]");
+    interpretSqlAndCheck("select max(\"i\") from \"beatles\"", "[6]");
   }
 
   @Test public void testAggregateMin() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
-    SqlNode parse =
-        planner.parse("select  min(\"i\") from \"beatles\"");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
-        "[4]");
+    interpretSqlAndCheck("select min(\"i\") from \"beatles\"", "[4]");
   }
 
   @Test public void testAggregateGroup() throws Exception {
     rootSchema.add("beatles", new ScannableTableTest.BeatlesTable());
-    SqlNode parse =
-        planner.parse("select \"j\", count(*) from \"beatles\" group by \"j\"");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRowsUnordered(interpreter,
+    interpretSqlAndCheck("select \"j\", count(*) from \"beatles\" group by \"j\"",
+        true,
         "[George, 1]",
         "[Paul, 1]",
         "[John, 1]",
@@ -245,12 +217,7 @@ public class InterpreterTest {
     final String sql = "select \"j\",\n"
         + "  count(*) filter (where char_length(\"j\") > 4)\n"
         + "from \"beatles\" group by \"j\"";
-    SqlNode parse = planner.parse(sql);
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRowsUnordered(interpreter,
+    interpretSqlAndCheck(sql, true,
         "[George, 1]",
         "[Paul, 0]",
         "[John, 0]",
@@ -261,45 +228,26 @@ public class InterpreterTest {
    * {@link org.apache.calcite.schema.ScannableTable} using an interpreter. */
   @Test public void testInterpretSimpleScannableTable() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
-    SqlNode parse =
-        planner.parse("select * from \"simple\" limit 2");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[0]", "[10]");
+    interpretSqlAndCheck("select * from \"simple\" limit 2", "[0]", "[10]");
   }
 
   /** Tests executing a UNION ALL query using an interpreter. */
   @Test public void testInterpretUnionAll() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
-    SqlNode parse =
-        planner.parse("select * from \"simple\"\n"
-            + "union all\n"
-            + "select * from \"simple\"\n");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter,
+    final String sql = "select * from \"simple\"\n"
+        + "union all\n"
+        + "select * from \"simple\"";
+    interpretSqlAndCheck(sql, true,
         "[0]", "[10]", "[20]", "[30]", "[0]", "[10]", "[20]", "[30]");
   }
 
   /** Tests executing a UNION query using an interpreter. */
   @Test public void testInterpretUnion() throws Exception {
     rootSchema.add("simple", new ScannableTableTest.SimpleTable());
-    SqlNode parse =
-        planner.parse("select * from \"simple\"\n"
-            + "union\n"
-            + "select * from \"simple\"\n");
-
-    SqlNode validate = planner.validate(parse);
-    RelNode convert = planner.rel(validate).rel;
-
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[0]", "[10]", "[20]", "[30]");
+    final String sql = "select * from \"simple\"\n"
+        + "union\n"
+        + "select * from \"simple\"";
+    interpretSqlAndCheck(sql, true, "[0]", "[10]", "[20]", "[30]");
   }
 
   @Test public void testInterpretUnionWithNullValue() throws Exception {
@@ -307,11 +255,8 @@ public class InterpreterTest {
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "union\n"
-        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[null, null]");
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[null, null]");
   }
 
   @Test public void testInterpretUnionAllWithNullValue() throws Exception {
@@ -319,33 +264,24 @@ public class InterpreterTest {
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "union all\n"
-        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[null, null]", "[null, null]", "[null, null]");
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[null, null]", "[null, null]", "[null, null]");
   }
 
   @Test public void testInterpretIntersect() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "intersect\n"
-        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[1, a]");
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[1, a]");
   }
 
   @Test public void testInterpretIntersectAll() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "intersect all\n"
-        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[1, a]", "[1, a]");
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[1, a]");
   }
 
   @Test public void testInterpretIntersectWithNullValue() throws Exception {
@@ -353,11 +289,8 @@ public class InterpreterTest {
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "intersect\n"
-        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[null, null]");
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[null, null]");
   }
 
   @Test public void testInterpretIntersectAllWithNullValue() throws Exception {
@@ -365,44 +298,32 @@ public class InterpreterTest {
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),\n"
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "intersect all\n"
-        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[null, null]", "[null, null]");
+        + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[null, null]");
   }
 
   @Test public void testInterpretMinus() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "except\n"
-        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[2, b]", "[3, c]");
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[2, b]", "[3, c]");
   }
 
   @Test public void testDuplicateRowInterpretMinus() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
         + "except\n"
-        + "(select x, y from (values (2, 'b')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, new String[0]);
+        + "(select x, y from (values (2, 'b')) as t2(x, y))";
+    interpretSqlAndCheck(sql, new String[0]);
   }
 
   @Test public void testInterpretMinusAll() throws Exception {
     final String sql = "select * from\n"
         + "(select x, y from (values (1, 'a'), (2, 'b'), (2, 'b'), (3, 'c')) as t(x, y))\n"
         + "except all\n"
-        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[2, b]", "[2, b]", "[3, c]");
+        + "(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y))";
+    interpretSqlAndCheck(sql, "[2, b]", "[2, b]", "[3, c]");
   }
 
   @Test public void testDuplicateRowInterpretMinusAll() throws Exception {
@@ -410,10 +331,7 @@ public class InterpreterTest {
         + "(select x, y from (values (2, 'b'), (2, 'b')) as t(x, y))\n"
         + "except all\n"
         + "(select x, y from (values (2, 'b')) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[2, b]");
+    interpretSqlAndCheck(sql, "[2, b]");
   }
 
   @Test public void testInterpretMinusAllWithNullValue() throws Exception {
@@ -422,10 +340,7 @@ public class InterpreterTest {
         + " (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "except all\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, "[null, null]");
+    interpretSqlAndCheck(sql, "[null, null]");
   }
 
   @Test public void testInterpretMinusWithNullValue() throws Exception {
@@ -434,10 +349,7 @@ public class InterpreterTest {
         + "(cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))\n"
         + "except\n"
         + "(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y))\n";
-    SqlNode validate = planner.validate(planner.parse(sql));
-    RelNode convert = planner.rel(validate).rel;
-    final Interpreter interpreter = new Interpreter(dataContext, convert);
-    assertRows(interpreter, new String[0]);
+    interpretSqlAndCheck(sql, new String[0]);
   }
 }
 

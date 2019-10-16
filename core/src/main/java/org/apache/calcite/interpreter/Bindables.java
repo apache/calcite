@@ -566,7 +566,7 @@ public class Bindables {
     }
 
     public Node implement(InterpreterImplementor implementor) {
-      return new UnionNode(implementor.compiler, this);
+      return new SetOpNode(implementor.compiler, this);
     }
   }
 

@@ -16,43 +16,63 @@
  */
 package org.apache.calcite.interpreter;
 
-import org.apache.calcite.rel.core.Minus;
+import org.apache.calcite.rel.core.SetOp;
 
 import com.google.common.collect.HashMultiset;
 
 import java.util.Collection;
 import java.util.HashSet;
-
 /**
  * Interpreter node that implements a
- * {@link org.apache.calcite.rel.core.Minus}.
+ * {@link org.apache.calcite.rel.core.SetOp},
+ * including {@link org.apache.calcite.rel.core.Minus},
+ * {@link org.apache.calcite.rel.core.Union} and {@link org.apache.calcite.rel.core.Intersect}
  */
-public class MinusNode implements Node {
+public class SetOpNode implements Node {
   private final Source leftSource;
   private final Source rightSource;
   private final Sink sink;
-  private final Minus minus;
+  private final SetOp setOp;
 
-  public MinusNode(Compiler compiler, Minus minus) {
-    leftSource = compiler.source(minus, 0);
-    rightSource = compiler.source(minus, 1);
-    sink = compiler.sink(minus);
-    this.minus = minus;
+  public SetOpNode(Compiler compiler, SetOp setOp) {
+    leftSource = compiler.source(setOp, 0);
+    rightSource = compiler.source(setOp, 1);
+    sink = compiler.sink(setOp);
+    this.setOp = setOp;
   }
 
   @Override public void run() throws InterruptedException {
-    Collection<Row> rows = minus.all ? HashMultiset.create() : new HashSet<>();
+    Collection<Row> leftRows = setOp.all ? HashMultiset.create() : new HashSet<>();
+    Collection<Row> rightRows = setOp.all ? HashMultiset.create() : new HashSet<>();
     Row row = null;
     while ((row = leftSource.receive()) != null) {
-      rows.add(row);
+      leftRows.add(row);
     }
     while ((row = rightSource.receive()) != null) {
-      rows.remove(row);
+      rightRows.add(row);
     }
-    for (Row resultRow: rows) {
-      sink.send(resultRow);
+    switch (setOp.kind) {
+    case INTERSECT:
+      for (Row leftRow: leftRows) {
+        if (rightRows.remove(leftRow)) {
+          sink.send(leftRow);
+        }
+      }
+      break;
+    case EXCEPT:
+      for (Row leftRow: leftRows) {
+        if (!rightRows.remove(leftRow)) {
+          sink.send(leftRow);
+        }
+      }
+      break;
+    case UNION:
+      leftRows.addAll(rightRows);
+      for (Row r: leftRows) {
+        sink.send(r);
+      }
     }
   }
 }
 
-// End MinusNode.java
+// End SetOpNode.java
