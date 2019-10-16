@@ -58,6 +58,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
@@ -885,7 +886,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
-   * {@link org.apache.calcite.rel.core.SetOp} (including UNION and UNION ALL).
+   * {@link org.apache.calcite.rel.core.SetOp} (Only UNION ALL is supported).
    */
   public TrimResult trimFields(
       SetOp setOp,
@@ -893,6 +894,17 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = setOp.getRowType();
     final int fieldCount = rowType.getFieldCount();
+
+    // Trim fields only for UNION ALL.
+    //
+    // UNION | INTERSECT | INTERSECT ALL | EXCEPT | EXCEPT ALL
+    // all have comparison between branches.
+    // They can not be trimmed because the comparison needs
+    // complete fields.
+    if (!(setOp.kind == SqlKind.UNION && setOp.all)) {
+      return result(setOp, Mappings.createIdentity(fieldCount));
+    }
+
     int changeCount = 0;
 
     // Fennel abhors an empty row type, so pretend that the parent rel
