@@ -925,7 +925,9 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
+    sql(query).withHive().ok(expected)
+              .withSpark().ok(expected)
+              .withBigQuery().ok(expected);
   }
 
   @Test public void testHiveTrimWithBoth() {
@@ -933,7 +935,9 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
+    sql(query).withHive().ok(expected)
+        .withSpark().ok(expected)
+        .withBigQuery().ok(expected);
   }
 
   @Test public void testHiveTrimWithLeading() {
@@ -941,7 +945,9 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
+    sql(query).withHive().ok(expected)
+        .withSpark().ok(expected)
+        .withBigQuery().ok(expected);
   }
 
   @Test public void testHiveTrimWithTailing() {
@@ -949,7 +955,9 @@ public class RelToSqlConverterTest {
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
+    sql(query).withHive().ok(expected)
+              .withSpark().ok(expected)
+              .withBigQuery().ok(expected);
   }
 
   /** Test case for
@@ -4433,6 +4441,37 @@ public class RelToSqlConverterTest {
       return new Sql(schemaSpec, sql, dialect, config, transforms);
     }
   }
+
+  @Test public void dayofthemonthfunction() {
+
+
+/*String query = "SELECT employee_id, td_day_of_month( DATE '2008-09-23')"
++ " as d FROM account";
+
+String expected = "SELECT employee_id, EXTRACT(DAY FROM DATE '2008-09-23')"
++ " AS d FROM foodmart.account";*/
+    String query = "SELECT COUNT(CAST(NULL AS INT)), DAYOFMONTH( DATE '2008-09-23') "
+        + "FROM \"account\"\n"
+        + "AS \"t\" GROUP BY \"account_type\"";
+    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER)), "
+        + "EXTRACT(DAY FROM DATE '2008-09-23')\n"
+        + "FROM \"foodmart\".\"account\"\n"
+        + "GROUP BY \"account_type\"";
+
+    sql(query).withBigQuery().ok(expected);
+// validate
+    sql(expected).exec();
+
+/*assert that()
+.withTeradata(15, 0).sourceSql(sourceSql)
+*//*.withHive(1, 2).targetSql(expectedSql)
+.withHive(2, 1).targetSql(expectedSql, true)
+.withSpark(2, 2).targetSql(expectedSql)*//*
+.withBigQuery(2, 0).targetSql(bigQuerySql)
+.transformationSettings()
+.check()*/
+  }
+
 }
 
 // End RelToSqlConverterTest.java
