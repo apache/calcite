@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalValues;
@@ -53,6 +54,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
@@ -697,14 +699,22 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
   /**
    * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
-   * {@link org.apache.calcite.rel.core.SetOp} (including UNION and UNION ALL).
+   * {@link org.apache.calcite.rel.core.SetOp} (Only UNION ALL is supported).
+   * @deprecated Use {@link #trimFields(Union, ImmutableBitSet, Set)}.
    */
+  @Deprecated // to be removed before 2.0
   public TrimResult trimFields(
       SetOp setOp,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = setOp.getRowType();
     final int fieldCount = rowType.getFieldCount();
+
+    // Trim fields only for UNION ALL
+    if (setOp.kind != SqlKind.UNION || !setOp.all) {
+      return result(setOp, Mappings.createIdentity(fieldCount));
+    }
+
     int changeCount = 0;
 
     // Fennel abhors an empty row type, so pretend that the parent rel
@@ -769,6 +779,76 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     default:
       throw new AssertionError("unknown setOp " + setOp);
     }
+    return result(relBuilder.build(), mapping);
+  }
+
+  /**
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * {@link org.apache.calcite.rel.core.Union}.
+   */
+  public TrimResult trimFields(
+      Union union,
+      ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final RelDataType rowType = union.getRowType();
+    final int fieldCount = rowType.getFieldCount();
+
+    // Trim fields only for UNION ALL
+    if (!union.all) {
+      return result(union, Mappings.createIdentity(fieldCount));
+    }
+
+    int changeCount = 0;
+
+    // Fennel abhors an empty row type, so pretend that the parent rel
+    // wants the last field. (The last field is the least likely to be a
+    // system field.)
+    if (fieldsUsed.isEmpty()) {
+      fieldsUsed = ImmutableBitSet.of(rowType.getFieldCount() - 1);
+    }
+
+    // Compute the desired field mapping. Give the consumer the fields they
+    // want, in the order that they appear in the bitset.
+    final Mapping mapping = createMapping(fieldsUsed, fieldCount);
+
+    // Create input with trimmed columns.
+    for (RelNode input : union.getInputs()) {
+      TrimResult trimResult =
+          trimChild(union, input, fieldsUsed, extraFields);
+
+      // We want "mapping", the input gave us "inputMapping", compute
+      // "remaining" mapping.
+      //    |                   |                |
+      //    |---------------- mapping ---------->|
+      //    |-- inputMapping -->|                |
+      //    |                   |-- remaining -->|
+      //
+      // For instance, suppose we have columns [a, b, c, d],
+      // the consumer asked for mapping = [b, d],
+      // and the transformed input has columns inputMapping = [d, a, b].
+      // remaining will permute [b, d] to [d, a, b].
+      Mapping remaining = Mappings.divide(mapping, trimResult.right);
+
+      // Create a projection; does nothing if remaining is identity.
+      relBuilder.push(trimResult.left);
+      relBuilder.permute(remaining);
+
+      if (input != relBuilder.peek()) {
+        ++changeCount;
+      }
+    }
+
+    // If the input is unchanged, and we need to project all columns,
+    // there's to do.
+    if (changeCount == 0
+        && mapping.isIdentity()) {
+      for (RelNode input : union.getInputs()) {
+        relBuilder.build();
+      }
+      return result(union, mapping);
+    }
+
+    relBuilder.union(true, union.getInputs().size());
     return result(relBuilder.build(), mapping);
   }
 

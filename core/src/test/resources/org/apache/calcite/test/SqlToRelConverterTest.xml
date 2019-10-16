@@ -6348,6 +6348,125 @@ LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORD
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTrimUnionAll">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+union all
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalUnion(all=[true])
+  LogicalProject(DEPTNO=[$7])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+  LogicalProject(DEPTNO=[$0])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTrimUnionDistinct">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+union
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$1])
+  LogicalUnion(all=[false])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTrimIntersectAll">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+intersect all
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$1])
+  LogicalIntersect(all=[true])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTrimIntersectDistinct">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+intersect
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$1])
+  LogicalIntersect(all=[false])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTrimExceptAll">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+except all
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$1])
+  LogicalMinus(all=[true])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTrimExceptDistinct">
+        <Resource name="sql">
+            <![CDATA[
+select deptno from
+(select ename, deptno from emp
+except
+select name, deptno from dept)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$1])
+  LogicalMinus(all=[false])
+    LogicalProject(ENAME=[$1], DEPTNO=[$7])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggregateWithSameDigestInSubQueries">
         <Resource name="sql">
             <![CDATA[select

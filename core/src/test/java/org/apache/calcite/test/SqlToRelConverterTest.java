@@ -3578,6 +3578,60 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testTrimUnionAll() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "union all\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testTrimUnionDistinct() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "union\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testTrimIntersectAll() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "intersect all\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testTrimIntersectDistinct() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "intersect\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testTrimExceptAll() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "except all\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
+  @Test public void testTrimExceptDistinct() {
+    final String sql = ""
+        + "select deptno from\n"
+        + "(select ename, deptno from emp\n"
+        + "except\n"
+        + "select name, deptno from dept)";
+    sql(sql).trim(true).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
