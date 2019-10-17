@@ -152,7 +152,8 @@ public class RelToSqlConverter extends SqlImplementor
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
           rightContext,
-          e.getLeft().getRowType().getFieldCount());
+          e.getLeft().getRowType().getFieldCount(),
+          dialect);
     }
     SqlNode join =
         new SqlJoin(POS,
