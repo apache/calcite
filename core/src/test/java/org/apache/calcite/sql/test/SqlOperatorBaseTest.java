@@ -7908,9 +7908,14 @@ public abstract class SqlOperatorBaseTest {
         "2015-02-19 12:34:00", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("floor(timestamp '2015-02-19 12:34:56' to year)",
         "2015-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("floor(date '2015-02-19' to year)",
+        "2015-01-01", "DATE NOT NULL");
     tester.checkScalar("floor(timestamp '2015-02-19 12:34:56' to month)",
         "2015-02-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("floor(date '2015-02-19' to month)",
+        "2015-02-01", "DATE NOT NULL");
     tester.checkNull("floor(cast(null as timestamp) to month)");
+    tester.checkNull("floor(cast(null as date) to month)");
   }
 
   @Test public void testCeilFuncDateTime() {
@@ -7944,13 +7949,20 @@ public abstract class SqlOperatorBaseTest {
         "2015-02-19 12:35:00", "TIMESTAMP(0) NOT NULL");
     tester.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to year)",
         "2016-01-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("ceil(date '2015-02-19' to year)",
+        "2016-01-01", "DATE NOT NULL");
     tester.checkScalar("ceil(timestamp '2015-02-19 12:34:56' to month)",
         "2015-03-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("ceil(date '2015-02-19' to month)",
+        "2015-03-01", "DATE NOT NULL");
     tester.checkNull("ceil(cast(null as timestamp) to month)");
+    tester.checkNull("ceil(cast(null as date) to month)");
 
     // ceiling alias
     tester.checkScalar("ceiling(timestamp '2015-02-19 12:34:56' to month)",
         "2015-03-01 00:00:00", "TIMESTAMP(0) NOT NULL");
+    tester.checkScalar("ceiling(date '2015-02-19' to month)",
+        "2015-03-01", "DATE NOT NULL");
     tester.checkNull("ceiling(cast(null as timestamp) to month)");
   }
 

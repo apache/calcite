@@ -6056,7 +6056,7 @@ public class JdbcTest {
     assertTrue(!rs.next());
   }
 
-  /** Test for MONTHNAME and DAYNAME functions in two locales. */
+  /** Test for MONTHNAME, DAYNAME and DAYOFWEEK functions in two locales. */
   @Test public void testMonthName() {
     final String sql = "SELECT * FROM (VALUES(\n"
         + " monthname(TIMESTAMP '1969-01-01 00:00:00'),\n"
@@ -6066,8 +6066,14 @@ public class JdbcTest {
         + " dayname(TIMESTAMP '1969-01-01 00:00:00'),\n"
         + " dayname(DATE '1969-01-01'),\n"
         + " dayname(DATE '2019-02-10'),\n"
-        + " dayname(TIMESTAMP '2019-02-10 02:10:12')\n"
-        + ")) AS t(t0, t1, t2, t3, t4, t5, t6, t7)";
+        + " dayname(TIMESTAMP '2019-02-10 02:10:12'),\n"
+        + " dayofweek(DATE '2019-02-09'),\n" // sat=7
+        + " dayofweek(DATE '2019-02-10'),\n" // sun=1
+        + " extract(DOW FROM DATE '2019-02-09'),\n" // sat=7
+        + " extract(DOW FROM DATE '2019-02-10'),\n" // sun=1
+        + " extract(ISODOW FROM DATE '2019-02-09'),\n" // sat=6
+        + " extract(ISODOW FROM DATE '2019-02-10')\n" // sun=7
+        + ")) AS t(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13)";
     Stream.of(TestLocale.values()).forEach(t -> {
       try {
         CalciteAssert.that()
@@ -6085,6 +6091,12 @@ public class JdbcTest {
                   assertThat(rs.getString(6), is(t.wednesday));
                   assertThat(rs.getString(7), is(t.sunday));
                   assertThat(rs.getString(8), is(t.sunday));
+                  assertThat(rs.getInt(9), is(7));
+                  assertThat(rs.getInt(10), is(1));
+                  assertThat(rs.getInt(11), is(7));
+                  assertThat(rs.getInt(12), is(1));
+                  assertThat(rs.getInt(13), is(6));
+                  assertThat(rs.getInt(14), is(7));
                   assertThat(rs.next(), is(false));
                 }
               } catch (SQLException e) {
@@ -7880,15 +7892,15 @@ public class JdbcTest {
    * and expected results of those functions. */
   enum TestLocale {
     ROOT(Locale.ROOT.toString(), shorten("Wednesday"), shorten("Sunday"),
-        shorten("January"), shorten("February")),
-    EN("en", "Wednesday", "Sunday", "January", "February"),
-    FR("fr", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
-    FR_FR("fr_FR", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
-    FR_CA("fr_CA", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
+        shorten("January"), shorten("February"), 0),
+    EN("en", "Wednesday", "Sunday", "January", "February", 0),
+    FR("fr", "mercredi", "dimanche", "janvier", "f\u00e9vrier", 6),
+    FR_FR("fr_FR", "mercredi", "dimanche", "janvier", "f\u00e9vrier", 6),
+    FR_CA("fr_CA", "mercredi", "dimanche", "janvier", "f\u00e9vrier", 6),
     ZH_CN("zh_CN", "\u661f\u671f\u4e09", "\u661f\u671f\u65e5", "\u4e00\u6708",
-        "\u4e8c\u6708"),
+        "\u4e8c\u6708", 6),
     ZH("zh", "\u661f\u671f\u4e09", "\u661f\u671f\u65e5", "\u4e00\u6708",
-        "\u4e8c\u6708");
+        "\u4e8c\u6708", 6);
 
     private static String shorten(String name) {
       // In root locale, for Java versions 9 and higher, day and month names
@@ -7902,14 +7914,16 @@ public class JdbcTest {
     public final String sunday;
     public final String january;
     public final String february;
+    public final int sundayDayOfWeek;
 
     TestLocale(String localeName, String wednesday, String sunday,
-        String january, String february) {
+        String january, String february, int sundayDayOfWeek) {
       this.localeName = localeName;
       this.wednesday = wednesday;
       this.sunday = sunday;
       this.january = january;
       this.february = february;
+      this.sundayDayOfWeek = sundayDayOfWeek;
     }
   }
 }

@@ -2201,6 +2201,7 @@ public class RexImpTable {
       case 2:
         final Type type;
         final Method floorMethod;
+        final boolean preFloor;
         Expression operand = translatedOperands.get(0);
         switch (call.getType().getSqlTypeName()) {
         case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
@@ -2212,19 +2213,25 @@ public class RexImpTable {
         case TIMESTAMP:
           type = long.class;
           floorMethod = timestampMethod;
+          preFloor = true;
           break;
         default:
           type = int.class;
           floorMethod = dateMethod;
+          preFloor = false;
         }
         final ConstantExpression tur =
             (ConstantExpression) translatedOperands.get(1);
         final TimeUnitRange timeUnitRange = (TimeUnitRange) tur.value;
         switch (timeUnitRange) {
         case YEAR:
+        case QUARTER:
         case MONTH:
-          return Expressions.call(floorMethod, tur,
-              call(operand, type, TimeUnit.DAY));
+        case WEEK:
+        case DAY:
+          final Expression operand1 =
+              preFloor ? call(operand, type, TimeUnit.DAY) : operand;
+          return Expressions.call(floorMethod, tur, operand1);
         case NANOSECOND:
         default:
           return call(operand, type, timeUnitRange.startUnit);
