@@ -2916,6 +2916,12 @@ public class JdbcTest {
     checkOrderByNulls(CalciteAssert.Config.JDBC_FOODMART);
   }
 
+  @Test public void testModOperation(){
+    // Simple test
+    CalciteAssert.hr().
+        query("select 5 % 2 as A")
+        .returns("A=1\n");
+  }
   private void checkOrderByNulls(CalciteAssert.Config clone) {
     checkOrderByDescNullsFirst(clone);
     checkOrderByNullsFirst(clone);
