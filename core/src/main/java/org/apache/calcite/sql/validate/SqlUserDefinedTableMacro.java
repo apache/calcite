@@ -147,6 +147,8 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
         builder2.put(getValue(key), getValue(value));
       }
       return builder2.build();
+    case CAST:
+      return getValue(((SqlCall) right).operand(0));
     default:
       if (SqlUtil.isNullLiteral(right, true)) {
         return null;
@@ -175,8 +177,8 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     if (clazz.isAssignableFrom(o.getClass())) {
       return o;
     }
-    if (clazz == String.class && o instanceof NlsString) {
-      return ((NlsString) o).getValue();
+    if (o instanceof NlsString) {
+      return coerce(((NlsString) o).getValue(), type);
     }
     // We need optimization here for constant folding.
     // Not all the expressions can be interpreted (e.g. ternary), so
