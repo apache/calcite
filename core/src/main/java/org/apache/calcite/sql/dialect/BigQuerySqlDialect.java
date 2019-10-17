@@ -19,6 +19,9 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
@@ -32,6 +35,7 @@ import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 
 import com.google.common.collect.ImmutableList;
 
@@ -97,6 +101,14 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
+  }
+
+  @Override public boolean supportsImplicitTypeCoercion(RexCall node) {
+    if (!super.supportsImplicitTypeCoercion(node)) {
+      return false;
+    }
+    RexNode operand = node.getOperands().get(0);
+    return operand instanceof RexLiteral && !SqlTypeFamily.NUMERIC.contains(node.type);
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,

@@ -26,6 +26,8 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -33,6 +35,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -999,6 +1002,20 @@ public class SqlDialect {
   @Experimental
   public boolean supportsAliasedValues() {
     return true;
+  }
+
+  /**
+   * Returns whether the dialect supports implicit type coercion.
+   * For instance, cast('10' as integer) is not required in most of the dialect,
+   * But BiqQuery can not convert '10' into INT64 implicitly.
+   * If a RexNode has explicit cast applied, based on this method we will remove
+   * the casting.
+   *
+   * @param node RexCall having CAST as SqlKind, i.e explicitly casted RexNode.
+   */
+  public boolean supportsImplicitTypeCoercion(RexCall node) {
+    RexNode operand = node.getOperands().get(0);
+    return SqlTypeFamily.CHARACTER.contains(operand.getType());
   }
 
   /** Returns the name of the system table that has precisely one row.
