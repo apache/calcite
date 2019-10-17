@@ -26,6 +26,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelOptUtil;
@@ -69,7 +70,7 @@ import java.util.Properties;
 public class PlannerImpl implements Planner, ViewExpander {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
-  private final FrameworkConfig frameworkConfig;
+  private final RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
 
@@ -101,7 +102,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(FrameworkConfig config) {
-    this.frameworkConfig = config;
+    this.costFactory = config.getCostFactory();
     this.defaultSchema = config.getDefaultSchema();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
@@ -116,17 +117,22 @@ public class PlannerImpl implements Planner, ViewExpander {
     reset();
   }
 
+  /** Gets a user defined config and appends default connection values */
   private CalciteConnectionConfig connConfig() {
-    CalciteConnectionConfig unwrapped = context.unwrap(CalciteConnectionConfig.class);
-    if (unwrapped != null) {
-      return unwrapped;
+    CalciteConnectionConfigImpl config =
+        context.unwrap(CalciteConnectionConfigImpl.class);
+    if (config == null) {
+      config = new CalciteConnectionConfigImpl(new Properties());
     }
-    Properties properties = new Properties();
-    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
-        String.valueOf(parserConfig.caseSensitive()));
-    properties.setProperty(CalciteConnectionProperty.CONFORMANCE.camelName(),
-        String.valueOf(frameworkConfig.getParserConfig().conformance()));
-    return new CalciteConnectionConfigImpl(properties);
+    if (!config.isSet(CalciteConnectionProperty.CASE_SENSITIVE)) {
+      config = config.set(CalciteConnectionProperty.CASE_SENSITIVE,
+          String.valueOf(parserConfig.caseSensitive()));
+    }
+    if (!config.isSet(CalciteConnectionProperty.CONFORMANCE)) {
+      config = config.set(CalciteConnectionProperty.CONFORMANCE,
+          String.valueOf(parserConfig.conformance()));
+    }
+    return config;
   }
 
   /** Makes sure that the state is at least the given state. */
@@ -168,7 +174,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         connectionConfig.typeSystem(RelDataTypeSystem.class,
             RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
-    planner = new VolcanoPlanner(frameworkConfig.getCostFactory(), context);
+    planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
         connectionConfig.materializationsEnabled(),
         Hook.ENABLE_BINDABLE.get(false));
