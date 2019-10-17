@@ -40,8 +40,13 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   /** Returns a copy of this configuration with one property changed. */
   public CalciteConnectionConfigImpl set(CalciteConnectionProperty property,
       String value) {
-    final Properties properties1 = new Properties(properties);
-    properties1.setProperty(property.camelName(), value);
+    final Properties properties1 = new Properties();
+    this.properties.forEach((connectionProp, connectionValue) -> {
+      properties1.setProperty((String) connectionProp, (String) connectionValue);
+    });
+    if (properties1.getProperty(property.camelName(), null) == null) {
+      properties1.setProperty(property.camelName(), value);
+    }
     return new CalciteConnectionConfigImpl(properties1);
   }
 
