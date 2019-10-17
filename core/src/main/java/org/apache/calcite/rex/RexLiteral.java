@@ -458,7 +458,8 @@ public class RexLiteral extends RexNode {
     if (o == null
         || o instanceof BigDecimal
         || o instanceof NlsString
-        || o instanceof ByteString) {
+        || o instanceof ByteString
+        || o instanceof Boolean) {
       return litmus.succeed();
     } else if (o instanceof List) {
       List list = (List) o;

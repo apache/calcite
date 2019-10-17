@@ -107,6 +107,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Connection;
@@ -409,6 +410,18 @@ public class JdbcTest {
   }
 
   /**
+   * Adds table macro for connection.
+   */
+  private void addTableMacro(Connection connection, Method method) throws SQLException {
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableMacro tableMacro = TableMacroImpl.create(method);
+    schema.add(method.getName(), tableMacro);
+  }
+
+  /**
    * Tests a relation that is accessed via method syntax.
    *
    * <p>The function ({@link Smalls#view(String)} has a return type
@@ -419,14 +432,9 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.VIEW_METHOD);
-    schema.add("View", tableMacro);
+    addTableMacro(connection, Smalls.VIEW_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"View\"('(10), (20)')) as t(n)\n"
+        + "from table(\"s\".\"view\"('(10), (20)')) as t(n)\n"
         + "where n < 15");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
@@ -445,19 +453,51 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.STR_METHOD);
-    schema.add("Str", tableMacro);
+    addTableMacro(connection, Smalls.STR_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"Str\"(MAP['a', 1, 'baz', 2],\n"
+        + "from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],\n"
         + "                         ARRAY[3, 4, CAST(null AS INTEGER)])) as t(n)");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N={'a'=1, 'baz'=2}\n"
             + "N=[3, 4, null]    \n"));
+    connection.close();
+  }
+
+  /**
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
+   * Support using CAST operation and BOOLEAN type value in table macro</a>. */
+  @Test public void testTableMacroWithCastOrBoolean() throws SQLException {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    addTableMacro(connection, Smalls.STR_METHOD);
+    // check for cast
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], cast(1 as bigint))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+    // check for Boolean type
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], true)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=true            \n"));
+    // check for nested cast
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(1 as int) as varchar(1)))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(cast('2019-10-18 10:35:23' as TIMESTAMP) as BIGINT) as VARCHAR))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}     \n"
+            + "N='2019-10-18 10:35:23'\n"));
     connection.close();
   }
 
