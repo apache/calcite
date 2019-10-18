@@ -134,7 +134,7 @@ public class RexExecutorTest {
   }
 
   @Test
-  public void testRexLiteralValidConstant(){
+  public void testRexLiteralValidConstant() {
     assertThat(RexLiteral.validConstant(null, Litmus.THROW), is(true));
     assertThat(RexLiteral.validConstant(true, Litmus.THROW), is(true));
     NlsString nlsString = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
