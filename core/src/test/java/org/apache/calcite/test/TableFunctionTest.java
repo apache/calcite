@@ -123,6 +123,24 @@ public class TableFunctionTest {
     }
   }
 
+  @Test public void testTableFunctionWithMapParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_MAP_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputMapSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputMapSize\"(Map[5,4,3,1])) as t(n, c)\n"
+          + "where char_length(c) > 0";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=1; C=a\n"));
+    }
+  }
+
   /**
    * Tests a table function that implements {@link ScannableTable} and returns
    * a single column.

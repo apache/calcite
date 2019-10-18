@@ -193,6 +193,9 @@ public class SqlTypeAssignmentRules {
     // ARRAY is assignable from ...
     rules.add(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
 
+    // Map is assignable from ...
+    rules.add(SqlTypeName.MAP, EnumSet.of(SqlTypeName.MAP));
+
     // ANY is assignable from ...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);

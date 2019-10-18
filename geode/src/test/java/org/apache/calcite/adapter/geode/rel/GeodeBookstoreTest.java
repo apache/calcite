@@ -22,14 +22,20 @@ import org.apache.calcite.test.CalciteAssert;
 
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
+import org.apache.geode.pdx.PdxInstance;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.function.Consumer;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests using {@code Bookshop} schema.
@@ -379,10 +385,37 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
     calciteAssert()
         .query("select primaryAddress from geode.BookCustomer limit 2")
         .returnsCount(2)
-        .returns("primaryAddress=PDX[addressLine1,addressLine2,addressLine3,city,state,"
-            + "postalCode,country,phoneNumber,addressTag]\n"
-            + "primaryAddress=PDX[addressLine1,addressLine2,addressLine3,city,state,postalCode,"
-            + "country,phoneNumber,addressTag]\n")
+        .returns(new Consumer<ResultSet>() {
+          /**
+           * The result of {@link org.apache.geode.pdx.internal.PdxInstanceImpl}
+           * instance's toString method, has a prefix with random int value,
+           * removes the prefix before checking. The prefix may like this
+           * "PDX[10872742,org.apache.calcite.adapter.geode.primaryAddress]"
+           */
+          @Override public void accept(ResultSet resultSet) {
+            try {
+              StringBuilder builder = new StringBuilder();
+              final String prefix = "org.apache.calcite.adapter.geode.primaryAddress";
+              while (resultSet.next()) {
+                PdxInstance o = (PdxInstance) resultSet.getObject(1);
+                int index = o.toString().indexOf(prefix);
+                builder.append(
+                    o.toString().substring(index + prefix.length() + 1));
+                builder.append("\n");
+              }
+              assertThat(builder.toString(),
+                  is("{addressLine1=123 Main St., addressLine2=java.lang.NullPointerException,"
+                      + " addressLine3=java.lang.NullPointerException, addressTag=HOME, city=Topeka,"
+                      + " country=US, phoneNumber=423-555-3322, postalCode=50505, state=KS}\n"
+                      + "{addressLine1=123 Main St., addressLine2=java.lang.NullPointerException,"
+                      + " addressLine3=java.lang.NullPointerException, addressTag=HOME,"
+                      + " city=San Francisco, country=US," + " phoneNumber=423-555-3322,"
+                      + " postalCode=50505, state=CA}\n"));
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          }
+        })
         .explainContains("PLAN=GeodeToEnumerableConverter\n"
             + "  GeodeProject(primaryAddress=[$3])\n"
             + "    GeodeSort(fetch=[2])\n"

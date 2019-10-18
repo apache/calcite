@@ -605,6 +605,32 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
     }
 
+    /**
+     * For {@link JavaType} created with {@link Map} class,
+     * cannot get the type of key and value.
+     * Using ANY type as key type.
+     */
+    @Override public RelDataType getKeyType() {
+      if (Map.class.isAssignableFrom(clazz)) {
+        return createSqlType(SqlTypeName.ANY);
+      } else {
+        return null;
+      }
+    }
+
+    /**
+     * For {@link JavaType} created with {@link Map} class,
+     * cannot get the type of key and value.
+     * Using ANY type as value type.
+     */
+    @Override public RelDataType getValueType() {
+      if (Map.class.isAssignableFrom(clazz)) {
+        return createSqlType(SqlTypeName.ANY);
+      } else {
+        return null;
+      }
+    }
+
     public Charset getCharset() {
       return this.charset;
     }
