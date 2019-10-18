@@ -230,6 +230,11 @@ public class RelToSqlConverter extends SqlImplementor
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
       RelDataTypeField targetField = e.getRowType().getFieldList().get(selectList.size());
+
+      if (SqlKind.SINGLE_VALUE == sqlExpr.getKind()) {
+        sqlExpr = dialect.rewriteSingleValueExpr(sqlExpr);
+      }
+
       if (SqlUtil.isNullLiteral(sqlExpr, false)
           && targetField.getType().getSqlTypeName() != SqlTypeName.NULL) {
         sqlExpr = castNullType(sqlExpr, targetField);
@@ -358,7 +363,13 @@ public class RelToSqlConverter extends SqlImplementor
       if (builder.context.field(key).getKind() == SqlKind.LITERAL
           && dialect.getConformance().isGroupByOrdinal()) {
         isGroupByAlias = false;
-      }
+      } /*else if (isGroupByAlias) {
+        List<SqlIdentifier> identifierList = new ArrayList<>();
+        SqlNode node = builder.context.field(key);
+        String alias = builder.context.field(key, true).toString();
+        extractSqlIdentifiers(identifierList, node);
+        isGroupByAlias = !checkIfAliasMatchesIdentifier(identifierList, alias);
+      }*/
       SqlNode field = builder.context.field(key, isGroupByAlias);
       groupKeys.add(field);
     }
@@ -389,6 +400,42 @@ public class RelToSqlConverter extends SqlImplementor
                   .collect(Collectors.toList())));
     }
   }
+
+  /*private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias)
+  {
+    for (SqlIdentifier node : identifierList) {
+      if (node.toString().equalsIgnoreCase(alias)) {
+        return true;
+      }
+    }
+    return false;
+  }*/
+
+  /*private void extractSqlIdentifiers(List<SqlIdentifier> identifierList, SqlNode node) {
+    if (node instanceof SqlIdentifier) {
+      identifierList.add((SqlIdentifier) node);
+    } else if (node instanceof SqlCase) {
+      SqlCase caseNode = (SqlCase) node;
+      SqlNode exprNode = caseNode.getValueOperand();
+      SqlNodeList whenList = caseNode.getWhenOperands();
+      SqlNodeList thenList = caseNode.getThenOperands();
+      SqlNode elseNode = caseNode.getElseOperand();
+      if (null != exprNode) {
+        extractSqlIdentifiers(identifierList, exprNode);
+      }
+      whenList.forEach(whenNode ->
+          extractSqlIdentifiers(identifierList, whenNode));
+      thenList.forEach(thenNode ->
+          extractSqlIdentifiers(identifierList, thenNode));
+      if (null != elseNode) {
+        extractSqlIdentifiers(identifierList, elseNode);
+      }
+    } else if (node instanceof SqlBasicCall) {
+      List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
+      nodeList.forEach(sqlNode ->
+          extractSqlIdentifiers(identifierList, sqlNode));
+    }
+  }*/
 
   private SqlNode groupItem(List<SqlNode> groupKeys,
       ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
