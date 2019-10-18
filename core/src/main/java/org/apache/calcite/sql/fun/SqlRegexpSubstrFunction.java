@@ -31,13 +31,13 @@ import org.apache.calcite.sql.type.SqlOperandCountRanges;
  */
 public class SqlRegexpSubstrFunction extends SqlFunction {
 
-  public SqlRegexpSubstrFunction(String name) {
+  public SqlRegexpSubstrFunction() {
     super(
-        name,
+        "REGEXP_SUBSTR",
         SqlKind.REGEXP_SUBSTR,
         ReturnTypes.VARCHAR_2000_NULLABLE,
         null,
-        OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
+        OperandTypes.STRING_STRING_STRING,
         SqlFunctionCategory.STRING);
   }
 

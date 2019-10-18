@@ -114,7 +114,7 @@ public class RelToSqlConverterTest {
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig(parserConfig)
+        .parserConfig( parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
@@ -3839,7 +3839,8 @@ public class RelToSqlConverterTest {
             + "from \"foodmart\".\"product\"";
     final String expected = "SELECT REGEXP_REPLACE(\"product_name\", '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
             + "FROM \"foodmart\".\"product\"";
-    final String expectedBiqquery = "SELECT REGEXP_REPLACE(product_name, '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
+    final String expectedBiqquery = "SELECT "
+            + "REGEXP_REPLACE(product_name, '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
             + "FROM foodmart.product";
     sql(query)
             .ok(expected)
@@ -3887,7 +3888,8 @@ public class RelToSqlConverterTest {
     final String query = "select \"product_id\", regexp_substr('chocolate Chip cookies', 'c+.{2}',"
         + " 1, 2, 'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
-    final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
+    final String expected = "SELECT product_id, "
+        + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
         + "(1)]\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";

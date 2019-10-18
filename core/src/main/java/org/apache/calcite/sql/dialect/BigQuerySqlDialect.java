@@ -41,7 +41,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_SUBSTR_BQ;
+
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -223,7 +224,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(castFrame);
       break;
     case REGEXP_SUBSTR:
-      REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
+      REGEXP_SUBSTR_BQ.unparse(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
