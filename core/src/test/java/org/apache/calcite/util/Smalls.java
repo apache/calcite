@@ -72,6 +72,8 @@ import static org.junit.Assert.assertThat;
 public class Smalls {
   public static final Method GENERATE_STRINGS_METHOD =
       Types.lookupMethod(Smalls.class, "generateStrings", Integer.class);
+  public static final Method GENERATE_STRINGS_OF_INPUT_SIZE_METHOD =
+      Types.lookupMethod(Smalls.class, "generateStringsOfInputSize", List.class);
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -180,6 +182,10 @@ public class Smalls {
         return (Queryable<T>) queryable;
       }
     };
+  }
+
+  public static QueryableTable generateStringsOfInputSize(final List<Integer> list) {
+    return generateStrings(list.size());
   }
 
   /** A function that generates multiplication table of {@code ncol} columns x
