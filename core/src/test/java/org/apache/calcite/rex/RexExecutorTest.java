@@ -25,6 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator;
@@ -36,7 +37,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.Matchers;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
+import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -127,6 +131,25 @@ public class RexExecutorTest {
       assertThat(((RexLiteral) reducedValues.get(0)).getValue2(),
           equalTo((Object) 10L));
     });
+  }
+
+  @Test
+  public void testRexLiteralValidConstant(){
+    assertThat(RexLiteral.validConstant(null, Litmus.THROW), is(true));
+    assertThat(RexLiteral.validConstant(true, Litmus.THROW), is(true));
+    NlsString nlsString = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
+    assertThat(RexLiteral.validConstant(nlsString, Litmus.THROW), is(true));
+    BigDecimal bigDecimal = new BigDecimal("0.001");
+    assertThat(RexLiteral.validConstant(bigDecimal, Litmus.THROW), is(true));
+    ByteString byteString = new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'});
+    assertThat(RexLiteral.validConstant(byteString, Litmus.THROW), is(true));
+    DateString dateString = new DateString(1969, 12, 21);
+    assertThat(RexLiteral.validConstant(dateString, Litmus.THROW), is(true));
+    TimeString timeString = new TimeString(12, 34, 56);
+    assertThat(RexLiteral.validConstant(timeString, Litmus.THROW), is(true));
+    TimestampString timestampString = new TimestampString(1969, 7, 21, 2, 56, 15);
+    assertThat(RexLiteral.validConstant(timestampString, Litmus.THROW), is(true));
+
   }
 
   /** Reduces several expressions to constants. */

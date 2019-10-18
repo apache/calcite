@@ -456,9 +456,13 @@ public class RexLiteral extends RexNode {
    * criteria as {@link #valueMatchesType}. */
   public static boolean validConstant(Object o, Litmus litmus) {
     if (o == null
+        || o instanceof Boolean
         || o instanceof BigDecimal
         || o instanceof NlsString
-        || o instanceof ByteString) {
+        || o instanceof ByteString
+        || o instanceof DateString
+        || o instanceof TimeString
+        || o instanceof TimestampString) {
       return litmus.succeed();
     } else if (o instanceof List) {
       List list = (List) o;
