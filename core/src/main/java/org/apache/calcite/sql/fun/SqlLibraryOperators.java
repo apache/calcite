@@ -41,13 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
-import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
-import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
-import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
-import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.fun.SqlLibrary.*;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
@@ -248,19 +242,19 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
-  SqlKind.OTHER_FUNCTION,
-    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-  SqlTypeTransforms.TO_NULLABLE),
-    null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
-  SqlFunctionCategory.STRING);
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+          SqlTypeTransforms.TO_NULLABLE),
+      null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+      SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
-    SqlKind.OTHER_FUNCTION,
-    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-      SqlTypeTransforms.TO_NULLABLE),
-    null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
-    SqlFunctionCategory.STRING);
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+          SqlTypeTransforms.TO_NULLABLE),
+      null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+      SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
