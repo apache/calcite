@@ -512,14 +512,6 @@ public abstract class OperandTypes {
         }
       };
 
-  private static List<SqlTypeFamily> regexTypeFamilies = ImmutableList.of(SqlTypeFamily.STRING,
-          SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER,
-          SqlTypeFamily.STRING);
-
-  public static final SqlOperandTypeChecker REGEX_REPLACE_OPERAND_TYPE =
-          OperandTypes.family(regexTypeFamilies, number -> number == 3 || number == 4
-                  || number == 5);
-
   public static final SqlSingleOperandTypeChecker NUMERIC_OR_INTERVAL =
       OperandTypes.or(NUMERIC, INTERVAL);
 
