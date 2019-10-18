@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -251,9 +252,20 @@ public class JavaTypeFactoryImpl
               type.getFieldNames()),
           type.isNullable());
     } else if (type instanceof JavaType) {
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(type.getSqlTypeName()),
-          type.isNullable());
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
+      final RelDataType relDataType;
+      if (SqlTypeUtil.isArray(type)) {
+        final RelDataType elementType = type.getComponentType() == null
+                // type.getJavaClass() is collection with erased generic type
+                ? typeFactory.createSqlType(SqlTypeName.ANY)
+                // elementType returned by JavaType is also of JavaType,
+                // and needs conversion using typeFactory
+                : toSql(typeFactory, type.getComponentType());
+        relDataType = typeFactory.createArrayType(elementType, -1);
+      } else {
+        relDataType = typeFactory.createSqlType(sqlTypeName);
+      }
+      return typeFactory.createTypeWithNullability(relDataType, type.isNullable());
     }
     return type;
   }
