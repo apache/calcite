@@ -192,6 +192,9 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // ARRAY is assignable from ...
     rules.add(SqlTypeName.ARRAY, EnumSet.of(SqlTypeName.ARRAY));
 
+    // MAP is assignable from ...
+    rules.add(SqlTypeName.MAP, EnumSet.of(SqlTypeName.MAP));
+
     // ANY is assignable from ...
     rule.clear();
     rule.add(SqlTypeName.TINYINT);
