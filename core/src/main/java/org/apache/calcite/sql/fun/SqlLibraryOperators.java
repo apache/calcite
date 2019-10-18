@@ -197,7 +197,7 @@ public abstract class SqlLibraryOperators {
    * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
    * source_string that match the regex_pattern.
    */
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = BIGQUERY)
   public static final SqlFunction REGEXP_EXTRACT = new SqlRegexpSubstrFunction("REGEXP_EXTRACT") {
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
       SqlCall extractCall;
@@ -246,7 +246,7 @@ public abstract class SqlLibraryOperators {
     }
   };
 
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = BIGQUERY)
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlRegexpSubstrFunction(
       "REGEXP_EXTRACT_ALL");
 
