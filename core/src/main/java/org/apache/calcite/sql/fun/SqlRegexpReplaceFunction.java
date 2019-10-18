@@ -39,7 +39,8 @@ public class SqlRegexpReplaceFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
             SqlTypeTransforms.TO_NULLABLE),
-        null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+        null,
+        null,
         SqlFunctionCategory.STRING);
   }
 
