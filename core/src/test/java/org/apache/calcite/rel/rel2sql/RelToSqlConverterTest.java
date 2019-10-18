@@ -80,7 +80,6 @@ import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -179,15 +178,11 @@ public class RelToSqlConverterTest {
     return toSql(root, SqlDialect.DatabaseProduct.CALCITE.getDialect());
   }
 
-  /** Converts a relational expression to SqlNode in a given dialect. */
-  private static SqlNode toSqlNode(RelNode root, SqlDialect dialect) {
-    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    return converter.visitChild(0, root).asStatement();
-  }
-
   /** Converts a relational expression to SQL in a given dialect. */
   private static String toSql(RelNode root, SqlDialect dialect) {
-    return toSqlNode(root, dialect).toSqlString(dialect).getSql();
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
+    return sqlNode.toSqlString(dialect).getSql();
   }
 
   @Test public void testSimpleSelectStarFromProductTable() {
@@ -3888,10 +3883,10 @@ public class RelToSqlConverterTest {
     sql.ok(expected);
 
     // arguments of "count(*)" must be star identifier
-    SqlSelect select = (SqlSelect) sql.exec0();
+    SqlSelect select = (SqlSelect) sql.execToSqlNode();
     SqlCall sqlCall = (SqlCall) select.getSelectList().get(0);
-    assertEquals(1, sqlCall.operandCount());
-    assertTrue(((SqlIdentifier) sqlCall.operand(0)).isStar());
+    assertThat(sqlCall.operandCount(), is(1));
+    assertThat(((SqlIdentifier) sqlCall.operand(0)).isStar(), is(true));
   }
 
   /** Fluid interface to run tests. */
@@ -4058,7 +4053,23 @@ public class RelToSqlConverterTest {
       }
     }
 
-    SqlNode exec0() {
+    String exec() {
+      final Planner planner =
+          getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
+      try {
+        SqlNode parse = planner.parse(sql);
+        SqlNode validate = planner.validate(parse);
+        RelNode rel = planner.rel(validate).rel;
+        for (Function<RelNode, RelNode> transform : transforms) {
+          rel = transform.apply(rel);
+        }
+        return toSql(rel, dialect);
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+    }
+
+    SqlNode execToSqlNode() {
       final Planner planner =
               getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
       try {
@@ -4068,15 +4079,9 @@ public class RelToSqlConverterTest {
         for (Function<RelNode, RelNode> transform : transforms) {
           rel = transform.apply(rel);
         }
-        return toSqlNode(rel, dialect);
-      } catch (Exception e) {
-        throw TestUtil.rethrow(e);
-      }
-    }
 
-    String exec() {
-      try {
-        return exec0().toSqlString(dialect).getSql();
+        final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+        return converter.visitChild(0, rel).asStatement();
       } catch (Exception e) {
         throw TestUtil.rethrow(e);
       }
