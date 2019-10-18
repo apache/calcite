@@ -114,7 +114,7 @@ public class RelToSqlConverterTest {
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
-        .parserConfig( parserConfig)
+        .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)

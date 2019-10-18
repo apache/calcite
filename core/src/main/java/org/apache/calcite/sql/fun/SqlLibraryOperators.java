@@ -41,7 +41,13 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.calcite.sql.fun.SqlLibrary.*;
+import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
+import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
+import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
+import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
@@ -185,11 +191,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
 
   /**
-   * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
-   * that matches the regex_pattern. Returns NULL if there is no match.
-   *
-   * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
-   * source_string that match the regex_pattern.
+   * REGEXP_SUBSTR implementation for BigQuery
    */
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction REGEXP_SUBSTR_BQ = new SqlRegexpSubstrFunction() {
@@ -240,12 +242,19 @@ public abstract class SqlLibraryOperators {
     }
   };
 
+  /**
+   * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
+   * that matches the regex_pattern. Returns NULL if there is no match.
+   *
+   * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
+   * source_string that match the regex_pattern.
+   */
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
@@ -253,7 +262,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
       SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
