@@ -18,18 +18,13 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
@@ -189,58 +184,6 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = BIGQUERY)
   public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
-
-  /**
-   * REGEXP_SUBSTR implementation for BigQuery
-   */
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
-  public static final SqlFunction REGEXP_SUBSTR_BQ = new SqlRegexpSubstrFunction() {
-    @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      SqlCall extractCall;
-      switch (call.operandCount()) {
-      case 3:
-        extractCall = makeExtractSqlCall(call);
-        REGEXP_EXTRACT.unparse(writer, extractCall, leftPrec, rightPrec);
-        break;
-      case 4:
-      case 5:
-        extractCall = makeExtractSqlCall(call);
-        REGEXP_EXTRACT_ALL.unparse(writer, extractCall, leftPrec, rightPrec);
-        writeOffset(writer, call);
-        break;
-      default:
-        REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
-      }
-    }
-
-    private void writeOffset(SqlWriter writer, SqlCall call) {
-      int occurrenceNumber = Integer.parseInt(call.operand(3).toString()) - 1;
-      writer.literal("[OFFSET(" + occurrenceNumber + ")]");
-    }
-
-    private SqlCall makeExtractSqlCall(SqlCall call) {
-      SqlCall substringCall = makeSubstringSqlCall(call);
-      call.setOperand(0, substringCall);
-      if (call.operandCount() == 5 && call.operand(4).toString().equals("'i'")) {
-        SqlCharStringLiteral regexNode = makeRegexNode(call);
-        call.setOperand(1, regexNode);
-      }
-      SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
-      return new SqlBasicCall(REGEXP_EXTRACT, extractNodeOperands, SqlParserPos.ZERO);
-    }
-
-    private SqlCharStringLiteral makeRegexNode(SqlCall call) {
-      String regexStr = call.operand(1).toString();
-      String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
-      return SqlLiteral.createCharString(regexLiteral,
-          call.operand(1).getParserPosition());
-    }
-
-    private SqlCall makeSubstringSqlCall(SqlCall call) {
-      SqlNode[] sqlNodes = new SqlNode[]{call.operand(0), call.operand(2)};
-      return new SqlBasicCall(SUBSTR, sqlNodes, SqlParserPos.ZERO);
-    }
-  };
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
