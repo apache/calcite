@@ -23,14 +23,18 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
@@ -196,7 +200,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(lengthFrame);
       break;
     case TRIM:
-      SqlLibraryOperators.TRIM.unparse(writer, call, leftPrec, rightPrec);
+      unparseBQTrim(writer, call, leftPrec, rightPrec);
       break;
     case SUBSTRING:
       final SqlWriter.Frame substringFrame = writer.startFunCall("SUBSTR");
@@ -265,6 +269,37 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(dateDiffFrame);
       break;
     }
+  }
+
+  /**
+   * For usage of TRIM, LTRIM and RTRIM in BQ
+   */
+  private void unparseBQTrim(
+      SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
+    SqlLiteral flag = call.operand(0);
+    final String operatorName;
+    SqlLiteral charToTrim=call.operand(1);
+    switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame frame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    if(!charToTrim.toValue().matches("\\s+")) {
+      writer.literal(",");
+      writer.setNeedWhitespace(false);
+      call.operand(1).unparse(writer,leftPrec, rightPrec);
+    }
+    writer.endFunCall(frame);
   }
 }
 

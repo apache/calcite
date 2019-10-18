@@ -180,7 +180,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
-  @LibraryOperator(libraries = {MYSQL, ORACLE})
+  @LibraryOperator(libraries = {MYSQL, ORACLE,HIVE,SPARK})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
@@ -394,27 +394,59 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
-  public static final SqlFunction TRIM = new SqlTrimFunction() {
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction REGEXP_REPLACE_TRIM = new SqlRegexpReplaceFunction() {
     @Override public void unparse(
-        SqlWriter writer, SqlCall call, int leftPrec,
+        SqlWriter writer,
+        SqlCall call,
+        int leftPrec,
         int rightPrec) {
-      assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-      SqlLiteral flag = call.operand(0);
-      final String operatorName;
-      switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
-      case LEADING:
-        operatorName = "LTRIM";
-        break;
-      case TRAILING:
-        operatorName = "RTRIM";
-        break;
-      default:
-        operatorName = call.getOperator().getName();
-        break;
+//      assert call.operand(0) instanceof SqlLiteral : call.operand(0);
+        SqlLiteral flag = call.operand(0);
+        SqlLiteral charToTrim=call.operand(1);
+        String regexPattern=null;
+        final String operatorName;
+//      SqlLiteral replacedVariable=;
+      if(!charToTrim.toValue().matches("\\s+")) {
+        operatorName = "REGEXP_REPLACE";
+        switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
+        case LEADING:
+          regexPattern="^".concat("(").concat(charToTrim.toValue()).concat(")").concat("+").concat("|").concat("\\$");
+          break;
+        case TRAILING:
+          regexPattern="^".concat("|").concat("(").concat(charToTrim.toValue()).concat(")").concat("*").concat("\\$");
+          break;
+        default:
+          regexPattern="^".concat("(").concat(charToTrim.toValue()).concat(")").concat("+").concat("|").concat("\\").concat("(").concat(charToTrim.toValue()).concat(")").concat("+$");
+          break;
+        }
+       }
+      else
+      {
+        switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
+        case LEADING:
+          operatorName = "LTRIM";
+          break;
+        case TRAILING:
+          operatorName = "RTRIM";
+          break;
+        default:
+          operatorName = call.getOperator().getName();
+          break;
+        }
       }
+
       final SqlWriter.Frame frame = writer.startFunCall(operatorName);
       call.operand(2).unparse(writer, leftPrec, rightPrec);
+      if(!charToTrim.toValue().matches("\\s+")) {
+        writer.literal(",");
+        writer.setNeedWhitespace(false);
+        writer.print("'"+regexPattern+"'");
+        writer.setNeedWhitespace(false);
+        writer.literal(",");
+        writer.setNeedWhitespace(false);
+        writer.literal("''");
+      }
       writer.endFunCall(frame);
     }
   };

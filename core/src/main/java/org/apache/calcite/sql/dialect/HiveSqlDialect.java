@@ -124,7 +124,7 @@ public class HiveSqlDialect extends SqlDialect {
       SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
       break;
     case TRIM:
-      SqlLibraryOperators.TRIM.unparse(writer, call, leftPrec, rightPrec);
+      SqlLibraryOperators.REGEXP_REPLACE_TRIM.unparse(writer, call, leftPrec, rightPrec);
       break;
     case CHAR_LENGTH:
     case CHARACTER_LENGTH:
@@ -172,33 +172,6 @@ public class HiveSqlDialect extends SqlDialect {
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
-
-  /**
-   * For usage of TRIM, LTRIM and RTRIM in Hive, see
-   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF
-   * usage</a>.
-   */
-  /*private void unparseTrim(
-      SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    SqlLiteral flag = call.operand(0);
-    final String operatorName;
-    switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      operatorName = "LTRIM";
-      break;
-    case TRAILING:
-      operatorName = "RTRIM";
-      break;
-    default:
-      operatorName = call.getOperator().getName();
-      break;
-    }
-    final SqlWriter.Frame frame = writer.startFunCall(operatorName);
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(frame);
-  }*/
 
   @Override public boolean supportsCharSet() {
     return false;

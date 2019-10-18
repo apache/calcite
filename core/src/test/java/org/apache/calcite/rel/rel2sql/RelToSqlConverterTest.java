@@ -951,13 +951,21 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testHiveTrimWithTailing() {
-    final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
+    final String query = "SELECT TRIM(TRAILING 'A' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
         + "FROM foodmart.reserve_employee";
     sql(query).withHive().ok(expected)
               .withSpark().ok(expected)
               .withBigQuery().ok(expected);
+  }
+
+  @Test public void testBQTailing() {
+    final String query = "SELECT TRIM(BOTH 'A' from ' str ')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT TRIM(' str ','A')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expected);
   }
 
   /** Test case for

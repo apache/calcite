@@ -183,7 +183,7 @@ public class SparkSqlDialect extends SqlDialect {
         unparseFormat(writer, call, leftPrec, rightPrec);
         break;
       case TRIM:
-        SqlLibraryOperators.TRIM.unparse(writer, call, leftPrec, rightPrec);
+        SqlLibraryOperators.REGEXP_REPLACE_TRIM.unparse(writer, call, leftPrec, rightPrec);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
