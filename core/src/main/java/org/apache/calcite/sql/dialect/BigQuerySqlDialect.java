@@ -23,7 +23,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -40,8 +39,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -223,66 +223,11 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(castFrame);
       break;
     case REGEXP_SUBSTR:
-      unparseRegexSubstr(writer, call, leftPrec, rightPrec);
+      REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame regexFrame;
-    switch (call.operandCount()) {
-    case 2:
-      regexFrame = writer.startFunCall("REGEXP_EXTRACT");
-      for (SqlNode operand : call.getOperandList()) {
-        writer.sep(",");
-        operand.unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(regexFrame);
-      break;
-    case 3:
-      regexFrame = writer.startFunCall("REGEXP_EXTRACT");
-      unparseSubstr(writer, call, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(regexFrame);
-      break;
-    case 4:
-      regexFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
-      unparseSubstr(writer, call, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(regexFrame);
-      unparseOccurrenceNode(writer, call);
-      break;
-    case 5:
-      regexFrame = writer.startFunCall("REGEXP_EXTRACT_ALL");
-      unparseSubstr(writer, call, leftPrec, rightPrec);
-      writer.sep(",");
-      if (call.operand(4).toString().equals("'i'")) {
-        writer.literal("'(?i)".concat(call.operand(1).toString()));
-      } else {
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-      }
-      writer.endFunCall(regexFrame);
-      unparseOccurrenceNode(writer, call);
-      break;
-    }
-  }
-
-  private void unparseOccurrenceNode(SqlWriter writer, SqlCall call) {
-    String occNode = call.operand(3).toString();
-    writer.literal("[OFFSET(" + occNode + " - 1)]");
-  }
-
-  private void unparseSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    final SqlWriter.Frame substrFrame = writer.startFunCall("SUBSTR");
-    writer.sep(",");
-    call.operand(0).unparse(writer, leftPrec, rightPrec);
-    writer.sep(",");
-    call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(substrFrame);
   }
 
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {

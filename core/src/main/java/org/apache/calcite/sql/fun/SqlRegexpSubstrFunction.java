@@ -26,15 +26,14 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 
 /**
- * The REGEXP_SUBSTR(source_string, regex_pattern, [, pos, occurrence, match_type])
- * extracts a substring from source_string that matches a regular expression
- * specified by regex_pattern.
- * */
+ * The REGEXP_SUBSTR(source_string, regex_pattern, [, pos, occurrence, match_type]) extracts a
+ * substring from source_string that matches a regular expression specified by regex_pattern.
+ */
 public class SqlRegexpSubstrFunction extends SqlFunction {
 
-  public SqlRegexpSubstrFunction() {
+  public SqlRegexpSubstrFunction(String name) {
     super(
-        "REGEXP_SUBSTR",
+        name,
         SqlKind.REGEXP_SUBSTR,
         ReturnTypes.VARCHAR_2000_NULLABLE,
         null,

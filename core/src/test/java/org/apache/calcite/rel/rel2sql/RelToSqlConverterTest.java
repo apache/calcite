@@ -3872,10 +3872,10 @@ public class RelToSqlConverterTest {
 
   @Test public void testRegexSubstrFunction4Args() {
     final String query = "select \"product_id\", regexp_substr('chocolate chip cookies', 'c+.{2}',"
-        + " 4, \"product_id\")\n"
+        + " 4, 2)\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3)";
     final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate chip "
-        + "cookies', 4), 'c+.{2}') [OFFSET(product_id - 1)]\n"
+        + "cookies', 4), 'c+.{2}') [OFFSET(1)]\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3";
     sql(query)
@@ -3885,10 +3885,10 @@ public class RelToSqlConverterTest {
 
   @Test public void testRegexSubstrFunction5Args() {
     final String query = "select \"product_id\", regexp_substr('chocolate Chip cookies', 'c+.{2}',"
-        + " 1, \"product_id\", 'i')\n"
+        + " 1, 2, 'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
     final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
-        + "(product_id - 1)]\n"
+        + "(1)]\n"
         + "FROM foodmart.product\n"
         + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
     sql(query)

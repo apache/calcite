@@ -1763,8 +1763,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction REGEXP_REPLACE = SqlLibraryOperators.REGEXP_REPLACE;
 
-  public static final SqlFunction REGEXP_SUBSTR = SqlLibraryOperators.REGEXP_EXTRACT;
-
   /**
    * The COALESCE builtin function.
    */
