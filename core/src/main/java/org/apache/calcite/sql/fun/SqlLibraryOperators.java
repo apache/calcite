@@ -187,24 +187,24 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
-  @LibraryOperator(libraries = STANDARD)
-  public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction("REGEXP_SUBSTR");
+  @LibraryOperator(libraries = BIGQUERY)
+  public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
-   * <p>
+   *
    * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
    * source_string that match the regex_pattern.
    */
-  @LibraryOperator(libraries = BIGQUERY)
-  public static final SqlFunction REGEXP_EXTRACT = new SqlRegexpSubstrFunction("REGEXP_EXTRACT") {
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction REGEXP_SUBSTR_BQ = new SqlRegexpSubstrFunction() {
     @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
       SqlCall extractCall;
       switch (call.operandCount()) {
       case 3:
         extractCall = makeExtractSqlCall(call);
-        super.unparse(writer, extractCall, leftPrec, rightPrec);
+        REGEXP_EXTRACT.unparse(writer, extractCall, leftPrec, rightPrec);
         break;
       case 4:
       case 5:
@@ -213,7 +213,7 @@ public abstract class SqlLibraryOperators {
         writeOffset(writer, call);
         break;
       default:
-        super.unparse(writer, call, leftPrec, rightPrec);
+        REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
       }
     }
 
@@ -246,9 +246,21 @@ public abstract class SqlLibraryOperators {
     }
   };
 
-  @LibraryOperator(libraries = BIGQUERY)
-  public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlRegexpSubstrFunction(
-      "REGEXP_EXTRACT_ALL");
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
+  SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+  SqlTypeTransforms.TO_NULLABLE),
+    null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+  SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+      SqlTypeTransforms.TO_NULLABLE),
+    null, OperandTypes.REGEX_REPLACE_OPERAND_TYPE,
+    SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
