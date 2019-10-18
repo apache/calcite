@@ -3863,7 +3863,8 @@ public class RelToSqlConverterTest {
   @Test public void testRegexReplaceFunction() {
     final String query = "select regexp_replace(\"product_name\",\'[^a-zA-Z]\',\' \',1,0,'i')"
             + "from \"foodmart\".\"product\"";
-    final String expected = "SELECT REGEXP_REPLACE(\"product_name\", '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
+    final String expected = "SELECT "
+            + "REGEXP_REPLACE(\"product_name\", '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
             + "FROM \"foodmart\".\"product\"";
     final String expectedBiqquery = "SELECT "
             + "REGEXP_REPLACE(product_name, '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
@@ -3911,10 +3912,10 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testRegexSubstrFunction5Args() {
-    final String query = "select \"product_id\", regexp_substr('chocolate Chip cookies', 'c+.{2}',"
+    final String query = "select regexp_substr('chocolate Chip cookies', 'c+.{2}',"
         + " 1, 2, 'i')\n"
         + "from \"foodmart\".\"product\" where \"product_id\" in (1, 2, 3, 4)";
-    final String expected = "SELECT product_id, "
+    final String expected = "SELECT "
         + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
         + "(1)]\n"
         + "FROM foodmart.product\n"
