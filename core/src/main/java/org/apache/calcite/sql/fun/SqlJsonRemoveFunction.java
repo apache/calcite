@@ -34,7 +34,7 @@ import java.util.Locale;
  */
 public class SqlJsonRemoveFunction extends SqlFunction {
 
-  public    SqlJsonRemoveFunction() {
+  public SqlJsonRemoveFunction() {
     super("JSON_REMOVE",
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
