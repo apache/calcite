@@ -5730,7 +5730,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     <TestCase name="testPushAggregateThroughOuterJoin1">
         <Resource name="sql">
             <![CDATA[select e.ename
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.dept as d on e.job = d.name
 group by e.ename]]>
         </Resource>
@@ -5739,7 +5739,7 @@ group by e.ename]]>
 LogicalAggregate(group=[{1}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -5750,7 +5750,7 @@ LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -5797,7 +5797,7 @@ LogicalAggregate(group=[{0, 9}])
     <TestCase name="testPushAggregateThroughOuterJoin12">
         <Resource name="sql">
             <![CDATA[select e.job
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 right outer join sales.dept as d on e.job = d.name
 group by e.job]]>
         </Resource>
@@ -5806,7 +5806,7 @@ group by e.job]]>
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[right])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -5817,7 +5817,7 @@ LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[=($0, $1)], joinType=[right])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -5827,7 +5827,7 @@ LogicalAggregate(group=[{0}])
     <TestCase name="testPushAggregateThroughOuterJoin13">
         <Resource name="sql">
             <![CDATA[select e.job
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 full outer join sales.dept as d on e.job = d.name
 group by e.job]]>
         </Resource>
@@ -5836,7 +5836,7 @@ group by e.job]]>
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[full])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -5847,7 +5847,7 @@ LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[=($0, $1)], joinType=[full])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -5887,7 +5887,7 @@ LogicalProject(MGR=[$1], MGR0=[$0])
     <TestCase name="testPushAggregateThroughOuterJoin15">
         <Resource name="sql">
             <![CDATA[select e.ename, d.mgr
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 full outer join sales.emp as d on e.job = d.job
 group by e.ename,d.mgr]]>
         </Resource>
@@ -5896,7 +5896,7 @@ group by e.ename,d.mgr]]>
 LogicalAggregate(group=[{1, 12}])
   LogicalJoin(condition=[=($2, $11)], joinType=[full])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5907,7 +5907,7 @@ LogicalAggregate(group=[{0, 3}])
   LogicalJoin(condition=[=($1, $2)], joinType=[full])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{2, 3}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5917,7 +5917,7 @@ LogicalAggregate(group=[{0, 3}])
     <TestCase name="testPushAggregateThroughOuterJoin16">
         <Resource name="sql">
             <![CDATA[select e.job
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 full outer join sales.dept as d on e.job = d.name
 and e.deptno + e.empno = d.deptno + 5
 group by e.job]]>
@@ -5927,7 +5927,7 @@ group by e.job]]>
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[full])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -5939,7 +5939,7 @@ LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[full])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
@@ -5950,7 +5950,7 @@ LogicalAggregate(group=[{0}])
     <TestCase name="testPushAggregateThroughOuterJoin2">
         <Resource name="sql">
             <![CDATA[select d.ename
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.emp as d on e.job = d.job
 group by d.ename]]>
         </Resource>
@@ -5959,7 +5959,7 @@ group by d.ename]]>
 LogicalAggregate(group=[{10}])
   LogicalJoin(condition=[=($2, $11)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -5970,7 +5970,7 @@ LogicalAggregate(group=[{1}])
   LogicalJoin(condition=[=($0, $2)], joinType=[left])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -5980,7 +5980,7 @@ LogicalAggregate(group=[{1}])
     <TestCase name="testPushAggregateThroughOuterJoin3">
         <Resource name="sql">
             <![CDATA[select e.ename, d.mgr
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.emp as d on e.job = d.job
 group by e.ename,d.mgr]]>
         </Resource>
@@ -5989,7 +5989,7 @@ group by e.ename,d.mgr]]>
 LogicalAggregate(group=[{1, 12}])
   LogicalJoin(condition=[=($2, $11)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -6000,7 +6000,7 @@ LogicalAggregate(group=[{0, 3}])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{2, 3}])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -6010,7 +6010,7 @@ LogicalAggregate(group=[{0, 3}])
     <TestCase name="testPushAggregateThroughOuterJoin4">
         <Resource name="sql">
             <![CDATA[select e.job
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.dept as d on e.job = d.name
 group by e.job]]>
         </Resource>
@@ -6019,7 +6019,7 @@ group by e.job]]>
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -6030,7 +6030,7 @@ LogicalProject(JOB=[$0])
   LogicalJoin(condition=[=($0, $1)], joinType=[left])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6040,7 +6040,7 @@ LogicalProject(JOB=[$0])
     <TestCase name="testPushAggregateThroughOuterJoin5">
         <Resource name="sql">
             <![CDATA[select d.name
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.dept as d on e.job = d.name
 group by d.name]]>
         </Resource>
@@ -6049,7 +6049,7 @@ group by d.name]]>
 LogicalAggregate(group=[{10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -6060,7 +6060,7 @@ LogicalAggregate(group=[{1}])
   LogicalJoin(condition=[=($0, $1)], joinType=[left])
     LogicalAggregate(group=[{2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1}])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6079,7 +6079,7 @@ group by e.job,d.name]]>
 LogicalAggregate(group=[{2, 10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -6089,7 +6089,7 @@ LogicalAggregate(group=[{2, 10}])
 LogicalJoin(condition=[=($0, $1)], joinType=[left])
   LogicalAggregate(group=[{2}])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalAggregate(group=[{1}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6099,7 +6099,7 @@ LogicalJoin(condition=[=($0, $1)], joinType=[left])
     <TestCase name="testPushAggregateThroughOuterJoin7">
         <Resource name="sql">
             <![CDATA[select e.job
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.dept as d on e.job = d.name
 and e.deptno + e.empno = d.deptno + 5
 group by e.job]]>
@@ -6109,7 +6109,7 @@ group by e.job]]>
 LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6121,7 +6121,7 @@ LogicalAggregate(group=[{0}])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
@@ -6142,7 +6142,7 @@ group by d.name]]>
 LogicalAggregate(group=[{11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6154,7 +6154,7 @@ LogicalAggregate(group=[{2}])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
@@ -6165,7 +6165,7 @@ LogicalAggregate(group=[{2}])
     <TestCase name="testPushAggregateThroughOuterJoin9">
         <Resource name="sql">
             <![CDATA[select e.job, d.name
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 left outer join sales.dept as d on e.job = d.name
 and e.deptno + e.empno = d.deptno + 5
 group by e.job, d.name]]>
@@ -6175,7 +6175,7 @@ group by e.job, d.name]]>
 LogicalAggregate(group=[{2, 11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[left])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -6187,7 +6187,7 @@ LogicalAggregate(group=[{0, 2}])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
@@ -7325,7 +7325,7 @@ LogicalProject(SUM1=[SUM($7) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNB
     <TestCase name="testPushAggregateThroughJoin1">
         <Resource name="sql">
             <![CDATA[select e.job,d.name
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 join sales.dept as d on e.job = d.name
 group by e.job,d.name]]>
         </Resource>
@@ -7334,7 +7334,7 @@ group by e.job,d.name]]>
 LogicalAggregate(group=[{2, 10}])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -7344,7 +7344,7 @@ LogicalAggregate(group=[{2, 10}])
 LogicalJoin(condition=[=($0, $1)], joinType=[inner])
   LogicalAggregate(group=[{2}])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
   LogicalAggregate(group=[{1}])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -7354,7 +7354,7 @@ LogicalJoin(condition=[=($0, $1)], joinType=[inner])
     <TestCase name="testPushAggregateThroughJoin2">
         <Resource name="sql">
             <![CDATA[select e.job,d.name
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 join sales.dept as d on e.job = d.name
 and e.deptno + e.empno = d.deptno + 5
 group by e.job,d.name]]>
@@ -7364,7 +7364,7 @@ group by e.job,d.name]]>
 LogicalAggregate(group=[{2, 11}])
   LogicalJoin(condition=[AND(=($2, $11), =($9, $12))], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -7376,7 +7376,7 @@ LogicalAggregate(group=[{0, 2}])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[+($0, 5)])
@@ -7528,7 +7528,7 @@ LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
     <TestCase name="testPushAggregateSumThroughJoin">
         <Resource name="sql">
             <![CDATA[select e.job,sum(sal)
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 join sales.dept as d on e.job = d.name
 group by e.job,d.name]]>
         </Resource>
@@ -7538,7 +7538,7 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
   LogicalAggregate(group=[{2, 10}], EXPR$1=[SUM($5)])
     LogicalJoin(condition=[=($2, $10)], joinType=[inner])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-        LogicalFilter(condition=[=($0, 10)])
+        LogicalFilter(condition=[=($1, 'A')])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -7550,7 +7550,7 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$1=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-          LogicalFilter(condition=[=($0, 10)])
+          LogicalFilter(condition=[=($1, 'A')])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{1}], agg#0=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -7560,7 +7560,7 @@ LogicalProject(JOB=[$0], EXPR$1=[$2])
     <TestCase name="testPushAggregateSumWithoutGroupKeyThroughJoin">
         <Resource name="sql">
             <![CDATA[select sum(sal)
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 join sales.dept as d on e.job = d.name]]>
         </Resource>
         <Resource name="planBefore">
@@ -7568,7 +7568,7 @@ join sales.dept as d on e.job = d.name]]>
 LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -7580,7 +7580,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($4)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$0=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-          LogicalFilter(condition=[=($0, 10)])
+          LogicalFilter(condition=[=($1, 'A')])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalAggregate(group=[{1}], agg#0=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -7590,7 +7590,7 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($4)])
     <TestCase name="testPushAggregateSumThroughJoinAfterAggregateReduce">
         <Resource name="sql">
             <![CDATA[select sum(sal)
-from (select * from sales.emp where empno = 10) as e
+from (select * from sales.emp where ename = 'A') as e
 join sales.dept as d on e.job = d.name]]>
         </Resource>
         <Resource name="planBefore">
@@ -7598,7 +7598,7 @@ join sales.dept as d on e.job = d.name]]>
 LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
   LogicalJoin(condition=[=($2, $10)], joinType=[inner])
     LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-      LogicalFilter(condition=[=($0, 10)])
+      LogicalFilter(condition=[=($1, 'A')])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
@@ -7611,7 +7611,7 @@ LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
       LogicalJoin(condition=[=($0, $3)], joinType=[inner])
         LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-            LogicalFilter(condition=[=($0, 10)])
+            LogicalFilter(condition=[=($1, 'A')])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalAggregate(group=[{1}], agg#0=[COUNT()])
           LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
@@ -8654,6 +8654,38 @@ LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
 LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
   LogicalProject(DEPTNO=[$7], SAL=[$5])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAggregateRemove7">
+        <Resource name="sql">
+            <![CDATA[
+select mgr, sum(sum_sal)
+from
+(select mgr, deptno, sum(sal) sum_sal
+ from sales.emp
+ group by mgr, deptno)
+where deptno=100
+group by mgr
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalProject(MGR=[$0], SUM_SAL=[$2])
+    LogicalFilter(condition=[=($1, 100)])
+      LogicalAggregate(group=[{0, 1}], SUM_SAL=[SUM($2)])
+        LogicalProject(MGR=[$3], DEPTNO=[$7], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(MGR=[$0], SUM_SAL=[$2])
+  LogicalFilter(condition=[=($1, 100)])
+    LogicalAggregate(group=[{0, 1}], SUM_SAL=[SUM($2)])
+      LogicalProject(MGR=[$3], DEPTNO=[$7], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
