@@ -3860,21 +3860,6 @@ public class RelToSqlConverterTest {
         .ok(expectedBiqquery);
   }
 
-  @Test public void testRegexReplaceFunction() {
-    final String query = "select regexp_replace(\"product_name\",\'[^a-zA-Z]\',\' \',1,0,'i')"
-            + "from \"foodmart\".\"product\"";
-    final String expected = "SELECT "
-            + "REGEXP_REPLACE(\"product_name\", '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
-            + "FROM \"foodmart\".\"product\"";
-    final String expectedBiqquery = "SELECT "
-            + "REGEXP_REPLACE(product_name, '[^a-zA-Z]', ' ', 1, 0, 'i')\n"
-            + "FROM foodmart.product";
-    sql(query)
-            .ok(expected)
-            .withBigQuery()
-            .ok(expectedBiqquery);
-  }
-
   @Test public void testRegexSubstrFunction2Args() {
     final String query = "select regexp_substr('choco chico chipo', '.*cho*p*c*?.*')"
         + "from \"foodmart\".\"product\"";
