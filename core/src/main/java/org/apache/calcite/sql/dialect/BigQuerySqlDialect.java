@@ -23,7 +23,6 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -33,7 +32,6 @@ import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -280,7 +278,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     assert call.operand(0) instanceof SqlLiteral : call.operand(0);
     SqlLiteral flag = call.operand(0);
     final String operatorName;
-    SqlLiteral charToTrim=call.operand(1);
+    SqlLiteral charToTrim = call.operand(1);
     switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -294,10 +292,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     final SqlWriter.Frame frame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
-    if(!charToTrim.toValue().matches("\\s+")) {
+    if (!charToTrim.toValue().matches("\\s+")) {
       writer.literal(",");
       writer.setNeedWhitespace(false);
-      call.operand(1).unparse(writer,leftPrec, rightPrec);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
     }
     writer.endFunCall(frame);
   }
