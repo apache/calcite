@@ -56,13 +56,13 @@ public class SqlParser {
     parser.setConformance(config.conformance());
     switch (config.quoting()) {
     case DOUBLE_QUOTE:
-      parser.switchTo("DQID");
+      parser.switchTo("DEFAULT");
       break;
     case BACK_TICK:
       parser.switchTo("BTID");
       break;
     case BRACKET:
-      parser.switchTo("DEFAULT");
+      parser.switchTo("BQID");
       break;
     }
   }
