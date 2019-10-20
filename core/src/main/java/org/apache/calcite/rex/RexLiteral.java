@@ -354,7 +354,8 @@ public class RexLiteral extends RexNode {
     case CHAR:
       // A SqlLiteral's charset and collation are optional; not so a
       // RexLiteral.
-      return (value instanceof NlsString)
+      return   value instanceof Character ||
+              (value instanceof NlsString)
           && (((NlsString) value).getCharset() != null)
           && (((NlsString) value).getCollation() != null);
     case SYMBOL:
@@ -1127,6 +1128,16 @@ public class RexLiteral extends RexNode {
   public static boolean isNullLiteral(RexNode node) {
     return (node instanceof RexLiteral)
         && (((RexLiteral) node).value == null);
+  }
+
+  /**
+   * Creates a new RexLiter to the same type with different values.
+   *
+   * @param value  newValue
+   * @return New RexLiteral
+   */
+  public RexLiteral clone(Comparable value) {
+    return new RexLiteral(value, type, typeName);
   }
 
   private static boolean equals(Object o1, Object o2) {

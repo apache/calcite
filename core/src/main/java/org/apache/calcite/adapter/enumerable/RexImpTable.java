@@ -346,7 +346,6 @@ public class RexImpTable {
     defineBinary(PLUS, Add, NullPolicy.STRICT, "plus");
     defineBinary(MINUS, Subtract, NullPolicy.STRICT, "minus");
     defineBinary(MULTIPLY, Multiply, NullPolicy.STRICT, "multiply");
-    defineBinary(MOD, Mod, NullPolicy.STRICT, "mod");
     defineBinary(DIVIDE, Divide, NullPolicy.STRICT, "divide");
     defineBinary(DIVIDE_INTEGER, Divide, NullPolicy.STRICT, "divide");
     defineUnary(UNARY_MINUS, Negate, NullPolicy.STRICT);
