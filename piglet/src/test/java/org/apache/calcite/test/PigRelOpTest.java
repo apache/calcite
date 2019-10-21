@@ -49,7 +49,7 @@ public class PigRelOpTest extends PigRelTestBase {
    */
   private static class PigRelSqlDialect extends SqlDialect {
     static final SqlDialect DEFAULT =
-        new CalciteSqlDialect(emptyContext()
+        new CalciteSqlDialect(SqlDialect.EMPTY_CONTEXT
             .withDatabaseProduct(DatabaseProduct.CALCITE));
 
     private PigRelSqlDialect(Context context) {

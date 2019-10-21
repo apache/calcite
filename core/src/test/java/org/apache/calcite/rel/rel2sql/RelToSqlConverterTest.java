@@ -136,9 +136,7 @@ public class RelToSqlConverterTest {
   }
 
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
-    return new MysqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-        .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
-        .withIdentifierQuoteString("`")
+    return new MysqlSqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
         .withNullCollation(nullCollation));
   }
 
@@ -1199,13 +1197,13 @@ public class RelToSqlConverterTest {
 
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
     final HiveSqlDialect hive2_1Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(1)
             .withNullCollation(NullCollation.LOW));
 
     final HiveSqlDialect hive2_2_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(2)
             .withNullCollation(NullCollation.LOW));
@@ -1221,7 +1219,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
     final HiveSqlDialect hive2_1_0_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(0)
             .withNullCollation(NullCollation.LOW));
@@ -4092,8 +4090,7 @@ public class RelToSqlConverterTest {
     Sql withMssql(int majorVersion) {
       final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
       return dialect(
-          new MssqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.MSSQL)
+          new MssqlSqlDialect(MssqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(majorVersion)
               .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
                   .substring(0, 1))
@@ -4107,8 +4104,7 @@ public class RelToSqlConverterTest {
     Sql withMysql8() {
       final SqlDialect mysqlDialect = DatabaseProduct.MYSQL.getDialect();
       return dialect(
-          new SqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.MYSQL)
+          new SqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(8)
               .withIdentifierQuoteString(mysqlDialect.quoteIdentifier("")
                   .substring(0, 1))
@@ -4150,9 +4146,7 @@ public class RelToSqlConverterTest {
     Sql withPostgresqlModifiedTypeSystem() {
       // Postgresql dialect with max length for varchar set to 256
       final PostgresqlSqlDialect postgresqlSqlDialect =
-          new PostgresqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
-              .withIdentifierQuoteString("\"")
+          new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
               .withDataTypeSystem(new RelDataTypeSystemImpl() {
                 @Override public int getMaxPrecision(SqlTypeName typeName) {
                   switch (typeName) {
@@ -4169,9 +4163,7 @@ public class RelToSqlConverterTest {
     Sql withOracleModifiedTypeSystem() {
       // Oracle dialect with max length for varchar set to 512
       final OracleSqlDialect oracleSqlDialect =
-          new OracleSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.ORACLE)
-              .withIdentifierQuoteString("\"")
+          new OracleSqlDialect(OracleSqlDialect.DEFAULT_CONTEXT
               .withDataTypeSystem(new RelDataTypeSystemImpl() {
                 @Override public int getMaxPrecision(SqlTypeName typeName) {
                   switch (typeName) {
