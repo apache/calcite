@@ -45,17 +45,17 @@ import java.util.regex.Pattern;
  * dialect.
  */
 public class BigQuerySqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new BigQuerySqlDialect(
-          EMPTY_CONTEXT
-              .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
-              .withLiteralQuoteString("'")
-              .withLiteralEscapedQuoteString("\\'")
-              .withIdentifierQuoteString("`")
-              .withNullCollation(NullCollation.LOW)
-              .withUnquotedCasing(Casing.UNCHANGED)
-              .withQuotedCasing(Casing.UNCHANGED)
-              .withCaseSensitive(false));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
+      .withLiteralQuoteString("'")
+      .withLiteralEscapedQuoteString("\\'")
+      .withIdentifierQuoteString("`")
+      .withNullCollation(NullCollation.LOW)
+      .withUnquotedCasing(Casing.UNCHANGED)
+      .withQuotedCasing(Casing.UNCHANGED)
+      .withCaseSensitive(false);
+
+  public static final SqlDialect DEFAULT = new BigQuerySqlDialect(DEFAULT_CONTEXT);
 
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(

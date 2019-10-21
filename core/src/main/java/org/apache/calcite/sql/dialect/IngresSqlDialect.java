@@ -22,9 +22,10 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Ingres database.
  */
 public class IngresSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new IngresSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.INGRES));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.INGRES);
+
+  public static final SqlDialect DEFAULT = new IngresSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an IngresSqlDialect. */
   public IngresSqlDialect(Context context) {

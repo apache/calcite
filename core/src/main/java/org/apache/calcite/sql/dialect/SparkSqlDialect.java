@@ -36,10 +36,11 @@ import org.apache.calcite.sql.type.ReturnTypes;
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
 public class SparkSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new SparkSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.SPARK)
-          .withNullCollation(NullCollation.LOW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.SPARK)
+      .withNullCollation(NullCollation.LOW);
+
+  public static final SqlDialect DEFAULT = new SparkSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction SPARKSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,

@@ -38,10 +38,11 @@ import org.apache.calcite.sql.type.BasicSqlType;
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
  */
 public class HiveSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new HiveSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HIVE)
-          .withNullCollation(NullCollation.LOW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.HIVE)
+      .withNullCollation(NullCollation.LOW);
+
+  public static final SqlDialect DEFAULT = new HiveSqlDialect(DEFAULT_CONTEXT);
 
   private final boolean emulateNullDirection;
 

@@ -49,12 +49,13 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * A <code>SqlDialect</code> implementation for the MySQL database.
  */
 public class MysqlSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new MysqlSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.MYSQL)
-          .withIdentifierQuoteString("`")
-          .withUnquotedCasing(Casing.UNCHANGED)
-          .withNullCollation(NullCollation.LOW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
+      .withIdentifierQuoteString("`")
+      .withUnquotedCasing(Casing.UNCHANGED)
+      .withNullCollation(NullCollation.LOW);
+
+  public static final SqlDialect DEFAULT = new MysqlSqlDialect(DEFAULT_CONTEXT);
 
   /** MySQL specific function. */
   public static final SqlFunction ISNULL_FUNCTION =
