@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCollation;
@@ -39,6 +40,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.MultisetSqlType;
+import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -98,7 +100,35 @@ public class RexBuilder {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a RexBuilder.
+   * Creates a RexBuilder with the default of RelDataTypeFactory.
+   *
+   */
+  public RexBuilder() {
+    this.typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    this.booleanTrue =
+        makeLiteral(
+            Boolean.TRUE,
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN),
+            SqlTypeName.BOOLEAN);
+    this.booleanFalse =
+        makeLiteral(
+            Boolean.FALSE,
+            typeFactory.createSqlType(SqlTypeName.BOOLEAN),
+            SqlTypeName.BOOLEAN);
+    this.charEmpty =
+        makeLiteral(
+            new NlsString("", null, null),
+            typeFactory.createSqlType(SqlTypeName.CHAR, 0),
+            SqlTypeName.CHAR);
+    this.constantNull =
+         makeLiteral(
+            null,
+            typeFactory.createSqlType(SqlTypeName.NULL),
+            SqlTypeName.NULL);
+  }
+
+  /**
+   * Creates a RexBuilder with a specific RelDataTypeFactory.
    *
    * @param typeFactory Type factory
    */

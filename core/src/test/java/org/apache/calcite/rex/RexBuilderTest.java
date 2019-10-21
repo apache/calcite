@@ -89,13 +89,12 @@ public class RexBuilderTest {
    */
   @Test
   public void testEnsureTypeWithAny() {
-    final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    RexBuilder builder = new RexBuilder(typeFactory);
+    RexBuilder builder = new RexBuilder();
 
     RexNode node =  new RexLiteral(
-            Boolean.TRUE, typeFactory.createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
+            Boolean.TRUE, builder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
     RexNode ensuredNode = builder.ensureType(
-            typeFactory.createSqlType(SqlTypeName.ANY), node, true);
+            builder.getTypeFactory().createSqlType(SqlTypeName.ANY), node, true);
 
     assertEquals(node, ensuredNode);
   }

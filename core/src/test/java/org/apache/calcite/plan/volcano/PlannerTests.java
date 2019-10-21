@@ -71,9 +71,7 @@ class PlannerTests {
       };
 
   static RelOptCluster newCluster(VolcanoPlanner planner) {
-    final RelDataTypeFactory typeFactory =
-        new SqlTypeFactoryImpl(org.apache.calcite.rel.type.RelDataTypeSystem.DEFAULT);
-    return RelOptCluster.create(planner, new RexBuilder(typeFactory));
+    return RelOptCluster.create(planner, new RexBuilder());
   }
 
   /** Leaf relational expression. */
