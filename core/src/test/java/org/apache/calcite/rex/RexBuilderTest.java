@@ -92,7 +92,8 @@ public class RexBuilderTest {
     RexBuilder builder = new RexBuilder();
 
     RexNode node =  new RexLiteral(
-            Boolean.TRUE, builder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
+            Boolean.TRUE, builder.getTypeFactory()
+            .createSqlType(SqlTypeName.BOOLEAN), SqlTypeName.BOOLEAN);
     RexNode ensuredNode = builder.ensureType(
             builder.getTypeFactory().createSqlType(SqlTypeName.ANY), node, true);
 
