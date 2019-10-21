@@ -920,7 +920,7 @@ public class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3220">[CALCITE-3220]
    * HiveSqlDialect should transform the SQL-standard TRIM function to TRIM,
    * LTRIM or RTRIM</a>. */
-  @Test public void testHiveTrim() {
+  @Test public void testTrim() {
     final String query = "SELECT TRIM(' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
@@ -930,7 +930,7 @@ public class RelToSqlConverterTest {
               .withBigQuery().ok(expected);
   }
 
-  @Test public void testHiveTrimWithBoth() {
+  @Test public void testTrimWithBoth() {
     final String query = "SELECT TRIM(both ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT TRIM(' str ')\n"
@@ -940,7 +940,7 @@ public class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  @Test public void testHiveTrimWithLeading() {
+  @Test public void testTrimWithLeadingSpace() {
     final String query = "SELECT TRIM(LEADING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT LTRIM(' str ')\n"
@@ -950,7 +950,7 @@ public class RelToSqlConverterTest {
         .withBigQuery().ok(expected);
   }
 
-  @Test public void testHiveTrimWithTailing() {
+  @Test public void testTrimWithTailingSpace() {
     final String query = "SELECT TRIM(TRAILING ' ' from ' str ')\n"
         + "from \"foodmart\".\"reserve_employee\"";
     final String expected = "SELECT RTRIM(' str ')\n"
@@ -960,12 +960,80 @@ public class RelToSqlConverterTest {
               .withBigQuery().ok(expected);
   }
 
-  @Test public void testBQTailing() {
-    final String query = "SELECT TRIM(BOTH ' ' from ' str ')\n"
+  @Test public void testTrimWithLeadingCharacter() {
+    final String query = "SELECT TRIM(LEADING 'A' from 'AABCAADCAA')\n"
         + "from \"foodmart\".\"reserve_employee\"";
-    final String expected = "SELECT TRIM(' str ')\n"
+    final String expected = "SELECT LTRIM('AABCAADCAA','A')\n"
         + "FROM foodmart.reserve_employee";
-    sql(query).withHive().ok(expected);
+    final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA','^(A)+|\\$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test public void testTrimWithTrailingCharacter() {
+    final String query = "SELECT TRIM(TRAILING 'A' from 'AABCAADCAA')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT RTRIM('AABCAADCAA','A')\n"
+        + "FROM foodmart.reserve_employee";
+    final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA','^|(A)*\\$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test public void testTrimWithBothCharacter() {
+    final String query = "SELECT TRIM(BOTH 'A' from 'AABCAADCAA')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT TRIM('AABCAADCAA','A')\n"
+        + "FROM foodmart.reserve_employee";
+    final String expectedHS = "SELECT REGEXP_REPLACE('AABCAADCAA','^(A)+|\\(A)+$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test public void testTrimWithLeadingSpecialCharacter() {
+    final String query = "SELECT TRIM(LEADING 'A$@*' from 'A$@*AABCA$@*AADCAA$@*')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT LTRIM('A$@*AABCA$@*AADCAA$@*','A$@*')\n"
+        + "FROM foodmart.reserve_employee";
+    final String expectedHS =
+        "SELECT REGEXP_REPLACE('A$@*AABCA$@*AADCAA$@*','^(A\\\\$\\\\@\\\\*)+|\\$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test public void testTrimWithTrailingSpecialCharacter() {
+    final String query = "SELECT TRIM(TRAILING '$A@*' from '$A@*AABC$@*AADCAA$A@*')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT RTRIM('$A@*AABC$@*AADCAA$A@*','$A@*')\n"
+        + "FROM foodmart.reserve_employee";
+    final String expectedHS =
+        "SELECT REGEXP_REPLACE('$A@*AABC$@*AADCAA$A@*','^|(\\\\$A\\\\@\\\\*)*\\$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
+  }
+
+  @Test public void testTrimWithBothSpecialCharacter() {
+    final String query = "SELECT TRIM(BOTH '$@*A' from '$@*AABC$@*AADCAA$@*A')\n"
+        + "from \"foodmart\".\"reserve_employee\"";
+    final String expected = "SELECT TRIM('$@*AABC$@*AADCAA$@*A','$@*A')\n"
+        + "FROM foodmart.reserve_employee";
+    final String expectedHS =
+        "SELECT REGEXP_REPLACE('$@*AABC$@*AADCAA$@*A',"
+            + "'^(\\\\$\\\\@\\\\*A)+|\\(\\\\$\\\\@\\\\*A)+$','')\n"
+        + "FROM foodmart.reserve_employee";
+    sql(query).withHive().ok(expectedHS)
+        .withSpark().ok(expectedHS)
+        .withBigQuery().ok(expected);
   }
 
   /** Test case for
@@ -4449,37 +4517,6 @@ public class RelToSqlConverterTest {
       return new Sql(schemaSpec, sql, dialect, config, transforms);
     }
   }
-
-  @Test public void dayofthemonthfunction() {
-
-
-/*String query = "SELECT employee_id, td_day_of_month( DATE '2008-09-23')"
-+ " as d FROM account";
-
-String expected = "SELECT employee_id, EXTRACT(DAY FROM DATE '2008-09-23')"
-+ " AS d FROM foodmart.account";*/
-    String query = "SELECT COUNT(CAST(NULL AS INT)), DAYOFMONTH( DATE '2008-09-23') "
-        + "FROM \"account\"\n"
-        + "AS \"t\" GROUP BY \"account_type\"";
-    final String expected = "SELECT COUNT(CAST(NULL AS INTEGER)), "
-        + "EXTRACT(DAY FROM DATE '2008-09-23')\n"
-        + "FROM \"foodmart\".\"account\"\n"
-        + "GROUP BY \"account_type\"";
-
-    sql(query).withBigQuery().ok(expected);
-// validate
-    sql(expected).exec();
-
-/*assert that()
-.withTeradata(15, 0).sourceSql(sourceSql)
-*//*.withHive(1, 2).targetSql(expectedSql)
-.withHive(2, 1).targetSql(expectedSql, true)
-.withSpark(2, 2).targetSql(expectedSql)*//*
-.withBigQuery(2, 0).targetSql(bigQuerySql)
-.transformationSettings()
-.check()*/
-  }
-
 }
 
 // End RelToSqlConverterTest.java

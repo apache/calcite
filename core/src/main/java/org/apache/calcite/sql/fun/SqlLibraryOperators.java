@@ -435,21 +435,19 @@ public abstract class SqlLibraryOperators {
       final String operatorName;
       if (!charToTrim.toValue().matches("\\s+")) {
         operatorName = "REGEXP_REPLACE";
+        String regexToReplace = escapeMetaCharacters(charToTrim.toValue());
         switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
         case LEADING:
-          regexPattern =
-              "^".concat("(").concat(charToTrim.toValue()).concat(")")
-                  .concat("+").concat("|").concat("\\$");
+          regexPattern = "^".concat("(").concat(regexToReplace).concat(")")
+              .concat("+").concat("|").concat("\\$");
           break;
         case TRAILING:
-          regexPattern =
-              "^".concat("|").concat("(").concat(charToTrim.toValue())
-                  .concat(")").concat("*").concat("\\$");
+          regexPattern = "^".concat("|").concat("(").concat(regexToReplace)
+              .concat(")").concat("*").concat("\\$");
           break;
         default:
-          regexPattern =
-              "^".concat("(").concat(charToTrim.toValue()).concat(")").concat("+").concat("|").
-                  concat("\\").concat("(").concat(charToTrim.toValue()).concat(")").concat("+$");
+          regexPattern = "^".concat("(").concat(regexToReplace).concat(")").concat("+").concat("|").
+              concat("\\").concat("(").concat(regexToReplace).concat(")").concat("+$");
           break;
         }
       } else {
@@ -465,6 +463,7 @@ public abstract class SqlLibraryOperators {
           break;
         }
       }
+      //regexPattern= RegExUtils.replaceAll(regexPattern,,)
 
       final SqlWriter.Frame frame = writer.startFunCall(operatorName);
       call.operand(2).unparse(writer, leftPrec, rightPrec);
@@ -478,6 +477,18 @@ public abstract class SqlLibraryOperators {
         writer.literal("''");
       }
       writer.endFunCall(frame);
+    }
+
+    public String escapeMetaCharacters(String inputString) {
+      final String[] metaCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+          "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+
+      for (int i = 0; i < metaCharacters.length; i++) {
+        if (inputString.contains(metaCharacters[i])) {
+          inputString = inputString.replace(metaCharacters[i], "\\\\" + metaCharacters[i]);
+        }
+      }
+      return inputString;
     }
   };
 
