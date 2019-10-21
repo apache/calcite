@@ -23,6 +23,7 @@ import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.custom.AsscomInnerOuterRule;
 import org.apache.calcite.rel.rules.custom.AsscomOuterInnerRule;
@@ -31,6 +32,7 @@ import org.apache.calcite.rel.rules.custom.AssocInnerOuterRule;
 import org.apache.calcite.rel.rules.custom.AssocOuterInnerRule;
 import org.apache.calcite.rel.rules.custom.NullifyJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -43,6 +45,11 @@ import org.apache.calcite.tools.Programs;
  * A runner class for manual testing.
  */
 public class Runner {
+  // Defines the default dialect used in this class.
+  private static final SqlDialect DEFAULT_DIALECT
+      = SqlDialect.DatabaseProduct.MYSQL.getDialect();
+
+  // A counter for the number of transactions executed so far.
   private static int count = 1;
 
   public static void main(String[] args) throws Exception {
@@ -148,27 +155,37 @@ public class Runner {
     final Planner planner = Frameworks.getPlanner(config);
 
     System.out.println("============================ Start ============================");
-    System.out.println("Transaction ID: " + count++);
+    System.out.println("Transaction ID: " + count++ + "\n");
+
+    // Prints the original SQL query string.
+    System.out.println("Input query:");
+    System.out.println(sqlQuery + "\n");
     if (ignoreTypeCheck) {
       RelOptUtil.disableTypeCheck = true;
     }
 
     // Parses, validates and builds the query.
-    SqlNode parse = planner.parse(sqlQuery);
-    SqlNode validate = planner.validate(parse);
-    RelNode relNode = planner.rel(validate).rel;
-    System.out.println("Before transformation:\n");
+    final SqlNode parse = planner.parse(sqlQuery);
+    final SqlNode validate = planner.validate(parse);
+    final RelNode relNode = planner.rel(validate).rel;
+    System.out.println("Before transformation:");
     System.out.println(RelOptUtil.toString(relNode));
 
     // Transforms the query.
     RelTraitSet traitSet = relNode.getTraitSet().replace(EnumerableConvention.INSTANCE);
     RelNode transformedNode = planner.transform(0, traitSet, relNode);
-    System.out.println("After transformation:\n");
+    System.out.println("After transformation:");
     System.out.println(RelOptUtil.toString(transformedNode));
-
     if (ignoreTypeCheck) {
       RelOptUtil.disableTypeCheck = false;
     }
+
+    // Converts the transformed relational expression back to SQL query string.
+    final RelToSqlConverter converter = new RelToSqlConverter(DEFAULT_DIALECT);
+    final SqlNode transformedSqlNode = converter.visitChild(0, transformedNode).asStatement();
+    final String transformedSqlQuery = transformedSqlNode.toSqlString(DEFAULT_DIALECT).getSql();
+    System.out.println("Output query:");
+    System.out.println(transformedSqlQuery + "\n");
     System.out.println("============================= End =============================\n");
 
     // Closes the planner.
