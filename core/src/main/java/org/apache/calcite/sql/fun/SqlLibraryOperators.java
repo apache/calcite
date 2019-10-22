@@ -49,21 +49,21 @@ import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
 
 /**
- * Defines functions and operators that are not part of standard SQL but belong to one or more other
- * dialects of SQL.
+ * Defines functions and operators that are not part of standard SQL but
+ * belong to one or more other dialects of SQL.
  *
  * <p>They are read by {@link SqlLibraryOperatorTableFactory} into instances
- * of {@link SqlOperatorTable} that contain functions and operators for particular libraries.
+ * of {@link SqlOperatorTable} that contain functions and operators for
+ * particular libraries.
  */
 public abstract class SqlLibraryOperators {
   private SqlLibraryOperators() {
   }
 
-  /**
-   * The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function; converts the timezone of {@code datetime}
-   * from {@code tz1} to {@code tz2}. This function is only on Redshift, but we list it in
-   * PostgreSQL because Redshift does not have its own library.
-   */
+  /** The "CONVERT_TIMEZONE(tz1, tz2, datetime)" function;
+   * converts the timezone of {@code datetime} from {@code tz1} to {@code tz2}.
+   * This function is only on Redshift, but we list it in PostgreSQL
+   * because Redshift does not have its own library. */
   @LibraryOperator(libraries = {POSTGRESQL})
   public static final SqlFunction CONVERT_TIMEZONE =
       new SqlFunction("CONVERT_TIMEZONE",
@@ -73,9 +73,7 @@ public abstract class SqlLibraryOperators {
           OperandTypes.CHARACTER_CHARACTER_DATETIME,
           SqlFunctionCategory.TIMEDATE);
 
-  /**
-   * Return type inference for {@code DECODE}.
-   */
+  /** Return type inference for {@code DECODE}. */
   private static final SqlReturnTypeInference DECODE_RETURN_TYPE =
       opBinding -> {
         final List<RelDataType> list = new ArrayList<>();
@@ -93,17 +91,13 @@ public abstract class SqlLibraryOperators {
         return type;
       };
 
-  /**
-   * The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function.
-   */
+  /** The "DECODE(v, v1, result1, [v2, result2, ...], resultN)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction DECODE =
       new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
 
-  /**
-   * The "NVL(value, value)" function.
-   */
+  /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction NVL =
       new SqlFunction("NVL", SqlKind.NVL,
@@ -111,9 +105,7 @@ public abstract class SqlLibraryOperators {
               SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
 
-  /**
-   * The "LTRIM(string)" function.
-   */
+  /** The "LTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LTRIM =
       new SqlFunction("LTRIM", SqlKind.LTRIM,
@@ -121,9 +113,7 @@ public abstract class SqlLibraryOperators {
               SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
-  /**
-   * The "RTRIM(string)" function.
-   */
+  /** The "RTRIM(string)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction RTRIM =
       new SqlFunction("RTRIM", SqlKind.RTRIM,
@@ -131,21 +121,17 @@ public abstract class SqlLibraryOperators {
               SqlTypeTransforms.TO_VARYING), null,
           OperandTypes.STRING, SqlFunctionCategory.STRING);
 
-  /**
-   * Oracle's "SUBSTR(string, position [, substringLength ])" function.
+  /** Oracle's "SUBSTR(string, position [, substringLength ])" function.
    *
    * <p>It has similar semantics to standard SQL's
-   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax.
-   */
+   * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
           SqlFunctionCategory.STRING);
 
-  /**
-   * The "GREATEST(value, value)" function.
-   */
+  /** The "GREATEST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction GREATEST =
       new SqlFunction("GREATEST", SqlKind.GREATEST,
@@ -153,9 +139,7 @@ public abstract class SqlLibraryOperators {
               SqlTypeTransforms.TO_NULLABLE), null,
           OperandTypes.SAME_VARIADIC, SqlFunctionCategory.SYSTEM);
 
-  /**
-   * The "LEAST(value, value)" function.
-   */
+  /** The "LEAST(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction LEAST =
       new SqlFunction("LEAST", SqlKind.LEAST,
@@ -166,8 +150,8 @@ public abstract class SqlLibraryOperators {
   /**
    * The <code>TRANSLATE(<i>string_expr</i>, <i>search_chars</i>,
    * <i>replacement_chars</i>)</code> function returns <i>string_expr</i> with
-   * all occurrences of each character in <i>search_chars</i> replaced by its corresponding
-   * character in <i>replacement_chars</i>.
+   * all occurrences of each character in <i>search_chars</i> replaced by its
+   * corresponding character in <i>replacement_chars</i>.
    *
    * <p>It is not defined in the SQL standard, but occurs in Oracle and
    * PostgreSQL.
@@ -196,13 +180,11 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
-  @LibraryOperator(libraries = {MYSQL, ORACLE, HIVE, SPARK})
+  @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
-  /**
-   * The "MONTHNAME(datetime)" function; returns the name of the month, in the current locale, of a
-   * TIMESTAMP or DATE argument.
-   */
+  /** The "MONTHNAME(datetime)" function; returns the name of the month,
+   * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction MONTHNAME =
       new SqlFunction("MONTHNAME", SqlKind.OTHER_FUNCTION,
@@ -212,39 +194,37 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction DATE_ADD =
       new SqlFunction(
-          "DATE_ADD",
-          SqlKind.PLUS,
-          ReturnTypes.DATE,
-          null,
-          OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
-          SqlFunctionCategory.TIMEDATE) {
+        "DATE_ADD",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.or(DATETIME_INTERVAL, DATETIME_INTEGER),
+        SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
           writer.getDialect().unparseIntervalOperandsBasedFunctions(
-              writer, call, leftPrec, rightPrec);
+                writer, call, leftPrec, rightPrec);
         }
       };
 
   @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction ADD_MONTHS =
       new SqlFunction(
-          "ADD_MONTHS",
-          SqlKind.PLUS,
-          ReturnTypes.DATE,
-          null,
-          OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
-          SqlFunctionCategory.TIMEDATE) {
+        "ADD_MONTHS",
+        SqlKind.PLUS,
+        ReturnTypes.DATE,
+        null,
+        OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER),
+        SqlFunctionCategory.TIMEDATE) {
 
         @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
           writer.getDialect().unparseIntervalOperandsBasedFunctions(
-              writer, call, leftPrec, rightPrec);
+                writer, call, leftPrec, rightPrec);
         }
       };
 
-  /**
-   * The "DAYNAME(datetime)" function; returns the name of the day of the week, in the current
-   * locale, of a TIMESTAMP or DATE argument.
-   */
+  /** The "DAYNAME(datetime)" function; returns the name of the day of the week,
+   * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction DAYNAME =
       new SqlFunction("DAYNAME", SqlKind.OTHER_FUNCTION,
@@ -300,10 +280,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
-  /**
-   * The "CONCAT(arg, ...)" function that concatenates strings. For example, "CONCAT('a', 'bc',
-   * 'd')" returns "abcd".
-   */
+  /** The "CONCAT(arg, ...)" function that concatenates strings.
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction CONCAT_FUNCTION =
       new SqlFunction("CONCAT",
@@ -350,10 +328,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
-  /**
-   * The "TO_DATE(string1, string2)" function; casts string1 to a DATE using the format specified in
-   * string2.
-   */
+  /** The "TO_DATE(string1, string2)" function; casts string1
+   * to a DATE using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_DATE =
       new SqlFunction("TO_DATE",
@@ -363,10 +339,8 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.TIMEDATE);
 
-  /**
-   * The "TO_TIMESTAMP(string1, string2)" function; casts string1 to a TIMESTAMP using the format
-   * specified in string2.
-   */
+  /** The "TO_TIMESTAMP(string1, string2)" function; casts string1
+   * to a TIMESTAMP using the format specified in string2. */
   @LibraryOperator(libraries = {POSTGRESQL, ORACLE})
   public static final SqlFunction TO_TIMESTAMP =
       new SqlFunction("TO_TIMESTAMP",
@@ -405,10 +379,9 @@ public abstract class SqlLibraryOperators {
           OperandTypes.or(OperandTypes.STRING, OperandTypes.BINARY),
           SqlFunctionCategory.STRING);
 
-  /**
-   * Infix "::" cast operator used by PostgreSQL, for example {@code '100'::INTEGER}.
-   */
-  @LibraryOperator(libraries = {POSTGRESQL})
+  /** Infix "::" cast operator used by PostgreSQL, for example
+   * {@code '100'::INTEGER}. */
+  @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
 
@@ -438,16 +411,14 @@ public abstract class SqlLibraryOperators {
         String regexToReplace = escapeMetaCharacters(charToTrim.toValue());
         switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
         case LEADING:
-          regexPattern = "^".concat("(").concat(regexToReplace).concat(")")
-              .concat("+").concat("|").concat("\\$");
+          regexPattern = "^(".concat(regexToReplace).concat(")+|\\$");
           break;
         case TRAILING:
-          regexPattern = "^".concat("|").concat("(").concat(regexToReplace)
-              .concat(")").concat("*").concat("\\$");
+          regexPattern = "^|(".concat(regexToReplace).concat(")*\\$");
           break;
         default:
-          regexPattern = "^".concat("(").concat(regexToReplace).concat(")").concat("+").concat("|").
-              concat("\\").concat("(").concat(regexToReplace).concat(")").concat("+$");
+          regexPattern = "^(".concat(regexToReplace).concat(")+|\\(")
+              .concat(regexToReplace).concat(")+$");
           break;
         }
       } else {
@@ -463,7 +434,6 @@ public abstract class SqlLibraryOperators {
           break;
         }
       }
-      //regexPattern= RegExUtils.replaceAll(regexPattern,,)
 
       final SqlWriter.Frame frame = writer.startFunCall(operatorName);
       call.operand(2).unparse(writer, leftPrec, rightPrec);

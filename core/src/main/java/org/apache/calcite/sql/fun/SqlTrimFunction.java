@@ -100,15 +100,6 @@ public class SqlTrimFunction extends SqlFunction {
         SqlFunctionCategory.STRING);
   }
 
-  public SqlTrimFunction() {
-    super("TRIM", SqlKind.TRIM,
-        ReturnTypes.cascade(ReturnTypes.ARG2, SqlTypeTransforms.TO_NULLABLE,
-        SqlTypeTransforms.TO_VARYING), null,
-        OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.STRING,
-            SqlTypeFamily.STRING),
-        SqlFunctionCategory.STRING);
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   public void unparse(
