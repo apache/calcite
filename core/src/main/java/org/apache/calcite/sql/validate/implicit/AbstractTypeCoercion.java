@@ -208,64 +208,65 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * i.e. nullability, charset, collation.
    */
   RelDataType syncAttributes(
-      RelDataType type1,
-      RelDataType targetType) {
-    RelDataType targetType1 = targetType;
-    if (type1 != null) {
-      targetType1 = factory.createTypeWithNullability(targetType1, type1.isNullable());
-      if (SqlTypeUtil.inCharOrBinaryFamilies(type1)
-          && SqlTypeUtil.inCharOrBinaryFamilies(targetType)) {
-        Charset charset1 = type1.getCharset();
-        SqlCollation collation1 = type1.getCollation();
-        if (charset1 != null && SqlTypeUtil.inCharFamily(targetType1)) {
-          targetType1 = factory.createTypeWithCharsetAndCollation(targetType1, charset1,
-              collation1);
+      RelDataType fromType,
+      RelDataType toType) {
+    RelDataType syncedType = toType;
+    if (fromType != null) {
+      syncedType = factory.createTypeWithNullability(syncedType, fromType.isNullable());
+      if (SqlTypeUtil.inCharOrBinaryFamilies(fromType)
+          && SqlTypeUtil.inCharOrBinaryFamilies(toType)) {
+        Charset charset = fromType.getCharset();
+        SqlCollation collation = fromType.getCollation();
+        if (charset != null && SqlTypeUtil.inCharFamily(syncedType)) {
+          syncedType = factory.createTypeWithCharsetAndCollation(syncedType,
+              charset,
+              collation);
         }
       }
     }
-    return targetType1;
+    return syncedType;
   }
 
   /** Decide if a SqlNode should be casted to target type, derived class
    * can override this strategy. */
-  protected boolean needToCast(SqlValidatorScope scope, SqlNode node1, RelDataType targetType) {
-    RelDataType type1 = validator.deriveType(scope, node1);
+  protected boolean needToCast(SqlValidatorScope scope, SqlNode node, RelDataType toType) {
+    RelDataType fromType = validator.deriveType(scope, node);
     // This depends on the fact that type validate happens before coercion.
     // We do not have inferred type for some node, i.e. LOCALTIME.
-    if (type1 == null) {
+    if (fromType == null) {
       return false;
     }
 
     // This prevents that we cast a JavaType to normal RelDataType.
-    if (targetType.getSqlTypeName() == type1.getSqlTypeName()) {
+    if (toType.getSqlTypeName() == fromType.getSqlTypeName()) {
       return false;
     }
 
     // Do not make a cast when we don't know specific type (ANY) of the origin node.
-    if (targetType.getSqlTypeName() == SqlTypeName.ANY
-        || type1.getSqlTypeName() == SqlTypeName.ANY) {
+    if (toType.getSqlTypeName() == SqlTypeName.ANY
+        || fromType.getSqlTypeName() == SqlTypeName.ANY) {
       return false;
     }
 
     // No need to cast between char and varchar.
-    if (targetType.getSqlTypeName() == SqlTypeName.VARCHAR
-        && type1.getSqlTypeName() == SqlTypeName.CHAR
-        || targetType.getSqlTypeName() == SqlTypeName.CHAR
-        && type1.getSqlTypeName() == SqlTypeName.VARCHAR) {
+    if (toType.getSqlTypeName() == SqlTypeName.VARCHAR
+        && fromType.getSqlTypeName() == SqlTypeName.CHAR
+        || toType.getSqlTypeName() == SqlTypeName.CHAR
+        && fromType.getSqlTypeName() == SqlTypeName.VARCHAR) {
       return false;
     }
     // No need to cast if the source type precedence list
     // contains target type. i.e. do not cast from
     // tinyint to int or int to bigint.
-    if (type1.getPrecedenceList().containsType(targetType)
-        && SqlTypeUtil.isIntType(type1)
-        && SqlTypeUtil.isIntType(targetType)) {
+    if (fromType.getPrecedenceList().containsType(toType)
+        && SqlTypeUtil.isIntType(fromType)
+        && SqlTypeUtil.isIntType(toType)) {
       return false;
     }
     // Should keep sync with rules in SqlTypeAssignmentRules.
-    return !SqlTypeUtil.equalSansNullability(factory, type1, targetType)
+    return !SqlTypeUtil.equalSansNullability(factory, fromType, toType)
         && SqlTypeAssignmentRules.instance(true)
-            .canCastFrom(targetType.getSqlTypeName(), targetType.getSqlTypeName());
+            .canCastFrom(toType.getSqlTypeName(), fromType.getSqlTypeName());
   }
 
   /** It should not be used directly, because some other work should be done
