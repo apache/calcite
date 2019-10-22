@@ -42,16 +42,14 @@ public class HiveSqlDialect extends SqlDialect {
 
   private final boolean emulateNullDirection;
 
-  /**
-   * Creates a HiveSqlDialect.
-   */
+  /** Creates a HiveSqlDialect. */
   public HiveSqlDialect(Context context) {
     super(context);
     // Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
     // See https://issues.apache.org/jira/browse/HIVE-12994.
     emulateNullDirection = (context.databaseMajorVersion() < 2)
         || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+            && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
@@ -74,14 +72,12 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(
-      SqlWriter writer, SqlNode offset,
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(
-      SqlNode node,
+  @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -104,8 +100,7 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseCall(
-      final SqlWriter writer, final SqlCall call,
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
@@ -177,8 +172,7 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  public void unparseSqlIntervalLiteralHive(
-      SqlWriter writer,
+  public void unparseSqlIntervalLiteralHive(SqlWriter writer,
       SqlIntervalLiteral literal) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
@@ -188,8 +182,7 @@ public class HiveSqlDialect extends SqlDialect {
     writer.literal(literal.getValue().toString());
   }
 
-  @Override public void unparseSqlDatetimeArithmetic(
-      SqlWriter writer,
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     switch (sqlKind) {
     case MINUS:
@@ -203,8 +196,7 @@ public class HiveSqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseIntervalOperandsBasedFunctions(
-      SqlWriter writer,
+  @Override public void unparseIntervalOperandsBasedFunctions(SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     writer.sep(",");

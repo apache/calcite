@@ -44,7 +44,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL" dialect.
+ * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
+ * dialect.
  */
 public class BigQuerySqlDialect extends SqlDialect {
   public static final SqlDialect DEFAULT =
@@ -75,16 +76,12 @@ public class BigQuerySqlDialect extends SqlDialect {
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
 
-  /**
-   * An unquoted BigQuery identifier must start with a letter and be followed by zero or more
-   * letters, digits or _.
-   */
+  /** An unquoted BigQuery identifier must start with a letter and be followed
+   * by zero or more letters, digits or _. */
   private static final Pattern IDENTIFIER_REGEX =
       Pattern.compile("[A-Za-z][A-Za-z0-9_]*");
 
-  /**
-   * Creates a BigQuerySqlDialect.
-   */
+  /** Creates a BigQuerySqlDialect. */
   public BigQuerySqlDialect(SqlDialect.Context context) {
     super(context);
   }
@@ -98,14 +95,12 @@ public class BigQuerySqlDialect extends SqlDialect {
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
-  @Override public SqlNode emulateNullDirection(
-      SqlNode node,
+  @Override public SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
-  @Override public void unparseOffsetFetch(
-      SqlWriter writer, SqlNode offset,
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
@@ -155,8 +150,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  @Override public void unparseCall(
-      final SqlWriter writer, final SqlCall call, final int leftPrec,
+  @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
       final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
@@ -252,8 +246,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final SqlSetOperator INTERSECT_DISTINCT =
       new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
 
-  @Override public void unparseSqlDatetimeArithmetic(
-      SqlWriter writer,
+  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     switch (sqlKind) {
     case MINUS:
