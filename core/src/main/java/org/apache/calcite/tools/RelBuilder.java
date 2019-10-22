@@ -565,6 +565,11 @@ public class RelBuilder {
     return nodes.build();
   }
 
+  /** Returns references to fields for a given bit set of input ordinals. */
+  public ImmutableList<RexNode> fields(ImmutableBitSet ordinals) {
+    return fields(ordinals.asList());
+  }
+
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
@@ -818,12 +823,8 @@ public class RelBuilder {
       throw new IllegalArgumentException("out of bounds: " + groupSet);
     }
     Objects.requireNonNull(groupSets);
-    final ImmutableList<RexNode> nodes =
-        fields(ImmutableIntList.of(groupSet.toArray()));
-    final List<ImmutableList<RexNode>> nodeLists =
-        Util.transform(groupSets,
-            bitSet -> fields(ImmutableIntList.of(bitSet.toArray())));
-    return groupKey_(nodes, nodeLists);
+    final ImmutableList<RexNode> nodes = fields(groupSet);
+    return groupKey_(nodes, Util.transform(groupSets, bitSet -> fields(bitSet)));
   }
 
   @Deprecated // to be removed before 2.0
@@ -1571,13 +1572,13 @@ public class RelBuilder {
         final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
         if (unique != null && unique) {
           // Rel is already unique.
-          return project(fields(groupSet.asList()));
+          return project(fields(groupSet));
         }
       }
       final Double maxRowCount = mq.getMaxRowCount(peek());
       if (maxRowCount != null && maxRowCount <= 1D) {
         // If there is at most one row, rel is already unique.
-        return project(fields(groupSet.asList()));
+        return project(fields(groupSet));
       }
     }
     final ImmutableList<ImmutableBitSet> groupSets;

@@ -115,13 +115,13 @@ public class AggregateRemoveRule extends RelOptRule {
     final RelNode newInput = convert(input, aggregate.getTraitSet().simplify());
     relBuilder.push(newInput);
     if (!projects.isEmpty()) {
-      projects.addAll(0, relBuilder.fields(aggregate.getGroupSet().asList()));
+      projects.addAll(0, relBuilder.fields(aggregate.getGroupSet()));
       relBuilder.project(projects);
     } else if (newInput.getRowType().getFieldCount()
         > aggregate.getRowType().getFieldCount()) {
       // If aggregate was projecting a subset of columns, and there were no
       // aggregate functions, add a project for the same effect.
-      relBuilder.project(relBuilder.fields(aggregate.getGroupSet().asList()));
+      relBuilder.project(relBuilder.fields(aggregate.getGroupSet()));
     }
     call.transformTo(relBuilder.build());
   }
