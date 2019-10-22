@@ -319,6 +319,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return false;
   }
 
+  public List<ImmutableBitSet> getKeys() {
+    return table.getStatistic().getKeys();
+  }
+
   public List<RelReferentialConstraint> getReferentialConstraints() {
     if (table != null) {
       return table.getStatistic().getReferentialConstraints();

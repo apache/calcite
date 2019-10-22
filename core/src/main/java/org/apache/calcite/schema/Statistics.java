@@ -44,6 +44,10 @@ public class Statistics {
           return false;
         }
 
+        public List<ImmutableBitSet> getKeys() {
+          return ImmutableList.of();
+        }
+
         public List<RelReferentialConstraint> getReferentialConstraints() {
           return ImmutableList.of();
         }
@@ -96,6 +100,10 @@ public class Statistics {
           }
         }
         return false;
+      }
+
+      public List<ImmutableBitSet> getKeys() {
+        return ImmutableList.copyOf(keys);
       }
 
       public List<RelReferentialConstraint> getReferentialConstraints() {

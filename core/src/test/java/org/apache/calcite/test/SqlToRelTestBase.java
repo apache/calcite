@@ -432,6 +432,10 @@ public abstract class SqlToRelTestBase {
         return false;
       }
 
+      public List<ImmutableBitSet> getKeys() {
+        return ImmutableList.of();
+      }
+
       public List<RelReferentialConstraint> getReferentialConstraints() {
         return ImmutableList.of();
       }
@@ -508,6 +512,10 @@ public abstract class SqlToRelTestBase {
 
     public boolean isKey(ImmutableBitSet columns) {
       return parent.isKey(columns);
+    }
+
+    public List<ImmutableBitSet> getKeys() {
+      return parent.getKeys();
     }
 
     public List<RelReferentialConstraint> getReferentialConstraints() {
