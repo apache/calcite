@@ -515,6 +515,13 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
           && columns.contains(ImmutableBitSet.of(keyList));
     }
 
+    public List<ImmutableBitSet> getKeys() {
+      if (keyList.isEmpty()) {
+        return ImmutableList.of();
+      }
+      return ImmutableList.of(ImmutableBitSet.of(keyList));
+    }
+
     public List<RelReferentialConstraint> getReferentialConstraints() {
       return referentialConstraints;
     }
@@ -1050,6 +1057,10 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
 
         public boolean isKey(ImmutableBitSet columns) {
           return table.isKey(columns);
+        }
+
+        public List<ImmutableBitSet> getKeys() {
+          return table.getKeys();
         }
 
         public List<RelReferentialConstraint> getReferentialConstraints() {
