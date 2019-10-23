@@ -163,4 +163,5 @@ abstract class AbstractFixture {
     this.typeFactory = typeFactory;
   }
 }
+
 // End Fixture.java

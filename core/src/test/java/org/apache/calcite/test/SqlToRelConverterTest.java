@@ -2790,100 +2790,102 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
-   * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
+   * RelStructuredTypeFlattener generates wrong types for nested column when
+   * flattenProjection</a>.
    */
   @Test public void testSelectNestedColumnType() {
-    final String sql =
-        "select\n"
-            + "  char_length(coord.\"unit\") as unit_length\n"
-            + "from\n"
-            + "  (\n"
-            + "    select\n"
-            + "      fname,\n"
-            + "      coord\n"
-            + "    from\n"
-            + "      customer.contact_peek\n"
-            + "    where\n"
-            + "      coord.x > 1\n"
-            + "      and coord.y > 1\n"
-            + "  ) as view\n"
-            + "where\n"
-            + "  fname = 'john'";
+    final String sql = "select\n"
+        + "  char_length(coord.\"unit\") as unit_length\n"
+        + "from\n"
+        + "  (\n"
+        + "    select\n"
+        + "      fname,\n"
+        + "      coord\n"
+        + "    from\n"
+        + "      customer.contact_peek\n"
+        + "    where\n"
+        + "      coord.x > 1\n"
+        + "      and coord.y > 1\n"
+        + "  ) as view\n"
+        + "where\n"
+        + "  fname = 'john'";
     sql(sql).ok();
   }
 
   @Test public void testNestedStructFieldAccess() {
-    final String sql =
-        "select dn.skill['others'] from sales.dept_nested dn";
+    final String sql = "select dn.skill['others']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testNestedStructPrimitiveFieldAccess() {
-    final String sql =
-        "select dn.skill['others']['a'] from sales.dept_nested dn";
+    final String sql = "select dn.skill['others']['a']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testFunctionWithStructInput() {
-    final String sql =
-        "select json_type(skill) from sales.dept_nested";
+    final String sql = "select json_type(skill)\n"
+        + "from sales.dept_nested";
     sql(sql).ok();
   }
 
   @Test public void testAggregateFunctionForStructInput() {
-    final String sql = "select "
-        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
-        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
-        + "max(skill) as max_skill, min(skill) as min_skill, "
-        + "any_value(skill) as any_value_skill "
+    final String sql = "select collect(skill) as collect_skill,\n"
+        + "  count(skill) as count_skill, count(*) as count_star,\n"
+        + "  approx_count_distinct(skill) as approx_count_distinct_skill,\n"
+        + "  max(skill) as max_skill, min(skill) as min_skill,\n"
+        + "  any_value(skill) as any_value_skill\n"
         + "from sales.dept_nested";
     sql(sql).ok();
   }
 
   @Test public void testAggregateFunctionForStructInputByName() {
-    final String sql = "select "
-        + "collect(skill) as collect_skill, count(skill) as count_skill, count(*) as count_star, "
-        + "approx_count_distinct(skill) as approx_count_distinct_skill, "
-        + "max(skill) as max_skill, min(skill) as min_skill, "
-        + "any_value(skill) as any_value_skill "
+    final String sql = "select collect(skill) as collect_skill,\n"
+        + "  count(skill) as count_skill, count(*) as count_star,\n"
+        + "  approx_count_distinct(skill) as approx_count_distinct_skill,\n"
+        + "  max(skill) as max_skill, min(skill) as min_skill,\n"
+        + "  any_value(skill) as any_value_skill\n"
         + "from sales.dept_nested group by name";
     sql(sql).ok();
   }
 
   @Test public void testNestedPrimitiveFieldAccess() {
-    final String sql =
-        "select dn.skill['desc'] from sales.dept_nested dn";
+    final String sql = "select dn.skill['desc']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testArrayElementNestedPrimitive() {
-    final String sql =
-        "select dn.employees[0]['empno'] from sales.dept_nested dn";
+    final String sql = "select dn.employees[0]['empno']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testArrayElementDoublyNestedPrimitive() {
-    final String sql =
-        "select dn.employees[0]['detail']['skills'][0]['type'] from sales.dept_nested dn";
+    final String sql = "select dn.employees[0]['detail']['skills'][0]['type']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testArrayElementDoublyNestedStruct() {
-    final String sql =
-        "select dn.employees[0]['detail']['skills'][0] from sales.dept_nested dn";
+    final String sql = "select dn.employees[0]['detail']['skills'][0]\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
   @Test public void testArrayElementThreeTimesNestedStruct() {
-    final String sql =
-        "select dn.employees[0]['detail']['skills'][0]['others'] from sales.dept_nested dn";
+    final String sql = ""
+        + "select dn.employees[0]['detail']['skills'][0]['others']\n"
+        + "from sales.dept_nested dn";
     sql(sql).ok();
   }
 
-
   /**
-   * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
    * AssertionError when GROUP BY nested field</a>.
    */
   @Test public void testGroupByNestedColumn() {
@@ -3556,7 +3558,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testProjectAggregatesIgnoreNullsAndNot() {
     final String sql = "select lead(sal, 4) IGNORE NULLS, lead(sal, 4) over (w)\n"
-            + " from emp window w as (order by empno)";
+        + "from emp window w as (order by empno)";
     sql(sql).ok();
   }
 

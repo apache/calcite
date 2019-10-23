@@ -40,7 +40,7 @@ public interface InitializerContext {
    *   );
    * </pre>
    *
-   * You can use the string format expression "my_udf(a)" and "a + 1"
+   * <p>You can use the string format expression "my_udf(a)" and "a + 1"
    * as the initializer expression of column b and c.
    *
    * <p>Calcite doesn't really need this now because the DDL nodes
