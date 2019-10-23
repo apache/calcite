@@ -169,9 +169,6 @@ public class SubstitutionVisitor {
    * Assumes no rule needs more than 2 slots. */
   protected final MutableRel[] slots = new MutableRel[2];
 
-  // FOR TESTING.
-  public static boolean disabled = false;
-
   /** Creates a SubstitutionVisitor with the default rule set. */
   public SubstitutionVisitor(RelNode target_, RelNode query_) {
     this(target_, query_, DEFAULT_RULES, RelFactories.LOGICAL_BUILDER);
@@ -524,10 +521,10 @@ public class SubstitutionVisitor {
     outer:
       while (queryDescendant != null) {
         for (Replacement r : attempted) {
-          if (r.triedEnough && queryDescendant == r.after) {
+          if (r.stopTrying && queryDescendant == r.after) {
             // This node has been replaced by previous iterations in the
-            // hope to match its ancestors, so the node itself should not
-            // be matched again.
+            // hope to match its ancestors and stopTrying indicates
+            // there's no need to be matched again.
             queryDescendant = MutableRels.preOrderTraverseNext(queryDescendant);
             continue outer;
           }
@@ -546,7 +543,7 @@ public class SubstitutionVisitor {
               if (result != null) {
                 ++count;
                 attempted.add(
-                    new Replacement(result.call.query, result.result, result.triedEnough));
+                    new Replacement(result.call.query, result.result, result.stopTrying));
                 result.call.query.replaceInParent(result.result);
 
                 // Replace previous equivalents with new equivalents, higher up
@@ -626,20 +623,22 @@ public class SubstitutionVisitor {
 
   /**
    * Represents a replacement action: before &rarr; after.
+   * {@code stopTrying} indicates whether there's no need
+   * to do matching for the same query node again.
    */
   static class Replacement {
     final MutableRel before;
     final MutableRel after;
-    final boolean triedEnough;
+    final boolean stopTrying;
 
     Replacement(MutableRel before, MutableRel after) {
       this(before, after, true);
     }
 
-    Replacement(MutableRel before, MutableRel after, boolean triedEnough) {
+    Replacement(MutableRel before, MutableRel after, boolean stopTrying) {
       this.before = before;
       this.after = after;
-      this.triedEnough = triedEnough;
+      this.stopTrying = stopTrying;
     }
   }
 
@@ -906,7 +905,7 @@ public class SubstitutionVisitor {
       return result(result,  true);
     }
 
-    public UnifyResult result(MutableRel result, boolean triedEnough) {
+    public UnifyResult result(MutableRel result, boolean stopTrying) {
       assert MutableRels.contains(result, target);
       assert equalType("result", result, "query", query,
           Litmus.THROW);
@@ -917,7 +916,7 @@ public class SubstitutionVisitor {
         replace(result, target, replace);
       }
       register(result, query);
-      return new UnifyResult(this, result, triedEnough);
+      return new UnifyResult(this, result, stopTrying);
     }
 
     /**
@@ -940,22 +939,20 @@ public class SubstitutionVisitor {
    * Result of an application of a {@link UnifyRule} indicating that the
    * rule successfully matched {@code query} against {@code target} and
    * generated a {@code result} that is equivalent to {@code query} and
-   * contains {@code target}. {@code triedEnough} indicates whether there's
+   * contains {@code target}. {@code stopTrying} indicates whether there's
    * no need to do matching for the same query node again.
    */
   protected static class UnifyResult {
     private final UnifyRuleCall call;
-    // equivalent to "query", contains "result"
     private final MutableRel result;
+    private final boolean stopTrying;
 
-    private final boolean triedEnough;
-
-    UnifyResult(UnifyRuleCall call, MutableRel result, boolean triedEnough) {
+    UnifyResult(UnifyRuleCall call, MutableRel result, boolean stopTrying) {
       this.call = call;
       assert equalType("query", call.query, "result", result,
           Litmus.THROW);
       this.result = result;
-      this.triedEnough = triedEnough;
+      this.stopTrying = stopTrying;
     }
   }
 
@@ -1211,7 +1208,7 @@ public class SubstitutionVisitor {
           RexNode splitted =
               splitFilter(call.getSimplify(), newQueryJoinCond, target.condition);
           // MutableJoin matches only when the conditions are analyzed to be same.
-          if (splitted == rexBuilder.makeLiteral(true)) {
+          if (splitted != null && splitted.isAlwaysTrue()) {
             final RexNode compenCond = qInput0Cond;
             final List<RexNode> compenProjs = new ArrayList<>();
             for (int i = 0; i < fieldCnt(query); i++) {
@@ -1300,7 +1297,7 @@ public class SubstitutionVisitor {
           RexNode splitted =
               splitFilter(call.getSimplify(), newQueryJoinCond, target.condition);
           // MutableJoin matches only when the conditions are analyzed to be same.
-          if (splitted == rexBuilder.makeLiteral(true)) {
+          if (splitted != null && splitted.isAlwaysTrue()) {
             RexShuttle shuttle4Right =
                 new RexShuttle() {
                   @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -1401,7 +1398,7 @@ public class SubstitutionVisitor {
           RexNode splitted =
               splitFilter(call.getSimplify(), newQueryJoinCond, target.condition);
           // MutableJoin matches only when the conditions are analyzed to be same.
-          if (splitted == rexBuilder.makeLiteral(true)) {
+          if (splitted != null && splitted.isAlwaysTrue()) {
             RexShuttle shuttle4Right =
                 new RexShuttle() {
                   @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -1662,6 +1659,7 @@ public class SubstitutionVisitor {
     }
   }
 
+  /** Check if list0 and list1 contains the same nodes -- order is not considered. */
   private static boolean sameRelCollectionNoOrderConsidered(
       List<MutableRel> list0, List<MutableRel> list1) {
     if (list0.size() == list1.size()) {
@@ -1682,6 +1680,7 @@ public class SubstitutionVisitor {
     return rel.rowType.getFieldCount();
   }
 
+  /** Explain filtering condition and projections from MutableCalc. */
   private static Pair<RexNode, List<RexNode>> explainCalc(MutableCalc calc) {
     final RexShuttle shuttle = getExpandShuttle(calc.program);
     final RexNode condition = shuttle.apply(calc.program.getCondition());
@@ -1696,6 +1695,10 @@ public class SubstitutionVisitor {
     }
   }
 
+  /**
+   * Generate result by merging parent and child if they are both MutableCalc.
+   * Otherwise result is the child itself.
+   */
   private static UnifyResult tryMergeParentCalcAndGenResult(
       UnifyRuleCall call, MutableRel child) {
     MutableRel parent = call.query.getParent();
@@ -1703,12 +1706,15 @@ public class SubstitutionVisitor {
       MutableCalc mergedCalc = mergeCalc(call.getCluster().getRexBuilder(),
           (MutableCalc) parent, (MutableCalc) child);
       if (mergedCalc != null) {
+        // Note that property of stopTrying in the result is false
+        // and this query node deserves further matching iterations.
         return call.create(parent).result(mergedCalc, false);
       }
     }
     return call.result(child);
   }
 
+  /** Merge two MutableCalc together. */
   private static MutableCalc mergeCalc(
       RexBuilder rexBuilder, MutableCalc topCalc, MutableCalc bottomCalc) {
     RexProgram topProgram = topCalc.program;
@@ -1733,6 +1739,8 @@ public class SubstitutionVisitor {
       }
     };
   }
+
+  /** Check if condition cond0 implies cond1. */
   private static boolean implies(
       RelOptCluster cluster, RexNode cond0, RexNode cond1, RelDataType rowType) {
     RexExecutorImpl rexImpl =
@@ -1742,6 +1750,7 @@ public class SubstitutionVisitor {
     return rexImplicationChecker.implies(cond0, cond1);
   }
 
+  /** Check if join condition only references RexInputRef. */
   private static boolean referenceByMapping(
       RexNode joinCondition, List<RexNode>... projectsOfInputs) {
     List<RexNode> projects = new ArrayList<>();

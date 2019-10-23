@@ -73,9 +73,6 @@ public abstract class RelOptMaterializations {
         getApplicableMaterializations(rel, materializations);
     final List<Pair<RelNode, List<RelOptMaterialization>>> applied =
         new ArrayList<>();
-    if (SubstitutionVisitor.disabled) {
-      return applied;
-    }
     applied.add(Pair.of(rel, ImmutableList.of()));
     for (RelOptMaterialization m : applicableMaterializations) {
       int count = applied.size();

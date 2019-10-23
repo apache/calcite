@@ -228,15 +228,6 @@ public class MaterializationTest {
         RuleSets.ofList(ImmutableList.of()));
   }
 
-  /** Checks that a given query can use a materialized view with a given
-   * definition. */
-  private void checkMaterializeByMVRules(String materialize, String query, String model,
-      Consumer<ResultSet> explainChecker) {
-    SubstitutionVisitor.disabled = true;
-    checkMaterialize(materialize, query, model, explainChecker,
-        RuleSets.ofList(ImmutableList.of()));
-    SubstitutionVisitor.disabled = false;
-  }
 
   private void checkMaterialize(String materialize, String query, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
@@ -1510,7 +1501,7 @@ public class MaterializationTest {
   }
 
   @Test public void testAggregateMaterializationNoAggregateFuncs6() {
-    checkMaterializeByMVRules(
+    checkMaterialize(
         "select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 5 group by \"empid\", \"deptno\"",
         "select \"deptno\" from \"emps\" where \"deptno\" > 10 group by \"deptno\"",
         HR_FKUK_MODEL,
@@ -1581,7 +1572,7 @@ public class MaterializationTest {
   }
 
   @Test public void testAggregateMaterializationAggregateFuncs4() {
-    checkMaterializeByMVRules(
+    checkMaterialize(
         "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s\n"
             + "from \"emps\" where \"deptno\" >= 10 group by \"empid\", \"deptno\"",
         "select \"deptno\", sum(\"empid\") as s\n"
@@ -1738,7 +1729,7 @@ public class MaterializationTest {
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs1() {
-    checkMaterializeByMVRules(
+    checkMaterialize(
         "select \"empid\", \"depts\".\"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"depts\".\"deptno\" > 10\n"
             + "group by \"empid\", \"depts\".\"deptno\"",
@@ -1747,7 +1738,7 @@ public class MaterializationTest {
             + "group by \"empid\", \"depts\".\"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[<($t2, $t1)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[>($t1, $t2)], "
                 + "empid=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
@@ -1795,7 +1786,7 @@ public class MaterializationTest {
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs5() {
-    checkMaterializeByMVRules(
+    checkMaterialize(
         "select \"depts\".\"deptno\", \"emps\".\"empid\" from \"depts\"\n"
             + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 10\n"
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
@@ -1804,13 +1795,13 @@ public class MaterializationTest {
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[<($t2, $t1)], "
+            "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[15], expr#3=[>($t1, $t2)], "
                 + "deptno=[$t0], $condition=[$t3])\n"
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs6() {
-    checkMaterializeByMVRules(
+    checkMaterialize(
         "select \"depts\".\"deptno\", \"emps\".\"empid\" from \"depts\"\n"
             + "join \"emps\" using (\"deptno\") where \"emps\".\"empid\" > 10\n"
             + "group by \"depts\".\"deptno\", \"emps\".\"empid\"",
