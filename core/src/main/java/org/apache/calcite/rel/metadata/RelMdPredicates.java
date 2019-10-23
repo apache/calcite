@@ -451,7 +451,7 @@ public class RelMdPredicates
   }
 
   /**
-   * Infers predicates for a Intersect.
+   * Infers predicates for a Minus.
    */
   public RelOptPredicateList getPredicates(Minus minus, RelMetadataQuery mq) {
     return mq.getPulledUpPredicates(minus.getInput(0));

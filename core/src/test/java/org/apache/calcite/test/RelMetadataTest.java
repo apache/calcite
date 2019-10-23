@@ -1642,8 +1642,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   @Test public void testPullUpPredicatesFromMinus() {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
-    RelNode rel = null;
-    rel = convertSql(""
+    RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "except all\n"
         + "select empno, deptno, comm from emp where comm=3");
