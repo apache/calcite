@@ -824,6 +824,40 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3440">[CALCITE-3440]
+   * RelToSqlConverter does not properly alias ambiguous ORDER BY</a>. */
+  @Test public void testOrderByColumnWithSameNameAsAlias() {
+    String query = "select \"product_id\" as \"p\",\n"
+        + " \"net_weight\" as \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by 1";
+    final String expected = "SELECT \"product_id\" AS \"p\","
+        + " \"net_weight\" AS \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 1";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testOrderByColumnWithSameNameAsAlias2() {
+    // We use ordinal "2" because the column name "product_id" is obscured
+    // by alias "product_id".
+    String query = "select \"net_weight\" as \"product_id\",\n"
+        + "  \"product_id\" as \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by \"product\".\"product_id\"";
+    final String expected = "SELECT \"net_weight\" AS \"product_id\","
+        + " \"product_id\" AS \"product_id0\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 2";
+    final String expectedMysql = "SELECT `net_weight` AS `product_id`,"
+        + " `product_id` AS `product_id0`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, 2";
+    sql(query).ok(expected)
+        .withMysql().ok(expectedMysql);
+  }
+
   @Test public void testHiveSelectCharset() {
     String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
         + "from \"foodmart\".\"reserve_employee\"";

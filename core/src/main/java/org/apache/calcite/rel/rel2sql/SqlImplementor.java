@@ -474,6 +474,18 @@ public abstract class SqlImplementor {
 
     public abstract SqlNode field(int ordinal);
 
+    /** Creates a reference to a field to be used in an ORDER BY clause.
+     *
+     * <p>By default, it returns the same result as {@link #field}.
+     *
+     * <p>If the field has an alias, uses the alias.
+     * If the field is an unqualified column reference which is the same an
+     * alias, switches to a qualified column reference.
+     */
+    public SqlNode orderField(int ordinal) {
+      return field(ordinal);
+    }
+
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
      * format.
      *
@@ -927,7 +939,7 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = field(collation.getFieldIndex());
+      SqlNode node = orderField(collation.getFieldIndex());
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:
@@ -1149,7 +1161,7 @@ public abstract class SqlImplementor {
         clauseList.addAll(this.clauses);
       }
       clauseList.appendAll(clauses);
-      Context newContext;
+      final Context newContext;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
         newContext = new Context(dialect, selectList.size()) {
@@ -1160,6 +1172,33 @@ public abstract class SqlImplementor {
               return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
+          }
+
+          @Override public SqlNode orderField(int ordinal) {
+            // If the field expression is an unqualified column identifier
+            // and matches a different alias, use an ordinal.
+            // For example, given
+            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
+            // we generate
+            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
+            // "ORDER BY empno" would give incorrect result;
+            // "ORDER BY x" is acceptable but is not preferred.
+            final SqlNode node = field(ordinal);
+            if (node instanceof SqlIdentifier
+                && ((SqlIdentifier) node).isSimple()) {
+              final String name = ((SqlIdentifier) node).getSimple();
+              for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
+                if (selectItem.i != ordinal) {
+                  final String alias =
+                      SqlValidatorUtil.getAlias(selectItem.e, -1);
+                  if (name.equalsIgnoreCase(alias)) {
+                    return SqlLiteral.createExactNumeric(
+                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+                  }
+                }
+              }
+            }
+            return node;
           }
         };
       } else {
