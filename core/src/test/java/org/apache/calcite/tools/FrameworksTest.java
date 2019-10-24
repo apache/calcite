@@ -19,6 +19,9 @@ package org.apache.calcite.tools;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
@@ -79,10 +82,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -242,6 +247,45 @@ public class FrameworksTest {
     } catch (IllegalArgumentException e) {
       // ok
     }
+  }
+
+  /** Test for {@link CalciteConnectionConfigImpl#set} returns back a full
+   * copy of {@link CalciteConnectionConfig} */
+  @Test public void testConnectionConfigSetsFullCopy() {
+    CalciteConnectionConfig calciteConnectionConfig = new CalciteConnectionConfigImpl(new Properties())
+            .set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
+                    Boolean.toString(true))
+            .set(CalciteConnectionProperty.CASE_SENSITIVE,
+                    Boolean.toString(true));
+
+    assertThat(calciteConnectionConfig.lenientOperatorLookup(), is(true));
+    assertThat(calciteConnectionConfig.caseSensitive(), is(true));
+    // retrieves default value despite not being set
+    assertNull(calciteConnectionConfig.schema());
+  }
+
+  /** Test for {@link CalciteConnectionConfigImpl#set} overrides previously
+   * stored values */
+  @Test public void testConnectionConfigOverride() {
+    Properties prop = new Properties();
+    prop.setProperty(CalciteConnectionProperty.FORCE_DECORRELATE.camelName(),
+        Boolean.toString(false));
+    prop.setProperty(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP.camelName(),
+        Boolean.toString(false));
+    CalciteConnectionConfig userConnectionConfig = new CalciteConnectionConfigImpl(prop);
+
+    CalciteConnectionConfig calciteConnectionConfig =
+        ((CalciteConnectionConfigImpl) userConnectionConfig)
+        .set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
+            Boolean.toString(true))
+        .set(CalciteConnectionProperty.CASE_SENSITIVE,
+            Boolean.toString(true));
+
+    assertThat(calciteConnectionConfig.lenientOperatorLookup(), is(true));
+    assertThat(calciteConnectionConfig.caseSensitive(), is(true));
+    assertThat(calciteConnectionConfig.forceDecorrelate(), is(false));
+    // retrieves default value despite not being set
+    assertNull(calciteConnectionConfig.schema());
   }
 
   /** Test case for

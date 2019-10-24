@@ -117,25 +117,17 @@ public class PlannerImpl implements Planner, ViewExpander {
     reset();
   }
 
+  /** Gets a user defined config and appends default connection values */
   private CalciteConnectionConfig connConfig() {
-    CalciteConnectionConfig unwrapped = context.unwrap(CalciteConnectionConfig.class);
-    if (unwrapped != null) {
-      // may actually be overriding case_sensitive and/or conformance
-      // should look into how to check for if case_sensitive/conformance have been set
-      unwrapped = ((CalciteConnectionConfigImpl) unwrapped).set(
-              CalciteConnectionProperty.CASE_SENSITIVE,
-              String.valueOf(parserConfig.caseSensitive()));
-      unwrapped = ((CalciteConnectionConfigImpl) unwrapped).set(
-              CalciteConnectionProperty.CONFORMANCE,
-              String.valueOf(parserConfig.conformance()));
-      return unwrapped;
+    CalciteConnectionConfig config = context.unwrap(CalciteConnectionConfig.class);
+    if (config == null) {
+      config = new CalciteConnectionConfigImpl(new Properties());
     }
-    Properties properties = new Properties();
-    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
-        String.valueOf(parserConfig.caseSensitive()));
-    properties.setProperty(CalciteConnectionProperty.CONFORMANCE.camelName(),
-        String.valueOf(parserConfig.conformance()));
-    return new CalciteConnectionConfigImpl(properties);
+    return ((CalciteConnectionConfigImpl) config)
+        .set(CalciteConnectionProperty.CASE_SENSITIVE,
+            String.valueOf(parserConfig.caseSensitive()))
+        .set(CalciteConnectionProperty.CONFORMANCE,
+            String.valueOf(parserConfig.conformance()));
   }
 
   /** Makes sure that the state is at least the given state. */
