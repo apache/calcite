@@ -72,7 +72,6 @@ import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -1024,18 +1023,16 @@ public class SubstitutionVisitor {
 
   /**
    * A {@link SubstitutionVisitor.UnifyRule} that matches a
-   * {@link MutableScan} to a {@link MutableCalc} which has {@link MutableScan} as child.
+   * {@link MutableScan} to a {@link MutableCalc}
+   * which has {@link MutableScan} as child.
    */
   private static class ScanToCalcUnifyRule extends AbstractUnifyRule {
 
     public static final ScanToCalcUnifyRule INSTANCE = new ScanToCalcUnifyRule();
 
     private ScanToCalcUnifyRule() {
-      super(
-          any(MutableScan.class),
-          operand(MutableCalc.class,
-              any(MutableScan.class)),
-          0);
+      super(any(MutableScan.class),
+          operand(MutableCalc.class, any(MutableScan.class)), 0);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1050,25 +1047,25 @@ public class SubstitutionVisitor {
 
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
-      if (query.equals(targetInput) && targetCond.isAlwaysTrue()) {
-        final RexShuttle shuttle = getRexShuttle(targetProjs);
-        final List<RexNode> compenProjs;
-        try {
-          compenProjs =
-              (List<RexNode>) shuttle.apply(rexBuilder.identityProjects(query.rowType));
-        } catch (MatchFailed e) {
-          return null;
-        }
-        if (RexUtil.isIdentity(compenProjs, target.rowType)) {
-          return call.result(target);
-        } else {
-          RexProgram compenRexProgram = RexProgram.create(
-              target.rowType, compenProjs, null, query.rowType, rexBuilder);
-          MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
-          return tryMergeParentCalcAndGenResult(call, compenCalc);
-        }
+      if (!query.equals(targetInput) || !targetCond.isAlwaysTrue()) {
+        return null;
       }
-      return null;
+      final RexShuttle shuttle = getRexShuttle(targetProjs);
+      final List<RexNode> compenProjs;
+      try {
+        compenProjs = (List<RexNode>) shuttle.apply(
+            rexBuilder.identityProjects(query.rowType));
+      } catch (MatchFailed e) {
+        return null;
+      }
+      if (RexUtil.isIdentity(compenProjs, target.rowType)) {
+        return call.result(target);
+      } else {
+        RexProgram compenRexProgram = RexProgram.create(
+            target.rowType, compenProjs, null, query.rowType, rexBuilder);
+        MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
+        return tryMergeParentCalcAndGenResult(call, compenCalc);
+      }
     }
   }
 
@@ -1085,12 +1082,8 @@ public class SubstitutionVisitor {
         new CalcToCalcUnifyRule();
 
     private CalcToCalcUnifyRule() {
-      super(
-          operand(MutableCalc.class,
-              query(0)),
-          operand(MutableCalc.class,
-              target(0)),
-          1);
+      super(operand(MutableCalc.class, query(0)),
+          operand(MutableCalc.class, target(0)), 1);
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
@@ -1108,7 +1101,8 @@ public class SubstitutionVisitor {
 
       try {
         final RexShuttle shuttle = getRexShuttle(targetProjs);
-        final RexNode splitted = splitFilter(call.getSimplify(), queryCond, targetCond);
+        final RexNode splitted =
+            splitFilter(call.getSimplify(), queryCond, targetCond);
 
         final RexNode compenCond;
         if (splitted != null) {
@@ -1158,14 +1152,8 @@ public class SubstitutionVisitor {
 
     private JoinOnLeftCalcToJoinUnifyRule() {
       super(
-        operand(MutableJoin.class,
-            operand(MutableCalc.class,
-                query(0)),
-            query(1)),
-        operand(MutableJoin.class,
-            target(0),
-            target(1)),
-        2);
+        operand(MutableJoin.class, operand(MutableCalc.class, query(0)), query(1)),
+        operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1188,19 +1176,20 @@ public class SubstitutionVisitor {
         return null;
       }
       if (joinRelType == JoinRelType.INNER
-          || joinRelType.isOuterJoin() && qInput0Cond.isAlwaysTrue()) {
+          || (joinRelType.isOuterJoin() && qInput0Cond.isAlwaysTrue())) {
         // Try pulling up MutableCalc only when Join condition references mapping.
-        if (referenceByMapping(query.condition, qInput0Projs,
-            (List<RexNode>) rexBuilder.identityProjects(qInput1.rowType))) {
+        List<RexNode> identityProjects =
+            (List<RexNode>) rexBuilder.identityProjects(qInput1.rowType);
+        if (referenceByMapping(query.condition, qInput0Projs, identityProjects)) {
           RexNode newQueryJoinCond = new RexShuttle() {
             @Override public RexNode visitInputRef(RexInputRef inputRef) {
               int idx = inputRef.getIndex();
               if (idx < fieldCnt(qInput0)) {
-                return new RexInputRef(((RexInputRef) qInput0Projs.get(idx)).getIndex(),
-                    inputRef.getType());
+                int newIdx = ((RexInputRef) qInput0Projs.get(idx)).getIndex();
+                return new RexInputRef(newIdx, inputRef.getType());
               } else {
-                return new RexInputRef(idx - fieldCnt(qInput0)
-                    + fieldCnt(qInput0.getInput()), inputRef.getType());
+                int newIdx = idx - fieldCnt(qInput0) + fieldCnt(qInput0.getInput());
+                return new RexInputRef(newIdx, inputRef.getType());
               }
             }
           }.apply(query.condition);
@@ -1215,9 +1204,9 @@ public class SubstitutionVisitor {
               if (i < fieldCnt(qInput0)) {
                 compenProjs.add(qInput0Projs.get(i));
               } else {
+                int newIdx = i - fieldCnt(qInput0) + fieldCnt(qInput0.getInput());
                 compenProjs.add(
-                    new RexInputRef(i - fieldCnt(qInput0) + fieldCnt(qInput0.getInput()),
-                    query.rowType.getFieldList().get(i).getType()));
+                    new RexInputRef(newIdx, query.rowType.getFieldList().get(i).getType()));
               }
             }
             RexProgram compenRexProgram = RexProgram.create(
@@ -1245,14 +1234,8 @@ public class SubstitutionVisitor {
 
     private JoinOnRightCalcToJoinUnifyRule() {
       super(
-          operand(MutableJoin.class,
-              query(0),
-              operand(MutableCalc.class,
-                  query(1))),
-          operand(MutableJoin.class,
-              target(0),
-              target(1)),
-          2);
+          operand(MutableJoin.class, query(0), operand(MutableCalc.class, query(1))),
+          operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1275,21 +1258,20 @@ public class SubstitutionVisitor {
         return null;
       }
       if (joinRelType == JoinRelType.INNER
-          || joinRelType.isOuterJoin() && qInput1Cond.isAlwaysTrue()) {
+          || (joinRelType.isOuterJoin() && qInput1Cond.isAlwaysTrue())) {
         // Try pulling up MutableCalc only when Join condition references mapping.
-        if (referenceByMapping(query.condition,
-            (List<RexNode>) call.getCluster().getRexBuilder().identityProjects(qInput0.rowType),
-            qInput1Projs)) {
+        List<RexNode> identityProjects =
+            (List<RexNode>) rexBuilder.identityProjects(qInput0.rowType);
+        if (referenceByMapping(query.condition, identityProjects, qInput1Projs)) {
           RexNode newQueryJoinCond = new RexShuttle() {
             @Override public RexNode visitInputRef(RexInputRef inputRef) {
               int idx = inputRef.getIndex();
               if (idx < fieldCnt(qInput0)) {
                 return inputRef;
               } else {
-                return new RexInputRef(
-                    ((RexInputRef) qInput1Projs.get(idx - fieldCnt(qInput0))).getIndex()
-                        + fieldCnt(qInput0),
-                    inputRef.getType());
+                int newIdx = ((RexInputRef) qInput1Projs.get(idx - fieldCnt(qInput0)))
+                    .getIndex() + fieldCnt(qInput0);
+                return new RexInputRef(newIdx, inputRef.getType());
               }
             }
           }.apply(query.condition);
@@ -1342,15 +1324,9 @@ public class SubstitutionVisitor {
 
     private JoinOnCalcsToJoinUnifyRule() {
       super(
-        operand(MutableJoin.class,
-            operand(MutableCalc.class,
-                query(0)),
-            operand(MutableCalc.class,
-                query(1))),
-        operand(MutableJoin.class,
-            target(0),
-            target(1)),
-        2);
+          operand(MutableJoin.class,
+              operand(MutableCalc.class, query(0)), operand(MutableCalc.class, query(1))),
+          operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1376,22 +1352,21 @@ public class SubstitutionVisitor {
         return null;
       }
       if (joinRelType == JoinRelType.INNER
-          || joinRelType.isOuterJoin()
+          || (joinRelType.isOuterJoin()
               && qInput0Cond.isAlwaysTrue()
-              && qInput1Cond.isAlwaysTrue()) {
+              && qInput1Cond.isAlwaysTrue())) {
         // Try pulling up MutableCalc only when Join condition references mapping.
         if (referenceByMapping(query.condition, qInput0Projs, qInput1Projs)) {
           RexNode newQueryJoinCond = new RexShuttle() {
             @Override public RexNode visitInputRef(RexInputRef inputRef) {
               int idx = inputRef.getIndex();
               if (idx < fieldCnt(qInput0)) {
-                return new RexInputRef(((RexInputRef) qInput0Projs.get(idx)).getIndex(),
-                    inputRef.getType());
+                int newIdx = ((RexInputRef) qInput0Projs.get(idx)).getIndex();
+                return new RexInputRef(newIdx, inputRef.getType());
               } else {
-                return new RexInputRef(
-                    ((RexInputRef) qInput1Projs.get(idx - fieldCnt(qInput0))).getIndex()
-                        + fieldCnt(qInput0.getInput()),
-                    inputRef.getType());
+                int newIdx = ((RexInputRef) qInput1Projs.get(idx - fieldCnt(qInput0)))
+                    .getIndex() + fieldCnt(qInput0.getInput());
+                return new RexInputRef(newIdx, inputRef.getType());
               }
             }
           }.apply(query.condition);
@@ -1402,11 +1377,11 @@ public class SubstitutionVisitor {
             RexShuttle shuttle4Right =
                 new RexShuttle() {
                   @Override public RexNode visitInputRef(RexInputRef inputRef) {
-                    return new RexInputRef(
-                        inputRef.getIndex() + fieldCnt(qInput0.getInput()),
-                        inputRef.getType());
-                }
-              };
+                    int newIdx =
+                        inputRef.getIndex() + fieldCnt(qInput0.getInput());
+                    return new RexInputRef(newIdx, inputRef.getType());
+                  }
+                };
 
             final RexNode compenCond =
                 RexUtil.composeConjunction(rexBuilder,
@@ -1424,7 +1399,8 @@ public class SubstitutionVisitor {
             RexProgram compensatingRexProgram = RexProgram.create(
                 target.rowType, compenProjs, compenCond,
                 query.rowType, rexBuilder);
-            MutableCalc compensatingCalc = MutableCalc.of(target, compensatingRexProgram);
+            MutableCalc compensatingCalc =
+                MutableCalc.of(target, compensatingRexProgram);
             return tryMergeParentCalcAndGenResult(call, compensatingCalc);
           }
         }
@@ -1445,13 +1421,8 @@ public class SubstitutionVisitor {
         new AggregateOnCalcToAggUnifyRule();
 
     private AggregateOnCalcToAggUnifyRule() {
-      super(
-          operand(MutableAggregate.class,
-              operand(MutableCalc.class,
-                  query(0))),
-          operand(MutableAggregate.class,
-              target(0)),
-          1);
+      super(operand(MutableAggregate.class, operand(MutableCalc.class, query(0))),
+          operand(MutableAggregate.class, target(0)), 1);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1499,7 +1470,8 @@ public class SubstitutionVisitor {
           return new RexInputRef(newIdx, inputRef.getType());
         }
       }.apply(qInputCond);
-      final MutableRel unifiedAggregate = unifyAggregates(aggregate2, targetCond, target);
+      final MutableRel unifiedAggregate =
+          unifyAggregates(aggregate2, targetCond, target);
       if (unifiedAggregate == null) {
         return null;
       }
@@ -1662,18 +1634,18 @@ public class SubstitutionVisitor {
   /** Check if list0 and list1 contains the same nodes -- order is not considered. */
   private static boolean sameRelCollectionNoOrderConsidered(
       List<MutableRel> list0, List<MutableRel> list1) {
-    if (list0.size() == list1.size()) {
-      for (MutableRel rel: list0) {
-        int index = list1.indexOf(rel);
-        if (index == -1) {
-          return false;
-        } else {
-          list1.remove(index);
-        }
-      }
-      return true;
+    if (list0.size() != list1.size()) {
+      return false;
     }
-    return false;
+    for (MutableRel rel: list0) {
+      int index = list1.indexOf(rel);
+      if (index == -1) {
+        return false;
+      } else {
+        list1.remove(index);
+      }
+    }
+    return true;
   }
 
   private static int fieldCnt(MutableRel rel) {
@@ -1792,8 +1764,8 @@ public class SubstitutionVisitor {
     return MutableAggregate.of(input, groupSet, groupSets, aggregateCalls);
   }
 
-  public static MutableRel unifyAggregates(MutableAggregate query, RexNode targetCond,
-      MutableAggregate target) {
+  public static MutableRel unifyAggregates(MutableAggregate query,
+      RexNode targetCond, MutableAggregate target) {
     MutableRel result;
     RexBuilder rexBuilder = query.cluster.getRexBuilder();
     if (query.groupSets.equals(target.groupSets)) {
@@ -1811,15 +1783,7 @@ public class SubstitutionVisitor {
         projects.add(groupCount + i);
       }
 
-      List<RexNode> compenProjs = new AbstractList<RexNode>() {
-        public int size() {
-          return projects.size();
-        }
-        public RexNode get(int index) {
-          final int pos = projects.get(index);
-          return RexInputRef.of(pos, target.rowType);
-        }
-      };
+      List<RexNode> compenProjs = MutableRels.createProjectExprs(target, projects);
       RexProgram compenRexProgram = RexProgram.create(
           target.rowType, compenProjs, targetCond, query.rowType, rexBuilder);
       result = MutableCalc.of(target, compenRexProgram);
