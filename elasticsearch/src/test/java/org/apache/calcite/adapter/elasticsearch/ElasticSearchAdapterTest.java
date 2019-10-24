@@ -514,7 +514,7 @@ public class ElasticSearchAdapterTest {
         .query("select count(*) from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0", "track_total_hits:true"))
+            "size:0", "'stored_fields': '_none_'", "track_total_hits:true"))
         .returns("EXPR$0=149\n");
 
     // check with limit (should still return correct result).
@@ -526,6 +526,7 @@ public class ElasticSearchAdapterTest {
         .query("select count(*) as cnt from zips")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
+            "'stored_fields': '_none_'",
             "size:0", "track_total_hits:true"))
         .returns("cnt=149\n");
 
@@ -535,6 +536,7 @@ public class ElasticSearchAdapterTest {
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
             "size:0",
             "track_total_hits:true",
+            "'stored_fields': '_none_'",
             "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:"
                 + "{field:'pop'}}}"))
         .returns("EXPR$0=21; EXPR$1=112047\n");
@@ -557,7 +559,7 @@ public class ElasticSearchAdapterTest {
             + "limit 6")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("_source:false",
-                "size:0",
+                "size:0", "'stored_fields': '_none_'",
                 "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__', 'size' : 6}}}"))
         .returnsOrdered("state=AK",
             "state=AL",
@@ -574,7 +576,7 @@ public class ElasticSearchAdapterTest {
             + "order by city limit 10")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "size:0",
+                "size:0", "'stored_fields': '_none_'",
                 "aggregations:{'g_city':{'terms':{'field':'city','missing':'__MISSING__','size':10,'order':{'_key':'asc'}}",
                 "aggregations:{'g_state':{'terms':{'field':'state','missing':'__MISSING__','size':10}}}}}}"))
         .returnsOrdered("state=SD; city=ABERDEEN",
@@ -596,7 +598,7 @@ public class ElasticSearchAdapterTest {
             + "order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-                "size:0",
+                "size:0", "'stored_fields': '_none_'",
                 "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',size:3,"
                     + " order:{'_key':'asc'}}",
                 "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':{max:{field:'pop'}}}}}"))
@@ -613,6 +615,7 @@ public class ElasticSearchAdapterTest {
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
                 "size:0",
+                "'stored_fields': '_none_'",
                 "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
                     + "size:3, order:{'_key':'asc'}}",
                 "aggregations:{'EXPR$0':{min:{field:'pop'}} }}}"))
@@ -629,6 +632,7 @@ public class ElasticSearchAdapterTest {
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
                 "size:0",
+                "'stored_fields': '_none_'",
                 "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
                     + " size:3, order:{'_key':'asc'}}",
                 "aggregations:{'EXPR$0':{'value_count':{field:'city'}} }}}"))
@@ -645,6 +649,7 @@ public class ElasticSearchAdapterTest {
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
                 "size:0",
+                "'stored_fields': '_none_'",
                 "aggregations:{'g_state':{terms:{field:'state',missing:'__MISSING__',"
                     + "size:3, order:{'_key':'desc'}}",
                 "aggregations:{'EXPR$0':{min:{field:'pop'}},'EXPR$1':"
@@ -695,7 +700,7 @@ public class ElasticSearchAdapterTest {
             + " group by state order by state limit 3")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker("'_source':false",
-            "size:0",
+            "size:0", "'stored_fields': '_none_'",
             "aggregations:{'g_state':{terms:{field:'state', missing:'__MISSING__', size:3, "
                 + "order:{'_key':'asc'}}",
             "aggregations:{'EXPR$1':{cardinality:{field:'city'}}",
