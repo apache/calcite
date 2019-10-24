@@ -77,6 +77,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 /**
@@ -427,24 +428,26 @@ public class RelMdPredicates
             intersect.getCluster().getRexBuilder(), rexImpl, intersect.getRowType());
 
     Set<RexNode> finalPredicates = new HashSet<>();
-    RexNode composedFinalPredicates = null;
+
     for (Ord<RelNode> input : Ord.zip(intersect.getInputs())) {
       RelOptPredicateList info = mq.getPulledUpPredicates(input.e);
-      if (info.pulledUpPredicates.isEmpty()) {
-        return RelOptPredicateList.EMPTY;
+      if (info == null || info.pulledUpPredicates.isEmpty()) {
+        continue;
       }
-      final Set<RexNode> predicates = new HashSet<>();
-      for (RexNode pred : info.pulledUpPredicates) {
-        if (input.i == 0) {
-          predicates.add(pred);
+
+      for (RexNode pred: info.pulledUpPredicates) {
+        if (finalPredicates.stream().anyMatch(
+            finalPred -> rexImplicationChecker.implies(finalPred, pred))) {
+          // There's already a stricter predicate in finalPredicates,
+          // thus no need to count this one.
           continue;
-        } else if (rexImplicationChecker.implies(composedFinalPredicates, pred)) {
-          predicates.add(pred);
         }
+        // Remove looser predicate and add this one into finalPredicates
+        finalPredicates = finalPredicates.stream()
+            .filter(finalPred -> !rexImplicationChecker.implies(pred, finalPred))
+            .collect(Collectors.toSet());
+        finalPredicates.add(pred);
       }
-      finalPredicates = predicates;
-      composedFinalPredicates = RexUtil.composeConjunction(
-          rexBuilder, finalPredicates);
     }
 
     return RelOptPredicateList.of(rexBuilder, finalPredicates);

@@ -1589,24 +1589,29 @@ public class RelMetadataTest extends SqlToRelTestBase {
         sortsAs("[IS NULL($0)]"));
   }
 
-  @Test public void testPullUpPredicatesFromUnion() {
+  @Test public void testPullUpPredicatesFromUnion0() {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
-    RelNode rel = null;
-    rel = convertSql(""
+    final RelNode rel = convertSql(""
         + "select empno from emp where empno=1\n"
         + "union all\n"
         + "select empno from emp where empno=1");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1)]"));
+  }
 
-    rel = convertSql(""
+  @Test public void testPullUpPredicatesFromUnion1() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelNode rel = convertSql(""
         + "select empno, deptno from emp where empno=1 or deptno=2\n"
         + "union all\n"
         + "select empno, deptno from emp where empno=3 or deptno=4");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[OR(=($0, 1), =($1, 2), =($0, 3), =($1, 4))]"));
+  }
 
-    rel = convertSql(""
+  @Test public void testPullUpPredicatesFromUnion2() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelNode rel = convertSql(""
         + "select empno, comm, deptno from emp where empno=1 and comm=2 and deptno=3\n"
         + "union all\n"
         + "select empno, comm, deptno from emp where empno=1 and comm=4");
@@ -1615,34 +1620,52 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   }
 
-  @Test public void testPullUpPredicatesFromIntersect() {
+  @Test public void testPullUpPredicatesFromIntersect0() {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
-    RelNode rel = null;
-    rel = convertSql(""
+    final RelNode rel = convertSql(""
         + "select empno from emp where empno=1\n"
         + "intersect all\n"
         + "select empno from emp where empno=1");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
         sortsAs("[=($0, 1)]"));
 
-    rel = convertSql(""
-        + "select empno, deptno from emp where empno=1 and deptno=2\n"
-        + "intersect all\n"
-        + "select empno, deptno from emp where empno=1 and deptno=3");
-    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1)]"));
+  }
 
-    rel = convertSql(""
-        + "select empno, deptno, comm from emp where 1=empno and deptno=2\n"
+  @Test public void testPullUpPredicatesFromIntersect1() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelNode rel = convertSql(""
+        + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "intersect all\n"
         + "select empno, deptno, comm from emp where empno=1 and comm=3");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1)]"));
+        sortsAs("[=($0, 1), =($1, 2), =($2, 3)]"));
+
+  }
+
+  @Test public void testPullUpPredicatesFromIntersect2() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelNode rel = convertSql(""
+        + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
+        + "intersect all\n"
+        + "select empno, deptno, comm from emp where 1=empno and (deptno=2 or comm=3)");
+    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
+        sortsAs("[=($0, 1), =($1, 2)]"));
+
+  }
+
+  @Test public void testPullUpPredicatesFromIntersect3() {
+    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelNode rel = convertSql(""
+        + "select empno, deptno, comm from emp where empno=1 or deptno=2\n"
+        + "intersect all\n"
+        + "select empno, deptno, comm from emp where deptno=2 or empno=1 or comm=3");
+    assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
+        sortsAs("[OR(=($0, 1), =($1, 2))]"));
   }
 
   @Test public void testPullUpPredicatesFromMinus() {
     final RelMetadataQuery mq = RelMetadataQuery.instance();
-    RelNode rel = convertSql(""
+    final RelNode rel = convertSql(""
         + "select empno, deptno, comm from emp where empno=1 and deptno=2\n"
         + "except all\n"
         + "select empno, deptno, comm from emp where comm=3");
