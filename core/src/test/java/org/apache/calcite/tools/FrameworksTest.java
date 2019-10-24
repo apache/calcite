@@ -252,11 +252,12 @@ public class FrameworksTest {
   /** Test for {@link CalciteConnectionConfigImpl#set} returns back a full
    * copy of {@link CalciteConnectionConfig} */
   @Test public void testConnectionConfigSetsFullCopy() {
-    CalciteConnectionConfig calciteConnectionConfig = new CalciteConnectionConfigImpl(new Properties())
+    CalciteConnectionConfig calciteConnectionConfig = new CalciteConnectionConfigImpl(
+        new Properties())
             .set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
-                    Boolean.toString(true))
+                Boolean.toString(true))
             .set(CalciteConnectionProperty.CASE_SENSITIVE,
-                    Boolean.toString(true));
+                Boolean.toString(true));
 
     assertThat(calciteConnectionConfig.lenientOperatorLookup(), is(true));
     assertThat(calciteConnectionConfig.caseSensitive(), is(true));
@@ -264,8 +265,8 @@ public class FrameworksTest {
     assertNull(calciteConnectionConfig.schema());
   }
 
-  /** Test for {@link CalciteConnectionConfigImpl#set} overrides previously
-   * stored values */
+  /** Test for {@link CalciteConnectionConfigImpl#set} does not overrides
+   * previously stored values */
   @Test public void testConnectionConfigOverride() {
     Properties prop = new Properties();
     prop.setProperty(CalciteConnectionProperty.FORCE_DECORRELATE.camelName(),
@@ -281,7 +282,7 @@ public class FrameworksTest {
         .set(CalciteConnectionProperty.CASE_SENSITIVE,
             Boolean.toString(true));
 
-    assertThat(calciteConnectionConfig.lenientOperatorLookup(), is(true));
+    assertThat(calciteConnectionConfig.lenientOperatorLookup(), is(false));
     assertThat(calciteConnectionConfig.caseSensitive(), is(true));
     assertThat(calciteConnectionConfig.forceDecorrelate(), is(false));
     // retrieves default value despite not being set
