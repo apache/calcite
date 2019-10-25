@@ -22,6 +22,7 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRules;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.SubstitutionVisitor;
 import org.apache.calcite.prepare.Prepare;
@@ -126,13 +127,6 @@ public class MaterializationTest {
       new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
           .withParanoid(true);
 
-  private final String deduplicatedEmps =
-      "(select distinct \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
-          + "from \"emps\") \"dedupEmps\"";
-  private final String deduplicatedDepts =
-      "(select distinct \"deptno\", \"name\"\n"
-          + "from \"depts\") \"dedupDepts\"";
-
   @Test public void testScan() {
     CalciteAssert.that()
         .withMaterializations(
@@ -216,8 +210,10 @@ public class MaterializationTest {
 
   /** Checks that a given query can use a materialized view with a given
    * definition. */
-  private void checkMaterializeWithRules(String materialize, String query, RuleSet rules) {
-    checkMaterialize(materialize, query, HR_FKUK_MODEL, CONTAINS_M0, rules);
+  private void checkMaterialize(
+      String materialize, String query, boolean onlyBySubstitution) {
+    checkMaterialize(materialize, query, HR_FKUK_MODEL, CONTAINS_M0,
+        RuleSets.ofList(ImmutableList.of()), onlyBySubstitution);
   }
 
   /** Checks that a given query can use a materialized view with a given
@@ -228,11 +224,20 @@ public class MaterializationTest {
         RuleSets.ofList(ImmutableList.of()));
   }
 
-
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
   private void checkMaterialize(String materialize, String query, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
+    checkMaterialize(materialize, query, model, explainChecker, rules, false);
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private void checkMaterialize(String materialize, String query, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      boolean onlyBySubstitution) {
     checkThatMaterialize(materialize, query, "m0", false, model, explainChecker,
-        rules).sameResultWithMaterializationsDisabled();
+        rules, onlyBySubstitution).sameResultWithMaterializationsDisabled();
   }
 
   /** Checks that a given query can use a materialized view with a given
@@ -240,6 +245,16 @@ public class MaterializationTest {
   private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
       String query, String name, boolean existing, String model,
       Consumer<ResultSet> explainChecker, final RuleSet rules) {
+    return checkThatMaterialize(materialize, query, name, existing, model,
+        explainChecker, rules, false);
+  }
+
+  /** Checks that a given query can use a materialized view with a given
+   * definition. */
+  private CalciteAssert.AssertQuery checkThatMaterialize(String materialize,
+      String query, String name, boolean existing, String model,
+      Consumer<ResultSet> explainChecker, final RuleSet rules,
+      boolean onlyBySubstitution) {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
       CalciteAssert.AssertQuery that = CalciteAssert.that()
@@ -248,10 +263,15 @@ public class MaterializationTest {
           .enableMaterializations(true);
 
       // Add any additional rules required for the test
-      if (rules.iterator().hasNext()) {
+      if (rules.iterator().hasNext() || onlyBySubstitution) {
         that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
           for (RelOptRule rule : rules) {
             planner.addRule(rule);
+          }
+          if (onlyBySubstitution) {
+            RelOptRules.MATERIALIZATION_RULES.forEach(rule -> {
+              planner.removeRule(rule);
+            });
           }
         });
       }
@@ -264,13 +284,26 @@ public class MaterializationTest {
    * definition. */
   private void checkNoMaterialize(String materialize, String query,
       String model) {
+    checkNoMaterialize(materialize, query, model, false);
+  }
+  /** Checks that a given query CAN NOT use a materialized view with a given
+   * definition. */
+  private void checkNoMaterialize(String materialize, String query,
+      String model, boolean onlyBySubstitution) {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
-      CalciteAssert.that()
+      CalciteAssert.AssertQuery that = CalciteAssert.that()
           .withMaterializations(model, "m0", materialize)
           .query(query)
-          .enableMaterializations(true)
-          .explainContains("EnumerableTableScan(table=[[hr, emps]])");
+          .enableMaterializations(true);
+      if (onlyBySubstitution) {
+        that.withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          RelOptRules.MATERIALIZATION_RULES.forEach(rule -> {
+            planner.removeRule(rule);
+          });
+        });
+      }
+      that.explainContains("EnumerableTableScan(table=[[hr, emps]])");
     }
   }
 
@@ -598,27 +631,27 @@ public class MaterializationTest {
   @Test public void testAggregate4() {
     String mv = ""
         + "select \"deptno\", \"commission\", sum(\"salary\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\", \"commission\"";
     String query = ""
         + "select \"deptno\", sum(\"salary\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"commission\" = 100\n"
         + "group by \"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testAggregate5() {
     String mv = ""
         + "select \"deptno\" + \"commission\", \"commission\", sum(\"salary\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\" + \"commission\", \"commission\"";
     String query = ""
         + "select \"commission\", sum(\"salary\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"commission\" * (\"deptno\" + \"commission\") = 100\n"
         + "group by \"commission\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   /**
@@ -629,17 +662,17 @@ public class MaterializationTest {
     String mv = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", sum(\"commission\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
     String query = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\"\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"salary\" > 1000\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL, true);
   }
 
   /**
@@ -650,16 +683,16 @@ public class MaterializationTest {
     String mv = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", sum(\"commission\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
     String query = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\"\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   /**
@@ -670,17 +703,17 @@ public class MaterializationTest {
     String mv = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", sum(\"commission\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
     String query = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\"\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"deptno\" >=20\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   /**
@@ -691,18 +724,18 @@ public class MaterializationTest {
     String mv = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\", sum(\"commission\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"deptno\" >= 10\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 10";
     String query = ""
         + "select * from\n"
         + "(select \"deptno\", sum(\"salary\") as \"sum_salary\"\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"deptno\" >= 20\n"
         + "group by \"deptno\")\n"
         + "where \"sum_salary\" > 20";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   /** Aggregation query at same level of aggregation as aggregation
@@ -834,26 +867,26 @@ public class MaterializationTest {
   @Test public void testAggregateOnProjectAndFilter() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\"), count(1)\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\"";
     String query = ""
         + "select \"deptno\", count(1)\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "where \"deptno\" = 10\n"
         + "group by \"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testProjectOnProject() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\") + 2, sum(\"commission\")\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\"";
     String query = ""
         + "select \"deptno\", sum(\"salary\") + 2\n"
-        + "from " + deduplicatedEmps + "\n"
+        + "from \"emps\"\n"
         + "group by \"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testPermutationError() {
@@ -869,142 +902,142 @@ public class MaterializationTest {
     String mv = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\", count(\"name\")\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
     String query = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\", count(\"name\")\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnRightProjectToJoin() {
     String mv = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\", count(\"name\")\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
     String query = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\"\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnProjectsToJoin() {
     String mv = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\"), sum(\"commission\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\", count(\"name\")\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
     String query = ""
         + "select * from\n"
         + "  (select \"deptno\", sum(\"salary\")\n"
-        + "  from " + deduplicatedEmps + "\n"
+        + "  from \"emps\"\n"
         + "  group by \"deptno\") \"A\"\n"
         + "  join\n"
         + "  (select \"deptno\"\n"
-        + "  from " + deduplicatedDepts + "\n"
+        + "  from \"depts\"\n"
         + "  group by \"deptno\") \"B\"\n"
         + "  on \"A\".\"deptno\" = \"B\".\"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnCalcToJoin0() {
     String mv = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join " + deduplicatedDepts + "\n"
-        + "on \"dedupEmps\".\"deptno\" = \"dedupDepts\".\"deptno\"";
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
     String query = ""
-        + "select * from \n"
-        + " (select \"empid\", \"deptno\" from " + deduplicatedEmps + "where \"deptno\" > 10) A"
-        + " join " + deduplicatedDepts + "\n"
-        + "on \"A\".\"deptno\" = \"dedupDepts\".\"deptno\"";
-    checkMaterialize(mv, query);
+        + "select \"A\".\"empid\", \"A\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + " (select \"empid\", \"deptno\" from \"emps\" where \"deptno\" > 10) A"
+        + " join \"depts\"\n"
+        + "on \"A\".\"deptno\" = \"depts\".\"deptno\"";
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnCalcToJoin1() {
     String mv = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join " + deduplicatedDepts + "\n"
-        + "on \"dedupEmps\".\"deptno\" = \"dedupDepts\".\"deptno\"";
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
     String query = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join\n"
-        + "(select \"deptno\" from " + deduplicatedDepts + " where \"deptno\" > 10) B\n"
-        + "on \"dedupEmps\".\"deptno\" = \"B\".\"deptno\"";
-    checkMaterialize(mv, query);
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"B\".\"deptno\" from\n"
+        + "\"emps\" join\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
+        + "on \"emps\".\"deptno\" = \"B\".\"deptno\"";
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnCalcToJoin2() {
     String mv = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join " + deduplicatedDepts + "\n"
-        + "on \"dedupEmps\".\"deptno\" = \"dedupDepts\".\"deptno\"";
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
     String query = ""
         + "select * from\n"
-        + "(select \"empid\", \"deptno\" from " + deduplicatedEmps + " where \"empid\" > 10) A\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
         + "join\n"
-        + "(select \"deptno\" from " + deduplicatedDepts + " where \"deptno\" > 10) B\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
         + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
-    checkMaterialize(mv, query);
+    checkMaterialize(mv, query, true);
   }
 
   @Test public void testJoinOnCalcToJoin3() {
     String mv = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join " + deduplicatedDepts + "\n"
-        + "on \"dedupEmps\".\"deptno\" = \"dedupDepts\".\"deptno\"";
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
     String query = ""
         + "select * from\n"
-        + "(select \"empid\", \"deptno\" + 1 as \"deptno\" from " + deduplicatedEmps + " where \"empid\" > 10) A\n"
+        + "(select \"empid\", \"deptno\" + 1 as \"deptno\" from \"emps\" where \"empid\" > 10) A\n"
         + "join\n"
-        + "(select \"deptno\" from " + deduplicatedDepts + " where \"deptno\" > 10) B\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" > 10) B\n"
         + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
     // Match failure because join condition references non-mapping projects.
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL, true);
   }
 
   @Test public void testJoinOnCalcToJoin4() {
     String mv = ""
-        + "select * from\n"
-        + deduplicatedEmps + " join " + deduplicatedDepts + "\n"
-        + "on \"dedupEmps\".\"deptno\" = \"dedupDepts\".\"deptno\"";
+        + "select \"emps\".\"empid\", \"emps\".\"deptno\", \"depts\".\"deptno\" from\n"
+        + "\"emps\" join \"depts\"\n"
+        + "on \"emps\".\"deptno\" = \"depts\".\"deptno\"";
     String query = ""
         + "select * from\n"
-        + "(select \"empid\", \"deptno\" from " + deduplicatedEmps + " where \"empid\" is not null) A\n"
+        + "(select \"empid\", \"deptno\" from \"emps\" where \"empid\" is not null) A\n"
         + "full join\n"
-        + "(select \"deptno\" from " + deduplicatedDepts + " where \"deptno\" is not null) B\n"
+        + "(select \"deptno\" from \"depts\" where \"deptno\" is not null) B\n"
         + "on \"A\".\"deptno\" = \"B\".\"deptno\"";
     // Match failure because of outer join type but filtering condition in Calc is not empty.
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL, true);
   }
 
   @Test public void testSwapJoin() {
