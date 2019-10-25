@@ -172,6 +172,15 @@ public class QueryBuildersTest {
         toJson(QueryBuilders.matchAll()));
   }
 
+  @Test
+  public void match() throws IOException {
+    assertEquals("{\"match\":{\"foo\":[\"bar\"]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton("bar"))));
+
+    assertEquals("{\"match\":{\"foo\":[true]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton(true))));
+  }
+
   private String toJson(QueryBuilders.QueryBuilder builder) throws IOException {
     StringWriter writer = new StringWriter();
     JsonGenerator gen = mapper.getFactory().createGenerator(writer);
