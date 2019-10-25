@@ -2229,6 +2229,34 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
+  @Test public void testTableReferenceForIntersect() {
+    final String sql1 = "select a.deptno, a.sal from emp a\n"
+            + "intersect all select b.deptno, b.sal from emp b where empno = 5";
+    final RelNode rel1 = convertSql(sql1);
+    final RelMetadataQuery mq1 = rel1.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences1 = Sets.newTreeSet(mq1.getTableReferences(rel1));
+    assertThat(tableReferences1.toString(),
+            equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+
+    final String sql2 = "select a.deptno from dept a intersect all select b.deptno from emp b";
+    final RelNode rel2 = convertSql(sql2);
+    final RelMetadataQuery mq2 = rel2.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences2 = Sets.newTreeSet(mq2.getTableReferences(rel2));
+    assertThat(tableReferences2.toString(),
+            equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, EMP].#0]"));
+
+  }
+
+  @Test public void testTableReferenceForMinus() {
+    final String sql = "select emp.deptno, emp.sal from emp\n"
+            + "except all select emp.deptno, emp.sal from emp where empno = 5";
+    final RelNode rel = convertSql(sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+            equalTo("[[CATALOG, SALES, EMP].#0, [CATALOG, SALES, EMP].#1]"));
+  }
+
   @Test public void testAllPredicatesCrossJoinMultiTable() {
     final String sql = "select x.sal from\n"
         + "(select a.deptno, c.sal from (select * from emp limit 7) as a\n"
