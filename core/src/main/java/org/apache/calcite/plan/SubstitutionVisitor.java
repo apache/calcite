@@ -74,6 +74,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -131,7 +132,7 @@ public class SubstitutionVisitor {
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
-          AggregateOnCalcToAggUnifyRule.INSTANCE,
+          AggregateOnCalcToAggregateUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE);
 
@@ -1411,12 +1412,12 @@ public class SubstitutionVisitor {
    * We try to pull up the {@link MutableCalc} to top of {@link MutableAggregate},
    * then match the {@link MutableAggregate} in query to {@link MutableAggregate} in target.
    */
-  private static class AggregateOnCalcToAggUnifyRule extends AbstractUnifyRule {
+  private static class AggregateOnCalcToAggregateUnifyRule extends AbstractUnifyRule {
 
-    public static final AggregateOnCalcToAggUnifyRule INSTANCE =
-        new AggregateOnCalcToAggUnifyRule();
+    public static final AggregateOnCalcToAggregateUnifyRule INSTANCE =
+        new AggregateOnCalcToAggregateUnifyRule();
 
-    private AggregateOnCalcToAggUnifyRule() {
+    private AggregateOnCalcToAggregateUnifyRule() {
       super(operand(MutableAggregate.class, operand(MutableCalc.class, query(0))),
           operand(MutableAggregate.class, target(0)), 1);
     }
@@ -1475,11 +1476,13 @@ public class SubstitutionVisitor {
       if (!Mappings.keepsOrdering(mapping)) {
         final List<Integer> posList = new ArrayList<>();
         final int fieldCount = aggregate2.rowType.getFieldCount();
-        for (int group: aggregate2.groupSet) {
-          if (inverseMapping.getTargetOpt(group) != -1) {
-            posList.add(inverseMapping.getTarget(group));
-          }
+        final List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        final List<Integer> groupings = aggregate2.groupSet.toList();
+        for (int i = 0; i < groupings.size(); i++) {
+          pairs.add(Pair.of(mapping.getTarget(groupings.get(i)), i));
         }
+        Collections.sort(pairs);
+        pairs.forEach(pair -> posList.add(pair.right));
         for (int i = posList.size(); i < fieldCount; i++) {
           posList.add(i);
         }
