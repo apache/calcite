@@ -864,6 +864,22 @@ public class MaterializationTest {
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3448">[CALCITE-3448]
+   * AggregateOnProjectToAggregateUnifyRule ignores Project incorrectly when
+   * there's missing grouping or mapping breaks ordering</a>. */
+  @Test public void testAggregateOnProject5() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", \"name\", count(*) from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\"",
+        "select \"name\", \"empid\", count(*) from \"emps\" group by \"name\", \"empid\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(""
+            + "EnumerableCalc(expr#0..2=[{inputs}], name=[$t1], empid=[$t0], EXPR$2=[$t2])\n"
+            + "  EnumerableAggregate(group=[{0, 2}], EXPR$2=[$SUM0($3)])\n"
+            + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
   @Test public void testAggregateOnProjectAndFilter() {
     String mv = ""
         + "select \"deptno\", sum(\"salary\"), count(1)\n"

@@ -434,7 +434,9 @@ public abstract class Mappings {
       if (target != -1 && target < prevTarget) {
         return false;
       }
-      prevTarget = target;
+      if (target != -1) {
+        prevTarget = target;
+      }
     }
     return true;
   }
