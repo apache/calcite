@@ -424,8 +424,7 @@ public class RelMdPredicates
     final RexExecutorImpl rexImpl =
         (RexExecutorImpl) (intersect.getCluster().getPlanner().getExecutor());
     final RexImplicationChecker rexImplicationChecker =
-        new RexImplicationChecker(
-            intersect.getCluster().getRexBuilder(), rexImpl, intersect.getRowType());
+        new RexImplicationChecker(rexBuilder, rexImpl, intersect.getRowType());
 
     Set<RexNode> finalPredicates = new HashSet<>();
 
