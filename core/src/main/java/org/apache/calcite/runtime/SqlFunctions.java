@@ -396,7 +396,7 @@ public class SqlFunctions {
     return s0.concat(s1);
   }
 
-  /** SQL {@code string compare string} operator. */
+  /** SQL {@code string compare string} function. */
   public static int strcmp(String s0, String s1) {
     return s0.compareTo(s1);
   }
