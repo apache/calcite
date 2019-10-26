@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Infobright database.
  */
 public class InfobrightSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new InfobrightSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.INFOBRIGHT)
-          .withIdentifierQuoteString("`"));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.INFOBRIGHT)
+      .withIdentifierQuoteString("`");
+
+  public static final SqlDialect DEFAULT = new InfobrightSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an InfobrightSqlDialect. */
   public InfobrightSqlDialect(Context context) {

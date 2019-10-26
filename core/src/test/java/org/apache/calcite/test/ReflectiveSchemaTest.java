@@ -584,7 +584,8 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long inp13_ = current.wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / current.primitiveLong);")
+            "return inp13_ == null ? (Long) null "
+                + ": Long.valueOf(inp13_.longValue() / current.primitiveLong);")
         .returns("C=null\n");
   }
 
@@ -596,7 +597,8 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue());")
+            "return inp13_ == null ? (Long) null "
+                + ": Long.valueOf(inp13_.longValue() / inp13_.longValue());")
         .returns("C=null\n");
   }
 
@@ -609,7 +611,9 @@ public class ReflectiveSchemaTest {
         .planContains(
             "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
-            "return inp13_ == null ? (Long) null : Long.valueOf(inp13_.longValue() / inp13_.longValue() + inp13_.longValue() / inp13_.longValue());")
+            "return inp13_ == null ? (Long) null "
+                + ": Long.valueOf(Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue() "
+                + "+ Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue());")
         .returns("C=null\n");
   }
 

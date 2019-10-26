@@ -882,6 +882,24 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           return litmus.fail("subset [{}] is in wrong set [{}]",
               subset.getDescription(), set);
         }
+
+        if (subset.best != null) {
+
+          // Make sure best RelNode is valid
+          if (!subset.set.rels.contains(subset.best)) {
+            return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
+                    subset.getDescription(), subset.best.getDescription());
+          }
+
+          // Make sure bestCost is up-to-date
+          RelOptCost bestCost = getCost(subset.best, subset.best.getCluster().getMetadataQuery());
+          if (!subset.bestCost.equals(bestCost)) {
+            return litmus.fail("RelSubset [" + subset.getDescription()
+                            + "] has wrong best cost "
+                            + subset.bestCost + ". Correct cost is " + bestCost);
+          }
+        }
+
         for (RelNode rel : subset.getRels()) {
           RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
           if (relCost.isLt(subset.bestCost)) {
@@ -1440,6 +1458,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
         final RelSubset equivSubset = getSubset(equivRel);
+        if (subset.best == rel) {
+          subset.best = equivRel;
+          subset.bestCost = getCost(equivRel);
+        }
+
         if (equivSubset != subset) {
           // The equivalent relational expression is in a different
           // subset, therefore the sets are equivalent.
@@ -1810,7 +1833,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // improve and the subset doesn't hear about it. You can end up with
     // a subset with a single rel of cost 99 which thinks its best cost is
     // 100. We think this happens because the back-links to parents are
-    // not established. So, give the subset another change to figure out
+    // not established. So, give the subset another chance to figure out
     // its cost.
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     subset.propagateCostImprovements(this, mq, rel, new HashSet<>());

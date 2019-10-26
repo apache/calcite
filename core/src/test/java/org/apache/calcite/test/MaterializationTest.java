@@ -2468,10 +2468,23 @@ public class MaterializationTest {
     checkMaterialize(sql, sql);
   }
 
-  @Test public void testUnionToUnion() {
+  @Test public void testUnionAllToUnionAll() {
     String sql0 = "select * from \"emps\" where \"empid\" < 300";
     String sql1 = "select * from \"emps\" where \"empid\" > 200";
     checkMaterialize(sql0 + " union all " + sql1, sql1 + " union all " + sql0);
+  }
+
+  @Test public void testUnionDistinctToUnionDistinct() {
+    String sql0 = "select * from \"emps\" where \"empid\" < 300";
+    String sql1 = "select * from \"emps\" where \"empid\" > 200";
+    checkMaterialize(sql0 + " union " + sql1, sql1 + " union " + sql0);
+  }
+
+  @Test public void testUnionDistinctToUnionAll() {
+    String sql0 = "select * from \"emps\" where \"empid\" < 300";
+    String sql1 = "select * from \"emps\" where \"empid\" > 200";
+    checkNoMaterialize(sql0 + " union " + sql1, sql0 + " union all " + sql1,
+        HR_FKUK_MODEL);
   }
 
   private static <E> List<List<List<E>>> list3(E[][][] as) {

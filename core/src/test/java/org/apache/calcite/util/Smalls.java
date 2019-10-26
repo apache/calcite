@@ -72,6 +72,8 @@ import static org.junit.Assert.assertThat;
 public class Smalls {
   public static final Method GENERATE_STRINGS_METHOD =
       Types.lookupMethod(Smalls.class, "generateStrings", Integer.class);
+  public static final Method GENERATE_STRINGS_OF_INPUT_SIZE_METHOD =
+      Types.lookupMethod(Smalls.class, "generateStringsOfInputSize", List.class);
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -180,6 +182,10 @@ public class Smalls {
         return (Queryable<T>) queryable;
       }
     };
+  }
+
+  public static QueryableTable generateStringsOfInputSize(final List<Integer> list) {
+    return generateStrings(list.size());
   }
 
   /** A function that generates multiplication table of {@code ncol} columns x
@@ -371,11 +377,12 @@ public class Smalls {
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
   public static class MyPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     // Note: Not marked @Deterministic
     public MyPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+      INSTANCE_COUNT.get().incrementAndGet();
     }
 
     public int eval(@Parameter(name = "x") int x,
@@ -386,14 +393,18 @@ public class Smalls {
 
   /** As {@link MyPlusFunction} but declared to be deterministic. */
   public static class MyDeterministicPlusFunction {
-    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+    public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
+        new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));
 
     @Deterministic public MyDeterministicPlusFunction() {
-      INSTANCE_COUNT.incrementAndGet();
+      INSTANCE_COUNT.get().incrementAndGet();
     }
 
-    public int eval(@Parameter(name = "x") int x,
-        @Parameter(name = "y") int y) {
+    public Integer eval(@Parameter(name = "x") Integer x,
+        @Parameter(name = "y") Integer y) {
+      if (x == null || y == null) {
+        return null;
+      }
       return x + y;
     }
   }

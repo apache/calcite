@@ -80,7 +80,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Holder;
@@ -274,6 +273,18 @@ public class RelBuilder {
   /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */
   public static RelBuilderFactory proto(Object... factories) {
     return proto(Contexts.of(factories));
+  }
+
+  public RelOptCluster getCluster() {
+    return cluster;
+  }
+
+  public RelOptSchema getRelOptSchema() {
+    return relOptSchema;
+  }
+
+  public RelFactories.TableScanFactory getScanFactory() {
+    return scanFactory;
   }
 
   // Methods for manipulating the stack
@@ -554,6 +565,11 @@ public class RelBuilder {
     return nodes.build();
   }
 
+  /** Returns references to fields for a given bit set of input ordinals. */
+  public ImmutableList<RexNode> fields(ImmutableBitSet ordinals) {
+    return fields(ordinals.asList());
+  }
+
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
@@ -807,12 +823,8 @@ public class RelBuilder {
       throw new IllegalArgumentException("out of bounds: " + groupSet);
     }
     Objects.requireNonNull(groupSets);
-    final ImmutableList<RexNode> nodes =
-        fields(ImmutableIntList.of(groupSet.toArray()));
-    final List<ImmutableList<RexNode>> nodeLists =
-        Util.transform(groupSets,
-            bitSet -> fields(ImmutableIntList.of(bitSet.toArray())));
-    return groupKey_(nodes, nodeLists);
+    final ImmutableList<RexNode> nodes = fields(groupSet);
+    return groupKey_(nodes, Util.transform(groupSets, bitSet -> fields(bitSet)));
   }
 
   @Deprecated // to be removed before 2.0
@@ -1298,8 +1310,7 @@ public class RelBuilder {
     }
 
     if (frame.rel instanceof Project
-        && shouldMergeProject()
-        && isNotRestructuringProjection(frame.rel.getRowType(), nodeList)) {
+        && shouldMergeProject()) {
       final Project project = (Project) frame.rel;
       // Populate field names. If the upper expression is an input ref and does
       // not have a recommended name, use the name of the underlying field.
@@ -1406,21 +1417,6 @@ public class RelBuilder {
     stack.pop();
     stack.push(new Frame(project, fields.build()));
     return this;
-  }
-
-  /**
-   * Restructuring projection is when inputProjection returns flat type
-   * but new projection collects flatten types back into struct columns.
-   * Given method negates the condition to know whether projects can be merged.
-   *
-   * @param inputProjectionType input projection result type
-   * @param newProjects         new projections
-   * @return whether new projections don't do restructuring
-   * (collection of flattened fields back into struct fields)
-   */
-  private boolean isNotRestructuringProjection(RelDataType inputProjectionType,
-      List<RexNode> newProjects) {
-    return SqlTypeUtil.isFlat(newProjects) || !SqlTypeUtil.isFlat(inputProjectionType);
   }
 
   /** Whether to attempt to merge consecutive {@link Project} operators.
@@ -1576,13 +1572,13 @@ public class RelBuilder {
         final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
         if (unique != null && unique) {
           // Rel is already unique.
-          return project(fields(groupSet.asList()));
+          return project(fields(groupSet));
         }
       }
       final Double maxRowCount = mq.getMaxRowCount(peek());
       if (maxRowCount != null && maxRowCount <= 1D) {
         // If there is at most one row, rel is already unique.
-        return project(fields(groupSet.asList()));
+        return project(fields(groupSet));
       }
     }
     final ImmutableList<ImmutableBitSet> groupSets;
@@ -2577,11 +2573,11 @@ public class RelBuilder {
     GroupKey alias(String alias);
   }
 
-  /** Implementation of {@link GroupKey}. */
-  protected static class GroupKeyImpl implements GroupKey {
-    final ImmutableList<RexNode> nodes;
-    final ImmutableList<ImmutableList<RexNode>> nodeLists;
-    final String alias;
+  /** Implementation of {@link RelBuilder.GroupKey}. */
+  public static class GroupKeyImpl implements GroupKey {
+    public final ImmutableList<RexNode> nodes;
+    public final ImmutableList<ImmutableList<RexNode>> nodeLists;
+    public final String alias;
 
     GroupKeyImpl(ImmutableList<RexNode> nodes,
         ImmutableList<ImmutableList<RexNode>> nodeLists, String alias) {

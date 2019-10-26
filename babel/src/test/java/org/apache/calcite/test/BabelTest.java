@@ -30,6 +30,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Properties;
 import java.util.function.UnaryOperator;
 
 import static org.hamcrest.core.Is.is;
@@ -42,6 +43,25 @@ public class BabelTest {
 
   static final String URL = "jdbc:calcite:";
 
+  private static UnaryOperator<CalciteAssert.PropBuilder> useParserFactory() {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.PARSER_FACTORY,
+            SqlBabelParserImpl.class.getName() + "#FACTORY");
+  }
+
+  private static UnaryOperator<CalciteAssert.PropBuilder> useLibraryList(
+      String libraryList) {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.FUN, libraryList);
+  }
+
+  private static UnaryOperator<CalciteAssert.PropBuilder> useLenientOperatorLookup(
+      boolean lenient) {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
+            Boolean.toString(lenient));
+  }
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
@@ -51,21 +71,17 @@ public class BabelTest {
 
   static Connection connect(UnaryOperator<CalciteAssert.PropBuilder> propBuild)
       throws SQLException {
-    final CalciteAssert.PropBuilder propBuilder =
-        CalciteAssert.propBuilder()
-            .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlBabelParserImpl.class.getName() + "#FACTORY");
-    return DriverManager.getConnection(URL,
-        propBuild.apply(propBuilder).build());
-  }
-
-  private Connection connectWithFun(String libraryList) throws SQLException {
-    return connect(propBuilder ->
-        propBuilder.set(CalciteConnectionProperty.FUN, libraryList));
+    final CalciteAssert.PropBuilder propBuilder = CalciteAssert.propBuilder();
+    final Properties info =
+        propBuild.andThen(useParserFactory())
+            .andThen(useLenientOperatorLookup(true))
+            .apply(propBuilder)
+            .build();
+    return DriverManager.getConnection(URL, info);
   }
 
   @Test public void testInfixCast() throws SQLException {
-    try (Connection connection = connectWithFun("standard,postgresql");
+    try (Connection connection = connect(useLibraryList("standard,postgresql"));
          Statement statement = connection.createStatement()) {
       checkInfixCast(statement, "integer", Types.INTEGER);
       checkInfixCast(statement, "varchar", Types.VARCHAR);

@@ -91,6 +91,9 @@ public class RelMdRowCount
       }
       rowCount += partialRowCount;
     }
+    if (!rel.all) {
+      rowCount *= 0.5;
+    }
     return rowCount;
   }
 

@@ -1102,6 +1102,17 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
+      // Note: Sub-query can be used as SqlUpdate#condition like below:
+      //
+      //   UPDATE emp
+      //   SET empno = 1 WHERE emp.empno IN (
+      //     SELECT emp.empno FROM emp WHERE emp.empno = 2)
+      //
+      // In such case, when converting SqlUpdate#condition, bb.root is null
+      // and it makes no sense to do the sub-query substitution.
+      if (bb.root == null) {
+        return;
+      }
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
@@ -3320,34 +3331,38 @@ public class SqlToRelConverter {
         Util.first(table.unwrap(InitializerExpressionFactory.class),
             NullInitializerExpressionFactory.INSTANCE);
 
-    // Lazily create a blackboard that contains all non-generated columns.
-    final Supplier<Blackboard> bb = () -> {
-      RexNode sourceRef = rexBuilder.makeRangeReference(scan);
-      return createInsertBlackboard(table, sourceRef,
-          table.getRowType().getFieldNames());
-    };
+    boolean hasVirtualFields = table.getRowType()
+        .getFieldList().stream()
+        .anyMatch(f -> ief.generationStrategy(table, f.getIndex()) == ColumnStrategy.VIRTUAL);
 
-    int virtualCount = 0;
-    final List<RexNode> list = new ArrayList<>();
-    for (RelDataTypeField f : table.getRowType().getFieldList()) {
-      final ColumnStrategy strategy =
-          ief.generationStrategy(table, f.getIndex());
-      switch (strategy) {
-      case VIRTUAL:
-        list.add(ief.newColumnDefaultValue(table, f.getIndex(), bb.get()));
-        ++virtualCount;
-        break;
-      default:
-        list.add(
-            rexBuilder.makeInputRef(scan,
-                RelOptTableImpl.realOrdinal(table, f.getIndex())));
+    if (hasVirtualFields) {
+      final RexNode sourceRef = rexBuilder.makeRangeReference(scan);
+      final Blackboard bb = createInsertBlackboard(table, sourceRef,
+          table.getRowType().getFieldNames());
+      final List<RexNode> list = new ArrayList<>();
+      for (RelDataTypeField f : table.getRowType().getFieldList()) {
+        final ColumnStrategy strategy =
+            ief.generationStrategy(table, f.getIndex());
+        switch (strategy) {
+        case VIRTUAL:
+          list.add(ief.newColumnDefaultValue(table, f.getIndex(), bb));
+          break;
+        default:
+          list.add(
+              rexBuilder.makeInputRef(scan,
+                  RelOptTableImpl.realOrdinal(table, f.getIndex())));
+        }
       }
-    }
-    if (virtualCount > 0) {
       relBuilder.push(scan);
       relBuilder.project(list);
-      return relBuilder.build();
+      final RelNode project = relBuilder.build();
+      if (ief.postExpressionConversionHook() != null) {
+        return ief.postExpressionConversionHook().apply(bb, project);
+      } else {
+        return project;
+      }
     }
+
     return scan;
   }
 
@@ -4731,6 +4746,12 @@ public class SqlToRelConverter {
 
     public RexBuilder getRexBuilder() {
       return rexBuilder;
+    }
+
+    public SqlNode validateExpression(RelDataType rowType, SqlNode expr) {
+      return SqlValidatorUtil.validateExprWithRowType(
+          catalogReader.nameMatcher().isCaseSensitive(), opTab,
+          typeFactory, rowType, expr).left;
     }
 
     public RexRangeRef getSubQueryExpr(SqlCall call) {

@@ -73,8 +73,14 @@ public class SqlDatePartFunction extends SqlFunction {
 
   public boolean checkOperandTypes(SqlCallBinding callBinding,
       boolean throwOnFailure) {
-    return OperandTypes.DATETIME.checkSingleOperandType(callBinding,
-        callBinding.operand(0), 0, throwOnFailure);
+    // Use #checkOperandTypes instead of #checkSingleOperandType to enable implicit
+    // type coercion. REVIEW Danny 2019-09-10, because we declare that the operand
+    // type family is DATETIME, that means it allows arguments of type DATE, TIME
+    // or TIMESTAMP, so actually we can not figure out which type we want precisely.
+    // For example, the YEAR(date) function, it actually allows a DATE/TIMESTAMP operand,
+    // but we declare the required operand type family to be DATETIME.
+    // We just need some refactoring for the SqlDatePartFunction.
+    return OperandTypes.DATETIME.checkOperandTypes(callBinding, throwOnFailure);
   }
 }
 

@@ -284,7 +284,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode rel = planner.rel(validate).project();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     final String buf = predicates.pulledUpPredicates.toString();
     assertThat(buf, equalTo(expectedPredicates));

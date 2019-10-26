@@ -107,12 +107,12 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   private void checkFeature(String sql, Feature feature) {
     // Test once with feature enabled:  should pass
-    check(sql);
+    sql(sql).ok();
 
     // Test once with feature disabled:  should fail
     try {
       disabledFeature = feature;
-      checkFails(sql, FEATURE_DISABLED);
+      sql(sql).fails(FEATURE_DISABLED);
     } finally {
       disabledFeature = null;
     }

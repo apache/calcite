@@ -50,7 +50,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>NUMERIC FUNCTIONS</h3>
+ * <h2>NUMERIC FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -107,7 +107,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </tr>
  * <tr>
  * <td>MOD(integer1, integer2)</td>
- * <td>Rh3ainder for integer1 / integer2</td>
+ * <td>Remainder for integer1 / integer2</td>
  * </tr>
  * <tr>
  * <td>PI()</td>
@@ -153,7 +153,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>STRING FUNCTIONS</h3>
+ * <h2>STRING FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -202,7 +202,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </tr>
  * <tr>
  * <td>LTRIM(string)</td>
- * <td>Characters of string with leading blank spaces rh3oved</td>
+ * <td>Characters of string with leading blank spaces removed</td>
  * </tr>
  * <tr>
  * <td>REPEAT(string, count)</td>
@@ -246,7 +246,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>TIME and DATE FUNCTIONS</h3>
+ * <h2>TIME and DATE FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -331,7 +331,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>SYSTEM FUNCTIONS</h3>
+ * <h2>SYSTEM FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -349,7 +349,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>CONVERSION FUNCTIONS</h3>
+ * <h2>CONVERSION FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>

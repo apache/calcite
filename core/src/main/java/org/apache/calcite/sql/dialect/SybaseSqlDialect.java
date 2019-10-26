@@ -17,18 +17,39 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
 
 /**
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
 public class SybaseSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new SybaseSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.SYBASE));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.SYBASE);
+
+  public static final SqlDialect DEFAULT = new SybaseSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a SybaseSqlDialect. */
   public SybaseSqlDialect(Context context) {
     super(context);
+  }
+
+  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    // No-op; see unparseTopN.
+    // Sybase uses "SELECT TOP (n)" rather than "FETCH NEXT n ROWS".
+  }
+
+  @Override public void unparseTopN(SqlWriter writer, SqlNode offset,
+      SqlNode fetch) {
+    // Parentheses are not required, but we use them to be consistent with
+    // Microsoft SQL Server, which recommends them but does not require them.
+    //
+    // Note that "fetch" is ignored.
+    writer.keyword("TOP");
+    writer.keyword("(");
+    fetch.unparse(writer, -1, -1);
+    writer.keyword(")");
   }
 }
 

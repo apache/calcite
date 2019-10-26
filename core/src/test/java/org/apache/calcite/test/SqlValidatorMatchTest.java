@@ -190,7 +190,7 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
     sql(sql)
         .fails("Unknown pattern 'strt'");
     sql(sql)
-        .tester(tester.withCaseSensitive(false))
+        .withCaseSensitive(false)
         .sansCarets()
         .ok();
   }

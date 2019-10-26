@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -36,6 +37,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -329,6 +331,8 @@ public abstract class SqlAbstractParserImpl {
   protected int nDynamicParams;
 
   protected String originalSql;
+
+  protected final List<CalciteContextException> warnings = new ArrayList<>();
 
   //~ Methods ----------------------------------------------------------------
 

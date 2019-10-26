@@ -347,7 +347,7 @@ Here are some ideas that have not yet been implemented:
 
 <ul>
 <li>[<a name="ref-hru96">HRU96</a>] V. Harinarayan, A. Rajaraman and J. Ullman.
-    <a href="http://web.eecs.umich.edu/~jag/eecs584/papers/implementing_data_cube.pdf">Implementing
+    <a href="https://web.eecs.umich.edu/~jag/eecs584/papers/implementing_data_cube.pdf">Implementing
     data cubes efficiently</a>.
     In <i>Proc. ACM SIGMOD Conf.</i>, Montreal, 1996.</li>
 </ul>

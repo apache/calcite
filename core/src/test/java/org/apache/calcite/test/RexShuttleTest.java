@@ -16,11 +16,19 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalCalc;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 
@@ -70,6 +78,58 @@ public class RexShuttleTest {
     final RelDataType type2 = rootWithCastViaRexShuttle.getRowType();
 
     assertThat(type, is(type2));
+  }
+
+  @Test
+  public void testCalcUpdatesRowType() {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+
+    // Equivalent SQL: SELECT deptno, sal, sal + 20 FROM emp
+    final RelNode root =
+        builder
+            .scan("EMP")
+            .project(
+                builder.field("DEPTNO"),
+                builder.field("SAL"),
+                builder.call(SqlStdOperatorTable.PLUS,
+                    builder.field("SAL"), builder.literal(20)))
+            .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(root);
+    LogicalCalc calc = (LogicalCalc) planner.findBestExp();
+
+    final RelNode calcWithCastViaRexShuttle = calc.accept(new RexShuttle() {
+      @Override public RexNode visitCall(RexCall call) {
+        return builder.cast(call, SqlTypeName.VARCHAR);
+      }
+
+      @Override public RexNode visitLocalRef(RexLocalRef localRef) {
+        if (calc.getProgram().getExprList().get(localRef.getIndex())
+            instanceof RexCall) {
+          return new RexLocalRef(localRef.getIndex(),
+              builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR));
+        } else {
+          return localRef;
+        }
+      }
+    });
+
+    // Equivalent SQL: SELECT deptno, sal, CAST(sal + 20 AS VARCHAR) FROM emp
+    final RelNode rootWithCast =
+        builder
+            .scan("EMP")
+            .project(
+                builder.field("DEPTNO"),
+                builder.field("SAL"),
+                builder.cast(
+                    builder.call(SqlStdOperatorTable.PLUS,
+                        builder.field("SAL"), builder.literal(20)), SqlTypeName.VARCHAR))
+            .build();
+    assertThat(calcWithCastViaRexShuttle.getRowType(), is(rootWithCast.getRowType()));
   }
 }
 

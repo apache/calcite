@@ -200,11 +200,11 @@ They are all organized in a single view and available at
 ## Getting started
 
 Calcite is a community, so the first step to joining the project is to introduce yourself.
-Join the [developers list](http://mail-archives.apache.org/mod_mbox/calcite-dev/)
+Join the [developers list](https://mail-archives.apache.org/mod_mbox/calcite-dev/)
 and send an email.
 
-If you have the chance to attend a [meetup](http://www.meetup.com/Apache-Calcite/),
-or meet [members of the community](http://calcite.apache.org/develop/#project-members)
+If you have the chance to attend a [meetup](https://www.meetup.com/Apache-Calcite/),
+or meet [members of the community](https://calcite.apache.org/develop/#project-members)
 at a conference, that's also great.
 
 Choose an initial task to work on. It should be something really simple,

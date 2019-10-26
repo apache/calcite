@@ -92,7 +92,8 @@ public class JoinUnionTransposeRule extends RelOptRule {
         return;
       }
     } else {
-      if (join.getJoinType().generatesNullsOnRight()) {
+      if (join.getJoinType().generatesNullsOnRight()
+          || !join.getJoinType().projectsRight()) {
         return;
       }
     }

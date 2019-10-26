@@ -30,6 +30,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
+import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
@@ -963,7 +964,7 @@ public class RexToLixTranslator {
 
   public static Expression convert(Expression operand, Type fromType,
       Type toType) {
-    if (fromType.equals(toType)) {
+    if (!Types.needTypeCast(fromType, toType)) {
       return operand;
     }
     // E.g. from "Short" to "int".
@@ -1050,7 +1051,15 @@ public class RexToLixTranslator {
           return Expressions.box(una.expression, toBox);
         }
       }
-      return Expressions.box(operand, toBox);
+      if (fromType == toBox.primitiveClass) {
+        return Expressions.box(operand, toBox);
+      }
+      // E.g., from "int" to "Byte".
+      // Convert it first and generate "Byte.valueOf((byte)x)"
+      // Because there is no method "Byte.valueOf(int)" in Byte
+      return Expressions.box(
+          Expressions.convert_(operand, toBox.primitiveClass),
+          toBox);
     } else if (fromType == java.sql.Date.class) {
       if (toBox == Primitive.INT) {
         return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
@@ -1096,8 +1105,13 @@ public class RexToLixTranslator {
       if (fromPrimitive != null) {
         // E.g. from "int" to "BigDecimal".
         // Generate "new BigDecimal(x)"
-        return Expressions.new_(
-            BigDecimal.class, operand);
+        // Fix CALCITE-2325, we should decide null here for int type.
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.new_(
+                BigDecimal.class,
+                operand));
       }
       // E.g. from "Object" to "BigDecimal".
       // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
@@ -1129,7 +1143,7 @@ public class RexToLixTranslator {
         }
       } else if (fromType == BigDecimal.class) {
         // E.g. from "BigDecimal" to "String"
-        // Generate "x.toString()"
+        // Generate "SqlFunctions.toString(x)"
         return Expressions.condition(
             Expressions.equal(operand, RexImpTable.NULL_EXPR),
             RexImpTable.NULL_EXPR,
@@ -1138,14 +1152,22 @@ public class RexToLixTranslator {
                 "toString",
                 operand));
       } else {
-        // E.g. from "BigDecimal" to "String"
-        // Generate "x == null ? null : x.toString()"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.call(
-                operand,
-                "toString"));
+        Expression result;
+        try {
+          // Try to call "toString()" method
+          // E.g. from "Integer" to "String"
+          // Generate "x == null ? null : x.toString()"
+          result = Expressions.condition(
+              Expressions.equal(operand, RexImpTable.NULL_EXPR),
+              RexImpTable.NULL_EXPR,
+              Expressions.call(operand, "toString"));
+        } catch (RuntimeException e) {
+          // For some special cases, e.g., "BuiltInMethod.LESSER",
+          // its return type is generic ("Comparable"), which contains
+          // no "toString()" method. We fall through to "(String)x".
+          return Expressions.convert_(operand, toType);
+        }
+        return result;
       }
     }
     return Expressions.convert_(operand, toType);

@@ -39,7 +39,7 @@ import org.apache.calcite.sql.SqlDialect;
  * (That would involve asking database B to open a database link to database
  * A.)</p>
  *
- * <p>As a result, converter rules from and two this convention need to be
+ * <p>As a result, converter rules from and to this convention need to be
  * instantiated, at the start of planning, for each JDBC database in play.</p>
  */
 public class JdbcConvention extends Convention.Impl {

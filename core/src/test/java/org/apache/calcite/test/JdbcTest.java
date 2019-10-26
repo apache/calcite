@@ -226,6 +226,15 @@ public class JdbcTest {
       + "   ]\n"
       + "}";
 
+  public static final String FOODMART_SCOTT_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "   schemas: [\n"
+      + FOODMART_SCHEMA
+      + ",\n"
+      + SCOTT_SCHEMA
+      + "   ]\n"
+      + "}";
+
   public static final String START_OF_GROUP_DATA = "(values"
       + "(1,0,1),\n"
       + "(2,0,1),\n"
@@ -2399,7 +2408,7 @@ public class JdbcTest {
         .planContains("return inp2_ == null "
             + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
             + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "current.deptno + 1);");
+            + "Integer.valueOf(current.deptno + 1).intValue());");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
@@ -2430,7 +2439,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), Integer.valueOf((v5 ? 4 : 5) - 2).intValue());")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2454,6 +2463,10 @@ public class JdbcTest {
             "final int inp1_ = current.deptno;")
         .planContains(
             "static final int $L4J$C$5_2 = 5 - 2;")
+        .planContains(
+            "static final Integer $L4J$C$Integer_valueOf_5_2_ = Integer.valueOf($L4J$C$5_2);")
+        .planContains(
+            "static final int $L4J$C$Integer_valueOf_5_2_intValue_ = $L4J$C$Integer_valueOf_5_2_.intValue();")
         .planContains("static final boolean "
             + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
             + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
@@ -2467,7 +2480,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), $L4J$C$Integer_valueOf_5_2_intValue_);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -7070,6 +7083,21 @@ public class JdbcTest {
       }
       calciteConnection.close();
     }
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3347">[CALCITE-3347]
+   * IndexOutOfBoundsException in FixNullabilityShuttle when using FilterIntoJoinRule</a>.
+   */
+  @Test public void testSemiJoin() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select *\n"
+            + " from \"foodmart\".\"employee\""
+            + " where \"employee_id\" = 1 and \"last_name\" in"
+            + " (select \"last_name\" from \"foodmart\".\"employee\" where \"employee_id\" = 2)")
+        .runs();
   }
 
   private static String sums(int n, boolean c) {

@@ -169,6 +169,9 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
+  @LibraryOperator(libraries = {MYSQL, ORACLE})
+  public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
@@ -235,7 +238,7 @@ public abstract class SqlLibraryOperators {
           SqlFunctionCategory.STRING);
 
   /** The "CONCAT(arg, ...)" function that concatenates strings.
-   * For example, "CONCACT('a', 'bc', 'd')" returns "abcd". */
+   * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction CONCAT_FUNCTION =
       new SqlFunction("CONCAT",

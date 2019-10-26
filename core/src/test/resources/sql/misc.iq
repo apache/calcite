@@ -1207,14 +1207,14 @@ select * from "scott".emp where empno between '7500' and '07600';
 (2 rows)
 
 !ok
-select * from "scott".emp where deptno between '7369' and '7876';
-+-------+-------+-----+-----+----------+-----+------+--------+
-| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
-+-------+-------+-----+-----+----------+-----+------+--------+
-+-------+-------+-----+-----+----------+-----+------+--------+
-(0 rows)
 
-!ok
+# BETWEEN follows the PostgreSQL style to coerce STRING operand to type of the other
+# NUMERIC operands, see TypeCoercionImpl#commonTypeForBinaryComparison.
+select * from "scott".emp where deptno between '7369' and '7876';
+
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"7369" Radix:10
+!error
+
 select * from "scott".emp where '7369' between empno and '7876';
 +-------+-------+-------+------+------------+--------+------+--------+
 | EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |

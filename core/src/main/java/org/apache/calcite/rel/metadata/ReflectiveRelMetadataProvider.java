@@ -179,7 +179,7 @@ public class ReflectiveRelMetadataProvider
                   key1 = FlatLists.copyOf(args2);
                 }
                 if (mq.map.put(key1, NullSentinel.INSTANCE) != null) {
-                  throw CyclicMetadataException.INSTANCE;
+                  throw new CyclicMetadataException();
                 }
                 try {
                   return handlerMethod.invoke(target, args1);

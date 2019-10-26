@@ -85,6 +85,35 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"sales_fact_1998\"");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3115">[CALCITE-3115]
+   * Cannot add JdbcRules which have different JdbcConvention
+   * to same VolcanoPlanner's RuleSet.</a>*/
+  @Test public void testUnionPlan2() {
+    CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
+        .query("select \"store_name\" from \"foodmart\".\"store\" where \"store_id\" < 10\n"
+            + "union all\n"
+            + "select ename from SCOTT.emp where empno > 10")
+        .explainContains("PLAN=EnumerableUnion(all=[true])\n"
+                    + "  JdbcToEnumerableConverter\n"
+                    + "    JdbcProject(store_name=[$3])\n"
+                    + "      JdbcFilter(condition=[<($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[foodmart, store]])\n"
+                    + "  JdbcToEnumerableConverter\n"
+                    + "    JdbcProject(ENAME=[$1])\n"
+                    + "      JdbcFilter(condition=[>($0, 10)])\n"
+                    + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"store_name\"\n"
+                + "FROM \"foodmart\".\"store\"\n"
+                + "WHERE \"store_id\" < 10")
+        .planHasSql("SELECT \"ENAME\"\n"
+                + "FROM \"SCOTT\".\"EMP\"\n"
+                + "WHERE \"EMPNO\" > 10");
+  }
+
   @Test public void testFilterUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from (\n"
@@ -112,7 +141,10 @@ public class JdbcAdapterTest {
         .planHasSql(
             "SELECT \"store_id\", \"store_name\"\n"
             + "FROM \"foodmart\".\"store\"\n"
-            + "WHERE \"store_name\" = 'Store 1' OR \"store_name\" = 'Store 10' OR \"store_name\" = 'Store 11' OR \"store_name\" = 'Store 15' OR \"store_name\" = 'Store 16' OR \"store_name\" = 'Store 24' OR \"store_name\" = 'Store 3' OR \"store_name\" = 'Store 7'")
+            + "WHERE \"store_name\" = 'Store 1' OR \"store_name\" = 'Store 10'"
+                + " OR (\"store_name\" = 'Store 11' OR \"store_name\" = 'Store 15')"
+                + " OR (\"store_name\" = 'Store 16' OR \"store_name\" = 'Store 24'"
+                + " OR (\"store_name\" = 'Store 3' OR \"store_name\" = 'Store 7'))")
         .returns("store_id=1; store_name=Store 1\n"
             + "store_id=3; store_name=Store 3\n"
             + "store_id=7; store_name=Store 7\n"

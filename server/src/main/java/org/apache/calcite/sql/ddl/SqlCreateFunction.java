@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.sql.ddl;
 
+import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.sql.SqlCreate;
+import org.apache.calcite.sql.SqlExecutableStatement;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
@@ -38,7 +40,8 @@ import java.util.Objects;
 /**
  * Parse tree for {@code CREATE FUNCTION} statement.
  */
-public class SqlCreateFunction extends SqlCreate {
+public class SqlCreateFunction extends SqlCreate
+    implements SqlExecutableStatement {
   private final SqlIdentifier name;
   private final SqlNode className;
   private final SqlNodeList usingList;
@@ -78,6 +81,10 @@ public class SqlCreateFunction extends SqlCreate {
       }
       writer.endList(frame);
     }
+  }
+
+  @Override public void execute(CalcitePrepare.Context context) {
+    throw new UnsupportedOperationException("CREATE FUNCTION is not supported yet.");
   }
 
   @SuppressWarnings("unchecked")
