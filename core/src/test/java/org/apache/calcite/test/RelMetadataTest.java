@@ -43,6 +43,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -2346,6 +2347,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 2);
     expected.put(Join.class, 1);
+    expected.put(Project.class, 1);
+    checkNodeTypeCount(sql, expected);
+  }
+
+  @Test public void testNodeTypeTableModify() {
+    final String sql = "insert into emp select * from emp";
+    final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
+    expected.put(TableScan.class, 1);
+    expected.put(TableModify.class, 1);
     expected.put(Project.class, 1);
     checkNodeTypeCount(sql, expected);
   }
