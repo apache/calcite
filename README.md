@@ -25,6 +25,16 @@ This is a forked version of the [Apache Calcite](http://calcite.apache.org) fram
 
 This [repository](https://github.com/yunpengn/calcite) is currently maintained by **[Yunpeng Niu](https://github.com/yunpengn)**.
 
+## Development Environment Setup
+
+- Install the latest version of [IntelliJ IDEA](https://www.jetbrains.com/idea/) by [JetBrains](https://www.jetbrains.com/).
+- Clone the repository by `git clone git@github.com:yunpengn/calcite.git`.
+- Navigate to the cloned folder by `cd calcite/`.
+- Import all dependencies by `./mvnw -DskipTests clean install`.
+    - This step may take a long time and need stable Internet connection. Please be patient.
+- Open the IDE and import the project.
+- Start coding!
+
 ## Licence
 
 [Apache Licence 2.0](LICENSE)

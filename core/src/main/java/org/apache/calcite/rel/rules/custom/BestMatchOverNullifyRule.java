@@ -29,6 +29,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -67,8 +69,8 @@ public class BestMatchOverNullifyRule extends RelOptRule {
     RexNode oldPredicate = nullify.getPredicate();
     List<RexNode> oldAttributes = nullify.getAttributes();
 
-    // Makes sure the nullification predicate is null-intolerant.
-    if (isNullTolerant(oldPredicate)) {
+    // Makes sure the nullification predicate is null-intolerant (cannot evaluate to TRUE).
+    if (valueForNull(oldPredicate) == 1) {
       throw new AssertionError("The nullification predicate is not null-intolerant.");
     }
 
@@ -84,38 +86,58 @@ public class BestMatchOverNullifyRule extends RelOptRule {
   }
 
   /**
-   * Checks whether a given predicate tolerates NULL values. A predicate is
-   * null-intolerant if it cannot evaluate to TRUE when referring a NULL
-   * value.
+   * Evaluates the value of a given predicate when referring to null values.
    *
    * @param predicate is the predicate to be tested.
-   * @return true if null tolerant; false otherwise.
+   * @return 1 if the predicate evaluates to TRUE, 0 if UNKNOWN, -1 if false.
    */
-  private boolean isNullTolerant(RexNode predicate) {
-    if (predicate.isA(SqlKind.OR)) {
+  private int valueForNull(RexNode predicate) {
+    if (predicate.isA(SqlKind.AND)) {
       RexCall call = (RexCall) predicate;
+      boolean isAllTrue = true;
+      boolean hasAtLeastOneFalse = false;
 
-      // An OR connective is null-tolerant if any of its child expressions is null-tolerant.
-      for (RexNode operand: call.getOperands()) {
-        if (isNullTolerant(operand)) {
-          return true;
+      // Iterates through each child.
+      for (RexNode child: call.getOperands()) {
+        int childValue = valueForNull(child);
+        if (childValue != 1) {
+          isAllTrue = false;
+        }
+        if (childValue == -1) {
+          hasAtLeastOneFalse = true;
         }
       }
-      return false;
-    } else if (predicate.isA(SqlKind.AND)) {
-      RexCall call = (RexCall) predicate;
 
-      // An AND connective is null-tolerant if all of its child expressions are null-tolerant.
-      for (RexNode operand: call.getOperands()) {
-        if (!isNullTolerant(operand)) {
-          return false;
+      return isAllTrue ? 1 : (hasAtLeastOneFalse ? -1 : 0);
+    } else if (predicate.isA(SqlKind.OR)) {
+      RexCall call = (RexCall) predicate;
+      boolean isAllFalse = true;
+      boolean hasAtLeastOneTrue = false;
+
+      // Iterates through each child.
+      for (RexNode child: call.getOperands()) {
+        int childValue = valueForNull(child);
+        if (childValue != -1) {
+          isAllFalse = false;
+        }
+        if (childValue == 1) {
+          hasAtLeastOneTrue = true;
         }
       }
-      return true;
+
+      return isAllFalse ? -1 : (hasAtLeastOneTrue ? 1 : 0);
+    } else if (predicate.isA(SqlKind.NOT)) {
+      RexCall call = (RexCall) predicate;
+      RexNode child = call.getOperands().get(0);
+      int childValue = valueForNull(child);
+      return childValue == 0 ? 0 : -childValue;
+    } else if (predicate.isA(ImmutableList.of(SqlKind.IS_NULL, SqlKind.IS_TRUE))) {
+      return 1;
+    } else if (predicate.isA(ImmutableList.of(SqlKind.IS_NULL, SqlKind.IS_TRUE))) {
+      return -1;
+    } else {
+      return 0;
     }
-
-    // IS NULL and TRUE are both null-tolerant.
-    return predicate.isA(SqlKind.IS_NULL) || predicate.isA(SqlKind.IS_TRUE);
   }
 }
 
