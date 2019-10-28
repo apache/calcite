@@ -34,8 +34,9 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
 
   /**
    * Create a SqlUserDefinedTypeNameSpec instance.
-   * @param typeName Type name as SQL identifier.
-   * @param pos The parser position.
+   *
+   * @param typeName Type name as SQL identifier
+   * @param pos The parser position
    */
   public SqlUserDefinedTypeNameSpec(SqlIdentifier typeName, SqlParserPos pos) {
     super(typeName, pos);

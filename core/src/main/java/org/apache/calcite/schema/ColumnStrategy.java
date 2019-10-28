@@ -40,7 +40,8 @@ public enum ColumnStrategy {
 
   /**
    * Returns whether you can insert into the column.
-   * @return true if this column can be inserted.
+   *
+   * @return true if this column can be inserted
    */
   public boolean canInsertInto() {
     return this != STORED && this != VIRTUAL;

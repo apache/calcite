@@ -4437,6 +4437,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   /**
    * Check the field count of sql insert source and target node row type.
+   *
    * @param node                    target table sql identifier
    * @param table                   target table
    * @param strategies              column strategies of target table
@@ -4447,7 +4448,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param logicalTargetRowType    logical target row type, contains only target columns if
    *                                they are specified or if the sql dialect allows subset insert,
    *                                make a subset of fields(start from the left first field) whose
-   *                                length is equals with the source row type fields number.
+   *                                length is equals with the source row type fields number
    */
   private void checkFieldCount(SqlNode node, SqlValidatorTable table,
       List<ColumnStrategy> strategies, RelDataType targetRowTypeToValidate,

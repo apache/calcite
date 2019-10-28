@@ -56,12 +56,12 @@ import java.util.Objects;
  * all overridable by derived classes, you can define system specific type coercion logic.
  *
  * <p>Caution that these methods may modify the {@link SqlNode} tree, you should know what the
- * effect is when using these methods to customize your type coercion rules.</p>
+ * effect is when using these methods to customize your type coercion rules.
  *
  * <p>This class also defines the default implementation of the type widening strategies, see
  * {@link TypeCoercion} doc and methods: {@link #getTightestCommonType}, {@link #getWiderTypeFor},
  * {@link #getWiderTypeForTwo}, {@link #getWiderTypeForDecimal},
- * {@link #commonTypeForBinaryComparison} for the detail strategies.</p>
+ * {@link #commonTypeForBinaryComparison} for the detail strategies.
  */
 public abstract class AbstractTypeCoercion implements TypeCoercion {
   protected SqlValidator validator;
@@ -607,9 +607,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * We will check the type one by one, that means the 1th type and 1th family,
    * 2th type and 2th family, and the like.
    *
-   * @param types    data type need to check.
-   * @param families desired type families list.
-   * @return true if we can do type coercion.
+   * @param types    data type need to check
+   * @param families desired type families list
+   * @return true if we can do type coercion
    */
   boolean canImplicitTypeCast(List<RelDataType> types, List<SqlTypeFamily> families) {
     boolean needed = false;
@@ -635,9 +635,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
    * for the details.
    *
-   * @param in       inferred operand type.
-   * @param expected expected {@link SqlTypeFamily} of registered SqlFunction.
-   * @return common type of implicit cast, null if we do not find any.
+   * @param in       inferred operand type
+   * @param expected expected {@link SqlTypeFamily} of registered SqlFunction
+   * @return common type of implicit cast, null if we do not find any
    */
   public RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {
     List<SqlTypeFamily> numericFamilies = ImmutableList.of(

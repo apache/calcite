@@ -27,6 +27,7 @@ import org.apache.calcite.util.Litmus;
  *
  * <p>To customize sql node unparsing, override the method
  * {@link #unparse(SqlWriter, int, int)}.
+ *
  * <p>To customize data type deriving, override the method
  * {@link #deriveType(SqlValidator)}.
  */
@@ -37,8 +38,8 @@ public abstract class SqlTypeNameSpec {
   /**
    * Creates a {@code SqlTypeNameSpec}.
    *
-   * @param name Name of the type.
-   * @param pos  Parser position, must not be null.
+   * @param name Name of the type
+   * @param pos  Parser position, must not be null
    */
   public SqlTypeNameSpec(SqlIdentifier name, SqlParserPos pos) {
     this.typeName = name;
@@ -48,9 +49,9 @@ public abstract class SqlTypeNameSpec {
   /**
    * Derive type from this SqlTypeNameSpec.
    *
-   * @param validator The sql validator.
+   * @param validator The sql validator
    * @return the {@code RelDataType} instance, throws exception if we could not
-   *         deduce the type.
+   *         deduce the type
    */
   public abstract RelDataType deriveType(SqlValidator validator);
 
