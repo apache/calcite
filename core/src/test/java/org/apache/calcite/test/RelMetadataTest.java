@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
@@ -2380,6 +2381,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
       resultCount.put(e.getKey(), e.getValue().size());
     }
     assertEquals(expected, resultCount);
+  }
+
+  @Test public void testNodeTypeSample() {
+    final String sql = "select * from emp tablesample system(50) where empno > 5";
+    final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
+    expected.put(TableScan.class, 1);
+    expected.put(Filter.class, 1);
+    expected.put(Project.class, 1);
+    expected.put(Sample.class, 1);
+    checkNodeTypeCount(sql, expected);
   }
 
   @Test public void testNodeTypeCountJoinFinite() {
