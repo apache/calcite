@@ -501,6 +501,20 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertEquals(expectedMin, min, 0d);
   }
 
+  private void checkExchangeRowCount(RelNode rel, double expected, double expectedMin,
+      double expectedMax) {
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Double result = mq.getRowCount(rel);
+    assertThat(result, notNullValue());
+    assertEquals(expected, result, 0d);
+    final Double max = mq.getMaxRowCount(rel);
+    assertThat(max, notNullValue());
+    assertEquals(expectedMax, max, 0d);
+    final Double min = mq.getMinRowCount(rel);
+    assertThat(max, notNullValue());
+    assertEquals(expectedMin, min, 0d);
+  }
+
   @Test public void testRowCountEmp() {
     final String sql = "select * from emp";
     checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY);
@@ -624,6 +638,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testRowCountSort() {
     final String sql = "select * from emp order by ename";
     checkRowCount(sql, EMP_SIZE, 0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void testRowCountExchange() {
+    final String sql = "select * from emp order by ename limit 123456";
+    RelNode rel = convertSql(sql);
+    final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+    checkExchangeRowCount(exchange, EMP_SIZE, 0D, 123456D);
   }
 
   @Test public void testRowCountSortHighLimit() {
