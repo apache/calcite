@@ -117,7 +117,7 @@ public class AggregationTest {
         .query("select count(*) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
-                "_source:false, size:0, track_total_hits:true"))
+                "_source:false, 'stored_fields': '_none_', size:0,  track_total_hits:true"))
         .returns("EXPR$0=3\n");
 
     CalciteAssert.that()
@@ -138,7 +138,7 @@ public class AggregationTest {
         .query("select count(*), sum(val1), sum(val2) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
-                "_source:false, size:0, track_total_hits:true",
+                "_source:false, size:0, track_total_hits:true", "'stored_fields': '_none_'",
                 "aggregations:{'EXPR$0.value_count.field': '_id'",
                     "'EXPR$1.sum.field': 'val1'",
                     "'EXPR$2.sum.field': 'val2'}"))
@@ -149,7 +149,7 @@ public class AggregationTest {
         .query("select min(val1), max(val2), count(*) from view")
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
-                "_source:false, size:0, track_total_hits:true",
+                "_source:false, 'stored_fields': '_none_', size:0, track_total_hits:true",
                 "aggregations:{'EXPR$0.min.field': 'val1'",
                 "'EXPR$1.max.field': 'val2'",
                 "'EXPR$2.value_count.field': '_id'}"))
@@ -368,7 +368,7 @@ public class AggregationTest {
                 + "min(cast(_MAP['val2'] as integer)) as v2 from elastic.%s", NAME))
         .queryContains(
             ElasticsearchChecker.elasticsearchChecker(
-            "_source:false, size:0, track_total_hits:true",
+            "_source:false, 'stored_fields': '_none_', size:0, track_total_hits:true", "'stored_fields': '_none_'",
             "aggregations:{'v1.max.field': 'val1'",
             "'v2.min.field': 'val2'}"))
         .returnsUnordered("v1=7; v2=5");

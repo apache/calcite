@@ -186,9 +186,10 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
     query.put("_source", false);
     query.put("size", 0);
     query.remove("script_fields");
-    // Set _source = false and size = 0, `FetchPhase` would still be executed against the Elasticsearch Cluster
-    // and visit the Lucene stored_fields, which would lead to performance declined dramatically.
-    // We can set `stored_fields = _none` prohibit this such behavior
+    // set _source = false and size = 0, `FetchPhase` would still be executed
+    // to fetch the metadata fields and visit the Lucene stored_fields,
+    // which would lead to performance declined dramatically.
+    // `stored_fields = _none` can prohibit such behavior entirely
     query.put("stored_fields", "_none_");
 
     // allows to detect aggregation for count(*)
