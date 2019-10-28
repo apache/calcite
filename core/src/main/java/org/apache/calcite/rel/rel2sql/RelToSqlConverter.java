@@ -18,10 +18,7 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.*;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
@@ -398,16 +395,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(TableScan e) {
-    final SqlIdentifier identifier;
-    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
-    if (jdbcTable != null) {
-      // Use the foreign catalog, schema and table names, if they exist,
-      // rather than the qualified name of the shadow table in Calcite.
-      identifier = jdbcTable.tableName();
-    } else {
-      final List<String> qualifiedName = e.getTable().getQualifiedName();
-      identifier = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
-    }
+    final SqlIdentifier identifier = getSqlTargetTable(e);
     return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
@@ -652,14 +640,28 @@ public class RelToSqlConverter extends SqlImplementor
             fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
+  private SqlIdentifier getSqlTargetTable(RelNode e) {
+    final SqlIdentifier sqlTargetTable;
+    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
+    if (jdbcTable != null) {
+      // Use the foreign catalog, schema and table names, if they exist,
+      // rather than the qualified name of the shadow table in Calcite.
+      sqlTargetTable = jdbcTable.tableName();
+    } else {
+      final List<String> qualifiedName = e.getTable().getQualifiedName();
+      sqlTargetTable = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
+    }
+
+    return sqlTargetTable;
+  }
+
   /** @see #dispatch */
   public Result visit(TableModify modify) {
     final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
 
     // Target Table Name
-    final SqlIdentifier sqlTargetTable =
-        new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+    final SqlIdentifier sqlTargetTable = getSqlTargetTable(modify);
 
     switch (modify.getOperation()) {
     case INSERT: {
