@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexNode;
@@ -62,6 +63,11 @@ public class RelMdPopulationSize
   }
 
   public Double getPopulationSize(Exchange rel, RelMetadataQuery mq,
+      ImmutableBitSet groupKey) {
+    return mq.getPopulationSize(rel.getInput(), groupKey);
+  }
+
+  public Double getPopulationSize(TableModify rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey) {
     return mq.getPopulationSize(rel.getInput(), groupKey);
   }

@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
@@ -83,6 +84,10 @@ public class RelMdDistribution
 
   public RelDistribution distribution(SetOp rel, RelMetadataQuery mq) {
     return mq.distribution(rel.getInputs().get(0));
+  }
+
+  public RelDistribution distribution(TableModify rel, RelMetadataQuery mq) {
+    return mq.distribution(rel.getInput());
   }
 
   public RelDistribution distribution(TableScan scan, RelMetadataQuery mq) {

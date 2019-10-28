@@ -23,6 +23,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -92,6 +93,11 @@ public class RelMdSelectivity
   }
 
   public Double getSelectivity(Sort rel, RelMetadataQuery mq,
+      RexNode predicate) {
+    return mq.getSelectivity(rel.getInput(), predicate);
+  }
+
+  public Double getSelectivity(TableModify rel, RelMetadataQuery mq,
       RexNode predicate) {
     return mq.getSelectivity(rel.getInput(), predicate);
   }

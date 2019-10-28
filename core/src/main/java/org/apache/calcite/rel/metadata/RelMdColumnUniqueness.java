@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
@@ -140,6 +141,12 @@ public class RelMdColumnUniqueness
   }
 
   public Boolean areColumnsUnique(Sort rel, RelMetadataQuery mq,
+      ImmutableBitSet columns, boolean ignoreNulls) {
+    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
+    return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
+  }
+
+  public Boolean areColumnsUnique(TableModify rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);

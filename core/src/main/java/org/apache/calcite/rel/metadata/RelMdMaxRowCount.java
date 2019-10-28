@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -189,6 +190,10 @@ public class RelMdMaxRowCount
     // For Values, the maximum row count is the actual row count.
     // This is especially useful if Values is empty.
     return (double) values.getTuples().size();
+  }
+
+  public Double getMaxRowCount(TableModify rel, RelMetadataQuery mq) {
+    return mq.getMaxRowCount(rel.getInput());
   }
 
   public Double getMaxRowCount(RelSubset rel, RelMetadataQuery mq) {
