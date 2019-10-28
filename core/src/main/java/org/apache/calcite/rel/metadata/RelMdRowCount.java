@@ -29,6 +29,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -215,6 +216,10 @@ public class RelMdRowCount
   }
 
   public Double getRowCount(Exchange rel, RelMetadataQuery mq) {
+    return mq.getRowCount(rel.getInput());
+  }
+
+  public Double getRowCount(TableModify rel, RelMetadataQuery mq) {
     return mq.getRowCount(rel.getInput());
   }
 }

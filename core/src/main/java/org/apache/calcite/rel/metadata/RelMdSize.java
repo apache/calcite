@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -115,6 +116,10 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
   }
 
   public List<Double> averageColumnSizes(Sort rel, RelMetadataQuery mq) {
+    return mq.getAverageColumnSizes(rel.getInput());
+  }
+
+  public List<Double> averageColumnSizes(TableModify rel, RelMetadataQuery mq) {
     return mq.getAverageColumnSizes(rel.getInput());
   }
 

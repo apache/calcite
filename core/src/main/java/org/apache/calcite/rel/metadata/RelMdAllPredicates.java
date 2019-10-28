@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.type.RelDataType;
@@ -246,6 +247,13 @@ public class RelMdAllPredicates
    */
   public RelOptPredicateList getAllPredicates(Aggregate agg, RelMetadataQuery mq) {
     return mq.getAllPredicates(agg.getInput());
+  }
+
+  /**
+   * Extract predicates for an TableModify.
+   */
+  public RelOptPredicateList getAllPredicates(TableModify tableModify, RelMetadataQuery mq) {
+    return mq.getAllPredicates(tableModify.getInput());
   }
 
   /**

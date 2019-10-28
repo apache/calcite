@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.SortExchange;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
@@ -129,6 +130,11 @@ public class RelMdCollation
   }
 
   public ImmutableList<RelCollation> collations(Filter rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getInput());
+  }
+
+  public ImmutableList<RelCollation> collations(TableModify rel,
       RelMetadataQuery mq) {
     return mq.collations(rel.getInput());
   }
