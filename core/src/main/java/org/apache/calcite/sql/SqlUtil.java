@@ -315,6 +315,7 @@ public abstract class SqlUtil {
 
   /**
    * Unparse a SqlIdentifier syntax.
+   *
    * @param writer       Writer
    * @param identifier   SqlIdentifier
    * @param asFunctionID Whether this identifier comes from a SqlFunction

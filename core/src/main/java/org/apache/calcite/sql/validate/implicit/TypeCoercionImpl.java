@@ -311,7 +311,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * Cast "BOOLEAN = NUMERIC" to "NUMERIC = NUMERIC". Expressions like 1=`expr` and
    * 0=`expr` can be simplified to `expr` and `not expr`, but this better happens
    * in {@link org.apache.calcite.rex.RexSimplify}.
-   * There are 2 cases that need type coercion here:
+   *
+   * <p>There are 2 cases that need type coercion here:
    * <ol>
    *   <li>Case1: `boolean expr1` = 1 or `boolean expr1` = 0, replace the numeric literal with
    *   `true` or `false` boolean literal.</li>

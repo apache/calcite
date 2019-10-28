@@ -792,20 +792,23 @@ public interface SqlValidator {
   boolean isLenientOperatorLookup();
 
   /**
-   * Set if implicit type coercion is allowed when the validator does validation.
-   * See {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl} for the details.
-   * @param enabled default as true.
+   * Sets enable or disable implicit type coercion when the validator does validation.
+   *
+   * @param enabled if enable the type coercion, default is true
+   *
+   * @see org.apache.calcite.sql.validate.implicit.TypeCoercionImpl TypeCoercionImpl
    */
   SqlValidator setEnableTypeCoercion(boolean enabled);
 
-  /** Get if this validator supports implicit type coercion. */
+  /** Returns if this validator supports implicit type coercion. */
   boolean isTypeCoercionEnabled();
 
   /**
-   * Set an instance of type coercion, you can customize the coercion rules to
-   * override the default ones
-   * in {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
-   * @param typeCoercion instance of {@link TypeCoercion}.
+   * Sets an instance of type coercion, you can customize the coercion rules to
+   * override the default ones defined in
+   * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
+   *
+   * @param typeCoercion {@link TypeCoercion} instance
    */
   void setTypeCoercion(TypeCoercion typeCoercion);
 
