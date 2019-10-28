@@ -16,20 +16,15 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.plan.hep.HepProgram;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.schema.impl.ViewTable;
-import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.ScannableTableTest;
+import org.apache.calcite.test.SqlToRelTestBase;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -42,14 +37,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
  * Unit test for {@link MaterializedViewSubstitutionVisitor}.
  */
-public class MaterializedViewSubstitutionVisitorTest {
+public class MaterializedViewSubstitutionVisitorTest extends SqlToRelTestBase {
 
   // Before
   private SchemaPlus rootSchema;
@@ -75,31 +68,24 @@ public class MaterializedViewSubstitutionVisitorTest {
         + "GROUP BY \"empid\", \"deptno\"";
     String query = "SELECT \"empid\", SUM(\"salary\") FROM \"emps\" GROUP BY \"empid\"";
 
-    RelNode mvRelNode = compile(mv);
-    RelNode queryRelNode = compile(query);
+    RelNode mvRelNode = convertSqlToRel(mv);
+    RelNode queryRelNode = convertSqlToRel(query);
 
     SchemaPlus hr = rootSchema.getSubSchema("hr");
-    ViewTableMacro mvTable = ViewTable.viewMacro(hr, mv,
-        Collections.singletonList("hr"),
-        Arrays.asList("hr", "mv"), false);
-    hr.add("mv", mvTable);
-
+    hr.add("mv", new ScannableTableTest.SimpleTable());
     RelNode tableScan = relBuilder.scan("hr", "mv").build();
-
-    HepProgram program =
-        new HepProgramBuilder()
-            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
-            .addRuleInstance(ProjectMergeRule.INSTANCE)
-            .addRuleInstance(ProjectRemoveRule.INSTANCE)
-            .build();
 
     List<RelNode> relNodes = new MaterializedViewSubstitutionVisitor(mvRelNode, queryRelNode)
         .go(tableScan);
 
+    String relStr = "LogicalAggregate(group=[{0}], EXPR$1=[SUM($2)])\n"
+        + "  LogicalTableScan(table=[[hr, mv]])\n";
+
     Assert.assertEquals(relNodes.size(), 1);
+    Assert.assertEquals(RelOptUtil.toString(relNodes.get(0)), relStr);
   }
 
-  private RelNode compile(String sql)
+  private RelNode convertSqlToRel(String sql)
       throws SqlParseException, ValidationException, RelConversionException {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
