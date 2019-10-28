@@ -1112,7 +1112,7 @@ public class SqlValidatorUtil {
    * @param opTab    operator table to look up
    * @param funName  function name
    * @param funcType function category
-   * @return A sql function if and only if there is one operator matches, else null.
+   * @return A sql function if and only if there is one operator matches, else null
    */
   public static SqlOperator lookupSqlFunctionByID(SqlOperatorTable opTab,
       SqlIdentifier funName,
