@@ -2273,6 +2273,12 @@ public class RexImpTable {
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             SqlStdOperatorTable.GREATER_THAN,
             SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+
+    private static final List<SqlBinaryOperator> EQUALS_OPERATORS =
+        ImmutableList.of(
+            SqlStdOperatorTable.EQUALS,
+            SqlStdOperatorTable.NOT_EQUALS);
+
     public static final String METHOD_POSTFIX_FOR_ANY_TYPE = "Any";
 
     private final ExpressionType expressionType;
@@ -2316,6 +2322,16 @@ public class RexImpTable {
             || type1 == BigDecimal.class
             || COMPARISON_OPERATORS.contains(op)
             && !COMP_OP_TYPES.contains(primitive)) {
+          return Expressions.call(SqlFunctions.class, backupMethodName,
+              expressions);
+        }
+        // When checking equals or not equals on two primitive boxing classes
+        // (i.e. Long x, Long y), we should fall back to call `SqlFunctions.eq(x, y)`
+        // or `SqlFunctions.ne(x, y)`, rather than `x == y`
+        final Primitive boxPrimitive0 = Primitive.ofBox(type0);
+        final Primitive boxPrimitive1 = Primitive.ofBox(type1);
+        if (EQUALS_OPERATORS.contains(op)
+            && boxPrimitive0 != null && boxPrimitive1 != null) {
           return Expressions.call(SqlFunctions.class, backupMethodName,
               expressions);
         }
