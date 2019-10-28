@@ -5943,6 +5943,22 @@ public class JdbcTest {
         .returnsUnordered("EMPNO=7876", "EMPNO=7499", "EMPNO=7698");
   }
 
+  @Test public void testTimestampEqualsComparison() {
+    CalciteAssert.that()
+        .query("select time0 = time1, time0 <> time1"
+            + " from ("
+            + "  select timestamp'2000-12-30 21:07:32'as time0,"
+            + "         timestamp'2000-12-30 21:07:32'as time1 "
+            + "  union all"
+            + "  select cast(null as timestamp) as time0,"
+            + "         cast(null as timestamp) as time1"
+            + ") calcs")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.eq(inp0_, inp1_)")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.ne(inp0_, inp1_)")
+        .returns("EXPR$0=true; EXPR$1=false\n"
+            + "EXPR$0=null; EXPR$1=null\n");
+  }
+
   @Test public void testUnicode() throws Exception {
     CalciteAssert.AssertThat with =
         CalciteAssert.that().with(CalciteAssert.Config.FOODMART_CLONE);
