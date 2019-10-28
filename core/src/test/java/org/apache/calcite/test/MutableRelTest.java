@@ -141,9 +141,9 @@ public class MutableRelTest {
         sql,
         true,
         ImmutableList.of(
-            FilterProjectTransposeRule.INSTANCE,
+            FilterProjectTransposeRule.LOGICAL_INSTANCE,
             FilterJoinRule.FILTER_ON_JOIN,
-            ProjectMergeRule.INSTANCE,
+            ProjectMergeRule.LOGICAL_INSTANCE,
             SemiJoinRule.PROJECT));
   }
 

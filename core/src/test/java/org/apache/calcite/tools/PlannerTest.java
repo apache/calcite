@@ -41,7 +41,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -1361,8 +1360,7 @@ public class PlannerTest {
   @Test public void testMergeProjectForceMode() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            new ProjectMergeRule(true,
-                RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
+            ProjectMergeRule.LOGICAL_INSTANCE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
   }

@@ -20,9 +20,10 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 
 /**
- * Rule to convert an {@link org.apache.calcite.rel.core.Sort} that has
+ * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalSort} that has
  * {@code offset} or {@code fetch} set to an
  * {@link EnumerableLimit}
  * on top of a "pure" {@code Sort} that has no offset or fetch.
@@ -30,7 +31,7 @@ import org.apache.calcite.rel.core.Sort;
 class EnumerableLimitRule extends RelOptRule {
   EnumerableLimitRule() {
     super(
-        operand(Sort.class, any()),
+        operand(LogicalSort.class, any()),
         "EnumerableLimitRule");
   }
 

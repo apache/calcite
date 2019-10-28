@@ -193,12 +193,12 @@ public abstract class RelOptMaterializations {
     RelNode target = materialization.queryRel;
     HepProgram program =
         new HepProgramBuilder()
-            .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+            .addRuleInstance(FilterProjectTransposeRule.LOGICAL_INSTANCE)
             .addRuleInstance(FilterMergeRule.INSTANCE)
             .addRuleInstance(FilterJoinRule.FILTER_ON_JOIN)
             .addRuleInstance(FilterJoinRule.JOIN)
             .addRuleInstance(FilterAggregateTransposeRule.INSTANCE)
-            .addRuleInstance(ProjectMergeRule.INSTANCE)
+            .addRuleInstance(ProjectMergeRule.LOGICAL_INSTANCE)
             .addRuleInstance(ProjectRemoveRule.INSTANCE)
             .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
             .addRuleInstance(FilterToCalcRule.INSTANCE)

@@ -38,7 +38,12 @@ import java.util.List;
  */
 public class ProjectMergeRule extends RelOptRule {
   public static final ProjectMergeRule INSTANCE =
-      new ProjectMergeRule(true, RelFactories.LOGICAL_BUILDER);
+      new ProjectMergeRule(Project.class, Project.class,
+        true, RelFactories.LOGICAL_BUILDER);
+
+  public static final ProjectMergeRule LOGICAL_INSTANCE =
+      new ProjectMergeRule(LogicalProject.class, LogicalProject.class,
+        true, RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 
@@ -52,10 +57,12 @@ public class ProjectMergeRule extends RelOptRule {
    *
    * @param force Whether to always merge projects
    */
-  public ProjectMergeRule(boolean force, RelBuilderFactory relBuilderFactory) {
+  public ProjectMergeRule(Class<? extends Project> firstProjectClass,
+                          Class<? extends Project> secondProjectClass,
+                          boolean force, RelBuilderFactory relBuilderFactory) {
     super(
-        operand(Project.class,
-            operand(Project.class, any())),
+        operand(firstProjectClass,
+            operand(secondProjectClass, any())),
         relBuilderFactory,
         "ProjectMergeRule" + (force ? ":force_mode" : ""));
     this.force = force;
@@ -63,7 +70,7 @@ public class ProjectMergeRule extends RelOptRule {
 
   @Deprecated // to be removed before 2.0
   public ProjectMergeRule(boolean force, ProjectFactory projectFactory) {
-    this(force, RelBuilder.proto(projectFactory));
+    this(Project.class, Project.class, force, RelBuilder.proto(projectFactory));
   }
 
   //~ Methods ----------------------------------------------------------------

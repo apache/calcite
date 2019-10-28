@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 
@@ -33,7 +34,7 @@ import java.util.stream.Collectors;
 
 /**
  * Planner rule that removes keys from a
- * a {@link org.apache.calcite.rel.core.Sort} if those keys are known to be
+ * a {@link org.apache.calcite.rel.logical.LogicalSort} if those keys are known to be
  * constant, or removes the entire Sort if all keys are constant.
  *
  * <p>Requires {@link RelCollationTraitDef}.
@@ -44,7 +45,7 @@ public class SortRemoveConstantKeysRule extends RelOptRule {
 
   private SortRemoveConstantKeysRule() {
     super(
-        operand(Sort.class, any()),
+        operand(LogicalSort.class, any()),
         RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");
   }
 

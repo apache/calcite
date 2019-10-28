@@ -83,8 +83,8 @@ public class PigConverter extends PigServer {
       ImmutableList.of(
           ProjectWindowTransposeRule.INSTANCE,
           FilterMergeRule.INSTANCE,
-          ProjectMergeRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
+          ProjectMergeRule.LOGICAL_INSTANCE,
+          FilterProjectTransposeRule.LOGICAL_INSTANCE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,

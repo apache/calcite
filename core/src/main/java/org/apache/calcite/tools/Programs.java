@@ -106,11 +106,11 @@ public class Programs {
           MatchRule.INSTANCE,
           CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
-              : ProjectMergeRule.INSTANCE,
+              : ProjectMergeRule.LOGICAL_INSTANCE,
           AggregateStarTableRule.INSTANCE,
           AggregateStarTableRule.INSTANCE2,
           FilterTableScanRule.INSTANCE,
-          FilterProjectTransposeRule.INSTANCE,
+          FilterProjectTransposeRule.LOGICAL_INSTANCE,
           FilterJoinRule.FILTER_ON_JOIN,
           AggregateExpandDistinctAggregatesRule.INSTANCE,
           AggregateReduceFunctionsRule.INSTANCE,
