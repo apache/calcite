@@ -18,7 +18,10 @@ package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.rel.*;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
