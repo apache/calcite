@@ -36,6 +36,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -2358,6 +2359,27 @@ public class RelMetadataTest extends SqlToRelTestBase {
     expected.put(TableModify.class, 1);
     expected.put(Project.class, 1);
     checkNodeTypeCount(sql, expected);
+  }
+
+  @Test public void testNodeTypeExchange() {
+
+    final RelNode rel = convertSql("select * from emp");
+    final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
+    final LogicalExchange exchange = LogicalExchange.create(rel, dist);
+
+    final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
+    expected.put(TableScan.class, 1);
+    expected.put(Exchange.class, 1);
+    expected.put(Project.class, 1);
+
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final Multimap<Class<? extends RelNode>, RelNode> result = mq.getNodeTypes(exchange);
+    assertThat(result, notNullValue());
+    final Map<Class<? extends RelNode>, Integer> resultCount = new HashMap<>();
+    for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : result.asMap().entrySet()) {
+      resultCount.put(e.getKey(), e.getValue().size());
+    }
+    assertEquals(expected, resultCount);
   }
 
   @Test public void testNodeTypeCountJoinFinite() {

@@ -21,6 +21,7 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
@@ -132,6 +133,11 @@ public class RelMdNodeTypes
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(TableModify rel,
       RelMetadataQuery mq) {
     return getNodeTypes(rel, TableModify.class, mq);
+  }
+
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Exchange rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Exchange.class, mq);
   }
 
   private static Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel,
