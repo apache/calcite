@@ -74,6 +74,7 @@ import java.util.List;
  * the standard operators and functions.
  */
 public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
+
   //~ Static fields/initializers ---------------------------------------------
 
   /**

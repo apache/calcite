@@ -23,7 +23,6 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -152,8 +151,7 @@ public class BabelQuidemTest extends QuidemTest {
         final Planner planner = Frameworks.getPlanner(config.build());
         final SqlNode node = planner.parse(sqlCommand.sql);
         final SqlNode validateNode = planner.validate(node);
-        final SqlWriter sqlWriter =
-            new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+        final SqlWriter sqlWriter = new SqlPrettyWriter();
         validateNode.unparse(sqlWriter, 0, 0);
         x.echo(ImmutableList.of(sqlWriter.toSqlString().getSql()));
       } else {

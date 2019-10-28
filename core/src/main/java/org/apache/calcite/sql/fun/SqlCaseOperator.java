@@ -127,9 +127,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SqlCaseOperator extends SqlOperator {
   public static final SqlCaseOperator INSTANCE = new SqlCaseOperator();
 
-  private static final SqlWriter.FrameType FRAME_TYPE =
-      SqlWriter.FrameTypeEnum.create("CASE");
-
   //~ Constructors -----------------------------------------------------------
 
   private SqlCaseOperator() {
@@ -331,7 +328,7 @@ public class SqlCaseOperator extends SqlOperator {
       int rightPrec) {
     SqlCase kase = (SqlCase) call_;
     final SqlWriter.Frame frame =
-        writer.startList(FRAME_TYPE, "CASE", "END");
+        writer.startList(SqlWriter.FrameTypeEnum.CASE, "CASE", "END");
     assert kase.whenList.size() == kase.thenList.size();
     if (kase.value != null) {
       kase.value.unparse(writer, 0, 0);

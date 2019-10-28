@@ -19,6 +19,7 @@ package org.apache.calcite.sql.test;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -32,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -69,10 +69,10 @@ public class SqlPrettyWriterTest {
     private final boolean expr;
     private final String desc;
     private final String formatted;
-    private final UnaryOperator<SqlPrettyWriter> transform;
+    private final UnaryOperator<SqlWriterConfig> transform;
 
     Sql(String sql, boolean expr, String desc, String formatted,
-        UnaryOperator<SqlPrettyWriter> transform) {
+        UnaryOperator<SqlWriterConfig> transform) {
       this.sql = Objects.requireNonNull(sql);
       this.expr = expr;
       this.desc = desc;
@@ -80,13 +80,10 @@ public class SqlPrettyWriterTest {
       this.transform = Objects.requireNonNull(transform);
     }
 
-    Sql withWriter(Consumer<SqlPrettyWriter> consumer) {
-      Objects.requireNonNull(consumer);
-      return new Sql(sql, expr, desc, formatted, w -> {
-        final SqlPrettyWriter w2 = transform.apply(w);
-        consumer.accept(w2);
-        return w2;
-      });
+    Sql withWriter(UnaryOperator<SqlWriterConfig> transform) {
+      Objects.requireNonNull(transform);
+      return new Sql(sql, expr, desc, formatted, w ->
+          transform.apply(this.transform.apply(w)));
     }
 
     Sql expectingDesc(String desc) {
@@ -108,8 +105,10 @@ public class SqlPrettyWriterTest {
     }
 
     Sql check() {
-      final SqlPrettyWriter prettyWriter =
-          transform.apply(new SqlPrettyWriter(AnsiSqlDialect.DEFAULT));
+      final SqlWriterConfig config =
+          transform.apply(SqlPrettyWriter.config()
+              .withDialect(AnsiSqlDialect.DEFAULT));
+      final SqlPrettyWriter prettyWriter = new SqlPrettyWriter(config);
       final SqlNode node;
       if (expr) {
         final SqlCall valuesCall = (SqlCall) parseQuery("VALUES (" + sql + ")");
@@ -169,11 +168,11 @@ public class SqlPrettyWriterTest {
   }
 
   private Sql sql(String sql) {
-    return new Sql(sql, false, "${desc}", "${formatted}", w -> w);
+    return new Sql(sql, false, null, "${formatted}", w -> w);
   }
 
   private Sql expr(String sql) {
-    return sql(sql).withExpr(true).expectingDesc(null);
+    return sql(sql).withExpr(true);
   }
 
   // ~ Tests ----------------------------------------------------------------
@@ -184,44 +183,113 @@ public class SqlPrettyWriterTest {
 
   @Test public void testIndent8() {
     simple()
-        .withWriter(w -> w.setIndentation(8))
+        .expectingDesc("${desc}")
+        .withWriter(w -> w.withIndentation(8))
         .check();
   }
 
   @Test public void testClausesNotOnNewLine() {
     simple()
-        .withWriter(w -> w.setClauseStartsLine(false))
+        .withWriter(w -> w.withClauseStartsLine(false))
         .check();
   }
 
   @Test public void testSelectListItemsOnSeparateLines() {
     simple()
-        .withWriter(w -> w.setSelectListItemsOnSeparateLines(true))
+        .withWriter(w -> w.withSelectListItemsOnSeparateLines(true))
         .check();
   }
 
-  @Test public void testSelectListExtraIndentFlag() {
+  @Test public void testSelectListNoExtraIndentFlag() {
     simple()
-        .withWriter(w -> w.setSelectListItemsOnSeparateLines(true))
-        .withWriter(w -> w.setSelectListExtraIndentFlag(false))
+        .withWriter(w -> w.withSelectListItemsOnSeparateLines(true)
+            .withSelectListExtraIndentFlag(false)
+            .withClauseEndsLine(true))
+        .check();
+  }
+
+  @Test public void testFold() {
+    simple()
+        .withWriter(w -> w.withLineFolding(SqlWriterConfig.LineFolding.FOLD)
+            .withFoldLength(45))
+        .check();
+  }
+
+  @Test public void testChop() {
+    simple()
+        .withWriter(w -> w.withLineFolding(SqlWriterConfig.LineFolding.CHOP)
+            .withFoldLength(45))
+        .check();
+  }
+
+  @Test public void testChopLeadingComma() {
+    simple()
+        .withWriter(w -> w.withLineFolding(SqlWriterConfig.LineFolding.CHOP)
+            .withFoldLength(45)
+            .withLeadingComma(true))
+        .check();
+  }
+
+  @Test public void testLeadingComma() {
+    simple()
+        .withWriter(w -> w.withLeadingComma(true)
+            .withSelectListItemsOnSeparateLines(true)
+            .withSelectListExtraIndentFlag(true))
+        .check();
+  }
+
+  @Test public void testClauseEndsLine() {
+    simple()
+        .withWriter(w -> w.withClauseEndsLine(true)
+            .withLineFolding(SqlWriterConfig.LineFolding.WIDE)
+            .withFoldLength(45))
+        .check();
+  }
+
+  @Test public void testClauseEndsLineTall() {
+    simple()
+        .withWriter(w -> w.withClauseEndsLine(true)
+            .withLineFolding(SqlWriterConfig.LineFolding.TALL)
+            .withFoldLength(45))
+        .check();
+  }
+
+  @Test public void testClauseEndsLineFold() {
+    simple()
+        .withWriter(w -> w.withClauseEndsLine(true)
+            .withLineFolding(SqlWriterConfig.LineFolding.FOLD)
+            .withFoldLength(45))
+        .check();
+  }
+
+  /** Tests formatting a query with Looker's preferences. */
+  @Test public void testLooker() {
+    simple()
+        .withWriter(w -> w.withFoldLength(60)
+            .withLineFolding(SqlWriterConfig.LineFolding.STEP)
+            .withSelectFolding(SqlWriterConfig.LineFolding.TALL)
+            .withFromFolding(SqlWriterConfig.LineFolding.TALL)
+            .withWhereFolding(SqlWriterConfig.LineFolding.TALL)
+            .withHavingFolding(SqlWriterConfig.LineFolding.TALL)
+            .withClauseEndsLine(true))
         .check();
   }
 
   @Test public void testKeywordsLowerCase() {
     simple()
-        .withWriter(w -> w.setKeywordsLowerCase(true))
+        .withWriter(w -> w.withKeywordsLowerCase(true))
         .check();
   }
 
   @Test public void testParenthesizeAllExprs() {
     simple()
-        .withWriter(w -> w.setAlwaysUseParentheses(true))
+        .withWriter(w -> w.withAlwaysUseParentheses(true))
         .check();
   }
 
   @Test public void testOnlyQuoteIdentifiersWhichNeedIt() {
     simple()
-        .withWriter(w -> w.setQuoteAllIdentifiers(false))
+        .withWriter(w -> w.withQuoteAllIdentifiers(false))
         .check();
   }
 
@@ -229,7 +297,27 @@ public class SqlPrettyWriterTest {
     // Note that ( is at the indent, SELECT is on the same line, and ) is
     // below it.
     simple()
-        .withWriter(w -> w.setSubQueryStyle(SqlWriter.SubQueryStyle.BLACK))
+        .withWriter(w -> w.withSubQueryStyle(SqlWriter.SubQueryStyle.BLACK))
+        .check();
+  }
+
+  @Test public void testBlackSubQueryStyleIndent0() {
+    simple()
+        .withWriter(w -> w.withSubQueryStyle(SqlWriter.SubQueryStyle.BLACK)
+            .withIndentation(0))
+        .check();
+  }
+
+  @Test public void testValuesNewline() {
+    sql("select * from (values (1, 2), (3, 4)) as t")
+        .withWriter(w -> w.withValuesListNewline(true))
+        .check();
+  }
+
+  @Test public void testValuesLeadingCommas() {
+    sql("select * from (values (1, 2), (3, 4)) as t")
+        .withWriter(w -> w.withValuesListNewline(true)
+            .withLeadingComma(true))
         .check();
   }
 
@@ -260,7 +348,7 @@ public class SqlPrettyWriterTest {
         + "ELSE 7\n"
         + "END";
     expr(sql)
-        .withWriter(w -> w.setCaseClausesOnNewLines(true))
+        .withWriter(w -> w.withCaseClausesOnNewLines(true))
         .expectingFormatted(formatted)
         .check();
   }
@@ -310,10 +398,6 @@ public class SqlPrettyWriterTest {
   }
 
   @Test public void testUnion() {
-    // todo: SELECT should not be indented from UNION, like this:
-    // UNION
-    //     SELECT *
-    //     FROM `W`
     final String sql = "select * from t "
         + "union select * from ("
         + "  select * from u "
@@ -321,19 +405,50 @@ public class SqlPrettyWriterTest {
         + "union select * from w "
         + "order by a, b";
     sql(sql)
-        .expectingDesc(null)
         .check();
   }
 
   @Test public void testMultiset() {
     sql("values (multiset (select * from t))")
-        .expectingDesc(null)
         .check();
+  }
+
+  @Test public void testJoinComma() {
+    final String sql = "select *\n"
+        + "from x, y as y1, z, (select * from a, a2 as a3),\n"
+        + " (select * from b) as b2\n"
+        + "where p = q\n"
+        + "and exists (select 1 from v, w)";
+    sql(sql).check();
   }
 
   @Test public void testInnerJoin() {
     sql("select * from x inner join y on x.k=y.k")
-        .expectingDesc(null)
+        .check();
+  }
+
+  @Test public void testJoinTall() {
+    sql("select * from x inner join y on x.k=y.k left join z using (a)")
+        .withWriter(c -> c.withLineFolding(SqlWriterConfig.LineFolding.TALL))
+        .check();
+  }
+
+  @Test public void testJoinTallClauseEndsLine() {
+    sql("select * from x inner join y on x.k=y.k left join z using (a)")
+        .withWriter(c -> c.withLineFolding(SqlWriterConfig.LineFolding.TALL)
+            .withClauseEndsLine(true))
+        .check();
+  }
+
+  @Test public void testJoinLateralSubQueryTall() {
+    final String sql = "select *\n"
+        + "from (select a from customers where b < c group by d) as c,\n"
+        + " products,\n"
+        + " lateral (select e from orders where exists (\n"
+        + "    select 1 from promotions)) as t5\n"
+        + "group by f";
+    sql(sql)
+        .withWriter(c -> c.withLineFolding(SqlWriterConfig.LineFolding.TALL))
         .check();
   }
 
@@ -344,9 +459,9 @@ public class SqlPrettyWriterTest {
         + " or ((a or b) is true) and d not in (f,g)"
         + " or x <> z";
     sql(sql)
-        .withWriter(w -> w.setSelectListItemsOnSeparateLines(true))
-        .withWriter(w -> w.setSelectListExtraIndentFlag(false))
-        .withWriter(w -> w.setWhereListItemsOnSeparateLines(true))
+        .withWriter(w -> w.withSelectListItemsOnSeparateLines(true)
+            .withSelectListExtraIndentFlag(false)
+            .withWhereListItemsOnSeparateLines(true))
         .check();
   }
 
@@ -357,9 +472,80 @@ public class SqlPrettyWriterTest {
         + " or ((a or b) is true)) and (d not in (f,g)"
         + " or v <> ((w * x) + y) * z)";
     sql(sql)
-        .withWriter(w -> w.setSelectListItemsOnSeparateLines(true))
-        .withWriter(w -> w.setSelectListExtraIndentFlag(false))
-        .withWriter(w -> w.setWhereListItemsOnSeparateLines(true))
+        .withWriter(w -> w.withSelectListItemsOnSeparateLines(true)
+            .withSelectListExtraIndentFlag(false)
+            .withWhereListItemsOnSeparateLines(true))
         .check();
+  }
+
+  /** As {@link #testWhereListItemsOnSeparateLinesAnd()}, but
+   * with {@link SqlWriterConfig#clauseEndsLine ClauseEndsLine=true}. */
+  @Test public void testWhereListItemsOnSeparateLinesAndNewline() {
+    final String sql = "select x"
+        + " from y"
+        + " where h is not null and (i < j"
+        + " or ((a or b) is true)) and (d not in (f,g)"
+        + " or v <> ((w * x) + y) * z)";
+    sql(sql)
+        .withWriter(w -> w.withSelectListItemsOnSeparateLines(true)
+            .withSelectListExtraIndentFlag(false)
+            .withWhereListItemsOnSeparateLines(true)
+            .withClauseEndsLine(true))
+        .check();
+  }
+
+  @Test public void testUpdate() {
+    final String sql = "update emp\n"
+        + "set mgr = mgr + 1, deptno = 5\n"
+        + "where deptno = 10 and name = 'Fred'";
+    sql(sql)
+        .check();
+  }
+
+  @Test public void testUpdateNoLine() {
+    final String sql = "update emp\n"
+        + "set mgr = mgr + 1, deptno = 5\n"
+        + "where deptno = 10 and name = 'Fred'";
+    sql(sql)
+        .withWriter(w -> w.withUpdateSetListNewline(false))
+        .check();
+  }
+
+  @Test public void testUpdateNoLine2() {
+    final String sql = "update emp\n"
+        + "set mgr = mgr + 1, deptno = 5\n"
+        + "where deptno = 10 and name = 'Fred'";
+    sql(sql)
+        .withWriter(w -> w.withUpdateSetListNewline(false)
+            .withClauseStartsLine(false))
+        .check();
+  }
+
+  public static void main(String[] args) throws SqlParseException {
+    final String sql = "select x as a, b as b, c as c, d,"
+        + " 'mixed-Case string',"
+        + " unquotedCamelCaseId,"
+        + " \"quoted id\" "
+        + "from"
+        + " (select *"
+        + " from t"
+        + " where x = y and a > 5"
+        + " group by z, zz"
+        + " window w as (partition by c),"
+        + "  w1 as (partition by c,d order by a, b"
+        + "   range between interval '2:2' hour to minute preceding"
+        + "    and interval '1' day following)) "
+        + "order by gg desc nulls last, hh asc";
+    final SqlNode node = SqlParser.create(sql).parseQuery();
+
+    final SqlWriterConfig config = SqlPrettyWriter.config()
+        .withLineFolding(SqlWriterConfig.LineFolding.STEP)
+        .withSelectFolding(SqlWriterConfig.LineFolding.TALL)
+        .withFromFolding(SqlWriterConfig.LineFolding.TALL)
+        .withWhereFolding(SqlWriterConfig.LineFolding.TALL)
+        .withHavingFolding(SqlWriterConfig.LineFolding.TALL)
+        .withIndentation(4)
+        .withClauseEndsLine(true);
+    System.out.println(new SqlPrettyWriter(config).format(node));
   }
 }

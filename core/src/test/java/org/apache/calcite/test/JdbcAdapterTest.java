@@ -306,7 +306,7 @@ public class JdbcAdapterTest {
             + "\"t0\".\"DNAME\", \"SALGRADE\".\"GRADE\"\n"
             + "FROM \"SCOTT\".\"SALGRADE\"\n"
             + "INNER JOIN ((SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
             + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")"
             + " ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");

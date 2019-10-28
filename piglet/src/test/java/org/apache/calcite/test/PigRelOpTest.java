@@ -253,12 +253,12 @@ public class PigRelOpTest extends PigRelTestBase {
 
     final String sql = ""
         + "SELECT *\n"
-        + "  FROM scott.EMP\n"
-        + "  WHERE DEPTNO = 10\n"
+        + "FROM scott.EMP\n"
+        + "WHERE DEPTNO = 10\n"
         + "UNION ALL\n"
-        + "  SELECT *\n"
-        + "  FROM scott.EMP\n"
-        + "  WHERE DEPTNO = 20";
+        + "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE DEPTNO = 20";
     pig(script)
         .assertRel("B1", false,
             hasTree("LogicalFilter(condition=[=($7, 10)])\n"
@@ -377,11 +377,11 @@ public class PigRelOpTest extends PigRelTestBase {
         + " $cor1.SAL, $cor1.COMM, $cor1.DEPTNO0 AS DEPTNO\n"
         + "FROM (SELECT DEPTNO, JOB, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS $f2\n"
-        + "      FROM scott.EMP\n"
-        + "      WHERE JOB <> 'CLERK'\n"
-        + "      GROUP BY DEPTNO, JOB) AS $cor1,\n"
-        + "    LATERAL UNNEST (SELECT $cor1.$f2 AS $f0\n"
-        + "        FROM (VALUES  (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
+        + "    FROM scott.EMP\n"
+        + "    WHERE JOB <> 'CLERK'\n"
+        + "    GROUP BY DEPTNO, JOB) AS $cor1,\n"
+        + "  LATERAL UNNEST (SELECT $cor1.$f2 AS $f0\n"
+        + "    FROM (VALUES  (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
         + " MGR, HIREDATE, SAL, COMM, DEPTNO) AS t30\n"
         + "ORDER BY $cor1.DEPTNO, $cor1.JOB";
     pig(script).assertRel(hasTree(plan))
@@ -464,20 +464,20 @@ public class PigRelOpTest extends PigRelTestBase {
         + "FROM (SELECT $cor4.DEPTNO AS group, "
         + "COUNT(PIG_BAG($cor4.X)) AS cnt, $cor4.X, "
         + "BigDecimalMax(PIG_BAG(MULTISET_PROJECTION($cor4.X, 3))) AS $f3\n"
-        + "      FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
+        + "    FROM (SELECT DEPTNO, COLLECT(ROW(EMPNO, ENAME, JOB, MGR, "
         + "HIREDATE, SAL, COMM, DEPTNO)) AS A\n"
-        + "            FROM scott.EMP\n"
-        + "            GROUP BY DEPTNO) AS $cor4,\n"
-        + "          LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
-        + "            FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
-        + "                  FROM UNNEST (SELECT $cor4.A AS $f0\n"
-        + "                        FROM (VALUES  (0)) AS t (ZERO)) "
+        + "        FROM scott.EMP\n"
+        + "        GROUP BY DEPTNO) AS $cor4,\n"
+        + "      LATERAL (SELECT COLLECT(ROW(ENAME, JOB, DEPTNO, SAL)) AS X\n"
+        + "        FROM (SELECT ENAME, JOB, DEPTNO, SAL\n"
+        + "            FROM UNNEST (SELECT $cor4.A AS $f0\n"
+        + "                FROM (VALUES  (0)) AS t (ZERO)) "
         + "AS t2 (EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO)\n"
-        + "                  WHERE JOB <> 'CLERK'\n"
-        + "                  ORDER BY SAL) AS t5\n"
-        + "            GROUP BY 'all') AS t8) AS $cor5,\n"
-        + "    LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
-        + "        FROM (VALUES  (0)) AS t (ZERO)) "
+        + "            WHERE JOB <> 'CLERK'\n"
+        + "            ORDER BY SAL) AS t5\n"
+        + "        GROUP BY 'all') AS t8) AS $cor5,\n"
+        + "  LATERAL UNNEST (SELECT $cor5.X AS $f0\n"
+        + "    FROM (VALUES  (0)) AS t (ZERO)) "
         + "AS t11 (ENAME, JOB, DEPTNO, SAL) AS t110\n"
         + "ORDER BY $cor5.group";
     pig(script).assertRel(hasTree(plan))
@@ -510,12 +510,12 @@ public class PigRelOpTest extends PigRelTestBase {
         + "(7902,FORD,ANALYST,7566,1981-12-03,3000.00,null,20)\n";
     final String sql = ""
         + "SELECT *\n"
-        + "  FROM scott.EMP\n"
-        + "  WHERE DEPTNO = 10\n"
+        + "FROM scott.EMP\n"
+        + "WHERE DEPTNO = 10\n"
         + "UNION ALL\n"
-        + "  SELECT *\n"
-        + "  FROM scott.EMP\n"
-        + "  WHERE DEPTNO = 20";
+        + "SELECT *\n"
+        + "FROM scott.EMP\n"
+        + "WHERE DEPTNO = 20";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));
@@ -548,11 +548,11 @@ public class PigRelOpTest extends PigRelTestBase {
         + "(40,OPERATIONS,null)\n";
     final String sql = ""
         + "SELECT *\n"
-        + "  FROM scott.DEPT\n"
+        + "FROM scott.DEPT\n"
         + "UNION ALL\n"
-        + "  SELECT DEPTNO, DNAME, "
+        + "SELECT DEPTNO, DNAME, "
         + "CAST(NULL AS VARCHAR CHARACTER SET ISO-8859-1) AS LOC\n"
-        + "  FROM scott.DEPT";
+        + "FROM scott.DEPT";
     pig(script).assertRel(hasTree(plan))
         .assertOptimizedRel(hasTree(optimizedPlan))
         .assertResult(is(result))
@@ -592,16 +592,16 @@ public class PigRelOpTest extends PigRelTestBase {
         + "SELECT EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, "
         + "CAST(NULL AS VARCHAR CHARACTER SET ISO-8859-1) AS DNAME, "
         + "CAST(NULL AS VARCHAR CHARACTER SET ISO-8859-1) AS LOC\n"
-        + "  FROM scott.EMP\n"
-        + "  WHERE DEPTNO = 10\n"
+        + "FROM scott.EMP\n"
+        + "WHERE DEPTNO = 10\n"
         + "UNION ALL\n"
-        + "  SELECT CAST(NULL AS INTEGER) AS EMPNO, "
+        + "SELECT CAST(NULL AS INTEGER) AS EMPNO, "
         + "CAST(NULL AS VARCHAR CHARACTER SET ISO-8859-1) AS ENAME, "
         + "CAST(NULL AS VARCHAR CHARACTER SET ISO-8859-1) AS JOB, "
         + "CAST(NULL AS INTEGER) AS MGR, "
         + "CAST(NULL AS DATE) AS HIREDATE, CAST(NULL AS DECIMAL(19, 0)) AS SAL, "
         + "CAST(NULL AS DECIMAL(19, 0)) AS COMM, DEPTNO, DNAME, LOC\n"
-        + "  FROM scott.DEPT";
+        + "FROM scott.DEPT";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));
@@ -720,8 +720,8 @@ public class PigRelOpTest extends PigRelTestBase {
         + "FROM scott.EMP\n"
         + "  INNER JOIN scott.DEPT ON EMP.DEPTNO = DEPT.DEPTNO\n"
         + "  INNER JOIN (SELECT *\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE LOC = 'CHICAGO') AS t ON EMP.DEPTNO = t.DEPTNO";
+        + "    FROM scott.DEPT\n"
+        + "    WHERE LOC = 'CHICAGO') AS t ON EMP.DEPTNO = t.DEPTNO";
     final String result = ""
         + "(7499,ALLEN,SALESMAN,7698,1981-02-20,1600.00,300.00,30,30,"
         + "SALES,CHICAGO,30,SALES,"
@@ -769,8 +769,8 @@ public class PigRelOpTest extends PigRelTestBase {
         + "  INNER JOIN scott.DEPT ON EMP.DEPTNO = DEPT.DEPTNO "
         + "AND EMP.ENAME = DEPT.DNAME\n"
         + "  INNER JOIN (SELECT *\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE LOC = 'CHICAGO') AS t ON EMP.DEPTNO = t.DEPTNO "
+        + "    FROM scott.DEPT\n"
+        + "    WHERE LOC = 'CHICAGO') AS t ON EMP.DEPTNO = t.DEPTNO "
         + "AND DEPT.DNAME = t.DNAME";
     pig(script2).assertRel(hasTree(plan2))
         .assertSql(is(sql2));
@@ -793,10 +793,10 @@ public class PigRelOpTest extends PigRelTestBase {
     final String sql = ""
         + "SELECT *\n"
         + "FROM (SELECT DEPTNO\n"
-        + "      FROM scott.DEPT) AS t,\n"
-        + "      (SELECT DEPTNO\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE DEPTNO <= 20) AS t1";
+        + "    FROM scott.DEPT) AS t,\n"
+        + "    (SELECT DEPTNO\n"
+        + "    FROM scott.DEPT\n"
+        + "    WHERE DEPTNO <= 20) AS t1";
     final String result = ""
         + "(10,10)\n"
         + "(10,20)\n"
@@ -850,13 +850,13 @@ public class PigRelOpTest extends PigRelTestBase {
     final String sql2 = ""
         + "SELECT *\n"
         + "FROM (SELECT DEPTNO\n"
-        + "      FROM scott.DEPT) AS t,\n"
-        + "      (SELECT DEPTNO\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE DEPTNO <= 20) AS t1,\n"
-        + "      (SELECT DEPTNO\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE DEPTNO > 20) AS t3";
+        + "    FROM scott.DEPT) AS t,\n"
+        + "    (SELECT DEPTNO\n"
+        + "    FROM scott.DEPT\n"
+        + "    WHERE DEPTNO <= 20) AS t1,\n"
+        + "    (SELECT DEPTNO\n"
+        + "    FROM scott.DEPT\n"
+        + "    WHERE DEPTNO > 20) AS t3";
     pig(script2).assertRel(hasTree(plan2))
         .assertResult(is(result2))
         .assertSql(is(sql2));
@@ -1591,19 +1591,21 @@ public class PigRelOpTest extends PigRelTestBase {
         + "AS DEPTNO, t4.A, t4.B, t7.C\n"
         + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
         + "AS DEPTNO, t0.A, t3.B\n"
-        + "      FROM (SELECT DEPTNO + 10 AS $f0, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
-        + "            FROM scott.DEPT\n"
-        + "            GROUP BY DEPTNO + 10) AS t0\n"
-        + "        FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, COLLECT(ROW"
-        + "(DEPTNO, DNAME, LOC)) AS B\n"
-        + "            FROM scott.DEPT\n"
-        + "            WHERE DEPTNO <= 30\n"
-        + "            GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 ON t0.$f0 = t3.DEPTNO) AS t4\n"
+        + "    FROM (SELECT DEPTNO + 10 AS $f0, "
+        + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
+        + "        FROM scott.DEPT\n"
+        + "        GROUP BY DEPTNO + 10) AS t0\n"
+        + "      FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, "
+        + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS B\n"
+        + "        FROM scott.DEPT\n"
+        + "        WHERE DEPTNO <= 30\n"
+        + "        GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 "
+        + "ON t0.$f0 = t3.DEPTNO) AS t4\n"
         + "  FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, COLLECT(ROW(DEPTNO, DNAME, "
         + "LOC)) AS C\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE DEPTNO >= 20\n"
-        + "      GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\n"
+        + "    FROM scott.DEPT\n"
+        + "    WHERE DEPTNO >= 20\n"
+        + "    GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\n"
         + "ORDER BY CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END";
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))

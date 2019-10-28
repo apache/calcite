@@ -521,8 +521,7 @@ public class RelToSqlConverter extends SqlImplementor
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
-          query = new SqlSelect(POS, null,
-              new SqlNodeList(ImmutableList.of(SqlIdentifier.star(POS)), POS),
+          query = new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR,
               as(query, "t"), createAlwaysFalseCondition(), null, null,
               null, null, null, null, null);
         } else {

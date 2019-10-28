@@ -36,7 +36,6 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -9004,8 +9003,7 @@ public abstract class SqlOperatorBaseTest {
           if (!typeChecker.checkOperandTypes(binding, false)) {
             continue;
           }
-          final SqlPrettyWriter writer =
-              new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+          final SqlPrettyWriter writer = new SqlPrettyWriter();
           op.unparse(writer, call, 0, 0);
           final String s = writer.toSqlString().toString();
           if (s.startsWith("OVERLAY(")

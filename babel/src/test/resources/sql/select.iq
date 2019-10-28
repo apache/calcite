@@ -25,7 +25,7 @@ ORDER BY emp.deptno;
 
 SELECT "EMP"."ENAME"
 FROM "scott"."EMP" AS "EMP",
-        "scott"."DEPT" AS "DEPT"
+    "scott"."DEPT" AS "DEPT"
 ORDER BY "EMP"."DEPTNO"
 !explain-validated-on all
 
