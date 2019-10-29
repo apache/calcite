@@ -17,7 +17,10 @@
 package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.test.RelBuilderTest;
+import org.apache.calcite.test.ScannableTableTest;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 
 import org.junit.Test;
@@ -33,18 +36,33 @@ public class MutableRelNodesEquivalenceTest {
 
   @Test
   public void testMutableScan() {
-    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
-    final RelNode scan1 = builder.scan("EMP").build();
-    final RelNode scan2 = builder.scan("EMP").build();
-    final RelNode scan3 = builder.scan("DEPT").build();
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final SchemaPlus schema = config.getDefaultSchema();
+    final RelBuilder builder = RelBuilder.create(config);
+    schema.add("scott.EMP", new ScannableTableTest.SimpleTable());
 
-    final MutableScan mutableScan1 = (MutableScan) MutableRels.toMutable(scan1);
-    final MutableScan mutableScan2 = (MutableScan) MutableRels.toMutable(scan2);
-    final MutableScan mutableScan3 = (MutableScan) MutableRels.toMutable(scan3);
+    assertThat(mutableScanOf(builder, "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott.EMP")));
+    assertThat(mutableScanOf(builder, "scott", "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott.EMP")));
+    assertThat(mutableScanOf(builder, "scott", "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott", "scott.EMP")));
 
-    assertThat(mutableScan1, equalTo(mutableScan2));
-    assertThat(mutableScan1, not(equalTo(mutableScan3)));
-    assertThat(mutableScan2, not(equalTo(mutableScan3)));
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "DEPT"))));
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott.EMP"))));
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott.EMP"))));
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott", "scott.EMP"))));
+  }
+
+  private MutableScan mutableScanOf(RelBuilder builder, String... tableNames) {
+    final RelNode scan = builder.scan(tableNames).build();
+    return (MutableScan) MutableRels.toMutable(scan);
   }
 
 }
