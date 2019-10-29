@@ -868,7 +868,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               context.config());
       final CalciteMaterializer materializer =
           new CalciteMaterializer(this, context, catalogReader, schema,
-              createConvertletTable(), cluster);
+              cluster, createConvertletTable());
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
