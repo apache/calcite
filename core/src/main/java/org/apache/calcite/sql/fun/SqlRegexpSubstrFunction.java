@@ -37,7 +37,7 @@ public class SqlRegexpSubstrFunction extends SqlFunction {
         SqlKind.REGEXP_SUBSTR,
         ReturnTypes.VARCHAR_2000_NULLABLE,
         null,
-        OperandTypes.STRING_STRING_STRING,
+        null,
         SqlFunctionCategory.STRING);
   }
 

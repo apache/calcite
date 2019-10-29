@@ -173,9 +173,6 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
-//  @LibraryOperator(libraries = {BIGQUERY})
-//  public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
-
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
@@ -188,7 +185,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
+      null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
@@ -196,7 +193,7 @@ public abstract class SqlLibraryOperators {
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
+      null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
