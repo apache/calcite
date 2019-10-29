@@ -33,6 +33,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -577,9 +580,14 @@ public abstract class Expressions {
         String stringValue = String.valueOf(value);
         if (type == BigDecimal.class) {
           value = new BigDecimal(stringValue);
-        }
-        if (type == BigInteger.class) {
+        } else if (type == BigInteger.class) {
           value = new BigInteger(stringValue);
+        } else if (type == Timestamp.class) {
+          value = Timestamp.valueOf(stringValue);
+        } else if (type == Date.class) {
+          value = Date.valueOf(stringValue);
+        } else if (type == Time.class) {
+          value = Time.valueOf(stringValue);
         }
         if (primitive != null) {
           value = primitive.parse(stringValue);

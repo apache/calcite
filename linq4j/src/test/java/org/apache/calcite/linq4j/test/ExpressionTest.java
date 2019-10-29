@@ -44,6 +44,9 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1273,6 +1276,23 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(199999999999999L, BigDecimal.class)));
     assertEquals("java.math.BigDecimal.valueOf(1234L, 2)",
         Expressions.toString(Expressions.constant(12.34, BigDecimal.class)));
+  }
+
+  @Test public void testTimeRelatedConstantExpression() {
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("2019-10-12 19:00:35", Timestamp.class)),
+        is("2019-10-12 19:00:35.0"));
+
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("2019-10-12", Date.class)),
+        is("2019-10-12"));
+
+    assertThat(
+        Expressions.toString(
+            Expressions.constant("19:00:35", Time.class)),
+        is("19:00:35"));
   }
 
   @Test public void testClassDecl() {

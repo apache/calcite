@@ -74,6 +74,12 @@ public class Smalls {
       Types.lookupMethod(Smalls.class, "generateStrings", Integer.class);
   public static final Method GENERATE_STRINGS_OF_INPUT_SIZE_METHOD =
       Types.lookupMethod(Smalls.class, "generateStringsOfInputSize", List.class);
+  public static final Method TIMESTAMP_STRING_LENGTH =
+      Types.lookupMethod(Smalls.class, "timestampStringLength", Timestamp.class);
+  public static final Method TIME_STRING_LENGTH =
+      Types.lookupMethod(Smalls.class, "timeStringLength", Time.class);
+  public static final Method DATE_STRING_LENGTH =
+      Types.lookupMethod(Smalls.class, "dateStringLength", Date.class);
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -186,6 +192,18 @@ public class Smalls {
 
   public static QueryableTable generateStringsOfInputSize(final List<Integer> list) {
     return generateStrings(list.size());
+  }
+
+  public static QueryableTable timestampStringLength(final Timestamp timestamp) {
+    return generateStrings(timestamp.toString().length());
+  }
+
+  public static QueryableTable timeStringLength(final Time time) {
+    return generateStrings(time.toString().length());
+  }
+
+  public static QueryableTable dateStringLength(final Date date) {
+    return generateStrings(date.toString().length());
   }
 
   /** A function that generates multiplication table of {@code ncol} columns x

@@ -123,6 +123,45 @@ public class TableFunctionTest {
     }
   }
 
+  @Test public void testTableFunctionWithTimeRelatedParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+
+      final TableFunction table1 =
+          TableFunctionImpl.create(Smalls.TIMESTAMP_STRING_LENGTH);
+      schema.add("TimestampStringLength", table1);
+      final String sql1 = "select *\n"
+          + "from table(\"s\".\"TimestampStringLength\"(TIMESTAMP '2019-10-12 19:00:35'))\n"
+          + "as t(n, c) where n > 19";
+      ResultSet resultSet1 = connection.createStatement().executeQuery(sql1);
+      assertThat(CalciteAssert.toString(resultSet1),
+          equalTo("N=20; C=abcdefg\n"));
+
+      final TableFunction table2 =
+          TableFunctionImpl.create(Smalls.DATE_STRING_LENGTH);
+      schema.add("DateStringLength", table2);
+      final String sql2 = "select *\n"
+          + "from table(\"s\".\"DateStringLength\"(DATE '2019-10-12')) as t(n, c)\n"
+          + "where n > 8";
+      ResultSet resultSet2 = connection.createStatement().executeQuery(sql2);
+      assertThat(CalciteAssert.toString(resultSet2),
+          equalTo("N=9; C=abcdefghi\n"));
+
+      final TableFunction table3 =
+          TableFunctionImpl.create(Smalls.TIME_STRING_LENGTH);
+      schema.add("TimeStringLength", table3);
+      final String sql3 = "select *\n"
+          + "from table(\"s\".\"TimeStringLength\"(TIME '19:00:35')) as t(n, c)\n"
+          + "where n > 6";
+      ResultSet resultSet3 = connection.createStatement().executeQuery(sql3);
+      assertThat(CalciteAssert.toString(resultSet3),
+          equalTo("N=7; C=abcdefg\n"));
+    }
+  }
+
   /**
    * Tests a table function that implements {@link ScannableTable} and returns
    * a single column.
