@@ -386,6 +386,8 @@ public class RelSubset extends AbstractRelNode {
           // removes parent cached metadata since its input was changed
           mq.clearCache(parent);
           final RelSubset parentSubset = planner.getSubset(parent);
+
+          // parent subset will clear its cache in propagateCostImprovements0 method itself
           for (RelSubset subset : parentSubset.set.subsets) {
             if (parent.getTraitSet().satisfies(subset.traitSet)) {
               propagationQueue.offer(Pair.of(subset, parent));

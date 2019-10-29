@@ -206,6 +206,8 @@ public class RelMetadataQuery {
         return nodeTypesHandler.getNodeTypes(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         nodeTypesHandler = revise(e.relClass, BuiltInMetadata.NodeTypes.DEF);
+      } catch (CyclicMetadataException e) {
+        return null;
       }
     }
   }
