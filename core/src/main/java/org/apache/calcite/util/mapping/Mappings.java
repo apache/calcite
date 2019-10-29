@@ -431,10 +431,10 @@ public abstract class Mappings {
     int prevTarget = -1;
     for (int i = 0; i < mapping.getSourceCount(); i++) {
       int target = mapping.getTargetOpt(i);
-      if (target != -1 && target < prevTarget) {
-        return false;
-      }
       if (target != -1) {
+        if (target < prevTarget) {
+          return false;
+        }
         prevTarget = target;
       }
     }
