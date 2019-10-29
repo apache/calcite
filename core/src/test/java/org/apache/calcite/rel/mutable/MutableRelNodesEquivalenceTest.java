@@ -20,8 +20,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.junit.Assert;
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * Unit test for sub-classes of {@link MutableRel} to verify their equivalence.
@@ -39,9 +42,9 @@ public class MutableRelNodesEquivalenceTest {
     final MutableScan mutableScan2 = (MutableScan) MutableRels.toMutable(scan2);
     final MutableScan mutableScan3 = (MutableScan) MutableRels.toMutable(scan3);
 
-    Assert.assertEquals(mutableScan1, mutableScan2);
-    Assert.assertNotEquals(mutableScan1, mutableScan3);
-    Assert.assertNotEquals(mutableScan2, mutableScan3);
+    assertThat(mutableScan1, equalTo(mutableScan2));
+    assertThat(mutableScan1, not(equalTo(mutableScan3)));
+    assertThat(mutableScan2, not(equalTo(mutableScan3)));
   }
 
 }
