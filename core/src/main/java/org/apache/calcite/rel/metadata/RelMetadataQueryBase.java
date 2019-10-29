@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.rel.RelNode;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import org.apache.calcite.rel.RelNode;
 
 import java.lang.reflect.Proxy;
 import java.util.List;

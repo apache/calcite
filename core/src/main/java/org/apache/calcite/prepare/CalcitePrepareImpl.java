@@ -225,8 +225,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), null, resultConvention, createConvertletTable(),
-            createCluster(planner, new RexBuilder(typeFactory)));
+            context.getRootSchema(), null, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
     final SqlToRelConverter converter =
         preparingStmt.getSqlToRelConverter(validator, catalogReader,
             configBuilder.build());
@@ -588,8 +588,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             : EnumerableConvention.INSTANCE;
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, resultConvention, createConvertletTable(),
-            createCluster(planner, new RexBuilder(typeFactory)));
+            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -855,7 +855,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   protected void populateMaterializations(Context context,
-      Prepare.Materialization materialization, RelOptCluster cluster) {
+      RelOptCluster cluster, Prepare.Materialization materialization) {
     // REVIEW: initialize queryRel and tableRel inside MaterializationService,
     // not here?
     try {
@@ -938,9 +938,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataTypeFactory typeFactory,
         CalciteSchema schema,
         EnumerableRel.Prefer prefer,
+        RelOptCluster cluster,
         Convention resultConvention,
-        SqlRexConvertletTable convertletTable,
-        RelOptCluster cluster) {
+        SqlRexConvertletTable convertletTable) {
       super(context, catalogReader, resultConvention);
       this.prepare = prepare;
       this.schema = schema;
@@ -1153,7 +1153,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               ? MaterializationService.instance().query(schema)
               : ImmutableList.of();
       for (Prepare.Materialization materialization : materializations) {
-        prepare.populateMaterializations(context, materialization, cluster);
+        prepare.populateMaterializations(context, cluster, materialization);
       }
       return materializations;
     }

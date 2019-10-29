@@ -65,8 +65,8 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
       CatalogReader catalogReader, CalciteSchema schema,
       RelOptCluster cluster, SqlRexConvertletTable convertletTable) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
-        schema, EnumerableRel.Prefer.ANY, BindableConvention.INSTANCE,
-        convertletTable, cluster);
+        schema, EnumerableRel.Prefer.ANY, cluster, BindableConvention.INSTANCE,
+        convertletTable);
   }
 
   /** Populates a materialization record, converting a table path
