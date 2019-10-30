@@ -388,6 +388,23 @@ LogicalProject(EXPR$0=[CHAR_LENGTH($1)])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSubstituteSubQuery">
+        <Resource name="sql">
+            <![CDATA[SELECT SUM(
+  (select char_length(name) from dept
+   where dept.deptno = emp.empno))
+FROM emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[CASE(=($1, 1), '1  ', =($1, 220), '220', null:CHAR(3))], NAME=[$0], NUM=[$2])
+  LogicalAggregate(group=[{0, 1}], NUM=[COUNT(DISTINCT $0)])
+    LogicalProject(NAME=[$1], DEPTNO=[$0])
+      LogicalFilter(condition=[=($0, 1)])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelatedSubQueryInJoin">
         <Resource name="sql">
             <![CDATA[select *

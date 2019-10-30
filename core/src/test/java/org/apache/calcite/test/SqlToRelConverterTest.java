@@ -2059,6 +2059,27 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /**
    * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3461">[CALCITE-3461]
+   * IN within CASE </a>.
+   */
+  @Test public void testSubstituteSubQuery() {
+    final String sql = "select\n"
+        + "  case\n"
+        + "      when deptno in (1)   then '1'\n"
+        + "when deptno in (220)  then '220' \n"
+        + "else null end as deptno,\n"
+        + "name,\n"
+        + "count(distinct name)as num\n"
+        + "from dept\n"
+        + "where \n"
+        + "deptno in(1)\n"
+        + "        group by name,deptno ";
+//        + "        group by deptno,name ";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-614">[CALCITE-614]
    * IN within CASE within GROUP BY gives AssertionError</a>.
    */

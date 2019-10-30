@@ -4474,7 +4474,7 @@ public class SqlToRelConverter {
 
     void registerSubQuery(SqlNode node, RelOptUtil.Logic logic) {
       for (SubQuery subQuery : subQueryList) {
-        if (node.equalsDeep(subQuery.node, Litmus.IGNORE)) {
+        if (compareSubQueryNode(node, subQuery.node)) {
           return;
         }
       }
@@ -4483,12 +4483,17 @@ public class SqlToRelConverter {
 
     SubQuery getSubQuery(SqlNode expr) {
       for (SubQuery subQuery : subQueryList) {
-        if (expr.equalsDeep(subQuery.node, Litmus.IGNORE)) {
+        if (compareSubQueryNode(expr, subQuery.node)) {
           return subQuery;
         }
       }
 
       return null;
+    }
+
+    boolean compareSubQueryNode(SqlNode thisNode, SqlNode thatNode) {
+      return thisNode.equalsDeep(thatNode, Litmus.IGNORE)
+          && thisNode.getParserPosition().equals(thatNode.getParserPosition());
     }
 
     ImmutableList<RelNode> retrieveCursors() {
