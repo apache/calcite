@@ -19,10 +19,12 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.MetadataFactory;
 import org.apache.calcite.rel.metadata.MetadataFactoryImpl;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 /**
  * An environment for related relational expressions during the
@@ -49,6 +52,7 @@ public class RelOptCluster {
   private MetadataFactory metadataFactory;
   private final RelTraitSet emptyTraitSet;
   private RelMetadataQuery mq;
+  private Supplier<RelMetadataQuery> mqSupplier;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -83,6 +87,7 @@ public class RelOptCluster {
     // set up a default rel metadata provider,
     // giving the planner first crack at everything
     setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
+    setMetadataQuery(RelMetadataQuery::instance);
     this.emptyTraitSet = planner.emptyTraitSet();
     assert emptyTraitSet.size() == planner.getRelTraitDefs().size();
   }
@@ -135,10 +140,27 @@ public class RelOptCluster {
   public void setMetadataProvider(RelMetadataProvider metadataProvider) {
     this.metadataProvider = metadataProvider;
     this.metadataFactory = new MetadataFactoryImpl(metadataProvider);
+    // Wrap the metadata provider as a JaninoRelMetadataProvider
+    // and set it to the ThreadLocal,
+    // JaninoRelMetadataProvider is required by the RelMetadataQuery.
+    RelMetadataQueryBase.THREAD_PROVIDERS
+        .set(JaninoRelMetadataProvider.of(metadataProvider));
   }
 
   public MetadataFactory getMetadataFactory() {
     return metadataFactory;
+  }
+
+  /**
+   * Set up the customized {@link RelMetadataQuery} instance that to use during rule planning.
+   *
+   * <p>Note that the {@code mqSupplier} should return
+   * a fresh new {@link RelMetadataQuery} instance because the instance would be
+   * cached in this cluster, and we may invalidate and re-generate it
+   * for each {@link RelOptRuleCall} cycle.
+   */
+  public void setMetadataQuery(Supplier<RelMetadataQuery> mqSupplier) {
+    this.mqSupplier = mqSupplier;
   }
 
   /** Returns the current RelMetadataQuery.
@@ -147,11 +169,12 @@ public class RelOptCluster {
    * If you have a {@link RelOptRuleCall} available,
    * for example if you are in a {@link RelOptRule#onMatch(RelOptRuleCall)}
    * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
-  public RelMetadataQuery getMetadataQuery() {
+  public <M extends RelMetadataQuery> M getMetadataQuery() {
     if (mq == null) {
-      mq = RelMetadataQuery.instance();
+      mq = this.mqSupplier.get();
     }
-    return mq;
+    //noinspection unchecked
+    return (M) mq;
   }
 
   /**

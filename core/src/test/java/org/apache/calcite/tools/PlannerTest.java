@@ -41,12 +41,14 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -1349,6 +1351,57 @@ public class PlannerTest {
                 RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3376">[CALCITE-3376]
+   * VolcanoPlanner CannotPlanException: best rel is null even though there is
+   * an option with non-infinite cost</a>. */
+  @Test public void testCorrelatedJoinWithIdenticalInputs() throws Exception {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    final RuleSet ruleSet =
+        RuleSets.ofList(
+            JoinToCorrelateRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+
+    builder
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .join(
+            JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "EMPNO")));
+
+    final RelNode relNode = builder.build();
+    final RelOptPlanner planner = relNode.getCluster().getPlanner();
+    final Program program = Programs.of(ruleSet);
+    final RelTraitSet toTraits = relNode.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    final RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+    final String plan = toString(output);
+    assertThat(plan,
+        equalTo(
+            "EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+            + "    EnumerableUnion(all=[true])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testView() throws Exception {

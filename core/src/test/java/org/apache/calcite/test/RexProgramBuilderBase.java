@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
@@ -314,6 +315,14 @@ public abstract class RexProgramBuilderBase {
 
   protected RexNode add(RexNode n1, RexNode n2) {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
+  }
+
+  protected RexNode item(RexInputRef inputRef, RexNode literal) {
+    RexNode rexNode = rexBuilder.makeCall(
+        SqlStdOperatorTable.ITEM,
+        inputRef,
+        literal);
+    return rexNode;
   }
 
   /**

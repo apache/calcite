@@ -80,12 +80,13 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   /**
    * Create a basic sql type name specification.
-   * @param typeName    Type name.
-   * @param precision   Precision of the type name if it is allowed, default is -1.
-   * @param scale       Scale of the type name if it is allowed, default is -1.
+   *
+   * @param typeName    Type name
+   * @param precision   Precision of the type name if it is allowed, default is -1
+   * @param scale       Scale of the type name if it is allowed, default is -1
    * @param charSetName Char set of the type, only works when the type
-   *                    belong to CHARACTER type family.
-   * @param pos         The parser position.
+   *                    belong to CHARACTER type family
+   * @param pos         The parser position
    */
   public SqlBasicTypeNameSpec(
       SqlTypeName typeName,
@@ -249,8 +250,8 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   /**
    * Remove the local time zone definition of the {@code typeName}.
    *
-   * @param typeName Type name.
-   * @return new type name without local time zone definition.
+   * @param typeName Type name
+   * @return new type name without local time zone definition
    */
   private SqlTypeName stripLocalTimeZoneDef(SqlTypeName typeName) {
     switch (typeName) {
