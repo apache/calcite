@@ -2024,6 +2024,46 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add method in RelBuilder for conveniently projecting out expressions</a>. */
+  @Test public void testProjectMinusInputRef() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .projectMinus(
+                builder.field("e", "MGR"),
+                builder.field("e", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add method in RelBuilder for conveniently projecting out expressions</a>. */
+  @Test public void testProjectMinusSimpleCall() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.PLUS, builder.field(0),
+                        builder.field(3)), "x"),
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
+                        builder.field(3)), "y"))
+            .projectMinus(builder.field("y"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(x=[+($0, $3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test public void testMultiLevelAlias() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =

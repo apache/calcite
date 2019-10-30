@@ -1169,8 +1169,7 @@ public class RelBuilder {
     return this;
   }
 
-  /** Creates a {@link Filter} of an array of
-   * predicates.
+  /** Creates a {@link Filter} with the specified predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1179,8 +1178,7 @@ public class RelBuilder {
     return filter(ImmutableSet.of(), ImmutableList.copyOf(predicates));
   }
 
-  /** Creates a {@link Filter} of a list of
-   * predicates.
+  /** Creates a {@link Filter} with the specified predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1189,8 +1187,8 @@ public class RelBuilder {
     return filter(ImmutableSet.of(), predicates);
   }
 
-  /** Creates a {@link Filter} of a list of correlation variables
-   * and an array of predicates.
+  /** Creates a {@link Filter} with the specified correlation variables
+   * and predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1201,8 +1199,8 @@ public class RelBuilder {
   }
 
   /**
-   * Creates a {@link Filter} of a list of correlation variables
-   * and a list of predicates.
+   * Creates a {@link Filter} with the specified correlation variables
+   * and predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1230,8 +1228,7 @@ public class RelBuilder {
     return project(ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Project} of the given list
-   * of expressions.
+  /** Creates a {@link Project} of the given expressions.
    *
    * <p>Infers names as would {@link #project(Iterable, Iterable)} if all
    * suggested names were null.
@@ -1242,8 +1239,7 @@ public class RelBuilder {
     return project(nodes, ImmutableList.of());
   }
 
-  /** Creates a {@link Project} of the given list
-   * of expressions and field names.
+  /** Creates a {@link Project} of the given expressions and field names.
    *
    * @param nodes Expressions
    * @param fieldNames field names for expressions
@@ -1259,15 +1255,31 @@ public class RelBuilder {
     return projectPlus(ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Project} of all original fields, plus the given list of
+  /** Creates a {@link Project} of all original fields, plus the given
    * expressions. */
   public RelBuilder projectPlus(Iterable<RexNode> nodes) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     return project(builder.addAll(fields()).addAll(nodes).build());
   }
 
-  /** Creates a {@link Project} of the given list
-   * of expressions, using the given names.
+  /** Creates a {@link Project} of all original fields, minus the given
+   * expressions. */
+  public RelBuilder projectMinus(RexNode... expressions) {
+    return projectMinus(ImmutableList.copyOf(expressions));
+  }
+
+  /** Creates a {@link Project} of all original fields, minus the given
+   * expressions. */
+  public RelBuilder projectMinus(Iterable<RexNode> expressions) {
+    List<RexNode> allExpressions = new ArrayList<>(fields());
+    for (RexNode excludeExp : expressions) {
+      allExpressions.remove(excludeExp);
+    }
+    return this.project(allExpressions);
+  }
+
+  /** Creates a {@link Project} of the given expressions, using the given
+   * names.
    *
    * <p>Names are deduced as follows:
    * <ul>
@@ -1549,7 +1561,7 @@ public class RelBuilder {
     return aggregate(groupKey, ImmutableList.copyOf(aggCalls));
   }
 
-  /** Creates an {@link Aggregate} with a list of
+  /** Creates an {@link Aggregate} with the specified group keys and
    * calls. */
   public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
     final Registrar registrar =
@@ -2010,7 +2022,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Correlate}
-   * with a {@link CorrelationId} and a list of fields that are used by correlation. */
+   * with a {@link CorrelationId} and the fields to be used in the correlation. */
   public RelBuilder correlate(JoinRelType joinType,
       CorrelationId correlationId, Iterable<? extends RexNode> requiredFields) {
     Frame right = stack.pop();
@@ -2345,7 +2357,7 @@ public class RelBuilder {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Sort} by a list of expressions, with limit and offset.
+  /** Creates a {@link Sort} with the specified expressions, limit and offset.
    *
    * @param offset Number of rows to skip; non-positive means don't skip any
    * @param fetch Maximum number of rows to fetch; negative means no limit
