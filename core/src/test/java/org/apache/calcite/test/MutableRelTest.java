@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
+import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
@@ -32,7 +33,9 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 
@@ -43,6 +46,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.List;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests for {@link MutableRel} sub-classes.
@@ -282,6 +289,38 @@ public class MutableRelTest {
     RelNode rel = test.createTester().convertSqlToRel(sql).rel;
     return MutableRels.toMutable(rel);
   }
+
+  /** Verifies equivalence of {@link MutableScan} */
+  @Test public void testMutableScanEquivalence() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final SchemaPlus schema = config.getDefaultSchema();
+    final RelBuilder builder = RelBuilder.create(config);
+    schema.add("scott.EMP", new ScannableTableTest.SimpleTable());
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott.EMP")));
+    assertThat(mutableScanOf(builder, "scott", "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott.EMP")));
+    assertThat(mutableScanOf(builder, "scott", "scott.EMP"),
+        equalTo(mutableScanOf(builder, "scott", "scott.EMP")));
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "DEPT"))));
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott.EMP"))));
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott.EMP"))));
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        not(equalTo(mutableScanOf(builder, "scott", "scott.EMP"))));
+  }
+
+  private MutableScan mutableScanOf(RelBuilder builder, String... tableNames) {
+    final RelNode scan = builder.scan(tableNames).build();
+    return (MutableScan) MutableRels.toMutable(scan);
+  }
+
 }
 
 // End MutableRelTest.java
