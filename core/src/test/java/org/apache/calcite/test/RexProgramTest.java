@@ -2808,6 +2808,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     assertThat(expr.isAlwaysTrue(), is(true));
     assertThat(s, is(trueLiteral));
   }
+
+  @Test public void testSimplifyCastUnaryMinus() {
+    RexNode expr =
+        isNull(ne(unaryMinus(cast(unaryMinus(vIntNotNull(1)), nullable(tInt()))), vIntNotNull(1)));
+    RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
+
+    assertThat(s, is(falseLiteral));
+  }
 }
 
 // End RexProgramTest.java

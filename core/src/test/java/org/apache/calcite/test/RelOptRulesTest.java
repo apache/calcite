@@ -6347,6 +6347,24 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(query).withTester(t -> createDynamicTester()).withRule(projectJoinTransposeRule).check();
   }
 
+  @Test public void testSimplifyItemIsNotNull() {
+    String query = "select * from sales.customer as t1 where t1.c_nationkey[0] is not null";
+
+    sql(query)
+        .withTester(t -> createDynamicTester())
+        .withRule(ReduceExpressionsRule.FILTER_INSTANCE)
+        .checkUnchanged();
+  }
+
+  @Test public void testSimplifyItemIsNull() {
+    String query = "select * from sales.customer as t1 where t1.c_nationkey[0] is null";
+
+    sql(query)
+        .withTester(t -> createDynamicTester())
+        .withRule(ReduceExpressionsRule.FILTER_INSTANCE)
+        .checkUnchanged();
+  }
+
 }
 
 // End RelOptRulesTest.java
