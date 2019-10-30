@@ -37,7 +37,7 @@ public class MutableScan extends MutableLeafRel {
     return obj == this
         || obj instanceof MutableScan
         && rel.getTable().getQualifiedName().equals(((MutableScan) obj).rel
-        .getTable().getQualifiedName());
+            .getTable().getQualifiedName());
   }
 
   @Override public int hashCode() {
