@@ -144,7 +144,10 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
       if (i > 0) {
         buf.append(", ");
       }
-      buf.append(rels[i].toString());
+      // Same with {@link rel#getDescription()}, we don't call it explicitly
+      // in order to avoid string copy when generating description.
+      buf.append("rel#").append(rels[i].getId())
+          .append(':').append(rels[i].getDigest());
     }
     buf.append("]");
     return buf.toString();
