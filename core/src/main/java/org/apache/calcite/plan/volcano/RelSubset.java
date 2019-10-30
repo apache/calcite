@@ -178,8 +178,7 @@ public class RelSubset extends AbstractRelNode {
   @Override public void explain(RelWriter pw) {
     // Not a typical implementation of "explain". We don't gather terms &
     // values to be printed later. We actually do the work.
-    String s = getDescription();
-    pw.item("subset", s);
+    pw.item("subset", toString());
     final AbstractRelNode input =
         (AbstractRelNode) Util.first(getBest(), getOriginal());
     if (input == null) {
