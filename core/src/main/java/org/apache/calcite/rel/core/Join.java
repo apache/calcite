@@ -240,7 +240,7 @@ public abstract class Join extends BiRel {
   /**
    * Returns whether this Join is a semijoin.
    *
-   * @return true if this Join's join type is semi.
+   * @return true if this Join's join type is semi
    */
   public boolean isSemiJoin() {
     return joinType == JoinRelType.SEMI;

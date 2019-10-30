@@ -34,7 +34,7 @@ public interface WinAggAddContext extends AggAddContext, WinAggResultContext {
    * This is NOT current row as in "rows between current row".
    * If you need to know the relative index of the current row in the partition,
    * use {@link WinAggFrameContext#index()}.
-   * @return current position inside for-loop of window aggregate.
+   * @return current position inside for-loop of window aggregate
    * @see WinAggFrameContext#index()
    * @see WinAggFrameContext#startIndex()
    */

@@ -230,7 +230,7 @@ public class DruidExpressions {
    * @param rexNodes list of Calcite expressions meant to be applied on top of the rows
    *
    * @return list of Druid expressions in the same order as rexNodes, or null if not possible.
-   * If a non-null list is returned, all elements will be non-null.
+   * If a non-null list is returned, all elements will be non-null
    */
   @Nullable
   public static List<String> toDruidExpressions(

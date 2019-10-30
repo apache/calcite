@@ -193,7 +193,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @param rexNode cast RexNode
    * @param timeZone timezone
    *
-   * @return Druid Time extraction function or null when can not translate the cast.
+   * @return Druid Time extraction function or null when can not translate the cast
    */
   @Nullable
   public static TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,

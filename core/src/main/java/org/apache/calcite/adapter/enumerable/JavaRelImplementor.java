@@ -47,7 +47,7 @@ public abstract class JavaRelImplementor implements RelImplementor {
    * Returns the expression used to access
    * {@link org.apache.calcite.DataContext}.
    *
-   * @return expression used to access {@link org.apache.calcite.DataContext}.
+   * @return expression used to access {@link org.apache.calcite.DataContext}
    */
   public ParameterExpression getRootExpression() {
     return DataContext.ROOT;

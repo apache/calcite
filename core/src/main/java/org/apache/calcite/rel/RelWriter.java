@@ -50,7 +50,7 @@ public interface RelWriter {
   /**
    * Adds an input to the explanation of the current node.
    *
-   * @param term  Term for input, e.g. "left" or "input #1".
+   * @param term  Term for input, e.g. "left" or "input #1"
    * @param input Input relational expression
    */
   default RelWriter input(String term, RelNode input) {
