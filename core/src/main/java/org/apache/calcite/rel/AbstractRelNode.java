@@ -357,8 +357,8 @@ public abstract class AbstractRelNode implements RelNode {
 
   /* Description, consists of id plus digest */
   public final String getDescription() {
-    StringBuilder sb = new StringBuilder("rel#");
-    sb = sb.append(id).append(':').append(digest);
+    StringBuilder sb = new StringBuilder();
+    sb = RelOptUtil.appendRelDescription(sb, this);
     return sb.toString();
   }
 

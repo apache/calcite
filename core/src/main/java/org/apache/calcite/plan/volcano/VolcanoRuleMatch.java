@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -144,10 +145,7 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
       if (i > 0) {
         buf.append(", ");
       }
-      // Same with {@link rel#getDescription()}, we don't call it explicitly
-      // in order to avoid string copy when generating description.
-      buf.append("rel#").append(rels[i].getId())
-          .append(':').append(rels[i].getDigest());
+      RelOptUtil.appendRelDescription(buf, rels[i]);
     }
     buf.append("]");
     return buf.toString();
