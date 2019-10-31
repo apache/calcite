@@ -1179,11 +1179,11 @@ public abstract class Mappings {
     }
 
     public int getSourceCount() {
-      return targets.length;
+      return sources.length;
     }
 
     public int getTargetCount() {
-      return sources.length;
+      return targets.length;
     }
 
     public void clear() {
