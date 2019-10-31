@@ -1761,7 +1761,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction NULLIF = new SqlNullifFunction();
 
-  public static final SqlFunction REGEXP_SUBSTR = SqlLibraryOperators.REGEXP_SUBSTR;
+  public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
 
   /**
    * The COALESCE builtin function.

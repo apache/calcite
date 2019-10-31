@@ -182,9 +182,6 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
-  @LibraryOperator(libraries = BIGQUERY)
-  public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
-
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
