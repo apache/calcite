@@ -192,20 +192,20 @@ public abstract class SqlLibraryOperators {
    * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
    * source_string that match the regex_pattern.
    */
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
+      null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
           SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING_INTEGER_INTEGER_STRING,
+      null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
