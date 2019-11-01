@@ -5276,9 +5276,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     }
     if (filter != null) {
+      a.findGroupingFunctions(true);
       if (a.findAgg(filter) != null) {
         throw newValidationError(filter, RESOURCE.aggregateInFilterIllegal());
       }
+      a.findGroupingFunctions(false);
     }
     if (orderList != null) {
       for (SqlNode param : orderList) {
