@@ -612,7 +612,7 @@ public class SubstitutionVisitor {
       return litmus.fail("Mismatch for column count: [{}]", Pair.of(rel0, rel1));
     }
     for (Pair<RelDataTypeField, RelDataTypeField> pair
-        : Pair.zip(rel0.rowType.getFieldList(), rel0.rowType.getFieldList())) {
+        : Pair.zip(rel0.rowType.getFieldList(), rel1.rowType.getFieldList())) {
       if (!pair.left.getType().equals(pair.right.getType())) {
         return litmus.fail("Mismatch for column type: [{}]", Pair.of(rel0, rel1));
       }
