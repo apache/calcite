@@ -196,7 +196,7 @@ public class SqlSimpleParser {
           if (iter.hasNext()) {
             token = iter.next();
             if ((token.type == TokenType.ID)
-                && token.s.equalsIgnoreCase("ALL")) {
+                && "ALL".equalsIgnoreCase(token.s)) {
               outList.add(token);
             } else {
               iter.previous();
@@ -521,7 +521,7 @@ public class SqlSimpleParser {
         for (Token token : tokenList) {
           switch (token.type) {
           case ID:
-            if (token.s.equals(hintToken)) {
+            if (hintToken.equals(token.s)) {
               foundInClause = clause;
             }
             break;
@@ -652,7 +652,7 @@ public class SqlSimpleParser {
           }
           break;
         case ID:
-          if (token.s.equals(hintToken)) {
+          if (hintToken.equals(token.s)) {
             found = true;
           }
         }
@@ -735,7 +735,7 @@ public class SqlSimpleParser {
           itemStart = i + 1;
           break;
         case ID:
-          if (token.s.equals(hintToken)) {
+          if (hintToken.equals(token.s)) {
             found = true;
           }
         }
@@ -815,7 +815,7 @@ public class SqlSimpleParser {
       for (Token token : tokenList) {
         switch (token.type) {
         case ID:
-          if (token.s.equals(hintToken)) {
+          if (hintToken.equals(token.s)) {
             return true;
           }
           break;
