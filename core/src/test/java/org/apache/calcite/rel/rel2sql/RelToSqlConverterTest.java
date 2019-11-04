@@ -817,6 +817,15 @@ public class RelToSqlConverterTest {
     sql(query).withBigQuery().ok(expected);
   }
 
+  @Test public void testUnionAllOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+            + "UNION ALL select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+            + "FROM foodmart.product\n"
+            + "UNION ALL\nSELECT 1\nFROM foodmart.product";
+    sql(query).withBigQuery().ok(expected);
+  }
+
   @Test public void testIntersectOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "INTERSECT select 1 from \"product\"";
