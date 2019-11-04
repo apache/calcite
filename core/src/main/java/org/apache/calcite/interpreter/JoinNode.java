@@ -107,7 +107,7 @@ public class JoinNode implements Node {
       }
     }
     doSend(outerRow, matchInnerRows, joinRelType);
-    return ImmutableList.copyOf(matchInnerRows);
+    return matchInnerRows;
   }
 
   /**
