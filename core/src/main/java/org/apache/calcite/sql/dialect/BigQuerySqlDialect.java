@@ -128,19 +128,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(frame);
       break;
     case UNION:
-      if (!((SqlSetOperator) call.getOperator()).isAll()) {
-        SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec, rightPrec);
+      if (((SqlSetOperator) call.getOperator()).isAll()) {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      } else {
+        SqlSyntax.BINARY.unparse(writer, UNION_DISTINCT, call, leftPrec,
+            rightPrec);
       }
       break;
     case EXCEPT:
-      if (!((SqlSetOperator) call.getOperator()).isAll()) {
-        SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec, rightPrec);
+      if (((SqlSetOperator) call.getOperator()).isAll()) {
+        throw new RuntimeException("BigQuery does not support EXCEPT ALL");
       }
+      SqlSyntax.BINARY.unparse(writer, EXCEPT_DISTINCT, call, leftPrec,
+          rightPrec);
       break;
     case INTERSECT:
-      if (!((SqlSetOperator) call.getOperator()).isAll()) {
-        SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec, rightPrec);
+      if (((SqlSetOperator) call.getOperator()).isAll()) {
+        throw new RuntimeException("BigQuery does not support INTERSECT ALL");
       }
+      SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec,
+          rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
@@ -149,7 +156,7 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   /** BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
-   * Bigquery Standard SQL Data Types</a>
+   * BigQuery Standard SQL Data Types</a>
    */
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
