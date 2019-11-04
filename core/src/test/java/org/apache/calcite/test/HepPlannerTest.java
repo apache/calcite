@@ -150,7 +150,7 @@ public class HepPlannerTest extends RelOptTestBase {
     // Bad digest includes full tree like rel#66:LogicalProject(input=rel#64:LogicalUnion(...))
     // So the assertion is to ensure digest includes LogicalUnion exactly once
 
-    assertIncludesExactlyOnce("best.getDescription()", best.getDescription(), "LogicalUnion");
+    assertIncludesExactlyOnce("best.getDescription()", best.toString(), "LogicalUnion");
     assertIncludesExactlyOnce("best.getDigest()", best.getDigest(), "LogicalUnion");
   }
 

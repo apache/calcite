@@ -351,15 +351,17 @@ public abstract class AbstractRelNode implements RelNode {
     throw new UnsupportedOperationException("replaceInput called on " + this);
   }
 
-  public String toString() {
-    return getDescription();
-  }
-
   /* Description, consists of id plus digest */
-  public final String getDescription() {
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     sb = RelOptUtil.appendRelDescription(sb, this);
     return sb.toString();
+  }
+
+  /* Description, consists of id plus digest */
+  @Deprecated // to be removed before 2.0
+  public final String getDescription() {
+    return this.toString();
   }
 
   public final String getDigest() {
