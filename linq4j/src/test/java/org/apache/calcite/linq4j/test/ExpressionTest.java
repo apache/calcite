@@ -58,6 +58,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
@@ -1279,6 +1280,8 @@ public class ExpressionTest {
   }
 
   @Test public void testTimeRelatedConstantExpression() {
+    TimeZone currentTimeZone = TimeZone.getDefault();
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     assertThat(
         Expressions.toString(
             Expressions.constant("2019-10-12 19:00:35", Timestamp.class)),
@@ -1293,6 +1296,7 @@ public class ExpressionTest {
         Expressions.toString(
             Expressions.constant("19:00:35", Time.class)),
         is("19:00:35"));
+    TimeZone.setDefault(currentTimeZone);
   }
 
   @Test public void testClassDecl() {

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.linq4j.Extensions;
 import org.apache.calcite.linq4j.function.Function;
 import org.apache.calcite.linq4j.function.Function0;
@@ -42,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -582,12 +584,8 @@ public abstract class Expressions {
           value = new BigDecimal(stringValue);
         } else if (type == BigInteger.class) {
           value = new BigInteger(stringValue);
-        } else if (type == Timestamp.class) {
-          value = Timestamp.valueOf(stringValue);
-        } else if (type == Date.class) {
-          value = Date.valueOf(stringValue);
-        } else if (type == Time.class) {
-          value = Time.valueOf(stringValue);
+        } else if (type == Timestamp.class || type == Date.class || type == Time.class) {
+          value = parseUTCString(stringValue, type);
         }
         if (primitive != null) {
           value = primitive.parse(stringValue);
@@ -595,6 +593,21 @@ public abstract class Expressions {
       }
     }
     return new ConstantExpression(type, value);
+  }
+
+  private static Object parseUTCString(String value, Type type) {
+    TimeZone currentTimeZone = DateTimeUtils.DEFAULT_ZONE;
+    TimeZone.setDefault(DateTimeUtils.UTC_ZONE);
+    Object result = null;
+    if (type == Timestamp.class) {
+      result = Timestamp.valueOf(value);
+    } else if (type == Date.class) {
+      result = Date.valueOf(value);
+    } else if (type == Time.class) {
+      result = Time.valueOf(value);
+    }
+    TimeZone.setDefault(currentTimeZone);
+    return result;
   }
 
   /**
