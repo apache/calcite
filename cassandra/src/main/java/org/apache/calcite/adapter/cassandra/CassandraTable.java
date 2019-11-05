@@ -36,7 +36,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -118,10 +117,9 @@ public class CassandraTable extends AbstractQueryableTable
     final RelDataType rowType = getRowType(typeFactory);
 
     Function1<String, Void> addField = fieldName -> {
-      SqlTypeName typeName =
-          rowType.getField(fieldName, true, false).getType().getSqlTypeName();
-      fieldInfo.add(fieldName, typeFactory.createSqlType(typeName))
-          .nullable(true);
+      RelDataType relDataType =
+          rowType.getField(fieldName, true, false).getType();
+      fieldInfo.add(fieldName, relDataType).nullable(true);
       return null;
     };
 
@@ -172,9 +170,11 @@ public class CassandraTable extends AbstractQueryableTable
 
     // Build and issue the query and return an Enumerator over the results
     StringBuilder queryBuilder = new StringBuilder("SELECT ");
-    queryBuilder.append(selectString);
-    queryBuilder.append(" FROM \"" + columnFamily + "\"");
-    queryBuilder.append(whereClause);
+    queryBuilder.append(selectString)
+        .append(" FROM \"")
+        .append(columnFamily)
+        .append("\"")
+        .append(whereClause);
     if (!order.isEmpty()) {
       queryBuilder.append(Util.toString(order, " ORDER BY ", ", ", ""));
     }
@@ -184,7 +184,8 @@ public class CassandraTable extends AbstractQueryableTable
       limit += fetch;
     }
     if (limit > 0) {
-      queryBuilder.append(" LIMIT " + limit);
+      queryBuilder.append(" LIMIT ")
+          .append(limit);
     }
     queryBuilder.append(" ALLOW FILTERING");
     final String query = queryBuilder.toString();
