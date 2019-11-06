@@ -132,7 +132,7 @@ public class SubstitutionVisitor {
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
-          AggregateOnCalcToAggUnifyRule.INSTANCE,
+          AggregateOnCalcToAggregateUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE);
 
@@ -1412,12 +1412,12 @@ public class SubstitutionVisitor {
    * We try to pull up the {@link MutableCalc} to top of {@link MutableAggregate},
    * then match the {@link MutableAggregate} in query to {@link MutableAggregate} in target.
    */
-  private static class AggregateOnCalcToAggUnifyRule extends AbstractUnifyRule {
+  private static class AggregateOnCalcToAggregateUnifyRule extends AbstractUnifyRule {
 
-    public static final AggregateOnCalcToAggUnifyRule INSTANCE =
-        new AggregateOnCalcToAggUnifyRule();
+    public static final AggregateOnCalcToAggregateUnifyRule INSTANCE =
+        new AggregateOnCalcToAggregateUnifyRule();
 
-    private AggregateOnCalcToAggUnifyRule() {
+    private AggregateOnCalcToAggregateUnifyRule() {
       super(operand(MutableAggregate.class, operand(MutableCalc.class, query(0))),
           operand(MutableAggregate.class, target(0)), 1);
     }

@@ -866,7 +866,7 @@ public class MaterializationTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3448">[CALCITE-3448]
-   * AggregateOnProjectToAggregateUnifyRule ignores Project incorrectly when
+   * AggregateOnCalcToAggregateUnifyRule ignores Project incorrectly when
    * there's missing grouping or mapping breaks ordering</a>. */
   @Test public void testAggregateOnProject5() {
     checkMaterialize(
