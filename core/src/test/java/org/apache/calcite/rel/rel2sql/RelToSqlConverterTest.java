@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -113,12 +114,16 @@ public class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+    final MockSqlOperatorTable operatorTable =
+        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
+        .operatorTable(operatorTable)
         .build();
     return Frameworks.getPlanner(config);
   }
@@ -4264,6 +4269,42 @@ public class RelToSqlConverterTest {
     sql(sql).withCalcite()
             .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
             .ok(expected5);
+  }
+
+  @Test public void testTableFunctionScan() {
+    final String query = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
+        + "from \"product\"), CURSOR(select  \"employee_id\", \"full_name\"\n"
+        + "from \"employee\"), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+        + "FROM \"foodmart\".\"employee\")), 'NAME'))";
+    sql(query).ok(expected);
+
+    final String query2 = "select * from table(ramp(3))";
+    sql(query2).ok("SELECT *\n"
+        + "FROM TABLE(RAMP(3))");
+  }
+
+  @Test public void testTableFunctionScanWithComplexQuery() {
+    final String query = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
+        + "from \"product\"\n"
+        + "where \"net_weight\" > 100 and \"product_name\" = 'Hello World')\n"
+        + ",CURSOR(select  \"employee_id\", \"full_name\"\n"
+        + "from \"employee\"\n"
+        + "group by \"employee_id\", \"full_name\"), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"net_weight\" > 100 AND \"product_name\" = 'Hello World')), "
+        + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
+    sql(query).ok(expected);
   }
 
   /** Fluid interface to run tests. */
