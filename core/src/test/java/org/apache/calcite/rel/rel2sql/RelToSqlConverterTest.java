@@ -880,6 +880,12 @@ public class RelToSqlConverterTest {
 
   @Test public void testBigQueryCast() {
     String query = "select cast(cast(\"employee_id\" as varchar) as bigint), "
+            + "cast(cast(\"employee_id\" as varchar) as smallint), "
+            + "cast(cast(\"employee_id\" as varchar) as tinyint), "
+            + "cast(cast(\"employee_id\" as varchar) as integer), "
+            + "cast(cast(\"employee_id\" as varchar) as float), "
+            + "cast(cast(\"employee_id\" as varchar) as char), "
+            + "cast(cast(\"employee_id\" as varchar) as binary), "
             + "cast(cast(\"employee_id\" as varchar) as varbinary), "
             + "cast(cast(\"employee_id\" as varchar) as timestamp), "
             + "cast(cast(\"employee_id\" as varchar) as double), "
@@ -889,6 +895,12 @@ public class RelToSqlConverterTest {
             + "cast(cast(\"employee_id\" as varchar) as boolean) "
             + "from \"foodmart\".\"reserve_employee\" ";
     final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
+            + "CAST(CAST(employee_id AS STRING) AS STRING), "
+            + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
             + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
@@ -4062,7 +4074,7 @@ public class RelToSqlConverterTest {
         + "'00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = "
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
         + "CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
     sql(query)
         .ok(expected)
