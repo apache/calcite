@@ -161,17 +161,25 @@ public class BigQuerySqlDialect extends SqlDialect {
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
+      // BigQuery only supports INT64 for integer types.
       case BIGINT:
+      case INTEGER:
+      case TINYINT:
+      case SMALLINT:
         return createSqlDataTypeSpecByName("INT64");
+      // BigQuery only supports FLOAT64(aka. Double) for floating point types.
+      case FLOAT:
       case DOUBLE:
         return createSqlDataTypeSpecByName("FLOAT64");
       case DECIMAL:
         return createSqlDataTypeSpecByName("NUMERIC");
       case BOOLEAN:
         return createSqlDataTypeSpecByName("BOOL");
+      case CHAR:
       case VARCHAR:
         return createSqlDataTypeSpecByName("STRING");
       case VARBINARY:
+      case BINARY:
         return createSqlDataTypeSpecByName("BYTES");
       case DATE:
         return createSqlDataTypeSpecByName("DATE");
