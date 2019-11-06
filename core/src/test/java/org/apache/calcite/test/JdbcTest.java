@@ -498,6 +498,15 @@ public class JdbcTest {
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N={'a'=1, 'baz'=2}     \n"
             + "N='2019-10-18 10:35:23'\n"));
+
+    // check for implicit type coercion
+    addTableMacro(connection, Smalls.VIEW_METHOD);
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"view\"(5)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N=1\n"
+            + "N=3\n"
+            + "N=5\n"));
     connection.close();
   }
 
@@ -522,13 +531,13 @@ public class JdbcTest {
         .returns(expected2);
     with.query("select * from table(\"adhoc\".\"View\"(t=>'5', t=>'6'))")
         .throws_("Duplicate argument name 'T'");
-    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
-        .throws_(
-            "No match found for function signature View(T => <CHARACTER>, S => <CHARACTER>)");
     final String expected3 = "c=1\n"
         + "c=3\n"
         + "c=6\n"
         + "c=5\n";
+    // implicit type coercion
+    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
+        .returns(expected3);
     with.query("select * from table(\"adhoc\".\"View\"(t=>5, s=>'6'))")
         .returns(expected3);
   }

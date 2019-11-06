@@ -32,7 +32,6 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -562,11 +561,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final List<RelDataType> paramTypes = function.getParamTypes();
     assert paramTypes != null;
     boolean coerced = false;
-    // User defined table macro only allows literals.
-    // we should support this in the future.
-    if (function instanceof SqlUserDefinedTableMacro) {
-      return false;
-    }
     for (int i = 0; i < call.operandCount(); i++) {
       SqlNode operand = call.operand(i);
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
