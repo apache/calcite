@@ -89,8 +89,17 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.union(getThis(), source1, comparer);
   }
 
+  @Override public Queryable<T> intersect(Enumerable<T> source1) {
+    return intersect(source1, false);
+  }
+
   @Override public Queryable<T> intersect(Enumerable<T> source1, boolean all) {
     return factory.intersect(getThis(), source1, all);
+  }
+
+  @Override public Queryable<T> intersect(Enumerable<T> source1,
+      EqualityComparer<T> comparer) {
+    return intersect(source1, comparer, false);
   }
 
   @Override public Queryable<T> intersect(Enumerable<T> source1,
@@ -99,8 +108,16 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer) {
+    return except(enumerable1, comparer, false);
+  }
+  @Override public Queryable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer, boolean all) {
     return factory.except(getThis(), enumerable1, comparer, all);
+  }
+
+  @Override public Queryable<T> except(Enumerable<T> enumerable1) {
+    return except(enumerable1, false);
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1, boolean all) {

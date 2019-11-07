@@ -215,8 +215,17 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.elementAtOrDefault(getThis(), index);
   }
 
+  public Enumerable<T> except(Enumerable<T> enumerable1) {
+    return except(enumerable1, false);
+  }
+
   public Enumerable<T> except(Enumerable<T> enumerable1, boolean all) {
     return EnumerableDefaults.except(getThis(), enumerable1, all);
+  }
+
+  public Enumerable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer) {
+    return except(enumerable1, comparer, false);
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1,
@@ -327,8 +336,17 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
         innerKeySelector, resultSelector, comparer);
   }
 
+  public Enumerable<T> intersect(Enumerable<T> enumerable1) {
+    return intersect(enumerable1, false);
+  }
+
   public Enumerable<T> intersect(Enumerable<T> enumerable1, boolean all) {
     return EnumerableDefaults.intersect(getThis(), enumerable1, all);
+  }
+
+  public Enumerable<T> intersect(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer) {
+    return intersect(enumerable1, comparer, false);
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1,

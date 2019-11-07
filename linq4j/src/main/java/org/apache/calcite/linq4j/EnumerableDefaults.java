@@ -529,8 +529,19 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
+   */
+  public static <TSource> Enumerable<TSource> except(
+      Enumerable<TSource> source0, Enumerable<TSource> source1) {
+    return except(source0, source1, false);
+  }
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1, boolean all) {
@@ -548,7 +559,18 @@ public abstract class EnumerableDefaults {
   /**
    * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
+   */
+  public static <TSource> Enumerable<TSource> except(
+      Enumerable<TSource> source0, Enumerable<TSource> source1,
+      EqualityComparer<TSource> comparer) {
+    return except(source0, source1, comparer, false);
+  }
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1,
@@ -946,8 +968,19 @@ public abstract class EnumerableDefaults {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates.(Defined by Enumerable.)
+   */
+  public static <TSource> Enumerable<TSource> intersect(
+      Enumerable<TSource> source0, Enumerable<TSource> source1) {
+    return intersect(source0, source1, false);
+  }
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1, boolean all) {
@@ -968,7 +1001,18 @@ public abstract class EnumerableDefaults {
   /**
    * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
+   */
+  public static <TSource> Enumerable<TSource> intersect(
+      Enumerable<TSource> source0, Enumerable<TSource> source1,
+      EqualityComparer<TSource> comparer) {
+    return intersect(source0, source1, comparer, false);
+  }
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1,

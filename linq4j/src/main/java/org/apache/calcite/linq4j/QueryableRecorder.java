@@ -303,12 +303,22 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
   }
 
   public Queryable<T> except(final Queryable<T> source,
+      final Enumerable<T> enumerable) {
+    return except(source, enumerable, false);
+  }
+
+  public Queryable<T> except(final Queryable<T> source,
       final Enumerable<T> enumerable, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
         factory.except(source, enumerable, all);
       }
     };
+  }
+
+  public Queryable<T> except(final Queryable<T> source,
+      final Enumerable<T> enumerable, final EqualityComparer<T> comparer) {
+    return except(source, enumerable, comparer, false);
   }
 
   public Queryable<T> except(final Queryable<T> source,
@@ -472,12 +482,22 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
   }
 
   public Queryable<T> intersect(final Queryable<T> source,
+      final Enumerable<T> enumerable) {
+    return intersect(source, enumerable, false);
+  }
+
+  public Queryable<T> intersect(final Queryable<T> source,
       final Enumerable<T> enumerable, boolean all) {
     return new NonLeafReplayableQueryable<T>(source) {
       public void replay(QueryableFactory<T> factory) {
         factory.intersect(source, enumerable, all);
       }
     };
+  }
+
+  public Queryable<T> intersect(final Queryable<T> source,
+      final Enumerable<T> enumerable, final EqualityComparer<T> comparer) {
+    return intersect(source, enumerable, comparer, false);
   }
 
   public Queryable<T> intersect(final Queryable<T> source,
