@@ -3562,6 +3562,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3456">[CALCITE-3456]
+   * AssertionError throws when aggregation same digest in subquery in same scope</a>.
+   */
+  @Test public void testAggregateWithSameDigestInSubQueries() {
+    final String sql = "select\n"
+        + "  CASE WHEN job IN ('810000', '820000') THEN job\n"
+        + "  ELSE 'error'\n"
+        + "  END AS job_name,\n"
+        + "  count(empno)\n"
+        + "FROM emp\n"
+        + "where job <> '' or job IN ('810000', '820000')\n"
+        + "GROUP by deptno, job";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
