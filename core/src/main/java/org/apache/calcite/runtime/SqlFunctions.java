@@ -614,6 +614,12 @@ public class SqlFunctions {
     return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
   }
 
+  /** SQL <code>=</code> operator applied to Object[] values (neither may be
+   * null). */
+  public static boolean eq(Object[] b0, Object[] b1) {
+    return Arrays.deepEquals(b0, b1);
+  }
+
   /** SQL <code>=</code> operator applied to Object values (including String;
    * neither side may be null). */
   public static boolean eq(Object b0, Object b1) {
