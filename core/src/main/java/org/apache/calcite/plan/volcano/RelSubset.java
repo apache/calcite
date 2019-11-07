@@ -354,23 +354,10 @@ public class RelSubset extends AbstractRelNode {
     }
     try {
       RelOptCost cost = planner.getCost(rel, mq);
-      boolean updateBest = cost.isLt(bestCost);
-
-      // Best rel's cost is increased, we need to search for new best rel
-      if (rel == best && bestCost.isLt(cost)) {
-        updateBest = true;
-        for (RelNode node : getRels()) {
-          RelOptCost relCost = planner.getCost(node, mq);
-          if (relCost.isLt(cost)) {
-            cost = relCost;
-            rel = node;
-          }
-        }
-      }
 
       // Update subset best cost when we find a cheaper rel or the current
       // best's cost is changed
-      if (updateBest) {
+      if (cost.isLt(bestCost)) {
         LOGGER.trace("Subset cost changed: subset [{}] cost was {} now {}",
             this, bestCost, cost);
 
