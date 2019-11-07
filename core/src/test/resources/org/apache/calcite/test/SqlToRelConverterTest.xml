@@ -6348,4 +6348,25 @@ LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORD
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateWithSameDigestInSubQueries">
+        <Resource name="sql">
+            <![CDATA[select
+  CASE WHEN job IN ('810000', '820000') THEN job
+  ELSE 'error'
+  END AS job_name,\n"
+  count(empno)\n"
+FROM emp
+where job <> '' or job IN ('810000', '820000')
+GROUP by deptno, job]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(JOB_NAME=[CASE(OR(=($1, '810000'), =($1, '820000')), $1, 'error':VARCHAR(10))], EXPR$1=[$2])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[COUNT()])
+    LogicalProject(DEPTNO=[$7], JOB=[$2], EMPNO=[$0])
+      LogicalFilter(condition=[OR(<>($2, ''), =($2, '810000'), =($2, '820000'))])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
