@@ -410,7 +410,8 @@ public class JdbcTest {
   }
 
   /**
-   * Adds table macro for connection.
+   * Adds table macro for connection, with catalog named "s"
+   * and the method reflection name as the name of the macro.
    */
   private void addTableMacro(Connection connection, Method method) throws SQLException {
     CalciteConnection calciteConnection =
