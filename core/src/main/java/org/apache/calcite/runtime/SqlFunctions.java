@@ -1156,8 +1156,8 @@ public class SqlFunctions {
   }
 
   // temporary
-  public static int mod(int b0, BigDecimal b1) {
-    return mod(b0, b1.intValue());
+  public static BigDecimal mod(int b0, BigDecimal b1) {
+    return mod(BigDecimal.valueOf(b0), b1);
   }
 
   public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
