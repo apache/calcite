@@ -268,11 +268,11 @@ public class ScannableTableTest {
         + "group by \"k\"";
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
-        + "EnumerableAggregate(group=[{1}], C=[COUNT()])\n"
+        + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
         + "  EnumerableAggregate(group=[{0, 1}])\n"
         + "    EnumerableInterpreter\n"
         + "      BindableTableScan(table=[[s, beatles]], "
-        + "filters=[[=($2, 1940)]], projects=[[0, 2]])";
+        + "filters=[[=($2, 1940)]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", "beatles", table))
         .query(sql)
@@ -364,6 +364,30 @@ public class ScannableTableTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3479">[CALCITE-3479]
+   * Stack overflow error thrown when running join query</a>
+   * Test two ProjectableFilterableTable can join and produce right plan.
+   */
+  @Test public void testProjectableFilterableTableJoin() throws Exception {
+    final StringBuilder buf = new StringBuilder();
+    final String explain = "PLAN="
+        + "EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "  EnumerableInterpreter\n"
+        + "    BindableTableScan(table=[[s, b1]], filters=[[=($0, 10)]])\n"
+        + "  EnumerableInterpreter\n"
+        + "    BindableTableScan(table=[[s, b2]], filters=[[=($0, 10)]])";
+    CalciteAssert.that()
+            .with(
+              newSchema("s", "b1",
+                new BeatlesProjectableFilterableTable(buf, true), "b2",
+                new BeatlesProjectableFilterableTable(buf, true)))
+            .query("select * from \"s\".\"b1\", \"s\".\"b2\" "
+                    + "where \"s\".\"b1\".\"i\" = 10 and \"s\".\"b2\".\"i\" = 10 "
+                    + "and \"s\".\"b1\".\"i\" = \"s\".\"b2\".\"i\"")
+            .explainContains(explain);
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-1031]
    * In prepared statement, CsvScannableTable.scan is called twice</a>. */
   @Test public void testPrepared2() throws SQLException {
@@ -440,6 +464,20 @@ public class ScannableTableTest {
       SchemaPlus rootSchema = con.getRootSchema();
       SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema());
       schema.add(tableName, table);
+      connection.setSchema(schemaName);
+      return connection;
+    };
+  }
+
+  protected ConnectionPostProcessor newSchema(final String schemaName,
+                                                     final String tableName1, final Table table1,
+                                                     final String tableName2, final Table table2) {
+    return connection -> {
+      CalciteConnection con = connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = con.getRootSchema();
+      SchemaPlus schema = rootSchema.add(schemaName, new AbstractSchema());
+      schema.add(tableName1, table1);
+      schema.add(tableName2, table2);
       connection.setSchema(schemaName);
       return connection;
     };
