@@ -1539,6 +1539,19 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3435">[CALCITE-3435]
+   * Enable decimal modulus operation to allow numeric with non-zero scale</a>. */
+  @Test public void testModOperation() {
+    CalciteAssert.that()
+        .query("select mod(33.5, 7) as c0, floor(mod(33.5, 7)) as c1, "
+            + "mod(11, 3.2) as c2, floor(mod(11, 3.2)) as c3,"
+            + "mod(12, 3) as c4, floor(mod(12, 3)) as c5")
+        .typeIs("[C0 DECIMAL NOT NULL, C1 DECIMAL NOT NULL, C2 DECIMAL NOT NULL, "
+            + "C3 DECIMAL NOT NULL, C4 INTEGER NOT NULL, C5 INTEGER NOT NULL]")
+        .returns("C0=5.5; C1=5; C2=1.4; C3=1; C4=0; C5=0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-387">[CALCITE-387]
    * CompileException when cast TRUE to nullable boolean</a>. */
   @Test public void testTrue() {
