@@ -336,11 +336,28 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           if (previousOperand.ordinalInParent >= rel.getInputs().size()) {
             continue;
           }
-          final RelSubset input =
-              (RelSubset) rel.getInput(previousOperand.ordinalInParent);
-          List<RelNode> inputRels = input.getRelList();
-          if (!inputRels.contains(previous)) {
-            continue;
+          if (parentOperand.childPolicy == RelOptRuleOperandChildPolicy.UNORDERED) {
+            // when the child policy is unordered, we should not stick to the ordinalInParent
+            // variable, as the ordinal in parent can be arbitrary
+            boolean previousContained = false;
+            for (int i = 0; i < rel.getInputs().size(); i++) {
+              final RelSubset input = (RelSubset) rel.getInput(i);
+              List<RelNode> inputRels = input.getRelList();
+              if (inputRels.contains(previous)) {
+                previousContained = true;
+                break;
+              }
+            }
+            if (!previousContained) {
+              continue;
+            }
+          } else {
+            final RelSubset input =
+                    (RelSubset) rel.getInput(previousOperand.ordinalInParent);
+            List<RelNode> inputRels = input.getRelList();
+            if (!inputRels.contains(previous)) {
+              continue;
+            }
           }
         }
 
