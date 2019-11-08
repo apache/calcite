@@ -213,7 +213,7 @@ ORDER BY `A`, `B`]]>
   </TestCase>
   <TestCase name="testMultiset">
     <Resource name="formatted">
-      <![CDATA[VALUES ROW(MULTISET ((SELECT *
+      <![CDATA[VALUES(MULTISET ((SELECT *
             FROM `T`)))]]>
     </Resource>
   </TestCase>

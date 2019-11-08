@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSetOption;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -1157,6 +1158,37 @@ public class SqlParserTest {
         .ok("SELECT ((ROW(1, 2)).`A`)\nFROM `C`.`T`");
     sql("select tbl.foo(0).col.bar from tbl")
         .ok("SELECT ((`TBL`.`FOO`(0).`COL`).`BAR`)\nFROM `TBL`");
+  }
+
+  @Test public void testRowValueExpression() {
+    String expected = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (ROW(1, 'Fred')),\n"
+            + "(ROW(2, 'Eric'))";
+    String sql = "insert into emps values (1,'Fred'),(2, 'Eric')";
+    sql(sql)
+            .withDialect(SqlDialect.DatabaseProduct.CALCITE.getDialect())
+            .ok(expected);
+
+    expected = "INSERT INTO `emps`\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+            .withDialect(SqlDialect.DatabaseProduct.MYSQL.getDialect())
+            .ok(expected);
+
+    expected = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+            .withDialect(SqlDialect.DatabaseProduct.ORACLE.getDialect())
+            .ok(expected);
+
+    expected = "INSERT INTO [EMPS]\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+            .withDialect(SqlDialect.DatabaseProduct.MSSQL.getDialect())
+            .ok(expected);
   }
 
   @Test public void testPeriod() {
@@ -8588,7 +8620,7 @@ public class SqlParserTest {
     void check(String sql, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker);
 
-    void checkExp(String sql, String expected,
+    void checkExp(String sql, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker);
 
     void checkFails(String sql, boolean list, String expectedMsgPattern);
@@ -8600,6 +8632,7 @@ public class SqlParserTest {
 
   //~ Inner Classes ----------------------------------------------------------
 
+
   /**
    * Default implementation of {@link Tester}.
    */
@@ -8609,6 +8642,9 @@ public class SqlParserTest {
         SqlDialect dialect,
         String expected) {
       // no dialect, always parenthesize
+      if (dialect == null) {
+        dialect = new TesterSqlDialect();
+      }
       final String actual = sqlNode.toSqlString(dialect, true).getSql();
       TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
@@ -8659,10 +8695,13 @@ public class SqlParserTest {
       return sqlNodeList;
     }
 
-    public void checkExp(String sql, String expected,
+    public void checkExp(String sql, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
       final SqlNode sqlNode = parseExpressionAndHandleEx(sql, parserChecker);
-      final String actual = sqlNode.toSqlString(null, true).getSql();
+      if (dialect == null) {
+        dialect = new TesterSqlDialect();
+      }
+      final String actual = sqlNode.toSqlString(dialect, true).getSql();
       TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
@@ -8734,6 +8773,20 @@ public class SqlParserTest {
       SqlTests.checkEx(thrown, expectedMsgPattern, sap,
           SqlTests.Stage.VALIDATE);
     }
+
+    /**
+     * Compatible with history test case.
+     */
+    protected class TesterSqlDialect extends AnsiSqlDialect {
+
+      public TesterSqlDialect() {
+        super(AnsiSqlDialect.DEFAULT_CONTEXT);
+      }
+
+      public SqlConformance getConformance() {
+        return SqlConformanceEnum.DEFAULT;
+      }
+    }
   }
 
   private boolean isNotSubclass() {
@@ -8759,7 +8812,8 @@ public class SqlParserTest {
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);
         // Unparse with no dialect, always parenthesize.
-        final String actual = sqlNode.toSqlString(null, true).getSql();
+        SqlDialect dialect = new TesterSqlDialect();
+        final String actual = sqlNode.toSqlString(dialect, true).getSql();
         assertEquals(expected.get(i), linux(actual));
       }
     }
@@ -8800,6 +8854,9 @@ public class SqlParserTest {
           parserChecker);
 
       // Unparse with the given dialect, always parenthesize.
+      if (dialect == null) {
+        dialect = new TesterSqlDialect();
+      }
       final String actual = sqlNode.toSqlString(dialect, true).getSql();
       assertEquals(expected, linux(actual));
 
@@ -8830,12 +8887,15 @@ public class SqlParserTest {
       assertEquals(expected, linux(actual2));
     }
 
-    @Override public void checkExp(String sql, String expected,
+    @Override public void checkExp(String sql, SqlDialect dialect, String expected,
         Consumer<SqlParser> parserChecker) {
       SqlNode sqlNode = parseExpressionAndHandleEx(sql, parserChecker);
 
       // Unparse with no dialect, always parenthesize.
-      final String actual = sqlNode.toSqlString(null, true).getSql();
+      if (dialect == null) {
+        dialect = new TesterSqlDialect();
+      }
+      final String actual = sqlNode.toSqlString(dialect, true).getSql();
       assertEquals(expected, linux(actual));
 
       // Unparse again in Calcite dialect (which we can parse), and
@@ -8862,7 +8922,7 @@ public class SqlParserTest {
       // Now unparse again in the null dialect.
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
-      final String actual2 = sqlNode2.toSqlString(null, true).getSql();
+      final String actual2 = sqlNode2.toSqlString(dialect, true).getSql();
       assertEquals(expected, linux(actual2));
     }
 
@@ -8907,7 +8967,7 @@ public class SqlParserTest {
 
     public Sql ok(String expected) {
       if (expression) {
-        getTester().checkExp(sql, expected, parserChecker);
+        getTester().checkExp(sql, dialect, expected, parserChecker);
       } else {
         getTester().check(sql, dialect, expected, parserChecker);
       }

@@ -445,7 +445,38 @@ public class SqlDialect {
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    switch (call.getKind()) {
+    case ROW:
+      unparseRow(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  public void unparseRow(SqlWriter writer,
+      SqlCall call, int leftPrec,  int rightPrec) {
+    if (getConformance().allowExplicitRowValueConstructor()) {
+      SqlUtil.unparseFunctionSyntax(call.getOperator(), writer, call);
+    } else {
+      if (" ".equals(call.getOperator().getName())) {
+        writer.print(call.getOperator().getName());
+      }
+      if (writer.isAlwaysUseParentheses()) {
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, 0, 0);
+        }
+      } else {
+        final SqlWriter.Frame frame =
+                writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, 0, 0);
+        }
+        writer.endList(frame);
+      }
+    }
   }
 
   public void unparseDateTimeLiteral(SqlWriter writer,
