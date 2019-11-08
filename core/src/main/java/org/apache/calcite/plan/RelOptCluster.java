@@ -87,7 +87,7 @@ public class RelOptCluster {
     // set up a default rel metadata provider,
     // giving the planner first crack at everything
     setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
-    setMetadataQuery(RelMetadataQuery::instance);
+    setMetadataQuerySupplier(RelMetadataQuery::instance);
     this.emptyTraitSet = planner.emptyTraitSet();
     assert emptyTraitSet.size() == planner.getRelTraitDefs().size();
   }
@@ -152,14 +152,15 @@ public class RelOptCluster {
   }
 
   /**
-   * Set up the customized {@link RelMetadataQuery} instance that to use during rule planning.
+   * Set up the customized {@link RelMetadataQuery} instance supplier that to
+   * use during rule planning.
    *
    * <p>Note that the {@code mqSupplier} should return
    * a fresh new {@link RelMetadataQuery} instance because the instance would be
    * cached in this cluster, and we may invalidate and re-generate it
    * for each {@link RelOptRuleCall} cycle.
    */
-  public void setMetadataQuery(Supplier<RelMetadataQuery> mqSupplier) {
+  public void setMetadataQuerySupplier(Supplier<RelMetadataQuery> mqSupplier) {
     this.mqSupplier = mqSupplier;
   }
 

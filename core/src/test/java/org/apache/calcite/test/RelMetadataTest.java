@@ -1172,7 +1172,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
               ChainedRelMetadataProvider.of(
                   ImmutableList.of(BrokenColTypeImpl.SOURCE,
                       cluster.getMetadataProvider())));
-          cluster.setMetadataQuery(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
           return cluster;
         })
         .convertSqlToRel(sql);
@@ -1282,7 +1282,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
                   cluster.getMetadataProvider());
           cluster.setMetadataProvider(
               ChainedRelMetadataProvider.of(list));
-          cluster.setMetadataQuery(MyRelMetadataQuery::new);
+          cluster.setMetadataQuerySupplier(MyRelMetadataQuery::new);
           return cluster;
         })
         .convertSqlToRel(sql);
