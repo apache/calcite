@@ -178,6 +178,14 @@ public class RelOptCluster {
   }
 
   /**
+   * Returns the RelMetadataQuery supplier
+   * @return The supplier of RelMetadataQuery
+   */
+  public Supplier<RelMetadataQuery> getMetadataQuerySupplier() {
+    return this.mqSupplier;
+  }
+
+  /**
    * Should be called whenever the current {@link RelMetadataQuery} becomes
    * invalid. Typically invoked from {@link RelOptRuleCall#transformTo}.
    */
