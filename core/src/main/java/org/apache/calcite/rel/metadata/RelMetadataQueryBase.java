@@ -48,7 +48,7 @@ import java.util.function.Supplier;
  * "SOURCE"s with default ones also works).
  * <li>Set {@code MyRelMetadataProvider} into the cluster instance.
  * <li>Use
- * {@link org.apache.calcite.plan.RelOptCluster#setMetadataQuery(Supplier)}
+ * {@link org.apache.calcite.plan.RelOptCluster#setMetadataQuerySupplier(Supplier)}
  * to set the metadata query {@link Supplier} into the cluster instance. This {@link Supplier}
  * should return a <strong>fresh new</strong> instance.
  * <li>Use the cluster instance to create

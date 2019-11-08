@@ -877,7 +877,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected boolean isValid(Litmus litmus) {
-    RelMetadataQuery metaQuery = RelMetadataQuery.instance();
+    RelMetadataQuery metaQuery = this.getRoot().getCluster().getMetadataQuerySupplier().get();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         return litmus.fail("set [{}] has been merged: it should not be in the list", set);
