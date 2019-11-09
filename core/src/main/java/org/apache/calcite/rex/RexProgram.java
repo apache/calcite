@@ -528,8 +528,8 @@ public class RexProgram {
   /**
    * Fully expands a RexLocalRef back into a pure RexNode tree containing no
    * RexLocalRefs (reversing the effect of common subexpression elimination).
-   * For example, <code>program.expandLocalRe condition.f(program.getCondition())</code>
-   * will return the expansion of a program's
+   * For example, <code>program.expandLocalRef(program.getCondition())</code>
+   * will return the expansion of a program's condition.
    *
    * @param ref a RexLocalRef from this program
    * @return expanded form

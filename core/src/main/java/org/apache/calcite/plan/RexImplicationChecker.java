@@ -77,7 +77,7 @@ public class RexImplicationChecker {
   /**
    * Checks if condition first implies (&rArr;) condition second.
    *
-   * <p>This reduces to SAT problem which is NP-Complete.z
+   * <p>This reduces to SAT problem which is NP-Complete.
    * When this method says first implies second then it is definitely true.
    * But it cannot prove that first does not imply second.
    *
