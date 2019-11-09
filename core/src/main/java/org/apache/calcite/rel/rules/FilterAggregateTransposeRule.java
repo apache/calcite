@@ -94,9 +94,11 @@ public class FilterAggregateTransposeRule extends RelOptRule {
 
     final List<RexNode> conditions =
         RelOptUtil.conjunctions(filterRel.getCondition());
+
     final RexBuilder rexBuilder = filterRel.getCluster().getRexBuilder();
     final List<RelDataTypeField> origFields =
         aggRel.getRowType().getFieldList();
+
     final int[] adjustments = new int[origFields.size()];
     int j = 0;
     for (int i : aggRel.getGroupSet()) {

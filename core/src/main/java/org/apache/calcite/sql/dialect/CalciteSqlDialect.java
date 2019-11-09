@@ -23,16 +23,17 @@ import org.apache.calcite.sql.SqlDialect;
  * by Apache Calcite.
  */
 public class CalciteSqlDialect extends SqlDialect {
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)
+      .withIdentifierQuoteString("\"");
+
   /**
    * A dialect useful for generating SQL which can be parsed by the Apache
    * Calcite parser, in particular quoting literals and identifiers. If you
    * want a dialect that knows the full capabilities of the database, create
    * one from a connection.
    */
-  public static final SqlDialect DEFAULT =
-      new CalciteSqlDialect(emptyContext()
-          .withDatabaseProduct(DatabaseProduct.CALCITE)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect DEFAULT = new CalciteSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a CalciteSqlDialect. */
   public CalciteSqlDialect(Context context) {

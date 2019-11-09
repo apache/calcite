@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the LucidDB database.
  */
 public class LucidDbSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new LucidDbSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.LUCIDDB)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.LUCIDDB)
+      .withIdentifierQuoteString("\"");
+
+  public static final SqlDialect DEFAULT = new LucidDbSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a LucidDbSqlDialect. */
   public LucidDbSqlDialect(Context context) {

@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RexImplicationChecker;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
@@ -28,8 +29,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -37,6 +40,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -73,6 +77,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 /**
@@ -409,6 +414,51 @@ public class RelMdPredicates
     }
     return RelOptPredicateList.of(rexBuilder, predicates);
   }
+
+  /**
+   * Infers predicates for a Intersect.
+   */
+  public RelOptPredicateList getPredicates(Intersect intersect, RelMetadataQuery mq) {
+    final RexBuilder rexBuilder = intersect.getCluster().getRexBuilder();
+
+    final RexExecutorImpl rexImpl =
+        (RexExecutorImpl) (intersect.getCluster().getPlanner().getExecutor());
+    final RexImplicationChecker rexImplicationChecker =
+        new RexImplicationChecker(rexBuilder, rexImpl, intersect.getRowType());
+
+    Set<RexNode> finalPredicates = new HashSet<>();
+
+    for (Ord<RelNode> input : Ord.zip(intersect.getInputs())) {
+      RelOptPredicateList info = mq.getPulledUpPredicates(input.e);
+      if (info == null || info.pulledUpPredicates.isEmpty()) {
+        continue;
+      }
+
+      for (RexNode pred: info.pulledUpPredicates) {
+        if (finalPredicates.stream().anyMatch(
+            finalPred -> rexImplicationChecker.implies(finalPred, pred))) {
+          // There's already a stricter predicate in finalPredicates,
+          // thus no need to count this one.
+          continue;
+        }
+        // Remove looser predicate and add this one into finalPredicates
+        finalPredicates = finalPredicates.stream()
+            .filter(finalPred -> !rexImplicationChecker.implies(pred, finalPred))
+            .collect(Collectors.toSet());
+        finalPredicates.add(pred);
+      }
+    }
+
+    return RelOptPredicateList.of(rexBuilder, finalPredicates);
+  }
+
+  /**
+   * Infers predicates for a Minus.
+   */
+  public RelOptPredicateList getPredicates(Minus minus, RelMetadataQuery mq) {
+    return mq.getPulledUpPredicates(minus.getInput(0));
+  }
+
 
   /**
    * Infers predicates for a Sort.

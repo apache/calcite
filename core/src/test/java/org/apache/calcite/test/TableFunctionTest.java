@@ -105,6 +105,24 @@ public class TableFunctionTest {
     }
   }
 
+  @Test public void testTableFunctionWithArrayParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputSize\"(ARRAY[5,4,3,1,2])) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=4; C=abcd\n"));
+    }
+  }
+
   /**
    * Tests a table function that implements {@link ScannableTable} and returns
    * a single column.
@@ -359,16 +377,10 @@ public class TableFunctionTest {
   }
 
   @Test public void testUserDefinedTableFunction4() {
-    final String q = "select *\n"
+    final String q = "select \"c1\"\n"
         + "from table(\"s\".\"multiplication\"('2', 3, 100))\n"
-        + "where c1 + 2 < c2";
-    // With type coercion, a cast node with null as argument would be
-    // passed to the function to infer the table row type, we use
-    // SqlUserDefinedTableMacro#convertArguments to decide the type.
-    // For this table function: multiplication,
-    // it will just throw IllegalArgumentException.
-    final String e = "java.lang.IllegalArgumentException";
-    with().query(q).throws_(e);
+        + "where \"c1\" + 2 < \"c2\"";
+    with().query(q).returnsUnordered("c1=103");
   }
 
   @Test public void testUserDefinedTableFunction5() {

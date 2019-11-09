@@ -24,9 +24,10 @@ import org.apache.calcite.sql.SqlWriter;
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
 public class SybaseSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new SybaseSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.SYBASE));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.SYBASE);
+
+  public static final SqlDialect DEFAULT = new SybaseSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a SybaseSqlDialect. */
   public SybaseSqlDialect(Context context) {

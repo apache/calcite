@@ -32,7 +32,6 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -311,7 +310,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * Cast "BOOLEAN = NUMERIC" to "NUMERIC = NUMERIC". Expressions like 1=`expr` and
    * 0=`expr` can be simplified to `expr` and `not expr`, but this better happens
    * in {@link org.apache.calcite.rex.RexSimplify}.
-   * There are 2 cases that need type coercion here:
+   *
+   * <p>There are 2 cases that need type coercion here:
    * <ol>
    *   <li>Case1: `boolean expr1` = 1 or `boolean expr1` = 0, replace the numeric literal with
    *   `true` or `false` boolean literal.</li>
@@ -562,11 +562,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final List<RelDataType> paramTypes = function.getParamTypes();
     assert paramTypes != null;
     boolean coerced = false;
-    // User defined table macro only allows literals.
-    // we should support this in the future.
-    if (function instanceof SqlUserDefinedTableMacro) {
-      return false;
-    }
     for (int i = 0; i < call.operandCount(); i++) {
       SqlNode operand = call.operand(i);
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {

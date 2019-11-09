@@ -22,9 +22,10 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Neoview database.
  */
 public class NeoviewSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new NeoviewSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.NEOVIEW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.NEOVIEW);
+
+  public static final SqlDialect DEFAULT = new NeoviewSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a NeoviewSqlDialect. */
   public NeoviewSqlDialect(Context context) {

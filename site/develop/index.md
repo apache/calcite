@@ -136,7 +136,7 @@ Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
 {% highlight text %}
-[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
+[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal (FirstName LastName)
 {% endhighlight %}
 
 If your change had multiple commits, use `git rebase -i master` to

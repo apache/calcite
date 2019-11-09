@@ -1895,6 +1895,13 @@ public abstract class RelOptUtil {
 
   }
 
+  public static StringBuilder appendRelDescription(
+      StringBuilder sb, RelNode rel) {
+    sb.append("rel#").append(rel.getId())
+        .append(':').append(rel.getDigest());
+    return sb;
+  }
+
   /**
    * Dumps a plan as a string.
    *

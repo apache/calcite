@@ -43,6 +43,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
@@ -456,6 +457,10 @@ public class RexLiteral extends RexNode {
    * criteria as {@link #valueMatchesType}. */
   public static boolean validConstant(Object o, Litmus litmus) {
     if (o == null
+        || o instanceof Integer
+        || o instanceof Long
+        || o instanceof Float
+        || o instanceof Double
         || o instanceof Boolean
         || o instanceof BigDecimal
         || o instanceof NlsString

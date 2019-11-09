@@ -107,6 +107,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Connection;
@@ -409,6 +410,19 @@ public class JdbcTest {
   }
 
   /**
+   * Adds table macro for connection, with catalog named "s"
+   * and the method reflection name as the name of the macro.
+   */
+  private void addTableMacro(Connection connection, Method method) throws SQLException {
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableMacro tableMacro = TableMacroImpl.create(method);
+    schema.add(method.getName(), tableMacro);
+  }
+
+  /**
    * Tests a relation that is accessed via method syntax.
    *
    * <p>The function ({@link Smalls#view(String)} has a return type
@@ -419,14 +433,9 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.VIEW_METHOD);
-    schema.add("View", tableMacro);
+    addTableMacro(connection, Smalls.VIEW_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"View\"('(10), (20)')) as t(n)\n"
+        + "from table(\"s\".\"view\"('(10), (20)')) as t(n)\n"
         + "where n < 15");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
@@ -445,19 +454,60 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.STR_METHOD);
-    schema.add("Str", tableMacro);
+    addTableMacro(connection, Smalls.STR_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"Str\"(MAP['a', 1, 'baz', 2],\n"
+        + "from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],\n"
         + "                         ARRAY[3, 4, CAST(null AS INTEGER)])) as t(n)");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N={'a'=1, 'baz'=2}\n"
             + "N=[3, 4, null]    \n"));
+    connection.close();
+  }
+
+  /**
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
+   * Support using CAST operation and BOOLEAN type value in table macro</a>. */
+  @Test public void testTableMacroWithCastOrBoolean() throws SQLException {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    addTableMacro(connection, Smalls.STR_METHOD);
+    // check for cast
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], cast(1 as bigint))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+    // check for Boolean type
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], true)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=true            \n"));
+    // check for nested cast
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(1 as int) as varchar(1)))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(cast('2019-10-18 10:35:23' as TIMESTAMP) as BIGINT) as VARCHAR))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}     \n"
+            + "N='2019-10-18 10:35:23'\n"));
+
+    // check for implicit type coercion
+    addTableMacro(connection, Smalls.VIEW_METHOD);
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"view\"(5)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N=1\n"
+            + "N=3\n"
+            + "N=5\n"));
     connection.close();
   }
 
@@ -482,13 +532,13 @@ public class JdbcTest {
         .returns(expected2);
     with.query("select * from table(\"adhoc\".\"View\"(t=>'5', t=>'6'))")
         .throws_("Duplicate argument name 'T'");
-    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
-        .throws_(
-            "No match found for function signature View(T => <CHARACTER>, S => <CHARACTER>)");
     final String expected3 = "c=1\n"
         + "c=3\n"
         + "c=6\n"
         + "c=5\n";
+    // implicit type coercion
+    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
+        .returns(expected3);
     with.query("select * from table(\"adhoc\".\"View\"(t=>5, s=>'6'))")
         .returns(expected3);
   }
@@ -2408,7 +2458,7 @@ public class JdbcTest {
         .planContains("return inp2_ == null "
             + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
             + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "current.deptno + 1);");
+            + "Integer.valueOf(current.deptno + 1).intValue());");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
@@ -2439,7 +2489,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), Integer.valueOf((v5 ? 4 : 5) - 2).intValue());")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2463,6 +2513,10 @@ public class JdbcTest {
             "final int inp1_ = current.deptno;")
         .planContains(
             "static final int $L4J$C$5_2 = 5 - 2;")
+        .planContains(
+            "static final Integer $L4J$C$Integer_valueOf_5_2_ = Integer.valueOf($L4J$C$5_2);")
+        .planContains(
+            "static final int $L4J$C$Integer_valueOf_5_2_intValue_ = $L4J$C$Integer_valueOf_5_2_.intValue();")
         .planContains("static final boolean "
             + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
             + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
@@ -2476,7 +2530,7 @@ public class JdbcTest {
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), $L4J$C$Integer_valueOf_5_2_intValue_);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -5937,6 +5991,22 @@ public class JdbcTest {
         .with(CalciteAssert.Config.JDBC_SCOTT)
         .query("SELECT empno FROM JDBC_SCOTT.emp WHERE (ename, job) < ('Blake', 'Manager')")
         .returnsUnordered("EMPNO=7876", "EMPNO=7499", "EMPNO=7698");
+  }
+
+  @Test public void testTimestampEqualsComparison() {
+    CalciteAssert.that()
+        .query("select time0 = time1, time0 <> time1"
+            + " from ("
+            + "  select timestamp'2000-12-30 21:07:32'as time0,"
+            + "         timestamp'2000-12-30 21:07:32'as time1 "
+            + "  union all"
+            + "  select cast(null as timestamp) as time0,"
+            + "         cast(null as timestamp) as time1"
+            + ") calcs")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.eq(inp0_, inp1_)")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.ne(inp0_, inp1_)")
+        .returns("EXPR$0=true; EXPR$1=false\n"
+            + "EXPR$0=null; EXPR$1=null\n");
   }
 
   @Test public void testUnicode() throws Exception {

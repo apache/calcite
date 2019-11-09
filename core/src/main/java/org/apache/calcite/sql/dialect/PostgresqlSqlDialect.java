@@ -36,7 +36,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
  */
 public class PostgresqlSqlDialect extends SqlDialect {
-
   /** PostgreSQL type system. */
   private static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
@@ -56,12 +55,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
         }
       };
 
-  public static final SqlDialect DEFAULT =
-      new PostgresqlSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
-          .withIdentifierQuoteString("\"")
-          .withUnquotedCasing(Casing.TO_LOWER)
-          .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.POSTGRESQL)
+      .withIdentifierQuoteString("\"")
+      .withUnquotedCasing(Casing.TO_LOWER)
+      .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM);
+
+  public static final SqlDialect DEFAULT = new PostgresqlSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a PostgresqlSqlDialect. */
   public PostgresqlSqlDialect(Context context) {

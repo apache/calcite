@@ -136,9 +136,7 @@ public class RelToSqlConverterTest {
   }
 
   private static MysqlSqlDialect mySqlDialect(NullCollation nullCollation) {
-    return new MysqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-        .withDatabaseProduct(SqlDialect.DatabaseProduct.MYSQL)
-        .withIdentifierQuoteString("`")
+    return new MysqlSqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
         .withNullCollation(nullCollation));
   }
 
@@ -826,6 +824,40 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3440">[CALCITE-3440]
+   * RelToSqlConverter does not properly alias ambiguous ORDER BY</a>. */
+  @Test public void testOrderByColumnWithSameNameAsAlias() {
+    String query = "select \"product_id\" as \"p\",\n"
+        + " \"net_weight\" as \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by 1";
+    final String expected = "SELECT \"product_id\" AS \"p\","
+        + " \"net_weight\" AS \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 1";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testOrderByColumnWithSameNameAsAlias2() {
+    // We use ordinal "2" because the column name "product_id" is obscured
+    // by alias "product_id".
+    String query = "select \"net_weight\" as \"product_id\",\n"
+        + "  \"product_id\" as \"product_id\"\n"
+        + "from \"product\"\n"
+        + "order by \"product\".\"product_id\"";
+    final String expected = "SELECT \"net_weight\" AS \"product_id\","
+        + " \"product_id\" AS \"product_id0\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "ORDER BY 2";
+    final String expectedMysql = "SELECT `net_weight` AS `product_id`,"
+        + " `product_id` AS `product_id0`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "ORDER BY `product_id` IS NULL, 2";
+    sql(query).ok(expected)
+        .withMysql().ok(expectedMysql);
+  }
+
   @Test public void testHiveSelectCharset() {
     String query = "select \"hire_date\", cast(\"hire_date\" as varchar(10)) "
         + "from \"foodmart\".\"reserve_employee\"";
@@ -848,6 +880,12 @@ public class RelToSqlConverterTest {
 
   @Test public void testBigQueryCast() {
     String query = "select cast(cast(\"employee_id\" as varchar) as bigint), "
+            + "cast(cast(\"employee_id\" as varchar) as smallint), "
+            + "cast(cast(\"employee_id\" as varchar) as tinyint), "
+            + "cast(cast(\"employee_id\" as varchar) as integer), "
+            + "cast(cast(\"employee_id\" as varchar) as float), "
+            + "cast(cast(\"employee_id\" as varchar) as char), "
+            + "cast(cast(\"employee_id\" as varchar) as binary), "
             + "cast(cast(\"employee_id\" as varchar) as varbinary), "
             + "cast(cast(\"employee_id\" as varchar) as timestamp), "
             + "cast(cast(\"employee_id\" as varchar) as double), "
@@ -857,6 +895,12 @@ public class RelToSqlConverterTest {
             + "cast(cast(\"employee_id\" as varchar) as boolean) "
             + "from \"foodmart\".\"reserve_employee\" ";
     final String expected = "SELECT CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS INT64), "
+            + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
+            + "CAST(CAST(employee_id AS STRING) AS STRING), "
+            + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS BYTES), "
             + "CAST(CAST(employee_id AS STRING) AS TIMESTAMP), "
             + "CAST(CAST(employee_id AS STRING) AS FLOAT64), "
@@ -1061,7 +1105,20 @@ public class RelToSqlConverterTest {
         + "UNION select 1 from \"product\"";
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
-        + "UNION DISTINCT\nSELECT 1\nFROM foodmart.product";
+        + "UNION DISTINCT\n"
+        + "SELECT 1\n"
+        + "FROM foodmart.product";
+    sql(query).withBigQuery().ok(expected);
+  }
+
+  @Test public void testUnionAllOperatorForBigQuery() {
+    final String query = "select mod(11,3) from \"product\"\n"
+        + "UNION ALL select 1 from \"product\"";
+    final String expected = "SELECT MOD(11, 3)\n"
+        + "FROM foodmart.product\n"
+        + "UNION ALL\n"
+        + "SELECT 1\n"
+        + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
 
@@ -1070,7 +1127,9 @@ public class RelToSqlConverterTest {
         + "INTERSECT select 1 from \"product\"";
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
-        + "INTERSECT DISTINCT\nSELECT 1\nFROM foodmart.product";
+        + "INTERSECT DISTINCT\n"
+        + "SELECT 1\n"
+        + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
 
@@ -1079,7 +1138,9 @@ public class RelToSqlConverterTest {
         + "EXCEPT select 1 from \"product\"";
     final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
-        + "EXCEPT DISTINCT\nSELECT 1\nFROM foodmart.product";
+        + "EXCEPT DISTINCT\n"
+        + "SELECT 1\n"
+        + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
 
@@ -1199,13 +1260,13 @@ public class RelToSqlConverterTest {
 
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersionGreaterThanOrEq21() {
     final HiveSqlDialect hive2_1Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(1)
             .withNullCollation(NullCollation.LOW));
 
     final HiveSqlDialect hive2_2_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(2)
             .withNullCollation(NullCollation.LOW));
@@ -1221,7 +1282,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testHiveSelectQueryWithOrderByDescAndHighNullsWithVersion20() {
     final HiveSqlDialect hive2_1_0_Dialect =
-        new HiveSqlDialect(SqlDialect.EMPTY_CONTEXT
+        new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
             .withDatabaseMajorVersion(2)
             .withDatabaseMinorVersion(0)
             .withNullCollation(NullCollation.LOW));
@@ -4002,6 +4063,24 @@ public class RelToSqlConverterTest {
     sql(expected).exec();
   }
 
+  @Test public void testCastInStringIntegerComparison() {
+    final String query = "select \"employee_id\" "
+        + "from \"foodmart\".\"employee\" "
+        + "where 10 = cast('10' as int) and \"birth_date\" = cast('1914-02-02' as date) or "
+        + "\"hire_date\" = cast('1996-01-01 '||'00:00:00' as timestamp)";
+    final String expected = "SELECT \"employee_id\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || "
+        + "'00:00:00'";
+    final String expectedBiqquery = "SELECT employee_id\n"
+        + "FROM foodmart.employee\n"
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
+        + "CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
+    sql(query)
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBiqquery);
+  }
 
   @Test public void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
@@ -4020,6 +4099,14 @@ public class RelToSqlConverterTest {
             is("can't run"));
       }
     });
+  }
+
+  @Test public void testSelectCountStar() {
+    final String query = "select count(*) from \"product\"";
+    final String expected = "SELECT COUNT(*)\n"
+            + "FROM \"foodmart\".\"product\"";
+    Sql sql = sql(query);
+    sql.ok(expected);
   }
 
   /** Fluid interface to run tests. */
@@ -4074,8 +4161,7 @@ public class RelToSqlConverterTest {
     Sql withMssql(int majorVersion) {
       final SqlDialect mssqlDialect = DatabaseProduct.MSSQL.getDialect();
       return dialect(
-          new MssqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.MSSQL)
+          new MssqlSqlDialect(MssqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(majorVersion)
               .withIdentifierQuoteString(mssqlDialect.quoteIdentifier("")
                   .substring(0, 1))
@@ -4089,8 +4175,7 @@ public class RelToSqlConverterTest {
     Sql withMysql8() {
       final SqlDialect mysqlDialect = DatabaseProduct.MYSQL.getDialect();
       return dialect(
-          new SqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.MYSQL)
+          new SqlDialect(MysqlSqlDialect.DEFAULT_CONTEXT
               .withDatabaseMajorVersion(8)
               .withIdentifierQuoteString(mysqlDialect.quoteIdentifier("")
                   .substring(0, 1))
@@ -4132,9 +4217,7 @@ public class RelToSqlConverterTest {
     Sql withPostgresqlModifiedTypeSystem() {
       // Postgresql dialect with max length for varchar set to 256
       final PostgresqlSqlDialect postgresqlSqlDialect =
-          new PostgresqlSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
-              .withIdentifierQuoteString("\"")
+          new PostgresqlSqlDialect(PostgresqlSqlDialect.DEFAULT_CONTEXT
               .withDataTypeSystem(new RelDataTypeSystemImpl() {
                 @Override public int getMaxPrecision(SqlTypeName typeName) {
                   switch (typeName) {
@@ -4151,9 +4234,7 @@ public class RelToSqlConverterTest {
     Sql withOracleModifiedTypeSystem() {
       // Oracle dialect with max length for varchar set to 512
       final OracleSqlDialect oracleSqlDialect =
-          new OracleSqlDialect(SqlDialect.EMPTY_CONTEXT
-              .withDatabaseProduct(DatabaseProduct.ORACLE)
-              .withIdentifierQuoteString("\"")
+          new OracleSqlDialect(OracleSqlDialect.DEFAULT_CONTEXT
               .withDataTypeSystem(new RelDataTypeSystemImpl() {
                 @Override public int getMaxPrecision(SqlTypeName typeName) {
                   switch (typeName) {

@@ -178,8 +178,7 @@ public class RelSubset extends AbstractRelNode {
   @Override public void explain(RelWriter pw) {
     // Not a typical implementation of "explain". We don't gather terms &
     // values to be printed later. We actually do the work.
-    String s = getDescription();
-    pw.item("subset", s);
+    pw.item("subset", toString());
     final AbstractRelNode input =
         (AbstractRelNode) Util.first(getBest(), getOriginal());
     if (input == null) {
@@ -210,7 +209,8 @@ public class RelSubset extends AbstractRelNode {
     final Set<RelNode> list = new LinkedHashSet<>();
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
-        if (rel.set == set && traitSet.satisfies(rel.getTraitSet())) {
+        // see usage of this method in propagateCostImprovements0()
+        if (rel == this) {
           list.add(parent);
         }
       }
@@ -376,11 +376,17 @@ public class RelSubset extends AbstractRelNode {
 
         bestCost = cost;
         best = rel;
+        // since best was changed, cached metadata for this subset should be removed
+        mq.clearCache(this);
 
         // Recompute subset's importance and propagate cost change to parents
         planner.ruleQueue.recompute(this);
         for (RelNode parent : getParents()) {
+          // removes parent cached metadata since its input was changed
+          mq.clearCache(parent);
           final RelSubset parentSubset = planner.getSubset(parent);
+
+          // parent subset will clear its cache in propagateCostImprovements0 method itself
           for (RelSubset subset : parentSubset.set.subsets) {
             if (parent.getTraitSet().satisfies(subset.traitSet)) {
               propagationQueue.offer(Pair.of(subset, parent));

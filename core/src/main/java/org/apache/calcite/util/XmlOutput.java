@@ -372,11 +372,11 @@ public class XmlOutput {
       out.print(data);
       out.println("]]>");
     } else if (!specials) {
-      out.print(data);
+      out.println(data);
     } else {
       stringEncodeXML(data, out);
+      out.println();
     }
-    out.println();
     out.flush();
     tagsWritten++;
   }

@@ -154,7 +154,7 @@ FROM (SELECT *
 ORDER BY GG]]>
     </Resource>
   </TestCase>
-  <TestCase name="testDamiansSubQueryStyle">
+  <TestCase name="testBlackSubQueryStyle">
     <Resource name="desc"/>
     <Resource name="formatted">
       <![CDATA[SELECT `X` AS `A`, `B` AS `B`, `C` AS `C`, `D`, 'mixed-Case string', `UNQUOTEDCAMELCASEID`, `quoted id`

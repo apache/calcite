@@ -43,6 +43,7 @@ import java.util.List;
  * decimal(with default max precision), and yet decimal is more precise than double,
  * but in union we would cast the decimal to double).</li>
  * </ul>
+ *
  * <p>REFERENCE: <a href="https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?">SQL-SERVER</a>
  * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a></p>
  */

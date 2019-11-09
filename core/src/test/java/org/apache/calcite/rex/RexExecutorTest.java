@@ -136,19 +136,27 @@ public class RexExecutorTest {
   @Test
   public void testRexLiteralValidConstant() {
     assertThat(RexLiteral.validConstant(null, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(null, SqlTypeName.NULL, true),is(true));
     assertThat(RexLiteral.validConstant(true, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(Boolean.TRUE, SqlTypeName.BOOLEAN, true),is(true));
     NlsString nlsString = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
     assertThat(RexLiteral.validConstant(nlsString, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(nlsString, SqlTypeName.CHAR, true),is(true));
     BigDecimal bigDecimal = new BigDecimal("0.001");
     assertThat(RexLiteral.validConstant(bigDecimal, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(bigDecimal, SqlTypeName.DECIMAL, true),is(true));
     ByteString byteString = new ByteString(new byte[] { 'f', 'o', 'o', 'b', 'a', 'r'});
     assertThat(RexLiteral.validConstant(byteString, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(byteString, SqlTypeName.BINARY, true),is(true));
     DateString dateString = new DateString(1969, 12, 21);
     assertThat(RexLiteral.validConstant(dateString, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(dateString, SqlTypeName.DATE, true),is(true));
     TimeString timeString = new TimeString(12, 34, 56);
     assertThat(RexLiteral.validConstant(timeString, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(timeString, SqlTypeName.TIME, true),is(true));
     TimestampString timestampString = new TimestampString(1969, 7, 21, 2, 56, 15);
     assertThat(RexLiteral.validConstant(timestampString, Litmus.THROW), is(true));
+    assertThat(RexLiteral.valueMatchesType(timestampString, SqlTypeName.TIMESTAMP, true),is(true));
 
   }
 

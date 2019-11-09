@@ -61,6 +61,7 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -195,7 +196,9 @@ public abstract class SqlImplementor {
    */
   public static SqlNode convertConditionToSqlNode(RexNode node,
       Context leftContext,
-      Context rightContext, int leftFieldCount) {
+      Context rightContext,
+      int leftFieldCount,
+      SqlDialect dialect) {
     if (node.isAlwaysTrue()) {
       return SqlLiteral.createBoolean(true, POS);
     }
@@ -220,7 +223,7 @@ public abstract class SqlImplementor {
       SqlNode sqlCondition = null;
       for (RexNode operand : operands) {
         SqlNode x = convertConditionToSqlNode(operand, leftContext,
-            rightContext, leftFieldCount);
+            rightContext, leftFieldCount, dialect);
         if (sqlCondition == null) {
           sqlCondition = x;
         } else {
@@ -237,7 +240,7 @@ public abstract class SqlImplementor {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case LIKE:
-      node = stripCastFromString(node);
+      node = stripCastFromString(node, dialect);
       operands = ((RexCall) node).getOperands();
       op = ((RexCall) node).getOperator();
       if (operands.size() == 2
@@ -291,7 +294,7 @@ public abstract class SqlImplementor {
    * <p>For example, {@code x > CAST('2015-01-07' AS DATE)}
    * becomes {@code x > '2015-01-07'}.
    */
-  private static RexNode stripCastFromString(RexNode node) {
+  private static RexNode stripCastFromString(RexNode node, SqlDialect dialect) {
     switch (node.getKind()) {
     case EQUALS:
     case IS_NOT_DISTINCT_FROM:
@@ -305,21 +308,21 @@ public abstract class SqlImplementor {
       final RexNode o1 = call.operands.get(1);
       if (o0.getKind() == SqlKind.CAST
           && o1.getKind() != SqlKind.CAST) {
-        final RexNode o0b = ((RexCall) o0).getOperands().get(0);
-        switch (o0b.getType().getSqlTypeName()) {
-        case CHAR:
-        case VARCHAR:
-          return call.clone(call.getType(), ImmutableList.of(o0b, o1));
+        if (!dialect.supportsImplicitTypeCoercion((RexCall) o0)) {
+          // If the dialect does not support implicit type coercion,
+          // we definitely can not strip the cast.
+          return node;
         }
+        final RexNode o0b = ((RexCall) o0).getOperands().get(0);
+        return call.clone(call.getType(), ImmutableList.of(o0b, o1));
       }
       if (o1.getKind() == SqlKind.CAST
           && o0.getKind() != SqlKind.CAST) {
-        final RexNode o1b = ((RexCall) o1).getOperands().get(0);
-        switch (o1b.getType().getSqlTypeName()) {
-        case CHAR:
-        case VARCHAR:
-          return call.clone(call.getType(), ImmutableList.of(o0, o1b));
+        if (!dialect.supportsImplicitTypeCoercion((RexCall) o1)) {
+          return node;
         }
+        final RexNode o1b = ((RexCall) o1).getOperands().get(0);
+        return call.clone(call.getType(), ImmutableList.of(o0, o1b));
       }
     }
     return node;
@@ -470,6 +473,18 @@ public abstract class SqlImplementor {
     }
 
     public abstract SqlNode field(int ordinal);
+
+    /** Creates a reference to a field to be used in an ORDER BY clause.
+     *
+     * <p>By default, it returns the same result as {@link #field}.
+     *
+     * <p>If the field has an alias, uses the alias.
+     * If the field is an unqualified column reference which is the same an
+     * alias, switches to a qualified column reference.
+     */
+    public SqlNode orderField(int ordinal) {
+      return field(ordinal);
+    }
 
     /** Converts an expression from {@link RexNode} to {@link SqlNode}
      * format.
@@ -659,7 +674,7 @@ public abstract class SqlImplementor {
           return toSql(program, (RexOver) rex);
         }
 
-        final RexCall call = (RexCall) stripCastFromString(rex);
+        final RexCall call = (RexCall) stripCastFromString(rex, dialect);
         SqlOperator op = call.getOperator();
         switch (op.getKind()) {
         case SUM0:
@@ -887,6 +902,12 @@ public abstract class SqlImplementor {
       for (int arg : aggCall.getArgList()) {
         operandList.add(field(arg));
       }
+
+      if ((op instanceof SqlCountAggFunction) && operandList.isEmpty()) {
+        // If there is no parameter in "count" function, add a star identifier to it
+        operandList.add(SqlIdentifier.star(POS));
+      }
+
       final SqlLiteral qualifier =
           aggCall.isDistinct() ? SqlSelectKeyword.DISTINCT.symbol(POS) : null;
       final SqlNode[] operands = operandList.toArray(new SqlNode[0]);
@@ -918,7 +939,7 @@ public abstract class SqlImplementor {
 
     /** Converts a collation to an ORDER BY item. */
     public SqlNode toSql(RelFieldCollation collation) {
-      SqlNode node = field(collation.getFieldIndex());
+      SqlNode node = orderField(collation.getFieldIndex());
       switch (collation.getDirection()) {
       case DESCENDING:
       case STRICTLY_DESCENDING:
@@ -1140,7 +1161,7 @@ public abstract class SqlImplementor {
         clauseList.addAll(this.clauses);
       }
       clauseList.appendAll(clauses);
-      Context newContext;
+      final Context newContext;
       final SqlNodeList selectList = select.getSelectList();
       if (selectList != null) {
         newContext = new Context(dialect, selectList.size()) {
@@ -1151,6 +1172,33 @@ public abstract class SqlImplementor {
               return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
+          }
+
+          @Override public SqlNode orderField(int ordinal) {
+            // If the field expression is an unqualified column identifier
+            // and matches a different alias, use an ordinal.
+            // For example, given
+            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY emp.empno
+            // we generate
+            //    SELECT deptno AS empno, empno AS x FROM emp ORDER BY 2
+            // "ORDER BY empno" would give incorrect result;
+            // "ORDER BY x" is acceptable but is not preferred.
+            final SqlNode node = field(ordinal);
+            if (node instanceof SqlIdentifier
+                && ((SqlIdentifier) node).isSimple()) {
+              final String name = ((SqlIdentifier) node).getSimple();
+              for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
+                if (selectItem.i != ordinal) {
+                  final String alias =
+                      SqlValidatorUtil.getAlias(selectItem.e, -1);
+                  if (name.equalsIgnoreCase(alias)) {
+                    return SqlLiteral.createExactNumeric(
+                        Integer.toString(ordinal + 1), SqlParserPos.ZERO);
+                  }
+                }
+              }
+            }
+            return node;
           }
         };
       } else {

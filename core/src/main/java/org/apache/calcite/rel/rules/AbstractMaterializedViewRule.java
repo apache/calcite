@@ -1205,7 +1205,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
         // Aggregate was not inserted but we need to prune columns
         result = relBuilder
             .push(result)
-            .project(relBuilder.fields(groupSet.asList()))
+            .project(relBuilder.fields(groupSet))
             .build();
       }
       if (topProject != null) {
@@ -1490,7 +1490,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           // Aggregate was not inserted but we need to prune columns
           result = relBuilder
               .push(result)
-              .project(relBuilder.fields(groupSet.asList()))
+              .project(relBuilder.fields(groupSet))
               .build();
         }
         // We introduce a project on top, as group by columns order is lost
@@ -1861,6 +1861,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   private static boolean isValidRelNodePlan(RelNode node, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> m =
             mq.getNodeTypes(node);
+    if (m == null) {
+      return false;
+    }
+
     for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
       Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)

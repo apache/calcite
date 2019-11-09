@@ -32,7 +32,6 @@ import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -1097,7 +1096,7 @@ public class RexImpTable {
       final Expression ifTrue;
       switch (nullAs) {
       case NULL:
-        ifTrue = Types.castIfNecessary(box.getType(), NULL_EXPR);
+        ifTrue = RexToLixTranslator.convert(NULL_EXPR, box.getType());
         break;
       case IS_NULL:
         ifTrue = TRUE_EXPR;
@@ -1380,7 +1379,7 @@ public class RexImpTable {
         next = Expressions.call(acc, "add", add.arguments().get(0));
       } else {
         next = Expressions.add(acc,
-            Types.castIfNecessary(acc.type, add.arguments().get(0)));
+            RexToLixTranslator.convert(add.arguments().get(0), acc.type));
       }
       accAdvance(add, acc, next);
     }
@@ -2200,9 +2199,9 @@ public class RexImpTable {
     private Expression call(Expression operand, Type type,
         TimeUnit timeUnit) {
       return Expressions.call(SqlFunctions.class, methodName,
-          Types.castIfNecessary(type, operand),
-          Types.castIfNecessary(type,
-              Expressions.constant(timeUnit.multiplier)));
+          RexToLixTranslator.convert(operand, type),
+          RexToLixTranslator.convert(
+              Expressions.constant(timeUnit.multiplier), type));
     }
   }
 
@@ -2228,7 +2227,7 @@ public class RexImpTable {
 
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
-      return Types.castIfNecessary(returnType, expression);
+      return RexToLixTranslator.convert(expression, returnType);
     }
   }
 
@@ -2274,6 +2273,12 @@ public class RexImpTable {
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             SqlStdOperatorTable.GREATER_THAN,
             SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+
+    private static final List<SqlBinaryOperator> EQUALS_OPERATORS =
+        ImmutableList.of(
+            SqlStdOperatorTable.EQUALS,
+            SqlStdOperatorTable.NOT_EQUALS);
+
     public static final String METHOD_POSTFIX_FOR_ANY_TYPE = "Any";
 
     private final ExpressionType expressionType;
@@ -2320,13 +2325,24 @@ public class RexImpTable {
           return Expressions.call(SqlFunctions.class, backupMethodName,
               expressions);
         }
+        // When checking equals or not equals on two primitive boxing classes
+        // (i.e. Long x, Long y), we should fall back to call `SqlFunctions.eq(x, y)`
+        // or `SqlFunctions.ne(x, y)`, rather than `x == y`
+        final Primitive boxPrimitive0 = Primitive.ofBox(type0);
+        final Primitive boxPrimitive1 = Primitive.ofBox(type1);
+        if (EQUALS_OPERATORS.contains(op)
+            && boxPrimitive0 != null && boxPrimitive1 != null) {
+          return Expressions.call(SqlFunctions.class, backupMethodName,
+              expressions);
+        }
       }
 
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
-      return Types.castIfNecessary(returnType,
+      return RexToLixTranslator.convert(
           Expressions.makeBinary(expressionType, expressions.get(0),
-              expressions.get(1)));
+              expressions.get(1)),
+          returnType);
     }
 
     /** Returns whether any of a call's operands have ANY type. */
@@ -2940,8 +2956,9 @@ public class RexImpTable {
     @Override public Expression implement(RexToLixTranslator translator, RexCall call,
         ParameterExpression row, ParameterExpression rows,
         ParameterExpression symbols, ParameterExpression i) {
-      return Types.castIfNecessary(String.class,
-          Expressions.call(symbols, BuiltInMethod.LIST_GET.method, i));
+      return RexToLixTranslator.convert(
+          Expressions.call(symbols, BuiltInMethod.LIST_GET.method, i),
+          String.class);
     }
   }
 

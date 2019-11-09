@@ -28,10 +28,11 @@ esac
 
 # Build classpath on first call.
 # (To force rebuild, remove target/fullclasspath.txt.)
+# Remove slf4j-log4j, otherwise slf4j complains about multiple bindings.
 cd $(dirname $0)
 if [ ! -f target/fullclasspath.txt ]; then
-    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
-    awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
+    ./mvnw dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+    awk -v RS=: -v ORS=: '{if (!m[$0] && $0 !~ /slf4j-log4j12/) {m[$0]=1; print}}' \
         target/classpath.txt \
         */target/classpath.txt > target/fullclasspath.txt
 fi

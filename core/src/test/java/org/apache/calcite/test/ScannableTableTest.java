@@ -319,27 +319,48 @@ public class ScannableTableTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2039">[CALCITE-2039]
-   * AssertionError when pushing project to ProjectableFilterableTable</a>.
-   * Cannot push down a project if it is not a permutation of columns; in this
-   * case, it contains a literal. */
-  @Test public void testCannotPushProject() throws Exception {
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-3405]
+   * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
+  @Test public void testPushNonSimpleMappingProject() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
-        + "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[3], k=[$t2], j=[$t1], "
-        + "i=[$t0], EXPR$3=[$t3])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[+($t1, $t1)], expr#3=[3],"
+        + " proj#0..1=[{exprs}], k0=[$t0], $f3=[$t2], $f4=[$t3])\n"
         + "  EnumerableInterpreter\n"
-        + "    BindableTableScan(table=[[s, beatles]])";
+        + "    BindableTableScan(table=[[s, beatles]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", "beatles", table))
-        .query("select \"k\",\"j\",\"i\",3 from \"s\".\"beatles\"")
+        .query("select \"k\", \"i\", \"k\", \"i\"+\"i\" \"ii\", 3 from \"s\".\"beatles\"")
         .explainContains(explain)
-        .returnsUnordered("k=1940; j=John; i=4; EXPR$3=3",
-            "k=1940; j=Ringo; i=5; EXPR$3=3",
-            "k=1942; j=Paul; i=4; EXPR$3=3",
-            "k=1943; j=George; i=6; EXPR$3=3");
-    assertThat(buf.toString(), is("returnCount=4"));
+        .returnsUnordered(
+            "k=1940; i=4; k=1940; ii=8; EXPR$3=3",
+            "k=1940; i=5; k=1940; ii=10; EXPR$3=3",
+            "k=1942; i=4; k=1942; ii=8; EXPR$3=3",
+            "k=1943; i=6; k=1943; ii=12; EXPR$3=3");
+    assertThat(buf.toString(), is("returnCount=4, projects=[2, 0]"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-3405]
+   * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
+  @Test public void testPushSimpleMappingProject() throws Exception {
+    final StringBuilder buf = new StringBuilder();
+    final Table table = new BeatlesProjectableFilterableTable(buf, true);
+    // Note that no redundant Project on EnumerableInterpreter
+    final String explain = "PLAN="
+        + "EnumerableInterpreter\n"
+        + "  BindableTableScan(table=[[s, beatles]], projects=[[2, 0]])";
+    CalciteAssert.that()
+        .with(newSchema("s", "beatles", table))
+        .query("select \"k\", \"i\" from \"s\".\"beatles\"")
+        .explainContains(explain)
+        .returnsUnordered(
+            "k=1940; i=4",
+            "k=1940; i=5",
+            "k=1942; i=4",
+            "k=1943; i=6");
+    assertThat(buf.toString(), is("returnCount=4, projects=[2, 0]"));
   }
 
   /** Test case for
