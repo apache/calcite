@@ -19,6 +19,7 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
 
 import java.util.Map;
 
@@ -56,6 +57,10 @@ public class ParameterScope extends EmptyScope {
     return this;
   }
 
+  @Override
+  public RelDataType resolveColumn(String name, SqlNode ctx) {
+    return nameToTypeMap.get(name);
+  }
 }
 
 // End ParameterScope.java
