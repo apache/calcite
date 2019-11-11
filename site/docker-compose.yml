@@ -30,7 +30,7 @@ services:
   generate-javadoc:
     image: maven
     working_dir: /usr/src/calcite
-    command: sh -c "mvn -DskipTests site; rm -rf site/target/apidocs site/target/testapidocs; mkdir -p site/target; mv target/site/apidocs target/site/testapidocs site/target"
+    command: sh -c "./gradlew javadocAggregate; rm -rf site/target/apidocs site/target/testapidocs; mkdir -p site/target; mv build/docs/javadocAggregate site/target/apidocs"
     volumes:
       - ../:/usr/src/calcite
       - maven-repo:/root/.m2

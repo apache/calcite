@@ -614,4 +614,3 @@ While preparing a query Calcite combines all of the applicable metadata
 providers and maintains a cache so that a given piece of metadata (for example
 the selectivity of the condition `x > 10` in a particular `Filter` operator)
 is computed only once.
-

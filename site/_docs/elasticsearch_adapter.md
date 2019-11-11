@@ -157,4 +157,3 @@ scroll is automatically cleared (removed) when all query resuts are consumed.
 Currently this adapter supports ElasticSearch versions 6.x (or newer). Generally
 we try to follow official [support schedule](https://www.elastic.co/support/eol).
 Also, types are not supported (this adapter only supports indices).
-

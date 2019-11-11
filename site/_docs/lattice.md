@@ -351,4 +351,3 @@ Here are some ideas that have not yet been implemented:
     data cubes efficiently</a>.
     In <i>Proc. ACM SIGMOD Conf.</i>, Montreal, 1996.</li>
 </ul>
-

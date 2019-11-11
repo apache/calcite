@@ -14,31 +14,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
-
-import org.apache.calcite.adapter.mongodb.MongoAdapterTest;
-
-import org.junit.BeforeClass;
-
-import static org.junit.Assume.assumeTrue;
-
-/**
- * Used to trigger integration tests from maven (thus class name is suffixed with {@code IT}).
- *
- * <p>If you want to run integration tests from the, IDE manually set the
- * {@code -Dcalcite.integrationTest=true} system property.
- *
- * <p>For command line use:
- * <pre>
- *     $ mvn install -Pit
- * </pre>
- */
-public class MongoAdapterIT extends MongoAdapterTest {
-
-  @BeforeClass
-  public static void enforceMongo() {
-    assumeTrue(MongoAssertions.useMongo());
-  }
-}
-
-// End MongoAdapterIT.java

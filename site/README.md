@@ -41,10 +41,12 @@ Site generation currently works best with ruby-2.5.1.
 ### Add javadoc
 
 1. `cd ..`
-2. `mvn -DskipTests site`
+2. `./gradlew javadocAggregate`
 3. `rm -rf site/target/apidocs site/target/testapidocs`
    `rmdir site\target\apidocs site\target\testapidocs /S /Q` (Windows)
-4. `mv target/site/apidocs target/site/testapidocs site/target`
+4. `mkdir site/target`
+   `mkdir site\target` (Windows)
+4. `mv build/docs/javadocAggregate site/target/apidocs`
    `for /d %a in (target\site\apidocs* target\site\testapidocs*) do move %a site\target` (Windows)
 
 ### Running locally

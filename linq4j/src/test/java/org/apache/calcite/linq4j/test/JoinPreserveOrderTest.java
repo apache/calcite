@@ -23,8 +23,6 @@ import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 
-import static org.apache.calcite.linq4j.function.Functions.nullsComparator;
-
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import static org.apache.calcite.linq4j.function.Functions.nullsComparator;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

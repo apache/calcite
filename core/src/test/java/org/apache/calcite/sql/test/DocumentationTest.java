@@ -211,7 +211,7 @@ public class DocumentationTest {
       inFile = new File(base, "site/_docs/reference.md");
       // TODO: replace with core/build/ when Maven is migrated to Gradle
       // It does work in Gradle, however, we don't want to create "target" folder in Gradle
-      outFile = new File(base, "core/target/surefire/reference.md");
+      outFile = new File(base, "core/build/reports/documentationTest/reference.md");
     }
   }
 }

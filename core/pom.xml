@@ -333,20 +333,6 @@ limitations under the License.
         </executions>
       </plugin>
       <plugin>
-        <groupId>net.hydromatic</groupId>
-        <artifactId>hydromatic-resource-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generate-sources</goal>
-            </goals>
-            <configuration>
-              <packageName>org.apache.calcite.runtime</packageName>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
