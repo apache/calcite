@@ -57,8 +57,7 @@ public class ParameterScope extends EmptyScope {
     return this;
   }
 
-  @Override
-  public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
     return nameToTypeMap.get(name);
   }
 }
