@@ -89,6 +89,51 @@ tasks.jar {
     }
 }
 
+val generatedVersionDir = File(buildDir, "generated/sources/version")
+val versionClass by tasks.registering(Sync::class) {
+    val re = Regex("^(\\d+)\\.(\\d+).*")
+
+    val version = project.version.toString()
+    val matchResult = re.find(version) ?: throw GradleException("Unable to parse major.minor version parts from project.version '$version'")
+    val (major, minor) = matchResult.destructured
+
+    // This makes Gradle re-execute the task when version is updated
+    inputs.property("version", version)
+
+    // Note: Gradle does not analyze regexps below, so this variable tells Gradle
+    // to treat the task input out of date when filtering logic is updated.
+    inputs.property("replace.logic.version.bump.when.updating.filter.below", 1)
+
+    outputs.dir(generatedVersionDir)
+
+    into(generatedVersionDir)
+    from("$projectDir/src/main/version") {
+        include("**/*.java")
+        val prop = Regex("""("[^"]++"|\S+)\s+/\* :(\w+) \*/""")
+        filter { x: String ->
+            prop.replace(x) {
+                val variableName = it.groups[2]?.value
+                when (variableName) {
+                    "version" -> "\"$version\""
+                    "major" -> major
+                    "minor" -> minor
+                    else -> "unknown variable: $x"
+                } + """ /* :$variableName */"""
+            }
+        }
+    }
+}
+
+ide {
+    generatedJavaSources(versionClass.get(), generatedVersionDir)
+}
+
+sourceSets {
+    main {
+        resources.exclude("version/org-apache-calcite-jdbc.properties")
+    }
+}
+
 tasks.withType<Checkstyle>().configureEach {
     exclude("org/apache/calcite/runtime/Resources.java")
 }

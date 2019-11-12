@@ -82,13 +82,7 @@ public class Driver extends UnregisteredDriver {
   }
 
   @Override protected DriverVersion createDriverVersion() {
-    return DriverVersion.load(
-        Driver.class,
-        "org-apache-calcite-jdbc.properties",
-        "Calcite JDBC Driver",
-        "unknown version",
-        "Calcite",
-        "unknown version");
+    return CalciteDriverVersion.INSTANCE;
   }
 
   @Override protected Handler createHandler() {

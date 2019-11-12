@@ -188,6 +188,7 @@ val semaphore = `java.util.concurrent`.Semaphore(1)
 val licenseHeaderFile = file("config/license.header.java")
 
 val javaccGeneratedPatterns = arrayOf(
+    "org/apache/calcite/jdbc/CalciteDriverVersion.java",
     "**/parser/**/*ParserImpl*.*",
     "**/parser/**/PigletParser.*",
     "**/parser/**/PigletParserConstants.*",
