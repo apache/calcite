@@ -169,9 +169,45 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   private void checkUnknownAs(RexNode node) {
-    checkUnknownAs(node, RexUnknownAs.FALSE);
-    checkUnknownAs(node, RexUnknownAs.UNKNOWN);
-    checkUnknownAs(node, RexUnknownAs.TRUE);
+    checkUnknownAsAndShrink(node, RexUnknownAs.FALSE);
+    checkUnknownAsAndShrink(node, RexUnknownAs.UNKNOWN);
+    checkUnknownAsAndShrink(node, RexUnknownAs.TRUE);
+  }
+
+  private void checkUnknownAsAndShrink(RexNode node, RexUnknownAs unknownAs) {
+    try {
+      checkUnknownAs(node, unknownAs);
+    } catch (Exception e) {
+      // Try shrink the example so human can understand it better
+      Random rnd = new Random();
+      rnd.setSeed(currentSeed);
+      long deadline = System.currentTimeMillis() + 20000;
+      RexNode original = node;
+      int len = Integer.MAX_VALUE;
+      for (int i = 0; i < 100000 && System.currentTimeMillis() < deadline; i++) {
+        RexShrinker shrinker = new RexShrinker(rnd, rexBuilder);
+        RexNode newNode = node.accept(shrinker);
+        try {
+          checkUnknownAs(newNode, unknownAs);
+          // bad shrink
+        } catch (Exception ex) {
+          // Good shrink
+          node = newNode;
+          String str = nodeToString(node);
+          int newLen = str.length();
+          if (newLen < len) {
+            long remaining = deadline - System.currentTimeMillis();
+            System.out.println("Shrinked to " + newLen + " chars, time remaining " + remaining);
+            len = newLen;
+          }
+        }
+      }
+      if (original.toString().equals(node.toString())) {
+        // Bad luck, throw original exception
+        throw e;
+      }
+      checkUnknownAs(node, unknownAs);
+    }
   }
 
   private void checkUnknownAs(RexNode node, RexUnknownAs unknownAs) {

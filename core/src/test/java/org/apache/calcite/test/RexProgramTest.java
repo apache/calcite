@@ -58,6 +58,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -777,6 +778,32 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(cast(cast(vVarchar(), tInt()), tInt()),
         "CAST(?0.varchar0):INTEGER NOT NULL");
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
+  }
+
+  @Ignore("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
+  @Test public void reproducerFor3457() {
+    checkSimplify(
+        mul(
+          abstractCast(literal(1), tInt(true)),
+          case_(
+            eq(
+              unaryMinus(
+                abstractCast(
+                  literal(1),
+                  tInt(true)
+                )
+              ),
+              unaryMinus(
+                abstractCast(
+                  literal(1),
+                  tInt(true)))
+            ),
+            nullInt,
+            abstractCast(literal(1), tInt(true))
+          )
+        ),
+        "I've no idea what I'm doing 🐕"
+    );
   }
 
   @Test public void testNoCommonReturnTypeFails() {
