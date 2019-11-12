@@ -30,6 +30,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.CalcSplitRule;
 import org.apache.calcite.rel.rules.FilterTableScanRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
@@ -96,7 +97,9 @@ public class Interpreter extends AbstractEnumerable<Object[]>
         .addRuleInstance(FilterTableScanRule.INSTANCE)
         .addRuleInstance(FilterTableScanRule.INTERPRETER)
         .addRuleInstance(ProjectTableScanRule.INSTANCE)
-        .addRuleInstance(ProjectTableScanRule.INTERPRETER).build();
+        .addRuleInstance(ProjectTableScanRule.INTERPRETER)
+        .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+        .build();
     final HepPlanner planner = new HepPlanner(hepProgram);
     planner.setRoot(rootRel);
     rootRel = planner.findBestExp();
