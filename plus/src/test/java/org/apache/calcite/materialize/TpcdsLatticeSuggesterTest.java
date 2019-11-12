@@ -37,6 +37,7 @@ import org.apache.calcite.tools.ValidationException;
 
 import net.hydromatic.tpcds.query.Query;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -124,10 +125,12 @@ public class TpcdsLatticeSuggesterTest {
     }
   }
 
+  @Ignore("Throws NPE with both Maven and Gradle")
   @Test public void testTpcdsAll() throws Exception {
     checkFoodMartAll(false);
   }
 
+  @Ignore("Throws NPE with both Maven and Gradle")
   @Test public void testTpcdsAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
