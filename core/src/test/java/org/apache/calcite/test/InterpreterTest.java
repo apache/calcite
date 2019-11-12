@@ -433,6 +433,13 @@ public class InterpreterTest {
         "[3, c, null, null]",
         "[null, null, 4, x]");
   }
+
+  @Test public void testInterpretDecimalAggregate() throws Exception {
+    final String sql = "select x, min(y), max(y), sum(y), avg(y)\n"
+        + "from (values ('a', -1.2), ('a', 2.3), ('a', 15)) as t(x, y)\n"
+        + "group by x";
+    sql(sql).returnsRows("[a, -1.2, 15.0, 16.1, 5.366666666666667]");
+  }
 }
 
 // End InterpreterTest.java
