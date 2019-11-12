@@ -23,6 +23,7 @@ import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
+import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
@@ -68,6 +69,8 @@ val includeTestTags by props("!org.apache.calcite.test.SlowTests")
 // By default use Java implementation to sign artifacts
 // When useGpgCmd=true, then gpg command line tool is used for signing
 val useGpgCmd by props()
+val slowSuiteLogThreshold = stringProperty("slowSuiteLogThreshold")?.toLong() ?: 0
+val slowTestLogThreshold = stringProperty("slowTestLogThreshold")?.toLong() ?: 2000
 
 ide {
     copyrightToAsf()
@@ -229,8 +232,16 @@ allprojects {
             testImplementation("org.junit.jupiter:junit-jupiter-params")
             testImplementation("org.hamcrest:hamcrest")
             testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-            testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
-            testImplementation("junit:junit")
+            if (project.props.bool("junit4", default = true)) {
+                // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
+                testImplementation("junit:junit")
+                testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+            } else {
+                // org.apache.calcite.test.CalciteAssert depends on org/junit/ComparisonFailure
+                // and it is commonly used. So we keep junit on the test runtime classpath.
+                // However, it still prevents JUnit4 types in autocomplete which is fine.
+                testRuntimeOnly("junit:junit")
+            }
         }
     }
 
@@ -481,13 +492,75 @@ allprojects {
                         includeTags.add(includeTestTags)
                     }
                 }
-                exclude("**/*Suite*")
-                jvmArgs("-Xmx1536m")
-                jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
                 testLogging {
                     exceptionFormat = TestExceptionFormat.FULL
                     showStandardStreams = true
                 }
+                exclude("**/*Suite*")
+                jvmArgs("-Xmx1536m")
+                jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
+                // Pass the property to tests
+                fun passProperty(name: String, default: String? = null) {
+                    val value = System.getProperty(name) ?: default
+                    value?.let { systemProperty(name, it) }
+                }
+                passProperty("java.awt.headless")
+                passProperty("junit.jupiter.execution.parallel.enabled", "true")
+                passProperty("junit.jupiter.execution.timeout.default", "5 m")
+                passProperty("user.language", "TR")
+                passProperty("user.country", "tr")
+                val props = System.getProperties()
+                for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
+                    if (e.startsWith("calcite.") || e.startsWith("avatica.")) {
+                        passProperty(e)
+                    }
+                }
+                // https://github.com/junit-team/junit5/issues/2041
+                // Gradle does not print parameterized test names yet :(
+                // Hopefully it will be fixed in Gradle 6.1
+                fun String?.withDisplayName(displayName: String?, separator: String = ", "): String? = when {
+                    displayName == null -> this
+                    this == null -> displayName
+                    endsWith(displayName) -> this
+                    else -> "$this$separator$displayName"
+                }
+                fun printResult(descriptor: TestDescriptor, result: TestResult) {
+                    val test = descriptor as org.gradle.api.internal.tasks.testing.TestDescriptorInternal
+                    val classDisplayName = test.className.withDisplayName(test.classDisplayName)
+                    val testDisplayName = test.name.withDisplayName(test.displayName)
+                    val duration = "%5.1fsec".format((result.endTime - result.startTime) / 1000f)
+                    val displayName = classDisplayName.withDisplayName(testDisplayName, " > ")
+                    // Hide SUCCESS from output log, so FAILURE/SKIPPED are easier to spot
+                    val resultType = result.resultType
+                        .takeUnless { it == TestResult.ResultType.SUCCESS }
+                        ?.toString()
+                        ?: (if (result.skippedTestCount > 0 || result.testCount == 0L) "WARNING" else "       ")
+                    if (!descriptor.isComposite) {
+                        println("$resultType $duration, $displayName")
+                    } else {
+                        val completed = result.testCount.toString().padStart(4)
+                        val failed = result.failedTestCount.toString().padStart(3)
+                        val skipped = result.skippedTestCount.toString().padStart(3)
+                        println("$resultType $duration, $completed completed, $failed failed, $skipped skipped, $displayName")
+                    }
+                }
+                afterTest(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
+                    // There are lots of skipped tests, so it is not clear how to log them
+                    // without making build logs too verbose
+                    if (result.resultType == TestResult.ResultType.FAILURE ||
+                        result.endTime - result.startTime >= slowTestLogThreshold) {
+                        printResult(descriptor, result)
+                    }
+                }))
+                afterSuite(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
+                    if (descriptor.name.startsWith("Gradle Test Executor")) {
+                        return@KotlinClosure2
+                    }
+                    if (result.resultType == TestResult.ResultType.FAILURE ||
+                        result.endTime - result.startTime >= slowSuiteLogThreshold) {
+                        printResult(descriptor, result)
+                    }
+                }))
             }
             withType<SpotBugsTask>().configureEach {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP

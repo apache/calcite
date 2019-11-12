@@ -17,19 +17,19 @@
  */
 
 dependencies {
-    api(platform(project(":bom")))
-
-    api("org.apache.calcite.avatica:avatica-core")
     api(project(":core"))
-    testImplementation(project(":core", "testClasses"))
     api(project(":linq4j"))
-    api("org.apache.commons:commons-lang3")
-    api("com.fasterxml.jackson.core:jackson-core")
-    api("com.fasterxml.jackson.core:jackson-databind")
-    api("com.google.code.findbugs:jsr305")
-    api("com.google.guava:guava")
-    api("joda-time:joda-time")
-    api("org.slf4j:slf4j-api")
-    testImplementation("org.slf4j:slf4j-log4j12")
+
+    implementation("com.fasterxml.jackson.core:jackson-core")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.google.code.findbugs:jsr305")
+    implementation("com.google.guava:guava")
+    implementation("joda-time:joda-time")
+    implementation("org.apache.calcite.avatica:avatica-core")
+    implementation("org.apache.commons:commons-lang3")
+    implementation("org.slf4j:slf4j-api")
+
+    testImplementation(project(":core", "testClasses"))
     testImplementation("org.mockito:mockito-core")
+    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }
