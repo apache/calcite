@@ -2550,7 +2550,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkNodeTypeCount(sql, expected);
   }
 
-  @Test public void testNodeTypeTableModify() {
+  @Test public void testNodeTypeCountTableModify() {
     final String sql = "insert into emp select * from emp";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
@@ -2559,7 +2559,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkNodeTypeCount(sql, expected);
   }
 
-  @Test public void testNodeTypeExchange() {
+  @Test public void testNodeTypeCountExchange() {
 
     final RelNode rel = convertSql("select * from emp");
     final RelDistribution dist = RelDistributions.hash(ImmutableList.<Integer>of());
@@ -2580,7 +2580,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertEquals(expected, resultCount);
   }
 
-  @Test public void testNodeTypeSample() {
+  @Test public void testNodeTypeCountSample() {
     final String sql = "select * from emp tablesample system(50) where empno > 5";
     final Map<Class<? extends RelNode>, Integer> expected = new HashMap<>();
     expected.put(TableScan.class, 1);
