@@ -346,6 +346,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     t.setStackTrace(stackTrace);
   }
 
+  @Ignore("Ignore for now: CALCITE-3457")
   @Test public void defaultFuzzTest() {
     try {
       runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
@@ -361,6 +362,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
+  @Ignore("Ignore for now: CALCITE-3457")
   @Test public void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }
