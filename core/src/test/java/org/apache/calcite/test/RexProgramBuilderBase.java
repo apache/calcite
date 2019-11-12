@@ -352,11 +352,11 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableVarchar : nonNullableVarchar;
   }
 
-  protected RelDataType tBoolean() {
+  protected RelDataType tBool() {
     return nonNullableBool;
   }
 
-  protected RelDataType tBoolean(boolean nullable) {
+  protected RelDataType tBool(boolean nullable) {
     return nullable ? nullableBool : nonNullableBool;
   }
 

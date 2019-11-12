@@ -782,25 +782,11 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   @Ignore("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
   @Test public void reproducerFor3457() {
+    // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(
-        mul(
-          abstractCast(literal(1), tInt(true)),
-          case_(
-            eq(
-              unaryMinus(
-                abstractCast(
-                  literal(1),
-                  tInt(true)
-                )
-              ),
-              unaryMinus(
-                abstractCast(
-                  literal(1),
-                  tInt(true)))
-            ),
-            nullInt,
-            abstractCast(literal(1), tInt(true))
-          )
+        eq(
+          unaryMinus(abstractCast(literal(1), tInt(true))),
+          unaryMinus(abstractCast(literal(1), tInt(true)))
         ),
         "I've no idea what I'm doing 🐕"
     );
@@ -2308,7 +2294,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testRemovalOfNullabilityWideningCast() {
-    RexNode expr = cast(isTrue(vBoolNotNull()), tBoolean(true));
+    RexNode expr = cast(isTrue(vBoolNotNull()), tBool(true));
     assertThat(expr.getType().isNullable(), is(true));
     RexNode result = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
     assertThat(result.getType().isNullable(), is(false));

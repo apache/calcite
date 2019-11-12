@@ -45,6 +45,13 @@ public class RexShrinker extends RexShuttle {
     if (didWork || r.nextInt(100) > 80) {
       return super.visitCall(call);
     }
+    if (r.nextInt(100) < 10 && !call.operands.isEmpty()) {
+      // Replace with its argument
+      RexNode node = call.operands.get(r.nextInt(call.operands.size()));
+      if (node.getType().equals(type)) {
+        return node;
+      }
+    }
     if (r.nextInt(100) < 10) {
       // Replace with simple value
       RexNode res = null;
