@@ -46,8 +46,7 @@ public class EnumerableCalcTest {
                     SqlStdOperatorTable.COALESCE,
                     builder.field("commission"),
                     builder.literal(0)))
-                .build()
-        )
+                .build())
         .planContains("inp4_ != null ? inp4_.intValue() : 0;")
         .returnsUnordered(
             "$f0=0",

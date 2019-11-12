@@ -8928,14 +8928,13 @@ public abstract class SqlOperatorBaseTest {
   /** Test that calls all operators with all possible argument types, and for
    * each type, with a set of tricky values.
    *
-   * This is not really a unit test since there are no assertions;
+   * <p>This is not really a unit test since there are no assertions;
    * it either succeeds or fails in the preparation of the operator case
    * and not when actually testing (validating/executing) the call.
    *
-   * Nevertheless the log messages conceal many problems which potentially need
-   * to be fixed especially cases where the query passes from the validation stage
-   * and fails at runtime.
-   * */
+   * <p>Nevertheless the log messages conceal many problems which potentially
+   * need to be fixed especially cases where the query passes from the
+   * validation stage and fails at runtime. */
   @Disabled("Too slow and not really a unit test")
   @Tag("slow")
   @Test public void testArgumentBounds() {

@@ -929,11 +929,10 @@ public class TpchTest {
   }
 
   /** Runs with query #i.
-   *  @param i Ordinal of query, per the benchmark, 1-based
    *
-   */
+   * @param i Ordinal of query, per the benchmark, 1-based */
   private CalciteAssert.AssertQuery query(int i) {
     return with()
-      .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
+        .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
   }
 }

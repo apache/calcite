@@ -133,9 +133,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** Test case for:
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2468">[CALCITE-2468]
-   * struct type alias should not cause IOOBE.</a>.
+   * struct type alias should not cause IndexOutOfBoundsException</a>.
    */
   @Test public void testStructTypeAlias() {
     final String sql = "select t.r AS myRow\n"
@@ -167,11 +167,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-245">[CALCITE-245]
-   * Off-by-one translation of ON clause of JOIN</a>.
-   */
+   * Off-by-one translation of ON clause of JOIN</a>. */
   @Test public void testConditionOffByOne() {
     // Bug causes the plan to contain
     //   LogicalJoin(condition=[=($9, $9)], joinType=[inner])
@@ -237,8 +235,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-801">[CALCITE-801]
-   * NullPointerException using USING on table alias with column
-   * aliases</a>. */
+   * NullPointerException using USING on table alias with column aliases</a>. */
   @Test public void testValuesUsing() {
     final String sql = "select d.deptno, min(e.empid) as empid\n"
         + "from (values (100, 'Bill', 1)) as e(empid, name, deptno)\n"
@@ -847,8 +844,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-439">[CALCITE-439]
-   * SqlValidatorUtil.uniquify() may not terminate under some
-   * conditions</a>. */
+   * SqlValidatorUtil.uniquify() may not terminate under some conditions</a>. */
   @Test public void testGroupAlias() {
     final String sql = "select \"$f2\", max(x), max(x + 1)\n"
         + "from (values (1, 2)) as t(\"$f2\", x)\n"
@@ -1992,7 +1988,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3183">[CALCITE-3183]
-   * Trimming method for Filter rel uses wrong traitSet </a> */
+   * Trimming method for Filter rel uses wrong traitSet</a>. */
   @Test public void testFilterAndSortWithTrim() {
     // Create a customized test with RelCollation trait in the test cluster.
     Tester tester = new TesterImpl(getDiffRepos(),
@@ -2103,8 +2099,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    *
    * <p>Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-551">[CALCITE-551]
-   * Sub-query inside aggregate function</a>.
-   */
+   * Sub-query inside aggregate function</a>. */
   @Test public void testAggCaseInSubQuery() {
     final String sql = "SELECT SUM(\n"
         + "  CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)\n"
@@ -3625,9 +3620,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** Test case for:
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3456">[CALCITE-3456]
-   * AssertionError throws when aggregation same digest in subquery in same scope</a>.
+   * AssertionError throws when aggregation same digest in sub-query in same
+   * scope</a>.
    */
   @Test public void testAggregateWithSameDigestInSubQueries() {
     final String sql = "select\n"

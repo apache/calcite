@@ -763,16 +763,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
-  @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
+  @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
   @Test public void reproducerFor3457() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(
-        eq(
-          unaryMinus(abstractCast(literal(1), tInt(true))),
-          unaryMinus(abstractCast(literal(1), tInt(true)))
-        ),
-        "I've no idea what I'm doing 🐕"
-    );
+        eq(unaryMinus(abstractCast(literal(1), tInt(true))),
+          unaryMinus(abstractCast(literal(1), tInt(true)))),
+        "true");
   }
 
   @Test public void testNoCommonReturnTypeFails() {

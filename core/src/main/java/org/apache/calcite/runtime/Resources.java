@@ -99,7 +99,7 @@ public class Resources {
    *     ExInst&lt;IllegalArgumentException&gt; illegalBinaryString(String a0);
    * </blockquote>
    *
-   * will look up a resource "IllegalBinaryString" from the resource file
+   * <p>will look up a resource "IllegalBinaryString" from the resource file
    * "com/example/MyResource_en_US.properties", and substitute in the parameter
    * value {@code a0}.
    *
@@ -859,7 +859,7 @@ public class Resources {
    *
    * </blockquote>
    *
-   * Then when you call
+   * <p>Then when you call
    * {@link ResourceBundle#getBundle ResourceBundle.getBundle("foo.MyResource")},
    * it will find the class before the properties file, but still automatically
    * load the properties file based upon the name of the class.

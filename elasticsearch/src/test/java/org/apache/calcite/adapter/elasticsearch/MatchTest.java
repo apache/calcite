@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -40,6 +39,7 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.NlsString;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
@@ -139,63 +139,68 @@ public class MatchTest {
     };
   }
 
-      /**
-   * Test the ElasticSearch match query. The match query is translated from CONTAINS query which
-   * is build using RelBuilder, RexBuilder because the normal sql query assumes CONTAINS query
-   * is for date/period range
+  /**
+   * Tests the ElasticSearch match query. The match query is translated from
+   * CONTAINS query which is build using RelBuilder, RexBuilder because the
+   * normal SQL query assumes CONTAINS query is for date/period range.
    *
-   * Equivalent SQL query: select * from zips where city contains 'waltham'
+   * <p>Equivalent SQL query:
    *
-   * ElasticSearch query for it:
+   * <blockquote>
+   * <code>select * from zips where city contains 'waltham'</code>
+   * </blockquote>
+   *
+   * <p>ElasticSearch query for it:
+   *
+   * <blockquote><code>
    * {"query":{"constant_score":{"filter":{"match":{"city":"waltham"}}}}}
-   *
-   * @throws Exception
+   * </code></blockquote>
    */
   @Test public void testMatchQuery() throws Exception {
 
     CalciteConnection con = (CalciteConnection) newConnectionFactory()
         .createConnection();
-    SchemaPlus postschema = con.getRootSchema().getSubSchema("elastic");
+    SchemaPlus postSchema = con.getRootSchema().getSubSchema("elastic");
 
     FrameworkConfig postConfig = Frameworks.newConfigBuilder()
-         .parserConfig(SqlParser.Config.DEFAULT)
-         .defaultSchema(postschema)
-         .build();
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(postSchema)
+        .build();
 
     final RelBuilder builder = RelBuilder.create(postConfig);
     builder.scan(ZIPS);
 
-    final RelDataTypeFactory relDataTypeFactory = new SqlTypeFactoryImpl(
-        RelDataTypeSystem.DEFAULT);
-    final RexBuilder rexbuilder = new RexBuilder(relDataTypeFactory);
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
-    RexNode nameRexNode = rexbuilder.makeCall(SqlStdOperatorTable.ITEM,
-        rexbuilder.makeInputRef(relDataTypeFactory.createSqlType(SqlTypeName.ANY), 0),
-        rexbuilder.makeCharLiteral(
-          new NlsString("city", rexbuilder.getTypeFactory().getDefaultCharset().name(),
-          SqlCollation.COERCIBLE)));
+    RexNode nameRexNode = rexBuilder.makeCall(SqlStdOperatorTable.ITEM,
+        rexBuilder.makeInputRef(typeFactory.createSqlType(SqlTypeName.ANY), 0),
+        rexBuilder.makeCharLiteral(
+            new NlsString("city", typeFactory.getDefaultCharset().name(),
+                SqlCollation.COERCIBLE)));
 
-    RelDataType mapType = relDataTypeFactory.createMapType(
-        relDataTypeFactory.createSqlType(SqlTypeName.VARCHAR),
-        relDataTypeFactory.createTypeWithNullability(
-          relDataTypeFactory.createSqlType(SqlTypeName.ANY), true));
+    RelDataType mapType = typeFactory.createMapType(
+        typeFactory.createSqlType(SqlTypeName.VARCHAR),
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.ANY), true));
 
-    ArrayList<RexNode> namedList = new ArrayList<RexNode>(2);
-    namedList.add(rexbuilder.makeInputRef(mapType, 0));
-    namedList.add(nameRexNode);
+    List<RexNode> namedList =
+        ImmutableList.of(rexBuilder.makeInputRef(mapType, 0),
+            nameRexNode);
 
-    //Add fields in builder stack so it is accessible while filter preparation
+    // Add fields in builder stack so it is accessible while filter preparation
     builder.projectNamed(namedList, Arrays.asList("_MAP", "city"), true);
 
     RexNode filterRexNode = builder
-         .call(SqlStdOperatorTable.CONTAINS, builder.field("city"),
-         builder.literal("waltham"));
+        .call(SqlStdOperatorTable.CONTAINS, builder.field("city"),
+            builder.literal("waltham"));
     builder.filter(filterRexNode);
 
     String builderExpected = ""
-         + "LogicalFilter(condition=[CONTAINS($1, 'waltham')])\n"
-         + "  LogicalProject(_MAP=[$0], city=[ITEM($0, 'city')])\n"
-         + "    LogicalTableScan(table=[[elastic, " + ZIPS + "]])\n";
+        + "LogicalFilter(condition=[CONTAINS($1, 'waltham')])\n"
+        + "  LogicalProject(_MAP=[$0], city=[ITEM($0, 'city')])\n"
+        + "    LogicalTableScan(table=[[elastic, " + ZIPS + "]])\n";
 
     RelNode root = builder.build();
 
@@ -204,12 +209,13 @@ public class MatchTest {
 
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
       final String result = ""
-          + "_MAP={id=02154, city=NORTH WALTHAM, loc=[-71.236497, 42.382492], pop=57871, state=MA}; city=NORTH WALTHAM\n";
+          + "_MAP={id=02154, city=NORTH WALTHAM, loc=[-71.236497, 42.382492], "
+          + "pop=57871, state=MA}; city=NORTH WALTHAM\n";
 
-      //Validate query prepared
+      // Validate query prepared
       assertThat(root, hasTree(builderExpected));
 
-      //Validate result returned from ES
+      // Validate result returned from ES
       assertThat(s, is(result));
     }
   }

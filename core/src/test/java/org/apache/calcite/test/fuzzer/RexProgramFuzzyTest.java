@@ -51,13 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Validates that {@link org.apache.calcite.rex.RexSimplify} is able to deal with
- * randomized {@link RexNode}.
- * Note: the default fuzzing time is 5 seconds to keep overall test duration reasonable.
- * The test starts from a random point every time, so the longer it runs the more errors it detects.
+ * Validates that {@link org.apache.calcite.rex.RexSimplify} is able to deal
+ * with a randomized {@link RexNode}.
  *
- * <p>Note: The test is not included to {@link org.apache.calcite.test.CalciteSuite} since it would
- * fail every build (there are lots of issues with {@link org.apache.calcite.rex.RexSimplify})
+ * <p>The default fuzzing time is 5 seconds to keep overall test duration
+ * reasonable. The test starts from a random point every time, so the longer it
+ * runs the more errors it detects.
  */
 public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   protected static final Logger LOGGER =
