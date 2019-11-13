@@ -45,6 +45,8 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
         (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_BOOTSTRAP_SERVERS, null));
     tableOptionBuilder.setTopicName(
         (String) operand.getOrDefault(KafkaTableConstants.SCHEMA_TOPIC_NAME, null));
+    tableOptionBuilder.setTimestamp(
+        Long.valueOf((String) operand.getOrDefault(KafkaTableConstants.SCHEMA_TIMESTAMP, "-1")));
 
     final KafkaRowConverter rowConverter;
     if (operand.containsKey(KafkaTableConstants.SCHEMA_ROW_CONVERTER)) {

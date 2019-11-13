@@ -26,6 +26,7 @@ import java.util.Map;
 public final class KafkaTableOptions {
   private String bootstrapServers;
   private String topicName;
+  private long timestamp;
   private KafkaRowConverter rowConverter;
   private Map<String, String> consumerParams;
   //added to inject MockConsumer for testing.
@@ -46,6 +47,15 @@ public final class KafkaTableOptions {
 
   public KafkaTableOptions setTopicName(final String topicName) {
     this.topicName = topicName;
+    return this;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  public KafkaTableOptions setTimestamp(final long timestamp) {
+    this.timestamp = timestamp;
     return this;
   }
 
