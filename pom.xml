@@ -71,7 +71,7 @@ limitations under the License.
     <cassandra-driver-core.version>3.6.0</cassandra-driver-core.version>
     <cassandra-unit.version>3.5.0.1</cassandra-unit.version>
     <cassandra.version>3.11.2</cassandra.version>
-    <checkstyle.version>7.8.2</checkstyle.version>
+    <checkstyle.version>8.18</checkstyle.version>
     <checksum-maven-plugin.version>1.2</checksum-maven-plugin.version>
     <chinook-data-hsqldb.version>0.1</chinook-data-hsqldb.version>
     <commons-codec.version>1.12</commons-codec.version>
