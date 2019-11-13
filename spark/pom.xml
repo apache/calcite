@@ -69,6 +69,10 @@ limitations under the License.
           <groupId>net.sf.py4j</groupId>
           <artifactId>py4j</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>com.fasterxml.jackson.module</groupId>
+          <artifactId>jackson-module-scala_2.10</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -78,16 +82,6 @@ limitations under the License.
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-    </dependency>
-    <!-- Use explicit xerces and xalan. Without them, Hadoop gives
-      "Failed to set setXIncludeAware(true)" error. -->
-    <dependency>
-      <groupId>xerces</groupId>
-      <artifactId>xercesImpl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>xalan</groupId>
-      <artifactId>xalan</artifactId>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
