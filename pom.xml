@@ -89,7 +89,7 @@ limitations under the License.
     <foodmart-queries.version>0.4.1</foodmart-queries.version>
     <forbiddenapis.version>2.6</forbiddenapis.version>
     <freemarker.version>2.3.28</freemarker.version>
-    <geode.version>1.6.0</geode.version>
+    <geode.version>1.9.0</geode.version>
     <git-commit-id-plugin.version>2.1.9</git-commit-id-plugin.version>
     <!-- We support (and test against) Guava versions between
          19.0 and 27.1. Default is 19.0 due to Cassandra adapter. -->
