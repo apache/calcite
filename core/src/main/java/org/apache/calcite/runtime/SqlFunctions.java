@@ -2747,6 +2747,14 @@ public class SqlFunctions {
       list = Arrays.asList(flatElements);
     }
 
+    @Override public boolean moveNext() {
+      boolean hasNext = super.moveNext();
+      if (hasNext && withOrdinality) {
+        ordinality++;
+      }
+      return hasNext;
+    }
+
     public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
@@ -2761,9 +2769,16 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) Integer.valueOf(++ordinality); // 1-based
+        flatElements[i] = (E) Integer.valueOf(ordinality);
       }
       return FlatLists.ofComparable(list);
+    }
+
+    @Override public void reset() {
+      super.reset();
+      if (withOrdinality) {
+        ordinality = 0;
+      }
     }
   }
 

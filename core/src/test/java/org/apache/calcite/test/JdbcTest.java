@@ -2188,9 +2188,31 @@ public class JdbcTest {
             + " UNNEST(d.\"employees\", array[1, 2]) with ordinality as e (ei, d, n, s, c, i, o)\n"
             + "where ei + i > 151")
         .returnsUnordered(
-            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=2",
-            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=4",
-            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=1",
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=2",
+            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=4");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3498">[CALCITE-3498]
+   * Unnest operation's ordinality should be deterministic</a>. */
+  @Test public void testUnnestArrayWithDeterministicOrdinality() {
+    CalciteAssert.that()
+        .query("select v, o\n"
+            + "from unnest(array[100, 200]) with ordinality as t1(v, o)\n"
+            + "where v > 1")
+        .returns("V=100; O=1\n"
+            + "V=200; O=2\n");
+
+    CalciteAssert.that()
+        .query("with\n"
+            + "  x as (select * from unnest(array[100, 200]) with ordinality as t1(v, o)), "
+            + "  y as (select * from unnest(array[1000, 2000]) with ordinality as t2(v, o))\n"
+            + "select x.o as o1, x.v as v1, y.o as o2, y.v as v2 "
+            + "from x join y on x.o=y.o")
+        .returnsUnordered(
+            "O1=1; V1=100; O2=1; V2=1000",
+            "O1=2; V1=200; O2=2; V2=2000");
   }
 
   /** Test case for
