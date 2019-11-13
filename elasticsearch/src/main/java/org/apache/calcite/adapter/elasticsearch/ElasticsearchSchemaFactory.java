@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,9 +86,9 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
         throw new IllegalArgumentException
         ("Both 'coordinates' and 'hosts' is missing in configuration. Provide one of them.");
       }
-
+      final String pathPrefix = (String) map.get("pathPrefix");
       // create client
-      final RestClient client = connect(hosts);
+      final RestClient client = connect(hosts, pathPrefix);
       final String index = (String) map.get("index");
 
       return new ElasticsearchSchema(client, new ObjectMapper(), index);
@@ -101,12 +102,16 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
    * @param hosts list of ES HTTP Hosts to connect to
    * @return newly initialized low-level rest http client for ES
    */
-  private static RestClient connect(List<HttpHost> hosts) {
+  private static RestClient connect(List<HttpHost> hosts, String pathPrefix) {
 
     Objects.requireNonNull(hosts, "hosts or coordinates");
     Preconditions.checkArgument(!hosts.isEmpty(), "no ES hosts specified");
 
-    return RestClient.builder(hosts.toArray(new HttpHost[hosts.size()])).build();
+    RestClientBuilder builder = RestClient.builder(hosts.toArray(new HttpHost[hosts.size()]));
+    if (pathPrefix != null && !pathPrefix.isEmpty()) {
+      builder.setPathPrefix(pathPrefix);
+    }
+    return builder.build();
   }
 
 }

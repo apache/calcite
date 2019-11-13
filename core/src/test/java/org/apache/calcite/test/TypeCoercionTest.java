@@ -415,7 +415,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test case for {@link TypeCoercion#getWiderTypeForTwo}
-   * and {@link TypeCoercion#getWiderTypeFor} */
+   * and {@link TypeCoercion#getWiderTypeFor}. */
   @Test public void testWiderTypeFor() {
     // DECIMAL please see details in SqlTypeFactoryImpl#leastRestrictiveSqlType.
     checkWiderType(decimalType(5, 4), decimalType(7, 1), decimalType(10, 4), true, true);

@@ -6335,6 +6335,36 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "bit_or(deptno) from emp";
     sql(sql).withRule(AggregateExpandDistinctAggregatesRule.INSTANCE).check();
   }
+
+  @Test public void testProjectJoinTransposeItem() {
+    ProjectJoinTransposeRule projectJoinTransposeRule =
+        new ProjectJoinTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+
+    String query = "select t1.c_nationkey[0], t2.c_nationkey[0] "
+        + "from sales.customer as t1 left outer join sales.customer as t2 "
+        + "on t1.c_nationkey[0] = t2.c_nationkey[0]";
+
+    sql(query).withTester(t -> createDynamicTester()).withRule(projectJoinTransposeRule).check();
+  }
+
+  @Test public void testSimplifyItemIsNotNull() {
+    String query = "select * from sales.customer as t1 where t1.c_nationkey[0] is not null";
+
+    sql(query)
+        .withTester(t -> createDynamicTester())
+        .withRule(ReduceExpressionsRule.FILTER_INSTANCE)
+        .checkUnchanged();
+  }
+
+  @Test public void testSimplifyItemIsNull() {
+    String query = "select * from sales.customer as t1 where t1.c_nationkey[0] is null";
+
+    sql(query)
+        .withTester(t -> createDynamicTester())
+        .withRule(ReduceExpressionsRule.FILTER_INSTANCE)
+        .checkUnchanged();
+  }
+
 }
 
 // End RelOptRulesTest.java

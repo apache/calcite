@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
@@ -89,6 +90,10 @@ public class RelMdMaxRowCount
   }
 
   public Double getMaxRowCount(Project rel, RelMetadataQuery mq) {
+    return mq.getMaxRowCount(rel.getInput());
+  }
+
+  public Double getMaxRowCount(Exchange rel, RelMetadataQuery mq) {
     return mq.getMaxRowCount(rel.getInput());
   }
 

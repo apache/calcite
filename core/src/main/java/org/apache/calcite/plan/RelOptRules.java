@@ -186,7 +186,7 @@ public class RelOptRules {
       ValuesReduceRule.PROJECT_INSTANCE,
       AggregateValuesRule.INSTANCE);
 
-  static final List<RelOptRule> MATERIALIZATION_RULES = ImmutableList.of(
+  public static final List<RelOptRule> MATERIALIZATION_RULES = ImmutableList.of(
       MaterializedViewFilterScanRule.INSTANCE,
       AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER,
       AbstractMaterializedViewRule.INSTANCE_FILTER,

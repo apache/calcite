@@ -215,7 +215,7 @@ public class MongoFilter extends Filter implements MongoRel {
         return true;
       case CAST:
         return translateBinary2(op, ((RexCall) left).operands.get(0), right);
-      case OTHER_FUNCTION:
+      case ITEM:
         String itemName = MongoRules.isItem((RexCall) left);
         if (itemName != null) {
           translateOp2(op, itemName, rightLiteral);

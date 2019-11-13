@@ -150,6 +150,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case REAL:
         clazz = MinDouble.class;
         break;
+      case BOOLEAN:
+        clazz = MinBoolean.class;
+        break;
       default:
         clazz = MinLong.class;
         break;
@@ -533,6 +536,29 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
   public static class MinDouble extends NumericComparison<Double> {
     public MinDouble() {
       super(Double.MAX_VALUE, Math::min);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code boolean} values as a user-defined aggregate.
+   */
+  public static class MinBoolean {
+    public MinBoolean() { }
+
+    public Boolean init() {
+      return Boolean.TRUE;
+    }
+
+    public Boolean add(Boolean accumulator, Boolean value) {
+      return accumulator.compareTo(value) < 0 ? accumulator : value;
+    }
+
+    public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public Boolean result(Boolean accumulator) {
+      return accumulator;
     }
   }
 
