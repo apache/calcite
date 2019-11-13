@@ -110,7 +110,7 @@ limitations under the License.
     <javacc-maven-plugin.version>2.4</javacc-maven-plugin.version>
     <java-diff.version>1.1.2</java-diff.version>
     <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <jetty.version>9.4.11.v20180605</jetty.version>
+    <jetty.version>9.4.22.v20191022</jetty.version>
     <jmh.version>1.12</jmh.version>
     <joda.version>2.8.1</joda.version>
     <jsonpath.version>2.4.0</jsonpath.version>
