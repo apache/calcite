@@ -216,6 +216,7 @@ public class SqlSelectOperator extends SqlOperator {
         writer.endList(frame);
       } else {
         if (writer.getDialect().getConformance().isGroupByOrdinal()) {
+          List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
           for (SqlNode groupKey : select.groupBy.getList()) {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
               writer.sep(",");
@@ -233,11 +234,13 @@ public class SqlSelectOperator extends SqlOperator {
                         if (SqlKind.CAST == literalNode.getKind()) {
                           literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
                         }
-                        if (literalNode == groupKey) {
+                        if (literalNode == groupKey
+                            && !visitedLiteralNodeList.contains(literalNode)) {
                           String ordinal = String.valueOf(
                               select.selectList.getList().indexOf(selectSqlNode) + 1);
                           SqlLiteral.createExactNumeric(ordinal,
                               SqlParserPos.ZERO).unparse(writer, 2, 3);
+                          visitedLiteralNodeList.add(literalNode);
                         }
                       }
                     });
