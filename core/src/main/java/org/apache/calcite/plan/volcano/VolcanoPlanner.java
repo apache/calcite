@@ -877,6 +877,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected boolean isValid(Litmus litmus) {
+    if (this.getRoot() == null) {
+      return true;
+    }
+
     RelMetadataQuery metaQuery = this.getRoot().getCluster().getMetadataQuerySupplier().get();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
