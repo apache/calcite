@@ -1155,6 +1155,11 @@ public class SqlFunctions {
   public static long mod(long b0, long b1) {
     return b0 % b1;
   }
+  
+  /** SQL <code>MOD</code> operator applied to long and int values. */
+  public static int mod(long b0, int b1) {
+    return (int) (b0 % b1);
+  }
 
   // temporary
   public static BigDecimal mod(BigDecimal b0, int b1) {
