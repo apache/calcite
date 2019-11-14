@@ -1054,9 +1054,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
         register(rel, converted);
-      }
-
-      if ((rel == null) && allowAbstractConverters) {
+      } else if (allowAbstractConverters) {
         RelTraitSet stepTraits =
             converted.getTraitSet().replace(toTrait);
 
