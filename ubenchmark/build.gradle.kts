@@ -16,11 +16,17 @@
  *
  */
 
-dependencies {
-    api(project(":core"))
-    api(project(":linq4j"))
-    api("com.google.guava:guava")
-    api("org.codehaus.janino:commons-compiler")
-    api("org.openjdk.jmh:jmh-core")
-    api("org.openjdk.jmh:jmh-generator-annprocess")
+plugins {
+    id("me.champeau.gradle.jmh")
 }
+
+dependencies {
+    jmh(project(":core"))
+    jmh(project(":linq4j"))
+    jmh("com.google.guava:guava")
+    jmh("org.codehaus.janino:commons-compiler")
+    jmh("org.openjdk.jmh:jmh-core")
+    jmh("org.openjdk.jmh:jmh-generator-annprocess")
+}
+
+// See https://github.com/melix/jmh-gradle-plugin

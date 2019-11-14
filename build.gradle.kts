@@ -565,6 +565,10 @@ allprojects {
                 // Do not publish "root" project. Java plugin is applied here for DSL purposes only
                 return@configure
             }
+            if (!project.props.bool("nexus.publish", default = true)) {
+                // Some of the artifacts do not need to be published
+                return@configure
+            }
             publications {
                 create<MavenPublication>(project.name) {
                     artifactId = archivesBaseName
