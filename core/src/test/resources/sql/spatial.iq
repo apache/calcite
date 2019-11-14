@@ -283,6 +283,16 @@ EXPR$0
 {"x":-71.1043443253471,"y":42.3150676015829}
 !ok
 
+SELECT ST_MakePoint(1.0, 1);
+EXPR$0
+{"x":1,"y":1}
+!ok
+
+SELECT ST_MakePoint('-1.11', '2.2', 1.1);
+EXPR$0
+{"x":-1.11,"y":2.2,"z":1.1}
+!ok
+
 # Return point marked as WGS 84 long lat
 SELECT ST_SetSRID(ST_MakePoint(-71.1043443253471, 42.3150676015829),4326);
 EXPR$0

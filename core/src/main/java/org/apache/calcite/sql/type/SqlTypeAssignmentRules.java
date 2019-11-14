@@ -131,12 +131,6 @@ public class SqlTypeAssignmentRules {
 
     // DECIMAL is assignable from...
     rule.clear();
-    rule.add(SqlTypeName.TINYINT);
-    rule.add(SqlTypeName.SMALLINT);
-    rule.add(SqlTypeName.INTEGER);
-    rule.add(SqlTypeName.BIGINT);
-    rule.add(SqlTypeName.REAL);
-    rule.add(SqlTypeName.DOUBLE);
     rule.add(SqlTypeName.DECIMAL);
     rules.add(SqlTypeName.DECIMAL, rule);
 
