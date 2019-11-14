@@ -103,7 +103,6 @@ public class GeodeUtils {
         .addPoolLocator(locatorHost, locatorPort)
         .setPdxSerializer(new ReflectionBasedAutoSerializer(autoSerializerPackagePath))
         .setPdxReadSerialized(readSerialized)
-        .setPdxPersistent(false)
         .create();
   }
 
