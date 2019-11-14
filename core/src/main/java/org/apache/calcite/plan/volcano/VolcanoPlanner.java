@@ -19,7 +19,6 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
@@ -1054,10 +1053,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               allowInfiniteCostConverters);
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
-        rel =
-            completeConversion(
-                rel, allowInfiniteCostConverters, toTraits,
-                Expressions.list(traitDef));
         if (rel != null) {
           register(rel, converted);
         }
@@ -1079,60 +1074,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     return converted;
-  }
-
-  /**
-   * Converts traits using well-founded induction. We don't require that
-   * each conversion preserves all traits that have previously been converted,
-   * but if it changes "locked in" traits we'll try some other conversion.
-   *
-   * @param rel                         Relational expression
-   * @param allowInfiniteCostConverters Whether to allow infinite converters
-   * @param toTraits                    Target trait set
-   * @param usedTraits                  Traits that have been locked in
-   * @return Converted relational expression
-   */
-  private RelNode completeConversion(
-      RelNode rel,
-      boolean allowInfiniteCostConverters,
-      RelTraitSet toTraits,
-      Expressions.FluentList<RelTraitDef> usedTraits) {
-    if (true) {
-      return rel;
-    }
-    for (RelTrait trait : rel.getTraitSet()) {
-      if (toTraits.contains(trait)) {
-        // We're already a match on this trait type.
-        continue;
-      }
-      final RelTraitDef traitDef = trait.getTraitDef();
-      RelNode rel2 =
-          traitDef.convert(
-              this,
-              rel,
-              toTraits.getTrait(traitDef),
-              allowInfiniteCostConverters);
-
-      // if any of the used traits have been knocked out, we could be
-      // heading for a cycle.
-      for (RelTraitDef usedTrait : usedTraits) {
-        if (!rel2.getTraitSet().contains(usedTrait)) {
-          continue;
-        }
-      }
-      // recursive call, to convert one more trait
-      rel =
-          completeConversion(
-              rel2,
-              allowInfiniteCostConverters,
-              toTraits,
-              usedTraits.append(traitDef));
-      if (rel != null) {
-        return rel;
-      }
-    }
-    assert rel.getTraitSet().equals(toTraits);
-    return rel;
   }
 
   RelNode changeTraitsUsingConverters(
