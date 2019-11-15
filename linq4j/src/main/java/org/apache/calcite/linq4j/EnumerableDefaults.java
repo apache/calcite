@@ -1858,6 +1858,7 @@ public abstract class EnumerableDefaults {
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
+      final Predicate2<TSource, TInner> predicate,
       final Function2<TSource, TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
@@ -1873,7 +1874,7 @@ public abstract class EnumerableDefaults {
       public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer.enumerator(),
             inner.enumerator(), outerKeySelector, innerKeySelector,
-            resultSelector);
+            predicate, resultSelector);
       }
     };
   }
@@ -3687,6 +3688,7 @@ public abstract class EnumerableDefaults {
     private final Enumerator<TInner> rightEnumerator;
     private final Function1<TSource, TKey> outerKeySelector;
     private final Function1<TInner, TKey> innerKeySelector;
+    private final Predicate2<TSource, TInner> predicate;
     private final Function2<TSource, TInner, TResult> resultSelector;
     boolean done;
     Enumerator<List<Object>> cartesians;
@@ -3695,11 +3697,13 @@ public abstract class EnumerableDefaults {
         Enumerator<TInner> rightEnumerator,
         Function1<TSource, TKey> outerKeySelector,
         Function1<TInner, TKey> innerKeySelector,
+        Predicate2<TSource, TInner> predicate,
         Function2<TSource, TInner, TResult> resultSelector) {
       this.leftEnumerator = leftEnumerator;
       this.rightEnumerator = rightEnumerator;
       this.outerKeySelector = outerKeySelector;
       this.innerKeySelector = innerKeySelector;
+      this.predicate = predicate;
       this.resultSelector = resultSelector;
       start();
     }
@@ -3723,7 +3727,7 @@ public abstract class EnumerableDefaults {
       TKey rightKey = innerKeySelector.apply(right);
       for (;;) {
         int c = leftKey.compareTo(rightKey);
-        if (c == 0) {
+        if (c == 0 && predicate.apply(left, right)) {
           break;
         }
         if (c < 0) {
@@ -3782,9 +3786,10 @@ public abstract class EnumerableDefaults {
         }
         rights.add(right);
       }
-      cartesians = Linq4j.product(
-          ImmutableList.of(Linq4j.enumerator(lefts),
-              Linq4j.enumerator(rights)));
+      cartesians = new TakeWhileLongEnumerator<>(
+          Linq4j.product(
+              ImmutableList.of(Linq4j.enumerator(lefts), Linq4j.enumerator(rights))),
+          (v0, v1) -> predicate.apply((TSource) v0.get(0), (TInner) v0.get(1)));
       return true;
     }
 

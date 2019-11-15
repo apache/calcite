@@ -186,7 +186,7 @@ public enum BuiltInMethod {
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
-      Enumerable.class, Function1.class, Function1.class, Function2.class,
+      Enumerable.class, Function1.class, Function1.class, Predicate2.class, Function2.class,
       boolean.class, boolean.class),
   SLICE0(Enumerables.class, "slice0", Enumerable.class),
   SEMI_JOIN(EnumerableDefaults.class, "semiJoin", Enumerable.class,
