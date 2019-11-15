@@ -29,10 +29,15 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -156,6 +161,52 @@ public abstract class FilterJoinRule extends RelOptRule {
     final List<RexNode> leftFilters = new ArrayList<>();
     final List<RexNode> rightFilters = new ArrayList<>();
 
+    final int nFieldsLeft = join
+        .getInputs()
+        .get(0)
+        .getRowType()
+        .getFieldList()
+        .size();
+    final int nFieldsRight = join
+        .getInputs()
+        .get(1)
+        .getRowType()
+        .getFieldList()
+        .size();
+
+    final int nTotalFields = join.getRowType().getFieldList().size();
+    final int nSysFields = 0; // joinRel.getSystemFieldList().size();
+
+    // Setup two bit sets, one for the left side of the join indicating what fields are present
+    // in the left side of the join and the other for the right side.
+    final ImmutableBitSet leftBitmap = ImmutableBitSet.range(
+        nSysFields, nSysFields + nFieldsLeft);
+    final ImmutableBitSet rightBitmap = ImmutableBitSet.range(
+        nSysFields + nFieldsLeft, nTotalFields);
+
+    // When a join can create nulls on the left (or right) leverage the filter to determine if
+    // the join can cancel nulls on left (or right).
+    if (joinType.generatesNullsOnLeft() && filter != null) {
+      final RexVisitor<Boolean> mustMatchSideVisitor = new TableNotNullable(leftBitmap);
+      final Boolean filterMustMatch = filter.getCondition().accept(mustMatchSideVisitor);
+      if (filterMustMatch != null) {
+        if (filterMustMatch != Boolean.FALSE) {
+          joinType = joinType.cancelNullsOnLeft();
+        }
+      }
+    }
+
+    // When a join can create nulls on the right (or left) leverage the filter to determine if
+    // the join can cancel nulls on right (or left).
+    if (joinType.generatesNullsOnRight() && filter != null) {
+      final RexVisitor<Boolean> mustMatchSideVisitor = new TableNotNullable(rightBitmap);
+      final Boolean filterMustMatch = filter.getCondition().accept(mustMatchSideVisitor);
+      if (filterMustMatch != null) {
+        if (filterMustMatch != Boolean.FALSE) {
+          joinType = joinType.cancelNullsOnRight();
+        }
+      }
+    }
     // TODO - add logic to derive additional filters.  E.g., from
     // (t1.a = 1 AND t2.a = 2) OR (t1.b = 3 AND t2.b = 4), you can
     // derive table filters:
@@ -390,6 +441,87 @@ public abstract class FilterJoinRule extends RelOptRule {
    * above the join. */
   public interface Predicate {
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
+  }
+
+  /**
+   * Visits RexNodes to determine if -- for this filter -- the table on the side of the join can be
+   * nullable. Returns true if the results from the table must be present in the result set.
+   */
+  public static class TableNotNullable extends RexVisitorImpl<Boolean> {
+    private boolean visitingNegation = false;
+    public final ImmutableBitSet tableFields;
+    public TableNotNullable(final ImmutableBitSet tableFields) {
+      super(true);
+      this.tableFields = tableFields;
+    }
+    @Override public Boolean visitCall(RexCall call) {
+      final SqlKind callType = call.getOperator().getKind();
+      switch (callType) {
+      case NOT:
+      case NOT_IN:
+      case NOT_EQUALS:
+      case IS_NULL:
+        visitingNegation = true;
+        break;
+      case AND:
+        // Processing an AND, assume that this won't pass and if any of the operands returns true
+        // then return true for this RexCall.
+        return call.operands
+          .stream()
+          .map(rexNode -> rexNode.accept(this))
+          .reduce(false,
+              (left, right) -> {
+                if (right == null) {
+                  return left;
+                }
+                return left || right;
+              });
+      case OR:
+        // Processing an OR, assume that it does pass and require all operands to return true
+        // then return true for this RexCall.
+        return call.operands
+          .stream()
+          .map(rexNode -> rexNode.accept(this))
+          .reduce(false,
+              (left, right) -> {
+                if (right == null) {
+                  return false;
+                }
+                return left || right;
+              });
+      case IS_NOT_NULL:
+        return call.operands
+          .stream()
+          .map(rexNode -> rexNode.accept(this))
+          .reduce(false,
+              (left, right) -> {
+                if (right == null) {
+                  return left;
+                }
+                return left && right;
+              });
+      default:
+        visitingNegation = false;
+      }
+      boolean mustMatchSide = false;
+      for (RexNode operand: call.operands) {
+        final Boolean childCall = operand.accept(this);
+        if (childCall != null) {
+          if (childCall == Boolean.FALSE) {
+            return Boolean.FALSE;
+          }
+          mustMatchSide = true;
+        }
+      }
+      return mustMatchSide;
+    }
+
+    @Override public Boolean visitInputRef(RexInputRef input) {
+      if (tableFields.indexOf(input.getIndex()) >= 0) {
+        return !visitingNegation;
+      }
+      return false;
+    }
   }
 }
 

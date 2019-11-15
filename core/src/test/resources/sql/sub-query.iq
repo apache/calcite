@@ -2068,12 +2068,12 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
 select empno from "scott".emp as e
 where e.empno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t0, $t2)], expr#8=[IS NULL($t5)], expr#9=[0], expr#10=[=($t3, $t9)], expr#11=[OR($t8, $t10)], expr#12=[IS NOT TRUE($t11)], expr#13=[AND($t7, $t12)], expr#14=[IS NOT TRUE($t7)], expr#15=[>($t3, $t4)], expr#16=[IS NOT TRUE($t15)], expr#17=[AND($t7, $t12, $t14, $t16)], expr#18=[OR($t13, $t17)], EMPNO=[$t0], $condition=[$t18])
-  EnumerableHashJoin(condition=[=($1, $6)], joinType=[left])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
-      EnumerableTableScan(table=[[scott, EMP]])
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t5, $t0)], expr#8=[0], expr#9=[=($t1, $t8)], expr#10=[IS NOT TRUE($t9)], expr#11=[AND($t7, $t10)], expr#12=[IS NOT TRUE($t7)], expr#13=[>($t1, $t2)], expr#14=[IS NOT TRUE($t13)], expr#15=[AND($t7, $t10, $t12, $t14)], expr#16=[OR($t11, $t15)], EMPNO=[$t5], $condition=[$t16])
+  EnumerableHashJoin(condition=[=($4, $6)], joinType=[inner])
     EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[1:BIGINT], expr#5=[true], m=[$t3], c=[$t4], d=[$t4], trueLiteral=[$t5], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+      EnumerableTableScan(table=[[scott, EMP]])
 !plan
  EMPNO
 -------
