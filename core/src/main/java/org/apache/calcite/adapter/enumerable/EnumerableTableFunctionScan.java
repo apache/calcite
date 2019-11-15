@@ -82,7 +82,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    if (getCall().getKind().equals(SqlKind.TUMBLE)) {
+    if (getCall().getKind() == SqlKind.TUMBLE) {
       final JavaTypeFactory typeFactory = implementor.getTypeFactory();
       final BlockBuilder builder = new BlockBuilder();
       // TODO: only supports one input now. Can extend to multiple inputs when needed.
