@@ -35,9 +35,11 @@ public enum EnumerableConvention implements Convention {
   public static final double COST_MULTIPLIER = 1.0d;
 
   /**
-   * User can switch this config to allow conversion by
+   * This config is used to allow conversion by
    * {@link org.apache.calcite.plan.volcano.AbstractConverter}, which is relied
    * upon when converting collations/distributions of input to fit the parent node.
+   * Some tests enable this config to test sepcific phsyical operators,
+   * e.g. {@link org.apache.calcite.adapter.enumerable.EnumerableMergeJoin}.
    */
   public static boolean useAbstractConvertersForConversion = false;
 
