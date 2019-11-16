@@ -1865,7 +1865,7 @@ public class RexUtil {
   public static RexNode simplifyOrs(RexBuilder rexBuilder,
       List<RexNode> terms) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
-        .simplifyUnknownAs(rexBuilder.makeCall(SqlStdOperatorTable.OR, terms),
+        .simplifyUnknownAs(RexUtil.composeDisjunction(rexBuilder, terms),
             RexUnknownAs.UNKNOWN);
   }
 
