@@ -445,7 +445,29 @@ public class SqlDialect {
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    switch (call.getKind()) {
+    case ROW:
+      // Remove the ROW keyword if the dialect does not allow that.
+      if (!getConformance().allowExplicitRowValueConstructor()) {
+        // Fix the syntax when there is no parentheses after VALUES keyword.
+        if (!writer.isAlwaysUseParentheses()) {
+          writer.print(" ");
+        }
+        final SqlWriter.Frame frame = writer.isAlwaysUseParentheses()
+                ? writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL)
+                : writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endList(frame);
+        break;
+      }
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    }
   }
 
   public void unparseDateTimeLiteral(SqlWriter writer,
@@ -1091,6 +1113,7 @@ public class SqlDialect {
    * {@link #databaseProduct}; sub-classes may override. */
   @Nonnull public SqlConformance getConformance() {
     switch (databaseProduct) {
+    case UNKNOWN:
     case CALCITE:
       return SqlConformanceEnum.DEFAULT;
     case MYSQL:

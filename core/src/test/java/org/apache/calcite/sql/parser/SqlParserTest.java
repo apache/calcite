@@ -1145,6 +1145,37 @@ public class SqlParserTest {
     sql(whereRow2).sansCarets().ok(whereExpected);
   }
 
+  @Test public void testRowValueExpression() {
+    final String expected0 = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (ROW(1, 'Fred')),\n"
+            + "(ROW(2, 'Eric'))";
+    String sql = "insert into emps values (1,'Fred'),(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.CALCITE.getDialect())
+         .ok(expected0);
+
+    final String expected1 = "INSERT INTO `emps`\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.MYSQL.getDialect())
+        .ok(expected1);
+
+    final String expected2 = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.ORACLE.getDialect())
+        .ok(expected2);
+
+    final String expected3 = "INSERT INTO [EMPS]\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.MSSQL.getDialect())
+        .ok(expected3);
+  }
+
   /** Whether this is a sub-class that tests un-parsing as well as parsing. */
   protected boolean isUnparserTest() {
     return false;

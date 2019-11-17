@@ -112,7 +112,6 @@ public class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
-    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
@@ -4109,6 +4108,56 @@ public class RelToSqlConverterTest {
     sql.ok(expected);
   }
 
+  @Test public void testRowValueExpression() {
+    final String expected0 = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    String sql = "insert into \"DEPT\"\n"
+            + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withHive()
+        .ok(expected0);
+
+    final String expected1 = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withMysql()
+        .ok(expected1);
+
+    final String expected2 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withOracle()
+        .ok(expected2);
+
+    final String expected3 = "INSERT INTO [SCOTT].[DEPT] ([DEPTNO], [DNAME], [LOC])\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withMssql()
+        .ok(expected3);
+
+    final String expected4 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected4);
+
+    final String expected5 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
+            + " (2, 'Eric', 'Washington')";
+    sql(sql).withCalcite()
+            .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+            .ok(expected5);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
@@ -4140,6 +4189,10 @@ public class RelToSqlConverterTest {
 
     Sql dialect(SqlDialect dialect) {
       return new Sql(schema, sql, dialect, config, transforms);
+    }
+
+    Sql withCalcite() {
+      return dialect(SqlDialect.DatabaseProduct.CALCITE.getDialect());
     }
 
     Sql withDb2() {
