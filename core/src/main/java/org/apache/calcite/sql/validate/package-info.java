@@ -18,9 +18,6 @@
 /**
  * SQL validation.
  */
-@PackageMarker
 package org.apache.calcite.sql.validate;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

@@ -18,9 +18,6 @@
 /**
  * End to end tests.
  */
-@PackageMarker
 package org.apache.calcite.chinook;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

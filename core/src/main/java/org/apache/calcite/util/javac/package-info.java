@@ -18,9 +18,6 @@
 /**
  * Provides compilers for Java code.
  */
-@PackageMarker
 package org.apache.calcite.util.javac;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

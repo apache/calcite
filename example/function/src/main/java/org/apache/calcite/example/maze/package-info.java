@@ -18,9 +18,6 @@
 /**
  * User-defined table function that generates a maze.
  */
-@PackageMarker
 package org.apache.calcite.example.maze;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

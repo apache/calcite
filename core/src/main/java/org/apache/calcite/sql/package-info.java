@@ -91,9 +91,6 @@
  * {@link org.apache.calcite.sql.SqlNode}s into a SQL string. A
  * {@link org.apache.calcite.sql.SqlDialect} defines how this happens.</p>
  */
-@PackageMarker
 package org.apache.calcite.sql;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

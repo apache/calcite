@@ -18,9 +18,6 @@
 /**
  * Translates a relational expression to SQL parse tree.
  */
-@PackageMarker
 package org.apache.calcite.rel.rel2sql;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

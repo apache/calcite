@@ -18,9 +18,6 @@
 /**
  * Regression tests for the SQL model.
  */
-@PackageMarker
 package org.apache.calcite.sql.test;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

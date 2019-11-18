@@ -19,9 +19,6 @@
  * Query provider based on Java in-memory data
  * structures.
  */
-@PackageMarker
 package org.apache.calcite.adapter.java;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

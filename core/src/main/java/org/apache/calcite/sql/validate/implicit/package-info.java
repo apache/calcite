@@ -79,9 +79,6 @@
  *
  * <p>See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>.
  */
-@PackageMarker
 package org.apache.calcite.sql.validate.implicit;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

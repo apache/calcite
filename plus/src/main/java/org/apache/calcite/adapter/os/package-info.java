@@ -19,9 +19,6 @@
  * The OS adapter contains various table functions that let you query data
  * sources in your operating system and environment.
  */
-@PackageMarker
 package org.apache.calcite.adapter.os;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

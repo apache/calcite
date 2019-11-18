@@ -18,9 +18,6 @@
 /**
  * Query optimizer rules for Java calling convention.
  */
-@PackageMarker
 package org.apache.calcite.adapter.enumerable;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java
