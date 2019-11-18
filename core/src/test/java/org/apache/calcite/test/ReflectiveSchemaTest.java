@@ -818,6 +818,41 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3512">[CALCITE-3512]
+   * Query fails when comparing Time/TimeStamp types</a>. */
+  @Test public void testTimeCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTime\") a,"
+        + "    (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTime\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=00:00:00");
+  }
+
+  @Test public void testTimestampCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTimestamp\") a,"
+        + "    (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTimestamp\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01 00:00:00");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
    * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
   @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {

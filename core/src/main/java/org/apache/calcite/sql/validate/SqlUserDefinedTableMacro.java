@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -186,7 +186,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     // expressions.
     BlockBuilder bb = new BlockBuilder();
     final Expression expr =
-        RexToLixTranslator.convert(Expressions.constant(o), clazz);
+        EnumUtils.convert(Expressions.constant(o), clazz);
     bb.add(Expressions.return_(null, expr));
     final FunctionExpression convert =
         Expressions.lambda(bb.toBlock(), Collections.emptyList());

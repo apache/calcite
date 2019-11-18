@@ -219,7 +219,7 @@ public class PhysTypeImpl implements PhysType {
     final List<Expression> expressions = new ArrayList<>();
     for (int field : argList) {
       expressions.add(
-          RexToLixTranslator.convert(
+          EnumUtils.convert(
               fieldReference(v1, field),
               fieldClass(field)));
     }
@@ -308,8 +308,8 @@ public class PhysTypeImpl implements PhysType {
       Expression arg1 = fieldReference(parameterV1, index);
       switch (Primitive.flavor(fieldClass(index))) {
       case OBJECT:
-        arg0 = RexToLixTranslator.convert(arg0, Comparable.class);
-        arg1 = RexToLixTranslator.convert(arg1, Comparable.class);
+        arg0 = EnumUtils.convert(arg0, Comparable.class);
+        arg1 = EnumUtils.convert(arg1, Comparable.class);
       }
       final boolean nullsFirst =
           collation.nullDirection
@@ -407,8 +407,8 @@ public class PhysTypeImpl implements PhysType {
       Expression arg1 = fieldReference(parameterV1, index);
       switch (Primitive.flavor(fieldClass(index))) {
       case OBJECT:
-        arg0 = RexToLixTranslator.convert(arg0, Comparable.class);
-        arg1 = RexToLixTranslator.convert(arg1, Comparable.class);
+        arg0 = EnumUtils.convert(arg0, Comparable.class);
+        arg1 = EnumUtils.convert(arg1, Comparable.class);
       }
       final boolean nullsFirst =
           fieldCollation.nullDirection
@@ -566,7 +566,7 @@ public class PhysTypeImpl implements PhysType {
       // }
       Class returnType = fieldClasses.get(field0);
       Expression fieldReference =
-          RexToLixTranslator.convert(
+          EnumUtils.convert(
               fieldReference(v1, field0),
               returnType);
       return Expressions.lambda(
@@ -658,7 +658,9 @@ public class PhysTypeImpl implements PhysType {
       fieldType = null;
     } else {
       fieldType = fieldClass(field);
-      if (fieldType != java.sql.Date.class) {
+      if (fieldType != java.sql.Date.class
+          && fieldType != java.sql.Time.class
+          && fieldType != java.sql.Timestamp.class) {
         fieldType = null;
       }
     }
