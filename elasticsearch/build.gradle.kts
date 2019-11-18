@@ -60,4 +60,5 @@ dependencies {
     testImplementation("org.elasticsearch.plugin:transport-netty4-client")
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":core", "testClasses"))
+    testRuntimeOnly("net.java.dev.jna:jna")
 }

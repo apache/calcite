@@ -82,6 +82,7 @@ dependencies {
         apiv("net.hydromatic:quidem")
         apiv("net.hydromatic:scott-data-hsqldb")
         apiv("net.hydromatic:tpcds", "hydromatic.tpcds")
+        apiv("net.java.dev.jna:jna")
         apiv("net.sf.opencsv:opencsv")
         apiv("org.apache.calcite.avatica:avatica-core", "calcite.avatica")
         apiv("org.apache.calcite.avatica:avatica-server", "calcite.avatica")

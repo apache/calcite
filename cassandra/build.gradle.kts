@@ -26,10 +26,11 @@ dependencies {
     implementation("org.slf4j:slf4j-api")
 
     testImplementation(project(":core", "testClasses"))
+    testImplementation("com.github.stephenc.jcip:jcip-annotations")
     testImplementation("org.apache.cassandra:cassandra-all") {
         exclude("org.slf4j", "log4j-over-slf4j")
             .because("log4j is already present in the classpath")
     }
     testImplementation("org.cassandraunit:cassandra-unit")
-    testImplementation("com.github.stephenc.jcip:jcip-annotations")
+    testRuntimeOnly("net.java.dev.jna:jna")
 }
