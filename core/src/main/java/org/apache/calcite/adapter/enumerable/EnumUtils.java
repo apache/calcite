@@ -240,35 +240,6 @@ public class EnumUtils {
     return Util.transform(operandList, node -> toInternal(node.getType()));
   }
 
-  static Expression enforce(final Type storageType,
-      final Expression e) {
-    if (storageType != null && e.type != storageType) {
-      if (e.type == java.sql.Date.class) {
-        if (storageType == int.class) {
-          return Expressions.call(BuiltInMethod.DATE_TO_INT.method, e);
-        }
-        if (storageType == Integer.class) {
-          return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, e);
-        }
-      } else if (e.type == java.sql.Time.class) {
-        if (storageType == int.class) {
-          return Expressions.call(BuiltInMethod.TIME_TO_INT.method, e);
-        }
-        if (storageType == Integer.class) {
-          return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, e);
-        }
-      } else if (e.type == java.sql.Timestamp.class) {
-        if (storageType == long.class) {
-          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, e);
-        }
-        if (storageType == Long.class) {
-          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, e);
-        }
-      }
-    }
-    return e;
-  }
-
   /** Transforms a JoinRelType to Linq4j JoinType. **/
   static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
     switch (joinRelType) {

@@ -658,7 +658,9 @@ public class PhysTypeImpl implements PhysType {
       fieldType = null;
     } else {
       fieldType = fieldClass(field);
-      if (fieldType != java.sql.Date.class) {
+      if (fieldType != java.sql.Date.class
+          && fieldType != java.sql.Time.class
+          && fieldType != java.sql.Timestamp.class) {
         fieldType = null;
       }
     }

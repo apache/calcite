@@ -198,7 +198,7 @@ public class RexToLixTranslator {
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
       Type storageType) {
     Expression expression = translate0(expr, nullAs, storageType);
-    expression = EnumUtils.enforce(storageType, expression);
+    expression = convertToInternalType(expression, expression.getType(), storageType);
     assert expression != null;
     return list.append("v", expression);
   }
@@ -962,6 +962,63 @@ public class RexToLixTranslator {
     return convert(operand, fromType, toType);
   }
 
+  /**
+   * In Calcite, {@code java.sql.Date} and {@code java.sql.Time} are
+   * stored as {@code Integer} type, {@code java.sql.Timestamp} is
+   * stored as {@code Long} type.
+   */
+  private static Expression convertToInternalType(Expression operand,
+      Type fromType, Type toType) {
+    if (fromType == java.sql.Date.class) {
+      if (toType == int.class) {
+        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
+      } else if (toType == Integer.class) {
+        return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, operand);
+      }
+    } else if (fromType == java.sql.Time.class) {
+      if (toType == int.class) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT.method, operand);
+      } else if (toType == Integer.class) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, operand);
+      }
+    } else if (fromType == java.sql.Timestamp.class) {
+      if (toType == long.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, operand);
+      } else if (toType == Long.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, operand);
+      }
+    }
+    return operand;
+  }
+
+  /**
+   * Convert from internal storage types back to {@code java.sql.Date},
+   * {@code java.sql.Time} and {@code java.sql.Timestamp}
+   */
+  private static Expression fromInternalType(Expression operand,
+      Type fromType, Type toType) {
+    if (toType == java.sql.Date.class) {
+      // E.g. from "int" or "Integer" to "java.sql.Date",
+      // generate "SqlFunctions.internalToDate".
+      if (isA(fromType, Primitive.INT)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+      }
+    } else if (toType == java.sql.Time.class) {
+      // E.g. from "int" or "Integer" to "java.sql.Time",
+      // generate "SqlFunctions.internalToTime".
+      if (isA(fromType, Primitive.INT)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
+      }
+    } else if (toType == java.sql.Timestamp.class) {
+      // E.g. from "long" or "Long" to "java.sql.Timestamp",
+      // generate "SqlFunctions.internalToTimestamp".
+      if (isA(fromType, Primitive.LONG)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, operand);
+      }
+    }
+    return operand;
+  }
+
   public static Expression convert(Expression operand, Type fromType,
       Type toType) {
     if (!Types.needTypeCast(fromType, toType)) {
@@ -1060,38 +1117,26 @@ public class RexToLixTranslator {
       return Expressions.box(
           Expressions.convert_(operand, toBox.primitiveClass),
           toBox);
-    } else if (fromType == java.sql.Date.class) {
-      if (toBox == Primitive.INT) {
-        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
-      } else {
-        return Expressions.convert_(operand, toType);
+    }
+    // Convert from 'java.sql.Date/java.sql.Time/java.sql.Timestamp'
+    // to internal storage types ('int/Integer/long/Long')
+    if (representAsInternalType(fromType)) {
+      final Expression internalTypedOperand =
+          convertToInternalType(operand, fromType, toType);
+      if (operand != internalTypedOperand) {
+        return internalTypedOperand;
       }
-    } else if (toType == java.sql.Date.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Date",
-      // generate "SqlFunctions.internalToDate".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Date.class);
+    }
+    // Convert from internal storage types ('int/Integer/long/Long')
+    // back to 'java.sql.Date/java.sql.Time/java.sql.Timestamp'
+    if (representAsInternalType(toType)) {
+      final Expression originTypedOperand =
+          fromInternalType(operand, fromType, toType);
+      if (operand != originTypedOperand) {
+        return originTypedOperand;
       }
-    } else if (toType == java.sql.Time.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Time",
-      // generate "SqlFunctions.internalToTime".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Time.class);
-      }
-    } else if (toType == java.sql.Timestamp.class) {
-      // E.g. from "long" or "Long" to "java.sql.Timestamp",
-      // generate "SqlFunctions.internalToTimestamp".
-      if (isA(fromType, Primitive.LONG)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
-            operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Timestamp.class);
-      }
-    } else if (toType == BigDecimal.class) {
+    }
+    if (toType == BigDecimal.class) {
       if (fromBox != null) {
         // E.g. from "Integer" to "BigDecimal".
         // Generate "x == null ? null : new BigDecimal(x.intValue())"
@@ -1176,6 +1221,12 @@ public class RexToLixTranslator {
   static boolean isA(Type fromType, Primitive primitive) {
     return Primitive.of(fromType) == primitive
         || Primitive.ofBox(fromType) == primitive;
+  }
+
+  static boolean representAsInternalType(Type type) {
+    return type == java.sql.Date.class
+        || type == java.sql.Time.class
+        || type == java.sql.Timestamp.class;
   }
 
   public Expression translateConstructor(
