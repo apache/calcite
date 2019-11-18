@@ -200,6 +200,24 @@ public class JdbcTable extends AbstractQueryableTable
         sourceExpressionList, flattened);
   }
 
+  @Override public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof JdbcTable)) {
+      return false;
+    }
+    JdbcTable other = (JdbcTable) obj;
+    return Objects.equals(other.jdbcTableName, this.jdbcTableName)
+        && Objects.equals(other.jdbcCatalogName, this.jdbcCatalogName)
+        && Objects.equals(other.jdbcSchemaName, this.jdbcSchemaName);
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash(jdbcSchema, jdbcCatalogName,
+        jdbcSchemaName, jdbcTableName, jdbcTableType);
+  }
+
   /** Enumerable that returns the contents of a {@link JdbcTable} by connecting
    * to the JDBC data source.
    *

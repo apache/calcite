@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.materialize.Lattices;
@@ -483,10 +484,12 @@ public class LatticeTest {
   @Test public void testTileAlgorithm2() {
     // Different explain than above, but note that it still selects columns
     // (27, 31).
+    JdbcSchema.forceTableComputation = true;
     final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
         + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#CACHED_SQL",
         explain);
+    JdbcSchema.forceTableComputation = false;
   }
 
   /** As {@link #testTileAlgorithm()}, but uses the

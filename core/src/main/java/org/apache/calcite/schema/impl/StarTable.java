@@ -112,7 +112,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   public int columnOffset(Table table) {
     int n = 0;
     for (Pair<Table, Integer> pair : Pair.zip(tables, fieldCounts)) {
-      if (pair.left == table) {
+      if (pair.left.equals(table)) {
         return n;
       }
       n += pair.right;
