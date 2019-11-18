@@ -20,8 +20,6 @@ import org.apache.calcite.adapter.enumerable.CallImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
-import org.apache.calcite.linq4j.function.SemiStrict;
-import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ImplementableFunction;
@@ -132,20 +130,6 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     final NullPolicy nullPolicy = getNullPolicy(method);
     return RexImpTable.createImplementor(
         new ReflectiveCallNotNullImplementor(method), nullPolicy, false);
-  }
-
-  private static NullPolicy getNullPolicy(Method m) {
-    if (m.getAnnotation(Strict.class) != null) {
-      return NullPolicy.STRICT;
-    } else if (m.getAnnotation(SemiStrict.class) != null) {
-      return NullPolicy.SEMI_STRICT;
-    } else if (m.getDeclaringClass().getAnnotation(Strict.class) != null) {
-      return NullPolicy.STRICT;
-    } else if (m.getDeclaringClass().getAnnotation(SemiStrict.class) != null) {
-      return NullPolicy.SEMI_STRICT;
-    } else {
-      return NullPolicy.NONE;
-    }
   }
 
   public RelDataType getReturnType(RelDataTypeFactory typeFactory,
