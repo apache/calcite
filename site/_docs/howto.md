@@ -99,6 +99,9 @@ $ ./gradlew spotlessCheck checkstyleAll # report code style violations
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.
 
+For more information about Gradle, check the following links: [Gradle five things](https://docs.gradle.org/current/userguide/what_is_gradle.html#five_things)
+and [Gradle multi-project builds](https://docs.gradle.org/current/userguide/intro_multi_project_builds.html).
+
 There are other options that control which tests are run, and in what
 environment, as follows.
 
