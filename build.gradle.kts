@@ -283,6 +283,9 @@ allprojects {
                 "base_dir" to rootDir.toString()
             )
         }
+        tasks.register("checkstyleAll") {
+            dependsOn(tasks.withType<Checkstyle>())
+        }
         tasks.withType<Checkstyle>().configureEach {
             // Excludes here are faster than in suppressions.xml
             // Since here we can completely remove file from the analysis.
@@ -297,6 +300,18 @@ allprojects {
             }
             doLast {
                 semaphore.release()
+            }
+        }
+    }
+    if (!skipSpotless || !skipCheckstyle) {
+        tasks.register("style") {
+            group = LifecycleBasePlugin.VERIFICATION_GROUP
+            description = "Formats code (license header, import order, whitespace at end of line, ...) and executes Checkstyle verifications"
+            if (!skipSpotless) {
+                dependsOn("spotlessApply")
+            }
+            if (!skipCheckstyle) {
+                dependsOn("checkstyleAll")
             }
         }
     }
