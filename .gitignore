@@ -28,7 +28,7 @@
 /out
 /*/out/
 /example/*/out
-/.idea
+.idea
 *.iml
 
 settings.xml
