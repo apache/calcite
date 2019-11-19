@@ -191,7 +191,6 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -200,6 +199,7 @@ import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -5745,8 +5745,14 @@ public class SqlToRelConverter {
 
     private static List<RelHint> copyWithInheritPath(List<RelHint> hints,
         Deque<Integer> inheritPath) {
+      // Copy the Dequeue in reverse order.
+      final List<Integer> path = new ArrayList<>();
+      final Iterator<Integer> iterator = inheritPath.descendingIterator();
+      while (iterator.hasNext()) {
+        path.add(iterator.next());
+      }
       return hints.stream()
-          .map(hint -> hint.copy(Arrays.asList(inheritPath.toArray(new Integer[]{}))))
+          .map(hint -> hint.copy(path))
           .collect(Collectors.toList());
     }
   }

@@ -22,7 +22,7 @@ limitations under the License.
 1 in ('1', '2', '3') as f0,
 (1, 2) in (('1', '2')) as f1,
 (1, 2) in (('1', '2'), ('3', '4')) as f2
-from (values (true, true, true))"]]>
+from (values (true, true, true))]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -61,7 +61,7 @@ t1_date > t1_timestamp as f5,
 '2' is not distinct from 2 as f6,
 '2019-09-23' between t1_date and t1_timestamp as f7,
 cast('2019-09-23' as date) between t1_date and t1_timestamp as f8
-from t1"]]>
+from t1]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
