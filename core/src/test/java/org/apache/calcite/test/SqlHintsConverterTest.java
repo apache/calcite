@@ -108,17 +108,17 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "inner join dept d1 on e1.deptno = d1.deptno\n"
         + "inner join emp e2 on e1.ename = e2.job");
     final List<String> expectedHints = Arrays.asList(
-        "Project:[[PROPERTIES inheritPath:{} options:{K1=v1, K2=v2}], "
-            + "[INDEX inheritPath:{} options:[ENAME]], "
-            + "[NO_HASH_JOIN inheritPath:{}]]",
-        "LogicalJoin:[[NO_HASH_JOIN inheritPath:{0}]]",
-        "LogicalJoin:[[NO_HASH_JOIN inheritPath:{0}]]",
-        "TableScan:[[PROPERTIES inheritPath:{0} options:{K1=v1, K2=v2}], "
-            + "[INDEX inheritPath:{0} options:[ENAME]]]",
-        "TableScan:[[PROPERTIES inheritPath:{0, 1} options:{K1=v1, K2=v2}], "
-            + "[INDEX inheritPath:{0, 1} options:[ENAME]]]",
-        "TableScan:[[PROPERTIES inheritPath:{0, 1} options:{K1=v1, K2=v2}], "
-            + "[INDEX inheritPath:{0, 1} options:[ENAME]]]");
+        "Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], "
+            + "[INDEX inheritPath:[] options:[ENAME]], "
+            + "[NO_HASH_JOIN inheritPath:[]]]",
+        "LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]",
+        "LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]",
+        "TableScan:[[PROPERTIES inheritPath:[0, 0, 0] options:{K1=v1, K2=v2}], "
+            + "[INDEX inheritPath:[0, 0, 0] options:[ENAME]]]",
+        "TableScan:[[PROPERTIES inheritPath:[0, 0, 1] options:{K1=v1, K2=v2}], "
+            + "[INDEX inheritPath:[0, 0, 1] options:[ENAME]]]",
+        "TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], "
+            + "[INDEX inheritPath:[0, 1, 0] options:[ENAME]]]");
     sql(sql).ok(expectedHints);
   }
 

@@ -17,7 +17,7 @@
 
 package org.apache.calcite.rel.hint;
 
-import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 public class RelHint {
   //~ Instance fields --------------------------------------------------------
 
-  public final ImmutableBitSet inheritPath;
+  public final ImmutableIntList inheritPath;
   public final String hintName;
   public final List<String> listOptions;
   public final Map<String, String> kvOptions;
@@ -55,7 +55,7 @@ public class RelHint {
       @Nullable Map<String, String> kvOptions) {
     Objects.requireNonNull(inheritPath);
     Objects.requireNonNull(hintName);
-    this.inheritPath = ImmutableBitSet.of(inheritPath);
+    this.inheritPath = ImmutableIntList.copyOf(inheritPath);
     this.hintName = hintName;
     this.listOptions = listOption == null ? ImmutableList.of() : ImmutableList.copyOf(listOption);
     this.kvOptions = kvOptions == null ? ImmutableMap.of() : ImmutableMap.copyOf(kvOptions);

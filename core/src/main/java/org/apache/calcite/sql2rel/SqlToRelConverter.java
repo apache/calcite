@@ -5745,8 +5745,10 @@ public class SqlToRelConverter {
 
     private static List<RelHint> copyWithInheritPath(List<RelHint> hints,
         Deque<Integer> inheritPath) {
+      List<Integer> path = Arrays.asList(inheritPath.toArray(new Integer[]{}));
+      Collections.reverse(path);
       return hints.stream()
-          .map(hint -> hint.copy(Arrays.asList(inheritPath.toArray(new Integer[]{}))))
+          .map(hint -> hint.copy(path))
           .collect(Collectors.toList());
     }
   }
