@@ -229,13 +229,6 @@ public class RelMdTableReferences
   }
 
   /**
-   * Table references from TableModify.
-   */
-  public Set<RelTableRef> getTableReferences(TableModify rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(rel.getInput());
-  }
-
-  /**
    * Table references from Sample.
    */
   public Set<RelTableRef> getTableReferences(Sample rel, RelMetadataQuery mq) {
