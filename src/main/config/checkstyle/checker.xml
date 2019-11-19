@@ -66,7 +66,7 @@ limitations under the License.
   <module name="FileTabCharacter"/>
 
   <module name="TreeWalker">
-    <property name="cacheFile" value="target/checkstyle-cachefile"/>
+    <property name="cacheFile" value="build/checkstyle-cachefile"/>
 
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
