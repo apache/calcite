@@ -141,7 +141,7 @@ dependencies {
         runtimev("org.junit.jupiter:junit-jupiter-engine", "junit5")
         runtimev("org.junit.vintage:junit-vintage-engine", "junit5")
         runtimev("org.openjdk.jmh:jmh-core", "jmh")
-        runtimev("org.openjdk.jmh:jmh-generator-annprocess", "jmh")
+        apiv("org.openjdk.jmh:jmh-generator-annprocess", "jmh")
         runtimev("xalan:xalan")
         runtimev("xerces:xercesImpl")
     }
