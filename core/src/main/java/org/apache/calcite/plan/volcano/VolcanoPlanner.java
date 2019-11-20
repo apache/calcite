@@ -880,7 +880,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return true;
     }
 
-    RelMetadataQuery metaQuery = this.getRoot().getCluster().getMetadataQuerySupplier().get();
+    RelMetadataQuery metaQuery = null;
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         return litmus.fail("set [{}] has been merged: it should not be in the list", set);
@@ -899,6 +899,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
                     subset, subset.best);
           }
 
+          if (metaQuery == null) {
+            metaQuery = subset.best.getCluster().getMetadataQuerySupplier().get();
+          }
+
           // Make sure bestCost is up-to-date
           try {
             RelOptCost bestCost = getCost(subset.best, metaQuery);
@@ -913,6 +917,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
 
         for (RelNode rel : subset.getRels()) {
+          if (metaQuery == null) {
+            metaQuery = rel.getCluster().getMetadataQuerySupplier().get();
+          }
+
           try {
             RelOptCost relCost = getCost(rel, metaQuery);
             if (relCost.isLt(subset.bestCost)) {
