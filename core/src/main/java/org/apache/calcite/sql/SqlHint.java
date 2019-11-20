@@ -17,6 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
  *
  * <p>We support 2 kinds of hints in the parser:
  * <ul>
- *   <li>Top mode hint, right after the select keyword, i.e.:
+ *   <li>Query hint, right after the select keyword, i.e.:
  *   <pre>
  *     select &#47;&#42;&#43; hint1, hint2, ... &#42;&#47; ...
  *   </pre>
@@ -56,8 +57,7 @@ public class SqlHint extends SqlCall {
 
   private final SqlIdentifier name;
   private final SqlNodeList options;
-  private final List<String> optionList;
-  private final Map<String, String> optionKVPairs;
+  private final HintOptionFormat optionFormat;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("HINT", SqlKind.HINT);
@@ -67,9 +67,8 @@ public class SqlHint extends SqlCall {
   public SqlHint(SqlParserPos pos, SqlIdentifier name, SqlNodeList options) {
     super(pos);
     this.name = name;
+    this.optionFormat = inferHintOptionFormat(options);
     this.options = options;
-    this.optionList = getOptionAsList();
-    this.optionKVPairs = getOptionAsKVPairs();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -83,61 +82,50 @@ public class SqlHint extends SqlCall {
   }
 
   /**
-   * @return The sql hint name
+   * Returns the sql hint name
    */
   public String getName() {
     return name.getSimple();
   }
 
-  public List<String> getOptionList() {
-    return optionList;
-  }
-
-  public Map<String, String> getOptionKVPairs() {
-    return optionKVPairs;
+  /** Returns the hint option format. */
+  public HintOptionFormat getOptionFormat() {
+    return optionFormat;
   }
 
   /**
-   * @return A string list if the hint option is a list of
+   * Returns a string list if the hint option is a list of
    * simple SQL identifier, else an empty list
    */
-  private List<String> getOptionAsList() {
-    if (this.options.size() == 0 || isOptionsAsKVPairs()) {
-      return ImmutableList.of();
-    } else {
-      final List<String> attrs = this.options.getList().stream()
+  public List<String> getOptionList() {
+    if (optionFormat == HintOptionFormat.ID_LIST) {
+      final List<String> attrs = options.getList().stream()
           .map(node -> ((SqlIdentifier) node).getSimple())
           .collect(Collectors.toList());
       return ImmutableList.copyOf(attrs);
+    } else {
+      return ImmutableList.of();
     }
   }
 
   /**
-   * @return A key value string map if the hint option is a list of
-   * pair that contains a simple SQL identifier and a string literal,
-   * else an empty map
+   * Returns a key value string map if the hint option is a list of
+   * pair, each pair contains a simple SQL identifier and a string literal;
+   * else returns an empty map
    */
-  private Map<String, String> getOptionAsKVPairs() {
-    if (this.options.size() == 0 || !isOptionsAsKVPairs()) {
-      return ImmutableMap.of();
-    } else {
+  public Map<String, String> getOptionKVPairs() {
+    if (optionFormat == HintOptionFormat.KV_LIST) {
       final Map<String, String> attrs = new HashMap<>();
-      for (int i = 0; i < this.options.size() - 1; i += 2) {
-        final SqlNode k = this.options.get(i);
-        final SqlNode v = this.options.get(i + 1);
-        assert k instanceof SqlIdentifier;
-        assert v instanceof SqlLiteral;
+      for (int i = 0; i < options.size() - 1; i += 2) {
+        final SqlNode k = options.get(i);
+        final SqlNode v = options.get(i + 1);
         attrs.put(((SqlIdentifier) k).getSimple(),
             ((SqlLiteral) v).getValueAs(String.class));
       }
       return ImmutableMap.copyOf(attrs);
+    } else {
+      return ImmutableMap.of();
     }
-  }
-
-  private boolean isOptionsAsKVPairs() {
-    return this.options.getList()
-        .stream()
-        .anyMatch(node -> node instanceof SqlLiteral);
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -157,6 +145,57 @@ public class SqlHint extends SqlCall {
       }
       writer.endList(frame);
     }
+  }
+
+  /** Enumeration that represents hint option format. */
+  enum HintOptionFormat {
+    /**
+     * The hint has no options.
+     */
+    EMPTY,
+    /**
+     * The hint options are as simple identifier list.
+     */
+    ID_LIST,
+    /**
+     * The hint options are list of key-value pairs. For each pair,
+     * the key is a simple identifier, the value is a string literal.
+     */
+    KV_LIST
+  }
+
+  //~ Tools ------------------------------------------------------------------
+
+  /** Infer the hint options format. */
+  private static HintOptionFormat inferHintOptionFormat(SqlNodeList options) {
+    if (options.size() == 0) {
+      return HintOptionFormat.EMPTY;
+    }
+    if (options.getList().stream().allMatch(opt -> opt instanceof SqlIdentifier)) {
+      return HintOptionFormat.ID_LIST;
+    }
+    if (isOptionsAsKVPairs(options)) {
+      return HintOptionFormat.KV_LIST;
+    }
+    throw new AssertionError("The hint options should either be empty, "
+        + "or simple identifier list, "
+        + "or key-value pairs whose pair key is simple identifier and value is string literal.");
+  }
+
+  /** Decides if the hint options is as key-value pair format. */
+  private static boolean isOptionsAsKVPairs(SqlNodeList options) {
+    if (options.size() > 0 && options.size() % 2 == 0) {
+      for (int i = 0; i < options.size() - 1; i += 2) {
+        boolean isKVPair = options.get(i) instanceof SqlIdentifier
+            && options.get(i + 1) instanceof SqlLiteral
+            && ((SqlLiteral) options.get(i + 1)).getTypeName() == SqlTypeName.CHAR;
+        if (!isKVPair) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 }
 

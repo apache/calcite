@@ -214,11 +214,10 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
     final RelNode rel = tester.convertSqlToRel(sql).rel;
-    final RelHint hint = new RelHint(
+    final RelHint hint = RelHint.of(
         Collections.singletonList(0),
         "USE_HASH_JOIN",
-        Arrays.asList("EMP", "DEPT"),
-        null);
+        Arrays.asList("EMP", "DEPT"));
     // Validate Hep planner.
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(MockJoinRule.INSTANCE)
@@ -239,11 +238,10 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .withClusterFactory(
           relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
     final RelNode rel = tester1.convertSqlToRel(sql).rel;
-    final RelHint hint = new RelHint(
+    final RelHint hint = RelHint.of(
         Collections.singletonList(0),
         "USE_HASH_JOIN",
-        Arrays.asList("EMP", "DEPT"),
-        null);
+        Arrays.asList("EMP", "DEPT"));
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
         new MockEnumerableJoinRule(hint), // Rule to validate the hint.
@@ -364,7 +362,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
   /** A visitor to validate the join node has specific hint. **/
   private static class ValidateHintVisitor extends RelVisitor {
     private RelHint expectedHint;
-    private Class clazz;
+    private Class<?> clazz;
 
     /**
      * Creates the validate visitor.
@@ -372,7 +370,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
      * @param hint  the hint to validate
      * @param clazz the node type to validate the hint with
      */
-    ValidateHintVisitor(RelHint hint, Class clazz) {
+    ValidateHintVisitor(RelHint hint, Class<?> clazz) {
       this.expectedHint = hint;
       this.clazz = clazz;
     }
@@ -409,9 +407,8 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
       return this;
     }
 
-    Sql ok() {
+    void ok() {
       assertHintsEquals(sql, "${hints}");
-      return this;
     }
 
     private void assertHintsEquals(
@@ -432,11 +429,10 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
       tester.getDiffRepos().assertEquals("hints", hint, builder.toString());
     }
 
-    Sql fails(String failedMsg) {
+    void fails(String failedMsg) {
       expectedEx.expect(RuntimeException.class);
       expectedEx.expectMessage(failedMsg);
       tester.convertSqlToRel(sql);
-      return this;
     }
 
     /** A shuttle to collect all the hints within the relational expression into a collection. */
@@ -476,15 +472,14 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
     static final String HINT = "properties(k1='v1', k2='v2'), index(ename), no_hash_join";
 
-    static final RelHint PROPS_HINT = new RelHint(new ArrayList<>(),
-        "PROPERTIES", null,
+    static final RelHint PROPS_HINT = RelHint.of(new ArrayList<>(),
+        "PROPERTIES",
         ImmutableMap.of("K1", "v1", "K2", "v2"));
 
-    static final RelHint IDX_HINT = new RelHint(new ArrayList<>(), "INDEX",
-        ImmutableList.of("ENAME"), null);
+    static final RelHint IDX_HINT = RelHint.of(new ArrayList<>(), "INDEX",
+        ImmutableList.of("ENAME"));
 
-    static final RelHint JOIN_HINT = new RelHint(new ArrayList<>(), "NO_HASH_JOIN",
-        null, null);
+    static final RelHint JOIN_HINT = RelHint.of(new ArrayList<>(), "NO_HASH_JOIN");
 
     static final HintStrategyTable HINT_STRATEGY_TABLE = createHintStrategies();
 
