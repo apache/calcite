@@ -25,7 +25,39 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
- * Represents a hint within a relation expression.
+ * Represents hint within a relation expression.
+ *
+ * <p>Every hint has a {@code inheritPath} (integers list) which records its propagate path
+ * from the root node,
+ * number `0` represents the hint is propagated from the first(left) child,
+ * number `1` represents the hint is propagated from the second(right) child.
+ *
+ * <p>Given a relational expression tree with initial attached hints:
+ *
+ * <blockquote><pre>
+ *            Filter (Hint1)
+ *                |
+ *               Join
+ *              /    \
+ *            Scan  Project (Hint2)
+ *                     |
+ *                    Scan2
+ * </pre></blockquote>
+ *
+ * <p>The plan would have hints path as follows
+ * (assumes each hint can be propagated to all child nodes):
+ * <ul>
+ *   <li>Filter would have hints {Hint1[]}</li>
+ *   <li>Join would have hints {Hint1[0]}</li>
+ *   <li>Scan would have hints {Hint1[0, 0]}</li>
+ *   <li>Project would have hints {Hint1[0,1], Hint2[]}</li>
+ *   <li>Scan2 would have hints {[Hint1[0, 1, 0], Hint2[0]}</li>
+ * </ul>
+ *
+ * <p>The {@code listOptions} and {@code kvOptions} are supposed to contain the same information,
+ * they are mutually exclusive, that means, they can not both be non-empty.
+ *
+ * <p>The <code>RelHint</code> is immutable.
  */
 public class RelHint {
   //~ Instance fields --------------------------------------------------------
@@ -45,7 +77,7 @@ public class RelHint {
    * @param listOption  Hint options as string list
    * @param kvOptions   Hint options as string key value pair
    */
-  public RelHint(
+  private RelHint(
       Iterable<Integer> inheritPath,
       String hintName,
       @Nullable List<String> listOption,
@@ -59,6 +91,44 @@ public class RelHint {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Creates a {@link RelHint} with {@code inheritPath} and hint name.
+   *
+   * @param inheritPath Hint inherit path
+   * @param hintName    Hint name
+   * @return The {@link RelHint} instance with empty options
+   */
+  public static RelHint of(Iterable<Integer> inheritPath, String hintName) {
+    return new RelHint(inheritPath, hintName, null, null);
+  }
+
+  /**
+   * Creates a {@link RelHint} with {@code inheritPath}, hint name and list of string options.
+   *
+   * @param inheritPath Hint inherit path
+   * @param hintName    Hint name
+   * @param listOption  Hint options as a string list
+   * @return The {@link RelHint} instance with options as string list
+   */
+  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
+      List<String> listOption) {
+    return new RelHint(inheritPath, hintName, Objects.requireNonNull(listOption), null);
+  }
+
+  /**
+   * Creates a {@link RelHint} with {@code inheritPath}, hint name
+   * and options as string key-values.
+   *
+   * @param inheritPath Hint inherit path
+   * @param hintName    Hint name
+   * @param kvOptions   Hint options as string key value pairs
+   * @return The {@link RelHint} instance with options as string key value pairs
+   */
+  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
+      Map<String, String> kvOptions) {
+    return new RelHint(inheritPath, hintName, null, Objects.requireNonNull(kvOptions));
+  }
 
   /**
    * Represents a copy of this hint that has a specified inherit path.

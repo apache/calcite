@@ -981,9 +981,9 @@ public abstract class SqlUtil {
    * Returns an immutable list of {@link RelHint} from sql hints, with a given
    * inherit path from the root node.
    *
-   * <p>The inherit path would be empty [].
+   * <p>The inherit path would be empty list.
    *
-   * @param hintStrategies The hint strategies to validate if the sql hints
+   * @param hintStrategies The hint strategies to validate the sql hints
    * @param sqlHints       The sql hints nodes
    * @return the {@code RelHint} list
    */
@@ -995,9 +995,23 @@ public abstract class SqlUtil {
     for (SqlNode node : sqlHints) {
       assert node instanceof SqlHint;
       final SqlHint sqlHint = (SqlHint) node;
-      hintStrategies.validateHint(sqlHint.getName());
-      final RelHint relHint = new RelHint(new ArrayList<>(),
-          sqlHint.getName(), sqlHint.getOptionList(), sqlHint.getOptionKVPairs());
+      final String hintName = sqlHint.getName();
+      final List<Integer> inheritPath = new ArrayList<>();
+      hintStrategies.validateHint(hintName);
+      RelHint relHint;
+      switch (sqlHint.getOptionFormat()) {
+      case EMPTY:
+        relHint = RelHint.of(inheritPath, hintName);
+        break;
+      case ID_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionList());
+        break;
+      case KV_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionKVPairs());
+        break;
+      default:
+        throw new AssertionError("Unexpected hint option format");
+      }
       relHints.add(relHint);
     }
     return ImmutableList.copyOf(relHints);
