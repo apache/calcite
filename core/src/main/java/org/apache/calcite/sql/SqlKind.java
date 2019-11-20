@@ -988,6 +988,9 @@ public enum SqlKind {
   /** The {@code ROW_NUMBER} window function. */
   CUME_DIST,
 
+  /** The {@code DESCRIPTOR}. */
+  DESCRIPTOR,
+
   /** The {@code TUMBLE_TABLE_FUNCTION}. */
   TUMBLE,
 

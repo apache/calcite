@@ -17,7 +17,7 @@
 #
 !use orinoco
 !set outputformat mysql
-SELECT * FROM TABLE(TUMBLE(TABLE ORDERS, 'ROWTIME', INTERVAL '1' MINUTE));
+SELECT * FROM TABLE(TUMBLE(TABLE ORDERS, DESCRIPTOR(ROWTIME), INTERVAL '1' MINUTE));
 +---------------------+----+---------+-------+---------------------+---------------------+
 | ROWTIME             | ID | PRODUCT | UNITS | wstart              | wend                |
 +---------------------+----+---------+-------+---------------------+---------------------+

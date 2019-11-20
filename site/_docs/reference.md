@@ -1851,6 +1851,7 @@ For example, if a query is grouped using
 | HOP(datetime, slide, size [, time ]) | Indicates a hopping window for *datetime*, covering rows within the interval of *size*, shifting every *slide*, and optionally aligned at *time*
 | SESSION(datetime, interval [, time ]) | Indicates a session window of *interval* for *datetime*, optionally aligned at *time*
 | TUMBLE(datetime, interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*
+| DESCRIPTOR(identifier) | Indicates a column
 
 ### Grouped auxiliary functions
 

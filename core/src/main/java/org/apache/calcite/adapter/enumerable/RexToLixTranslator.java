@@ -961,28 +961,20 @@ public class RexToLixTranslator {
       // construct a input ref over watermarked column.
       // Before DESCRIPTOR is implemented, the second parameter of TUMBLE
       // is a string, which is one of the column from input.
-      assert rexCall.getOperands().get(1) instanceof RexLiteral;
-      String watermarkedColumnName =
-          ((RexLiteral) rexCall.getOperands().get(1)).getValueAs(String.class);
-      int watermarkedColumnIndex = -1;
       List<RexNode> schemaForwardInputRefs = new ArrayList<>();
       for (int i = 0; i < input.getRowType().getFieldCount(); i++) {
-        if (watermarkedColumnName.equals(input.getRowType().getFieldNames().get(i))) {
-          watermarkedColumnIndex = i;
-        }
         schemaForwardInputRefs.add(builder.makeInputRef(input, i));
       }
-      assert watermarkedColumnIndex > -1
-          && watermarkedColumnIndex < input.getRowType().getFieldCount();
-
       List<Expression> translatedOperands = translateList(schemaForwardInputRefs);
 
       // convert the third parameter, which should be a literal for an interval.
       assert rexCall.getOperands().get(2) instanceof RexLiteral;
       Expression intervalExpression = translate(rexCall.getOperands().get(2));
 
+      RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
       List<Expression> translatedOperandsForTumble = new ArrayList<>();
-      translatedOperandsForTumble.add(translatedOperands.get(watermarkedColumnIndex));
+      translatedOperandsForTumble.add(
+          translatedOperands.get(((RexInputRef) descriptor.getOperands().get(0)).getIndex()));
       translatedOperandsForTumble.add(intervalExpression);
       // compute the window_start
       MethodNameImplementor windowStartMethod = new MethodNameImplementor("tumbleWindowStart");
