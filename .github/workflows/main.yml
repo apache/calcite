@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
+    paths-ignore:
+      - 'site/**'
     branches:
       - '*'
   pull_request:
+    paths-ignore:
+      - 'site/**'
     branches:
       - '*'
 
