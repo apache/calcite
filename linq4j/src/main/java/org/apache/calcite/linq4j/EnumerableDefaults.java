@@ -49,7 +49,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -441,7 +440,7 @@ public abstract class EnumerableDefaults {
   public static <TSource> Enumerable<TSource> distinct(
       Enumerable<TSource> enumerable) {
     final Enumerator<TSource> os = enumerable.enumerator();
-    final Set<TSource> set = new HashSet<>();
+    final Set<TSource> set = new LimitedHashSet<>();
     while (os.moveNext()) {
       set.add(os.current());
     }
@@ -458,7 +457,7 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return distinct(enumerable);
     }
-    final Set<Wrapped<TSource>> set = new HashSet<>();
+    final Set<Wrapped<TSource>> set = new LimitedHashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     enumerable.select(wrapper).into(set);
@@ -533,7 +532,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> except(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set = new HashSet<>();
+    Set<TSource> set = new LimitedHashSet<>();
     source0.into(set);
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
@@ -555,7 +554,7 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return except(source0, source1);
     }
-    Set<Wrapped<TSource>> set = new HashSet<>();
+    Set<Wrapped<TSource>> set = new LimitedHashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set);
     try (Enumerator<Wrapped<TSource>> os =
@@ -950,9 +949,9 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> intersect(
       Enumerable<TSource> source0, Enumerable<TSource> source1) {
-    Set<TSource> set0 = new HashSet<>();
+    Set<TSource> set0 = new LimitedHashSet<>();
     source0.into(set0);
-    Set<TSource> set1 = new HashSet<>();
+    Set<TSource> set1 = new LimitedHashSet<>();
     try (Enumerator<TSource> os = source1.enumerator()) {
       while (os.moveNext()) {
         TSource o = os.current();
@@ -975,10 +974,10 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return intersect(source0, source1);
     }
-    Set<Wrapped<TSource>> set0 = new HashSet<>();
+    Set<Wrapped<TSource>> set0 = new LimitedHashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     source0.select(wrapper).into(set0);
-    Set<Wrapped<TSource>> set1 = new HashSet<>();
+    Set<Wrapped<TSource>> set1 = new LimitedHashSet<>();
     try (Enumerator<Wrapped<TSource>> os = source1.select(wrapper).enumerator()) {
       while (os.moveNext()) {
         Wrapped<TSource> o = os.current();
@@ -1078,7 +1077,7 @@ public abstract class EnumerableDefaults {
           Enumerator<TInner> inners = Linq4j.emptyEnumerator();
           Set<TKey> unmatchedKeys =
               generateNullsOnLeft
-                  ? new HashSet<>(innerLookup.keySet())
+                  ? new LimitedHashSet<>(innerLookup.keySet())
                   : null;
 
           public TResult current() {
@@ -2746,7 +2745,7 @@ public abstract class EnumerableDefaults {
    */
   public static <TSource> Enumerable<TSource> union(Enumerable<TSource> source0,
       Enumerable<TSource> source1) {
-    Set<TSource> set = new HashSet<>();
+    Set<TSource> set = new LimitedHashSet<>();
     source0.into(set);
     source1.into(set);
     return Linq4j.asEnumerable(set);
@@ -2761,7 +2760,7 @@ public abstract class EnumerableDefaults {
     if (comparer == Functions.identityComparer()) {
       return union(source0, source1);
     }
-    Set<Wrapped<TSource>> set = new HashSet<>();
+    Set<Wrapped<TSource>> set = new LimitedHashSet<>();
     Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
     Function1<Wrapped<TSource>, TSource> unwrapper = unwrapper();
     source0.select(wrapper).into(set);
