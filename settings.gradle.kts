@@ -59,6 +59,7 @@ include(
     "pig",
     "piglet",
     "plus",
+    "redis",
     "server",
     "spark",
     "splunk",

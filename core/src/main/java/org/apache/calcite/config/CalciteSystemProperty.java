@@ -199,6 +199,12 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.test.cassandra", true);
 
   /**
+   * Whether to run Redis tests.
+   */
+  public static final CalciteSystemProperty<Boolean> TEST_REDIS =
+      booleanProperty("calcite.test.redis", true);
+
+  /**
    * A list of ids designating the queries
    * (from query.json in new.hydromatic:foodmart-queries:0.4.1)
    * that should be run as part of FoodmartTest.
