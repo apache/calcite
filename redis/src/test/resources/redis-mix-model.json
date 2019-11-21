@@ -1,0 +1,350 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+{
+  "version": "1.0",
+  "defaultSchema": "foodmart",
+  "schemas": [
+    {
+      "type": "custom",
+      "name": "foodmart",
+      "factory": "org.apache.calcite.adapter.redis.RedisSchemaFactory",
+      "operand": {
+        "host": "localhost",
+        "port": 6379,
+        "database": 0,
+        "password": ""
+      },
+      "tables": [
+        {
+          "name": "csv_01",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "csv",
+            "keyDelimiter": ":",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": 0
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "csv_02",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "csv",
+            "keyDelimiter": ":",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": 0
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "csv_03",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "csv",
+            "keyDelimiter": ":",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": 0
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "csv_04",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "csv",
+            "keyDelimiter": ":",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": 0
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "csv_05",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "csv",
+            "keyDelimiter": ":",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": 0
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "json_01",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "json",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": "DEPTNO"
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": "NAME"
+              }
+            ]
+          }
+        },
+        {
+          "name": "json_02",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "json",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": "DEPTNO"
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": "NAME"
+              }
+            ]
+          }
+        },
+        {
+          "name": "json_03",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "json",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": "DEPTNO"
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": "NAME"
+              }
+            ]
+          }
+        },
+        {
+          "name": "json_04",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "json",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": "DEPTNO"
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": "NAME"
+              }
+            ]
+          }
+        },
+        {
+          "name": "json_05",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "json",
+            "fields": [
+              {
+                "name": "DEPTNO",
+                "type": "varchar",
+                "mapping": "DEPTNO"
+              },
+              {
+                "name": "NAME",
+                "type": "varchar",
+                "mapping": "NAME"
+              }
+            ]
+          }
+        },
+        {
+          "name": "raw_01",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "raw",
+            "fields": [
+              {
+                "name": "id",
+                "type": "varchar",
+                "mapping": "id"
+              },
+              {
+                "name": "city",
+                "type": "varchar",
+                "mapping": "city"
+              },
+              {
+                "name": "pop",
+                "type": "int",
+                "mapping": "pop"
+              }
+            ]
+          }
+        },
+        {
+          "name": "raw_02",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "raw",
+            "fields": [
+              {
+                "name": "id",
+                "type": "varchar",
+                "mapping": "id"
+              },
+              {
+                "name": "city",
+                "type": "varchar",
+                "mapping": "city"
+              },
+              {
+                "name": "pop",
+                "type": "int",
+                "mapping": "pop"
+              }
+            ]
+          }
+        },
+        {
+          "name": "raw_03",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "raw",
+            "fields": [
+              {
+                "name": "id",
+                "type": "varchar",
+                "mapping": "id"
+              },
+              {
+                "name": "city",
+                "type": "varchar",
+                "mapping": "city"
+              },
+              {
+                "name": "pop",
+                "type": "int",
+                "mapping": "pop"
+              }
+            ]
+          }
+        },
+        {
+          "name": "raw_04",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "raw",
+            "fields": [
+              {
+                "name": "id",
+                "type": "varchar",
+                "mapping": "id"
+              },
+              {
+                "name": "city",
+                "type": "varchar",
+                "mapping": "city"
+              },
+              {
+                "name": "pop",
+                "type": "int",
+                "mapping": "pop"
+              }
+            ]
+          }
+        },
+        {
+          "name": "raw_05",
+          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "operand": {
+            "dataFormat": "raw",
+            "fields": [
+              {
+                "name": "id",
+                "type": "varchar",
+                "mapping": "id"
+              },
+              {
+                "name": "city",
+                "type": "varchar",
+                "mapping": "city"
+              },
+              {
+                "name": "pop",
+                "type": "int",
+                "mapping": "pop"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
