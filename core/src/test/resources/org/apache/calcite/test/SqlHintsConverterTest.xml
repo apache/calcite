@@ -73,6 +73,22 @@ TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSameHintsWithDifferentInheritPath">
+        <Resource name="sql">
+            <![CDATA[select /*+ properties(k1='v1', k2='v2') */
+ename, job, sal, dept.name
+from emp /*+ index(idx1, idx2) */
+join dept /*+ properties(k1='v1', k2='v2') */
+on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
+TableScan:[[INDEX inheritPath:[] options:[IDX1, IDX2]], [PROPERTIES inheritPath:[0, 0] options:{K1=v1, K2=v2}]]
+TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inheritPath:[0, 1] options:{K1=v1, K2=v2}]]
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTableHintsInSelect">
         <Resource name="sql">
             <![CDATA[select * from emp /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */]]>

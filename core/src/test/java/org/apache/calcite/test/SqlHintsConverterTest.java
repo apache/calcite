@@ -47,6 +47,7 @@ import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
@@ -112,12 +113,14 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testInvalidQueryHint() {
+  @Test public void testInvalidQueryHint1() {
     final String sql = "select /*+ weird_hint */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
     sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+  }
 
+  @Test public void testInvalidQueryHint2() {
     final String sql1 = "select /*+ resource(mem='20Mb')*/ empno\n"
         + "from (select /*+ weird_kv_hint(k1='v1') */ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
@@ -135,6 +138,15 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
   @Test public void testTableHintsInSelect() {
     final String sql = HintTools.withHint("select * from emp /*+ %s */");
+    sql(sql).ok();
+  }
+
+  @Test public void testSameHintsWithDifferentInheritPath() {
+    final String sql = "select /*+ properties(k1='v1', k2='v2') */\n"
+        + "ename, job, sal, dept.name\n"
+        + "from emp /*+ index(idx1, idx2) */\n"
+        + "join dept /*+ properties(k1='v1', k2='v2') */\n"
+        + "on emp.deptno = dept.deptno";
     sql(sql).ok();
   }
 
@@ -185,20 +197,46 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testInvalidTableHints() {
+  @Test public void testTableHintsInMerge() throws Exception {
+    final String sql = "merge into emps\n"
+        + "/*+ %s */ e\n"
+        + "using tempemps as t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
+        + "when not matched then insert (name, dept, salary)\n"
+        + "values(t.name, 10, t.salary * .15)";
+    final String sql1 = HintTools.withHint(sql);
+
+    final SqlMerge sqlMerge = (SqlMerge) tester.parseQuery(sql1);
+    assert sqlMerge.getTargetTable() instanceof SqlTableRef;
+    final SqlTableRef tableRef = (SqlTableRef) sqlMerge.getTargetTable();
+    List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
+        (SqlNodeList) tableRef.getOperandList().get(1));
+    assertHintsEquals(
+        Arrays.asList(
+            HintTools.PROPS_HINT,
+            HintTools.IDX_HINT,
+            HintTools.JOIN_HINT),
+        hints);
+  }
+
+  @Test public void testInvalidTableHints1() {
     final String sql = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ weird_hint(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
     sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+  }
 
+  @Test public void testInvalidTableHints2() {
     final String sql1 = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ weird_kv_hint(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
-    sql(sql1).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+    sql(sql1).fails("Hint: WEIRD_KV_HINT should be registered in the HintStrategies.");
   }
 
   @Test public void testJoinHintRequiresSpecificInputs() {
@@ -414,6 +452,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     private void assertHintsEquals(
         String sql,
         String hint) {
+      tester.getDiffRepos().assertEquals("sql", "${sql}", sql);
       String sql2 = tester.getDiffRepos().expand("sql", sql);
       final RelNode rel = tester.convertSqlToRel(sql2).project();
 
