@@ -82,7 +82,7 @@ public class SqlHint extends SqlCall {
   }
 
   /**
-   * Returns the sql hint name
+   * Returns the sql hint name.
    */
   public String getName() {
     return name.getSimple();
@@ -95,7 +95,7 @@ public class SqlHint extends SqlCall {
 
   /**
    * Returns a string list if the hint option is a list of
-   * simple SQL identifier, else an empty list
+   * simple SQL identifier, else an empty list.
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
@@ -111,7 +111,7 @@ public class SqlHint extends SqlCall {
   /**
    * Returns a key value string map if the hint option is a list of
    * pair, each pair contains a simple SQL identifier and a string literal;
-   * else returns an empty map
+   * else returns an empty map.
    */
   public Map<String, String> getOptionKVPairs() {
     if (optionFormat == HintOptionFormat.KV_LIST) {

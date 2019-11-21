@@ -47,6 +47,7 @@ import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlMerge;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlUpdate;
@@ -61,29 +62,26 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
  */
 public class SqlHintsConverterTest extends SqlToRelTestBase {
-
-  @Rule public ExpectedException expectedEx = ExpectedException.none();
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlHintsConverterTest.class);
@@ -112,6 +110,38 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testThreeLevelNestedQueryHint() {
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
+        + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n"
+        + "join emp e2 on d1.name = e2.job";
+    sql(sql).ok();
+  }
+
+  @Test public void testFourLevelNestedQueryHint() {
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
+        + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n"
+        + "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
+    sql(sql).ok();
+  }
+
+  @Test public void testHintsInSubQueryWithDecorrelation() {
+    final String sql = "select /*+ resource(parallelism='3') */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+  }
+
+  @Test public void testHintsInSubQueryWithoutDecorrelation() {
+    final String sql = "select /*+ resource(parallelism='3') */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    sql(sql).ok();
+  }
+
   @Test public void testInvalidQueryHint() {
     final String sql = "select /*+ weird_hint */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
@@ -135,6 +165,15 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
   @Test public void testTableHintsInSelect() {
     final String sql = HintTools.withHint("select * from emp /*+ %s */");
+    sql(sql).ok();
+  }
+
+  @Test public void testSameHintsWithDifferentInheritPath() {
+    final String sql = "select /*+ properties(k1='v1', k2='v2') */\n"
+        + "ename, job, sal, dept.name\n"
+        + "from emp /*+ index(idx1, idx2) */\n"
+        + "join dept /*+ properties(k1='v1', k2='v2') */\n"
+        + "on emp.deptno = dept.deptno";
     sql(sql).ok();
   }
 
@@ -185,6 +224,30 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
+  @Test public void testTableHintsInMerge() throws Exception {
+    final String sql = "merge into emps\n"
+        + "/*+ %s */ e\n"
+        + "using tempemps as t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
+        + "when not matched then insert (name, dept, salary)\n"
+        + "values(t.name, 10, t.salary * .15)";
+    final String sql1 = HintTools.withHint(sql);
+
+    final SqlMerge sqlMerge = (SqlMerge) tester.parseQuery(sql1);
+    assert sqlMerge.getTargetTable() instanceof SqlTableRef;
+    final SqlTableRef tableRef = (SqlTableRef) sqlMerge.getTargetTable();
+    List<RelHint> hints = SqlUtil.getRelHint(HintTools.HINT_STRATEGY_TABLE,
+        (SqlNodeList) tableRef.getOperandList().get(1));
+    assertHintsEquals(
+        Arrays.asList(
+            HintTools.PROPS_HINT,
+            HintTools.IDX_HINT,
+            HintTools.JOIN_HINT),
+        hints);
+  }
+
   @Test public void testInvalidTableHints() {
     final String sql = "select\n"
         + "ename, job, sal, dept.name\n"
@@ -198,7 +261,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ weird_kv_hint(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
-    sql(sql1).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+    sql(sql1).fails("Hint: WEIRD_KV_HINT should be registered in the HintStrategies.");
   }
 
   @Test public void testJoinHintRequiresSpecificInputs() {
@@ -276,7 +339,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
-    return new Sql(sql, tester, expectedEx);
+    return new Sql(sql, tester);
   }
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
@@ -334,7 +397,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     @Override public RelNode convert(RelNode rel) {
       LogicalJoin join = (LogicalJoin) rel;
       assertThat(join.getHints().size(), is(1));
-      assertEquals(expectedHint, join.getHints().get(0));
+      assertThat(join.getHints().get(0), is(expectedHint));
       List<RelNode> newInputs = new ArrayList<>();
       for (RelNode input : join.getInputs()) {
         if (!(input.getConvention() instanceof EnumerableConvention)) {
@@ -382,7 +445,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
       if (clazz.isInstance(node)) {
         Join join = (Join) node;
         assertThat(join.getHints().size(), is(1));
-        assertEquals(expectedHint, join.getHints().get(0));
+        assertThat(join.getHints().get(0), is(expectedHint));
       }
       super.visit(node, ordinal, parent);
     }
@@ -393,18 +456,17 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     private String sql;
     private Tester tester;
     private List<String> hintsCollect;
-    private ExpectedException expectedEx;
 
-    Sql(String sql, Tester tester, ExpectedException expectedEx) {
+    Sql(String sql, Tester tester) {
       this.sql = sql;
       this.tester = tester;
       this.hintsCollect = new ArrayList<>();
-      this.expectedEx = expectedEx;
     }
 
-    Sql tester(Tester tester) {
-      this.tester = tester;
-      return this;
+    /** Create a new Sql instance with new tester
+     * applied with the {@code transform}. **/
+    Sql withTester(UnaryOperator<Tester> transform) {
+      return new Sql(this.sql, transform.apply(tester));
     }
 
     void ok() {
@@ -414,6 +476,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     private void assertHintsEquals(
         String sql,
         String hint) {
+      tester.getDiffRepos().assertEquals("sql", "${sql}", sql);
       String sql2 = tester.getDiffRepos().expand("sql", sql);
       final RelNode rel = tester.convertSqlToRel(sql2).project();
 
@@ -430,9 +493,12 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     }
 
     void fails(String failedMsg) {
-      expectedEx.expect(RuntimeException.class);
-      expectedEx.expectMessage(failedMsg);
-      tester.convertSqlToRel(sql);
+      try {
+        tester.convertSqlToRel(sql);
+        fail("Unexpected exception");
+      } catch (RuntimeException e) {
+        assertThat(e.getMessage(), is(failedMsg));
+      }
     }
 
     /** A shuttle to collect all the hints within the relational expression into a collection. */
