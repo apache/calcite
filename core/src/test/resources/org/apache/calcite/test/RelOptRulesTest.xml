@@ -10652,6 +10652,35 @@ LogicalProject(JOB=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateDynamicFunction">
+        <Resource name="sql">
+            <![CDATA[select hiredate
+from sales.emp
+where sal is null and hiredate = current_timestamp
+group by sal, hiredate
+having count(*) > 3]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(HIREDATE=[$1])
+  LogicalFilter(condition=[>($2, 3)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
+      LogicalProject(SAL=[$5], HIREDATE=[$4])
+        LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(HIREDATE=[$1])
+  LogicalFilter(condition=[>($2, 3)])
+    LogicalAggregate(group=[{0, 1}], agg#0=[COUNT()])
+      LogicalProject(SAL=[$5], HIREDATE=[$4])
+        LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testExpandProjectInNullable">
         <Resource name="sql">
             <![CDATA[with e2 as (
