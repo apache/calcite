@@ -5257,6 +5257,20 @@ public class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  /** Tests {@link AggregateProjectPullUpConstantsRule} where
+   * there are group keys of type
+   * {@link org.apache.calcite.sql.fun.SqlAbstractTimeFunction}
+   * that can not be removed. */
+  @Test public void testAggregateDynamicFunction() {
+    final String sql = "select hiredate\n"
+        + "from sales.emp\n"
+        + "where sal is null and hiredate = current_timestamp\n"
+        + "group by sal, hiredate\n"
+        + "having count(*) > 3";
+    sql(sql).withRule(AggregateProjectPullUpConstantsRule.INSTANCE2)
+        .checkUnchanged();
+  }
+
   @Test public void testReduceExpressionsNot() {
     final String sql = "select * from (values (false),(true)) as q (col1) where not(col1)";
     sql(sql).withRule(ReduceExpressionsRule.FILTER_INSTANCE)
