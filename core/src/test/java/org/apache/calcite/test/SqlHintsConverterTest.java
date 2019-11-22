@@ -111,34 +111,34 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testThreeLevelNestedQueryHint() {
-    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n" +
-        "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n" +
-        "join emp e2 on d1.name = e2.job";
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
+        + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n"
+        + "join emp e2 on d1.name = e2.job";
     sql(sql).ok();
   }
 
   @Test public void testFourLevelNestedQueryHint() {
-    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n" +
-        "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n" +
-        "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
+        + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n"
+        + "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
     sql(sql).ok();
   }
 
   @Test public void testHintsInSubQueryWithoutDecorrelation() {
-    final String sql = "select /*+ resource(parallelism='3') */\n" +
-        "sum(e1.empno) from emp e1, dept d1\n" +
-        "where e1.deptno = d1.deptno\n" +
-        "and e1.sal> (\n" +
-        "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    final String sql = "select /*+ resource(parallelism='3') */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
     sql(sql).ok();
   }
 
   @Test public void testHintsInSubQueryWithDecorrelation() {
-    final String sql = "select /*+ resource(parallelism='3') */\n" +
-        "sum(e1.empno) from emp e1, dept d1\n" +
-        "where e1.deptno = d1.deptno\n" +
-        "and e1.sal> (\n" +
-        "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    final String sql = "select /*+ resource(parallelism='3') */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
     sql(sql).tester(tester.withDecorrelation(true)).ok();
   }
 
