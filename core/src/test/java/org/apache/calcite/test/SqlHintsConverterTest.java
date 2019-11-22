@@ -62,9 +62,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Rule;
+import org.junit.Assert;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,8 +82,6 @@ import static org.junit.Assert.assertThat;
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
  */
 public class SqlHintsConverterTest extends SqlToRelTestBase {
-
-  @Rule public ExpectedException expectedEx = ExpectedException.none();
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlHintsConverterTest.class);
@@ -113,14 +110,44 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testInvalidQueryHint1() {
+  @Test public void testThreeLevelNestedQueryHint() {
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n" +
+        "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n" +
+        "join emp e2 on d1.name = e2.job";
+    sql(sql).ok();
+  }
+
+  @Test public void testFourLevelNestedQueryHint() {
+    final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n" +
+        "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n" +
+        "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
+    sql(sql).ok();
+  }
+
+  @Test public void testHintsInSubQueryWithoutDecorrelation() {
+    final String sql = "select /*+ resource(parallelism='3') */\n" +
+        "sum(e1.empno) from emp e1, dept d1\n" +
+        "where e1.deptno = d1.deptno\n" +
+        "and e1.sal> (\n" +
+        "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    sql(sql).ok();
+  }
+
+  @Test public void testHintsInSubQueryWithDecorrelation() {
+    final String sql = "select /*+ resource(parallelism='3') */\n" +
+        "sum(e1.empno) from emp e1, dept d1\n" +
+        "where e1.deptno = d1.deptno\n" +
+        "and e1.sal> (\n" +
+        "select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)";
+    sql(sql).tester(tester.withDecorrelation(true)).ok();
+  }
+
+  @Test public void testInvalidQueryHint() {
     final String sql = "select /*+ weird_hint */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
     sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
-  }
 
-  @Test public void testInvalidQueryHint2() {
     final String sql1 = "select /*+ resource(mem='20Mb')*/ empno\n"
         + "from (select /*+ weird_kv_hint(k1='v1') */ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
@@ -221,16 +248,14 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testInvalidTableHints1() {
+  @Test public void testInvalidTableHints() {
     final String sql = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ weird_hint(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
     sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
-  }
 
-  @Test public void testInvalidTableHints2() {
     final String sql1 = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ index(idx1, idx2) */\n"
@@ -314,7 +339,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
-    return new Sql(sql, tester, expectedEx);
+    return new Sql(sql, tester);
   }
 
   private static boolean equalsStringList(List<String> l, List<String> r) {
@@ -431,13 +456,11 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     private String sql;
     private Tester tester;
     private List<String> hintsCollect;
-    private ExpectedException expectedEx;
 
-    Sql(String sql, Tester tester, ExpectedException expectedEx) {
+    Sql(String sql, Tester tester) {
       this.sql = sql;
       this.tester = tester;
       this.hintsCollect = new ArrayList<>();
-      this.expectedEx = expectedEx;
     }
 
     Sql tester(Tester tester) {
@@ -469,9 +492,12 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     }
 
     void fails(String failedMsg) {
-      expectedEx.expect(RuntimeException.class);
-      expectedEx.expectMessage(failedMsg);
-      tester.convertSqlToRel(sql);
+      try {
+        tester.convertSqlToRel(sql);
+        Assert.fail("Unexpected exception");
+      } catch (RuntimeException e) {
+        Assert.assertThat(e.getMessage(), is(failedMsg));
+      }
     }
 
     /** A shuttle to collect all the hints within the relational expression into a collection. */
