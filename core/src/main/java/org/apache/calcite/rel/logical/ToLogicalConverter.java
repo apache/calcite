@@ -28,7 +28,9 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -87,6 +89,24 @@ public class ToLogicalConverter extends RelShuttleImpl {
       }
       return relBuilder.union(union.all, union.getInputs().size())
           .build();
+    }
+
+    if (relNode instanceof Intersect) {
+      final Intersect intersect = (Intersect) relNode;
+      for (RelNode rel : intersect.getInputs()) {
+        relBuilder.push(visit(rel));
+      }
+      return relBuilder.intersect(intersect.all, intersect.getInputs().size())
+        .build();
+    }
+
+    if (relNode instanceof Minus) {
+      final Minus minus = (Minus) relNode;
+      for (RelNode rel : minus.getInputs()) {
+        relBuilder.push(visit(rel));
+      }
+      return relBuilder.minus(minus.all, minus.getInputs().size())
+        .build();
     }
 
     if (relNode instanceof Join) {

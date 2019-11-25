@@ -69,6 +69,8 @@ public class ToLogicalConverterTest {
           EnumerableRules.ENUMERABLE_COLLECT_RULE,
           EnumerableRules.ENUMERABLE_UNCOLLECT_RULE,
           EnumerableRules.ENUMERABLE_UNION_RULE,
+          EnumerableRules.ENUMERABLE_INTERSECT_RULE,
+          EnumerableRules.ENUMERABLE_MINUS_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
           EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableInterpreterRule.INSTANCE);
@@ -360,6 +362,66 @@ public class ToLogicalConverterTest {
     String expectedLogical =
         ""
             + "LogicalUnion(all=[true])\n"
+            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verify(rel, expectedPhysial, expectedLogical);
+  }
+
+  @Test public void testIntersect() {
+    // Equivalent SQL:
+    //   SELECT deptno FROM emp
+    //   INTERSECT ALL
+    //   SELECT deptno FROM dept
+    final RelBuilder builder = builder();
+    RelNode rel =
+        builder.scan("DEPT")
+            .project(builder.field("DEPTNO"))
+            .scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .intersect(true)
+            .build();
+    String expectedPhysial =
+        ""
+            + "EnumerableIntersect(all=[true])\n"
+            + "  EnumerableProject(DEPTNO=[$0])\n"
+            + "    EnumerableTableScan(table=[[scott, DEPT]])\n"
+            + "  EnumerableProject(DEPTNO=[$7])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        ""
+            + "LogicalIntersect(all=[true])\n"
+            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verify(rel, expectedPhysial, expectedLogical);
+  }
+
+  @Test public void testMinus() {
+    // Equivalent SQL:
+    //   SELECT deptno FROM emp
+    //   EXCEPT ALL
+    //   SELECT deptno FROM dept
+    final RelBuilder builder = builder();
+    RelNode rel =
+        builder.scan("DEPT")
+            .project(builder.field("DEPTNO"))
+            .scan("EMP")
+            .project(builder.field("DEPTNO"))
+            .minus(true)
+            .build();
+    String expectedPhysial =
+        ""
+            + "EnumerableMinus(all=[true])\n"
+            + "  EnumerableProject(DEPTNO=[$0])\n"
+            + "    EnumerableTableScan(table=[[scott, DEPT]])\n"
+            + "  EnumerableProject(DEPTNO=[$7])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        ""
+            + "LogicalMinus(all=[true])\n"
             + "  LogicalProject(DEPTNO=[$0])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
             + "  LogicalProject(DEPTNO=[$7])\n"
