@@ -178,7 +178,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
     } else {
-      throw new RuntimeException("Range time unit is not supported.");
+      throw new RuntimeException("Range time unit is not supported for BigQuery.");
     }
   }
 
@@ -197,7 +197,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     case ISOYEAR:
       return timeUnit;
     default:
-      throw new RuntimeException(" Time unit " + timeUnit + "is not supported now.");
+      throw new RuntimeException("Time unit " + timeUnit + " is not supported for BigQuery.");
     }
   }
 

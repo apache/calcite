@@ -2311,7 +2311,11 @@ public class RelToSqlConverterTest {
 
     final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
             + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
-    sql(sql2).withBigQuery().throws_("Range time unit is not supported.");
+    sql(sql2).withBigQuery().throws_("Range time unit is not supported in BigQuery.");
+
+    final String sql3 = "select  * from \"employee\" where  \"hire_date\" + "
+            + "INTERVAL '10' NANOSECOND > TIMESTAMP '2005-10-17 00:00:00' ";
+    sql(sql3).withBigQuery().throws_("Time unit NANOSECOND is not supported for BigQuery.");
   }
 
   @Test public void testFloorMysqlWeek() {
