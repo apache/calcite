@@ -167,7 +167,13 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    writer.literal(literal.getValue().toString());
+    Long intervalValueInLong;
+    try {
+      intervalValueInLong = Long.parseLong(literal.getValue().toString());
+    } catch (NumberFormatException e) {
+      throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
+    }
+    writer.literal(intervalValueInLong.toString());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
             RelDataTypeSystem.DEFAULT);
   }
