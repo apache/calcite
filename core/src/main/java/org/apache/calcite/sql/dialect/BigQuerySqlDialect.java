@@ -21,19 +21,19 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.ImmutableList;
@@ -160,41 +160,42 @@ public class BigQuerySqlDialect extends SqlDialect {
    */
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
-      switch (type.getSqlTypeName()) {
+      final SqlTypeName typeName = type.getSqlTypeName();
+      switch (typeName) {
       // BigQuery only supports INT64 for integer types.
-      case BIGINT:
-      case INTEGER:
       case TINYINT:
       case SMALLINT:
-        return createSqlDataTypeSpecByName("INT64");
+      case INTEGER:
+      case BIGINT:
+        return createSqlDataTypeSpecByName("INT64", typeName);
       // BigQuery only supports FLOAT64(aka. Double) for floating point types.
       case FLOAT:
       case DOUBLE:
-        return createSqlDataTypeSpecByName("FLOAT64");
+        return createSqlDataTypeSpecByName("FLOAT64", typeName);
       case DECIMAL:
-        return createSqlDataTypeSpecByName("NUMERIC");
+        return createSqlDataTypeSpecByName("NUMERIC", typeName);
       case BOOLEAN:
-        return createSqlDataTypeSpecByName("BOOL");
+        return createSqlDataTypeSpecByName("BOOL", typeName);
       case CHAR:
       case VARCHAR:
-        return createSqlDataTypeSpecByName("STRING");
-      case VARBINARY:
+        return createSqlDataTypeSpecByName("STRING", typeName);
       case BINARY:
-        return createSqlDataTypeSpecByName("BYTES");
+      case VARBINARY:
+        return createSqlDataTypeSpecByName("BYTES", typeName);
       case DATE:
-        return createSqlDataTypeSpecByName("DATE");
+        return createSqlDataTypeSpecByName("DATE", typeName);
       case TIME:
-        return createSqlDataTypeSpecByName("TIME");
+        return createSqlDataTypeSpecByName("TIME", typeName);
       case TIMESTAMP:
-        return createSqlDataTypeSpecByName("TIMESTAMP");
+        return createSqlDataTypeSpecByName("TIMESTAMP", typeName);
       }
     }
     return super.getCastSpec(type);
   }
 
-  private SqlDataTypeSpec createSqlDataTypeSpecByName(String identifierName) {
-    SqlUserDefinedTypeNameSpec typeNameSpec = new SqlUserDefinedTypeNameSpec(
-            new SqlIdentifier(identifierName, SqlParserPos.ZERO), SqlParserPos.ZERO);
+  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+        typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
