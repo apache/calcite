@@ -25,13 +25,10 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
-import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexBuilder;
@@ -198,7 +195,7 @@ public class RexToLixTranslator {
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
       Type storageType) {
     Expression expression = translate0(expr, nullAs, storageType);
-    expression = convertToInternalType(expression, expression.getType(), storageType);
+    expression = EnumUtils.convertToInternalType(expression, storageType);
     assert expression != null;
     return list.append("v", expression);
   }
@@ -492,7 +489,7 @@ public class RexToLixTranslator {
       }
     }
     if (convert == null) {
-      convert = convert(operand, typeFactory.getJavaClass(targetType));
+      convert = EnumUtils.convert(operand, typeFactory.getJavaClass(targetType));
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
@@ -766,7 +763,7 @@ public class RexToLixTranslator {
       storageType = typeFactory.getJavaClass(expr.getType());
     }
     return nullAs.handle(
-        convert(
+        EnumUtils.convert(
             Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
             storageType));
@@ -955,278 +952,6 @@ public class RexToLixTranslator {
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
-  }
-
-  public static Expression convert(Expression operand, Type toType) {
-    final Type fromType = operand.getType();
-    return convert(operand, fromType, toType);
-  }
-
-  /**
-   * In Calcite, {@code java.sql.Date} and {@code java.sql.Time} are
-   * stored as {@code Integer} type, {@code java.sql.Timestamp} is
-   * stored as {@code Long} type.
-   */
-  private static Expression convertToInternalType(Expression operand,
-      Type fromType, Type toType) {
-    if (fromType == java.sql.Date.class) {
-      if (toType == int.class) {
-        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
-      } else if (toType == Integer.class) {
-        return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, operand);
-      }
-    } else if (fromType == java.sql.Time.class) {
-      if (toType == int.class) {
-        return Expressions.call(BuiltInMethod.TIME_TO_INT.method, operand);
-      } else if (toType == Integer.class) {
-        return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, operand);
-      }
-    } else if (fromType == java.sql.Timestamp.class) {
-      if (toType == long.class) {
-        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, operand);
-      } else if (toType == Long.class) {
-        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, operand);
-      }
-    }
-    return operand;
-  }
-
-  /**
-   * Convert from internal storage types back to {@code java.sql.Date},
-   * {@code java.sql.Time} and {@code java.sql.Timestamp}
-   */
-  private static Expression fromInternalType(Expression operand,
-      Type fromType, Type toType) {
-    if (toType == java.sql.Date.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Date",
-      // generate "SqlFunctions.internalToDate".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
-      }
-    } else if (toType == java.sql.Time.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Time",
-      // generate "SqlFunctions.internalToTime".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
-      }
-    } else if (toType == java.sql.Timestamp.class) {
-      // E.g. from "long" or "Long" to "java.sql.Timestamp",
-      // generate "SqlFunctions.internalToTimestamp".
-      if (isA(fromType, Primitive.LONG)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, operand);
-      }
-    }
-    return operand;
-  }
-
-  public static Expression convert(Expression operand, Type fromType,
-      Type toType) {
-    if (!Types.needTypeCast(fromType, toType)) {
-      return operand;
-    }
-    // E.g. from "Short" to "int".
-    // Generate "x.intValue()".
-    final Primitive toPrimitive = Primitive.of(toType);
-    final Primitive toBox = Primitive.ofBox(toType);
-    final Primitive fromBox = Primitive.ofBox(fromType);
-    final Primitive fromPrimitive = Primitive.of(fromType);
-    final boolean fromNumber = fromType instanceof Class
-        && Number.class.isAssignableFrom((Class) fromType);
-    if (fromType == String.class) {
-      if (toPrimitive != null) {
-        switch (toPrimitive) {
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          // Generate "SqlFunctions.toShort(x)".
-          return Expressions.call(
-              SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
-              operand);
-        default:
-          // Generate "Short.parseShort(x)".
-          return Expressions.call(
-              toPrimitive.boxClass,
-              "parse" + SqlFunctions.initcap(toPrimitive.primitiveName),
-              operand);
-        }
-      }
-      if (toBox != null) {
-        switch (toBox) {
-        case CHAR:
-          // Generate "SqlFunctions.toCharBoxed(x)".
-          return Expressions.call(
-              SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toBox.primitiveName) + "Boxed",
-              operand);
-        default:
-          // Generate "Short.valueOf(x)".
-          return Expressions.call(
-              toBox.boxClass,
-              "valueOf",
-              operand);
-        }
-      }
-    }
-    if (toPrimitive != null) {
-      if (fromPrimitive != null) {
-        // E.g. from "float" to "double"
-        return Expressions.convert_(
-            operand, toPrimitive.primitiveClass);
-      }
-      if (fromNumber || fromBox == Primitive.CHAR) {
-        // Generate "x.shortValue()".
-        return Expressions.unbox(operand, toPrimitive);
-      } else {
-        // E.g. from "Object" to "short".
-        // Generate "SqlFunctions.toShort(x)"
-        return Expressions.call(
-            SqlFunctions.class,
-            "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
-            operand);
-      }
-    } else if (fromNumber && toBox != null) {
-      // E.g. from "Short" to "Integer"
-      // Generate "x == null ? null : Integer.valueOf(x.intValue())"
-      return Expressions.condition(
-          Expressions.equal(operand, RexImpTable.NULL_EXPR),
-          RexImpTable.NULL_EXPR,
-          Expressions.box(
-              Expressions.unbox(operand, toBox),
-              toBox));
-    } else if (fromPrimitive != null && toBox != null) {
-      // E.g. from "int" to "Long".
-      // Generate Long.valueOf(x)
-      // Eliminate primitive casts like Long.valueOf((long) x)
-      if (operand instanceof UnaryExpression) {
-        UnaryExpression una = (UnaryExpression) operand;
-        if (una.nodeType == ExpressionType.Convert
-            || Primitive.of(una.getType()) == toBox) {
-          return Expressions.box(una.expression, toBox);
-        }
-      }
-      if (fromType == toBox.primitiveClass) {
-        return Expressions.box(operand, toBox);
-      }
-      // E.g., from "int" to "Byte".
-      // Convert it first and generate "Byte.valueOf((byte)x)"
-      // Because there is no method "Byte.valueOf(int)" in Byte
-      return Expressions.box(
-          Expressions.convert_(operand, toBox.primitiveClass),
-          toBox);
-    }
-    // Convert from 'java.sql.Date/java.sql.Time/java.sql.Timestamp'
-    // to internal storage types ('int/Integer/long/Long')
-    if (representAsInternalType(fromType)) {
-      final Expression internalTypedOperand =
-          convertToInternalType(operand, fromType, toType);
-      if (operand != internalTypedOperand) {
-        return internalTypedOperand;
-      }
-    }
-    // Convert from internal storage types ('int/Integer/long/Long')
-    // back to 'java.sql.Date/java.sql.Time/java.sql.Timestamp'
-    if (representAsInternalType(toType)) {
-      final Expression originTypedOperand =
-          fromInternalType(operand, fromType, toType);
-      if (operand != originTypedOperand) {
-        return originTypedOperand;
-      }
-    }
-    if (toType == BigDecimal.class) {
-      if (fromBox != null) {
-        // E.g. from "Integer" to "BigDecimal".
-        // Generate "x == null ? null : new BigDecimal(x.intValue())"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.new_(
-                BigDecimal.class,
-                Expressions.unbox(operand, fromBox)));
-      }
-      if (fromPrimitive != null) {
-        // E.g. from "int" to "BigDecimal".
-        // Generate "new BigDecimal(x)"
-        // Fix CALCITE-2325, we should decide null here for int type.
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.new_(
-                BigDecimal.class,
-                operand));
-      }
-      // E.g. from "Object" to "BigDecimal".
-      // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
-      return Expressions.condition(
-          Expressions.equal(operand, RexImpTable.NULL_EXPR),
-          RexImpTable.NULL_EXPR,
-          Expressions.call(
-              SqlFunctions.class,
-              "toBigDecimal",
-              operand));
-    } else if (toType == String.class) {
-      if (fromPrimitive != null) {
-        switch (fromPrimitive) {
-        case DOUBLE:
-        case FLOAT:
-          // E.g. from "double" to "String"
-          // Generate "SqlFunctions.toString(x)"
-          return Expressions.call(
-              SqlFunctions.class,
-              "toString",
-              operand);
-        default:
-          // E.g. from "int" to "String"
-          // Generate "Integer.toString(x)"
-          return Expressions.call(
-              fromPrimitive.boxClass,
-              "toString",
-              operand);
-        }
-      } else if (fromType == BigDecimal.class) {
-        // E.g. from "BigDecimal" to "String"
-        // Generate "SqlFunctions.toString(x)"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.call(
-                SqlFunctions.class,
-                "toString",
-                operand));
-      } else {
-        Expression result;
-        try {
-          // Try to call "toString()" method
-          // E.g. from "Integer" to "String"
-          // Generate "x == null ? null : x.toString()"
-          result = Expressions.condition(
-              Expressions.equal(operand, RexImpTable.NULL_EXPR),
-              RexImpTable.NULL_EXPR,
-              Expressions.call(operand, "toString"));
-        } catch (RuntimeException e) {
-          // For some special cases, e.g., "BuiltInMethod.LESSER",
-          // its return type is generic ("Comparable"), which contains
-          // no "toString()" method. We fall through to "(String)x".
-          return Expressions.convert_(operand, toType);
-        }
-        return result;
-      }
-    }
-    return Expressions.convert_(operand, toType);
-  }
-
-  static boolean isA(Type fromType, Primitive primitive) {
-    return Primitive.of(fromType) == primitive
-        || Primitive.ofBox(fromType) == primitive;
-  }
-
-  static boolean representAsInternalType(Type type) {
-    return type == java.sql.Date.class
-        || type == java.sql.Time.class
-        || type == java.sql.Timestamp.class;
   }
 
   public Expression translateConstructor(

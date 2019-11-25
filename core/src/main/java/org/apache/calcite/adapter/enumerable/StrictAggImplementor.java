@@ -54,7 +54,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
       Expression next) {
     add.currentBlock().add(
         Expressions.statement(
-            Expressions.assign(acc, RexToLixTranslator.convert(next, acc.type))));
+            Expressions.assign(acc, EnumUtils.convert(next, acc.type))));
   }
 
   public final List<Type> getStateType(AggContext info) {
@@ -166,7 +166,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
   public final Expression implementResult(AggContext info,
       final AggResultContext result) {
     if (!needTrackEmptySet) {
-      return RexToLixTranslator.convert(
+      return EnumUtils.convert(
           implementNotNullResult(info, result), info.returnType());
     }
     String tmpName = result.accumulator().isEmpty()
@@ -177,7 +177,7 @@ public abstract class StrictAggImplementor implements AggImplementor {
 
     List<Expression> acc = result.accumulator();
     final BlockBuilder thenBlock = result.nestBlock();
-    Expression nonNull = RexToLixTranslator.convert(
+    Expression nonNull = EnumUtils.convert(
         implementNotNullResult(info, result), info.returnType());
     result.exitBlock();
     thenBlock.add(Expressions.statement(Expressions.assign(res, nonNull)));

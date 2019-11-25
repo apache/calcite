@@ -145,10 +145,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                   right.getRowType().getFieldList().get(pair.right).getType()));
       final Type keyClass = typeFactory.getJavaClass(keyType);
       leftExpressions.add(
-          RexToLixTranslator.convert(
+          EnumUtils.convert(
               leftResult.physType.fieldReference(left_, pair.left), keyClass));
       rightExpressions.add(
-          RexToLixTranslator.convert(
+          EnumUtils.convert(
               rightResult.physType.fieldReference(right_, pair.right), keyClass));
     }
     final PhysType leftKeyPhysType =

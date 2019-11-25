@@ -17,7 +17,7 @@
 package org.apache.calcite.adapter.java;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -167,7 +167,7 @@ public class ReflectiveSchema
   /** Returns an expression for the object wrapped by this schema (not the
    * schema itself). */
   Expression getTargetExpression(SchemaPlus parentSchema, String name) {
-    return RexToLixTranslator.convert(
+    return EnumUtils.convert(
         Expressions.call(
             Schemas.unwrap(
                 getExpression(parentSchema, name),

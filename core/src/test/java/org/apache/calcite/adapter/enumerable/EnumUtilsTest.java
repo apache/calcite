@@ -26,18 +26,18 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
- * Tests for {@link RexToLixTranslator}.
+ * Tests for {@link EnumUtils}.
  */
-public final class RexToLixTranslatorTest {
+public final class EnumUtilsTest {
 
   @Test public void testDateTypeToInnerTypeConvert() {
     // java.sql.Date x;
     final ParameterExpression date =
         Expressions.parameter(0, java.sql.Date.class, "x");
     final Expression dateToInt =
-        RexToLixTranslator.convert(date, int.class);
+        EnumUtils.convert(date, int.class);
     final Expression dateToInteger =
-        RexToLixTranslator.convert(date, Integer.class);
+        EnumUtils.convert(date, Integer.class);
     assertThat(Expressions.toString(dateToInt),
         is("org.apache.calcite.runtime.SqlFunctions.toInt(x)"));
     assertThat(Expressions.toString(dateToInteger),
@@ -47,9 +47,9 @@ public final class RexToLixTranslatorTest {
     final ParameterExpression time =
         Expressions.parameter(0, java.sql.Time.class, "x");
     final Expression timeToInt =
-        RexToLixTranslator.convert(time, int.class);
+        EnumUtils.convert(time, int.class);
     final Expression timeToInteger =
-        RexToLixTranslator.convert(time, Integer.class);
+        EnumUtils.convert(time, Integer.class);
     assertThat(Expressions.toString(timeToInt),
         is("org.apache.calcite.runtime.SqlFunctions.toInt(x)"));
     assertThat(Expressions.toString(timeToInteger),
@@ -59,9 +59,9 @@ public final class RexToLixTranslatorTest {
     final ParameterExpression timestamp =
         Expressions.parameter(0, java.sql.Timestamp.class, "x");
     final Expression timeStampToLongPrimitive =
-        RexToLixTranslator.convert(timestamp, long.class);
+        EnumUtils.convert(timestamp, long.class);
     final Expression timeStampToLong =
-        RexToLixTranslator.convert(timestamp, Long.class);
+        EnumUtils.convert(timestamp, Long.class);
     assertThat(Expressions.toString(timeStampToLongPrimitive),
         is("org.apache.calcite.runtime.SqlFunctions.toLong(x)"));
     assertThat(Expressions.toString(timeStampToLong),
@@ -69,4 +69,4 @@ public final class RexToLixTranslatorTest {
   }
 }
 
-// End RexToLixTranslatorTest.java
+// End EnumUtilsTest.java
