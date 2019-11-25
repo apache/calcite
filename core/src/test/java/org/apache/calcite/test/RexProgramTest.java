@@ -620,26 +620,17 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testItemStrong() {
-    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-
     final ImmutableBitSet c0 = ImmutableBitSet.of(0);
-    final RelDataType intArray = typeFactory.createArrayType(intType, -1);
-    RexInputRef inputRef = rexBuilder.makeInputRef(intArray, 0);
+    RexNode item = item(input(tArray(tInt()), 0), literal(0));
 
-    RexNode rexNode = item(inputRef, literal(0));
+    assertThat(Strong.isStrong(item), is(true));
+    assertThat(Strong.isNull(item, c0), is(true));
 
-    assertThat(Strong.isStrong(rexNode), is(true));
+    RelDataType mapType = typeFactory.createMapType(tVarchar(), tVarchar());
+    item = item(input(mapType, 0), literal("abc"));
 
-    assertThat(Strong.isNull(rexNode, c0), is(true));
-
-    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
-    final RelDataType mapType = typeFactory.createMapType(varcharType, varcharType);
-
-    inputRef = rexBuilder.makeInputRef(mapType, 0);
-    rexNode = item(inputRef, literal("abc"));
-    assertThat(Strong.isStrong(rexNode), is(true));
-
-    assertThat(Strong.isNull(rexNode, c0), is(true));
+    assertThat(Strong.isStrong(item), is(true));
+    assertThat(Strong.isNull(item, c0), is(true));
   }
 
   @Test public void xAndNotX() {
@@ -1731,6 +1722,19 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "OR(null, <>(0, ?0.int0))",
         "<>(0, ?0.int0)",
         "true");
+  }
+
+  @Test public void testSimplifyItemRangeTerms() {
+    RexNode item = item(input(tArray(tInt()), 3), literal(1));
+    simplify = this.simplify.withParanoid(false);
+    // (a=1 or a=2 or (arr[1]>4 and arr[1]<3 and a=3)) => a=1 or a=2
+    checkSimplifyFilter(
+        or(
+          eq(vInt(), literal(1)),
+          eq(vInt(), literal(2)),
+          and(gt(item, literal(4)), lt(item, literal(3)), eq(vInt(), literal(3)))),
+        "OR(=(?0.int0, 1), =(?0.int0, 2))");
+    simplify = simplify.withParanoid(true);
   }
 
   @Test public void testSimplifyNotAnd() {

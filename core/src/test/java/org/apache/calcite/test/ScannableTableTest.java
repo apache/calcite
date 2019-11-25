@@ -371,7 +371,7 @@ public class ScannableTableTest {
   @Test public void testProjectableFilterableTableJoin() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final String explain = "PLAN="
-        + "EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
         + "  EnumerableInterpreter\n"
         + "    BindableTableScan(table=[[s, b1]], filters=[[=($0, 10)]])\n"
         + "  EnumerableInterpreter\n"

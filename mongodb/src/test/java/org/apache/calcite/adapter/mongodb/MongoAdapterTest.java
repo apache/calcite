@@ -290,7 +290,7 @@ public class MongoAdapterTest implements SchemaFactory {
   @Test public void testFilterRedundant() {
     assertModel(MODEL)
         .query(
-            "select * from zips where state > 'CA' and state < 'AZ' and state = 'OK'")
+            "select * from zips where state > 'CA' and state < 'PZ' and state = 'OK'")
         .runs()
         .queryContains(
             mongoChecker(
