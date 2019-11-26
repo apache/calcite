@@ -1793,6 +1793,7 @@ public class SqlFunctions {
     return o instanceof Integer ? (Integer) o
         : o instanceof Number ? toInt((Number) o)
         : o instanceof String ? toInt((String) o)
+        : o instanceof java.sql.Time ? toInt((java.sql.Time) o)
         : o instanceof java.util.Date ? toInt((java.util.Date) o)
         : (Integer) cannotConvert(o, int.class);
   }
@@ -1838,6 +1839,7 @@ public class SqlFunctions {
     return o instanceof Long ? (Long) o
         : o instanceof Number ? toLong((Number) o)
         : o instanceof String ? toLong((String) o)
+        : o instanceof java.util.Date ? toLong((java.util.Date) o)
         : (Long) cannotConvert(o, long.class);
   }
 

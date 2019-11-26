@@ -193,6 +193,7 @@ import org.junit.runners.Suite;
     CalciteRemoteDriverTest.class,
     StreamTest.class,
     SortRemoveRuleTest.class,
+    ObjectArrayTableTest.class,
 
     // above 10sec
     JdbcFrontJdbcBackTest.class,

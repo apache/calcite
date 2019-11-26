@@ -538,17 +538,17 @@ public class RexToLixTranslator {
       }
       break;
     case TIMESTAMP:
-      int targetScale = targetType.getScale();
-      if (targetScale == RelDataType.SCALE_NOT_SPECIFIED) {
-        targetScale = 0;
+      int targetTimestampPrecision = targetType.getPrecision();
+      if (targetTimestampPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+        targetTimestampPrecision = 0;
       }
-      if (targetScale < sourceType.getScale()) {
+      if (targetTimestampPrecision < sourceType.getPrecision()) {
         convert =
             Expressions.call(
                 BuiltInMethod.ROUND_LONG.method,
                 convert,
                 Expressions.constant(
-                    (long) Math.pow(10, 3 - targetScale)));
+                    (long) Math.pow(10, 3 - targetTimestampPrecision)));
       }
       break;
     case INTERVAL_YEAR:
@@ -1063,6 +1063,18 @@ public class RexToLixTranslator {
     } else if (fromType == java.sql.Date.class) {
       if (toBox == Primitive.INT) {
         return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
+      } else {
+        return Expressions.convert_(operand, toType);
+      }
+    } else if (fromType == java.sql.Time.class) {
+      if (toBox == Primitive.INT) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT.method, operand);
+      } else {
+        return Expressions.convert_(operand, toType);
+      }
+    } else if (fromType == java.sql.Timestamp.class) {
+      if (toBox == Primitive.LONG) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, operand);
       } else {
         return Expressions.convert_(operand, toType);
       }

@@ -621,6 +621,20 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
       return typeName;
     }
+
+    @Override public int getPrecision() {
+      if (java.sql.Timestamp.class == clazz) {
+        // Timestamp class can hold fractions up to nano seconds.
+        // Without doing this, Timestamp fraction part gets lost
+        // when the value is cast to TIMESTAMP (without precision).
+        // That affects where clause conditions with '='.
+        // E.g. where \"ts\" = TIMESTAMP '2018-12-14 18:29:34.123'
+        // does not match even if the 'ts' has the same timestamp
+        // because the fraction part 123 is dropped.
+        return 9;
+      }
+      return super.getPrecision();
+    }
   }
 
   /** Key to the data type cache. */
