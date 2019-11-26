@@ -53,7 +53,9 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -1071,6 +1073,10 @@ public class RexToLixTranslator {
       // generate "SqlFunctions.internalToDate".
       if (isA(fromType, Primitive.INT)) {
         return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+      } else if (fromType == TimestampString.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMPSTRING_TO_DATE.method, operand);
+      } else if (fromType == DateString.class) {
+        return Expressions.call(BuiltInMethod.DATESTRING_TO_DATE.method, operand);
       } else {
         return Expressions.convert_(operand, java.sql.Date.class);
       }
@@ -1088,6 +1094,10 @@ public class RexToLixTranslator {
       if (isA(fromType, Primitive.LONG)) {
         return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
             operand);
+      } else if (fromType == TimestampString.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMPSTRING_TO_TIMESTAMP.method, operand);
+      } else if (fromType == DateString.class) {
+        return Expressions.call(BuiltInMethod.DATESTRING_TO_TIMESTAMP.method, operand);
       } else {
         return Expressions.convert_(operand, java.sql.Timestamp.class);
       }

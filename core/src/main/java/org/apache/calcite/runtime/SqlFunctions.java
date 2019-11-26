@@ -34,8 +34,10 @@ import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.util.Bug;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
@@ -2010,6 +2012,23 @@ public class SqlFunctions {
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
+  }
+
+  public static Timestamp fromTimestampStringToTimestamp(TimestampString timestampString) {
+    return new Timestamp(timestampString.getMillisSinceEpoch());
+  }
+
+
+  public static Timestamp fromDateStringToTimestamp(DateString dateString) {
+    return new Timestamp(dateString.getMillisSinceEpoch());
+  }
+
+  public static java.sql.Date fromTimestampStringToDate(TimestampString timestampString) {
+    return new java.sql.Date(timestampString.getMillisSinceEpoch());
+  }
+
+  public static java.sql.Date fromDateStringToDate(DateString dateString) {
+    return new java.sql.Date(dateString.getMillisSinceEpoch());
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.

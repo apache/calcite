@@ -57,6 +57,7 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -89,6 +90,8 @@ public class Smalls {
       Types.lookupMethod(Smalls.class, "fibonacciTable");
   public static final Method FIBONACCI2_TABLE_METHOD =
       Types.lookupMethod(Smalls.class, "fibonacciTableWithLimit", long.class);
+  public static final Method DAYSBETWEEN_METHOD =
+      Types.lookupMethod(Smalls.class, "daysBetween", Timestamp.class, Timestamp.class);
   public static final Method VIEW_METHOD =
       Types.lookupMethod(Smalls.class, "view", String.class);
   public static final Method STR_METHOD =
@@ -287,6 +290,29 @@ public class Smalls {
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
           SqlNode parent, CalciteConnectionConfig config) {
         return true;
+      }
+    };
+  }
+
+  public static QueryableTable daysBetween(Timestamp from, Timestamp to) {
+    return new AbstractQueryableTable(Object[].class) {
+
+      @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+        return typeFactory.builder()
+            .add("daybetween", typeFactory.createJavaType(Timestamp.class))
+            .build();
+      }
+
+      @Override public Queryable<Timestamp> asQueryable(QueryProvider queryProvider,
+                                                        SchemaPlus schema,
+                                                        String tableName) {
+        List<Timestamp> days = new ArrayList<>();
+        Long day = 24L * 60L * 60L * 1000L;
+        for (Timestamp t = new Timestamp(from.getTime() + day); t.before(to);
+             t = new Timestamp(t.getTime() + day)) {
+          days.add(t);
+        }
+        return Linq4j.asEnumerable(days).asQueryable();
       }
     };
   }
