@@ -349,6 +349,42 @@ public class RelToSqlConverterTest {
         .ok(expectedMySql);
   }
 
+  /** Test query with group by and a sub-query which is also with group by. */
+  @Test public void testSelectQueryWithGroupBySubQuery1() {
+    final String query = "select \"product_class_id\", avg(\"product_id\")\n"
+        + "from (select \"product_class_id\", \"product_id\", avg(\"product_class_id\")\n"
+        + "from \"product\"\n"
+        + "group by \"product_class_id\", \"product_id\") as t\n"
+        + "group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", AVG(\"product_id\")\n"
+        + "FROM (SELECT \"product_class_id\", \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  /** Test query without group by but an aggregate function
+   * and a sub-query which is with group by. */
+  @Test public void testSelectQueryWithGroupBySubQuery2() {
+    final String query = "select sum(\"product_id\")\n"
+        + "from (select \"product_class_id\", \"product_id\"\n"
+        + "from \"product\"\n"
+        + "group by \"product_class_id\", \"product_id\") as t";
+    final String expected = "SELECT SUM(\"product_id\")\n"
+        + "FROM (SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"";
+    final String expectedMysql = "SELECT SUM(`product_id`)\n"
+        + "FROM (SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id`, `product_id`) AS `t1`";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMysql);
+  }
+
   /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
    * this. */
   @Test public void testSelectQueryWithSingletonCube() {

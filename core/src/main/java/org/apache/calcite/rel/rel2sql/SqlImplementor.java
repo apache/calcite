@@ -1224,10 +1224,18 @@ public abstract class SqlImplementor {
           needNew = true;
         }
       }
-      if (rel instanceof Aggregate
-          && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((Aggregate) rel)) {
-        needNew = true;
+
+      if (rel instanceof Aggregate) {
+        Aggregate e = (Aggregate) rel;
+        final boolean nestedAgg = hasNestedAggregations(e);
+        if (withGroupBy() && (!e.getGroupSet().toList().isEmpty()
+            || !nestedAgg || !dialect.supportsNestedAggregations())) {
+          needNew = true;
+        }
+
+        if (!dialect.supportsNestedAggregations() && nestedAgg) {
+          needNew = true;
+        }
       }
 
       SqlSelect select;
@@ -1335,6 +1343,16 @@ public abstract class SqlImplementor {
       }
       assert maxClause != null;
       return maxClause;
+    }
+
+    /** return whether {@code Clause.GROUP_BY} is contained in {@code clauses} */
+    private boolean withGroupBy() {
+      for (Clause clause : clauses) {
+        if (clause == Clause.GROUP_BY) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /** Returns a node that can be included in the FROM clause or a JOIN. It has
