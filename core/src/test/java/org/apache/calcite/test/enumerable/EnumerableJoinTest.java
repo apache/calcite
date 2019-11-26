@@ -188,6 +188,7 @@ public class EnumerableJoinTest {
             + "empid=100; name=Bill; dept=Sales; deptno=10; deptno=10\n"
             + "empid=150; name=Sebastian; dept=Sales; deptno=10; deptno=10\n"
             + "empid=110; name=Theodore; dept=Sales; deptno=10; deptno=10\n");
+    EnumerableConvention.INSTANCE.useAbstractConvertersForConversion = false;
   }
 
   @Test public void testSortMergeJoinWithNonEquiCondition() {
@@ -213,6 +214,7 @@ public class EnumerableJoinTest {
         .returns(""
             + "empid=150; name=Sebastian; dept=Sales; deptno=10; deptno=10\n"
             + "empid=110; name=Theodore; dept=Sales; deptno=10; deptno=10\n");
+    EnumerableConvention.INSTANCE.useAbstractConvertersForConversion = false;
   }
 
 
