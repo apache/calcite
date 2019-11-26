@@ -116,10 +116,10 @@ public class RelOptRules {
       TableScanRule.INSTANCE,
       CalciteSystemProperty.COMMUTE.value()
           ? JoinAssociateRule.INSTANCE
-          : ProjectMergeRule.LOGICAL_INSTANCE,
+          : ProjectMergeRule.INSTANCE,
       FilterTableScanRule.INSTANCE,
-      ProjectFilterTransposeRule.LOGICAL_INSTANCE,
-      FilterProjectTransposeRule.LOGICAL_INSTANCE,
+      ProjectFilterTransposeRule.INSTANCE,
+      FilterProjectTransposeRule.INSTANCE,
       FilterJoinRule.FILTER_ON_JOIN,
       JoinPushExpressionsRule.INSTANCE,
       AggregateExpandDistinctAggregatesRule.INSTANCE,

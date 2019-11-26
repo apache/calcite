@@ -31,8 +31,8 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 /**
- * Planner rule that pushes a {@link org.apache.calcite.rel.logical.LogicalProject}
- * past a {@link org.apache.calcite.rel.logical.LogicalFilter}.
+ * Planner rule that pushes a {@link org.apache.calcite.rel.core.Project}
+ * past a {@link org.apache.calcite.rel.core.Filter}.
  */
 public class ProjectFilterTransposeRule extends RelOptRule {
   public static final ProjectFilterTransposeRule INSTANCE =

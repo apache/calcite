@@ -34,18 +34,21 @@ import java.util.stream.Collectors;
 
 /**
  * Planner rule that removes keys from a
- * a {@link org.apache.calcite.rel.logical.LogicalSort} if those keys are known to be
+ * a {@link org.apache.calcite.rel.core.Sort} if those keys are known to be
  * constant, or removes the entire Sort if all keys are constant.
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
 public class SortRemoveConstantKeysRule extends RelOptRule {
   public static final SortRemoveConstantKeysRule INSTANCE =
-      new SortRemoveConstantKeysRule();
+      new SortRemoveConstantKeysRule(Sort.class);
 
-  private SortRemoveConstantKeysRule() {
+  public static final SortRemoveConstantKeysRule LOGICAL_INSTANCE =
+    new SortRemoveConstantKeysRule(Sort.class);
+
+  private SortRemoveConstantKeysRule(Class<? extends Sort> sortClass) {
     super(
-        operand(LogicalSort.class, any()),
+        operand(sortClass, any()),
         RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");
   }
 

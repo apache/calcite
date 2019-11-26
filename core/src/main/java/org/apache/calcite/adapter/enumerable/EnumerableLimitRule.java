@@ -21,18 +21,31 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import sun.rmi.runtime.Log;
 
 /**
- * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalSort} that has
+ * Rule to convert an {@link org.apache.calcite.rel.core.Sort} that has
  * {@code offset} or {@code fetch} set to an
  * {@link EnumerableLimit}
  * on top of a "pure" {@code Sort} that has no offset or fetch.
  */
 class EnumerableLimitRule extends RelOptRule {
+  public static final EnumerableLimitRule INSTANCE =
+    new EnumerableLimitRule(Sort.class);
+
+  public static final EnumerableLimitRule LOGICAL_INSTANCE =
+    new EnumerableLimitRule(LogicalSort.class);
+
   EnumerableLimitRule() {
     super(
         operand(LogicalSort.class, any()),
         "EnumerableLimitRule");
+  }
+
+  EnumerableLimitRule(Class<? extends Sort> sortClass) {
+    super(
+      operand(sortClass, any()),
+      "EnumerableLimitRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

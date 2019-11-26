@@ -46,8 +46,8 @@ public class MaterializedViewFilterScanRule extends RelOptRule {
       new MaterializedViewFilterScanRule(RelFactories.LOGICAL_BUILDER);
 
   private final HepProgram program = new HepProgramBuilder()
-      .addRuleInstance(FilterProjectTransposeRule.LOGICAL_INSTANCE)
-      .addRuleInstance(ProjectMergeRule.LOGICAL_INSTANCE)
+      .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
+      .addRuleInstance(ProjectMergeRule.INSTANCE)
       .build();
 
   //~ Constructors -----------------------------------------------------------

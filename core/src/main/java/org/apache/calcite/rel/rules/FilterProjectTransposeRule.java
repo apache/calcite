@@ -45,8 +45,8 @@ import java.util.function.Predicate;
 
 /**
  * Planner rule that pushes
- * a {@link org.apache.calcite.rel.logical.LogicalFilter}
- * past a {@link org.apache.calcite.rel.logical.LogicalProject}.
+ * a {@link org.apache.calcite.rel.core.Filter}
+ * past a {@link org.apache.calcite.rel.core.Project}.
  */
 public class FilterProjectTransposeRule extends RelOptRule {
   /** The default instance of

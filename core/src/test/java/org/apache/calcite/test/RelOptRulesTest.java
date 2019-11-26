@@ -978,7 +978,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testSortRemovalAllKeysConstant() {
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SortRemoveConstantKeysRule.INSTANCE)
+        .addRuleInstance(SortRemoveConstantKeysRule.LOGICAL_INSTANCE)
         .build();
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
@@ -990,7 +990,7 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testSortRemovalOneKeyConstant() {
     final HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(SortRemoveConstantKeysRule.INSTANCE)
+        .addRuleInstance(SortRemoveConstantKeysRule.LOGICAL_INSTANCE)
         .build();
     final String sql = "select count(*) as c\n"
         + "from sales.emp\n"
