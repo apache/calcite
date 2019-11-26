@@ -225,6 +225,28 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testSelectQueryWithHiveCube() {
+    String query = "select \"product_class_id\", \"product_id\", count(*) "
+            + "from \"product\" group by cube(\"product_class_id\", \"product_id\")";
+    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_class_id, product_id WITH CUBE";
+    sql(query).withHive().ok(expected);
+    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    assertTrue(sqlDialect.supportsGroupByWithCube());
+  }
+
+  @Test public void testSelectQueryWithHiveRollup() {
+    String query = "select \"product_class_id\", \"product_id\", count(*) "
+            + "from \"product\" group by rollup(\"product_class_id\", \"product_id\")";
+    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_class_id, product_id WITH ROLLUP";
+    sql(query).withHive().ok(expected);
+    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    assertTrue(sqlDialect.supportsGroupByWithRollup());
+  }
+
   @Test public void testSelectQueryWithGroupByEmpty() {
     final String sql0 = "select count(*) from \"product\" group by ()";
     final String sql1 = "select count(*) from \"product\"";
