@@ -20,7 +20,7 @@ pluginManagement {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
 
-        idv("com.diffplug.gradle.spotless")
+        idv("com.github.autostyle")
         idv("com.github.johnrengelman.shadow")
         idv("com.github.spotbugs")
         idv("com.github.vlsi.crlf", "com.github.vlsi.vlsi-release-plugins")
@@ -88,4 +88,10 @@ property("localReleasePlugins")?.ifBlank { "../vlsi-release-plugins" }?.let {
 property("localAvatica")?.ifBlank { "../calcite-avatica" }?.let {
     println("Importing project '$it'")
     includeBuild(it)
+}
+
+// This enables to try local Autostyle
+property("localAutostyle")?.ifBlank { "../autostyle" }?.let {
+    println("Importing project '$it'")
+    includeBuild("../autostyle")
 }

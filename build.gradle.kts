@@ -33,7 +33,7 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
-    id("com.diffplug.gradle.spotless")
+    id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
@@ -61,7 +61,7 @@ val lastEditYear by extra(lastEditYear())
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
 val skipCheckstyle by props()
-val skipSpotless by props()
+val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
@@ -195,9 +195,23 @@ fun PatternFilterable.excludeJavaCcGenerated() {
     exclude(*javaccGeneratedPatterns)
 }
 
+fun com.github.autostyle.gradle.BaseFormatExtension.license() {
+    licenseHeader(rootProject.ide.licenseHeader) {
+        copyrightStyle("bat", com.github.autostyle.generic.DefaultCopyrightStyle.PAAMAYIM_NEKUDOTAYIM)
+        copyrightStyle("cmd", com.github.autostyle.generic.DefaultCopyrightStyle.PAAMAYIM_NEKUDOTAYIM)
+    }
+    trimTrailingWhitespace()
+    endWithNewline()
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
+
+    repositories {
+        // RAT and Autostyle dependencies
+        mavenCentral()
+    }
 
     val javaUsed = file("src/main/java").isDirectory
     if (javaUsed) {
@@ -228,31 +242,43 @@ allprojects {
         }
     }
 
-    if (!skipSpotless) {
-        apply(plugin = "com.diffplug.gradle.spotless")
-        spotless {
+    if (!skipAutostyle) {
+        apply(plugin = "com.github.autostyle")
+        autostyle {
             kotlinGradle {
+                license()
                 ktlint()
-                trimTrailingWhitespace()
-                endWithNewline()
+            }
+            format("configs") {
+                filter {
+                    include("**/*.sh", "**/*.bsh", "**/*.cmd", "**/*.bat")
+                    include("**/*.properties", "**/*.yml")
+                    include("**/*.xsd", "**/*.xsl", "**/*.xml")
+                    // Autostyle does not support gitignore yet https://github.com/autostyle/autostyle/issues/13
+                    exclude("bin/**", "out/**", "target/**", "gradlew*")
+                    exclude(rootDir.resolve(".ratignore").readLines())
+                }
+                license()
             }
             if (project == rootProject) {
                 // Spotless does not exclude subprojects when using target(...)
                 // So **/*.md is enough to scan all the md files in the codebase
                 // See https://github.com/diffplug/spotless/issues/468
                 format("markdown") {
-                    target("**/*.md")
+                    filter.include("**/*.md")
                     // Flot is known to have trailing whitespace, so the files
                     // are kept in their original format (e.g. to simplify diff on library upgrade)
-                    trimTrailingWhitespace()
                     endWithNewline()
                 }
             }
         }
         plugins.withId("org.jetbrains.kotlin.jvm") {
-            spotless {
+            autostyle {
                 kotlin {
-                    ktlint().userData(mapOf("disabled_rules" to "import-ordering"))
+                    licenseHeader(rootProject.ide.licenseHeader)
+                    ktlint {
+                        userData(mapOf("disabled_rules" to "import-ordering"))
+                    }
                     trimTrailingWhitespace()
                     endWithNewline()
                 }
@@ -282,12 +308,12 @@ allprojects {
             excludeJavaCcGenerated()
         }
     }
-    if (!skipSpotless || !skipCheckstyle) {
+    if (!skipAutostyle || !skipCheckstyle) {
         tasks.register("style") {
             group = LifecycleBasePlugin.VERIFICATION_GROUP
             description = "Formats code (license header, import order, whitespace at end of line, ...) and executes Checkstyle verifications"
-            if (!skipSpotless) {
-                dependsOn("spotlessApply")
+            if (!skipAutostyle) {
+                dependsOn("autostyleApply")
             }
             if (!skipCheckstyle) {
                 dependsOn("checkstyleAll")
@@ -355,11 +381,11 @@ allprojects {
             }
         }
 
-        if (!skipSpotless) {
-            spotless {
+        if (!skipAutostyle) {
+            autostyle {
                 java {
-                    targetExclude(*javaccGeneratedPatterns + "**/test/java/*.java")
-                    licenseHeader(rootProject.ide.licenseHeaderJava)
+                    filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
+                    license()
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")
                         replaceRegex("junit5: Before", "org.junit.Before\\b", "org.junit.jupiter.api.BeforeEach")
@@ -375,6 +401,7 @@ allprojects {
                         replace("junit5: Assert.assertThat", "org.junit.Assert.assertThat", "org.hamcrest.MatcherAssert.assertThat")
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
+                    replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -395,7 +422,6 @@ allprojects {
                         "static "
                     )
                     removeUnusedImports()
-                    trimTrailingWhitespace()
                     indentWithSpaces(2)
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
@@ -407,11 +433,9 @@ allprojects {
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
                     // If the link was crafted manually, ensure it has [CALCITE-...] in the link text
                     replaceRegex(">[CALCITE-...] link styles: 2", "<a(?:(?!CALCITE-)[^>])++(CALCITE-\\d+)[^>]++>\\s*+\\[?CALCITE-\\d+\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
-                    bumpThisNumberIfACustomStepChanges(1)
-                    custom("((() preventer") { contents: String ->
+                    custom("((() preventer", 1) { contents: String ->
                         ParenthesisBalancer.apply(contents)
                     }
-                    endWithNewline()
                 }
             }
         }

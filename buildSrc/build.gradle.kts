@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     java
     `kotlin-dsl` apply false
-    id("com.diffplug.gradle.spotless")
+    id("com.github.autostyle")
 }
 
 repositories {
@@ -52,8 +52,8 @@ fun Project.applyKotlinProjectConventions() {
             jvmTarget = "1.8"
         }
     }
-    apply(plugin = "com.diffplug.gradle.spotless")
-    spotless {
+    apply(plugin = "com.github.autostyle")
+    autostyle {
         kotlin {
             ktlint()
             trimTrailingWhitespace()

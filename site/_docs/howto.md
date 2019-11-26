@@ -98,7 +98,7 @@ $ ./gradlew build -x test # build the artifacts, verify code style, skip tests
 $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
-$ ./gradlew spotlessCheck checkstyleAll # report code style violations
+$ ./gradlew autostyleCheck checkstyleAll # report code style violations
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.

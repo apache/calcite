@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 # Database of contributors to Apache Calcite.
 # Pages such as developer.md use this data.
 # List must be sorted by first name, last name.
