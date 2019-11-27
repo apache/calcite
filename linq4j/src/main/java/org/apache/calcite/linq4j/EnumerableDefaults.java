@@ -1831,6 +1831,9 @@ public abstract class EnumerableDefaults {
               rightUnmatched.remove(right);
             }
             result.add(resultSelector.apply(left, right));
+            if (joinType == JoinType.SEMI) {
+              break;
+            }
           }
         }
       }
