@@ -400,8 +400,11 @@ public class EnumUtils {
       if (operand instanceof UnaryExpression) {
         UnaryExpression una = (UnaryExpression) operand;
         if (una.nodeType == ExpressionType.Convert
-            || Primitive.of(una.getType()) == toBox) {
-          return Expressions.box(una.expression, toBox);
+            && Primitive.of(una.getType()) == toBox) {
+          Primitive origin = Primitive.of(una.expression.type);
+          if (origin != null && toBox.assignableFrom(origin)) {
+            return Expressions.box(una.expression, toBox);
+          }
         }
       }
       if (fromType == toBox.primitiveClass) {

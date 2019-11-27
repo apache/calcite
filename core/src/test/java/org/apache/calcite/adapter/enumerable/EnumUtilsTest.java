@@ -67,6 +67,89 @@ public final class EnumUtilsTest {
     assertThat(Expressions.toString(timeStampToLong),
         is("org.apache.calcite.runtime.SqlFunctions.toLongOptional(x)"));
   }
+
+  @Test public void testTypeConvertFromPrimitiveToBox() {
+    final Expression intVariable =
+        Expressions.parameter(0, int.class, "intV");
+
+    // (byte)(int) -> Byte: Byte.valueOf((byte) intV)
+    final Expression bytePrimitiveConverted =
+        Expressions.convert_(intVariable, byte.class);
+    final Expression converted0 =
+        EnumUtils.convert(bytePrimitiveConverted, Byte.class);
+    assertThat(Expressions.toString(converted0),
+        is("Byte.valueOf((byte) intV)"));
+
+    // (char)(int) -> Character: Character.valueOf((char) intV)
+    final Expression characterPrimitiveConverted =
+        Expressions.convert_(intVariable, char.class);
+    final Expression converted1 =
+        EnumUtils.convert(characterPrimitiveConverted, Character.class);
+    assertThat(Expressions.toString(converted1),
+        is("Character.valueOf((char) intV)"));
+
+    // (short)(int) -> Short: Short.valueOf((short) intV)
+    final Expression shortPrimitiveConverted =
+        Expressions.convert_(intVariable, short.class);
+    final Expression converted2 =
+        EnumUtils.convert(shortPrimitiveConverted, Short.class);
+    assertThat(Expressions.toString(converted2),
+        is("Short.valueOf((short) intV)"));
+
+    // (long)(int) -> Long: Long.valueOf(intV)
+    final Expression longPrimitiveConverted =
+        Expressions.convert_(intVariable, long.class);
+    final Expression converted3 =
+        EnumUtils.convert(longPrimitiveConverted, Long.class);
+    assertThat(Expressions.toString(converted3),
+        is("Long.valueOf(intV)"));
+
+    // (float)(int) -> Float: Float.valueOf(intV)
+    final Expression floatPrimitiveConverted =
+        Expressions.convert_(intVariable, float.class);
+    final Expression converted4 =
+        EnumUtils.convert(floatPrimitiveConverted, Float.class);
+    assertThat(Expressions.toString(converted4),
+        is("Float.valueOf(intV)"));
+
+    // (double)(int) -> Double: Double.valueOf(intV)
+    final Expression doublePrimitiveConverted =
+        Expressions.convert_(intVariable, double.class);
+    final Expression converted5 =
+        EnumUtils.convert(doublePrimitiveConverted, Double.class);
+    assertThat(Expressions.toString(converted5),
+        is("Double.valueOf(intV)"));
+
+    final Expression byteConverted =
+        EnumUtils.convert(intVariable, Byte.class);
+    assertThat(Expressions.toString(byteConverted),
+        is("Byte.valueOf((byte) intV)"));
+
+    final Expression shortConverted =
+        EnumUtils.convert(intVariable, Short.class);
+    assertThat(Expressions.toString(shortConverted),
+        is("Short.valueOf((short) intV)"));
+
+    final Expression integerConverted =
+        EnumUtils.convert(intVariable, Integer.class);
+    assertThat(Expressions.toString(integerConverted),
+        is("Integer.valueOf(intV)"));
+
+    final Expression longConverted =
+        EnumUtils.convert(intVariable, Long.class);
+    assertThat(Expressions.toString(longConverted),
+        is("Long.valueOf((long) intV)"));
+
+    final Expression floatConverted =
+        EnumUtils.convert(intVariable, Float.class);
+    assertThat(Expressions.toString(floatConverted),
+        is("Float.valueOf((float) intV)"));
+
+    final Expression doubleConverted =
+        EnumUtils.convert(intVariable, Double.class);
+    assertThat(Expressions.toString(doubleConverted),
+        is("Double.valueOf((double) intV)"));
+  }
 }
 
 // End EnumUtilsTest.java
