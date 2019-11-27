@@ -2612,10 +2612,10 @@ public class RexImpTable {
     private Expression implementRecurse(RexToLixTranslator translator,
         List<RexNode> operands, NullAs nullAs) {
       if (operands.size() == 1) {
-        return translator.translate(operands.get(0));
+        return translator.translate(operands.get(0), nullAs);
       } else {
         return Expressions.condition(
-            translator.translate(operands.get(0), NullAs.IS_NULL),
+            translator.translate(operands.get(0), NullAs.IS_NOT_NULL),
             translator.translate(operands.get(0), nullAs),
             implementRecurse(translator, Util.skip(operands), nullAs));
       }
