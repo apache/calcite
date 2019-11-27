@@ -1935,19 +1935,13 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      List<Expression> unboxValueList = argValueList;
-      if (nullPolicy == NullPolicy.STRICT) {
-        unboxValueList = argValueList.stream()
-            .map(RexImpTable.NullAs.NOT_POSSIBLE::handle)
-                .collect(Collectors.toList());
-      }
       final Expression expression;
       Class clazz = method.getDeclaringClass();
       if (Modifier.isStatic(method.getModifiers())) {
-        expression = EnumUtils.call(clazz, method.getName(), unboxValueList);
+        expression = EnumUtils.call(clazz, method.getName(), argValueList);
       } else {
         expression = EnumUtils.call(clazz, method.getName(),
-            Util.skip(unboxValueList, 1), unboxValueList.get(0));
+            Util.skip(argValueList, 1), argValueList.get(0));
       }
       return expression;
     }
@@ -1972,16 +1966,10 @@ public class RexImpTable {
 
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
-      List<Expression> unboxValueList = argValueList;
-      if (nullPolicy == NullPolicy.STRICT) {
-        unboxValueList = argValueList.stream()
-            .map(RexImpTable.NullAs.NOT_POSSIBLE::handle)
-                .collect(Collectors.toList());
-      }
       return EnumUtils.call(
           SqlFunctions.class,
           methodName,
-          unboxValueList);
+          argValueList);
     }
   }
 
@@ -2056,7 +2044,6 @@ public class RexImpTable {
         final Primitive primitive = Primitive.ofBoxOr(type0);
         if (primitive == null
             || type1 == BigDecimal.class
-            || shouldUseEquals(type0)
             || COMPARISON_OPERATORS.contains(op)
             && !COMP_OP_TYPES.contains(primitive)) {
           return Expressions.call(SqlFunctions.class, backupMethodName,
@@ -2085,13 +2072,6 @@ public class RexImpTable {
         }
       }
       return false;
-    }
-
-    /** For Boxed types, we should use {@code equals} rather than {@code ==}. */
-    private boolean shouldUseEquals(Type type) {
-      return Primitive.isBox(type)
-         && (expressionType == ExpressionType.Equal
-            || expressionType == ExpressionType.NotEqual);
     }
 
     private Expression callBackupMethodAnyType(RexToLixTranslator translator,
@@ -2131,19 +2111,13 @@ public class RexImpTable {
     @Override Expression implementSafe(RexToLixTranslator translator,
         RexCall call, List<Expression> argValueList) {
       final Expression argValue = argValueList.get(0);
-      Expression unboxedArgValue = argValue;
-      if (nullPolicy == NullPolicy.STRICT
-          || nullPolicy == NullPolicy.SEMI_STRICT
-          || nullPolicy == NullPolicy.ARG0) {
-        unboxedArgValue = RexImpTable.NullAs.NOT_POSSIBLE.handle(argValue);
-      }
-      final UnaryExpression e = Expressions.makeUnary(expressionType, unboxedArgValue);
-      if (e.type.equals(unboxedArgValue.type)) {
+      final UnaryExpression e = Expressions.makeUnary(expressionType, argValue);
+      if (e.type.equals(argValue.type)) {
         return e;
       }
       // Certain unary operators do not preserve type. For example, the "-"
       // operator applied to a "byte" expression returns an "int".
-      return Expressions.convert_(e, unboxedArgValue.type);
+      return Expressions.convert_(e, argValue.type);
     }
   }
 
@@ -2819,13 +2793,14 @@ public class RexImpTable {
         final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList,
         final Expression condition) {
-      List<Expression> harmonizedArgValueList = argValueList;
+      List<Expression> optimizedArgValueList = argValueList;
       if (harmonize) {
-        harmonizedArgValueList =
-            harmonize(argValueList, translator, call);
+        optimizedArgValueList =
+            harmonize(optimizedArgValueList, translator, call);
       }
+      optimizedArgValueList = unboxIfNecessary(optimizedArgValueList);
 
-      final Expression callValue = implementSafe(translator, call, harmonizedArgValueList);
+      final Expression callValue = implementSafe(translator, call, optimizedArgValueList);
 
       // In general, RexCall's type is correct for code generation
       // and thus we should ensure the consistency.
@@ -2909,6 +2884,41 @@ public class RexImpTable {
             EnumUtils.convert(argValue, javaClass));
       }
       return harmonizedArgValues;
+    }
+
+    /** Under null check, it is safe to unbox the operands before entering the implementor.*/
+    private List<Expression> unboxIfNecessary(final List<Expression> argValueList) {
+      List<Expression> unboxValueList = argValueList;
+      if (nullPolicy == NullPolicy.STRICT || nullPolicy == NullPolicy.ANY
+          || nullPolicy == NullPolicy.SEMI_STRICT) {
+        unboxValueList = argValueList.stream()
+            .map(this::unboxExpression)
+            .collect(Collectors.toList());
+      }
+      if (nullPolicy == NullPolicy.ARG0 && argValueList.size() > 0) {
+        final Expression unboxArg0 = unboxExpression(unboxValueList.get(0));
+        unboxValueList.set(0, unboxArg0);
+      }
+      return unboxValueList;
+    }
+
+    private Expression unboxExpression(final Expression argValue) {
+      Primitive fromBox = Primitive.ofBox(argValue.getType());
+      if (fromBox == null || fromBox == Primitive.VOID) {
+        return argValue;
+      }
+      // Optimization: for "long x";
+      // "Long.valueOf(x)" generates "x"
+      if (argValue instanceof MethodCallExpression) {
+        MethodCallExpression mce = (MethodCallExpression) argValue;
+        if (mce.method.getName().equals("valueOf") && mce.expressions.size() == 1) {
+          Expression originArg = mce.expressions.get(0);
+          if (Primitive.of(originArg.type) == fromBox) {
+            return originArg;
+          }
+        }
+      }
+      return NullAs.NOT_POSSIBLE.handle(argValue);
     }
 
     abstract Expression implementSafe(RexToLixTranslator translator,

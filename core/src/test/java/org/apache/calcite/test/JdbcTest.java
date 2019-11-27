@@ -2523,7 +2523,7 @@ public class JdbcTest {
             + "              } else {\n"
             + "                case_when_value = (Integer) null;\n"
             + "              }\n"
-            + "              final Integer binary_call_value0 = case_when_value == null ? (Integer) null : Integer.valueOf(Integer.valueOf(current.deptno) + case_when_value);\n"
+            + "              final Integer binary_call_value0 = case_when_value == null ? (Integer) null : Integer.valueOf(current.deptno + case_when_value.intValue());\n"
             + "              return input_value == null || binary_call_value0 == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, binary_call_value0.intValue());\n");
   }
 
@@ -2548,7 +2548,7 @@ public class JdbcTest {
             + "              } else {\n"
             + "                case_when_value = (Integer) null;\n"
             + "              }\n"
-            + "              final Integer binary_call_value1 = case_when_value == null ? (Integer) null : Integer.valueOf(Integer.valueOf(input_value0 * 0) + case_when_value);\n"
+            + "              final Integer binary_call_value1 = case_when_value == null ? (Integer) null : Integer.valueOf(input_value0 * 0 + case_when_value.intValue());\n"
             + "              final String method_call_value = input_value == null || binary_call_value1 == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, binary_call_value1.intValue());\n"
             + "              final String trim_value = method_call_value == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", method_call_value, true);\n"
             + "              Integer case_when_value0;\n"
@@ -2563,7 +2563,7 @@ public class JdbcTest {
             + "                }\n"
             + "                case_when_value0 = case_when_value1;\n"
             + "              }\n"
-            + "              final Integer binary_call_value3 = case_when_value0 == null ? (Integer) null : Integer.valueOf(case_when_value0 - $L4J$C$Integer_valueOf_2_);\n"
+            + "              final Integer binary_call_value3 = case_when_value0 == null ? (Integer) null : Integer.valueOf(case_when_value0.intValue() - 2);\n"
             + "              return trim_value == null || binary_call_value3 == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(trim_value, binary_call_value3.intValue());\n")
         .returns("T=ill\n"
             + "T=ric\n"
@@ -2592,7 +2592,7 @@ public class JdbcTest {
             + "              } else {\n"
             + "                case_when_value = (Integer) null;\n"
             + "              }\n"
-            + "              final Integer binary_call_value1 = case_when_value == null ? (Integer) null : Integer.valueOf(Integer.valueOf(input_value0 * 0) + case_when_value);\n"
+            + "              final Integer binary_call_value1 = case_when_value == null ? (Integer) null : Integer.valueOf(input_value0 * 0 + case_when_value.intValue());\n"
             + "              final String method_call_value = input_value == null || binary_call_value1 == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(input_value, binary_call_value1.intValue());\n"
             + "              final String trim_value = method_call_value == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", method_call_value, true);\n"
             + "              Integer case_when_value0;\n"
@@ -2607,7 +2607,7 @@ public class JdbcTest {
             + "                }\n"
             + "                case_when_value0 = case_when_value1;\n"
             + "              }\n"
-            + "              final Integer binary_call_value3 = case_when_value0 == null ? (Integer) null : Integer.valueOf(case_when_value0 - $L4J$C$Integer_valueOf_2_);\n"
+            + "              final Integer binary_call_value3 = case_when_value0 == null ? (Integer) null : Integer.valueOf(case_when_value0.intValue() - 2);\n"
             + "              return trim_value == null || binary_call_value3 == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.substring(trim_value, binary_call_value3.intValue());"
         )
         .returns("T=ll\n"
@@ -2623,13 +2623,6 @@ public class JdbcTest {
     CalciteAssert.that()
         .query("SELECT ROUND(CAST((X/Y) AS NUMERIC), 2) "
             + "FROM (VALUES (1, 2), (NULLIF(5, 5), NULLIF(5, 5))) A(X, Y)")
-        .planContains("      final Object[] current = (Object[]) inputEnumerator.current();\n"
-            + "              final Integer input_value = (Integer) current[0];\n"
-            + "              final Integer input_value0 = (Integer) current[1];\n"
-            + "              final Integer binary_call_value = input_value == null || input_value0 == null ? (Integer) null : Integer.valueOf(input_value / input_value0);\n"
-            + "              final java.math.BigDecimal cast_value = binary_call_value == null ? (java.math.BigDecimal) null : binary_call_value == null ? (java.math.BigDecimal) null : new java.math.BigDecimal(\n"
-            + "                binary_call_value.intValue());\n"
-            + "              return cast_value == null ? (java.math.BigDecimal) null : org.apache.calcite.runtime.SqlFunctions.sround(cast_value, 2);")
         .returns("EXPR$0=0.00\n"
             + "EXPR$0=null\n");
   }
@@ -2645,29 +2638,6 @@ public class JdbcTest {
             + " FROM (VALUES (1.1, 2.5), (4.51, 32.5)) A(X, Y)\n"
             + " GROUP BY \"Y\"\n"
             + ")")
-        .planContains("      int case_when_value;\n"
-            + "              final Object[] current = (Object[]) inputEnumerator.current();\n"
-            + "              final java.math.BigDecimal input_value = current[1] == null ? (java.math.BigDecimal) null : org.apache.calcite.runtime.SqlFunctions.toBigDecimal(current[1]);\n"
-            + "              Integer case_when_value0;\n"
-            + "              if (org.apache.calcite.runtime.SqlFunctions.toInt(current[2]) == 0) {\n"
-            + "                case_when_value0 = (Integer) null;\n"
-            + "              } else {\n"
-            + "                case_when_value0 = Integer.valueOf(org.apache.calcite.runtime.SqlFunctions.toInt(current[2]));\n"
-            + "              }\n"
-            + "              final java.math.BigDecimal binary_call_value0 = input_value == null || case_when_value0 == null ? (java.math.BigDecimal) null : org.apache.calcite.runtime.SqlFunctions.divide(input_value, case_when_value0 == null ? (java.math.BigDecimal) null : new java.math.BigDecimal(\n"
-            + "                case_when_value0.intValue()));\n"
-            + "              final boolean binary_call_isNull0 = binary_call_value0 == null;\n"
-            + "              final Boolean binary_call_value1 = binary_call_isNull0 ? (Boolean) null : Boolean.valueOf(org.apache.calcite.runtime.SqlFunctions.lt(binary_call_value0, $L4J$C$new_java_math_BigDecimal_77_));\n"
-            + "              final boolean binary_call_isNull1 = binary_call_value1 == null;\n"
-            + "              final Boolean binary_call_value2 = binary_call_isNull0 ? (Boolean) null : Boolean.valueOf(org.apache.calcite.runtime.SqlFunctions.gt(binary_call_value0, $L4J$C$new_java_math_BigDecimal_0_));\n"
-            + "              final boolean binary_call_isNull2 = binary_call_value2 == null;\n"
-            + "              final Boolean logical_and_value = (binary_call_isNull1 ? true : binary_call_value1) && (binary_call_isNull2 ? true : binary_call_value2) ? (binary_call_isNull1 || binary_call_isNull2 ? (Boolean) null : Boolean.TRUE) : Boolean.FALSE;\n"
-            + "              if (logical_and_value != null && logical_and_value) {\n"
-            + "                case_when_value = 99;\n"
-            + "              } else {\n"
-            + "                case_when_value = 88;\n"
-            + "              }\n"
-            + "              return case_when_value;")
         .returns("EXPR$0=88\n"
             + "EXPR$0=88\n");
   }
@@ -2680,17 +2650,6 @@ public class JdbcTest {
         .query("SELECT \"NAME\" "
             + "FROM (VALUES ('Bill'), NULLIF('x', 'x'), ('Eric')) A(NAME) "
             + "WHERE UPPER(\"NAME\") LIKE 'B%' AND UPPER(\"NAME\") LIKE '%L'")
-        .planContains(
-              "        final String method_call_value = inputEnumerator.current() == null || inputEnumerator.current().toString() == null ? (String) null : org.apache.calcite.runtime.SqlFunctions.upper(inputEnumerator.current() == null ? (String) null : inputEnumerator.current().toString());\n"
-            + "                final boolean method_call_isNull = method_call_value == null;\n"
-            + "                final Boolean method_call_value0 = method_call_isNull ? (Boolean) null : Boolean.valueOf(org.apache.calcite.runtime.SqlFunctions.like(method_call_value, \"B%\"));\n"
-            + "                final boolean method_call_isNull0 = method_call_value0 == null;\n"
-            + "                final Boolean method_call_value1 = method_call_isNull ? (Boolean) null : Boolean.valueOf(org.apache.calcite.runtime.SqlFunctions.like(method_call_value, \"%L\"));\n"
-            + "                final boolean method_call_isNull1 = method_call_value1 == null;\n"
-            + "                final Boolean logical_and_value = (method_call_isNull0 ? true : method_call_value0) && (method_call_isNull1 ? true : method_call_value1) ? (method_call_isNull0 || method_call_isNull1 ? (Boolean) null : Boolean.TRUE) : Boolean.FALSE;\n"
-            + "                if (logical_and_value == null ? false : logical_and_value) {\n"
-            + "                  return true;\n"
-            + "                }")
         .returns("NAME=Bill\n");
   }
 
@@ -4413,9 +4372,9 @@ public class JdbcTest {
   @Test public void testMethodParameterTypeMatch() {
     CalciteAssert.that()
         .query("SELECT mod(12.5, cast(3 as bigint))")
-        .planContains("final java.math.BigDecimal v = "
+        .planContains("final java.math.BigDecimal literal_value = "
             + "$L4J$C$new_java_math_BigDecimal_12_5_")
-        .planContains("org.apache.calcite.runtime.SqlFunctions.mod(v, "
+        .planContains("org.apache.calcite.runtime.SqlFunctions.mod(literal_value, "
             + "$L4J$C$new_java_math_BigDecimal_3L_)")
         .returns("EXPR$0=0.5\n");
   }
@@ -6297,8 +6256,6 @@ public class JdbcTest {
             + "  select cast(null as timestamp) as time0,"
             + "         cast(null as timestamp) as time1"
             + ") calcs")
-        .planContains("org.apache.calcite.runtime.SqlFunctions.eq(input_value, input_value0)")
-        .planContains("org.apache.calcite.runtime.SqlFunctions.ne(input_value, input_value0)")
         .returns("EXPR$0=true; EXPR$1=false\n"
             + "EXPR$0=null; EXPR$1=null\n");
   }
@@ -7261,7 +7218,7 @@ public class JdbcTest {
             + "new java.math.BigDecimal(\n"
             + "              1)")
         .planContains("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
-            + "$L4J$C$new_java_math_BigDecimal_1_, v)")
+            + "$L4J$C$new_java_math_BigDecimal_1_, literal_value0)")
         .returns("EXPR$0={\"x\":1,\"y\":2.1}\n");
   }
 

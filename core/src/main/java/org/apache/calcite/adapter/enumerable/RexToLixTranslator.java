@@ -59,14 +59,12 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,8 +103,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   private final Expression root;
   final RexToLixTranslator.InputGetter inputGetter;
   private final BlockBuilder list;
-  private final Map<? extends RexNode, Boolean> exprNullableMap;
-  private final RexToLixTranslator parent;
   private final Function1<String, InputGetter> correlates;
 
   private static Method findMethod(
@@ -123,10 +119,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       Expression root,
       InputGetter inputGetter,
       BlockBuilder list,
-      Map<? extends RexNode, Boolean> exprNullableMap,
       RexBuilder builder,
       SqlConformance conformance,
-      RexToLixTranslator parent,
       Function1<String, InputGetter> correlates) {
     this.program = program; // may be null
     this.typeFactory = Objects.requireNonNull(typeFactory);
@@ -134,9 +128,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     this.root = Objects.requireNonNull(root);
     this.inputGetter = inputGetter;
     this.list = Objects.requireNonNull(list);
-    this.exprNullableMap = Objects.requireNonNull(exprNullableMap);
     this.builder = Objects.requireNonNull(builder);
-    this.parent = parent; // may be null
     this.correlates = correlates; // may be null
   }
 
@@ -168,8 +160,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        list, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
-        null, null)
+        list, new RexBuilder(typeFactory), conformance, null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
   }
@@ -179,8 +170,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       Expression root, RexCall rexCall, Expression inputEnumerable,
       PhysType inputPhysType, PhysType outputPhysType) {
     return new RexToLixTranslator(null, typeFactory, root, null,
-        blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
-        null, null)
+        blockBuilder, new RexBuilder(typeFactory), conformance, null)
         .translateTableValuedFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
   }
 
@@ -189,8 +179,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       BlockBuilder list, InputGetter inputGetter, SqlConformance conformance) {
     final ParameterExpression root = DataContext.ROOT;
     return new RexToLixTranslator(null, typeFactory, root, inputGetter, list,
-        Collections.emptyMap(), new RexBuilder(typeFactory), conformance, null,
-        null);
+        new RexBuilder(typeFactory), conformance, null);
   }
 
   Expression translate(RexNode expr) {
@@ -636,7 +625,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
 
   /** Translates a literal.
    *
-   * @throws AlwaysNull if literal is null but {@code nullAs} is
+   * @throws ControlFlowException if literal is null but {@code nullAs} is
    * {@link org.apache.calcite.adapter.enumerable.RexImpTable.NullAs#NOT_POSSIBLE}.
    */
   public static Expression translateLiteral(
@@ -653,7 +642,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       case IS_NOT_NULL:
         return RexImpTable.FALSE_EXPR;
       case NOT_POSSIBLE:
-        throw AlwaysNull.INSTANCE;
+        throw new ControlFlowException();
       case NULL:
       default:
         return RexImpTable.NULL_EXPR;
@@ -823,58 +812,24 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final ParameterExpression root = DataContext.ROOT;
     RexToLixTranslator translator =
         new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-            Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
-            null, null);
+            new RexBuilder(typeFactory), conformance, null);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
   }
 
-  /** Returns whether an expression is nullable. Even if its type says it is
-   * nullable, if we have previously generated a check to make sure that it is
-   * not null, we will say so.
-   *
-   * <p>For example, {@code WHERE a == b} translates to
-   * {@code a != null && b != null && a.equals(b)}. When translating the
-   * 3rd part of the disjunction, we already know a and b are not null.</p>
-   *
+  /** Returns whether an expression is nullable.
    * @param e Expression
-   * @return Whether expression is nullable in the current translation context
+   * @return Whether expression is nullable
    */
   public boolean isNullable(RexNode e) {
-    if (!e.getType().isNullable()) {
-      return false;
-    }
-    final Boolean b = isKnownNullable(e);
-    return b == null || b;
+    return e.getType().isNullable();
   }
 
-  /**
-   * Walks parent translator chain and verifies if the expression is nullable.
-   *
-   * @param node RexNode to check if it is nullable or not
-   * @return null when nullability is not known, true or false otherwise
-   */
-  protected Boolean isKnownNullable(RexNode node) {
-    if (!exprNullableMap.isEmpty()) {
-      Boolean nullable = exprNullableMap.get(node);
-      if (nullable != null) {
-        return nullable;
-      }
-    }
-    return parent == null ? null : parent.isKnownNullable(node);
-  }
-
-  /** Creates a read-only copy of this translator that records that a given
-   * expression is nullable. */
   public RexToLixTranslator setNullable(
       Map<? extends RexNode, Boolean> nullable) {
-    if (nullable == null || nullable.isEmpty()) {
-      return this;
-    }
-    return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        nullable, builder, conformance, this, correlates);
+    return this;
   }
 
   public RexToLixTranslator setBlock(BlockBuilder block) {
@@ -882,7 +837,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter,
-        block, ImmutableMap.of(), builder, conformance, this, correlates);
+        block, builder, conformance, correlates);
   }
 
   public RexToLixTranslator setCorrelates(
@@ -891,7 +846,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       return this;
     }
     return new RexToLixTranslator(program, typeFactory, root, inputGetter, list,
-        Collections.emptyMap(), builder, conformance, this, correlates);
+        builder, conformance, correlates);
   }
 
   public Expression getRoot() {
@@ -957,18 +912,6 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       throw new IllegalArgumentException("Unable to find field #" + index);
     }
   }
-
-  /** Thrown in the unusual (but not erroneous) situation where the expression
-   * we are translating is the null literal but we have already checked that
-   * it is not null. It is easier to throw (and caller will always handle)
-   * than to check exhaustively beforehand. */
-  static class AlwaysNull extends ControlFlowException {
-    @SuppressWarnings("ThrowableInstanceNeverThrown")
-    public static final AlwaysNull INSTANCE = new AlwaysNull();
-
-    private AlwaysNull() {}
-  }
-
   /**
    * Result of translating a {@code RexNode}
    */
@@ -1138,7 +1081,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       javaClass = Long.class;
       break;
     }
-    return javaClass == null
+    return javaClass == null || javaClass == Void.class
         ? RexImpTable.NULL_EXPR
         : Expressions.constant(null, javaClass);
   }
