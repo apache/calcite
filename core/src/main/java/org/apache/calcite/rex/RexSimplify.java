@@ -1627,6 +1627,7 @@ public class RexSimplify {
    */
   private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
       List<RexNode> predicates, Class<C> clazz) {
+    Range<C> result = r0;
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
       case EQUALS:
@@ -1640,20 +1641,22 @@ public class RexSimplify {
           final RexLiteral literal = (RexLiteral) call.operands.get(1);
           final C c1 = literal.getValueAs(clazz);
           final Range<C> r1 = range(predicate.getKind(), c1);
-          if (r0.encloses(r1)) {
+          if (result.encloses(r1)) {
             // Given these predicates, term is always satisfied.
             // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-            return Range.all();
+            result = Range.all();
+            continue;
           }
-          if (r0.isConnected(r1)) {
-            return r0.intersection(r1);
+          if (result.isConnected(r1)) {
+            result = result.intersection(r1);
+            continue;
           }
           // Ranges do not intersect. Return null meaning the empty range.
           return null;
         }
       }
     }
-    return r0;
+    return result;
   }
 
   /** Simplifies OR(x, x) into x, and similar.

@@ -2829,6 +2829,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     assertThat(s, is(falseLiteral));
   }
+
+  @Test public void testSimplifyRangeWithMultiPredicates() {
+    final RexNode ref = input(tInt(), 0);
+    RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
+        ImmutableList.of(gt(ref, literal(1)), le(ref, literal(5))));
+    checkSimplifyFilter(gt(ref, literal(9)), relOptPredicateList, "false");
+  }
 }
 
 // End RexProgramTest.java
