@@ -3825,20 +3825,25 @@ public abstract class EnumerableDefaults {
   private static final Object DUMMY = new Object();
 
   /**
-   * Repeat Union All enumerable: it will evaluate the seed enumerable once, and then
+   * Repeat Union enumerable: it will evaluate the seed enumerable once, and then
    * it will start to evaluate the iteration enumerable over and over until either it returns
    * no results, or an optional maximum numbers of iterations is reached
    * @param seed seed enumerable
    * @param iteration iteration enumerable
    * @param iterationLimit maximum numbers of repetitions for the iteration enumerable
    *                       (negative value means no limit)
+   * @param all whether duplicates will be considered or not
+   * @param comparer {@link EqualityComparer} to control duplicates,
+   *                 only used if {@code all} is {@code false}
    * @param <TSource> record type
    */
   @SuppressWarnings("unchecked")
-  public static <TSource> Enumerable<TSource> repeatUnionAll(
-          Enumerable<TSource> seed,
-          Enumerable<TSource> iteration,
-          int iterationLimit) {
+  public static <TSource> Enumerable<TSource> repeatUnion(
+      Enumerable<TSource> seed,
+      Enumerable<TSource> iteration,
+      int iterationLimit,
+      boolean all,
+      EqualityComparer<TSource> comparer) {
     return new AbstractEnumerable<TSource>() {
       @Override public Enumerator<TSource> enumerator() {
         return new Enumerator<TSource>() {
@@ -3848,67 +3853,94 @@ public abstract class EnumerableDefaults {
           private final Enumerator<TSource> seedEnumerator = seed.enumerator();
           private Enumerator<TSource> iterativeEnumerator = null;
 
+          // Set to control duplicates, only used if "all" is false
+          private final Set<Wrapped<TSource>> processed = new HashSet<>();
+          private final Function1<TSource, Wrapped<TSource>> wrapper = wrapperFor(comparer);
+
           @Override public TSource current() {
-            if (this.current == DUMMY) {
+            if (current == DUMMY) {
               throw new NoSuchElementException();
             }
-            return this.current;
+            return current;
+          }
+
+          private boolean checkValue(TSource value) {
+            if (all) {
+              return true; // no need to check duplicates
+            }
+
+            // check duplicates
+            final Wrapped<TSource> wrapped = wrapper.apply(value);
+            if (!processed.contains(wrapped)) {
+              processed.add(wrapped);
+              return true;
+            }
+
+            return false;
           }
 
           @Override public boolean moveNext() {
             // if we are not done with the seed moveNext on it
-            if (!this.seedProcessed) {
-              if (this.seedEnumerator.moveNext()) {
-                this.current = this.seedEnumerator.current();
-                return true;
+            while (!seedProcessed) {
+              if (seedEnumerator.moveNext()) {
+                TSource value = seedEnumerator.current();
+                if (checkValue(value)) {
+                  current = value;
+                  return true;
+                }
               } else {
-                this.seedProcessed = true;
+                seedProcessed = true;
               }
             }
 
             // if we are done with the seed, moveNext on the iterative part
             while (true) {
-              if (iterationLimit >= 0 && this.currentIteration == iterationLimit) {
+              if (iterationLimit >= 0 && currentIteration == iterationLimit) {
                 // max number of iterations reached, we are done
-                this.current = (TSource) DUMMY;
+                current = (TSource) DUMMY;
                 return false;
               }
 
-              if (this.iterativeEnumerator == null) {
-                this.iterativeEnumerator = iteration.enumerator();
+              if (iterativeEnumerator == null) {
+                iterativeEnumerator = iteration.enumerator();
               }
 
-              if (this.iterativeEnumerator.moveNext()) {
-                this.current = this.iterativeEnumerator.current();
-                return true;
+              while (iterativeEnumerator.moveNext()) {
+                TSource value = iterativeEnumerator.current();
+                if (checkValue(value)) {
+                  current = value;
+                  return true;
+                }
               }
 
-              if (this.current == DUMMY) {
+              if (current == DUMMY) {
                 // current iteration did not return any value, we are done
                 return false;
               }
 
               // current iteration level (which returned some values) is finished, go to next one
-              this.current = (TSource) DUMMY;
-              this.iterativeEnumerator.close();
-              this.iterativeEnumerator = null;
-              this.currentIteration++;
+              current = (TSource) DUMMY;
+              iterativeEnumerator.close();
+              iterativeEnumerator = null;
+              currentIteration++;
             }
           }
 
           @Override public void reset() {
-            this.seedEnumerator.reset();
-            if (this.iterativeEnumerator != null) {
-              this.iterativeEnumerator.close();
-              this.iterativeEnumerator = null;
+            seedEnumerator.reset();
+            seedProcessed = false;
+            processed.clear();
+            if (iterativeEnumerator != null) {
+              iterativeEnumerator.close();
+              iterativeEnumerator = null;
             }
-            this.currentIteration = 0;
+            currentIteration = 0;
           }
 
           @Override public void close() {
-            this.seedEnumerator.close();
-            if (this.iterativeEnumerator != null) {
-              this.iterativeEnumerator.close();
+            seedEnumerator.close();
+            if (iterativeEnumerator != null) {
+              iterativeEnumerator.close();
             }
           }
         };
@@ -3933,36 +3965,36 @@ public abstract class EnumerableDefaults {
           private final Collection<TSource> tempCollection = new ArrayList<>();
 
           @Override public TSource current() {
-            if (this.current == DUMMY) {
+            if (current == DUMMY) {
               throw new NoSuchElementException();
             }
-            return this.current;
+            return current;
           }
 
           @Override public boolean moveNext() {
-            if (this.inputEnumerator.moveNext()) {
-              this.current = this.inputEnumerator.current();
-              this.tempCollection.add(this.current);
+            if (inputEnumerator.moveNext()) {
+              current = inputEnumerator.current();
+              tempCollection.add(current);
               return true;
             }
-            this.flush();
+            flush();
             return false;
           }
 
           private void flush() {
-            this.collection.clear();
-            this.collection.addAll(this.tempCollection);
-            this.tempCollection.clear();
+            collection.clear();
+            collection.addAll(tempCollection);
+            tempCollection.clear();
           }
 
           @Override public void reset() {
-            this.inputEnumerator.reset();
-            this.collection.clear();
-            this.tempCollection.clear();
+            inputEnumerator.reset();
+            collection.clear();
+            tempCollection.clear();
           }
 
           @Override public void close() {
-            this.inputEnumerator.close();
+            inputEnumerator.close();
           }
         };
       }
