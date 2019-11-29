@@ -482,16 +482,17 @@ public abstract class Linq4j {
    *
    * @param <E> element type */
   static class CompositeEnumerable<E> extends AbstractEnumerable<E> {
-    private final Enumerator<Enumerable<E>> enumerableEnumerator;
+    private final List<Enumerable<E>> enumerableList;
 
     CompositeEnumerable(List<Enumerable<E>> enumerableList) {
-      enumerableEnumerator = iterableEnumerator(enumerableList);
+      this.enumerableList = enumerableList;
     }
 
     public Enumerator<E> enumerator() {
       return new Enumerator<E>() {
         // Never null.
         Enumerator<E> current = emptyEnumerator();
+        final Enumerator<Enumerable<E>> enumerableEnumerator = iterableEnumerator(enumerableList);
 
         public E current() {
           return current.current();
