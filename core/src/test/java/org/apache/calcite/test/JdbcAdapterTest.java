@@ -51,11 +51,10 @@ public class JdbcAdapterTest {
   @Test public void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
     final String explain = "PLAN="
-        + "EnumerableCalc(expr#0..2=[{inputs}], day=[$t1], week_day=[$t2], C=[$t0])\n"
-        + "  EnumerableHashJoin(condition=[true], joinType=[inner])\n"
-        + "    EnumerableValues(tuples=[[{ 1 }, { 2 }]])\n"
-        + "    JdbcToEnumerableConverter\n"
-        + "      JdbcTableScan(table=[[foodmart, days]])";
+        + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
+        + "  JdbcToEnumerableConverter\n"
+        + "    JdbcTableScan(table=[[foodmart, days]])\n"
+        + "  EnumerableValues(tuples=[[{ 1 }, { 2 }]])";
     final String jdbcSql = "SELECT *\n"
         + "FROM \"foodmart\".\"days\"";
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
@@ -323,7 +322,7 @@ public class JdbcAdapterTest {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname \n"
             + "from scott.emp e,scott.dept d")
-        .explainContains("PLAN=EnumerableHashJoin(condition=[true], "
+        .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], "
             + "joinType=[inner])\n"
             + "  JdbcToEnumerableConverter\n"
             + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"

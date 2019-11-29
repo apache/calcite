@@ -124,7 +124,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
         .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
             + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-($t0, $t1)], expr#4=[=($t3, $t2)], DUMMY=[$t2], $condition=[$t4])\n"
-            + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
+            + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
             + "      JdbcToEnumerableConverter\n"
             + "        JdbcProject(customer_id=[$2])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
