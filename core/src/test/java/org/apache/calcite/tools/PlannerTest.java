@@ -59,6 +59,7 @@ import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -82,6 +83,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
@@ -244,6 +246,24 @@ public class PlannerTest {
       assertThat(e.getCause().getCause().getMessage(),
           containsString("Expression 'deptno' is not being grouped"));
     }
+  }
+
+  @Test public void testValidateUserDefinedFunctionInSchema() throws Exception {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("my_plus",
+        ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    final String sql = "select \"my_plus\"(\"deptno\", 100) as \"p\"\n"
+        + "from \"hr\".\"emps\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    assertThat(Util.toLinux(validate.toString()),
+        equalTo("SELECT `my_plus`(`emps`.`deptno`, 100) AS `p`\n"
+            + "FROM `hr`.`emps` AS `emps`"));
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
