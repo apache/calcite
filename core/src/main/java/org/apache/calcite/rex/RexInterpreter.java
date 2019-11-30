@@ -213,7 +213,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
     final int v2;
     if (v instanceof Long) {
       // TIMESTAMP
-      v2 = (int) (((Long) v) / TimeUnit.DAY.multiplier.longValue());
+      v2 = Math.toIntExact(((Long) v) / TimeUnit.DAY.multiplier.longValue());
     } else {
       // DATE
       v2 = (Integer) v;
