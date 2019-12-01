@@ -569,6 +569,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "WHEN 2 THEN INTERVAL '12 3:4:5.6' DAY TO SECOND(9)\n"
         + "END")
         .columnType("INTERVAL DAY TO SECOND(9)");
+
+    sql("select\n"
+        + "CASE WHEN job is not null THEN mgr\n"
+        + "ELSE 5 end as mgr\n"
+        + "from EMP")
+        .columnType("INTEGER");
   }
 
   @Test public void testCaseExpressionFails() {
@@ -619,6 +625,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("coalesce('a','b')").ok();
     expr("coalesce('a','b','c')")
         .columnType("CHAR(1) NOT NULL");
+
+    sql("select COALESCE(mgr, 12) as m from EMP")
+        .columnType("INTEGER NOT NULL");
   }
 
   @Test public void testCoalesceFails() {
