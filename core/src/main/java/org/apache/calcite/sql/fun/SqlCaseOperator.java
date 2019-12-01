@@ -18,6 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Iterables;
@@ -230,14 +232,29 @@ public class SqlCaseOperator extends SqlOperator {
     SqlNodeList thenList = caseCall.getThenOperands();
     ArrayList<SqlNode> nullList = new ArrayList<>();
     List<RelDataType> argTypes = new ArrayList<>();
-    for (SqlNode node : thenList) {
-      argTypes.add(
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(), node));
+
+    final SqlNodeList whenOperands = caseCall.getWhenOperands();
+    final RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+
+    final int size = thenList.getList().size();
+    for (int i = 0; i < size; i++) {
+      SqlNode node = thenList.get(i);
+      RelDataType type = callBinding.getValidator().deriveType(
+          callBinding.getScope(), node);
+      SqlNode operand = whenOperands.get(i);
+      if (operand.getKind() == SqlKind.IS_NOT_NULL && type.isNullable()) {
+        SqlBasicCall call = (SqlBasicCall) operand;
+        if (call.getOperandList().get(0).equalsDeep(node, Litmus.IGNORE)) {
+          // We're sure that the type is not nullable if the kind is IS NOT NULL.
+          type = typeFactory.createTypeWithNullability(type, false);
+        }
+      }
+      argTypes.add(type);
       if (SqlUtil.isNullLiteral(node, false)) {
         nullList.add(node);
       }
     }
+
     SqlNode elseOp = caseCall.getElseOperand();
     argTypes.add(
         callBinding.getValidator().deriveType(
@@ -246,7 +263,7 @@ public class SqlCaseOperator extends SqlOperator {
       nullList.add(elseOp);
     }
 
-    RelDataType ret = callBinding.getTypeFactory().leastRestrictive(argTypes);
+    RelDataType ret = typeFactory.leastRestrictive(argTypes);
     if (null == ret) {
       boolean coerced = false;
       if (callBinding.getValidator().isTypeCoercionEnabled()) {
