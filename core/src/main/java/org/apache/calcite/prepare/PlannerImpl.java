@@ -212,14 +212,7 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
-    final SqlConformance conformance = conformance();
-    final CalciteCatalogReader catalogReader = createCatalogReader();
-    final SqlOperatorTable opTab =
-        ChainedSqlOperatorTable.of(operatorTable, catalogReader);
-    this.validator =
-        new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-            conformance);
-    this.validator.setIdentifierExpansion(true);
+    this.validator = createSqlValidator(createCatalogReader());
     try {
       validatedSqlNode = validator.validate(sqlNode);
     } catch (RuntimeException e) {
@@ -297,15 +290,9 @@ public class PlannerImpl implements Planner, ViewExpander {
       throw new RuntimeException("parse failed", e);
     }
 
-    final SqlConformance conformance = conformance();
     final CalciteCatalogReader catalogReader =
         createCatalogReader().withSchemaPath(schemaPath);
-    final SqlOperatorTable opTab =
-        ChainedSqlOperatorTable.of(operatorTable, catalogReader);
-    final SqlValidator validator =
-        new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-            conformance);
-    validator.setIdentifierExpansion(true);
+    final SqlValidator validator = createSqlValidator(catalogReader);
 
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
@@ -337,6 +324,16 @@ public class PlannerImpl implements Planner, ViewExpander {
         CalciteSchema.from(rootSchema),
         CalciteSchema.from(defaultSchema).path(null),
         typeFactory, connectionConfig);
+  }
+
+  private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader) {
+    final SqlConformance conformance = conformance();
+    final SqlOperatorTable opTab =
+        ChainedSqlOperatorTable.of(operatorTable, catalogReader);
+    final SqlValidator validator =
+        new CalciteSqlValidator(opTab, catalogReader, typeFactory, conformance);
+    validator.setIdentifierExpansion(true);
+    return validator;
   }
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {
