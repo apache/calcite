@@ -20,7 +20,7 @@ import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests SQL parser extensions for DDL.

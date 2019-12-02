@@ -21,8 +21,8 @@ import org.apache.calcite.sql.test.SqlTester;
 import org.apache.calcite.sql.test.SqlValidatorTester;
 import org.apache.calcite.test.catalog.MockCatalogReaderDynamic;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +101,7 @@ public class SqlValidatorDynamicTest extends SqlValidatorTestCase {
   }
 //~ Methods ----------------------------------------------------------------
 
-  @BeforeClass public static void setUSLocale() {
+  @BeforeAll public static void setUSLocale() {
     // This ensures numbers in exceptions are printed as in asserts.
     // For example, 1,000 vs 1 000
     Locale.setDefault(Locale.US);

@@ -22,7 +22,7 @@ import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
 import org.apache.calcite.util.TestUtil;
 
 import org.hsqldb.jdbcDriver;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,8 +35,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.

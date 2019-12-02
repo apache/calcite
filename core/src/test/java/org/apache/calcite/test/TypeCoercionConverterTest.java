@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc

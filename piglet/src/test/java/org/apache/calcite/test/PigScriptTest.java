@@ -18,9 +18,9 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.RelNode;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +42,7 @@ public class PigScriptTest extends PigRelTestBase {
   private static String projectRootDir;
   private static String dataFile;
 
-  @BeforeClass
+  @BeforeAll
   public static void setUpOnce() throws IOException {
     projectRootDir = System.getProperty("user.dir");
     dataFile = projectRootDir + "/src/test/resources/input.data";
@@ -51,7 +51,7 @@ public class PigScriptTest extends PigRelTestBase {
     Files.write(Paths.get(dataFile), lines, StandardCharsets.UTF_8);
   }
 
-  @AfterClass
+  @AfterAll
   public static void testClean() throws IOException {
     Files.delete(Paths.get(dataFile));
   }

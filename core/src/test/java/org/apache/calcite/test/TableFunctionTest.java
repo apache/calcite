@@ -28,8 +28,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,8 +43,8 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for user-defined table functions.
@@ -242,7 +242,7 @@ public class TableFunctionTest {
    * Tests that non-nullable arguments of a table function must be provided
    * as literals.
    */
-  @Ignore("SQLException does not include message from nested exception")
+  @Disabled("SQLException does not include message from nested exception")
   @Test public void testTableFunctionNonNullableMustBeLiterals()
       throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
@@ -279,7 +279,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes cursor input.
    */
-  @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorInputs()
       throws SQLException, ClassNotFoundException {
@@ -314,7 +314,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes multiple cursor inputs.
    */
-  @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorsInputs()
       throws SQLException, ClassNotFoundException {

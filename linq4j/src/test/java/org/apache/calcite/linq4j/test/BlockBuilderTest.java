@@ -25,8 +25,8 @@ import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.function.Function;
@@ -35,7 +35,7 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests BlockBuilder.
@@ -43,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 public class BlockBuilderTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }

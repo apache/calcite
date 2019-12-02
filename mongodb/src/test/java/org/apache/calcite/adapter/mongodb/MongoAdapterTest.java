@@ -38,8 +38,6 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -61,6 +59,12 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Testing mongo adapter functionality. By default runs with
@@ -719,8 +723,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .query("select count(*) from zips")
         .returns(input -> {
           try {
-            Assert.assertThat(input.next(), CoreMatchers.is(true));
-            Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
+            assertThat(input.next(), is(true));
+            assertThat(input.getInt(1), is(ZIPS_SIZE));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -737,7 +741,7 @@ public class MongoAdapterTest implements SchemaFactory {
   private static Consumer<List> mongoChecker(final String... expected) {
     return actual -> {
       if (expected == null) {
-        Assert.assertThat("null mongo Query", actual, CoreMatchers.nullValue());
+        assertThat("null mongo Query", actual, nullValue());
         return;
       }
 
@@ -766,11 +770,12 @@ public class MongoAdapterTest implements SchemaFactory {
             .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
 
         // used to pretty print Assertion error
-        Assert.assertEquals("expected and actual Mongo queries (pipelines) do not match",
+        assertEquals(
             prettyFn.apply(expectedBsons),
-            prettyFn.apply(actualBsons));
+            prettyFn.apply(actualBsons),
+            "expected and actual Mongo queries (pipelines) do not match");
 
-        Assert.fail("Should have failed previously because expected != actual is known to be true");
+        fail("Should have failed previously because expected != actual is known to be true");
       }
     };
   }

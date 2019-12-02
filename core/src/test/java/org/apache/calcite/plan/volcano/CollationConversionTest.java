@@ -37,7 +37,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
@@ -46,7 +46,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.TestLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.TestSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.RelCollationTraitDef}.

@@ -37,9 +37,9 @@ import com.google.common.collect.ImmutableList;
 import net.jcip.annotations.NotThreadSafe;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -80,7 +80,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test for Calcite's remote JDBC driver.
@@ -150,7 +151,7 @@ public class CalciteRemoteDriverTest {
   private static Connection localConnection;
   private static HttpServer start;
 
-  @BeforeClass public static void beforeClass() throws Exception {
+  @BeforeAll public static void beforeClass() throws Exception {
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
@@ -164,7 +165,7 @@ public class CalciteRemoteDriverTest {
         "jdbc:avatica:remote:url=http://localhost:" + port);
   }
 
-  @AfterClass public static void afterClass() throws Exception {
+  @AfterAll public static void afterClass() throws Exception {
     if (localConnection != null) {
       localConnection.close();
       localConnection = null;

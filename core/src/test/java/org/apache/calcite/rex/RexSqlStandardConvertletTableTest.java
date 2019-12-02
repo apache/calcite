@@ -32,9 +32,9 @@ import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit test for {@link org.apache.calcite.rex.RexSqlStandardConvertletTable}.

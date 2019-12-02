@@ -46,7 +46,7 @@ import java.util.function.UnaryOperator;
 import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * An abstract base class for implementing tests against {@link SqlValidator}.

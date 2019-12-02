@@ -16,10 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Tests for the {@link DeterministicAutomaton} */
 public class DeterministicAutomatonTest {

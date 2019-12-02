@@ -44,17 +44,17 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link RexImplicationChecker}.
@@ -632,15 +632,13 @@ public class RexImplicationCheckerTest {
     }
 
     void checkImplies(RexNode node1, RexNode node2) {
-      final String message =
-          node1 + " does not imply " + node2 + " when it should";
-      assertTrue(message, checker.implies(node1, node2));
+      assertTrue(checker.implies(node1, node2),
+          () -> node1 + " does not imply " + node2 + " when it should");
     }
 
     void checkNotImplies(RexNode node1, RexNode node2) {
-      final String message =
-          node1 + " does implies " + node2 + " when it should not";
-      assertFalse(message, checker.implies(node1, node2));
+      assertFalse(checker.implies(node1, node2),
+          () -> node1 + " does implies " + node2 + " when it should not");
     }
   }
 }

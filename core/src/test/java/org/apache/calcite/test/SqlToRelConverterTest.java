@@ -48,8 +48,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -61,9 +61,9 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -2260,21 +2260,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1708")
+  @Disabled("CALCITE-1708")
   @Test public void testUpdateBindExtendedColumn() {
     final String sql = "update emp(test INT)"
         + " set test = ?, sal = sal + 5000 where slacker = false";
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1708")
+  @Disabled("CALCITE-1708")
   @Test public void testUpdateBindExtendedColumnModifiableView() {
     final String sql = "update EMP_MODIFIABLEVIEW2(test INT)"
         + " set test = ?, sal = sal + 5000 where slacker = false";
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-985")
+  @Disabled("CALCITE-985")
   @Test public void testMerge() {
     final String sql = "merge into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"

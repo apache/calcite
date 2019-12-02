@@ -43,8 +43,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -55,8 +54,9 @@ import java.util.function.Function;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -417,7 +417,7 @@ public class RexExecutorTest {
       if (this.name.equals(name)) {
         return value;
       } else {
-        Assert.fail("Wrong DataContext access");
+        fail("Wrong DataContext access");
         return null;
       }
     }

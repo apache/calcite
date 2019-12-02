@@ -28,9 +28,9 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.test.RexProgramBuilderBase;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +47,8 @@ import java.util.Random;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Validates that {@link org.apache.calcite.rex.RexSimplify} is able to deal with
@@ -123,7 +123,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @Before public void setUp() {
+  @BeforeEach public void setUp() {
     super.setUp();
   }
 
@@ -346,7 +346,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     t.setStackTrace(stackTrace);
   }
 
-  @Ignore("Ignore for now: CALCITE-3457")
+  @Disabled("Ignore for now: CALCITE-3457")
   @Test public void defaultFuzzTest() {
     try {
       runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
@@ -362,7 +362,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @Ignore("Ignore for now: CALCITE-3457")
+  @Disabled("Ignore for now: CALCITE-3457")
   @Test public void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }
@@ -464,7 +464,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     checkUnknownAs(expression);
   }
 
-  @Ignore("This is just a scaffold for quick investigation of a single fuzz test")
+  @Disabled("This is just a scaffold for quick investigation of a single fuzz test")
   @Test public void singleFuzzyTest() {
     Random r = new Random();
     r.setSeed(4887662474363391810L);

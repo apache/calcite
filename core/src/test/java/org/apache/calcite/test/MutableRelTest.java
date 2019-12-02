@@ -34,15 +34,20 @@ import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.MatcherAssert;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.apache.calcite.plan.RelOptUtil.equal;
+import static org.apache.calcite.util.Litmus.IGNORE;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link MutableRel} sub-classes.
@@ -200,7 +205,7 @@ public class MutableRelTest {
         "select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
     for (MutableRel input: mutableRel.getInputs()) {
-      Assert.assertTrue(input.getParent() == mutableRel);
+      assertSame(input.getParent(), mutableRel);
     }
   }
 
@@ -213,7 +218,7 @@ public class MutableRelTest {
         + "LogicalProject(I=[$0])\n"
         + "  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])\n";
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
-    Assert.assertEquals(mutableRel1, mutableRel2);
+    assertEquals(mutableRel1, mutableRel2);
   }
 
   /** Verifies that after conversion to and from a MutableRel, the new
@@ -249,7 +254,7 @@ public class MutableRelTest {
     final String mutableRelStr = mutableRel.deep();
     final String msg1 =
         "Mutable rel: " + mutableRelStr + " does not contain target rel: " + rel;
-    Assert.assertTrue(msg1, mutableRelStr.contains(rel));
+    assertTrue(mutableRelStr.contains(rel), msg1);
 
     // Check if the mutable rel's row-type is identical to the original
     // rel's row-type.
@@ -259,12 +264,12 @@ public class MutableRelTest {
         "Mutable rel's row type does not match with the original rel.\n"
         + "Original rel type: " + origRelType
         + ";\nMutable rel type: " + mutableRelType;
-    Assert.assertTrue(
-        msg2,
-        RelOptUtil.equal(
+    assertTrue(
+        equal(
             "origRelType", origRelType,
             "mutableRelType", mutableRelType,
-            Litmus.IGNORE));
+            IGNORE),
+        msg2);
 
     // Check if the new rel converted from the mutable rel is identical
     // to the original rel.
@@ -273,7 +278,7 @@ public class MutableRelTest {
     final String msg3 =
         "The converted new rel is different from the original rel.\n"
         + "Original rel: " + origRelStr + ";\nNew rel: " + newRelStr;
-    Assert.assertEquals(msg3, origRelStr, newRelStr);
+    assertEquals(origRelStr, newRelStr, msg3);
   }
 
   private static MutableRel createMutableRel(String sql) {

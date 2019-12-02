@@ -18,8 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.util.Bug;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.test.CalciteAssert.that;
 
@@ -113,7 +113,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
    * <p>Currently, the query can be planned, but the plan is not efficient (uses
    * cartesian product).</p>
    */
-  @Ignore("non-deterministic on JDK 1.7 vs 1.8")
+  @Disabled("non-deterministic on JDK 1.7 vs 1.8")
   @Test public void testJoinTheta() {
     that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -189,7 +189,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "C=4222; state_province=CA\n");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testDistinctCount() {
     // Complicating factors:
     // Composite GROUP BY key
@@ -217,7 +217,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "state_province=WA; S=124366.0000; DC=1828\n");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPlan() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
@@ -235,7 +235,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "            }\n");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testPlan2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)

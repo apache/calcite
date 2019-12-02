@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Validation tests for the {@code MATCH_RECOGNIZE} clause.

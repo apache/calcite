@@ -56,9 +56,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -70,12 +70,12 @@ import java.util.TreeMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -89,7 +89,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     super();
   }
 
-  @Before public void setUp() {
+  @BeforeEach public void setUp() {
     super.setUp();
   }
 
@@ -779,7 +779,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
-  @Ignore("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
+  @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
   @Test public void reproducerFor3457() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(

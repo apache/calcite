@@ -25,10 +25,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 
 import org.hamcrest.BaseMatcher;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -37,6 +35,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}
@@ -95,7 +96,7 @@ public class TypeFinderTest {
 
   private void assertJavaCodeContains(String expected, List<Node> nodes) {
     final String javaCode = Expressions.toString(nodes, "\n", false);
-    Assert.assertThat(javaCode, CoreMatchers.containsString(expected));
+    assertThat(javaCode, containsString(expected));
   }
 
   private void assertTypeContains(Type expectedType, Node node) {
@@ -115,7 +116,7 @@ public class TypeFinderTest {
     for (Node node : nodes) {
       node.accept(typeFinder);
     }
-    Assert.assertThat(types, new BaseMatcher<HashSet<Type>>() {
+    assertThat(types, new BaseMatcher<HashSet<Type>>() {
       @Override public boolean matches(Object o) {
         final Set<Type> actual = (HashSet<Type>) o;
         return actual.containsAll(expectedTypes);

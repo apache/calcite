@@ -43,11 +43,11 @@ import org.apache.pig.pigunit.PigTest;
 import org.apache.pig.pigunit.pig.PigServer;
 import org.apache.pig.test.Util;
 
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
@@ -56,7 +56,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package that tests the
@@ -84,7 +84,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
+  @Disabled("CALCITE-1751")
   public void testImplWithMultipleFilters() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -102,7 +102,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
+  @Disabled("CALCITE-1751")
   public void testImplWithGroupByAndCount() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -138,7 +138,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
+  @Disabled("CALCITE-1751")
   public void testImplWithGroupByMultipleFields() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -195,7 +195,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
   }
 
   @Test
-  @Ignore("CALCITE-1751")
+  @Disabled("CALCITE-1751")
   public void testImplWithJoinAndGroupBy() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
@@ -279,7 +279,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     return impl.getScript();
   }
 
-  @After
+  @AfterEach
   public void shutdownPigServer() {
     PigServer pigServer = PigTest.getPigServer();
     if (pigServer != null) {
@@ -287,7 +287,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     }
   }
 
-  @Before
+  @BeforeEach
   public void setupDataFilesForPigServer() throws Exception {
     System.getProperties().setProperty("pigunit.exectype",
         Util.getLocalTestMode().toString());

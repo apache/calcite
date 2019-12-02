@@ -46,8 +46,8 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -90,6 +90,7 @@ import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.BitString.createFromBitString;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -99,12 +100,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link Util} and other classes in this package.
@@ -117,7 +118,7 @@ public class UtilTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @BeforeClass public static void setUSLocale() {
+  @BeforeAll public static void setUSLocale() {
     // This ensures numbers in exceptions are printed as in asserts.
     // For example, 1,000 vs 1 000
     Locale.setDefault(Locale.US);

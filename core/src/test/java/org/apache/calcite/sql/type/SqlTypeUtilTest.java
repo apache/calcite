@@ -21,12 +21,12 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.

@@ -22,9 +22,9 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
@@ -41,7 +41,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for server and DDL.
@@ -364,7 +364,7 @@ public class ServerTest {
     }
   }
 
-  @Ignore("not working yet")
+  @Disabled("not working yet")
   @Test public void testStoredGeneratedColumn2() throws Exception {
     try (Connection c = connect();
          Statement s = c.createStatement()) {

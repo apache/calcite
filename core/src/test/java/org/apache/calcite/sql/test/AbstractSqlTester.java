@@ -67,10 +67,10 @@ import java.util.function.UnaryOperator;
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Abstract implementation of
@@ -154,7 +154,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   public RelDataType getColumnType(String sql) {
     RelDataType rowType = getResultType(sql);
     final List<RelDataTypeField> fields = rowType.getFieldList();
-    assertEquals("expected query to return 1 field", 1, fields.size());
+    assertEquals(1, fields.size(), "expected query to return 1 field");
     return fields.get(0).getType();
   }
 

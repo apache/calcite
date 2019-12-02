@@ -48,9 +48,8 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -71,10 +70,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * A <code>SqlParserTest</code> is a unit-test for
@@ -796,19 +795,19 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testDerivedColumnListNoAs() {
     sql("select * from emp e (empno, gender) where true").ok("foo");
   }
 
   // jdbc syntax
-  @Ignore
+  @Disabled
   @Test public void testEmbeddedCall() {
     expr("{call foo(?, ?)}")
         .ok("foo");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testEmbeddedFunction() {
     expr("{? = call bar (?, ?)}")
         .ok("foo");
@@ -2501,7 +2500,7 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"inner outer\" at line 1, column 17.*");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
@@ -8901,7 +8900,7 @@ public class SqlParserTest {
     }
 
     private void checkList(SqlNodeList sqlNodeList, List<String> expected) {
-      Assert.assertEquals(expected.size(), sqlNodeList.size());
+      assertEquals(expected.size(), sqlNodeList.size());
 
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);

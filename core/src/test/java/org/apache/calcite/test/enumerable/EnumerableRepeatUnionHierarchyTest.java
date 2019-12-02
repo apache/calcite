@@ -27,7 +27,7 @@ import org.apache.calcite.tools.RelBuilder;
 
 import net.jcip.annotations.NotThreadSafe;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 

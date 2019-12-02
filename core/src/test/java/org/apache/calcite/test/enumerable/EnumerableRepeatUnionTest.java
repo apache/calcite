@@ -20,7 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 

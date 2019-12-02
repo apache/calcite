@@ -42,8 +42,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -60,9 +59,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.schema.ScannableTable}.
@@ -71,14 +70,14 @@ public class ScannableTableTest {
   @Test public void testTens() throws SQLException {
     final Enumerator<Object[]> cursor = tens();
     assertTrue(cursor.moveNext());
-    Assert.assertThat(cursor.current()[0], equalTo((Object) 0));
-    Assert.assertThat(cursor.current().length, equalTo(1));
+    assertThat(cursor.current()[0], equalTo((Object) 0));
+    assertThat(cursor.current().length, equalTo(1));
     assertTrue(cursor.moveNext());
-    Assert.assertThat(cursor.current()[0], equalTo((Object) 10));
+    assertThat(cursor.current()[0], equalTo((Object) 10));
     assertTrue(cursor.moveNext());
-    Assert.assertThat(cursor.current()[0], equalTo((Object) 20));
+    assertThat(cursor.current()[0], equalTo((Object) 20));
     assertTrue(cursor.moveNext());
-    Assert.assertThat(cursor.current()[0], equalTo((Object) 30));
+    assertThat(cursor.current()[0], equalTo((Object) 30));
     assertFalse(cursor.moveNext());
   }
 

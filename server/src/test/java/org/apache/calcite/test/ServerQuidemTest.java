@@ -20,7 +20,7 @@ import org.apache.calcite.materialize.MaterializationService;
 
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 

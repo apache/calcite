@@ -73,7 +73,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,7 +81,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that determine whether trait propagation work in Volcano Planner.
@@ -111,8 +111,8 @@ public class TraitPropagationTest {
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
     final RelMetadataQuery mq = planned.getCluster().getMetadataQuery();
-    assertEquals("Sortedness was not propagated", 3,
-        mq.getCumulativeCost(planned).getRows(), 0);
+    assertEquals(3, 0, mq.getCumulativeCost(planned).getRows(),
+        "Sortedness was not propagated");
   }
 
   /**

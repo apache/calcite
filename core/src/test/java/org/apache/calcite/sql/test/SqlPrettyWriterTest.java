@@ -26,8 +26,8 @@ import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
 import org.apache.calcite.util.Litmus;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -35,7 +35,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link SqlPrettyWriter}.
@@ -244,7 +244,7 @@ public class SqlPrettyWriterTest {
         .check();
   }
 
-  @Ignore("default SQL parser cannot parse DDL")
+  @Disabled("default SQL parser cannot parse DDL")
   @Test public void testExplain() {
     sql("explain select * from t")
         .check();
