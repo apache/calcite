@@ -128,7 +128,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     } else {
       actual = node + ":" + node.getType() + (node.getType().isNullable() ? "" : " NOT NULL");
     }
-    assertEquals(message, expected, actual);
+    assertEquals(expected, actual, message);
   }
 
   /** Simplifies an expression and checks that the result is as expected. */
@@ -1830,10 +1830,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void fieldAccessEqualsHashCode() {
-    assertEquals("vBool() instances should be equal", vBool(), vBool());
-    assertEquals("vBool().hashCode()", vBool().hashCode(), vBool().hashCode());
-    assertNotSame("vBool() is expected to produce new RexFieldAccess", vBool(), vBool());
-    assertNotEquals("vBool(0) != vBool(1)", vBool(0), vBool(1));
+    assertEquals(vBool(), vBool(), "vBool() instances should be equal");
+    assertEquals(vBool().hashCode(), vBool().hashCode(), "vBool().hashCode()");
+    assertNotSame(vBool(), vBool(), "vBool() is expected to produce new RexFieldAccess");
+    assertNotEquals(vBool(0), vBool(1), "vBool(0) != vBool(1)");
   }
 
   @Test public void testSimplifyDynamicParam() {
@@ -2436,8 +2436,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
   private void assertTypeAndToString(
       RexNode rexNode, String representation, String type) {
     assertEquals(representation, rexNode.toString());
-    assertEquals("type of " + rexNode, type, rexNode.getType().toString()
-        + (rexNode.getType().isNullable() ? "" : " NOT NULL"));
+    assertEquals(type, rexNode.getType().toString()
+        + (rexNode.getType().isNullable() ? "" : " NOT NULL"), "type of " + rexNode);
   }
 
   @Test public void testIsDeterministic() {

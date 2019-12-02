@@ -117,20 +117,22 @@ public class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad URL. */
-  @Test(expected = FileReaderException.class)
-  public void testFileReaderBadUrl() throws FileReaderException {
+  @Test public void testFileReaderBadUrl() {
     final String uri =
         "http://ex.wikipedia.org/wiki/List_of_United_States_cities_by_population";
-    FileReader t = new FileReader(Sources.url(uri), "table:eq(4)");
-    t.refresh();
+    assertThrows(FileReaderException.class, () -> {
+      FileReader t = new FileReader(Sources.url(uri), "table:eq(4)");
+      t.refresh();
+    });
   }
 
   /** Tests failed {@link FileReader} instantiation - bad selector. */
-  @Test(expected = FileReaderException.class)
-  public void testFileReaderBadSelector() throws FileReaderException {
+  @Test public void testFileReaderBadSelector() {
     final Source source = resource("tableOK.html");
-    FileReader t = new FileReader(source, "table:eq(1)");
-    t.refresh();
+    assertThrows(FileReaderException.class, () -> {
+      FileReader t = new FileReader(source, "table:eq(1)");
+      t.refresh();
+    });
   }
 
   /** Test {@link FileReader} with static file - headings. */

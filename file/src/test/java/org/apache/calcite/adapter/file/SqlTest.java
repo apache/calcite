@@ -88,7 +88,7 @@ public class SqlTest {
         final List<String> lines = new ArrayList<>();
         SqlTest.collect(lines, resultSet);
         Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
+        assertEquals(expectedLines, lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }

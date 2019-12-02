@@ -416,7 +416,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       }
       buf.append(token).append("\n");
     }
-    Assert.assertEquals(expected, buf.toString());
+    Assertions.assertEquals(expected, buf.toString());
   }
 
   protected void assertHint(
@@ -446,7 +446,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         advisor.getCompletionHints(
             sap.sql,
             sap.pos);
-    Assert.assertEquals(
+    Assertions.assertEquals(
         expectedResults, convertCompletionHints(results));
   }
 
@@ -463,7 +463,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     SqlParserUtil.StringAndPos sap = SqlParserUtil.findPos(sql);
     String actual = advisor.simplifySql(sap.sql, sap.cursor);
-    Assert.assertEquals(expected, actual);
+    Assertions.assertEquals(expected, actual);
   }
 
   protected void assertComplete(
@@ -508,10 +508,10 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     final String[] replaced = {null};
     List<SqlMoniker> results =
         advisor.getCompletionHints(sap.sql, sap.cursor, replaced);
-    Assert.assertEquals("Completion hints for " + sql,
-        expectedResults, convertCompletionHints(results));
+    Assertions.assertEquals(expectedResults, convertCompletionHints(results),
+        () -> "Completion hints for " + sql);
     if (expectedWord != null) {
-      Assert.assertEquals("replaced[0] for " + sql, expectedWord, replaced[0]);
+      Assertions.assertEquals(expectedWord, replaced[0], "replaced[0] for " + sql);
     } else {
       assertNotNull(replaced[0]);
     }
@@ -532,13 +532,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
       }
       missingReplacemenets.remove(id);
       String actualReplacement = advisor.getReplacement(result, word);
-      Assert.assertEquals(sql + ", replacement of " + word + " with " + id,
-          expectedReplacement, actualReplacement);
+      Assertions.assertEquals(expectedReplacement, actualReplacement,
+          () -> sql + ", replacement of " + word + " with " + id);
     }
     if (missingReplacemenets.isEmpty()) {
       return;
     }
-    Assert.fail("Sql " + sql + " did not produce replacement hints " + missingReplacemenets);
+    fail("Sql " + sql + " did not produce replacement hints " + missingReplacemenets);
 
   }
 

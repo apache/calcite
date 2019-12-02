@@ -91,9 +91,8 @@ public final class JavaTypeFactoryTest {
   }
 
   private void assertRecordType(Type actual) {
-    String errorMessage =
-        "Type {" + actual.getTypeName() + "} is not a subtype of Types.RecordType";
-    assertTrue(errorMessage, actual instanceof Types.RecordType);
+    assertTrue(actual instanceof RecordType,
+        () -> "Type {" + actual.getTypeName() + "} is not a subtype of Types.RecordType");
   }
 
   /***/

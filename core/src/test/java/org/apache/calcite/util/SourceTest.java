@@ -101,17 +101,17 @@ public class SourceTest {
   @Test public void testSpaceInUrl() {
     String url = "file:" + ROOT_PREFIX + "dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
-        foo.file().getAbsolutePath());
+    assertEquals(new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
+        foo.file().getAbsolutePath(),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testSpaceInRelativeUrl() {
     String url = "file:dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        "dir name/test file.json",
-        foo.file().getPath().replace('\\', '/'));
+    assertEquals("dir name/test file.json",
+        foo.file().getPath().replace('\\', '/'),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testRelative() {

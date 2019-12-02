@@ -65,9 +65,8 @@ public class ElasticsearchChecker {
         expected = expandDots(expected);
 
         if (!expected.equals(actual)) {
-          assertEquals("expected and actual Elasticsearch queries do not match",
-              MAPPER.writeValueAsString(expected),
-              MAPPER.writeValueAsString(actual));
+          assertEquals(MAPPER.writeValueAsString(expected), MAPPER.writeValueAsString(actual),
+              "expected and actual Elasticsearch queries do not match");
         }
       } catch (IOException e) {
         throw new UncheckedIOException(e);
