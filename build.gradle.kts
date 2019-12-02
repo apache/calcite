@@ -402,6 +402,21 @@ allprojects {
                 java {
                     targetExclude(*javaccGeneratedPatterns + "**/test/java/*.java")
                     licenseHeaderFile(licenseHeaderFile)
+                    if (!project.props.bool("junit4", default = true)) {
+                        replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")
+                        replaceRegex("junit5: Before", "org.junit.Before\\b", "org.junit.jupiter.api.BeforeEach")
+                        replace("junit5: BeforeClass", "org.junit.BeforeClass", "org.junit.jupiter.api.BeforeAll")
+                        replaceRegex("junit5: After", "org.junit.After\\b", "org.junit.jupiter.api.AfterEach")
+                        replace("junit5: AfterClass", "org.junit.AfterClass", "org.junit.jupiter.api.AfterAll")
+                        replace("junit5: Ignore", "org.junit.Ignore", "org.junit.jupiter.api.Disabled")
+                        replaceRegex("junit5: @Before", "@Before\\b", "@BeforeEach")
+                        replace("junit5: @BeforeClass", "@BeforeClass", "@BeforeAll")
+                        replaceRegex("junit5: @After", "@After\\b", "@AfterEach")
+                        replace("junit5: @AfterClass", "@AfterClass", "@AfterAll")
+                        replace("junit5: @Ignore", "@Ignore", "@Disabled")
+                        replace("junit5: Assert.assertThat", "org.junit.Assert.assertThat", "org.hamcrest.MatcherAssert.assertThat")
+                        replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
+                    }
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
