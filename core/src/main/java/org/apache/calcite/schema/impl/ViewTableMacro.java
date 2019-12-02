@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 /** Table function that implements a view. It returns the operator
  * tree of the view's SQL query. */
@@ -42,6 +43,7 @@ public class ViewTableMacro implements TableMacro {
    * context for validating {@code viewSql}. */
   protected final List<String> schemaPath;
   protected final List<String> viewPath;
+  protected final Properties parseProperties;
 
   /**
    * Creates a ViewTableMacro.
@@ -55,12 +57,32 @@ public class ViewTableMacro implements TableMacro {
    */
   public ViewTableMacro(CalciteSchema schema, String viewSql,
       List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+    this(schema, viewSql, schemaPath, viewPath, modifiable, new Properties());
+  }
+
+  /**
+   * Creates a ViewTableMacro.
+   *
+   * @param schema     Root schema
+   * @param viewSql    SQL defining the view
+   * @param schemaPath Schema path relative to the root schema
+   * @param viewPath   View path relative to the schema path
+   * @param modifiable Request that a view is modifiable (dependent on analysis
+   *                   of {@code viewSql})
+   * @param modifiable Request that a view is modifiable (dependent on analysis
+   *                   of {@code viewSql})
+   * @param parseProperties Properties used to parse the {@code viewSql}
+   */
+  public ViewTableMacro(
+      CalciteSchema schema, String viewSql, List<String> schemaPath,
+      List<String> viewPath, Boolean modifiable, Properties parseProperties) {
     this.viewSql = viewSql;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
     this.modifiable = modifiable;
     this.schemaPath =
         schemaPath == null ? null : ImmutableList.copyOf(schemaPath);
+    this.parseProperties = parseProperties;
   }
 
   public List<FunctionParameter> getParameters() {
@@ -72,7 +94,7 @@ public class ViewTableMacro implements TableMacro {
         MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =
         Schemas.analyzeView(connection, schema, schemaPath, viewSql, viewPath,
-            modifiable != null && modifiable);
+            modifiable != null && modifiable, parseProperties);
     final List<String> schemaPath1 =
         schemaPath != null ? schemaPath : schema.path(null);
     if ((modifiable == null || modifiable)

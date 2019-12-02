@@ -456,7 +456,7 @@ public class ModelHandler {
           .add(jsonView.name).build();
       schema.add(jsonView.name,
           ViewTable.viewMacro(schema, jsonView.getSql(), path, viewPath,
-              jsonView.modifiable));
+              jsonView.modifiable, connection.getProperties()));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonView, e);
     }

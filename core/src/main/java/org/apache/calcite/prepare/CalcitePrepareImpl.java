@@ -190,7 +190,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
-    SqlParser parser = createParser(sql);
+    SqlParser parser = createParser(
+        sql, setUpParserConfig(createParserConfig(), context.config()));
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -205,6 +206,17 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     return new ParseResult(this, validator, sql, sqlNode1,
         validator.getValidatedNodeType(sqlNode1));
+  }
+
+  private static SqlParser.ConfigBuilder setUpParserConfig(
+      SqlParser.ConfigBuilder parserConfig, CalciteConnectionConfig connConfig) {
+    parserConfig
+        .setQuotedCasing(connConfig.quotedCasing())
+        .setUnquotedCasing(connConfig.unquotedCasing())
+        .setQuoting(connConfig.quoting())
+        .setConformance(connConfig.conformance())
+        .setCaseSensitive(connConfig.caseSensitive());
+    return parserConfig;
   }
 
   private ParseResult convert_(Context context, String sql, boolean analyze,
@@ -596,12 +608,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final Meta.StatementType statementType;
     if (query.sql != null) {
       final CalciteConnectionConfig config = context.config();
-      final SqlParser.ConfigBuilder parserConfig = createParserConfig()
-          .setQuotedCasing(config.quotedCasing())
-          .setUnquotedCasing(config.unquotedCasing())
-          .setQuoting(config.quoting())
-          .setConformance(config.conformance())
-          .setCaseSensitive(config.caseSensitive());
+      final SqlParser.ConfigBuilder parserConfig =
+          setUpParserConfig(createParserConfig(), config);
       final SqlParserImplFactory parserFactory =
           config.parserFactory(SqlParserImplFactory.class, null);
       if (parserFactory != null) {
@@ -1041,7 +1049,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         List<String> schemaPath, List<String> viewPath) {
       expansionDepth++;
 
-      SqlParser parser = prepare.createParser(queryString);
+      SqlParser parser = prepare.createParser(queryString,
+          setUpParserConfig(prepare.createParserConfig(), context.config()));
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();
