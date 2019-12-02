@@ -19,9 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -61,9 +59,6 @@ public class BabelTest {
         propBuilder.set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
             Boolean.toString(lenient));
   }
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   static Connection connect() throws SQLException {
     return connect(UnaryOperator.identity());
