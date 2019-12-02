@@ -6831,6 +6831,13 @@ public class JdbcTest {
             + "}\n");
   }
 
+  @Test
+  public void testJsonQueryWithOmitQuotes() {
+    CalciteAssert.that()
+        .query("SELECT JSON_QUERY('{\"foo\":\"100\"}', 'strict $.foo' omit quotes) AS c1")
+        .returns("C1=100\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]
