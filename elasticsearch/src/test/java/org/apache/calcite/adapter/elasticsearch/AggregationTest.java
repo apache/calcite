@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Testing Elasticsearch aggregation transformations.
@@ -93,17 +94,20 @@ public class AggregationTest {
 
         // add calcite view programmatically
         final String viewSql = String.format(Locale.ROOT,
-            "select _MAP['cat1'] AS \"cat1\", "
-                + " _MAP['cat2']  AS \"cat2\", "
-                +  " _MAP['cat3'] AS \"cat3\", "
-                +  " _MAP['cat4'] AS \"cat4\", "
-                +  " _MAP['cat5'] AS \"cat5\", "
-                +  " _MAP['val1'] AS \"val1\", "
-                +  " _MAP['val2'] AS \"val2\" "
-                +  " from \"elastic\".\"%s\"", NAME);
+            "select _MAP['cat1'] AS cat1, "
+                + " _MAP['cat2']  AS cat2, "
+                +  " _MAP['cat3'] AS cat3, "
+                +  " _MAP['cat4'] AS cat4, "
+                +  " _MAP['cat5'] AS cat5, "
+                +  " _MAP['val1'] AS val1, "
+                +  " _MAP['val2'] AS val2 "
+                +  " from elastic.%s", NAME);
 
+        Properties parseProperties = new Properties();
+        parseProperties.setProperty("lex", "JAVA");
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"),
+            false, parseProperties);
         root.add("view", macro);
         return connection;
       }

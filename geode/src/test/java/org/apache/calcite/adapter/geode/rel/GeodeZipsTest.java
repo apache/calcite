@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -64,13 +65,15 @@ public class GeodeZipsTest extends AbstractGeodeTest {
         root.add("geode", new GeodeSchema(POLICY.cache(), Collections.singleton("zips")));
 
         // add calcite view programmatically
-        final String viewSql =  "select \"_id\" AS \"id\", \"city\", \"loc\", "
-            + "cast(\"pop\" AS integer) AS \"pop\", cast(\"state\" AS varchar(2)) AS \"state\" "
-            + "from \"geode\".\"zips\"";
+        final String viewSql =  "select _id AS id, city, loc, "
+            + "cast(pop AS integer) AS pop, cast(state AS varchar(2)) AS state "
+            + "from geode.zips";
 
-
+        Properties parseProperties = new Properties();
+        parseProperties.setProperty("lex", "JAVA");
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("geode"), Arrays.asList("geode", "view"), false);
+            Collections.singletonList("geode"), Arrays.asList("geode", "view"),
+            false, parseProperties);
         root.add("view", macro);
 
         return connection;

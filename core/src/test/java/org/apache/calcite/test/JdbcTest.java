@@ -5607,6 +5607,19 @@ public class JdbcTest {
             + "whose definition is cyclic");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3549">[CALCITE-3549]
+   * Lex config for view expanding is not supported</a>. */
+  @Test public void testLexConfigForView() {
+    modelWithView("select * from EMPLOYEES where deptno = 10", null)
+        .with(Lex.JAVA)
+        .query("select * from adhoc.V order by name desc")
+        .returns(""
+            + "empid=110; deptno=10; name=Theodore; salary=11500.0; commission=250\n"
+            + "empid=150; deptno=10; name=Sebastian; salary=7000.0; commission=null\n"
+            + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
   /** Tests saving query results into temporary tables, per
    * {@link org.apache.calcite.avatica.Handler.ResultSink}. */
   @Test public void testAutomaticTemporaryTable() throws Exception {

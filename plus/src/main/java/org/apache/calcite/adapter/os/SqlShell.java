@@ -71,14 +71,14 @@ public class SqlShell {
         .append("     {\n")
         .append("       \"name\": \"os\",\n")
         .append("       \"tables\": [ {\n");
-    addView(b, "du", "select *, \"size_k\" * 1024 as \"size_b\"\n"
-            + "from table(\"du\"(true))");
-    addView(b, "files", "select * from table(\"files\"('.'))");
-    addView(b, "git_commits", "select * from table(\"git_commits\"(true))");
-    addView(b, "jps", "select * from table(\"jps\"(true))");
-    addView(b, "ps", "select * from table(\"ps\"(true))");
-    addView(b, "stdin", "select * from table(\"stdin\"(true))");
-    addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
+    addView(b, "du", "select *, size_k * 1024 as size_b \n"
+            + "from table(du(true))");
+    addView(b, "files", "select * from table(files('.'))");
+    addView(b, "git_commits", "select * from table(git_commits(true))");
+    addView(b, "jps", "select * from table(jps(true))");
+    addView(b, "ps", "select * from table(ps(true))");
+    addView(b, "stdin", "select * from table(stdin(true))");
+    addView(b, "vmstat", "select * from table(vmstat(true))");
     b.append("       } ],\n")
         .append("       functions: [ {\n");
     addFunction(b, "du", DuTableFunction.class);

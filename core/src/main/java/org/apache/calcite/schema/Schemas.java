@@ -55,6 +55,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 
 import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 
@@ -299,12 +300,14 @@ public final class Schemas {
   public static CalcitePrepare.AnalyzeViewResult analyzeView(
       final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String viewSql,
-      List<String> viewPath, boolean fail) {
+      List<String> viewPath, boolean fail, Properties parseProperties) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
-    final ImmutableMap<CalciteConnectionProperty, String> propValues =
-        ImmutableMap.of();
+    CalciteConnectionConfig connConfig =
+        new CalciteConnectionConfigImpl(parseProperties);
     final CalcitePrepare.Context context =
-        makeContext(connection, schema, schemaPath, viewPath, propValues);
+        makeContext(connConfig, connection.getTypeFactory(),
+            createDataContext(connection, schema.root().plus()),
+            schema, schemaPath, viewPath);
     CalcitePrepare.Dummy.push(context);
     try {
       return prepare.analyzeView(context, viewSql, fail);

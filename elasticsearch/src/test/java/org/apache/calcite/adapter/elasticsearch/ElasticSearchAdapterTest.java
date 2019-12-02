@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.function.Consumer;
 
 /**
@@ -104,16 +105,19 @@ public class ElasticSearchAdapterTest {
         root.add("elastic", new ElasticsearchSchema(NODE.restClient(), NODE.mapper(), ZIPS));
 
         // add calcite view programmatically
-        final String viewSql = "select cast(_MAP['city'] AS varchar(20)) AS \"city\", "
-            + " cast(_MAP['loc'][0] AS float) AS \"longitude\",\n"
-            + " cast(_MAP['loc'][1] AS float) AS \"latitude\",\n"
-            + " cast(_MAP['pop'] AS integer) AS \"pop\", "
-            +  " cast(_MAP['state'] AS varchar(2)) AS \"state\", "
-            +  " cast(_MAP['id'] AS varchar(5)) AS \"id\" "
-            +  "from \"elastic\".\"zips\"";
+        final String viewSql = "select cast(_MAP['city'] AS varchar(20)) AS city, "
+            + " cast(_MAP['loc'][0] AS float) AS longitude,\n"
+            + " cast(_MAP['loc'][1] AS float) AS latitude,\n"
+            + " cast(_MAP['pop'] AS integer) AS pop, "
+            +  " cast(_MAP['state'] AS varchar(2)) AS state, "
+            +  " cast(_MAP['id'] AS varchar(5)) AS id "
+            +  "from elastic.zips";
 
+        Properties parseProperties = new Properties();
+        parseProperties.setProperty("lex", "JAVA");
         ViewTableMacro macro = ViewTable.viewMacro(root, viewSql,
-            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"), false);
+            Collections.singletonList("elastic"), Arrays.asList("elastic", "view"),
+            false, parseProperties);
         root.add("zips", macro);
 
         return connection;

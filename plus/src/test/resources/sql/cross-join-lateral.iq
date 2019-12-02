@@ -39,7 +39,7 @@ CROSS JOIN LATERAL TABLE(AUX.CODES(SC.email)) TF limit 6;
 # Checks whether CROSS JOIN LATERAL WORK WITH VIEW EXPANSION
 SELECT * FROM EXAMPLES.CODED_EMAILS;
 +-----------------------+----------+------------------------------+
-| EMAIL                 | TYPE     | CODEVALUE                    |
+| email                 | TYPE     | CODEVALUE                    |
 +-----------------------+----------+------------------------------+
 | ftremblay@gmail.com   | BASE64   | ZnRyZW1ibGF5QGdtYWlsLmNvbQ== |
 | ftremblay@gmail.com   | HASHCODE | 1248316799                   |

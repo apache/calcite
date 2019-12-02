@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Table whose contents are defined using an SQL statement.
@@ -83,6 +84,21 @@ public class ViewTable
       List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
         viewPath, modifiable);
+  }
+
+  /** Table macro that returns a view.
+   *
+   * @param schema Schema the view will belong to
+   * @param viewSql SQL query
+   * @param schemaPath Path of schema
+   * @param modifiable Whether view is modifiable, or null to deduce it
+   * @param parseProperties Properties used to parse {@code viewSql}
+   */
+  public static ViewTableMacro viewMacro(
+      SchemaPlus schema, String viewSql, List<String> schemaPath,
+      List<String> viewPath, Boolean modifiable, Properties parseProperties) {
+    return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
+        viewPath, modifiable, parseProperties);
   }
 
   /** Returns the view's SQL definition. */
