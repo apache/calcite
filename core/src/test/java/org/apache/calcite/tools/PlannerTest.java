@@ -248,6 +248,9 @@ public class PlannerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3547">[CALCITE-3547]
+   * SqlValidatorException because Planner cannot find UDFs added to schema</a>. */
   @Test public void testValidateUserDefinedFunctionInSchema() throws Exception {
     SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     rootSchema.add("my_plus",

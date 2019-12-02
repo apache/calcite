@@ -300,8 +300,10 @@ public class PlannerImpl implements Planner, ViewExpander {
     final SqlConformance conformance = conformance();
     final CalciteCatalogReader catalogReader =
         createCatalogReader().withSchemaPath(schemaPath);
+    final SqlOperatorTable opTab =
+        ChainedSqlOperatorTable.of(operatorTable, catalogReader);
     final SqlValidator validator =
-        new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
+        new CalciteSqlValidator(opTab, catalogReader, typeFactory,
             conformance);
     validator.setIdentifierExpansion(true);
 
