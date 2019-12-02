@@ -29,10 +29,10 @@ import org.apache.calcite.test.WithLex;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.MethodRule;
 
 import java.util.ArrayList;
@@ -46,8 +46,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests
@@ -1412,7 +1412,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("KEYWORD(FROM)", "from"));
   }
 
-  @Ignore("Inserts are not supported by SimpleParser yet")
+  @Disabled("Inserts are not supported by SimpleParser yet")
   @Test public void testInsert() throws Exception {
     String sql;
     sql = "insert into emp(empno, mgr) select ^ from dept a";
@@ -1462,7 +1462,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, "", "nu");
   }
 
-  @Ignore("The set of completion results is empty")
+  @Disabled("The set of completion results is empty")
   @Test public void testNestTable1() throws Exception {
     String sql;
     // select scott.emp.deptno from scott.emp; # valid
@@ -1492,7 +1492,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
 
-  @Ignore("The set of completion results is empty")
+  @Disabled("The set of completion results is empty")
   @Test public void testNestTable3() throws Exception {
     String sql;
     // select scott.emp.deptno from emp; # valid

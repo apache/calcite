@@ -49,8 +49,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,9 +58,9 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link RelOptUtil} and other classes in this package.
@@ -91,7 +91,7 @@ public class RelOptUtilTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Before public void setUp() {
+  @BeforeEach public void setUp() {
     relBuilder = RelBuilder.create(config().build());
 
     empScan = relBuilder.scan("EMP").build();

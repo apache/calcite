@@ -20,15 +20,15 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.TestUtil;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
 import static org.apache.calcite.test.Matchers.inTree;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for {@code PigRelExVisitor}.
@@ -130,7 +130,7 @@ public class PigRelExTest extends PigRelTestBase {
   }
 
   @Test
-  @Ignore
+  @Disabled
   public void testMatch() {
     checkTranslation("e matches 'A*BC.D'", inTree("LIKE($4, 'A%BC_D')"));
   }

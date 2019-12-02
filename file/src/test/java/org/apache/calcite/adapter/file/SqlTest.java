@@ -22,10 +22,9 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
 
-import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -41,8 +40,8 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * System test of the Calcite file adapter, which can also read and parse
@@ -190,7 +189,7 @@ public class SqlTest {
   }
 
   /** Reads from a URL and checks the result. */
-  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
+  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
   @Test public void testUrlSelect() throws SQLException {
     Assume.assumeTrue(FileSuite.hazNetwork());
     final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"

@@ -26,8 +26,8 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +37,7 @@ import java.util.Locale;
 import static com.google.common.collect.Lists.newArrayList;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit tests for {@link org.apache.calcite.runtime.Enumerables}.
@@ -261,7 +261,7 @@ public class EnumerablesTest {
   }
 
   @Test
-  @Ignore // TODO fix this
+  @Disabled // TODO fix this
   public void testMatch() {
     final Enumerable<Emp> emps = Linq4j.asEnumerable(
         Arrays.asList(

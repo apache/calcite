@@ -29,13 +29,13 @@ import com.google.common.collect.ImmutableSet;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 public class DateRangeRulesTest {

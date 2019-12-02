@@ -22,8 +22,8 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
-import org.junit.Assert;
 import org.junit.ComparisonFailure;
+import org.junit.jupiter.api.Assertions;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
@@ -433,10 +433,7 @@ public class DiffRepository {
             expected2.replace(Util.LINE_SEPARATOR, "\n");
         String actualCanonical =
             actual.replace(Util.LINE_SEPARATOR, "\n");
-        Assert.assertEquals(
-            tag,
-            expected2Canonical,
-            actualCanonical);
+        Assertions.assertEquals(expected2Canonical, actualCanonical, tag);
       } catch (ComparisonFailure e) {
         amend(expected, actual);
         throw e;

@@ -20,12 +20,12 @@ import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.pig} package.
@@ -168,8 +168,7 @@ public class PigAdapterTest extends AbstractPigTest {
           actual == null || actual.isEmpty()
               ? null
               : (String) actual.get(0);
-      assertEquals("expected Pig script not found",
-          strings[0], actualArray);
+      assertEquals(strings[0], actualArray, "expected Pig script not found");
     };
   }
 }

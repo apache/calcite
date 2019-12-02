@@ -22,9 +22,8 @@ import org.apache.calcite.util.Util;
 
 import org.incava.diff.Diff;
 import org.incava.diff.Difference;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -42,6 +41,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * DiffTestCase is an abstract base for JUnit tests which produce multi-line
@@ -104,7 +106,7 @@ public abstract class DiffTestCase {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Before
+  @BeforeEach
   protected void setUp() {
     // diffMasks.clear();
     diffMasks = "";
@@ -113,7 +115,7 @@ public abstract class DiffTestCase {
     compiledDiffMatcher = null;
   }
 
-  @After
+  @AfterEach
   protected void tearDown() throws IOException {
     if (logOutputStream != null) {
       logOutputStream.close();
@@ -190,7 +192,7 @@ public abstract class DiffTestCase {
     logOutputStream = null;
 
     if (!refFile.exists()) {
-      Assert.fail("Reference file " + refFile + " does not exist");
+      fail("Reference file " + refFile + " does not exist");
     }
     diffFile(logFile, refFile);
   }
@@ -331,16 +333,13 @@ public abstract class DiffTestCase {
         // <...> actual <...>' string, becauase IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
-        Assert.assertEquals(
-            message,
-            fileContents(refFile),
-            fileContents(logFile));
+        assertEquals(fileContents(refFile), fileContents(logFile), message);
       } else {
         String s = diff(refFile, logFile);
-        Assert.fail(message + '\n' + s + '\n');
+        fail(message + '\n' + s + '\n');
       }
     }
-    Assert.fail(message);
+    fail(message);
   }
 
   /**

@@ -24,15 +24,15 @@ import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
 import com.google.common.base.Throwables;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.
@@ -103,7 +103,7 @@ public class BabelParserTest extends SqlParserTest {
   }
 
   /** Tests that there are no reserved keywords. */
-  @Ignore
+  @Disabled
   @Test public void testKeywords() {
     final String[] reserved = {"AND", "ANY", "END-EXEC"};
     final StringBuilder sql = new StringBuilder("select ");

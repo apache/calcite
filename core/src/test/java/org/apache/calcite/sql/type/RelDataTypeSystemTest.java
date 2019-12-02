@@ -23,8 +23,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests return type inference using {@code RelDataTypeSystem}
@@ -126,8 +127,8 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MINUS.inferReturnType(TYPE_FACTORY,
             Lists.newArrayList(operand1, operand2));
-    Assert.assertEquals(12, dataType.getPrecision());
-    Assert.assertEquals(2, dataType.getScale());
+    assertEquals(12, dataType.getPrecision());
+    assertEquals(2, dataType.getScale());
   }
 
   @Test
@@ -137,8 +138,8 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(11, dataType.getPrecision());
-    Assert.assertEquals(2, dataType.getScale());
+    assertEquals(11, dataType.getPrecision());
+    assertEquals(2, dataType.getScale());
   }
 
   @Test
@@ -148,7 +149,7 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
+    assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
   }
 
   @Test
@@ -158,9 +159,9 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(38, dataType.getPrecision());
-    Assert.assertEquals(9, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(38, dataType.getPrecision());
+    assertEquals(9, dataType.getScale());
   }
 
   @Test
@@ -170,9 +171,9 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(6, dataType.getPrecision());
-    Assert.assertEquals(20, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(6, dataType.getPrecision());
+    assertEquals(20, dataType.getScale());
   }
 
   @Test
@@ -182,9 +183,9 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(10, dataType.getPrecision());
-    Assert.assertEquals(10, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(10, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
   }
 
   @Test
@@ -194,9 +195,9 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(28, dataType.getPrecision());
-    Assert.assertEquals(10, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(28, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
   }
 }
 

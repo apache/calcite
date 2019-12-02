@@ -16,24 +16,26 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.Ordering;
-
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+
+import static org.apache.calcite.runtime.BinarySearch.lowerBound;
+import static org.apache.calcite.runtime.BinarySearch.upperBound;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.util.Comparator.naturalOrder;
 
 /**
  * Tests {@link org.apache.calcite.runtime.BinarySearch}.
  */
 public class BinarySearchTest {
   private void search(int key, int lower, int upper, Integer... array) {
-    Assert.assertEquals(
-        "lower bound of " + key + " in " + Arrays.toString(array), lower,
-        BinarySearch.lowerBound(array, key, Ordering.natural()));
-    Assert.assertEquals(
-        "upper bound of " + key + " in " + Arrays.toString(array), upper,
-        BinarySearch.upperBound(array, key, Ordering.natural()));
+    assertEquals(lower, lowerBound(array, key, naturalOrder()),
+        () -> "lower bound of " + key + " in " + Arrays.toString(array));
+    assertEquals(upper, upperBound(array, key, naturalOrder()),
+        () -> "upper bound of " + key + " in " + Arrays.toString(array));
   }
 
   @Test

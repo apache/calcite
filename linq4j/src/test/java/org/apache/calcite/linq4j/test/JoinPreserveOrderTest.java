@@ -35,8 +35,8 @@ import java.util.List;
 
 import static org.apache.calcite.linq4j.function.Functions.nullsComparator;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Test validating the order preserving properties of join algorithms in
@@ -319,15 +319,15 @@ public final class JoinPreserveOrderTest {
     PRESERVED {
       @Override <E> void check(final List<E> expected, final List<E> actual,
           final boolean nullsFirst) {
-        assertTrue("Order is not preserved. Expected:<" + expected + "> but was:<" + actual + ">",
-            isOrderPreserved(expected, actual, nullsFirst));
+        assertTrue(isOrderPreserved(expected, actual, nullsFirst),
+            () -> "Order is not preserved. Expected:<" + expected + "> but was:<" + actual + ">");
       }
     },
     DESTROYED {
       @Override <E> void check(final List<E> expected, final List<E> actual,
           final boolean nullsFirst) {
-        assertFalse("Order is not destroyed. Expected:<" + expected + "> but was:<" + actual + ">",
-            isOrderPreserved(expected, actual, nullsFirst));
+        assertFalse(isOrderPreserved(expected, actual, nullsFirst),
+            () -> "Order is not destroyed. Expected:<" + expected + "> but was:<" + actual + ">");
       }
     },
     IGNORED {

@@ -28,9 +28,9 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -59,8 +59,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.isA;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import static java.sql.Timestamp.valueOf;
 
 /**
  * Unit test of the Calcite adapter for CSV.
@@ -123,7 +126,7 @@ public class CsvTest {
   /**
    * Tests the vanity driver.
    */
-  @Ignore
+  @Disabled
   @Test public void testVanityDriver() throws SQLException {
     Properties info = new Properties();
     Connection connection =
@@ -134,7 +137,7 @@ public class CsvTest {
   /**
    * Tests the vanity driver with properties in the URL.
    */
-  @Ignore
+  @Disabled
   @Test public void testVanityDriverArgsInUrl() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:csv:"
@@ -357,7 +360,7 @@ public class CsvTest {
       try {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
-        Assert.assertEquals(Arrays.asList(expected), lines);
+        assertEquals(Arrays.asList(expected), lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -374,7 +377,7 @@ public class CsvTest {
         final List<String> lines = new ArrayList<>();
         CsvTest.collect(lines, resultSet);
         Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
+        assertEquals(expectedLines, lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -556,17 +559,17 @@ public class CsvTest {
       ResultSet res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINEDAT");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.DATE);
 
       res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINTIME");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIME);
 
       res = connection.getMetaData().getColumns(null, null,
           "DATE", "JOINTIMES");
       res.next();
-      Assert.assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
+      assertEquals(res.getInt("DATA_TYPE"), java.sql.Types.TIMESTAMP);
 
       Statement statement = connection.createStatement();
       ResultSet resultSet = statement.executeQuery(
@@ -574,19 +577,19 @@ public class CsvTest {
       resultSet.next();
 
       // date
-      Assert.assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
-      Assert.assertEquals(java.sql.Date.valueOf("1996-08-03"),
+      assertEquals(java.sql.Date.class, resultSet.getDate(1).getClass());
+      assertEquals(java.sql.Date.valueOf("1996-08-03"),
           resultSet.getDate(1));
 
       // time
-      Assert.assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
-      Assert.assertEquals(java.sql.Time.valueOf("00:01:02"),
+      assertEquals(java.sql.Time.class, resultSet.getTime(2).getClass());
+      assertEquals(java.sql.Time.valueOf("00:01:02"),
           resultSet.getTime(2));
 
       // timestamp
-      Assert.assertEquals(java.sql.Timestamp.class,
+      assertEquals(java.sql.Timestamp.class,
           resultSet.getTimestamp(3).getClass());
-      Assert.assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
+      assertEquals(java.sql.Timestamp.valueOf("1996-08-03 00:01:02"),
           resultSet.getTimestamp(3));
 
     }
@@ -649,11 +652,10 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp, isA(java.sql.Timestamp.class));
+      assertThat(timestamp, isA(Timestamp.class));
       // Note: This logic is time zone specific, but the same time zone is
       // used in the CSV adapter and this test, so they should cancel out.
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02.0")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02.0")));
     }
   }
 
@@ -669,8 +671,7 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02")));
     }
   }
 
@@ -687,8 +688,7 @@ public class CsvTest {
          ResultSet resultSet = statement.executeQuery(sql)) {
       assertThat(resultSet.next(), is(true));
       final Timestamp timestamp = resultSet.getTimestamp(2);
-      Assert.assertThat(timestamp,
-          is(java.sql.Timestamp.valueOf("1996-08-03 00:01:02")));
+      assertThat(timestamp, is(valueOf("1996-08-03 00:01:02")));
     }
   }
 
@@ -885,8 +885,8 @@ public class CsvTest {
     }
   }
 
-  @Ignore("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
-  @Test(timeout = 10000) public void testCsvStream() throws Exception {
+  @Disabled("CALCITE-1894: there's a bug in the test code, so it does not test what it should")
+  @Test @Timeout(10) public void testCsvStream() throws Exception {
     final File file = File.createTempFile("stream", "csv");
     final String model = "{\n"
         + "  version: '1.0',\n"

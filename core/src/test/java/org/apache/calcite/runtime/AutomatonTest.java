@@ -22,14 +22,14 @@ import org.apache.calcite.test.Matchers;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.core.Is;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.AbstractList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link Automaton}. */
 public class AutomatonTest {

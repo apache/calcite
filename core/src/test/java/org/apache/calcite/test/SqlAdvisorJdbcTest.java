@@ -25,7 +25,7 @@ import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction;
 import org.apache.calcite.sql.advise.SqlAdvisorGetHintsFunction2;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

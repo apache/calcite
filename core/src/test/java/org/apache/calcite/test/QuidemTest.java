@@ -39,7 +39,7 @@ import com.google.common.io.PatternFilenameFilter;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -57,7 +57,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test that runs every Quidem file as a test.

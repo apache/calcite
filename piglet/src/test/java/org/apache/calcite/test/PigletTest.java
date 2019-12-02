@@ -18,8 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.piglet.parser.ParseException;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /** Unit tests for Piglet. */
 public class PigletTest {
@@ -117,7 +117,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Ignore // foreach nested not implemented yet
+  @Disabled // foreach nested not implemented yet
   @Test public void testForeachNested() throws ParseException {
     final String s = "A = LOAD 'EMP';\n"
         + "B = GROUP A BY DEPTNO;\n"

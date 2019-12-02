@@ -39,9 +39,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -64,9 +63,10 @@ import static org.apache.calcite.test.JdbcTest.Employee;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link ReflectiveSchema}.
@@ -164,7 +164,7 @@ public class ReflectiveSchemaTest {
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link org.apache.calcite.linq4j.Queryable}.
    */
-  @Ignore
+  @Disabled
   @Test public void testOperator() throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
@@ -517,7 +517,7 @@ public class ReflectiveSchemaTest {
         return;
       }
     }
-    Assert.fail("column not found: " + columnName);
+    fail("column not found: " + columnName);
   }
 
   @Test public void testJavaBoolean() throws Exception {
@@ -742,7 +742,7 @@ public class ReflectiveSchemaTest {
   /** If a method returns a
    * {@link ViewTable}.{@code ViewTableMacro}, then it
    * should be expanded. */
-  @Ignore
+  @Disabled
   @Test public void testTableMacroIsView() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
@@ -753,7 +753,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Finds a table-macro using reflection. */
-  @Ignore
+  @Disabled
   @Test public void testTableMacro() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
@@ -764,7 +764,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Table with single field as Integer[] */
-  @Ignore(
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfBoxedPrimitives() {
     CalciteAssert.that()
@@ -774,7 +774,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Table with single field as int[] */
-  @Ignore(
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfPrimitives() {
     CalciteAssert.that()
