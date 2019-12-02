@@ -66,9 +66,9 @@ public class DirectedGraphTest {
     assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
     g.addEdge("B", "D");
     assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
-    assertNull("There is no path from A to E", shortestPath(g, "A", "E"));
+    assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
     assertEquals("[]", shortestPath(g, "D", "D").toString());
-    assertNull("Node X is not in the graph", shortestPath(g, "X", "A"));
+    assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
     assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
   }
 
@@ -332,9 +332,9 @@ public class DirectedGraphTest {
     assertEquals("[A, B, C, D]", shortestPath(g, "A", "D").toString());
     g.addEdge("B", "D", 1);
     assertEquals("[A, B, D]", shortestPath(g, "A", "D").toString());
-    assertNull("There is no path from A to E", shortestPath(g, "A", "E"));
+    assertNull(shortestPath(g, "A", "E"), "There is no path from A to E");
     assertEquals("[]", shortestPath(g, "D", "D").toString());
-    assertNull("Node X is not in the graph", shortestPath(g, "X", "A"));
+    assertNull(shortestPath(g, "X", "A"), "Node X is not in the graph");
     assertEquals("[[A, B, C, D], [A, B, D]]", paths(g, "A", "D").toString());
     assertThat(g.addVertex("B"), is(false));
 

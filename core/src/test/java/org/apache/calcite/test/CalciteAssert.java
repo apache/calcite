@@ -255,24 +255,23 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkException(final String expected) {
     return p0 -> {
-      assertNotNull(
-          "expected exception but none was thrown", p0);
+      assertNotNull(p0, "expected exception but none was thrown");
       String stack = TestUtil.printStackTrace(p0);
-      assertTrue(stack, stack.contains(expected));
+      assertThat(stack, containsString(expected));
     };
   }
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
       @Override public void accept(@Nullable Throwable throwable) {
-        assertNotNull("Nothing was thrown", throwable);
+        assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);
 
-        assertTrue("Expected to fail at validation, but did not", exception != null);
+        assertNotNull(exception, "Expected to fail at validation, but did not");
         if (expected != null) {
           String stack = TestUtil.printStackTrace(exception);
-          assertTrue(stack, stack.contains(expected));
+          assertThat(stack, containsString(expected));
         }
       }
 
@@ -440,9 +439,8 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertTrue(
-            actual + " should have " + count + " occurrence of " + expected,
-            StringUtils.countMatches(actual, expected) == count);
+        assertEquals(count, countMatches(actual, expected),
+            () -> actual + " should have " + count + " occurrence of " + expected);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -974,7 +972,7 @@ public class CalciteAssert {
    * they are considered equal.
    *
    * <p>This method produces more user-friendly error messages than
-   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   * {@link org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)}
    *
    * @param message the identifying message for the {@link AssertionError} (<code>null</code>
    * okay)
@@ -983,7 +981,7 @@ public class CalciteAssert {
    */
   public static void assertArrayEqual(
       String message, Object[] expected, Object[] actual) {
-    assertEquals(message, str(expected), str(actual));
+    assertEquals(str(expected), str(actual), message);
   }
 
   private static String str(Object[] objects) {
@@ -1613,11 +1611,9 @@ public class CalciteAssert {
 
     public AssertQuery planContains(String expected) {
       ensurePlan(null);
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 
@@ -1628,11 +1624,9 @@ public class CalciteAssert {
           .replace("\"", "\\\"")
           .replaceAll("\n", "\\\\n")
           + "\"";
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 

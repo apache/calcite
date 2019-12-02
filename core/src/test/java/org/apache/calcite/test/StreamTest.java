@@ -239,7 +239,7 @@ public class StreamTest {
         .returnsCount(100);
   }
 
-  @Test(timeout = 10000) public void testStreamCancel() {
+  @Test @Timeout(10) public void testStreamCancel() {
     final String explain = "EnumerableInterpreter\n"
         + "  BindableTableScan(table=[[INFINITE_STREAMS, ORDERS, (STREAM)]])";
     CalciteAssert.model(STREAM_MODEL)
@@ -267,7 +267,8 @@ public class StreamTest {
           }
           // With a 3 millisecond delay, typically n is between 200 - 400
           // before cancel takes effect.
-          assertTrue("n is " + n, n > 5);
+          assertThat(n,
+              ComparatorMatcherBuilder.<Integer>usingNaturalOrdering().greaterThan(5));
         });
   }
 

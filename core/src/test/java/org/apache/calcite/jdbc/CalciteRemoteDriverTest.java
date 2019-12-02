@@ -462,20 +462,22 @@ public class CalciteRemoteDriverTest {
     }
   }
 
-  @Test(expected = SQLException.class)
-  public void testAvaticaConnectionException() throws Exception {
-    try (Connection remoteConnection = getRemoteConnection()) {
-      remoteConnection.isValid(-1);
-    }
+  @Test public void testAvaticaConnectionException() {
+    assertThrows(SQLException.class, () -> {
+      try (Connection remoteConnection = getRemoteConnection()) {
+        remoteConnection.isValid(-1);
+      }
+    });
   }
 
-  @Test(expected = SQLException.class)
-  public void testAvaticaStatementException() throws Exception {
-    try (Connection remoteConnection = getRemoteConnection()) {
-      try (Statement statement = remoteConnection.createStatement()) {
-        statement.setCursorName("foo");
+  @Test public void testAvaticaStatementException() {
+    assertThrows(SQLException.class, () -> {
+      try (Connection remoteConnection = getRemoteConnection()) {
+        try (Statement statement = remoteConnection.createStatement()) {
+          statement.setCursorName("foo");
+        }
       }
-    }
+    });
   }
 
   @Test public void testAvaticaStatementGetMoreResults() throws Exception {
