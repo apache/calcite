@@ -25,12 +25,14 @@ import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     publishing
     // Verification
     checkstyle
+    calcite.buildext
     id("com.diffplug.gradle.spotless")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
@@ -184,11 +186,11 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     }
 }
 
-val semaphore = `java.util.concurrent`.Semaphore(1)
-
 val javaccGeneratedPatterns = arrayOf(
     "org/apache/calcite/jdbc/CalciteDriverVersion.java",
-    "**/parser/**/*ParserImpl*.*",
+    "**/parser/**/*ParserImpl.*",
+    "**/parser/**/*ParserImplConstants.*",
+    "**/parser/**/*ParserImplTokenManager.*",
     "**/parser/**/PigletParser.*",
     "**/parser/**/PigletParserConstants.*",
     "**/parser/**/ParseException.*",
@@ -260,18 +262,14 @@ allprojects {
     }
     if (!skipCheckstyle) {
         apply<CheckstylePlugin>()
-        dependencies {
-            checkstyle("com.puppycrawl.tools:checkstyle:${"checkstyle".v}")
-            checkstyle("net.hydromatic:toolbox:${"hydromatic-toolbox".v}")
-        }
         checkstyle {
-            // Current one is ~8.8
-            // https://github.com/julianhyde/toolbox/issues/3
+            toolVersion = "checkstyle".v
             isShowViolations = true
             configDirectory.set(File(rootDir, "src/main/config/checkstyle"))
             configFile = configDirectory.get().file("checker.xml").asFile
             configProperties = mapOf(
-                "base_dir" to rootDir.toString()
+                "base_dir" to rootDir.toString(),
+                "cache_file" to buildDir.resolve("checkstyle/cacheFile")
             )
         }
         tasks.register("checkstyleAll") {
@@ -283,15 +281,6 @@ allprojects {
             // On the other hand, supporessions.xml still analyzes the file, and
             // then it recognizes it should suppress all the output.
             excludeJavaCcGenerated()
-            // There are concurrency issues with Checkstyle 7.8.2
-            // It could be in Checkstyle, in CheckstyleAnt task or in Gradle's Checkstyle plugin
-            // The bug looks like as if suppression was not working
-            doFirst {
-                semaphore.acquire()
-            }
-            doLast {
-                semaphore.release()
-            }
         }
     }
     if (!skipSpotless || !skipCheckstyle) {
@@ -430,7 +419,17 @@ allprojects {
                     )
                     removeUnusedImports()
                     trimTrailingWhitespace()
-                    indentWithSpaces(4)
+                    indentWithSpaces(2)
+                    replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
+                    replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
+                    replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
+                    // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
+                    replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]++.\\w++\\s*+$", "")
+                    replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
+                    bumpThisNumberIfACustomStepChanges(1)
+                    custom("((() preventer") { contents: String ->
+                        ParenthesisBalancer.apply(contents)
+                    }
                     endWithNewline()
                 }
             }

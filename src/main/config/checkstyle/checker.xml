@@ -32,6 +32,8 @@ limitations under the License.
 <module name="Checker">
   <property name="localeLanguage" value="en"/>
 
+  <property name="cacheFile" value="${cache_file}"/>
+
   <!-- Checks for headers -->
   <!-- See http://checkstyle.sf.net/config_header.html -->
     <!-- Verify that EVERY source file has the appropriate license -->
@@ -65,9 +67,16 @@ limitations under the License.
     <!-- No tabs allowed! -->
   <module name="FileTabCharacter"/>
 
-  <module name="TreeWalker">
-    <property name="cacheFile" value="build/checkstyle-cachefile"/>
+  <!-- Checks for Size Violations.                    -->
+  <!-- See http://checkstyle.sf.net/config_sizes.html -->
+  <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
+       or strings (possibly preceded by '+' and followed by say '),'. -->
+  <module name="LineLength">
+    <property name="max" value="100"/>
+    <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
+  </module>
 
+  <module name="TreeWalker">
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
       <!-- No empty blocks (i.e. catch); must contain at least a comment -->
@@ -206,27 +215,31 @@ limitations under the License.
       <property name="message" value="developers names should be in pom file"/>
     </module>
 
+    <module name="Regexp">
+      <property name="format" value="@param ++([^ ]++) *+[\r\n]"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="@param with no description. Please add description"/>
+    </module>
+
+    <module name="Regexp">
+      <property name="format" value="\{@link[^\r\n}]++[\r\n]"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="split @link. Please ensure {@link ..} is on a single line"/>
+    </module>
+
     <!-- No multi-line C-style comments except at start of line. -->
     <module name="Regexp">
-      <property name="format" value="^ +/\*[^*][^/]$"/>
+      <property name="format" value="^ ++/\*[^*][^/]$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
     </module>
 
     <module name="Regexp">
-      <property name="format" value="^ +/\*$"/>
+      <property name="format" value="^ ++/\*$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
     </module>
 
-    <!-- Checks for Size Violations.                    -->
-    <!-- See http://checkstyle.sf.net/config_sizes.html -->
-    <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
-         or strings (possibly preceded by '+' and followed by say '),'. -->
-    <module name="LineLength">
-      <property name="max" value="100"/>
-      <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
-    </module>
       <!-- Over time, we will revise this down -->
     <module name="MethodLength">
       <property name="max" value="370"/>
@@ -254,30 +267,25 @@ limitations under the License.
       <!-- No extra whitespace around types -->
     <module name="GenericWhitespace"/>
 
-    <!-- Required for SuppressionCommentFilter below -->
-    <module name="FileContentsHolder"/>
-  </module>
+    <!-- Setup special comments to suppress specific checks from source files -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
+      <property name="onCommentFormat"  value="CHECKSTYLE\: resume ([\w\|]+)"/>
+      <property name="checkFormat"      value="$1"/>
+    </module>
 
-  <!-- Setup special comments to suppress specific checks from source files -->
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
-    <property name="onCommentFormat"  value="CHECKSTYLE\: resume ([\w\|]+)"/>
-    <property name="checkFormat"      value="$1"/>
-  </module>
+    <!-- Turn off all checks between OFF and ON -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE\: OFF"/>
+      <property name="onCommentFormat"  value="CHECKSTYLE\: ON"/>
+    </module>
 
-  <!-- Turn off all checks between OFF and ON -->
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CHECKSTYLE\: OFF"/>
-    <property name="onCommentFormat"  value="CHECKSTYLE\: ON"/>
+    <!-- Turn off checks for the next N lines. -->
+    <module name="SuppressWithNearbyCommentFilter">
+      <property name="commentFormat" value="CHECKSTYLE: +IGNORE (\d+)"/>
+      <property name="influenceFormat" value="$1"/>
+    </module>
   </module>
-
-  <!-- Turn off checks for the next N lines. -->
-  <module name="SuppressWithNearbyCommentFilter">
-    <property name="commentFormat" value="CHECKSTYLE: +IGNORE (\d+)"/>
-    <property name="influenceFormat" value="$1"/>
-  </module>
-
-  <module name="net.hydromatic.toolbox.checkstyle.HydromaticFileSetCheck"/>
 
   <module name="SuppressionFilter">
     <property name="file" value="${base_dir}/src/main/config/checkstyle/suppressions.xml"/>
