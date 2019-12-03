@@ -29,11 +29,10 @@ import org.apache.calcite.test.WithLex;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.MethodRule;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,11 +52,10 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Concrete child class of {@link SqlValidatorTestCase}, containing unit tests
  * for SqlAdvisor.
  */
+@ExtendWith(SqlValidatorTestCase.LexConfiguration.class)
 public class SqlAdvisorTest extends SqlValidatorTestCase {
   public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
       SqlAdvisorValidator::new);
-
-  @Rule public MethodRule configureTester = SqlValidatorTestCase.TESTER_CONFIGURATION_RULE;
 
   //~ Static fields/initializers ---------------------------------------------
 

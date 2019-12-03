@@ -36,9 +36,9 @@ import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
 
 import com.google.common.base.Preconditions;
 
-import org.junit.rules.MethodRule;
-import org.junit.runners.model.FrameworkMethod;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.support.AnnotationSupport;
 
 import java.nio.charset.Charset;
 import java.util.Objects;
@@ -75,8 +75,6 @@ public class SqlValidatorTestCase {
   static final SqlTester EXTENDED_CATALOG_TESTER_LENIENT =
       new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
-
-  public static final MethodRule TESTER_CONFIGURATION_RULE = new TesterConfigurationRule();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -560,21 +558,16 @@ public class SqlValidatorTestCase {
    * <p>This JUnit rule enables post-process test object on a per test method
    * basis.
    */
-  private static class TesterConfigurationRule implements MethodRule {
-    @Override public Statement apply(Statement statement, FrameworkMethod frameworkMethod,
-        Object o) {
-      return new Statement() {
-        @Override public void evaluate() throws Throwable {
-          SqlValidatorTestCase tc = (SqlValidatorTestCase) o;
-          SqlTester tester = tc.tester;
-          WithLex lex = frameworkMethod.getAnnotation(WithLex.class);
-          if (lex != null) {
+  public static class LexConfiguration implements BeforeEachCallback {
+    @Override public void beforeEach(ExtensionContext context) {
+      context.getElement()
+          .flatMap(element -> AnnotationSupport.findAnnotation(element, WithLex.class))
+          .ifPresent(lex -> {
+            SqlValidatorTestCase tc = (SqlValidatorTestCase) context.getTestInstance().get();
+            SqlTester tester = tc.tester;
             tester = tester.withLex(lex.value());
-          }
-          tc.tester = tester;
-          statement.evaluate();
-        }
-      };
+            tc.tester = tester;
+          });
     }
   }
 }
