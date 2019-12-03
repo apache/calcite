@@ -26,33 +26,25 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
-# Build classpath on first call.
-# (To force rebuild, remove target/fullclasspath.txt.)
-cd $(dirname $0)
-if [ ! -f target/fullclasspath.txt ]; then
-    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
-    awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
-        target/classpath.txt \
-        */target/classpath.txt > target/fullclasspath.txt
-fi
+# Build classpath on first call. To update it run ./gradlew buildSqllineClasspath
+root=$(cd "$(dirname "$(readlink $0)")"; pwd)
 
-CP=
-for module in core cassandra druid elasticsearch file kafka mongodb server spark splunk geode example/csv example/function; do
-  CP=${CP}${module}/target/classes:
-  CP=${CP}${module}/target/test-classes:
-done
-CP="${CP}$(cat target/fullclasspath.txt)"
+CP=$root/build/libs/sqllineClasspath.jar
+if [ ! -f $CP ]; then
+  (
+    cd $root
+    ./gradlew :buildSqllineClasspath
+  )
+fi
 
 VM_OPTS=
 if [ "$cygwin" ]; then
-  CP=$(cygpath -wp "$CP")
-
   # Work around https://github.com/jline/jline2/issues/62
   VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl
 
-exec java $VM_OPTS -cp "${CP}" $JAVA_OPTS sqlline.SqlLine "$@"
+exec java -Xmx1g $VM_OPTS $JAVA_OPTS -jar build/libs/sqllineClasspath.jar "$@"
 
 # End sqlline

@@ -58,6 +58,7 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlHint;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlInsertKeyword;
@@ -90,6 +91,7 @@ import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOption;
 import org.apache.calcite.sql.SqlSnapshot;
+import org.apache.calcite.sql.SqlTableRef;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlTypeNameSpec;
@@ -233,6 +235,20 @@ public class ${parser.class} extends SqlAbstractParserImpl
     private SqlNode extend(SqlNode table, SqlNodeList extendList) {
         return SqlStdOperatorTable.EXTEND.createCall(
             Span.of(table, extendList).pos(), table, extendList);
+    }
+
+    /** Adds a warning that a token such as "HOURS" was used,
+    * whereas the SQL standard only allows "HOUR".
+    *
+    * <p>Currently, we silently add an exception to a list of warnings. In
+    * future, we may have better compliance checking, for example a strict
+    * compliance mode that throws if any non-standard features are used. */
+    private TimeUnit warn(TimeUnit timeUnit) throws ParseException {
+        final String token = getToken(0).image.toUpperCase(Locale.ROOT);
+        warnings.add(
+            SqlUtil.newContextException(getPos(),
+                RESOURCE.nonStandardFeatureUsed(token)));
+        return timeUnit;
     }
 }
 
@@ -807,6 +823,23 @@ SqlNodeList ParenthesizedQueryOrCommaListWithDefault(
 }
 
 /**
+ * Parses function parameter lists.
+ * If the list starts with DISTINCT or ALL, it is discarded.
+ */
+List UnquantifiedFunctionParameterList(
+    ExprContext exprContext) :
+{
+    final List args;
+}
+{
+    args = FunctionParameterList(exprContext) {
+        final SqlLiteral quantifier = (SqlLiteral) args.get(0);
+        args.remove(0); // remove DISTINCT or ALL, if present
+        return args;
+    }
+}
+
+/**
  * Parses function parameter lists including DISTINCT keyword recognition,
  * DEFAULT, and named argument assignment.
  */
@@ -1025,6 +1058,115 @@ SqlNode SqlStmtEof() :
     <#include "/@includes/"+file />
 </#list>
 
+SqlNodeList ParenthesizedKeyValueOptionCommaList() :
+{
+    final Span s;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    { s = span(); }
+    <LPAREN>
+    [
+        KeyValueOption(list)
+        (
+            <COMMA>
+            KeyValueOption(list)
+        )*
+    ]
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+/**
+* Parses an option with format key=val whose key is a simple identifier
+* and value is a string literal.
+*/
+void KeyValueOption(List<SqlNode> list) :
+{
+    final SqlIdentifier id;
+    final SqlNode value;
+}
+{
+    id = SimpleIdentifier()
+    <EQ>
+    value = StringLiteral() {
+        list.add(id);
+        list.add(value);
+    }
+}
+
+void CommaSepatatedSqlHints(List<SqlNode> hints) :
+{
+    SqlIdentifier hintName;
+    SqlNodeList hintOptions;
+}
+{
+    hintName = SimpleIdentifier()
+    (   LOOKAHEAD(5)
+        hintOptions = ParenthesizedKeyValueOptionCommaList() {
+            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+        }
+    |
+        hintOptions = ParenthesizedSimpleIdentifierList() {
+            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+        }
+    |
+        {
+            hintOptions = SqlNodeList.EMPTY;
+            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+        }
+    )
+    (
+        <COMMA>
+        hintName = SimpleIdentifier()
+        (
+            LOOKAHEAD(5)
+            hintOptions = ParenthesizedKeyValueOptionCommaList() {
+                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+            }
+        |
+            hintOptions = ParenthesizedSimpleIdentifierList() {
+                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+            }
+        |
+            {
+                hintOptions = SqlNodeList.EMPTY;
+                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+            }
+        )
+    )*
+}
+
+/**
+ * Parses a table reference with optional hints.
+ */
+SqlNode TableRefWithHintsOpt() :
+{
+    SqlNode tableRef;
+    SqlNodeList hintList;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
+    final Span s;
+}
+{
+    { s = span(); }
+    tableRef = CompoundIdentifier()
+    [
+        LOOKAHEAD(2)
+        <HINT_BEG>
+        CommaSepatatedSqlHints(hints)
+        <COMMENT_END>
+        {
+            hintList = new SqlNodeList(hints, s.addAll(hints).end(this));
+            tableRef = new SqlTableRef(Span.of(tableRef, hintList).pos(),
+                    (SqlIdentifier) tableRef, hintList);
+        }
+    ]
+    {
+        return tableRef;
+    }
+}
+
 /**
  * Parses a leaf SELECT expression without ORDER BY.
  */
@@ -1038,6 +1180,7 @@ SqlSelect SqlSelect() :
     final SqlNodeList groupBy;
     final SqlNode having;
     final SqlNodeList windowDecls;
+    final List<SqlNode> hints = new ArrayList<SqlNode>();
     final Span s;
 }
 {
@@ -1045,6 +1188,11 @@ SqlSelect SqlSelect() :
     {
         s = span();
     }
+    [
+        <HINT_BEG>
+        CommaSepatatedSqlHints(hints)
+        <COMMENT_END>
+    ]
     SqlSelectKeywords(keywords)
     (
         <STREAM> {
@@ -1081,7 +1229,8 @@ SqlSelect SqlSelect() :
     {
         return new SqlSelect(s.end(this), keywordList,
             new SqlNodeList(selectList, Span.of(selectList).pos()),
-            fromClause, where, groupBy, having, windowDecls, null, null, null);
+            fromClause, where, groupBy, having, windowDecls, null, null, null,
+            new SqlNodeList(hints, getPos()));
     }
 }
 
@@ -1329,7 +1478,7 @@ SqlNode SqlInsert() :
     SqlInsertKeywords(keywords) {
         keywordList = new SqlNodeList(keywords, s.addAll(keywords).pos());
     }
-    <INTO> table = CompoundIdentifier()
+    <INTO> table = TableRefWithHintsOpt()
     [
         LOOKAHEAD(5)
         [ <EXTEND> ]
@@ -1378,7 +1527,7 @@ SqlNode SqlDelete() :
     <DELETE> {
         s = span();
     }
-    <FROM> table = CompoundIdentifier()
+    <FROM> table = TableRefWithHintsOpt()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -1410,7 +1559,7 @@ SqlNode SqlUpdate() :
 }
 {
     <UPDATE> { s = span(); }
-    table = CompoundIdentifier() {
+    table = TableRefWithHintsOpt() {
         targetColumnList = new SqlNodeList(s.pos());
         sourceExpressionList = new SqlNodeList(s.pos());
     }
@@ -1462,7 +1611,7 @@ SqlNode SqlMerge() :
     final Span s;
 }
 {
-    <MERGE> { s = span(); } <INTO> table = CompoundIdentifier()
+    <MERGE> { s = span(); } <INTO> table = TableRefWithHintsOpt()
     [
         [ <EXTEND> ]
         extendList = ExtendList() {
@@ -1626,6 +1775,11 @@ SqlLiteral JoinType() :
 }
 {
     (
+    LOOKAHEAD(3) // required for "LEFT SEMI JOIN" in Babel
+<#list parser.joinTypes as method>
+        joinType = ${method}()
+    |
+</#list>
         <JOIN> { joinType = JoinType.INNER; }
     |
         <INNER> <JOIN> { joinType = JoinType.INNER; }
@@ -1637,10 +1791,6 @@ SqlLiteral JoinType() :
         <FULL> [ <OUTER> ] <JOIN> { joinType = JoinType.FULL; }
     |
         <CROSS> <JOIN> { joinType = JoinType.CROSS; }
-<#list parser.joinTypes as method>
-    |
-        joinType = ${method}()
-</#list>
     )
     {
         return joinType.symbol(getPos());
@@ -1859,7 +2009,7 @@ SqlNode TableRef2(boolean lateral) :
 {
     (
         LOOKAHEAD(2)
-        tableRef = CompoundIdentifier()
+        tableRef = TableRefWithHintsOpt()
         [
             [ <EXTEND> ]
             extendList = ExtendList() {
@@ -3599,6 +3749,7 @@ SqlCall SequenceExpression() :
     (
         <NEXT> { f = SqlStdOperatorTable.NEXT_VALUE; s = span(); }
     |
+        LOOKAHEAD(3)
         <CURRENT> { f = SqlStdOperatorTable.CURRENT_VALUE; s = span(); }
     )
     <VALUE> <FOR> sequenceRef = CompoundIdentifier() {
@@ -4145,66 +4296,111 @@ SqlLiteral IntervalLiteral() :
     }
 }
 
+TimeUnit Year() :
+{
+}
+{
+    <YEAR> { return TimeUnit.YEAR; }
+|
+    <YEARS> { return warn(TimeUnit.YEAR); }
+}
+
+TimeUnit Month() :
+{
+}
+{
+    <MONTH> { return TimeUnit.MONTH; }
+|
+    <MONTHS> { return warn(TimeUnit.MONTH); }
+}
+
+TimeUnit Day() :
+{
+}
+{
+    <DAY> { return TimeUnit.DAY; }
+|
+    <DAYS> { return warn(TimeUnit.DAY); }
+}
+
+TimeUnit Hour() :
+{
+}
+{
+    <HOUR> { return TimeUnit.HOUR; }
+|
+    <HOURS> { return warn(TimeUnit.HOUR); }
+}
+
+TimeUnit Minute() :
+{
+}
+{
+    <MINUTE> { return TimeUnit.MINUTE; }
+|
+    <MINUTES> { return warn(TimeUnit.MINUTE); }
+}
+
+TimeUnit Second() :
+{
+}
+{
+    <SECOND> { return TimeUnit.SECOND; }
+|
+    <SECONDS> { return warn(TimeUnit.SECOND); }
+}
+
 SqlIntervalQualifier IntervalQualifier() :
 {
-    TimeUnit start;
+    final TimeUnit start;
     TimeUnit end = null;
     int startPrec = RelDataType.PRECISION_NOT_SPECIFIED;
     int secondFracPrec = RelDataType.PRECISION_NOT_SPECIFIED;
 }
 {
     (
-        <YEAR> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Year() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [
-            LOOKAHEAD(2) <TO> <MONTH>
-            {
-                end = TimeUnit.MONTH;
-            }
+            LOOKAHEAD(2) <TO> end = Month()
         ]
-        { start = TimeUnit.YEAR; }
     |
-        <MONTH> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
-        { start = TimeUnit.MONTH; }
+        start = Month() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
     |
-        <DAY> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Day() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <HOUR> { end = TimeUnit.HOUR; }
+                end = Hour()
             |
-                <MINUTE> { end = TimeUnit.MINUTE; }
+                end = Minute()
             |
-                <SECOND> { end = TimeUnit.SECOND; }
+                end = Second()
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = TimeUnit.DAY; }
     |
-        <HOUR> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Hour() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <MINUTE> { end = TimeUnit.MINUTE; }
+                end = Minute()
             |
-                <SECOND> { end = TimeUnit.SECOND; }
+                end = Second()
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = TimeUnit.HOUR; }
     |
-        <MINUTE> [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
+        start = Minute() [ <LPAREN> startPrec = UnsignedIntLiteral() <RPAREN> ]
         [ LOOKAHEAD(2) <TO>
             (
-                <SECOND> { end = TimeUnit.SECOND; }
+                end = Second()
                 [ <LPAREN> secondFracPrec = UnsignedIntLiteral() <RPAREN> ]
             )
         ]
-        { start = TimeUnit.MINUTE; }
     |
-        <SECOND>
+        start = Second()
         [   <LPAREN> startPrec = UnsignedIntLiteral()
             [ <COMMA> secondFracPrec = UnsignedIntLiteral() ]
             <RPAREN>
         ]
-        { start = TimeUnit.SECOND; }
     )
     {
         return new SqlIntervalQualifier(start,
@@ -5207,6 +5403,8 @@ SqlNode BuiltinFunctionCall() :
         node = JsonArrayFunctionCall() { return node; }
     |
         node = JsonArrayAggFunctionCall() { return node; }
+    |
+        node = GroupByWindowingCall() { return node; }
     )
 }
 
@@ -5776,6 +5974,22 @@ SqlCall TimestampDiffFunctionCall() :
     <RPAREN> {
         return SqlStdOperatorTable.TIMESTAMP_DIFF.createCall(
             s.end(this), args);
+    }
+}
+
+/**
+ * Parses a call to a grouping function inside the GROUP BY clause,
+ * for example {@code TUMBLE(rowtime, INTERVAL '1' MINUTE)}.
+ */
+SqlCall GroupByWindowingCall():
+{
+    final Span s;
+    final List<SqlNode> args;
+}
+{
+    <TUMBLE> { s = span(); }
+    args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        return SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
     }
 }
 
@@ -6574,6 +6788,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < DATETIME_INTERVAL_CODE: "DATETIME_INTERVAL_CODE" >
 |   < DATETIME_INTERVAL_PRECISION: "DATETIME_INTERVAL_PRECISION" >
 |   < DAY: "DAY" >
+|   < DAYS: "DAYS" >
 |   < DEALLOCATE: "DEALLOCATE" >
 |   < DEC: "DEC" >
 |   < DECADE: "DECADE" >
@@ -6674,6 +6889,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < HIERARCHY: "HIERARCHY" >
 |   < HOLD: "HOLD" >
 |   < HOUR: "HOUR" >
+|   < HOURS: "HOURS" >
 |   < IDENTITY: "IDENTITY" >
 |   < IGNORE: "IGNORE" >
 |   < IMMEDIATE: "IMMEDIATE" >
@@ -6761,11 +6977,13 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < MILLENNIUM: "MILLENNIUM" >
 |   < MIN: "MIN" >
 |   < MINUTE: "MINUTE" >
+|   < MINUTES: "MINUTES" >
 |   < MINVALUE: "MINVALUE" >
 |   < MOD: "MOD" >
 |   < MODIFIES: "MODIFIES" >
 |   < MODULE: "MODULE" >
 |   < MONTH: "MONTH" >
+|   < MONTHS: "MONTHS" >
 |   < MORE_: "MORE" >
 |   < MULTISET: "MULTISET" >
 |   < MUMPS: "MUMPS" >
@@ -6920,6 +7138,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < SCROLL: "SCROLL" >
 |   < SEARCH: "SEARCH" >
 |   < SECOND: "SECOND" >
+|   < SECONDS: "SECONDS" >
 |   < SECTION: "SECTION" >
 |   < SECURITY: "SECURITY" >
 |   < SEEK: "SEEK" >
@@ -7056,6 +7275,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < TRIM_ARRAY: "TRIM_ARRAY" >
 |   < TRUE: "TRUE" >
 |   < TRUNCATE: "TRUNCATE" >
+|   < TUMBLE: "TUMBLE" >
 |   < TYPE: "TYPE" >
 |   < UESCAPE: "UESCAPE" >
 |   < UNBOUNDED: "UNBOUNDED" >
@@ -7105,6 +7325,7 @@ SqlPostfixOperator PostfixRowOperator() :
 |   < WRITE: "WRITE" >
 |   < XML: "XML" >
 |   < YEAR: "YEAR" >
+|   < YEARS: "YEARS" >
 |   < ZONE: "ZONE" >
 <#-- additional parser keywords are included here -->
 <#list parser.keywords as keyword>
@@ -7146,7 +7367,7 @@ void NonReservedKeyWord0of3() :
 }
 {
     (
-<#list parser.nonReservedKeywords as keyword>
+<#list parser.nonReservedKeywords + parser.nonReservedKeywordsToAdd as keyword>
 <#if keyword?index == 0>
         <${keyword}>
 <#elseif keyword?index % 3 == 0>
@@ -7162,7 +7383,7 @@ void NonReservedKeyWord1of3() :
 }
 {
     (
-<#list parser.nonReservedKeywords as keyword>
+<#list parser.nonReservedKeywords + parser.nonReservedKeywordsToAdd as keyword>
 <#if keyword?index == 1>
         <${keyword}>
 <#elseif keyword?index % 3 == 1>
@@ -7178,7 +7399,7 @@ void NonReservedKeyWord2of3() :
 }
 {
     (
-<#list parser.nonReservedKeywords as keyword>
+<#list parser.nonReservedKeywords + parser.nonReservedKeywordsToAdd as keyword>
 <#if keyword?index == 2>
         <${keyword}>
 <#elseif keyword?index % 3 == 2>
@@ -7339,6 +7560,12 @@ of the 'normal states'.
 
 /* COMMENTS */
 
+<DEFAULT, DQID, BTID> TOKEN :
+{
+    < HINT_BEG: "/*+" ~["/"] >
+|   < COMMENT_END: "*/" >
+}
+
 <DEFAULT, DQID, BTID> MORE :
 {
     <"/**" ~["/"]> { pushState(); } : IN_FORMAL_COMMENT
@@ -7357,13 +7584,13 @@ of the 'normal states'.
 <IN_FORMAL_COMMENT>
 SPECIAL_TOKEN :
 {
-    <FORMAL_COMMENT: "*/" > { popState(); }
+    <FORMAL_COMMENT: <COMMENT_END> > { popState(); }
 }
 
 <IN_MULTI_LINE_COMMENT>
 SPECIAL_TOKEN :
 {
-    <MULTI_LINE_COMMENT: "*/" > { popState(); }
+    <MULTI_LINE_COMMENT: <COMMENT_END> > { popState(); }
 }
 
 <IN_FORMAL_COMMENT,IN_MULTI_LINE_COMMENT>

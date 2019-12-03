@@ -514,9 +514,13 @@ public class RexUtil {
     }
 
     public Boolean visitCall(RexCall call) {
-      // Constant if operator is deterministic and all operands are
-      // constant.
-      return call.getOperator().isDeterministic()
+      // Constant if operator meets the following conditions:
+      // 1. It is non-dynamic, e.g. it is safe to
+      //    cache query plans referencing this operator;
+      // 2. It is deterministic;
+      // 3. All its operands are constant.
+      return !call.getOperator().isDynamicFunction()
+          && call.getOperator().isDeterministic()
           && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
     }
 
@@ -1865,7 +1869,7 @@ public class RexUtil {
   public static RexNode simplifyOrs(RexBuilder rexBuilder,
       List<RexNode> terms) {
     return new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, EXECUTOR)
-        .simplifyUnknownAs(rexBuilder.makeCall(SqlStdOperatorTable.OR, terms),
+        .simplifyUnknownAs(RexUtil.composeDisjunction(rexBuilder, terms),
             RexUnknownAs.UNKNOWN);
   }
 

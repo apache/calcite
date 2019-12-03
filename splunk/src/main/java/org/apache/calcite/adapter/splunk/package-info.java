@@ -22,9 +22,6 @@
  * "host", "index", "source", "sourcetype". It has a variable type, so other
  * fields are held in a map field called "_others".</p>
  */
-@PackageMarker
 package org.apache.calcite.adapter.splunk;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

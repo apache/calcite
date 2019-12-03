@@ -19,7 +19,6 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
@@ -45,7 +44,9 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.rel.metadata.CyclicMetadataException;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -844,17 +845,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       set = getSet(equivRel);
     }
     final RelSubset subset = registerImpl(rel, set);
-
-    // Checking if tree is valid considerably slows down planning
-    // Only doing it if logger level is debug or finer
-    if (LOGGER.isDebugEnabled()) {
-      assert isValid(Litmus.THROW);
-    }
-
     return subset;
   }
 
   public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
+    RelSubset result;
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
       if (equivRel != null) {
@@ -863,16 +858,29 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           merge(equivSubset.set, subset.set);
         }
       }
-      return subset;
+      result = subset;
     } else {
-      return register(rel, equivRel);
+      result = register(rel, equivRel);
     }
+
+    // Checking if tree is valid considerably slows down planning
+    // Only doing it if logger level is debug or finer
+    if (LOGGER.isDebugEnabled()) {
+      assert isValid(Litmus.THROW);
+    }
+
+    return result;
   }
 
   /**
    * Checks internal consistency.
    */
   protected boolean isValid(Litmus litmus) {
+    if (this.getRoot() == null) {
+      return true;
+    }
+
+    RelMetadataQuery metaQuery = this.getRoot().getCluster().getMetadataQuerySupplier().get();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         return litmus.fail("set [{}] has been merged: it should not be in the list", set);
@@ -880,20 +888,40 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       for (RelSubset subset : set.subsets) {
         if (subset.set != set) {
           return litmus.fail("subset [{}] is in wrong set [{}]",
-              subset.getDescription(), set);
+              subset, set);
         }
 
-        // Make sure best RelNode is valid
-        if (subset.best != null && !subset.set.rels.contains(subset.best)) {
-          return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
-                  subset.getDescription(), subset.best.getDescription());
+        if (subset.best != null) {
+
+          // Make sure best RelNode is valid
+          if (!subset.set.rels.contains(subset.best)) {
+            return litmus.fail("RelSubset [{}] does not contain its best RelNode [{}]",
+                    subset, subset.best);
+          }
+
+          // Make sure bestCost is up-to-date
+          try {
+            RelOptCost bestCost = getCost(subset.best, metaQuery);
+            if (!subset.bestCost.equals(bestCost)) {
+              return litmus.fail("RelSubset [" + subset
+                      + "] has wrong best cost "
+                      + subset.bestCost + ". Correct cost is " + bestCost);
+            }
+          } catch (CyclicMetadataException e) {
+            // ignore
+          }
         }
 
         for (RelNode rel : subset.getRels()) {
-          RelOptCost relCost = getCost(rel, rel.getCluster().getMetadataQuery());
-          if (relCost.isLt(subset.bestCost)) {
-            return litmus.fail("rel [{}] has lower cost {} than best cost {} of subset [{}]",
-                rel.getDescription(), relCost, subset.bestCost, subset.getDescription());
+          try {
+            RelOptCost relCost = getCost(rel, metaQuery);
+            if (relCost.isLt(subset.bestCost)) {
+              return litmus.fail("rel [{}] has lower cost {} than "
+                      + "best cost {} of subset [{}]",
+                      rel, relCost, subset.bestCost, subset);
+            }
+          } catch (CyclicMetadataException e) {
+            // ignore
           }
         }
       }
@@ -1025,16 +1053,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               allowInfiniteCostConverters);
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
-        rel =
-            completeConversion(
-                rel, allowInfiniteCostConverters, toTraits,
-                Expressions.list(traitDef));
-        if (rel != null) {
-          register(rel, converted);
-        }
-      }
-
-      if ((rel == null) && allowAbstractConverters) {
+        register(rel, converted);
+      } else if (allowAbstractConverters) {
         RelTraitSet stepTraits =
             converted.getTraitSet().replace(toTrait);
 
@@ -1050,60 +1070,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     return converted;
-  }
-
-  /**
-   * Converts traits using well-founded induction. We don't require that
-   * each conversion preserves all traits that have previously been converted,
-   * but if it changes "locked in" traits we'll try some other conversion.
-   *
-   * @param rel                         Relational expression
-   * @param allowInfiniteCostConverters Whether to allow infinite converters
-   * @param toTraits                    Target trait set
-   * @param usedTraits                  Traits that have been locked in
-   * @return Converted relational expression
-   */
-  private RelNode completeConversion(
-      RelNode rel,
-      boolean allowInfiniteCostConverters,
-      RelTraitSet toTraits,
-      Expressions.FluentList<RelTraitDef> usedTraits) {
-    if (true) {
-      return rel;
-    }
-    for (RelTrait trait : rel.getTraitSet()) {
-      if (toTraits.contains(trait)) {
-        // We're already a match on this trait type.
-        continue;
-      }
-      final RelTraitDef traitDef = trait.getTraitDef();
-      RelNode rel2 =
-          traitDef.convert(
-              this,
-              rel,
-              toTraits.getTrait(traitDef),
-              allowInfiniteCostConverters);
-
-      // if any of the used traits have been knocked out, we could be
-      // heading for a cycle.
-      for (RelTraitDef usedTrait : usedTraits) {
-        if (!rel2.getTraitSet().contains(usedTrait)) {
-          continue;
-        }
-      }
-      // recursive call, to convert one more trait
-      rel =
-          completeConversion(
-              rel2,
-              allowInfiniteCostConverters,
-              toTraits,
-              usedTraits.append(traitDef));
-      if (rel != null) {
-        return rel;
-      }
-    }
-    assert rel.getTraitSet().equals(toTraits);
-    return rel;
   }
 
   RelNode changeTraitsUsingConverters(
@@ -1147,7 +1113,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @see #normalizePlan(String)
    */
   public void dump(PrintWriter pw) {
-    pw.println("Root: " + root.getDescription());
+    pw.println("Root: " + root);
     pw.println("Original rel:");
 
     if (originalRoot != null) {
@@ -1188,7 +1154,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       for (RelSubset subset : set.subsets) {
         ++j;
         pw.println(
-            "\t" + subset.getDescription() + ", best="
+            "\t" + subset + ", best="
             + ((subset.best == null) ? "null"
                 : ("rel#" + subset.best.getId())) + ", importance="
                 + ruleQueue.getImportance(subset));
@@ -1199,7 +1165,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
         for (RelNode rel : subset.getRels()) {
           // "\t\trel#34:JavaProject(rel#32:JavaFilter(...), ...)"
-          pw.print("\t\t" + rel.getDescription());
+          pw.print("\t\t" + rel);
           for (RelNode input : rel.getInputs()) {
             RelSubset inputSubset =
                 getSubset(
@@ -1257,7 +1223,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         // It can happen due to RelTraitset#simplify
         // If the traits are different, we want to keep them on a graph
         String traits = "." + getSubset(rel).getTraitSet().toString();
-        String title = rel.getDescription().replace(traits, "");
+        String title = rel.toString().replace(traits, "");
         if (title.endsWith(")")) {
           int openParen = title.indexOf('(');
           if (openParen != -1) {
@@ -1292,7 +1258,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         pw.print("\t\tsubset");
         pw.print(subset.getId());
         pw.print(" [label=");
-        Util.printJavaString(pw, subset.getDescription(), false);
+        Util.printJavaString(pw, subset.toString(), false);
         boolean empty = !nonEmptySubsets.contains(subset);
         if (empty) {
           // We don't want to iterate over rels when we know the set is not empty
@@ -1447,9 +1413,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
         final RelSubset equivSubset = getSubset(equivRel);
-        if (subset.best == rel) {
-          subset.best = equivRel;
-          subset.bestCost = getCost(equivRel);
+        for (RelSubset s : subset.set.subsets) {
+          if (s.best == rel) {
+            Set<RelSubset> activeSet = new HashSet<>();
+            s.best = equivRel;
+
+            // Propagate cost improvement since this potentially would change the subset's best cost
+            s.propagateCostImprovements(
+                    this, equivRel.getCluster().getMetadataQuery(),
+                    equivRel, activeSet);
+          }
         }
 
         if (equivSubset != subset) {
@@ -1555,6 +1528,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
       }
     }
+    RelMdUtil.clearCache(rel);
     return changeCount > 0;
   }
 
@@ -1696,7 +1670,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
         LOGGER.trace(
-            "Register: rel#{} is equivalent to {}", rel.getId(), equivExp.getDescription());
+            "Register: rel#{} is equivalent to {}", rel.getId(), equivExp);
         return registerSubset(set, getSubset(equivExp));
       }
     }
@@ -1766,7 +1740,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final RelNode xx = mapDigestToRel.put(key, rel);
     assert xx == null || xx == rel : rel.getDigest();
 
-    LOGGER.trace("Register {} in {}", rel.getDescription(), subset.getDescription());
+    LOGGER.trace("Register {} in {}", rel, subset);
 
     // This relational expression may have been registered while we
     // recursively registered its children. If this is the case, we're done.
@@ -1822,10 +1796,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // improve and the subset doesn't hear about it. You can end up with
     // a subset with a single rel of cost 99 which thinks its best cost is
     // 100. We think this happens because the back-links to parents are
-    // not established. So, give the subset another change to figure out
+    // not established. So, give the subset another chance to figure out
     // its cost.
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
+    try {
+      subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
+    } catch (CyclicMetadataException e) {
+      // ignore
+    }
 
     return subset;
   }

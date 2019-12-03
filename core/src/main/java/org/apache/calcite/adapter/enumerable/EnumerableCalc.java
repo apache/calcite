@@ -136,14 +136,14 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                 Enumerator.class, inputJavaType),
             "inputEnumerator");
     Expression input =
-        RexToLixTranslator.convert(
+        EnumUtils.convert(
             Expressions.call(
                 inputEnumerator,
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
             inputJavaType);
 
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(child);
     final RexSimplify simplify =
         new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR);

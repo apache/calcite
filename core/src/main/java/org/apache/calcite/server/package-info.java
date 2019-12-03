@@ -18,9 +18,6 @@
 /**
  * Provides a server for hosting Calcite connections.
  */
-@PackageMarker
 package org.apache.calcite.server;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

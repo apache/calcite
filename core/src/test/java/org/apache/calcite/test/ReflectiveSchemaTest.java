@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -291,8 +292,8 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(""
-            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
-            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1; bigDecimal=0\n"
+            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; bigDecimal=null\n");
   }
 
   /**
@@ -466,6 +467,8 @@ public class ReflectiveSchemaTest {
       return input.getTime(1);
     case java.sql.Types.TIMESTAMP:
       return input.getTimestamp(1);
+    case java.sql.Types.DECIMAL:
+      return input.getBigDecimal(1);
     default:
       throw new AssertionError(type);
     }
@@ -589,6 +592,14 @@ public class ReflectiveSchemaTest {
         .returns("C=null\n");
   }
 
+  @Test public void testDivideDoubleBigDecimal() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select \"wrapperDouble\" / \"bigDecimal\" as c\n"
+        + " from \"s\".\"everyTypes\"")
+        .runs();
+  }
+
   @Test public void testDivideWraperWrapper() throws Exception {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
@@ -612,8 +623,8 @@ public class ReflectiveSchemaTest {
             "final Long inp13_ = ((org.apache.calcite.test.ReflectiveSchemaTest.EveryType) inputEnumerator.current()).wrapperLong;")
         .planContains(
             "return inp13_ == null ? (Long) null "
-                + ": Long.valueOf(inp13_.longValue() / inp13_.longValue() "
-                + "+ inp13_.longValue() / inp13_.longValue());")
+                + ": Long.valueOf(Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue() "
+                + "+ Long.valueOf(inp13_.longValue() / inp13_.longValue()).longValue());")
         .returns("C=null\n");
   }
 
@@ -807,6 +818,41 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3512">[CALCITE-3512]
+   * Query fails when comparing Time/TimeStamp types</a>. */
+  @Test public void testTimeCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTime\") a,"
+        + "    (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTime\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=00:00:00");
+  }
+
+  @Test public void testTimestampCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTimestamp\") a,"
+        + "    (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTimestamp\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01 00:00:00");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
    * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
   @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {
@@ -863,6 +909,7 @@ public class ReflectiveSchemaTest {
     public final Timestamp sqlTimestamp;
     public final Date utilDate;
     public final String string;
+    public final BigDecimal bigDecimal;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -885,7 +932,8 @@ public class ReflectiveSchemaTest {
         Time sqlTime,
         Timestamp sqlTimestamp,
         Date utilDate,
-        String string) {
+        String string,
+        BigDecimal bigDecimal) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -907,6 +955,7 @@ public class ReflectiveSchemaTest {
       this.sqlTimestamp = sqlTimestamp;
       this.utilDate = utilDate;
       this.string = string;
+      this.bigDecimal = bigDecimal;
     }
 
     static Enumerable<Field> fields() {
@@ -958,13 +1007,13 @@ public class ReflectiveSchemaTest {
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             new java.sql.Date(0), new Time(0), new Timestamp(0),
-            new Date(0), "1"),
+            new Date(0), "1", BigDecimal.ZERO),
         new EveryType(
             true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
             Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
             Double.MAX_VALUE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null, null),
+            null, null, null, null, null, null),
     };
 
     public final AllPrivate[] allPrivates = { new AllPrivate() };

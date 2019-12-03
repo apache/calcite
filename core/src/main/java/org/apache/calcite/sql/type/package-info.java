@@ -18,9 +18,6 @@
 /**
  * SQL type system.
  */
-@PackageMarker
 package org.apache.calcite.sql.type;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

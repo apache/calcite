@@ -17,10 +17,14 @@
 #
 version: '{build}'
 image: Visual Studio 2017
-clone_depth: 10000
+clone_depth: 100
 # Space and plus are here to catch unit tests that fail to support folders with spaces
 clone_folder: C:\projects\calcite +
 # branches to build
+init:
+# We expect that Windows would have CRLF for newlines, so autocrlf=true should be used
+# to automatically convert text files to CRLF on checkout
+  - git config --global core.autocrlf true
 branches:
   # whitelist
   only:
@@ -34,9 +38,8 @@ matrix:
 environment:
   matrix:
     - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-    #- JAVA_HOME: C:\Program Files\Java\jdk9
-    #- JAVA_HOME: C:\Program Files\Java\jdk10
+    - JAVA_HOME: C:\Program Files\Java\jdk13
 build_script:
-  - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Djavax.net.ssl.trustStorePassword=changeit -B -V -Djna.nosys=true
+  - ./gradlew assemble javadoc
 test_script:
-  - mvn -Dcheckstyle.skip -Dsurefire.useFile=false -Dsurefire.threadCount=1 -Dsurefire.perCoreThreadCount=false -Djavax.net.ssl.trustStorePassword=changeit test -Djna.nosys=true
+  - ./gradlew check

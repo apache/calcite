@@ -199,7 +199,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ STREAM ] [ ALL | DISTINCT ]
+      SELECT [ '/*+' hint [, hint]* '*/' ] [ STREAM ] [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
@@ -234,13 +234,24 @@ tableReference:
 tablePrimary:
       [ [ catalogName . ] schemaName . ] tableName
       '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
-  |   tablePrimary [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
+  |   tablePrimary [ '/*+' hint [, hint]* '*/' ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 columnDecl:
       column type [ NOT NULL ]
+
+hint:
+      hintName
+  |   hintName '(' hintOptions ')'
+
+hintOptions:
+      hintKVOption [, hintKVOption]*
+  |   optionName, [, optionName]*
+
+hintKVOption:
+      optionName '=' stringLiteral
 
 values:
       VALUES expression [, expression ]*
@@ -463,6 +474,7 @@ DATABASE,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
 **DAY**,
+DAYS,
 **DEALLOCATE**,
 **DEC**,
 DECADE,
@@ -563,6 +575,7 @@ GRANTED,
 HIERARCHY,
 **HOLD**,
 **HOUR**,
+HOURS,
 **IDENTITY**,
 IGNORE,
 IMMEDIATE,
@@ -651,11 +664,13 @@ MILLISECOND,
 **MIN**,
 **MINUS**,
 **MINUTE**,
+MINUTES,
 MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
 **MONTH**,
+MONTHS,
 MORE,
 **MULTISET**,
 MUMPS,
@@ -810,6 +825,7 @@ SCOPE_SCHEMA,
 **SCROLL**,
 **SEARCH**,
 **SECOND**,
+SECONDS,
 SECTION,
 SECURITY,
 **SEEK**,
@@ -945,6 +961,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+TUMBLE,
 TYPE,
 **UESCAPE**,
 UNBOUNDED,
@@ -994,6 +1011,7 @@ WRAPPER,
 WRITE,
 XML,
 **YEAR**,
+YEARS,
 ZONE.
 {% comment %} end {% endcomment %}
 
@@ -1061,6 +1079,10 @@ Note:
   it will rely on the supplied time zone to provide correct semantics.
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
+* Interval literals may only use time units
+  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
+  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
@@ -1862,9 +1884,9 @@ In the following:
 
 In the "C" (for "compatibility") column, "o" indicates that the function
 implements the OpenGIS Simple Features Implementation Specification for SQL,
-[version 1.2.1](http://www.opengeospatial.org/standards/sfs);
+[version 1.2.1](https://www.opengeospatial.org/standards/sfs);
 "p" indicates that the function is a
-[PostGIS](http://www.postgis.net/docs/reference.html) extension to OpenGIS.
+[PostGIS](https://www.postgis.net/docs/reference.html) extension to OpenGIS.
 
 #### Geometry conversion functions (2D)
 

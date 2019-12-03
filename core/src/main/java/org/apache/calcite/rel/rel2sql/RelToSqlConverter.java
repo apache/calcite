@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
@@ -152,7 +153,8 @@ public class RelToSqlConverter extends SqlImplementor
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
           rightContext,
-          e.getLeft().getRowType().getFieldCount());
+          e.getLeft().getRowType().getFieldCount(),
+          dialect);
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -247,6 +249,30 @@ public class RelToSqlConverter extends SqlImplementor
   private SqlNode castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
     return SqlStdOperatorTable.CAST.createCall(POS,
             sqlNodeNull, dialect.getCastSpec(field.getType()));
+  }
+
+  /** @see #dispatch */
+  public Result visit(Window e) {
+    Result x = visitChild(0, e.getInput());
+    Builder builder = x.builder(e);
+    RelNode input = e.getInput();
+    int inputFieldCount = input.getRowType().getFieldCount();
+    final List<SqlNode> rexOvers = new ArrayList<>();
+    for (Window.Group group: e.groups) {
+      rexOvers.addAll(builder.context.toSql(group, e.constants, inputFieldCount));
+    }
+    final List<SqlNode> selectList = new ArrayList<>();
+
+    for (RelDataTypeField field: input.getRowType().getFieldList()) {
+      addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
+    }
+
+    for (SqlNode rexOver: rexOvers) {
+      addSelect(selectList, rexOver, e.getRowType());
+    }
+
+    builder.setSelect(new SqlNodeList(selectList, POS));
+    return builder.result();
   }
 
   /** @see #dispatch */
@@ -397,16 +423,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(TableScan e) {
-    final SqlIdentifier identifier;
-    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
-    if (jdbcTable != null) {
-      // Use the foreign catalog, schema and table names, if they exist,
-      // rather than the qualified name of the shadow table in Calcite.
-      identifier = jdbcTable.tableName();
-    } else {
-      final List<String> qualifiedName = e.getTable().getQualifiedName();
-      identifier = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
-    }
+    final SqlIdentifier identifier = getSqlTargetTable(e);
     return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
@@ -483,7 +500,7 @@ public class RelToSqlConverter extends SqlImplementor
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
                 getDual(), null, null,
-                null, null, null, null, null));
+                null, null, null, null, null, null));
       }
       if (list.isEmpty()) {
         // In this case we need to construct the following query:
@@ -498,19 +515,19 @@ public class RelToSqlConverter extends SqlImplementor
         if (dual == null) {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS), null, null, null, null,
-              null, null, null, null);
+              null, null, null, null, null);
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
           query = new SqlSelect(POS, null,
               new SqlNodeList(ImmutableList.of(SqlIdentifier.star(POS)), POS),
               as(query, "t"), createAlwaysFalseCondition(), null, null,
-              null, null, null, null);
+              null, null, null, null, null);
         } else {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS),
               dual, createAlwaysFalseCondition(), null,
-              null, null, null, null, null);
+              null, null, null, null, null, null);
         }
       } else if (list.size() == 1) {
         query = list.get(0);
@@ -550,7 +567,7 @@ public class RelToSqlConverter extends SqlImplementor
                 null, query,
                 createAlwaysFalseCondition(),
                 null, null, null,
-                null, null, null);
+                null, null, null, null);
       }
     }
     return result(query, clauses, e, null);
@@ -651,14 +668,28 @@ public class RelToSqlConverter extends SqlImplementor
             fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
+  private SqlIdentifier getSqlTargetTable(RelNode e) {
+    final SqlIdentifier sqlTargetTable;
+    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
+    if (jdbcTable != null) {
+      // Use the foreign catalog, schema and table names, if they exist,
+      // rather than the qualified name of the shadow table in Calcite.
+      sqlTargetTable = jdbcTable.tableName();
+    } else {
+      final List<String> qualifiedName = e.getTable().getQualifiedName();
+      sqlTargetTable = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
+    }
+
+    return sqlTargetTable;
+  }
+
   /** @see #dispatch */
   public Result visit(TableModify modify) {
     final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
 
     // Target Table Name
-    final SqlIdentifier sqlTargetTable =
-        new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+    final SqlIdentifier sqlTargetTable = getSqlTargetTable(modify);
 
     switch (modify.getOperation()) {
     case INSERT: {

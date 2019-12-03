@@ -503,7 +503,9 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     assert typeName != null;
     switch (typeName) {
     case DECIMAL:
-      return type;
+      // Fix the precision when the type is JavaType.
+      return RelDataTypeFactoryImpl.isJavaType(type)
+          ? SqlTypeUtil.getMaxPrecisionScaleDecimal(this) : type;
     case TINYINT:
       return createSqlType(SqlTypeName.DECIMAL, 3, 0);
     case SMALLINT:

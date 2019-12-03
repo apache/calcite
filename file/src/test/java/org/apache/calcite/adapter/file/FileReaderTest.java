@@ -25,14 +25,6 @@ import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,6 +32,13 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.Properties;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Unit tests for FileReader.
@@ -53,18 +52,12 @@ public class FileReaderTest {
       Sources.url(
           "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States");
 
-  /** Converts a path that is relative to the module into a path that is
-   * relative to where the test is running. */
-  public static String file(String s) {
-    if (new File("file").exists()) {
-      return "file/" + s;
-    } else {
-      return s;
-    }
+  private static Source resource(String path) {
+    return Sources.of(FileReaderTest.class.getResource("/" + path));
   }
 
-  private static String resourcePath(String path) throws Exception {
-    return Sources.of(FileReaderTest.class.getResource("/" + path)).file().getAbsolutePath();
+  private static String resourcePath(String path) {
+    return resource(path).file().getAbsolutePath();
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
@@ -134,16 +127,14 @@ public class FileReaderTest {
   /** Tests failed {@link FileReader} instantiation - bad selector. */
   @Test(expected = FileReaderException.class)
   public void testFileReaderBadSelector() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source, "table:eq(1)");
     t.refresh();
   }
 
   /** Test {@link FileReader} with static file - headings. */
   @Test public void testFileReaderHeadings() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
@@ -151,8 +142,7 @@ public class FileReaderTest {
 
   /** Test {@link FileReader} with static file - data. */
   @Test public void testFileReaderData() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -163,8 +153,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with bad static file - headings. */
   @Test public void testFileReaderHeadingsBadFile() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
@@ -172,8 +161,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with bad static file - data. */
   @Test public void testFileReaderDataBadFile() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -184,8 +172,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with no headings static file - data. */
   @Test public void testFileReaderDataNoTh() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTH.html"));
+    final Source source = resource("tableNoTH.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -194,8 +181,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} iterator with static file, */
   @Test public void testFileReaderIterator() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements row = null;
     for (Elements aT : t) {

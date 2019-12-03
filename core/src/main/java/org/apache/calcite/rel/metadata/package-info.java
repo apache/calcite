@@ -19,9 +19,6 @@
  * Defines metadata interfaces and utilities for relational
  * expressions.
  */
-@PackageMarker
 package org.apache.calcite.rel.metadata;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

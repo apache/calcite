@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexExecutorImpl;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSimplify;
@@ -316,6 +317,14 @@ public abstract class RexProgramBuilderBase {
     return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, n1, n2);
   }
 
+  protected RexNode item(RexInputRef inputRef, RexNode literal) {
+    RexNode rexNode = rexBuilder.makeCall(
+        SqlStdOperatorTable.ITEM,
+        inputRef,
+        literal);
+    return rexNode;
+  }
+
   /**
    * Generates {@code x IN (y, z)} expression when called as {@code in(x, y, z)}.
    * @param node left side of the IN expression
@@ -343,11 +352,11 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableVarchar : nonNullableVarchar;
   }
 
-  protected RelDataType tBoolean() {
+  protected RelDataType tBool() {
     return nonNullableBool;
   }
 
-  protected RelDataType tBoolean(boolean nullable) {
+  protected RelDataType tBool(boolean nullable) {
     return nullable ? nullableBool : nonNullableBool;
   }
 

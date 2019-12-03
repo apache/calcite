@@ -27,9 +27,6 @@
  *
  * </ul>
  */
-@PackageMarker
 package org.apache.calcite.rel.stream;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

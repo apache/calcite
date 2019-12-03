@@ -137,7 +137,7 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(19, dataType.getPrecision());
+    Assert.assertEquals(11, dataType.getPrecision());
     Assert.assertEquals(2, dataType.getScale());
   }
 

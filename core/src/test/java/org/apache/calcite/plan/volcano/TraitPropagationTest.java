@@ -110,7 +110,7 @@ public class TraitPropagationTest {
           RelOptUtil.dumpPlan("LOGICAL PLAN", planned, SqlExplainFormat.TEXT,
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = planned.getCluster().getMetadataQuery();
     assertEquals("Sortedness was not propagated", 3,
         mq.getCumulativeCost(planned).getRows(), 0);
   }
@@ -323,7 +323,7 @@ public class TraitPropagationTest {
     public static PhysProj create(final RelNode input,
         final List<RexNode> projects, RelDataType rowType) {
       final RelOptCluster cluster = input.getCluster();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelTraitSet traitSet =
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(

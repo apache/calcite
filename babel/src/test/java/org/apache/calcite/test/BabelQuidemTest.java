@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.test;
 
-import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.materialize.MaterializationService;
@@ -41,7 +39,6 @@ import net.hydromatic.quidem.Command;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +46,6 @@ import org.junit.runners.Parameterized;
 import java.sql.Connection;
 import java.util.Collection;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,7 +54,6 @@ import java.util.regex.Pattern;
  * Unit tests for the Babel SQL parser.
  */
 @RunWith(Parameterized.class)
-@Ignore
 public class BabelQuidemTest extends QuidemTest {
   /** Creates a BabelQuidemTest. Public per {@link Parameterized}. */
   @SuppressWarnings("WeakerAccess")
@@ -100,8 +95,27 @@ public class BabelQuidemTest extends QuidemTest {
         switch (name) {
         case "babel":
           return BabelTest.connect();
+        case "scott-babel":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .connect();
+        case "scott-redshift":
+          return CalciteAssert.that()
+              .with(CalciteAssert.Config.SCOTT)
+              .with(CalciteConnectionProperty.FUN, "standard,postgresql,oracle")
+              .with(CalciteConnectionProperty.PARSER_FACTORY,
+                  SqlBabelParserImpl.class.getName() + "#FACTORY")
+              .with(CalciteConnectionProperty.CONFORMANCE,
+                  SqlConformanceEnum.BABEL)
+              .with(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP, true)
+              .connect();
+        default:
+          return super.connect(name, reference);
         }
-        return super.connect(name, reference);
       }
     };
   }
@@ -130,13 +144,6 @@ public class BabelQuidemTest extends QuidemTest {
             SqlParser.configBuilder()
                 .setParserFactory(SqlBabelParserImpl.FACTORY);
 
-        // use Babel conformance for validation
-        final Properties properties = new Properties();
-        properties.setProperty(CalciteConnectionProperty.CONFORMANCE.name(),
-            SqlConformanceEnum.BABEL.name());
-        final CalciteConnectionConfig connectionConfig =
-            new CalciteConnectionConfigImpl(properties);
-
         // extract named schema from connection and use it in planner
         final CalciteConnection calciteConnection =
             x.connection().unwrap(CalciteConnection.class);
@@ -149,7 +156,7 @@ public class BabelQuidemTest extends QuidemTest {
             Frameworks.newConfigBuilder()
                 .defaultSchema(schema)
                 .parserConfig(parserConfig.build())
-                .context(Contexts.of(connectionConfig));
+                .context(Contexts.of(calciteConnection.config()));
 
         // parse, validate and un-parse
         final Quidem.SqlCommand sqlCommand = x.previousSqlCommand();

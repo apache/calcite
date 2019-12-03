@@ -1473,13 +1473,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final List<RelDataTypeField> fieldList =
         input.getRowType().getFieldList();
     List<Pair<RexNode, String>> projects = new ArrayList<>();
-    for (Ord<RelDataTypeField> field : Ord.zip(fieldList)) {
-      projects.add(
-          Pair.of(
-              (RexNode) relBuilder.getRexBuilder().makeInputRef(
-                  field.e.getType(), field.i),
-              field.e.getName()));
-    }
+    Ord.forEach(fieldList, (field, i) ->
+        projects.add(
+            Pair.of(relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
+                field.getName())));
     projects.addAll(additionalExprs);
     return relBuilder.push(input)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
@@ -1934,7 +1931,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, right,
             rightJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              rightJoinKeys.toString(), right.toString());
+              rightJoinKeys, right);
           return;
         }
 
@@ -2150,7 +2147,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, left,
             correlatedInputRefJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              correlatedJoinKeys.toString(), left.toString());
+              correlatedJoinKeys, left);
           return;
         }
 

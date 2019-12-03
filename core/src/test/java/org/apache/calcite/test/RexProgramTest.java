@@ -17,7 +17,6 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.Strong;
@@ -58,6 +57,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.math.BigDecimal;
@@ -626,6 +626,29 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   }
 
+  @Test public void testItemStrong() {
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+
+    final ImmutableBitSet c0 = ImmutableBitSet.of(0);
+    final RelDataType intArray = typeFactory.createArrayType(intType, -1);
+    RexInputRef inputRef = rexBuilder.makeInputRef(intArray, 0);
+
+    RexNode rexNode = item(inputRef, literal(0));
+
+    assertThat(Strong.isStrong(rexNode), is(true));
+
+    assertThat(Strong.isNull(rexNode, c0), is(true));
+
+    final RelDataType varcharType = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    final RelDataType mapType = typeFactory.createMapType(varcharType, varcharType);
+
+    inputRef = rexBuilder.makeInputRef(mapType, 0);
+    rexNode = item(inputRef, literal("abc"));
+    assertThat(Strong.isStrong(rexNode), is(true));
+
+    assertThat(Strong.isNull(rexNode, c0), is(true));
+  }
+
   @Test public void xAndNotX() {
     checkSimplify2(
         and(vBool(), not(vBool()),
@@ -754,6 +777,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplify(cast(cast(vVarchar(), tInt()), tInt()),
         "CAST(?0.varchar0):INTEGER NOT NULL");
     checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
+  }
+
+  @Ignore("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy:843")
+  @Test public void reproducerFor3457() {
+    // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
+    checkSimplify(
+        eq(
+          unaryMinus(abstractCast(literal(1), tInt(true))),
+          unaryMinus(abstractCast(literal(1), tInt(true)))
+        ),
+        "I've no idea what I'm doing 🐕"
+    );
   }
 
   @Test public void testNoCommonReturnTypeFails() {
@@ -958,7 +993,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
    * to CNF. */
   @Test public void testCnfExponential() {
     // run out of memory if limit is higher than about 20
-    final int limit = CalciteSystemProperty.TEST_SLOW.value() ? 16 : 6;
+    int limit = 16;
     for (int i = 2; i < limit; i++) {
       checkExponentialCnf(i);
     }
@@ -2258,7 +2293,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
   }
 
   @Test public void testRemovalOfNullabilityWideningCast() {
-    RexNode expr = cast(isTrue(vBoolNotNull()), tBoolean(true));
+    RexNode expr = cast(isTrue(vBoolNotNull()), tBool(true));
     assertThat(expr.getType().isNullable(), is(true));
     RexNode result = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
     assertThat(result.getType().isNullable(), is(false));
@@ -2784,6 +2819,21 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     assertThat(expr.isAlwaysTrue(), is(true));
     assertThat(s, is(trueLiteral));
+  }
+
+  @Test public void testSimplifyCastUnaryMinus() {
+    RexNode expr =
+        isNull(ne(unaryMinus(cast(unaryMinus(vIntNotNull(1)), nullable(tInt()))), vIntNotNull(1)));
+    RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
+
+    assertThat(s, is(falseLiteral));
+  }
+
+  @Test public void testSimplifyRangeWithMultiPredicates() {
+    final RexNode ref = input(tInt(), 0);
+    RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
+        ImmutableList.of(gt(ref, literal(1)), le(ref, literal(5))));
+    checkSimplifyFilter(gt(ref, literal(9)), relOptPredicateList, "false");
   }
 }
 

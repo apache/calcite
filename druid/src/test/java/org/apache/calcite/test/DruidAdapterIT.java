@@ -30,7 +30,8 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 import java.sql.DatabaseMetaData;
@@ -38,10 +39,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.druid} package.
@@ -93,8 +95,13 @@ public class DruidAdapterIT {
   private static final String FOODMART_TABLE = "\"foodmart\"";
 
   /** Whether to run this test. */
-  protected boolean enabled() {
+  private static boolean enabled() {
     return CalciteSystemProperty.TEST_DRUID.value();
+  }
+
+  @BeforeAll
+  public static void assumeDruidTestsEnabled() {
+    assumeTrue(enabled(), "Druid tests disabled. Add -Dcalcite.test.druid to enable it");
   }
 
   /**

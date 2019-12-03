@@ -19,11 +19,11 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
-import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
-
 import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
+
+import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;

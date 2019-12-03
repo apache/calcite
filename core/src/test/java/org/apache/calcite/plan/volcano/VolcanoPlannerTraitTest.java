@@ -264,12 +264,12 @@ public class VolcanoPlannerTraitTest {
     RelOptCluster cluster = newCluster(planner);
     NoneTinyLeafRel leaf = new NoneTinyLeafRel(cluster, "noneLeafRel");
     planner.setRoot(leaf);
-    RelOptCost cost = planner.getCost(leaf, RelMetadataQuery.instance());
+    RelOptCost cost = planner.getCost(leaf, cluster.getMetadataQuery());
 
     assertTrue(cost.isInfinite());
 
     planner.setNoneConventionHasInfiniteCost(false);
-    cost = planner.getCost(leaf, RelMetadataQuery.instance());
+    cost = planner.getCost(leaf, cluster.getMetadataQuery());
     assertTrue(!cost.isInfinite());
   }
 
@@ -342,7 +342,7 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = rel.getTraitSet().getTrait(this);
 
       if (conversionMap.containsKey(fromTrait)) {
-        final RelMetadataQuery mq = RelMetadataQuery.instance();
+        final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
         for (Pair<RelTrait, ConverterRule> traitAndRule
             : conversionMap.get(fromTrait)) {
           RelTrait trait = traitAndRule.left;

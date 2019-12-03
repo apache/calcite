@@ -961,6 +961,10 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
     sql = "select t.x from (select 1 as x, 2 as y from sales.^) as t";
     assertComplete(sql, getSalesTables());
+
+    // CALCITE-3474:SqlSimpleParser toke.s equals NullPointerException
+    sql = "select ^ from (select * from sales.emp) as t";
+    assertComplete(sql, getSelectKeywords(), tTable, EMP_COLUMNS, EXPR_KEYWORDS);
   }
 
   @Test public void testSubQueryInWhere() {

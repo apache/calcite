@@ -71,7 +71,8 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[6],
         (SqlNodeList) operands[7],
         operands[8],
-        operands[9]);
+        operands[9],
+        (SqlNodeList) operands[10]);
   }
 
   /**
@@ -104,6 +105,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
+      SqlNodeList hints,
       SqlParserPos pos) {
     return new SqlSelect(
         pos,
@@ -116,7 +118,8 @@ public class SqlSelectOperator extends SqlOperator {
         windowDecls,
         orderBy,
         offset,
-        fetch);
+        fetch,
+        hints);
   }
 
   public <R> void acceptCall(
@@ -139,10 +142,19 @@ public class SqlSelectOperator extends SqlOperator {
     final SqlWriter.Frame selectFrame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("SELECT");
+
+    if (select.hasHints()) {
+      writer.sep("/*+");
+      select.hints.unparse(writer, leftPrec, rightPrec);
+      writer.print("*/");
+      writer.newlineAndIndent();
+    }
+
     for (int i = 0; i < select.keywordList.size(); i++) {
       final SqlNode keyword = select.keywordList.get(i);
       keyword.unparse(writer, 0, 0);
     }
+    writer.topN(select.fetch, select.offset);
     SqlNode selectClause = select.selectList;
     if (selectClause == null) {
       selectClause = SqlIdentifier.star(SqlParserPos.ZERO);

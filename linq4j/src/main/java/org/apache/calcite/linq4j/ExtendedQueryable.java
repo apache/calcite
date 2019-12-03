@@ -188,19 +188,34 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
    */
   Queryable<TSource> except(Enumerable<TSource> enumerable);
 
   /**
    * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  Queryable<TSource> except(Enumerable<TSource> enumerable, boolean all);
+
+  /**
+   * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Queryable<TSource> except(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
 
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Queryable<TSource> except(Enumerable<TSource> enumerable,
+      EqualityComparer<TSource> comparer, boolean all);
   /**
    * Returns the first element of a sequence that
    * satisfies a specified condition.
@@ -324,18 +339,34 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Queryable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates.(Defined by Queryable.)
    */
   Queryable<TSource> intersect(Enumerable<TSource> enumerable);
 
   /**
    * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Queryable.)
+   */
+  Queryable<TSource> intersect(Enumerable<TSource> enumerable, boolean all);
+
+  /**
+   * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Queryable<TSource> intersect(Enumerable<TSource> enumerable,
       EqualityComparer<TSource> comparer);
+
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Queryable<TSource> intersect(Enumerable<TSource> enumerable,
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Correlates the elements of two sequences based on

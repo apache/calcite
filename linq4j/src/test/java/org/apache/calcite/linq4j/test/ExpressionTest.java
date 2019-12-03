@@ -35,6 +35,8 @@ import org.apache.calcite.linq4j.tree.Types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.junit.Test;
 
@@ -47,9 +49,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
@@ -450,7 +455,7 @@ public class ExpressionTest {
                 Expressions.constant(4L, Long.class))));
 
     assertEquals(
-        "new java.math.BigDecimal(31415926L, 7)",
+        "java.math.BigDecimal.valueOf(31415926L, 7)",
         Expressions.toString(
             Expressions.constant(
                 BigDecimal.valueOf(314159260, 8))));
@@ -1247,12 +1252,27 @@ public class ExpressionTest {
             + "    104L,\n"
             + "    105.0F,\n"
             + "    106.0D,\n"
-            + "    new java.math.BigDecimal(107L),\n"
+            + "    java.math.BigDecimal.valueOf(107L),\n"
             + "    new java.math.BigInteger(\"108\"),\n"
             + "    \"109\",\n"
             + "    null)}",
         constant.toString());
     constant.accept(new Shuttle());
+  }
+
+  @Test public void testBigDecimalConstantExpression() {
+    assertEquals("java.math.BigDecimal.valueOf(104L)",
+        Expressions.toString(Expressions.constant("104", BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1L, -3)",
+        Expressions.toString(Expressions.constant("1000", BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1L, -3)",
+        Expressions.toString(Expressions.constant(1000, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(107L)",
+        Expressions.toString(Expressions.constant(107, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(199999999999999L)",
+        Expressions.toString(Expressions.constant(199999999999999L, BigDecimal.class)));
+    assertEquals("java.math.BigDecimal.valueOf(1234L, 2)",
+        Expressions.toString(Expressions.constant(12.34, BigDecimal.class)));
   }
 
   @Test public void testClassDecl() {
@@ -1454,12 +1474,12 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(Arrays.asList())));
   }
 
-  @Test public void testEneElementListLiteral() throws Exception {
+  @Test public void testOneElementListLiteral() throws Exception {
     assertEquals("java.util.Arrays.asList(1)",
         Expressions.toString(Expressions.constant(Arrays.asList(1))));
   }
 
-  @Test public void testTwoElementListLiteral() throws Exception {
+  @Test public void testTwoElementsListLiteral() throws Exception {
     assertEquals("java.util.Arrays.asList(1,\n"
             + "  2)",
         Expressions.toString(Expressions.constant(Arrays.asList(1, 2))));
@@ -1485,13 +1505,13 @@ public class ExpressionTest {
         Expressions.toString(Expressions.constant(Collections.singletonMap("abc", 42))));
   }
 
-  @Test public void testTwoElementMapLiteral() throws Exception {
+  @Test public void testTwoElementsMapLiteral() throws Exception {
     assertEquals("com.google.common.collect.ImmutableMap.of(\"abc\", 42,\n"
             + "\"def\", 43)",
         Expressions.toString(Expressions.constant(ImmutableMap.of("abc", 42, "def", 43))));
   }
 
-  @Test public void testTenElementMapLiteral() throws Exception {
+  @Test public void testTenElementsMapLiteral() throws Exception {
     Map<String, String> map = new LinkedHashMap<>(); // for consistent output
     for (int i = 0; i < 10; i++) {
       map.put("key_" + i, "value_" + i);
@@ -1513,6 +1533,75 @@ public class ExpressionTest {
     Expression x = Expressions.add(ONE, TWO);
     Object value = Expressions.evaluate(x);
     assertThat(value, is(3));
+  }
+
+  @Test public void testEmptySetLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableSet.of()",
+        Expressions.toString(Expressions.constant(new HashSet())));
+  }
+
+  @Test public void testOneElementSetLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableSet.of(1)",
+        Expressions.toString(Expressions.constant(Sets.newHashSet(1))));
+  }
+
+  @Test public void testTwoElementsSetLiteral() throws Exception {
+    assertEquals("com.google.common.collect.ImmutableSet.of(1,2)",
+        Expressions.toString(Expressions.constant(ImmutableSet.of(1, 2))));
+  }
+
+  @Test public void testTenElementsSetLiteral() throws Exception {
+    Set set = new LinkedHashSet(); // for consistent output
+    for (int i = 0; i < 10; i++) {
+      set.add(i);
+    }
+    assertEquals("com.google.common.collect.ImmutableSet.builder().add(0)\n"
+            + ".add(1)\n"
+            + ".add(2)\n"
+            + ".add(3)\n"
+            + ".add(4)\n"
+            + ".add(5)\n"
+            + ".add(6)\n"
+            + ".add(7)\n"
+            + ".add(8)\n"
+            + ".add(9).build()",
+        Expressions.toString(Expressions.constant(set)));
+  }
+
+  @Test public void testTenElementsLinkedHashSetLiteral() throws Exception {
+    Set set = new LinkedHashSet(); // for consistent output
+    for (Integer i = 0; i < 10; i++) {
+      set.add(i);
+    }
+    assertEquals("com.google.common.collect.ImmutableSet.builder().add(0)\n"
+            + ".add(1)\n"
+            + ".add(2)\n"
+            + ".add(3)\n"
+            + ".add(4)\n"
+            + ".add(5)\n"
+            + ".add(6)\n"
+            + ".add(7)\n"
+            + ".add(8)\n"
+            + ".add(9).build()",
+        Expressions.toString(Expressions.constant(set)));
+  }
+
+  @Test public void testTenElementsSetStringLiteral() throws Exception {
+    Set set = new LinkedHashSet(); // for consistent output
+    for (int i = 10; i > 0; i--) {
+      set.add(String.valueOf(i));
+    }
+    assertEquals("com.google.common.collect.ImmutableSet.builder().add(\"10\")\n"
+            + ".add(\"9\")\n"
+            + ".add(\"8\")\n"
+            + ".add(\"7\")\n"
+            + ".add(\"6\")\n"
+            + ".add(\"5\")\n"
+            + ".add(\"4\")\n"
+            + ".add(\"3\")\n"
+            + ".add(\"2\")\n"
+            + ".add(\"1\").build()",
+        Expressions.toString(Expressions.constant(set)));
   }
 
   /** An enum. */

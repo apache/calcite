@@ -150,9 +150,8 @@ public class BabelParserTest extends SqlParserTest {
    * Optimize global LOOKAHEAD for SQL parsers</a>
    */
   @Test public void testCaseExpressionBabel() {
-    checkFails(
-        "case x when 2, 4 then 3 ^when^ then 5 else 4 end",
-        "(?s)Encountered \"when then\" at .*");
+    sql("case x when 2, 4 then 3 ^when^ then 5 else 4 end")
+        .fails("(?s)Encountered \"when then\" at .*");
   }
 
   /** In Redshift, DATE is a function. It requires special treatment in the

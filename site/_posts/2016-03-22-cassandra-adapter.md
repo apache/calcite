@@ -24,7 +24,7 @@ limitations under the License.
 -->
 
 A new Apache Calcite adapter allows you to access
-[Apache Cassandra](http://cassandra.apache.org/) via industry-standard SQL.
+[Apache Cassandra](https://cassandra.apache.org/) via industry-standard SQL.
 
 You can map a Cassandra keyspace into Calcite as a schema, Cassandra
 CQL tables as tables, and execute SQL queries on them, which Calcite

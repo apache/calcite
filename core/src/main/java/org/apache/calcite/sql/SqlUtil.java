@@ -19,6 +19,10 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
@@ -315,6 +319,7 @@ public abstract class SqlUtil {
 
   /**
    * Unparse a SqlIdentifier syntax.
+   *
    * @param writer       Writer
    * @param identifier   SqlIdentifier
    * @param asFunctionID Whether this identifier comes from a SqlFunction
@@ -970,6 +975,65 @@ public abstract class SqlUtil {
       //noinspection unchecked
       return (ImmutableList<SqlNode>) e.getNode();
     }
+  }
+
+  /**
+   * Returns an immutable list of {@link RelHint} from sql hints, with a given
+   * inherit path from the root node.
+   *
+   * <p>The inherit path would be empty list.
+   *
+   * @param hintStrategies The hint strategies to validate the sql hints
+   * @param sqlHints       The sql hints nodes
+   * @return the {@code RelHint} list
+   */
+  public static List<RelHint> getRelHint(HintStrategyTable hintStrategies, SqlNodeList sqlHints) {
+    final List<RelHint> relHints = new ArrayList<>();
+    if (sqlHints == null || sqlHints.size() == 0) {
+      return relHints;
+    }
+    for (SqlNode node : sqlHints) {
+      assert node instanceof SqlHint;
+      final SqlHint sqlHint = (SqlHint) node;
+      final String hintName = sqlHint.getName();
+      final List<Integer> inheritPath = new ArrayList<>();
+      hintStrategies.validateHint(hintName);
+      RelHint relHint;
+      switch (sqlHint.getOptionFormat()) {
+      case EMPTY:
+        relHint = RelHint.of(inheritPath, hintName);
+        break;
+      case ID_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionList());
+        break;
+      case KV_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionKVPairs());
+        break;
+      default:
+        throw new AssertionError("Unexpected hint option format");
+      }
+      relHints.add(relHint);
+    }
+    return ImmutableList.copyOf(relHints);
+  }
+
+  /**
+   * Attach the {@code hints} to {@code rel} with specified hint strategies.
+   *
+   * @param hintStrategies The strategies to filter the hints
+   * @param hints          The original hints to be attached
+   * @return A copy of {@code rel} if there are any hints can be attached given
+   * the hint strategies, or the original node if such hints don't exist
+   */
+  public static RelNode attachRelHint(
+      HintStrategyTable hintStrategies,
+      List<RelHint> hints,
+      Hintable rel) {
+    final List<RelHint> relHints = hintStrategies.apply(hints, (RelNode) rel);
+    if (relHints.size() > 0) {
+      return rel.attachHints(relHints);
+    }
+    return (RelNode) rel;
   }
 
   //~ Inner Classes ----------------------------------------------------------

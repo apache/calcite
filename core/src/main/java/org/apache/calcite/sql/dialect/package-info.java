@@ -18,9 +18,6 @@
 /**
  * SQL unparsers for JDBC dialects.
  */
-@PackageMarker
 package org.apache.calcite.sql.dialect;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

@@ -16,13 +16,16 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -32,6 +35,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Permutation;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -224,6 +229,23 @@ public class RexProgram {
     return programBuilder.getProgram();
   }
 
+  /**
+   * Create a program from serialized output.
+   * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
+   */
+  public static RexProgram create(RelInput input) {
+    final List<RexNode> exprs = input.getExpressionList("exprs");
+    final List<RexNode> projectRexNodes = input.getExpressionList("projects");
+    final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
+    for (RexNode rexNode: projectRexNodes) {
+      projects.add((RexLocalRef) rexNode);
+    }
+    final RelDataType inputType = input.getRowType("inputRowType");
+    final RelDataType outputType = input.getRowType("outputRowType");
+    final RexLocalRef condition = (RexLocalRef) input.getExpression("condition");
+    return new RexProgram(inputType, exprs, projects, condition, outputType);
+  }
+
   // description of this calc, chiefly intended for debugging
   public String toString() {
     // Intended to produce similar output to explainCalc,
@@ -241,7 +263,16 @@ public class RexProgram {
    * @param pw Plan writer
    */
   public RelWriter explainCalc(RelWriter pw) {
-    return collectExplainTerms("", pw, pw.getDetailLevel());
+    if (pw instanceof RelJsonWriter) {
+      return pw
+          .item("exprs", exprs)
+          .item("projects", projects)
+          .item("condition", condition)
+          .item("inputRowType", inputRowType)
+          .item("outputRowType", outputRowType);
+    } else {
+      return collectExplainTerms("", pw, pw.getDetailLevel());
+    }
   }
 
   public RelWriter collectExplainTerms(
@@ -791,6 +822,31 @@ public class RexProgram {
     return normalize(rexBuilder, simplify
         ? new RexSimplify(rexBuilder, predicates, RexUtil.EXECUTOR)
         : null);
+  }
+
+  /**
+   * Returns a partial mapping of a set of project expressions.
+   *
+   * <p>The mapping is an inverse function.
+   * Every target has a source field, but
+   * a source might have 0, 1 or more targets.
+   * Project expressions that do not consist of
+   * a mapping are ignored.
+   *
+   * @param inputFieldCount Number of input fields
+   * @return Mapping of a set of project expressions, never null
+   */
+  public Mappings.TargetMapping getPartialMapping(int inputFieldCount) {
+    Mappings.TargetMapping mapping =
+        Mappings.create(MappingType.INVERSE_FUNCTION,
+            inputFieldCount, projects.size());
+    for (Ord<RexLocalRef> exp : Ord.zip(projects)) {
+      RexNode rexNode = expandLocalRef(exp.e);
+      if (rexNode instanceof RexInputRef) {
+        mapping.set(((RexInputRef) rexNode).getIndex(), exp.i);
+      }
+    }
+    return mapping;
   }
 
   //~ Inner Classes ----------------------------------------------------------

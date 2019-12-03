@@ -18,4 +18,3 @@ limitations under the License.
 -->
 
 ##Apache Geode SQL/JBC Adapter
-

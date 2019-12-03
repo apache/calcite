@@ -17,12 +17,14 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 /**
  * An implementation of {@link InitializerExpressionFactory} that always supplies NULL.
@@ -57,6 +59,10 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     final RelDataType fieldType =
         table.getRowType().getFieldList().get(iColumn).getType();
     return context.getRexBuilder().makeNullLiteral(fieldType);
+  }
+
+  public BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
+    return null;
   }
 
   public RexNode newAttributeInitializer(RelDataType type,

@@ -560,6 +560,9 @@ public interface CalciteResource {
   @BaseMessage("Statement preparation aborted")
   ExInst<CalciteException> preparationAborted();
 
+  @BaseMessage("Warning: use of non-standard feature ''{0}''")
+  ExInst<CalciteException> nonStandardFeatureUsed(String feature);
+
   @BaseMessage("SELECT DISTINCT not supported")
   @Property(name = "FeatureDefinition", value = "SQL:2003 Part 2 Annex F")
   Feature sQLFeature_E051_01();
@@ -787,6 +790,9 @@ public interface CalciteResource {
 
   @BaseMessage("Type ''{0}'' not found")
   ExInst<SqlValidatorException> typeNotFound(String name);
+
+  @BaseMessage("Function ''{0}'' not found")
+  ExInst<SqlValidatorException> functionNotFound(String name);
 
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);

@@ -18,9 +18,6 @@
 /**
  * Support for algebraic maps.
  */
-@PackageMarker
 package org.apache.calcite.util.mapping;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

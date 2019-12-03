@@ -18,9 +18,6 @@
 /**
  * Tests for functions.
  */
-@PackageMarker
 package org.apache.calcite.linq4j.function;
-
-import org.apache.calcite.linq4j.PackageMarker;
 
 // End package-info.java

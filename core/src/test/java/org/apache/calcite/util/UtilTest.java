@@ -87,6 +87,7 @@ import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.ObjIntConsumer;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -1885,6 +1886,22 @@ public class UtilTest {
     assertThat(reverse.hasNext(), is(true));
     assertThat(reverse.next().e, is("a"));
     assertThat(reverse.hasNext(), is(false));
+  }
+
+  /** Tests {@link Ord#forEach(Iterable, ObjIntConsumer)}. */
+  @Test public void testOrdForEach() {
+    final String[] strings = {"ab", "", "cde"};
+    final StringBuilder b = new StringBuilder();
+    final String expected = "0:ab;1:;2:cde;";
+
+    Ord.forEach(strings,
+        (e, i) -> b.append(i).append(":").append(e).append(";"));
+    assertThat(b.toString(), is(expected));
+    b.setLength(0);
+
+    final List<String> list = Arrays.asList(strings);
+    Ord.forEach(list, (e, i) -> b.append(i).append(":").append(e).append(";"));
+    assertThat(b.toString(), is(expected));
   }
 
   /** Tests {@link org.apache.calcite.util.ReflectUtil#getParameterName}. */

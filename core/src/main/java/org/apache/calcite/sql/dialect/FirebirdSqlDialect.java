@@ -22,9 +22,10 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Firebird database.
  */
 public class FirebirdSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new FirebirdSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.FIREBIRD));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.FIREBIRD);
+
+  public static final SqlDialect DEFAULT = new FirebirdSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a FirebirdSqlDialect. */
   public FirebirdSqlDialect(Context context) {

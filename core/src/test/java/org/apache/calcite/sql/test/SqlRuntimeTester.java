@@ -20,18 +20,27 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import java.util.function.UnaryOperator;
+
 import static org.junit.Assert.assertNotNull;
 
 /**
  * Tester of {@link SqlValidator} and runtime execution of the input SQL.
  */
 public class SqlRuntimeTester extends AbstractSqlTester {
-  public SqlRuntimeTester(SqlTestFactory factory) {
-    super(factory);
+  public SqlRuntimeTester(SqlTestFactory factory,
+      UnaryOperator<SqlValidator> validatorTransform) {
+    super(factory, validatorTransform);
   }
 
   @Override protected SqlTester with(SqlTestFactory factory) {
-    return new SqlRuntimeTester(factory);
+    return new SqlRuntimeTester(factory, validatorTransform);
+  }
+
+  public SqlTester withValidatorTransform(
+      UnaryOperator<UnaryOperator<SqlValidator>> transform) {
+    return new SqlRuntimeTester(factory,
+        transform.apply(validatorTransform));
   }
 
   @Override public void checkFails(String expression, String expectedError,

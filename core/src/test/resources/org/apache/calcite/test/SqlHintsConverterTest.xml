@@ -1,0 +1,177 @@
+<?xml version="1.0" ?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<Root>
+    <TestCase name="testNestedQueryHint">
+        <Resource name="sql">
+            <![CDATA[select /*+ resource(parallelism='3') */ empno
+from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testQueryHint">
+        <Resource name="sql">
+            <![CDATA[select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */ *
+from emp e1
+inner join dept d1 on e1.deptno = d1.deptno
+inner join emp e2 on e1.ename = e2.job]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0] options:[ENAME]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1] options:[ENAME]]]
+TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 1, 0] options:[ENAME]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHintsInSubQueryWithDecorrelation">
+        <Resource name="sql">
+            <![CDATA[select /*+ resource(parallelism='3') */
+sum(e1.empno) from emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.sal> (
+select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHintsInSubQueryWithoutDecorrelation">
+        <Resource name="sql">
+            <![CDATA[select /*+ resource(parallelism='3') */
+sum(e1.empno) from emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.sal> (
+select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.deptno)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTwoLevelNestedQueryHint">
+        <Resource name="sql">
+            <![CDATA[select /*+ resource(parallelism='3'), no_hash_join */ empno
+from (select /*+ resource(mem='20Mb')*/ empno, ename
+from emp left join dept on emp.deptno = dept.deptno)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [NO_HASH_JOIN inheritPath:[]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testThreeLevelNestedQueryHint">
+        <Resource name="sql">
+            <![CDATA[select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */
+e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno
+join emp e2 on d1.name = e2.job]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[INDEX inheritPath:[] options:[IDX1]], [NO_HASH_JOIN inheritPath:[]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 0, 0] options:[IDX1]]]
+TableScan:[[INDEX inheritPath:[] options:[DEPTNO]], [INDEX inheritPath:[0, 0, 1] options:[IDX1]]]
+TableScan:[[INDEX inheritPath:[0, 1] options:[IDX1]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testFourLevelNestedQueryHint">
+        <Resource name="sql">
+            <![CDATA[select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */
+e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join
+(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[INDEX inheritPath:[] options:[IDX1]], [NO_HASH_JOIN inheritPath:[]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 0, 0] options:[IDX1]]]
+TableScan:[[INDEX inheritPath:[] options:[DEPTNO]], [INDEX inheritPath:[0, 0, 1] options:[IDX1]]]
+TableScan:[[INDEX inheritPath:[] options:[EMPNO]], [INDEX inheritPath:[0, 1, 0, 0] options:[IDX1]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableHintsInJoin">
+        <Resource name="sql">
+            <![CDATA[select
+ename, job, sal, dept.name
+from emp /*+ index(idx1, idx2) */
+join dept /*+ properties(k1='v1', k2='v2') */
+on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+TableScan:[[INDEX inheritPath:[] options:[IDX1, IDX2]]]
+TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSameHintsWithDifferentInheritPath">
+        <Resource name="sql">
+            <![CDATA[select /*+ properties(k1='v1', k2='v2') */
+ename, job, sal, dept.name
+from emp /*+ index(idx1, idx2) */
+join dept /*+ properties(k1='v1', k2='v2') */
+on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}]]
+TableScan:[[INDEX inheritPath:[] options:[IDX1, IDX2]], [PROPERTIES inheritPath:[0, 0] options:{K1=v1, K2=v2}]]
+TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [PROPERTIES inheritPath:[0, 1] options:{K1=v1, K2=v2}]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableHintsInSelect">
+        <Resource name="sql">
+            <![CDATA[select * from emp /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+TableScan:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinHintRequiresSpecificInputs">
+        <Resource name="sql">
+            <![CDATA[select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */
+ename, job, sal, dept.name
+from emp join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[USE_HASH_JOIN inheritPath:[] options:[R, S]], [USE_HASH_JOIN inheritPath:[] options:[EMP, DEPT]]]
+LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
+]]>
+        </Resource>
+    </TestCase>
+</Root>

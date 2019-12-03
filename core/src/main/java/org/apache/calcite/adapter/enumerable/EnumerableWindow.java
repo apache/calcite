@@ -266,7 +266,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       final Expression row_ =
           builder4.append(
               "row",
-              RexToLixTranslator.convert(
+              EnumUtils.convert(
                   Expressions.arrayIndex(rows_, i_),
                   inputPhysType.getJavaRowType()));
 
@@ -600,7 +600,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       public Expression getRow(Expression rowIndex) {
         return block.append(
             "jRow",
-            RexToLixTranslator.convert(
+            EnumUtils.convert(
                 Expressions.arrayIndex(rows_, rowIndex),
                 inputPhysType.getJavaRowType()));
       }
@@ -891,7 +891,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
           });
       // Several count(a) and count(b) might share the result
       Expression aggRes = builder.append("a" + agg.aggIdx + "res",
-          RexToLixTranslator.convert(res, agg.result.getType()));
+          EnumUtils.convert(res, agg.result.getType()));
       builder.add(
           Expressions.statement(Expressions.assign(agg.result, aggRes)));
     }
@@ -916,7 +916,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
       Expression offs = translator.translate(node);
       // Floating offset does not make sense since we refer to array index.
       // Nulls do not make sense as well.
-      offs = RexToLixTranslator.convert(offs, int.class);
+      offs = EnumUtils.convert(offs, int.class);
 
       Expression b = i_;
       if (bound.isFollowing()) {

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.java;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
@@ -26,7 +27,6 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -167,13 +167,13 @@ public class ReflectiveSchema
   /** Returns an expression for the object wrapped by this schema (not the
    * schema itself). */
   Expression getTargetExpression(SchemaPlus parentSchema, String name) {
-    return Types.castIfNecessary(
-        target.getClass(),
+    return EnumUtils.convert(
         Expressions.call(
             Schemas.unwrap(
                 getExpression(parentSchema, name),
                 ReflectiveSchema.class),
-            BuiltInMethod.REFLECTIVE_SCHEMA_GET_TARGET.method));
+            BuiltInMethod.REFLECTIVE_SCHEMA_GET_TARGET.method),
+        target.getClass());
   }
 
   /** Returns a table based on a particular field of this schema. If the

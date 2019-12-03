@@ -19,9 +19,6 @@
  * Provides a heuristic planner implementation for the interfaces in
  * {@link org.apache.calcite.plan}.
  */
-@PackageMarker
 package org.apache.calcite.plan.hep;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

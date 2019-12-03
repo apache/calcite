@@ -57,7 +57,7 @@
   apacheId: danny0405
   githubId: danny0405
   org: Alibaba
-  role: Committer
+  role: PMC
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -77,7 +77,7 @@
   apacheId: hyuan
   githubId: hsyuan
   org: Alibaba
-  role: Committer
+  role: PMC
 - name: Hongze Zhang
   apacheId: hongze
   githubId: zhztheplayer
@@ -118,6 +118,11 @@
   githubId: joshelser
   org: Hortonworks
   role: PMC
+- name: Julian Feinauer
+  apacheId: jfeinauer
+  githubId: JulianFeinauer
+  org: Pragmatic Minds
+  role: Committer
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
@@ -160,6 +165,11 @@
   apacheId: minji
   githubId: minji-kim
   org: Oracle
+  role: Committer
+- name: Muhammad Gelbana
+  apacheId: mgelbana
+  githubId: MGelbana
+  org: Incorta
   role: Committer
 - name: Nick Dimiduk
   apacheId: ndimiduk

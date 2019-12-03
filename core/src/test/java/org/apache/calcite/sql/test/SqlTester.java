@@ -24,10 +24,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.SqlValidatorTestCase;
 
 import java.sql.ResultSet;
+import java.util.function.UnaryOperator;
 
 /**
  * SqlTester defines a callback for testing SQL queries and expressions.
@@ -81,12 +83,21 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
   /** Returns a tester that tests with implicit type coercion on/off. */
   SqlTester enableTypeCoercion(boolean enabled);
 
+  /** Returns a tester that does not fail validation if it encounters an
+   * unknown function. */
+  SqlTester withLenientOperatorLookup(boolean lenient);
+
   /** Returns a tester that gets connections from a given factory. */
   SqlTester withConnectionFactory(
       CalciteAssert.ConnectionFactory connectionFactory);
 
   /** Returns a tester that uses a given operator table. */
   SqlTester withOperatorTable(SqlOperatorTable operatorTable);
+
+  /** Returns a tester that applies the given transform to a validator before
+   * using it. */
+  SqlTester withValidatorTransform(UnaryOperator<UnaryOperator<SqlValidator>>
+      transform);
 
   /**
    * Tests that a scalar SQL expression returns the expected result and the

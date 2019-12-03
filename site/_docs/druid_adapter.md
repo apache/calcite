@@ -22,13 +22,13 @@ limitations under the License.
 {% endcomment %}
 -->
 
-[Druid](http://druid.io/) is a fast column-oriented distributed data
+[Druid](https://druid.io/) is a fast column-oriented distributed data
 store. It allows you to execute queries via a
-[JSON-based query language](http://druid.io/docs/0.9.2/querying/querying.html),
+[JSON-based query language](https://druid.io/docs/0.9.2/querying/querying.html),
 in particular OLAP-style queries.
 Druid can be loaded in batch mode or continuously; one of Druid's key
 differentiators is its ability to
-[load from a streaming source such as Kafka](http://druid.io/docs/0.9.2/ingestion/stream-ingestion.html)
+[load from a streaming source such as Kafka](https://druid.io/docs/0.9.2/ingestion/stream-ingestion.html)
 and have the data available for query within milliseconds.
 
 Calcite's Druid adapter allows you to query the data using SQL,
@@ -226,7 +226,7 @@ but with `dimensions`, `metrics` and `timestampColumn` removed:
 {% endhighlight %}
 
 Calcite dispatches a
-[segmentMetadataQuery](http://druid.io/docs/latest/querying/segmentmetadataquery.html)
+[segmentMetadataQuery](https://druid.io/docs/latest/querying/segmentmetadataquery.html)
 to Druid to discover the columns of the table.
 Now, let's take out the `tables` element:
 
@@ -249,7 +249,7 @@ Now, let's take out the `tables` element:
 {% endhighlight %}
 
 Calcite discovers the "wikiticker" data source via the
-[/druid/coordinator/v1/metadata/datasources](http://druid.io/docs/latest/design/coordinator.html#metadata-store-information)
+[/druid/coordinator/v1/metadata/datasources](https://druid.io/docs/latest/design/coordinator.html#metadata-store-information)
 REST call. Now that the "wiki" table element is removed, the table is called
 "wikiticker". Any other data sources present in Druid will also appear as
 tables.

@@ -25,7 +25,6 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcRules;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -41,12 +40,14 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
@@ -87,8 +88,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -132,11 +135,13 @@ public class PlannerTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test(expected = SqlParseException.class)
-  public void testParseIdentiferMaxLengthWithDefault() throws Exception {
-    Planner planner = getPlanner(null, SqlParser.configBuilder().build());
-    planner.parse("select name as "
-        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
+  @Test
+  public void testParseIdentiferMaxLengthWithDefault() {
+    Assertions.assertThrows(SqlParseException.class, () -> {
+      Planner planner = getPlanner(null, SqlParser.configBuilder().build());
+      planner.parse("select name as "
+          + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
+    });
   }
 
   @Test
@@ -284,7 +289,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode rel = planner.rel(validate).project();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     final String buf = predicates.pulledUpPredicates.toString();
     assertThat(buf, equalTo(expectedPredicates));
@@ -415,7 +420,7 @@ public class PlannerTest {
         plan, extraRules);
   }
 
-  @Ignore("[CALCITE-2773] java.lang.AssertionError: rel"
+  @Disabled("[CALCITE-2773] java.lang.AssertionError: rel"
       + " [rel#69:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#78,input#1=RelSubset#71,all=true)]"
       + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io} than best cost {5.0 rows, 5.0 cpu, 0.0 io}"
       + " of subset [rel#67:Subset#6.ENUMERABLE.[]]")
@@ -471,7 +476,7 @@ public class PlannerTest {
         toString(transform), equalTo(plan));
   }
 
-  @Ignore("[CALCITE-2773] java.lang.AssertionError: rel"
+  @Disabled("[CALCITE-2773] java.lang.AssertionError: rel"
       + " [rel#17:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#26,input#1=RelSubset#19,all=true)]"
       + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io}"
       + " than best cost {5.0 rows, 5.0 cpu, 0.0 io} of subset [rel#15:Subset#5.ENUMERABLE.[]]")
@@ -876,9 +881,29 @@ public class PlannerTest {
             + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
   }
 
-  /** Unit test that plans a query with a large number of joins. */
-  @Test public void testPlanNWayJoin()
+  @Test public void testPlan5WayJoin()
       throws Exception {
+    checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
+  }
+
+  @Test public void testPlan9WayJoin()
+      throws Exception {
+    checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
+  }
+
+  @Test public void testPlan35WayJoin()
+      throws Exception {
+    checkJoinNWay(35); // takes about 2s
+  }
+
+  @Tag("slow")
+  @Test public void testPlan60WayJoin()
+      throws Exception {
+    checkJoinNWay(60); // takes about 15s
+  }
+
+  /** Test that plans a query with a large number of joins. */
+  private void checkJoinNWay(int n) throws Exception {
     // Here the times before and after enabling LoptOptimizeJoinRule.
     //
     // Note the jump between N=6 and N=7; LoptOptimizeJoinRule is disabled if
@@ -897,15 +922,6 @@ public class PlannerTest {
     //      13 OOM              96
     //      35 OOM           1,716
     //      60 OOM          12,230
-    checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
-    checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
-    checkJoinNWay(35); // takes about 2s
-    if (CalciteSystemProperty.TEST_SLOW.value()) {
-      checkJoinNWay(60); // takes about 15s
-    }
-  }
-
-  private void checkJoinNWay(int n) throws Exception {
     final StringBuilder buf = new StringBuilder();
     buf.append("select *");
     for (int i = 0; i < n; i++) {
@@ -1349,6 +1365,57 @@ public class PlannerTest {
                 RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3376">[CALCITE-3376]
+   * VolcanoPlanner CannotPlanException: best rel is null even though there is
+   * an option with non-infinite cost</a>. */
+  @Test public void testCorrelatedJoinWithIdenticalInputs() throws Exception {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    final RuleSet ruleSet =
+        RuleSets.ofList(
+            JoinToCorrelateRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+
+    builder
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .join(
+            JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "EMPNO")));
+
+    final RelNode relNode = builder.build();
+    final RelOptPlanner planner = relNode.getCluster().getPlanner();
+    final Program program = Programs.of(ruleSet);
+    final RelTraitSet toTraits = relNode.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    final RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+    final String plan = toString(output);
+    assertThat(plan,
+        equalTo(
+            "EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+            + "    EnumerableUnion(all=[true])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testView() throws Exception {

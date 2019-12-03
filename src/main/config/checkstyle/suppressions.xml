@@ -23,10 +23,12 @@ limitations under the License.
   <suppress checks="Header" files="LICENSE"/>
   <suppress checks="Header" files="NOTICE"/>
   <suppress checks=".*" files="Foo.java"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]maven-archiver[/\\]pom.properties"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]generated-sources[/\\].*"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]generated-test-sources[/\\].*"/>
-  <suppress checks=".*" files=".*[/\\]target[/\\]embeddedCassandra[/\\]log4j-embedded-cassandra.properties"/>
+  <suppress checks=".*" files="[/\\]target[/\\]maven-archiver[/\\]pom.properties"/>
+  <suppress checks=".*" files="[/\\]target[/\\]generated-sources[/\\]"/>
+  <suppress checks=".*" files="[/\\]target[/\\]generated-test-sources[/\\]"/>
+  <suppress checks=".*" files="[/\\]target[/\\]embeddedCassandra[/\\]log4j-embedded-cassandra.properties"/>
+  <suppress checks=".*" files="org[/\\]apache[/\\]calcite[/\\]runtime[/\\]Resources.java"/>
+
   <suppress checks=".*" files="git.properties"/>
   <suppress checks=".*" files="release.properties"/>
   <suppress checks=".*" files="auth-users.properties"/>

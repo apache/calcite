@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -121,7 +122,7 @@ public class SqlTest {
     try {
       Properties info = new Properties();
       info.put("model",
-          FileReaderTest.file("target/test-classes/" + model + ".json"));
+          Sources.of(SqlTest.class.getResource("/" + model + ".json")).path());
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet = statement.executeQuery(sql);
