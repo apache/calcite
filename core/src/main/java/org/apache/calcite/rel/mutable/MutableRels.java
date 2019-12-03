@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -43,6 +44,7 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
+import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -53,6 +55,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.Lists;
@@ -60,6 +64,7 @@ import com.google.common.collect.Lists;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {
@@ -136,9 +141,16 @@ public abstract class MutableRels {
     if (Mappings.isIdentity(posList, rowType.getFieldCount())) {
       return child;
     }
+    final Mapping mapping =
+        Mappings.create(
+            MappingType.INVERSE_SURJECTION,
+            rowType.getFieldCount(),
+            posList.size());
+    for (int i = 0; i < posList.size(); i++) {
+      mapping.set(posList.get(i), i);
+    }
     return MutableProject.of(
-        RelOptUtil.permute(child.cluster.getTypeFactory(), rowType,
-            Mappings.bijection(posList)),
+        RelOptUtil.permute(child.cluster.getTypeFactory(), rowType, mapping),
         child,
         new AbstractList<RexNode>() {
           public int size() {
@@ -222,6 +234,14 @@ public abstract class MutableRels {
       return LogicalWindow.create(child.getTraitSet(),
           child, window.constants, window.rowType, window.groups);
     }
+    case MATCH: {
+      final MutableMatch match = (MutableMatch) node;
+      final RelNode child = fromMutable(match.getInput(), relBuilder);
+      return LogicalMatch.create(child, match.rowType, match.pattern,
+          match.strictStart, match.strictEnd, match.patternDefinitions,
+          match.measures, match.after, match.subsets, match.allRows,
+          match.partitionKeys, match.orderKeys, match.interval);
+    }
     case TABLE_MODIFY:
       final MutableTableModify modify = (MutableTableModify) node;
       return LogicalTableModify.create(modify.table, modify.catalogReader,
@@ -241,12 +261,6 @@ public abstract class MutableRels {
       relBuilder.push(fromMutable(join.getLeft(), relBuilder));
       relBuilder.push(fromMutable(join.getRight(), relBuilder));
       relBuilder.join(join.joinType, join.condition, join.variablesSet);
-      return relBuilder.build();
-    case SEMIJOIN:
-      final MutableSemiJoin semiJoin = (MutableSemiJoin) node;
-      relBuilder.push(fromMutable(semiJoin.getLeft(), relBuilder));
-      relBuilder.push(fromMutable(semiJoin.getRight(), relBuilder));
-      relBuilder.semiJoin(semiJoin.condition);
       return relBuilder.build();
     case CORRELATE:
       final MutableCorrelate correlate = (MutableCorrelate) node;
@@ -279,7 +293,6 @@ public abstract class MutableRels {
         mutableRel -> fromMutable(mutableRel, relBuilder));
   }
 
-  @SuppressWarnings("deprecation") // directive to be removed before 1.21
   public static MutableRel toMutable(RelNode rel) {
     if (rel instanceof HepRelVertex) {
       return toMutable(((HepRelVertex) rel).getCurrentRel());
@@ -342,6 +355,15 @@ public abstract class MutableRels {
       return MutableWindow.of(window.getRowType(),
           input, window.groups, window.getConstants());
     }
+    if (rel instanceof Match) {
+      final Match match = (Match) rel;
+      final MutableRel input = toMutable(match.getInput());
+      return MutableMatch.of(match.getRowType(),
+        input, match.getPattern(), match.isStrictStart(), match.isStrictEnd(),
+        match.getPatternDefinitions(), match.getMeasures(), match.getAfter(),
+        match.getSubsets(), match.isAllRows(), match.getPartitionKeys(),
+        match.getOrderKeys(), match.getInterval());
+    }
     if (rel instanceof TableModify) {
       final TableModify modify = (TableModify) rel;
       final MutableRel input = toMutable(modify.getInput());
@@ -363,18 +385,6 @@ public abstract class MutableRels {
     }
     // It is necessary that SemiJoin is placed in front of Join here, since SemiJoin
     // is a sub-class of Join.
-    //
-    // NOTE: SemiJoin is deprecated and wil be removed before 1.21; when you
-    // remove the following lines, also remove the 'SuppressWarnings'
-    // directive at the top of this method.
-    if (rel instanceof org.apache.calcite.rel.core.SemiJoin) {
-      final org.apache.calcite.rel.core.SemiJoin semiJoin =
-          (org.apache.calcite.rel.core.SemiJoin) rel;
-      final MutableRel left = toMutable(semiJoin.getLeft());
-      final MutableRel right = toMutable(semiJoin.getRight());
-      return MutableSemiJoin.of(semiJoin.getRowType(), left, right,
-          semiJoin.getCondition(), semiJoin.getLeftKeys(), semiJoin.getRightKeys());
-    }
     if (rel instanceof Join) {
       final Join join = (Join) rel;
       final MutableRel left = toMutable(join.getLeft());
@@ -409,7 +419,8 @@ public abstract class MutableRels {
   }
 
   private static List<MutableRel> toMutables(List<RelNode> nodes) {
-    return Lists.transform(nodes, MutableRels::toMutable);
+    return nodes.stream().map(MutableRels::toMutable)
+        .collect(Collectors.toList());
   }
 }
 

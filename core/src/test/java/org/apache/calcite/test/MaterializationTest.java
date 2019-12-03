@@ -166,6 +166,24 @@ public class MaterializationTest {
         .sameResultWithMaterializationsDisabled();
   }
 
+  @Test public void testFilterToProject0() {
+    String union =
+        "select * from \"emps\" where \"empid\" > 300\n"
+            + "union all select * from \"emps\" where \"empid\" < 200";
+    String mv = "select *, \"empid\" * 2 from (" + union + ")";
+    String query = "select * from (" + union + ") where (\"empid\" * 2) > 3";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testFilterToProject1() {
+    String agg =
+        "select \"deptno\", count(*) as \"c\", sum(\"salary\") as \"s\"\n"
+            + "from \"emps\" group by \"deptno\"";
+    String mv = "select \"c\", \"s\", \"s\" from (" + agg + ")";
+    String query = "select * from (" + agg + ") where (\"s\" * 0.8) > 10000";
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+  }
+
   @Test public void testFilterQueryOnProjectView() {
     try (TryThreadLocal.Memo ignored = Prepare.THREAD_TRIM.push(true)) {
       MaterializationService.setThreadLocal();
@@ -529,10 +547,45 @@ public class MaterializationTest {
 
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
-  @Test public void testAggregate() {
+  @Test public void testAggregate0() {
+    checkMaterialize(
+        "select count(*) as c from \"emps\" group by \"empid\"",
+        "select count(*) + 1 as c from \"emps\" group by \"empid\"");
+  }
+
+  /**
+   * Aggregation query at same level of aggregation as aggregation
+   * materialization but with different row types. */
+  @Test public void testAggregate1() {
+    checkMaterialize(
+        "select count(*) as c0 from \"emps\" group by \"empid\"",
+        "select count(*) as c1 from \"emps\" group by \"empid\"");
+  }
+
+  @Test public void testAggregate2() {
     checkMaterialize(
         "select \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" group by \"deptno\"",
         "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\"");
+  }
+
+  @Test public void testAggregate3() {
+    String deduplicated =
+        "(select \"empid\", \"deptno\", \"name\", \"salary\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"empid\", \"deptno\", \"name\", \"salary\", \"commission\")";
+    String mv =
+        "select \"deptno\", sum(\"salary\"), sum(\"commission\"), sum(\"k\")\n"
+            + "from\n"
+            + "  (select \"deptno\", \"salary\", \"commission\", 100 as \"k\"\n"
+            + "  from " + deduplicated + ")\n"
+            + "group by \"deptno\"";
+    String query =
+        "select \"deptno\", sum(\"salary\"), sum(\"k\")\n"
+            + "from\n"
+            + "  (select \"deptno\", \"salary\", 100 as \"k\"\n"
+            + "  from " + deduplicated + ")\n"
+            + "group by \"deptno\"";
+    checkMaterialize(mv, query);
   }
 
   /** Aggregation query at same level of aggregation as aggregation
@@ -584,6 +637,19 @@ public class MaterializationTest {
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Test public void testAggregateGroupSetsRollUp2() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"empid\",\"deptno\")",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], "
+                + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
+                + "  EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
   /** Aggregation materialization with a project. */
   @Test public void testAggregateProject() {
     // Note that materialization does not start with the GROUP BY columns.
@@ -596,6 +662,65 @@ public class MaterializationTest {
             "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t1, $t2)], $f0=[$t3], deptno=[$t0])\n"
                 + "  EnumerableAggregate(group=[{0}], agg#0=[$SUM0($1)])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3087">[CALCITE-3087]
+   * AggregateOnProjectToAggregateUnifyRule ignores Project incorrectly when its
+   * Mapping breaks ordering</a>. */
+  @Test public void testAggregateOnProject1() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"empid\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c, \"deptno\" from \"emps\" group by \"deptno\", \"empid\"");
+  }
+
+  @Test public void testAggregateOnProject2() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by cube(\"deptno\", \"empid\")",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], "
+                + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
+                + "  EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}, {1}, {}]], agg#0=[$SUM0($2)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateOnProject3() {
+    checkMaterialize(
+        "select \"empid\", \"deptno\", count(*) as c, sum(\"salary\") as s from \"emps\" "
+            + "group by \"empid\", \"deptno\"",
+        "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by rollup(\"deptno\", \"empid\")",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], "
+                + "expr#4=[+($t2, $t3)], C=[$t4], deptno=[$t1])\n"
+                + "  EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {1}, {}]], agg#0=[$SUM0($2)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testAggregateOnProject4() {
+    checkMaterialize(
+        "select \"salary\", \"empid\", \"deptno\", count(*) as c, sum(\"commission\") as s from \"emps\" "
+            + "group by \"salary\", \"empid\", \"deptno\"",
+        "select count(*) + 1 as c,  \"deptno\" from \"emps\" group by rollup(\"empid\", \"deptno\", \"salary\")",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], "
+                + "expr#5=[+($t3, $t4)], C=[$t5], deptno=[$t2])\n"
+                + "  EnumerableAggregate(group=[{0, 1, 2}], groups=[[{0, 1, 2}, {1, 2}, {1}, {}]], agg#0=[$SUM0($3)])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Test public void testPermutationError() {
+    checkMaterialize(
+        "select min(\"salary\"), count(*), max(\"salary\"), sum(\"salary\"), \"empid\" "
+            + "from \"emps\" group by \"empid\"",
+        "select count(*), \"empid\" from \"emps\" group by \"empid\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains("EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testSwapJoin() {
@@ -1796,7 +1921,7 @@ public class MaterializationTest {
         CalciteAssert.checkResultContains(
             "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t1])\n"
                 + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-                + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], name=[$t1])\n"
+                + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], name00=[$t1])\n"
                 + "      EnumerableTableScan(table=[[hr, m0]])\n"
                 + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], empid=[$t0], name0=[$t2])\n"
                 + "      EnumerableTableScan(table=[[hr, dependents]])"));
@@ -2328,6 +2453,25 @@ public class MaterializationTest {
       substitutedNames.sort(CASE_INSENSITIVE_LIST_LIST_COMPARATOR);
       assertThat(substitutedNames, is(list3(expectedNames)));
     }
+  }
+
+  @Test public void testMaterializationAfterTrimingOfUnusedFields() {
+    String sql =
+        "select \"y\".\"deptno\", \"y\".\"name\", \"x\".\"sum_salary\"\n"
+            + "from\n"
+            + "  (select \"deptno\", sum(\"salary\") \"sum_salary\"\n"
+            + "  from \"emps\"\n"
+            + "  group by \"deptno\") \"x\"\n"
+            + "  join\n"
+            + "  \"depts\" \"y\"\n"
+            + "  on \"x\".\"deptno\"=\"y\".\"deptno\"\n";
+    checkMaterialize(sql, sql);
+  }
+
+  @Test public void testUnionToUnion() {
+    String sql0 = "select * from \"emps\" where \"empid\" < 300";
+    String sql1 = "select * from \"emps\" where \"empid\" > 200";
+    checkMaterialize(sql0 + " union all " + sql1, sql1 + " union all " + sql0);
   }
 
   private static <E> List<List<List<E>>> list3(E[][][] as) {

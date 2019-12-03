@@ -31,66 +31,60 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 /**
- * Relational expression that computes a Repeat Union (Recursive Union in SQL terminology).
+ * Relational expression that computes a repeat union (recursive union in SQL
+ * terminology).
  *
- * This operation is executed as follows:
- *  <ul>
- *   <li>Evaluate the left input (i.e., seed relational expression) once.
- *   For UNION (but not UNION ALL), discard duplicated rows.</li>
- *   <li>Evaluate the right input (i.e., iterative relational expression) over and over until it
- *   produces no more results (or until an optional maximum number of iterations is reached).
- *   For UNION (but not UNION ALL), discard duplicated results.</li>
- *  </ul>
+ * <p>This operation is executed as follows:
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <ul>
+ * <li>Evaluate the left input (i.e., seed relational expression) once.  For
+ *   UNION (but not UNION ALL), discard duplicated rows.
+ *
+ * <li>Evaluate the right input (i.e., iterative relational expression) over and
+ *   over until it produces no more results (or until an optional maximum number
+ *   of iterations is reached).  For UNION (but not UNION ALL), discard
+ *   duplicated results.
+ * </ul>
+ *
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public abstract class RepeatUnion extends BiRel {
 
   /**
-   * Whether duplicates will be considered or not
+   * Whether duplicates are considered.
    */
   public final boolean all;
 
   /**
-   * Maximum number of times to repeat the iterative relational expression,
-   * -1 means no limit, 0 means only seed will be evaluated
+   * Maximum number of times to repeat the iterative relational expression;
+   * negative value means no limit, 0 means only seed will be evaluated
    */
-  public final int maxRep;
-
-
+  public final int iterationLimit;
 
   //~ Constructors -----------------------------------------------------------
-  protected RepeatUnion(
-          RelOptCluster cluster,
-          RelTraitSet traitSet,
-          RelNode seed,
-          RelNode iterative,
-          boolean all,
-          int maxRep) {
-
+  protected RepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode seed, RelNode iterative, boolean all, int iterationLimit) {
     super(cluster, traitSet, seed, iterative);
-    if (maxRep < -1) {
-      throw new IllegalArgumentException("Wrong maxRep value");
-    }
-    this.maxRep = maxRep;
+    this.iterationLimit = iterationLimit;
     this.all = all;
   }
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     // TODO implement a more accurate row count?
     double seedRowCount = mq.getRowCount(getSeedRel());
-    if (maxRep == 0) {
+    if (iterationLimit == 0) {
       return seedRowCount;
     }
     return seedRowCount
-              + mq.getRowCount(getIterativeRel()) * (maxRep != -1 ? maxRep : 10);
+        + mq.getRowCount(getIterativeRel()) * (iterationLimit < 0 ? 10 : iterationLimit);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    if (maxRep != -1) {
-      pw.item("maxRep", maxRep);
+    if (iterationLimit >= 0) {
+      pw.item("iterationLimit", iterationLimit);
     }
     return pw.item("all", all);
   }
@@ -105,13 +99,13 @@ public abstract class RepeatUnion extends BiRel {
 
   @Override protected RelDataType deriveRowType() {
     final List<RelDataType> inputRowTypes =
-            Lists.transform(getInputs(), RelNode::getRowType);
+        Lists.transform(getInputs(), RelNode::getRowType);
     final RelDataType rowType =
-            getCluster().getTypeFactory().leastRestrictive(inputRowTypes);
+        getCluster().getTypeFactory().leastRestrictive(inputRowTypes);
     if (rowType == null) {
       throw new IllegalArgumentException("Cannot compute compatible row type "
-              + "for arguments: "
-              + Util.sepList(inputRowTypes, ", "));
+          + "for arguments: "
+          + Util.sepList(inputRowTypes, ", "));
     }
     return rowType;
   }

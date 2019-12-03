@@ -23,20 +23,20 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalTableSpool;
 
 /**
- * Rule to convert a {@link LogicalTableSpool} into an {@link EnumerableTableSpool}.
+ * Rule to convert a {@link LogicalTableSpool} into an
+ * {@link EnumerableTableSpool}.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class EnumerableTableSpoolRule extends ConverterRule {
 
   EnumerableTableSpoolRule() {
-    super(
-        LogicalTableSpool.class,
+    super(LogicalTableSpool.class,
         Convention.NONE,
         EnumerableConvention.INSTANCE,
         "EnumerableTableSpoolRule");
-
   }
 
   @Override public RelNode convert(RelNode rel) {
@@ -46,7 +46,7 @@ public class EnumerableTableSpoolRule extends ConverterRule {
             spool.getInput().getTraitSet().replace(EnumerableConvention.INSTANCE)),
         spool.readType,
         spool.writeType,
-        spool.getTableName());
+        spool.getTable());
   }
 }
 

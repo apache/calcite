@@ -113,6 +113,54 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     }
     registerTable(structExtendedTypeTable);
 
+    // Defines a table with
+    // schema(A int, B bigint, C varchar(10), D as a + 1 stored, E as b * 3 virtual).
+    MockSchema virtualColumnsSchema = new MockSchema("VIRTUALCOLUMNS");
+    registerSchema(virtualColumnsSchema);
+    final MockTable virtualColumnsTable1 =
+        MockTable.create(this, virtualColumnsSchema, "VC_T1", false, 100,
+            null, new VirtualColumnsExpressionFactory(), false);
+    virtualColumnsTable1.addColumn("A", f.intTypeNull);
+    virtualColumnsTable1.addColumn("B", f.bigintType);
+    virtualColumnsTable1.addColumn("C", f.varchar10Type);
+    virtualColumnsTable1.addColumn("D", f.intTypeNull);
+    virtualColumnsTable1.addColumn("E", f.bigintType);
+    // Same schema with VC_T1 but with different table name.
+    final MockTable virtualColumnsTable2 =
+        MockTable.create(this, virtualColumnsSchema, "VC_T2", false, 100,
+            null, new VirtualColumnsExpressionFactory(), false);
+    virtualColumnsTable2.addColumn("A", f.intTypeNull);
+    virtualColumnsTable2.addColumn("B", f.bigintType);
+    virtualColumnsTable2.addColumn("C", f.varchar10Type);
+    virtualColumnsTable2.addColumn("D", f.intTypeNull);
+    virtualColumnsTable2.addColumn("E", f.bigintType);
+    registerTable(virtualColumnsTable1);
+    registerTable(virtualColumnsTable2);
+
+    // Register table with complex data type rows.
+    MockSchema complexTypeColumnsSchema = new MockSchema("COMPLEXTYPES");
+    registerSchema(complexTypeColumnsSchema);
+    final MockTable complexTypeColumnsTable =
+        MockTable.create(this, complexTypeColumnsSchema, "CTC_T1",
+            false, 100);
+    complexTypeColumnsTable.addColumn("A", f.recordType1);
+    complexTypeColumnsTable.addColumn("B", f.recordType2);
+    complexTypeColumnsTable.addColumn("C", f.recordType3);
+    complexTypeColumnsTable.addColumn("D", f.recordType4);
+    complexTypeColumnsTable.addColumn("E", f.recordType5);
+    complexTypeColumnsTable.addColumn("intArrayType", f.intArrayType);
+    complexTypeColumnsTable.addColumn("varchar5ArrayType", f.varchar5ArrayType);
+    complexTypeColumnsTable.addColumn("intArrayArrayType", f.intArrayArrayType);
+    complexTypeColumnsTable.addColumn("varchar5ArrayArrayType", f.varchar5ArrayArrayType);
+    complexTypeColumnsTable.addColumn("intMultisetType", f.intMultisetType);
+    complexTypeColumnsTable.addColumn("varchar5MultisetType", f.varchar5MultisetType);
+    complexTypeColumnsTable.addColumn("intMultisetArrayType", f.intMultisetArrayType);
+    complexTypeColumnsTable.addColumn("varchar5MultisetArrayType",
+        f.varchar5MultisetArrayType);
+    complexTypeColumnsTable.addColumn("intArrayMultisetType", f.intArrayMultisetType);
+    complexTypeColumnsTable.addColumn("rowArrayMultisetType", f.rowArrayMultisetType);
+    registerTable(complexTypeColumnsTable);
+
     return this;
   }
 }

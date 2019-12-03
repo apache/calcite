@@ -164,6 +164,16 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.TIME_ZONE.wrap(properties)
             .getString();
   }
+
+  public String locale() {
+    return CalciteConnectionProperty.LOCALE.wrap(properties)
+        .getString();
+  }
+
+  public boolean typeCoercion() {
+    return CalciteConnectionProperty.TYPE_COERCION.wrap(properties)
+        .getBoolean();
+  }
 }
 
 // End CalciteConnectionConfigImpl.java

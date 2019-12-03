@@ -417,6 +417,16 @@ public enum SqlKind {
   SIMILAR,
 
   /**
+   * The "~" operator.
+   */
+  POSIX_REGEX_CASE_SENSITIVE,
+
+  /**
+   * The "~*" operator.
+   */
+  POSIX_REGEX_CASE_INSENSITIVE,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
@@ -688,7 +698,8 @@ public enum SqlKind {
   COLUMN_LIST,
 
   /**
-   * The "CAST" operator.
+   * The "CAST" operator, and also the PostgreSQL-style infix cast operator
+   * "::".
    */
   CAST,
 
@@ -1268,6 +1279,49 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /**
+   * Category of binary arithmetic.
+   *
+   * <p>Consists of:
+   * {@link #PLUS}
+   * {@link #MINUS}
+   * {@link #TIMES}
+   * {@link #DIVIDE}
+   * {@link #MOD}.
+   */
+  public static final Set<SqlKind> BINARY_ARITHMETIC =
+      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+
+  /**
+   * Category of binary equality.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   */
+  public static final Set<SqlKind> BINARY_EQUALITY =
+      EnumSet.of(EQUALS, NOT_EQUALS);
+
+  /**
+   * Category of binary comparison.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   * {@link #GREATER_THAN}
+   * {@link #GREATER_THAN_OR_EQUAL}
+   * {@link #LESS_THAN}
+   * {@link #LESS_THAN_OR_EQUAL}
+   * {@link #IS_DISTINCT_FROM}
+   * {@link #IS_NOT_DISTINCT_FROM}
+   */
+  public static final Set<SqlKind> BINARY_COMPARISON =
+      EnumSet.of(
+          EQUALS, NOT_EQUALS,
+          GREATER_THAN, GREATER_THAN_OR_EQUAL,
+          LESS_THAN, LESS_THAN_OR_EQUAL,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);

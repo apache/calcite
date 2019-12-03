@@ -134,6 +134,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * Never null. */
   TIME_ZONE("timeZone", Type.STRING, TimeZone.getDefault().getID(), false),
 
+  /** Returns the locale from the connect string.
+   * If the locale is not set, returns the root locale.
+   * Never null.
+   * Examples of valid locales: 'en', 'en_US',
+   * 'de_DE', '_GB', 'en_US_WIN', 'de__POSIX', 'fr__MAC', ''. */
+  LOCALE("locale", Type.STRING, Locale.ROOT.toString(), false),
+
   /** If the planner should try de-correlating as much as it is possible.
    * If true (the default), Calcite de-correlates the plan. */
   FORCE_DECORRELATE("forceDecorrelate", Type.BOOLEAN, true, false),
@@ -144,7 +151,11 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   TYPE_SYSTEM("typeSystem", Type.PLUGIN, null, false),
 
   /** SQL conformance level. */
-  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false);
+  CONFORMANCE("conformance", Type.ENUM, SqlConformanceEnum.DEFAULT, false),
+
+  /** Whether to make implicit type coercion when type mismatch
+   * for validation, default true. */
+  TYPE_COERCION("typeCoercion", Type.BOOLEAN, true, false);
 
   private final String camelName;
   private final Type type;

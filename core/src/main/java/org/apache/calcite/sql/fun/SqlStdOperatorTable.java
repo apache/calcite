@@ -205,11 +205,11 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>Occurs in similar places to an aggregate
    * function ({@code SELECT}, {@code HAVING} clause, etc. of an aggregate
    * query), but not technically an aggregate function. */
-  public static final SqlGroupingFunction GROUPING =
+  public static final SqlAggFunction GROUPING =
       new SqlGroupingFunction("GROUPING");
 
   /** {@code GROUP_ID()} function. (Oracle-specific.) */
-  public static final SqlGroupIdFunction GROUP_ID =
+  public static final SqlAggFunction GROUP_ID =
       new SqlGroupIdFunction();
 
   /** {@code GROUPING_ID} function is a synonym for {@code GROUPING}.
@@ -222,7 +222,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>The SQL standard has changed to allow {@code GROUPING} to have multiple
    * arguments. It is now equivalent to {@code GROUPING_ID}, so we made
    * {@code GROUPING_ID} a synonym for {@code GROUPING}. */
-  public static final SqlGroupingFunction GROUPING_ID =
+  public static final SqlAggFunction GROUPING_ID =
       new SqlGroupingFunction("GROUPING_ID");
 
   /** {@code EXTEND} operator. */
@@ -1369,6 +1369,20 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlSpecialOperator SIMILAR_TO =
       new SqlLikeOperator("SIMILAR TO", SqlKind.SIMILAR, false);
 
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_SENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE SENSITIVE", SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, false);
+
+  public static final SqlBinaryOperator POSIX_REGEX_CASE_INSENSITIVE = new SqlPosixRegexOperator(
+      "POSIX REGEX CASE INSENSITIVE", SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, false);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_SENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE SENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_SENSITIVE, true, true);
+
+  public static final SqlBinaryOperator NEGATED_POSIX_REGEX_CASE_INSENSITIVE =
+      new SqlPosixRegexOperator("NEGATED POSIX REGEX CASE INSENSITIVE",
+          SqlKind.POSIX_REGEX_CASE_INSENSITIVE, false, true);
+
   /**
    * Internal operator used to represent the ESCAPE clause of a LIKE or
    * SIMILAR TO expression.
@@ -1543,7 +1557,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "MOD",
           SqlKind.MOD,
-          ReturnTypes.ARG1_NULLABLE,
+          ReturnTypes.NULLABLE_MOD,
           null,
           OperandTypes.EXACT_NUMERIC_EXACT_NUMERIC,
           SqlFunctionCategory.NUMERIC);

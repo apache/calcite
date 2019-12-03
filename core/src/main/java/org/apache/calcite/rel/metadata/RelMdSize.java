@@ -176,23 +176,17 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     return list.build();
   }
 
-  @Deprecated // to be removed before 1.21
-  public List<Double> averageColumnSizes(
-      org.apache.calcite.rel.core.SemiJoin rel, RelMetadataQuery mq) {
-    return averageJoinColumnSizes(rel, mq);
-  }
-
   public List<Double> averageColumnSizes(Join rel, RelMetadataQuery mq) {
     return averageJoinColumnSizes(rel, mq);
   }
 
   private List<Double> averageJoinColumnSizes(Join rel, RelMetadataQuery mq) {
-    boolean semijoin = rel.isSemiJoin();
+    boolean semiOrAntijoin = !rel.getJoinType().projectsRight();
     final RelNode left = rel.getLeft();
     final RelNode right = rel.getRight();
     final List<Double> lefts = mq.getAverageColumnSizes(left);
     final List<Double> rights =
-        semijoin ? null : mq.getAverageColumnSizes(right);
+        semiOrAntijoin ? null : mq.getAverageColumnSizes(right);
     if (lefts == null && rights == null) {
       return null;
     }

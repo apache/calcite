@@ -18,33 +18,37 @@ package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.function.Experimental;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 
+import java.util.Objects;
+
 /**
  * Spool that writes into a table.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public abstract class TableSpool extends Spool {
 
-  protected final String tableName;
+  protected final RelOptTable table;
 
-  protected TableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-                    Type readType, Type writeType, String tableName) {
+  protected TableSpool(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, Type readType, Type writeType, RelOptTable table) {
     super(cluster, traitSet, input, readType, writeType);
-    this.tableName = tableName;
+    this.table = Objects.requireNonNull(table);
   }
 
-  public String getTableName() {
-    return tableName;
+  public RelOptTable getTable() {
+    return table;
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    return pw.item("tableName", tableName);
+    return pw.item("table", table.getQualifiedName());
   }
 }
 

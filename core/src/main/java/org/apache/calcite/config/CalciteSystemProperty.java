@@ -68,9 +68,9 @@ public final class CalciteSystemProperty<T> {
 
   /** Whether to enable the collation trait in the default planner configuration.
    *
-   * Some extra optimizations are possible if enabled, but queries should work either way.
-   * At some point this will become a preference, or we will run multiple phases: first
-   * disabled, then enabled. */
+   * <p>Some extra optimizations are possible if enabled, but queries should
+   * work either way. At some point this will become a preference, or we will
+   * run multiple phases: first disabled, then enabled. */
   public static final CalciteSystemProperty<Boolean> ENABLE_COLLATION_TRAIT =
       booleanProperty("calcite.enable.collation.trait", true);
 
@@ -312,9 +312,12 @@ public final class CalciteSystemProperty<T> {
       intProperty("calcite.bindable.cache.concurrencyLevel", 1,
           v -> v >= 1 && v <= Integer.MAX_VALUE);
 
-  private static CalciteSystemProperty<Boolean> booleanProperty(String key, boolean defaultValue) {
+  private static CalciteSystemProperty<Boolean> booleanProperty(String key,
+      boolean defaultValue) {
+    // Note that "" -> true (convenient for command-lines flags like '-Dflag')
     return new CalciteSystemProperty<>(key,
-        v -> v == null ? defaultValue : Boolean.parseBoolean(v));
+        v -> v == null ? defaultValue
+            : "".equals(v) || Boolean.parseBoolean(v));
   }
 
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue) {
@@ -377,20 +380,21 @@ public final class CalciteSystemProperty<T> {
       // we're in a sandbox
     }
 
-    Properties allProperties = new Properties();
-    // Merge system and saffron properties mapping deprecated saffron namespaces to calcite
+    // Merge system and saffron properties, mapping deprecated saffron
+    // namespaces to calcite
+    final Properties allProperties = new Properties();
     Stream.concat(
         saffronProperties.entrySet().stream(),
-        System.getProperties().entrySet().stream()).
-        forEach(prop -> {
-            String deprecatedKey = (String) prop.getKey();
-            String newKey = deprecatedKey
-                .replace("net.sf.saffron.", "calcite.")
-                .replace("saffron.", "calcite.");
-            if (newKey.startsWith("calcite.")) {
-              allProperties.setProperty(newKey, (String) prop.getValue());
-            }
-          });
+        System.getProperties().entrySet().stream())
+        .forEach(prop -> {
+          String deprecatedKey = (String) prop.getKey();
+          String newKey = deprecatedKey
+              .replace("net.sf.saffron.", "calcite.")
+              .replace("saffron.", "calcite.");
+          if (newKey.startsWith("calcite.")) {
+            allProperties.setProperty(newKey, (String) prop.getValue());
+          }
+        });
     return allProperties;
   }
 

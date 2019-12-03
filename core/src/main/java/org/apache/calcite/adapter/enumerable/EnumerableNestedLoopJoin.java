@@ -16,16 +16,13 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -35,9 +32,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,15 +45,14 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   /** Creates an EnumerableNestedLoopJoin. */
   protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition,
-      Set<CorrelationId> variablesSet, JoinRelType joinType)
-      throws InvalidRelException {
+      Set<CorrelationId> variablesSet, JoinRelType joinType) {
     super(cluster, traits, left, right, condition, variablesSet, joinType);
   }
 
   @Deprecated // to be removed before 2.0
   protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition, JoinRelType joinType,
-      Set<String> variablesStopped) throws InvalidRelException {
+      Set<String> variablesStopped) {
     this(cluster, traits, left, right, condition,
         CorrelationId.setOf(variablesStopped), joinType);
   }
@@ -66,14 +60,8 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   @Override public EnumerableNestedLoopJoin copy(RelTraitSet traitSet,
       RexNode condition, RelNode left, RelNode right, JoinRelType joinType,
       boolean semiJoinDone) {
-    try {
-      return new EnumerableNestedLoopJoin(getCluster(), traitSet, left, right,
-          condition, variablesSet, joinType);
-    } catch (InvalidRelException e) {
-      // Semantic error not possible. Must be a bug. Convert to
-      // internal error.
-      throw new AssertionError(e);
-    }
+    return new EnumerableNestedLoopJoin(getCluster(), traitSet, left, right,
+        condition, variablesSet, joinType);
   }
 
   /** Creates an EnumerableNestedLoopJoin. */
@@ -82,7 +70,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
       RelNode right,
       RexNode condition,
       Set<CorrelationId> variablesSet,
-      JoinRelType joinType) throws InvalidRelException {
+      JoinRelType joinType) {
     final RelOptCluster cluster = left.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
     final RelTraitSet traitSet =
@@ -135,54 +123,22 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
         PhysTypeImpl.of(implementor.getTypeFactory(),
             getRowType(),
             pref.preferArray());
-    final BlockBuilder builder2 = new BlockBuilder();
+    final Expression predicate =
+        EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(), left, right,
+            leftResult.physType, rightResult.physType, condition);
     return implementor.result(
         physType,
         builder.append(
             Expressions.call(BuiltInMethod.NESTED_LOOP_JOIN.method,
                 leftExpression,
                 rightExpression,
-                predicate(implementor,
-                    builder2,
-                    leftResult.physType,
-                    rightResult.physType,
-                    condition),
+                predicate,
                 EnumUtils.joinSelector(joinType,
                     physType,
                     ImmutableList.of(leftResult.physType,
                         rightResult.physType)),
-                Expressions.constant(joinType.generatesNullsOnLeft()),
-                Expressions.constant(joinType.generatesNullsOnRight())))
+                Expressions.constant(EnumUtils.toLinq4jJoinType(joinType))))
             .toBlock());
-  }
-
-  Expression predicate(EnumerableRelImplementor implementor,
-      BlockBuilder builder, PhysType leftPhysType, PhysType rightPhysType,
-      RexNode condition) {
-    final ParameterExpression left_ =
-        Expressions.parameter(leftPhysType.getJavaRowType(), "left");
-    final ParameterExpression right_ =
-        Expressions.parameter(rightPhysType.getJavaRowType(), "right");
-    final RexProgramBuilder program =
-        new RexProgramBuilder(
-            implementor.getTypeFactory().builder()
-                .addAll(left.getRowType().getFieldList())
-                .addAll(right.getRowType().getFieldList())
-                .build(),
-            getCluster().getRexBuilder());
-    program.addCondition(condition);
-    builder.add(
-        Expressions.return_(null,
-            RexToLixTranslator.translateCondition(program.getProgram(),
-                implementor.getTypeFactory(),
-                builder,
-                new RexToLixTranslator.InputGetterImpl(
-                    ImmutableList.of(Pair.of((Expression) left_, leftPhysType),
-                        Pair.of((Expression) right_, rightPhysType))),
-                implementor.allCorrelateVariables,
-                implementor.getConformance())));
-    return Expressions.lambda(Predicate2.class, builder.toBlock(), left_,
-        right_);
   }
 }
 

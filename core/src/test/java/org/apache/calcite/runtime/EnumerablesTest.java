@@ -18,6 +18,7 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.EnumerableDefaults;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
@@ -25,11 +26,13 @@ import org.apache.calcite.linq4j.function.Predicate2;
 
 import com.google.common.collect.Lists;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -154,14 +157,14 @@ public class EnumerablesTest {
   @Test public void testThetaJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, false, false).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.INNER).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}]"));
   }
 
   @Test public void testThetaLeftJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, false, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.LEFT).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}]"));
   }
@@ -169,7 +172,7 @@ public class EnumerablesTest {
   @Test public void testThetaRightJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, false).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.RIGHT).toList().toString(),
         equalTo("[{Theodore, 20, 20, Sales}, {Sebastian, 20, 20, Sales}, "
             + "{null, null, 15, Marketing}]"));
   }
@@ -177,7 +180,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoin() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, 20, Sales}, "
             + "{Sebastian, 20, 20, Sales}, {Joe, 30, null, null}, "
             + "{null, null, 15, Marketing}]"));
@@ -186,7 +189,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinLeftEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS, EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true)
+            EMP_DEPT_TO_STRING, JoinType.FULL)
             .orderBy(Functions.identitySelector()).toList().toString(),
         equalTo("[{null, null, 15, Marketing}, {null, null, 20, Sales}]"));
   }
@@ -194,7 +197,7 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinRightEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS, DEPTS.take(0), EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[{Fred, 10, null, null}, {Theodore, 20, null, null}, "
             + "{Sebastian, 20, null, null}, {Joe, 30, null, null}]"));
   }
@@ -202,8 +205,164 @@ public class EnumerablesTest {
   @Test public void testThetaFullJoinBothEmpty() {
     assertThat(
         EnumerableDefaults.nestedLoopJoin(EMPS.take(0), DEPTS.take(0), EQUAL_DEPTNO,
-            EMP_DEPT_TO_STRING, true, true).toList().toString(),
+            EMP_DEPT_TO_STRING, JoinType.FULL).toList().toString(),
         equalTo("[]"));
+  }
+
+  @Test
+  @Ignore // TODO fix this
+  public void testMatch() {
+    final Enumerable<Emp> emps = Linq4j.asEnumerable(
+        Arrays.asList(
+            new Emp(20, "Theodore"),
+            new Emp(10, "Fred"),
+            new Emp(20, "Sebastian"),
+            new Emp(30, "Joe")));
+
+    final Pattern p =
+        Pattern.builder()
+            .symbol("A")
+            .symbol("B").seq()
+            .build();
+
+    final Matcher<Emp> matcher =
+        Matcher.<Emp>builder(p.toAutomaton())
+            .add("A", s -> s.get().deptno == 20)
+            .add("B", s -> s.get().deptno != 20)
+            .build();
+
+    final Enumerables.Emitter<Emp, String> emitter =
+        (rows, rowStates, rowSymbols, match, consumer) -> {
+          for (int i = 0; i < rows.size(); i++) {
+            if (rowSymbols == null) {
+              continue;
+            }
+            if ("A".equals(rowSymbols.get(i))) {
+              consumer.accept(
+                  String.format(Locale.ENGLISH, "%s %s %d", rows, rowStates,
+                      match));
+            }
+          }
+        };
+
+    final Enumerable<String> matches =
+        Enumerables.match(emps, emp -> 0L, matcher, emitter, 1, 1);
+    assertThat(matches.toList().toString(),
+        equalTo("[[Emp(20, Theodore), Emp(10, Fred)] null 1, "
+            + "[Emp(20, Sebastian), Emp(30, Joe)] null 2]"));
+  }
+
+  @Test public void testInnerHashJoin() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(new Dept(15, "Marketing"), new Dept(20, "Sales"),
+                    new Dept(30, "Research"), new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null)
+            .toList()
+            .toString(),
+        equalTo("[Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Joe), Dept(30, Research),"
+            + " Emp(30, Joe), Dept(30, Development),"
+            + " Emp(30, Greg), Dept(30, Research),"
+            + " Emp(30, Greg), Dept(30, Development)]"));
+  }
+
+  @Test public void testLeftHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Joe"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, false, true,
+            (v0, v1) -> v0.deptno < 30)
+            .toList()
+            .toString(),
+        equalTo("[Emp(10, Fred), null,"
+            + " Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Joe), null,"
+            + " Emp(30, Greg), null]"));
+  }
+
+  @Test public void testRightHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, true, false,
+            (v0, v1) -> v0.deptno < 30)
+            .toList()
+            .toString(),
+        equalTo("[Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " null, Dept(15, Marketing),"
+            + " null, Dept(30, Research),"
+            + " null, Dept(30, Development)]"));
+  }
+
+  @Test public void testFullHashJoinWithNonEquiConditions() {
+    assertThat(
+        EnumerableDefaults.hashJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(10, "Fred"),
+                    new Emp(20, "Theodore"),
+                    new Emp(20, "Sebastian"),
+                    new Emp(30, "Greg"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Dept(15, "Marketing"),
+                    new Dept(20, "Sales"),
+                    new Dept(30, "Research"),
+                    new Dept(30, "Development"))),
+            e -> e.deptno,
+            d -> d.deptno,
+            (v0, v1) -> v0 + ", " + v1, null, true, true,
+            (v0, v1) -> v0.deptno < 30)
+            .toList()
+            .toString(),
+        equalTo("[Emp(10, Fred), null,"
+            + " Emp(20, Theodore), Dept(20, Sales),"
+            + " Emp(20, Sebastian), Dept(20, Sales),"
+            + " Emp(30, Greg), null,"
+            + " null, Dept(15, Marketing),"
+            + " null, Dept(30, Research),"
+            + " null, Dept(30, Development)]"));
   }
 
   /** Employee record. */

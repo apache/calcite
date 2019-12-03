@@ -28,6 +28,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
@@ -481,9 +482,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     RexNode newConditionExpr =
         conditionExpr.accept(shuttle);
 
-    // Use copy rather than relBuilder so that correlating variables get set.
-    relBuilder.push(
-        filter.copy(filter.getTraitSet(), newInput, newConditionExpr));
+    // Build new filter with trimmed input and condition.
+    relBuilder.push(newInput)
+        .filter(filter.getVariablesSet(), newConditionExpr);
 
     // The result has the same mapping as the input gave us. Sometimes we
     // return fields that the consumer didn't ask for, because the filter
@@ -665,9 +666,15 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     relBuilder.push(newInputs.get(0));
     relBuilder.push(newInputs.get(1));
 
-    if (join.isSemiJoin()) {
-      relBuilder.semiJoin(newConditionExpr);
-      // For SemiJoins only map fields from the left-side
+    switch (join.getJoinType()) {
+    case SEMI:
+    case ANTI:
+      // For SemiJoins and AntiJoins only map fields from the left-side
+      if (join.getJoinType() == JoinRelType.SEMI) {
+        relBuilder.semiJoin(newConditionExpr);
+      } else {
+        relBuilder.antiJoin(newConditionExpr);
+      }
       Mapping inputMapping = inputMappings.get(0);
       mapping = Mappings.create(MappingType.INVERSE_SURJECTION,
           join.getRowType().getFieldCount(),
@@ -680,7 +687,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       for (IntPair pair : inputMapping) {
         mapping.set(pair.source + offset, pair.target + newOffset);
       }
-    } else {
+      break;
+    default:
       relBuilder.join(join.getJoinType(), newConditionExpr);
     }
 

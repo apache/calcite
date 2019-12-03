@@ -74,6 +74,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -105,8 +106,12 @@ public class JdbcRules {
       };
 
   static final RelFactories.FilterFactory FILTER_FACTORY =
-      (input, condition) -> new JdbcRules.JdbcFilter(input.getCluster(),
-          input.getTraitSet(), input, condition);
+      (input, condition, variablesSet) -> {
+        Preconditions.checkArgument(variablesSet.isEmpty(),
+            "JdbcFilter does not allow variables");
+        return new JdbcFilter(input.getCluster(),
+            input.getTraitSet(), input, condition);
+      };
 
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, condition, variablesSet, joinType, semiJoinDone) -> {
@@ -275,12 +280,15 @@ public class JdbcRules {
 
     @Override public RelNode convert(RelNode rel) {
       final Join join = (Join) rel;
-      if (join.isSemiJoin()) {
-        // It's not possible to convert semi-joins. They have fewer columns
+      switch (join.getJoinType()) {
+      case SEMI:
+      case ANTI:
+        // It's not possible to convert semi-joins or anti-joins. They have fewer columns
         // than regular joins.
         return null;
+      default:
+        return convert(join, true);
       }
-      return convert(join, true);
     }
 
     /**

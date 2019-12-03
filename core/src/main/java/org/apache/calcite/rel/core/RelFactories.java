@@ -54,6 +54,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -296,12 +297,30 @@ public class RelFactories {
   }
 
   /**
-   * Can create a {@link LogicalFilter} of the appropriate type
+   * Can create a {@link Filter} of the appropriate type
    * for this rule's calling convention.
    */
   public interface FilterFactory {
-    /** Creates a filter. */
-    RelNode createFilter(RelNode input, RexNode condition);
+    /** Creates a filter.
+     *
+     * <p>Some implementations of {@code Filter} do not support correlation
+     * variables, and for these, this method will throw if {@code variablesSet}
+     * is not empty.
+     *
+     * @param input Input relational expression
+     * @param condition Filter condition; only rows for which this condition
+     *   evaluates to TRUE will be emitted
+     * @param variablesSet Correlating variables that are set when reading
+     *   a row from the input, and which may be referenced from inside the
+     *   condition
+     */
+    RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet);
+
+    @Deprecated // to be removed before 2.0
+    default RelNode createFilter(RelNode input, RexNode condition) {
+      return createFilter(input, condition, ImmutableSet.of());
+    }
   }
 
   /**
@@ -309,8 +328,10 @@ public class RelFactories {
    * returns a vanilla {@link LogicalFilter}.
    */
   private static class FilterFactoryImpl implements FilterFactory {
-    public RelNode createFilter(RelNode input, RexNode condition) {
-      return LogicalFilter.create(input, condition);
+    public RelNode createFilter(RelNode input, RexNode condition,
+        Set<CorrelationId> variablesSet) {
+      return LogicalFilter.create(input, condition,
+          ImmutableSet.copyOf(variablesSet));
     }
   }
 
@@ -413,7 +434,7 @@ public class RelFactories {
 
   /**
    * Implementation of {@link SemiJoinFactory} that returns a vanilla
-   * {@link SemiJoin}.
+   * {@link Join} with join type as {@link JoinRelType#SEMI}.
    *
    * @deprecated Use {@link JoinFactoryImpl} instead.
    */
@@ -421,9 +442,8 @@ public class RelFactories {
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
-      final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
-      return SemiJoin.create(left, right,
-        condition, joinInfo.leftKeys, joinInfo.rightKeys);
+      return LogicalJoin.create(left, right, condition, ImmutableSet.of(), JoinRelType.SEMI,
+          false, ImmutableList.of());
     }
   }
 
@@ -570,7 +590,7 @@ public class RelFactories {
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
         RexNode interval);
   }
 
@@ -583,7 +603,7 @@ public class RelFactories {
         RelDataType rowType, boolean strictStart, boolean strictEnd,
         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, List<RexNode> partitionKeys, RelCollation orderKeys,
+        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
         RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
@@ -598,8 +618,8 @@ public class RelFactories {
   @Experimental
   public interface SpoolFactory {
     /** Creates a {@link TableSpool}. */
-    RelNode createTableSpool(RelNode input, Spool.Type readType, Spool.Type writeType,
-                             String tableName);
+    RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, RelOptTable table);
   }
 
   /**
@@ -607,9 +627,9 @@ public class RelFactories {
    * that returns Logical Spools.
    */
   private static class SpoolFactoryImpl implements SpoolFactory {
-    public RelNode createTableSpool(RelNode input, Spool.Type readType, Spool.Type writeType,
-                                    String tableName) {
-      return LogicalTableSpool.create(input, readType, writeType, tableName);
+    public RelNode createTableSpool(RelNode input, Spool.Type readType,
+        Spool.Type writeType, RelOptTable table) {
+      return LogicalTableSpool.create(input, readType, writeType, table);
     }
   }
 
@@ -620,7 +640,8 @@ public class RelFactories {
   @Experimental
   public interface RepeatUnionFactory {
     /** Creates a {@link RepeatUnion}. */
-    RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all, int maxRep);
+    RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all,
+        int iterationLimit);
   }
 
   /**
@@ -628,8 +649,9 @@ public class RelFactories {
    * that returns a {@link LogicalRepeatUnion}.
    */
   private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
-    public RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all, int maxRep) {
-      return LogicalRepeatUnion.create(seed, iterative, all, maxRep);
+    public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
+        boolean all, int iterationLimit) {
+      return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
     }
   }
 }

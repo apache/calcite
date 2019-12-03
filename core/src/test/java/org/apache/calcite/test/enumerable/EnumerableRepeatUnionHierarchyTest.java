@@ -25,6 +25,8 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.HierarchySchema;
 import org.apache.calcite.tools.RelBuilder;
 
+import net.jcip.annotations.NotThreadSafe;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,6 +41,7 @@ import java.util.function.Function;
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
 @RunWith(Parameterized.class)
+@NotThreadSafe
 public class EnumerableRepeatUnionHierarchyTest {
 
   // Tests for the following hierarchy:
@@ -58,9 +61,9 @@ public class EnumerableRepeatUnionHierarchyTest {
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][] {
         { 1, true, -1, new String[]{EMP1} },
-        { 2, true, -1, new String[]{EMP2, EMP1} },
+        { 2, true, -2, new String[]{EMP2, EMP1} },
         { 3, true, -1, new String[]{EMP3, EMP2, EMP1} },
-        { 4, true, -1, new String[]{EMP4, EMP1} },
+        { 4, true, -5, new String[]{EMP4, EMP1} },
         { 5, true, -1, new String[]{EMP5, EMP2, EMP1} },
         { 3, true,  0, new String[]{EMP3} },
         { 3, true,  1, new String[]{EMP3, EMP2} },
@@ -68,8 +71,8 @@ public class EnumerableRepeatUnionHierarchyTest {
         { 3, true, 10, new String[]{EMP3, EMP2, EMP1} },
 
         { 1, false, -1, new String[]{EMP1, EMP2, EMP4, EMP3, EMP5} },
-        { 2, false, -1, new String[]{EMP2, EMP3, EMP5} },
-        { 3, false, -1, new String[]{EMP3} },
+        { 2, false, -10, new String[]{EMP2, EMP3, EMP5} },
+        { 3, false, -100, new String[]{EMP3} },
         { 4, false, -1, new String[]{EMP4} },
         { 1, false,  0, new String[]{EMP1} },
         { 1, false,  1, new String[]{EMP1, EMP2, EMP4} },

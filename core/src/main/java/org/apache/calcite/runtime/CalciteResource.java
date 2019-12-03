@@ -99,6 +99,9 @@ public interface CalciteResource {
   @Property(name = "SQLSTATE", value = "2202H")
   ExInst<CalciteException> invalidSampleSize();
 
+  @BaseMessage("Literal ''{0}'' can not be parsed to type ''{1}''")
+  ExInst<CalciteException> invalidLiteral(String a0, String a1);
+
   @BaseMessage("Unknown character set ''{0}''")
   ExInst<CalciteException> unknownCharacterSet(String a0);
 
@@ -888,6 +891,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
+
+  @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
+  ExInst<CalciteException> invalidInputForRegexpReplace(String value);
 }
 
 // End CalciteResource.java

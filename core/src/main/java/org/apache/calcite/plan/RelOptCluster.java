@@ -40,7 +40,7 @@ public class RelOptCluster {
   //~ Instance fields --------------------------------------------------------
 
   private final RelDataTypeFactory typeFactory;
-  private final RelOptPlanner planner;
+  private RelOptPlanner planner;
   private final AtomicInteger nextCorrel;
   private final Map<String, RelNode> mapCorrelToRel;
   private RexNode originalExpression;

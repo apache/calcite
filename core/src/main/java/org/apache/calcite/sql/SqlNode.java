@@ -129,17 +129,18 @@ public abstract class SqlNode implements Cloneable {
    * Returns the SQL text of the tree of which this <code>SqlNode</code> is
    * the root.
    *
-   * @param dialect     Dialect
-   * @param forceParens wraps all expressions in parentheses; good for parse
-   *                    test, but false by default.
+   * <p>Typical return values are:
    *
-   *                    <p>Typical return values are:</p>
-   *                    <ul>
-   *                    <li>'It''s a bird!'</li>
-   *                    <li>NULL</li>
-   *                    <li>12.3</li>
-   *                    <li>DATE '1969-04-29'</li>
-   *                    </ul>
+   * <ul>
+   * <li>'It''s a bird!'
+   * <li>NULL
+   * <li>12.3
+   * <li>DATE '1969-04-29'
+   * </ul>
+   *
+   * @param dialect     Dialect (null for ANSI SQL)
+   * @param forceParens Whether to wrap all expressions in parentheses;
+   *                    useful for parse test, but false by default
    */
   public SqlString toSqlString(SqlDialect dialect, boolean forceParens) {
     if (dialect == null) {

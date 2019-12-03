@@ -17,8 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -26,11 +29,15 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -187,8 +194,22 @@ public class EnumUtils {
   static List<Expression> fromInternal(Class<?>[] targetTypes,
       List<Expression> expressions) {
     final List<Expression> list = new ArrayList<>();
-    for (int i = 0; i < expressions.size(); i++) {
-      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+    if (targetTypes.length == expressions.size()) {
+      for (int i = 0; i < expressions.size(); i++) {
+        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      }
+    } else {
+      int j = 0;
+      for (int i = 0; i < expressions.size(); i++) {
+        Class<?> type;
+        if (!targetTypes[j].isArray()) {
+          type = targetTypes[j];
+          j++;
+        } else {
+          type = targetTypes[j].getComponentType();
+        }
+        list.add(fromInternal(expressions.get(i), type));
+      }
     }
     return list;
   }
@@ -246,6 +267,61 @@ public class EnumUtils {
       }
     }
     return e;
+  }
+
+  /** Transforms a JoinRelType to Linq4j JoinType. **/
+  static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
+    switch (joinRelType) {
+    case INNER:
+      return JoinType.INNER;
+    case LEFT:
+      return JoinType.LEFT;
+    case RIGHT:
+      return JoinType.RIGHT;
+    case FULL:
+      return JoinType.FULL;
+    case SEMI:
+      return JoinType.SEMI;
+    case ANTI:
+      return JoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + joinRelType + " to Linq4j JoinType");
+  }
+
+  /** Returns a predicate expression based on a join condition. **/
+  static Expression generatePredicate(
+      EnumerableRelImplementor implementor,
+      RexBuilder rexBuilder,
+      RelNode left,
+      RelNode right,
+      PhysType leftPhysType,
+      PhysType rightPhysType,
+      RexNode condition) {
+    final BlockBuilder builder = new BlockBuilder();
+    final ParameterExpression left_ =
+        Expressions.parameter(leftPhysType.getJavaRowType(), "left");
+    final ParameterExpression right_ =
+        Expressions.parameter(rightPhysType.getJavaRowType(), "right");
+    final RexProgramBuilder program =
+        new RexProgramBuilder(
+            implementor.getTypeFactory().builder()
+                .addAll(left.getRowType().getFieldList())
+                .addAll(right.getRowType().getFieldList())
+                .build(),
+            rexBuilder);
+    program.addCondition(condition);
+    builder.add(
+        Expressions.return_(null,
+            RexToLixTranslator.translateCondition(program.getProgram(),
+                implementor.getTypeFactory(),
+                builder,
+                new RexToLixTranslator.InputGetterImpl(
+                    ImmutableList.of(Pair.of(left_, leftPhysType),
+                        Pair.of(right_, rightPhysType))),
+                implementor.allCorrelateVariables,
+                implementor.getConformance())));
+    return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
   }
 }
 

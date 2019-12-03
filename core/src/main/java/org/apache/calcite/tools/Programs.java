@@ -49,6 +49,7 @@ import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinToMultiJoinRule;
 import org.apache.calcite.rel.rules.LoptOptimizeJoinRule;
+import org.apache.calcite.rel.rules.MatchRule;
 import org.apache.calcite.rel.rules.MultiJoinOptimizeBushyRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
@@ -82,14 +83,10 @@ public class Programs {
   public static final Program SUB_QUERY_PROGRAM =
       subQuery(DefaultRelMetadataProvider.INSTANCE);
 
-  @SuppressWarnings("deprecation") // directive to be removed before 1.21
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-          // The following line is to be removed before 1.21;
-          // when it is removed, also remove SuppressWarnings directive, above
-          EnumerableRules.ENUMERABLE_SEMI_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
           EnumerableRules.ENUMERABLE_PROJECT_RULE,
           EnumerableRules.ENUMERABLE_FILTER_RULE,
@@ -102,9 +99,11 @@ public class Programs {
           EnumerableRules.ENUMERABLE_TABLE_MODIFICATION_RULE,
           EnumerableRules.ENUMERABLE_VALUES_RULE,
           EnumerableRules.ENUMERABLE_WINDOW_RULE,
+          EnumerableRules.ENUMERABLE_MATCH_RULE,
           SemiJoinRule.PROJECT,
           SemiJoinRule.JOIN,
           TableScanRule.INSTANCE,
+          MatchRule.INSTANCE,
           CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
               : ProjectMergeRule.INSTANCE,

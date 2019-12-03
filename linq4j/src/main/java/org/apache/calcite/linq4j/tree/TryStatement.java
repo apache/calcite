@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,7 +37,17 @@ public class TryStatement extends Statement {
   }
 
   @Override public Statement accept(Shuttle shuttle) {
-    return shuttle.visit(this);
+    shuttle = shuttle.preVisit(this);
+    Statement body1 = body.accept(shuttle);
+    List<CatchBlock> catchBlocks1 = new ArrayList<>();
+    for (CatchBlock cb: catchBlocks) {
+      Statement cbBody = cb.body.accept(shuttle);
+      catchBlocks1.add(
+          Expressions.catch_(cb.parameter, cbBody));
+    }
+    Statement fynally1 =
+        fynally == null ? null : fynally.accept(shuttle);
+    return shuttle.visit(this, body1, catchBlocks1, fynally1);
   }
 
   public <R> R accept(Visitor<R> visitor) {

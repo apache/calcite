@@ -72,6 +72,10 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   SqlConformance conformance();
   /** @see CalciteConnectionProperty#TIME_ZONE */
   @Override String timeZone();
+  /** @see CalciteConnectionProperty#LOCALE */
+  String locale();
+  /** @see CalciteConnectionProperty#TYPE_COERCION */
+  boolean typeCoercion();
 }
 
 // End CalciteConnectionConfig.java

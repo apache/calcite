@@ -213,6 +213,8 @@ public class JavaTypeFactoryImpl
         return Enum.class;
       case ANY:
         return Object.class;
+      case NULL:
+        return Void.class;
       }
     }
     switch (type.getSqlTypeName()) {

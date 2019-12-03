@@ -309,7 +309,7 @@ return the `RelBuilder`.
 | `functionScan(operator, n, expr...)`<br/>`functionScan(operator, n, exprList)` | Creates a [TableFunctionScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableFunctionScan.html) of the `n` most recent relational expressions.
 | `transientScan(tableName [, rowType])` | Creates a [TableScan]({{ site.apiRoot }}/org/apache/calcite/rel/core/TableScan.html) on a [TransientTable]]({{ site.apiRoot }}/org/apache/calcite/schema/TransientTable.html) with the given type (if not specified, the most recent relational expression's type will be used).
 | `values(fieldNames, value...)`<br/>`values(rowType, tupleList)` | Creates a [Values]({{ site.apiRoot }}/org/apache/calcite/rel/core/Values.html).
-| `filter(expr...)`<br/>`filter(exprList)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates.
+| `filter([variablesSet, ] exprList)`<br/>`filter([variablesSet, ] expr...)` | Creates a [Filter]({{ site.apiRoot }}/org/apache/calcite/rel/core/Filter.html) over the AND of the given predicates; if `variablesSet` is specified, the predicates may reference those variables.
 | `project(expr...)`<br/>`project(exprList [, fieldNames])` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html). To override the default name, wrap expressions using `alias`, or specify the `fieldNames` argument.
 | `projectPlus(expr...)`<br/>`projectPlus(exprList)` | Variant of `project` that keeps original fields and appends the given expressions.
 | `permute(mapping)` | Creates a [Project]({{ site.apiRoot }}/org/apache/calcite/rel/core/Project.html) that permutes the fields using `mapping`.
@@ -321,9 +321,10 @@ return the `RelBuilder`.
 | `limit(offset, fetch)` | Creates a [Sort]({{ site.apiRoot }}/org/apache/calcite/rel/core/Sort.html) that does not sort, only applies with offset and limit.
 | `exchange(distribution)` | Creates an [Exchange]({{ site.apiRoot }}/org/apache/calcite/rel/core/Exchange.html).
 | `sortExchange(distribution, collation)` | Creates a [SortExchange]({{ site.apiRoot }}/org/apache/calcite/rel/core/SortExchange.html).
+| `correlate(joinType, correlationId, requiredField...)`<br/>`correlate(joinType, correlationId, requiredFieldList)` | Creates a [Correlate]({{ site.apiRoot }}/org/apache/calcite/rel/core/Correlate.html) of the two most recent relational expressions, with a variable name and required field expressions for the left relation.
 | `join(joinType, expr...)`<br/>`join(joinType, exprList)`<br/>`join(joinType, fieldName...)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) of the two most recent relational expressions.<br/><br/>The first form joins on a boolean expression (multiple conditions are combined using AND).<br/><br/>The last form joins on named fields; each side must have a field of each name.
 | `semiJoin(expr)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) with SEMI join type of the two most recent relational expressions.
-| `antiJoin(expr)` | Creates an AntiJoin of the two most recent relational expressions.
+| `antiJoin(expr)` | Creates a [Join]({{ site.apiRoot }}/org/apache/calcite/rel/core/Join.html) with ANTI join type of the two most recent relational expressions.
 | `union(all [, n])` | Creates a [Union]({{ site.apiRoot }}/org/apache/calcite/rel/core/Union.html) of the `n` (default two) most recent relational expressions.
 | `intersect(all [, n])` | Creates an [Intersect]({{ site.apiRoot }}/org/apache/calcite/rel/core/Intersect.html) of the `n` (default two) most recent relational expressions.
 | `minus(all)` | Creates a [Minus]({{ site.apiRoot }}/org/apache/calcite/rel/core/Minus.html) of the two most recent relational expressions.
@@ -334,8 +335,10 @@ return the `RelBuilder`.
 Argument types:
 
 * `expr`, `interval` [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `expr...` Array of [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
-* `exprList`, `measureList`, `partitionKeys`, `orderKeys` Iterable of
+* `expr...`, `requiredField...` Array of
+  [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
+* `exprList`, `measureList`, `partitionKeys`, `orderKeys`,
+  `requiredFieldList` Iterable of
   [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `fieldOrdinal` Ordinal of a field within its row (starting from 0)
 * `fieldName` Name of a field, unique within its row
@@ -350,12 +353,16 @@ Argument types:
 * `tupleList` Iterable of List of [RexLiteral]({{ site.apiRoot }}/org/apache/calcite/rex/RexLiteral.html)
 * `all`, `distinct`, `strictStart`, `strictEnd`, `allRows` boolean
 * `alias` String
+* `correlationId` [CorrelationId]({{ site.apiRoot }}/org/apache/calcite/rel/core/CorrelationId.html)
+* `variablesSet` Iterable of
+  [CorrelationId]({{ site.apiRoot }}/org/apache/calcite/rel/core/CorrelationId.html)
 * `varHolder` [Holder]({{ site.apiRoot }}/org/apache/calcite/util/Holder.html) of [RexCorrelVariable]({{ site.apiRoot }}/org/apache/calcite/rex/RexCorrelVariable.html)
 * `patterns` Map whose key is String, value is [RexNode]({{ site.apiRoot }}/org/apache/calcite/rex/RexNode.html)
 * `subsets` Map whose key is String, value is a sorted set of String
 * `distribution` [RelDistribution]({{ site.apiRoot }}/org/apache/calcite/rel/RelDistribution.html)
 * `collation` [RelCollation]({{ site.apiRoot }}/org/apache/calcite/rel/RelCollation.html)
 * `operator` [SqlOperator]({{ site.apiRoot }}/org/apache/calcite/sql/SqlOperator.html)
+* `joinType` [JoinRelType]({{ site.apiRoot }}/org/apache/calcite/rel/core/JoinRelType.html)
 
 The builder methods perform various optimizations, including:
 

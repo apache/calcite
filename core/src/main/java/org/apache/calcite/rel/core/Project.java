@@ -145,6 +145,12 @@ public abstract class Project extends SingleRel {
     if (this.exps == exps) {
       return this;
     }
+    final RelDataType rowType =
+        RexUtil.createStructType(
+            getInput().getCluster().getTypeFactory(),
+            exps,
+            this.rowType.getFieldNames(),
+            null);
     return copy(traitSet, getInput(), exps, rowType);
   }
 
@@ -254,10 +260,10 @@ public abstract class Project extends SingleRel {
    * Returns a mapping of a set of project expressions.
    *
    * <p>The mapping is an inverse surjection.
-   * Every target has a source field, but
-   * a source field may appear as zero, one, or more target fields.
+   * Every target has a source field, but no
+   * source has more than one target.
    * Thus you can safely call
-   * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping#getTarget(int)}.
+   * {@link org.apache.calcite.util.mapping.Mappings.TargetMapping#getSourceOpt(int)}.
    *
    * @param inputFieldCount Number of input fields
    * @param projects Project expressions
@@ -276,7 +282,12 @@ public abstract class Project extends SingleRel {
       if (!(exp.e instanceof RexInputRef)) {
         return null;
       }
-      mapping.set(((RexInputRef) exp.e).getIndex(), exp.i);
+
+      int source = ((RexInputRef) exp.e).getIndex();
+      if (mapping.getTargetOpt(source) != -1) {
+        return null;
+      }
+      mapping.set(source, exp.i);
     }
     return mapping;
   }

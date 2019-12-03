@@ -253,8 +253,10 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
     planner.removeRule(FilterAggregateTransposeRule.INSTANCE);
     planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
     planner.addRule(
-        new FilterAggregateTransposeRule(PigFilter.class, builderFactory, PigAggregate.class));
-    planner.addRule(new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
+        new FilterAggregateTransposeRule(PigFilter.class, builderFactory,
+            PigAggregate.class));
+    planner.addRule(
+        new FilterIntoJoinRule(true, builderFactory, TRUE_PREDICATE));
     planner.setRoot(root);
     return planner;
   }

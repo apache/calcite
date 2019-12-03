@@ -244,6 +244,87 @@ public class FileReaderTest {
       rs.close();
     }
   }
+
+  /**
+   * Tests reading a JSON file via the file adapter.
+   */
+  @Test public void testJsonFile() throws Exception {
+    Properties info = new Properties();
+    final String path = resourcePath("sales-json");
+    final String model = "inline:"
+        + "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"XXX\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": " + TestUtil.escapeString(path) + "\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    info.put("model", model);
+    info.put("lex", "JAVA");
+
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement stmt = connection.createStatement()) {
+      final String sql = "select * from FILES.DEPTS";
+      final ResultSet rs = stmt.executeQuery(sql);
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("10"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("20"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("30"));
+      assertThat(rs.next(), is(false));
+      rs.close();
+    }
+  }
+
+  /**
+   * Tests reading two JSON file with join via the file adapter.
+   */
+  @Test public void testJsonFileWithJoin() throws Exception {
+    Properties info = new Properties();
+    final String path = resourcePath("sales-json");
+    final String model = "inline:"
+        + "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"XXX\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": " + TestUtil.escapeString(path) + "\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    info.put("model", model);
+    info.put("lex", "JAVA");
+
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement stmt = connection.createStatement()) {
+      final String sql = "select a.EMPNO,a.NAME,a.CITY,b.DEPTNO "
+          + "from FILES.EMPS a, FILES.DEPTS b where a.DEPTNO = b.DEPTNO";
+      final ResultSet rs = stmt.executeQuery(sql);
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("100"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("110"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("120"));
+      assertThat(rs.next(), is(false));
+      rs.close();
+    }
+  }
 }
 
 // End FileReaderTest.java

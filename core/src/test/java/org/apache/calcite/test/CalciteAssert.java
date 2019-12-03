@@ -851,6 +851,32 @@ public class CalciteAssert {
                   + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
               ImmutableList.of(), ImmutableList.of("POST", "EMPS"),
               null));
+      post.add("TICKER",
+          ViewTable.viewMacro(post,
+            "select * from (values\n"
+                + "    ('ACME', '2017-12-01', 12),\n"
+                + "    ('ACME', '2017-12-02', 17),\n"
+                + "    ('ACME', '2017-12-03', 19),\n"
+                + "    ('ACME', '2017-12-04', 21),\n"
+                + "    ('ACME', '2017-12-05', 25),\n"
+                + "    ('ACME', '2017-12-06', 12),\n"
+                + "    ('ACME', '2017-12-07', 15),\n"
+                + "    ('ACME', '2017-12-08', 20),\n"
+                + "    ('ACME', '2017-12-09', 24),\n"
+                + "    ('ACME', '2017-12-10', 25),\n"
+                + "    ('ACME', '2017-12-11', 19),\n"
+                + "    ('ACME', '2017-12-12', 15),\n"
+                + "    ('ACME', '2017-12-13', 25),\n"
+                + "    ('ACME', '2017-12-14', 25),\n"
+                + "    ('ACME', '2017-12-15', 14),\n"
+                + "    ('ACME', '2017-12-16', 12),\n"
+                + "    ('ACME', '2017-12-17', 14),\n"
+                + "    ('ACME', '2017-12-18', 24),\n"
+                + "    ('ACME', '2017-12-19', 23),\n"
+                + "    ('ACME', '2017-12-20', 22))\n"
+                + " as t(SYMBOL, tstamp, price)",
+            ImmutableList.<String>of(), ImmutableList.of("POST", "TICKER"),
+            null));
       return post;
     case AUX:
       SchemaPlus aux =

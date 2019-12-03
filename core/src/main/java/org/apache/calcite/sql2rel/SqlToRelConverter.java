@@ -987,9 +987,10 @@ public class SqlToRelConverter {
       return;
     }
 
-    final RelFactories.FilterFactory factory =
+    final RelFactories.FilterFactory filterFactory =
         RelFactories.DEFAULT_FILTER_FACTORY;
-    final RelNode filter = factory.createFilter(bb.root, convertedWhere2);
+    final RelNode filter =
+        filterFactory.createFilter(bb.root, convertedWhere2, ImmutableSet.of());
     final RelNode r;
     final CorrelationUse p = getCorrelationUse(bb, filter);
     if (p != null) {
@@ -1101,6 +1102,17 @@ public class SqlToRelConverter {
       //   where emp.deptno <> null
       //         and q.indicator <> TRUE"
       //
+      // Note: Sub-query can be used as SqlUpdate#condition like below:
+      //
+      //   UPDATE emp
+      //   SET empno = 1 WHERE emp.empno IN (
+      //     SELECT emp.empno FROM emp WHERE emp.empno = 2)
+      //
+      // In such case, when converting SqlUpdate#condition, bb.root is null
+      // and it makes no sense to do the sub-query substitution.
+      if (bb.root == null) {
+        return;
+      }
       final RelDataType targetRowType =
           SqlTypeUtil.promoteToRowType(typeFactory,
               validator.getValidatedNodeType(leftKeyNode), null);
@@ -1799,9 +1811,12 @@ public class SqlToRelConverter {
     case ALL:
       switch (logic) {
       case TRUE_FALSE_UNKNOWN:
-        if (validator.getValidatedNodeType(node).isNullable()) {
-          break;
-        } else if (true) {
+        RelDataType type = validator.getValidatedNodeTypeIfKnown(node);
+        if (type == null) {
+          // The node might not be validated if we still don't know type of the node.
+          // Therefore return directly.
+          return;
+        } else {
           break;
         }
         // fall through
@@ -2165,10 +2180,10 @@ public class SqlToRelConverter {
 
     // PARTITION BY
     final SqlNodeList partitionList = matchRecognize.getPartitionList();
-    final List<RexNode> partitionKeys = new ArrayList<>();
+    final ImmutableBitSet.Builder partitionKeys = ImmutableBitSet.builder();
     for (SqlNode partition : partitionList) {
       RexNode e = matchBb.convertExpression(partition);
-      partitionKeys.add(e);
+      partitionKeys.set(((RexInputRef) e).getIndex());
     }
 
     // ORDER BY
@@ -2309,8 +2324,8 @@ public class SqlToRelConverter {
         factory.createMatch(input, patternNode,
             rowType, matchRecognize.getStrictStart().booleanValue(),
             matchRecognize.getStrictEnd().booleanValue(),
-            definitionNodes.build(), measureNodes.build(), after,
-            subsetMap, allRows, partitionKeys, orders, intervalNode);
+            definitionNodes.build(), measureNodes.build(), after, subsetMap,
+            allRows, partitionKeys.build(), orders, intervalNode);
     bb.setRoot(rel, false);
   }
 
@@ -2333,7 +2348,7 @@ public class SqlToRelConverter {
       final SqlValidatorTable validatorTable =
           table.unwrap(SqlValidatorTable.class);
       final List<RelDataTypeField> extendedFields =
-          SqlValidatorUtil.getExtendedColumns(validator.getTypeFactory(), validatorTable,
+          SqlValidatorUtil.getExtendedColumns(validator, validatorTable,
               extendedColumns);
       table = table.extend(extendedFields);
     }
@@ -2490,7 +2505,7 @@ public class SqlToRelConverter {
         // Replace outer RexInputRef with RexFieldAccess,
         // and push lateral join predicate into inner child
         final RexNode newCond = joinCond.accept(shuttle);
-        innerRel = factory.createFilter(p.r, newCond);
+        innerRel = factory.createFilter(p.r, newCond, ImmutableSet.of());
         requiredCols = ImmutableBitSet
             .fromBitSet(shuttle.varCols)
             .union(p.requiredColumns);

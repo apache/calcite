@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
@@ -34,21 +35,23 @@ import org.apache.calcite.util.BuiltInMethod;
 /**
  * Implementation of {@link TableSpool} in
  * {@link EnumerableConvention enumerable calling convention}
- * that writes into a {@link ModifiableTable} (which must exist in the current schema).
+ * that writes into a {@link ModifiableTable} (which must exist in the current
+ * schema).
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
 
-  private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
-                                 Type readType, Type writeType, String tableName) {
-    super(cluster, traitSet, input, readType, writeType, tableName);
+  private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, Type readType, Type writeType, RelOptTable table) {
+    super(cluster, traitSet, input, readType, writeType, table);
   }
 
   /** Creates an EnumerableTableSpool. */
-  public static EnumerableTableSpool create(RelNode input, Type readType, Type writeType,
-                                            String tableName) {
+  public static EnumerableTableSpool create(RelNode input, Type readType,
+      Type writeType, RelOptTable table) {
     RelOptCluster cluster = input.getCluster();
     RelMetadataQuery mq = cluster.getMetadataQuery();
     RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE)
@@ -56,7 +59,7 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
             () -> mq.collations(input))
         .replaceIf(RelDistributionTraitDef.INSTANCE,
             () -> mq.distribution(input));
-    return new EnumerableTableSpool(cluster, traitSet, input, readType, writeType, tableName);
+    return new EnumerableTableSpool(cluster, traitSet, input, readType, writeType, table);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -74,6 +77,7 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
     RelNode input = getInput();
     Result inputResult = implementor.visitChild(this, 0, (EnumerableRel) input, pref);
 
+    String tableName = table.getQualifiedName().get(table.getQualifiedName().size() - 1);
     Expression tableExp = Expressions.convert_(
         Expressions.call(
             Expressions.call(
@@ -102,9 +106,9 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
   }
 
   @Override protected Spool copy(RelTraitSet traitSet, RelNode input,
-                                 Type readType, Type writeType) {
+      Type readType, Type writeType) {
     return new EnumerableTableSpool(input.getCluster(), traitSet, input,
-        readType, writeType, tableName);
+        readType, writeType, table);
   }
 }
 

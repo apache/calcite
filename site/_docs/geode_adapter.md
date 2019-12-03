@@ -167,10 +167,10 @@ about Geode adapter:
 
 * [Enable SQL/JDBC Access to Apache Geode/GemFire Using Apache Calcite](https://www.slideshare.net/slideshow/embed_code/key/2Mil7I0ZPMLuJU)
   (GeodeSummit/SpringOne 2017)
-* [Access Apache Geode / GemFire over SQL/JDBC](https://www.linkedin.com/pulse/access-apache-geode-gemfire-over-sqljdbc-christian-tzolov)
+* [Access Apache Geode/GemFire over SQL/JDBC](https://www.linkedin.com/pulse/access-apache-geode-gemfire-over-sqljdbc-christian-tzolov)
 * [Explore Geode & GemFire Data with IntelliJ SQL/Database tool](https://www.linkedin.com/pulse/explore-your-geode-gemfire-data-from-within-intellij-tool-tzolov)
 * [Advanced Apache Geode Data Analytics with Apache Zeppelin over SQL/JDBC](https://www.linkedin.com/pulse/advanced-apache-geode-data-analytics-zeppelin-over-sqljdbc-tzolov)
-* [Unified Access to {Geode|Greenplum|...}](https://www.linkedin.com/pulse/unified-access-geodegreenplum-christian-tzolov)
+* [Unified Access to Geode/Greenplum/...](https://www.linkedin.com/pulse/unified-access-geodegreenplum-christian-tzolov)
 * [Apache Calcite for Enabling SQL Access to NoSQL Data Systems such as Apache Geode](https://schd.ws/hosted_files/apachebigdataeu2016/b6/ApacheCon2016ChristianTzolov.v3.pdf)
   (ApacheCon Big Data, 2016)
 

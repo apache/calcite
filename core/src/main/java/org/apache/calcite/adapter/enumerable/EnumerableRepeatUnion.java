@@ -28,43 +28,37 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
-
 /**
  * Implementation of {@link RepeatUnion} in
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel {
 
   /**
-   * Creates an EnumerableRepeatUnion
+   * Creates an EnumerableRepeatUnion.
    */
-  EnumerableRepeatUnion(
-          RelOptCluster cluster,
-          RelTraitSet traits,
-          RelNode seed,
-          RelNode iterative,
-          boolean all,
-          int maxRep) {
-    super(cluster, traits, seed, iterative, all, maxRep);
+  EnumerableRepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode seed, RelNode iterative, boolean all, int iterationLimit) {
+    super(cluster, traitSet, seed, iterative, all, iterationLimit);
   }
 
   @Override public EnumerableRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return new EnumerableRepeatUnion(getCluster(), traitSet,
-        inputs.get(0), inputs.get(1), all, maxRep);
+        inputs.get(0), inputs.get(1), all, iterationLimit);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // TODO only UNION ALL is supported for the moment
     if (!all) {
       throw new UnsupportedOperationException(
-          "Only EnumerableRepeatUnion ALL is supported for the moment");
+          "Only EnumerableRepeatUnion ALL is supported");
     }
 
-    // return repeatUnionAll(<seedExp>, <iterativeExp>, maxRep);
+    // return repeatUnionAll(<seedExp>, <iterativeExp>, iterationLimit);
 
     BlockBuilder builder = new BlockBuilder();
     RelNode seed = getSeedRel();
@@ -80,7 +74,7 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
         BuiltInMethod.REPEAT_UNION_ALL.method,
         seedExp,
         iterativeExp,
-        Expressions.constant(maxRep, int.class));
+        Expressions.constant(iterationLimit, int.class));
     builder.add(unionExp);
 
     PhysType physType = PhysTypeImpl.of(

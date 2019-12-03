@@ -20,12 +20,20 @@ import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -37,6 +45,7 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.junit.Ignore;
@@ -45,12 +54,16 @@ import org.junit.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
@@ -1903,13 +1916,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     TestUtil.assertEqualsVerbose(
         "<RelNode type=\"LogicalProject\">\n"
             + "\t<Property name=\"EXPR$0\">\n"
-            + "\t\t+(1, 2)\t</Property>\n"
+            + "\t\t+(1, 2)\n"
+            + "\t</Property>\n"
             + "\t<Property name=\"EXPR$1\">\n"
-            + "\t\t3\t</Property>\n"
+            + "\t\t3\n"
+            + "\t</Property>\n"
             + "\t<Inputs>\n"
             + "\t\t<RelNode type=\"LogicalValues\">\n"
             + "\t\t\t<Property name=\"tuples\">\n"
-            + "\t\t\t\t[{ true }]\t\t\t</Property>\n"
+            + "\t\t\t\t[{ true }]\n"
+            + "\t\t\t</Property>\n"
             + "\t\t\t<Inputs/>\n"
             + "\t\t</RelNode>\n"
             + "\t</Inputs>\n"
@@ -1924,6 +1940,57 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testSortWithTrim() {
     final String sql = "select ename from (select * from emp order by sal) a";
     sql(sql).trim(true).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3183">[CALCITE-3183]
+   * Trimming method for Filter rel uses wrong traitSet </a> */
+  @Test public void testFilterAndSortWithTrim() {
+    // Create a customized test with RelCollation trait in the test cluster.
+    Tester tester = new TesterImpl(getDiffRepos(),
+        false, true,
+        true, false, true,
+        null, null) {
+      @Override public RelOptPlanner createPlanner() {
+        return new MockRelOptPlanner(Contexts.empty()) {
+          @Override public List<RelTraitDef> getRelTraitDefs() {
+            return ImmutableList.<RelTraitDef>of(RelCollationTraitDef.INSTANCE);
+          }
+          @Override public RelTraitSet emptyTraitSet() {
+            return RelTraitSet.createEmpty().plus(
+                RelCollationTraitDef.INSTANCE.getDefault());
+          }
+        };
+      }
+    };
+
+    // Run query and save plan after trimming
+    final String sql = "select count(a.EMPNO)\n"
+        + "from (select * from emp order by sal limit 3) a\n"
+        + "where a.EMPNO > 10 group by 2";
+    RelNode afterTrim = tester.convertSqlToRel(sql).rel;
+
+    // Get Sort and Filter operators
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalSort sort) {
+        rels.add(sort);
+        return super.visit(sort);
+      }
+      @Override public RelNode visit(LogicalFilter filter) {
+        rels.add(filter);
+        return super.visit(filter);
+      }
+    };
+    visitor.visit(afterTrim);
+
+    // Ensure sort and filter operators have consistent traitSet after trimming
+    assertThat(rels.size(), is(2));
+    RelTrait filterCollation = rels.get(0).getTraitSet()
+        .getTrait(RelCollationTraitDef.INSTANCE);
+    RelTrait sortCollation = rels.get(1).getTraitSet()
+        .getTrait(RelCollationTraitDef.INSTANCE);
+    assertTrue(filterCollation.satisfies(sortCollation));
   }
 
   @Test public void testOffset0() {
@@ -2120,6 +2187,38 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "update emp\n"
         + "set empno = (\n"
         + "  select min(empno) from emp as e where e.deptno = emp.deptno)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3229">[CALCITE-3229]
+   * UnsupportedOperationException for UPDATE with IN query</a>.
+   */
+  @Test public void testUpdateSubQueryWithIn() {
+    final String sql = "update emp\n"
+            + "set empno = 1 where empno in (\n"
+            + "  select empno from emp where empno=2)";
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3292">[CALCITE-3292]
+   * NPE for UPDATE with IN query</a>.
+   */
+  @Test public void testUpdateSubQueryWithIn1() {
+    final String sql = "update emp\n"
+            + "set empno = 1 where emp.empno in (\n"
+            + "  select emp.empno from emp where emp.empno=2)";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testUpdateSubQueryWithIn()} but with not in instead of in. */
+  @Test public void testUpdateSubQueryWithNotIn() {
+    final String sql = "update emp\n"
+            + "set empno = 1 where empno not in (\n"
+            + "  select empno from emp where empno=2)";
     sql(sql).ok();
   }
 
@@ -2719,6 +2818,56 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test
+  public void testNestedStructFieldAccess() {
+    final String sql =
+        "select dn.skill['others'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testNestedStructPrimitiveFieldAccess() {
+    final String sql =
+        "select dn.skill['others']['a'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testNestedPrimitiveFieldAccess() {
+    final String sql =
+        "select dn.skill['desc'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementNestedPrimitive() {
+    final String sql =
+        "select dn.employees[0]['empno'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementDoublyNestedPrimitive() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0]['type'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementDoublyNestedStruct() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testArrayElementThreeTimesNestedStruct() {
+    final String sql =
+        "select dn.employees[0]['detail']['skills'][0]['others'] from sales.dept_nested dn";
+    sql(sql).ok();
+  }
+
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-3003">[CALCITE-3003]
    * AssertionError when GROUP BY nested field</a>.
@@ -3131,7 +3280,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         NullCollation.LOW.name());
     CalciteConnectionConfigImpl connectionConfig =
         new CalciteConnectionConfigImpl(properties);
-    TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false,
+    TesterImpl tester = new TesterImpl(getDiffRepos(), false, false, true, false, true,
         null, null, SqlToRelConverter.Config.DEFAULT,
         SqlConformanceEnum.DEFAULT, Contexts.of(connectionConfig));
     sql(sql).with(tester).ok();
@@ -3383,6 +3532,25 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         + "  (select c+1 from (values 3)) as bar(b1)\n"
         + "  on f1=b1\n"
         + ") as r(n) where c=n)";
+    sql(sql).ok();
+  }
+
+  /** Test case for:
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3310">[CALCITE-3310]
+   * Approximate and exact aggregate calls are recognized as the same
+   * during sql-to-rel conversion.</a>.
+   */
+  @Test public void testProjectApproximateAndExactAggregates() {
+    final String sql = "SELECT empno, count(distinct ename),\n"
+            + "approx_count_distinct(ename)\n"
+            + "FROM emp\n"
+            + "GROUP BY empno";
+    sql(sql).ok();
+  }
+
+  @Test public void testProjectAggregatesIgnoreNullsAndNot() {
+    final String sql = "select lead(sal, 4) IGNORE NULLS, lead(sal, 4) over (w)\n"
+            + " from emp window w as (order by empno)";
     sql(sql).ok();
   }
 

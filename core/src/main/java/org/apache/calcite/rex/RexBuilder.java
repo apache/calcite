@@ -407,7 +407,7 @@ public class RexBuilder {
               new RexOver(typeFactory.createTypeWithNullability(type, false),
                   operator, exprs, window, distinct, ignoreNulls),
               false),
-          makeCast(type, constantNull()));
+          makeNullLiteral(type));
     }
     if (!allowPartial) {
       Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
@@ -463,7 +463,11 @@ public class RexBuilder {
 
   /**
    * Creates a constant for the SQL <code>NULL</code> value.
+   *
+   * @deprecated Use {@link #makeNullLiteral(RelDataType)}, which produces a
+   * NULL of the correct type
    */
+  @Deprecated // to be removed before 2.0
   public RexLiteral constantNull() {
     return constantNull;
   }
@@ -1252,7 +1256,7 @@ public class RexBuilder {
     if (!type.isNullable()) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
-    return (RexLiteral) makeCast(type, constantNull());
+    return (RexLiteral) makeCast(type, constantNull);
   }
 
   /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
@@ -1415,6 +1419,8 @@ public class RexBuilder {
     case INTERVAL_SECOND:
       return makeIntervalLiteral((BigDecimal) value,
           type.getIntervalQualifier());
+    case SYMBOL:
+      return makeFlag((Enum) value);
     case MAP:
       final MapSqlType mapType = (MapSqlType) type;
       @SuppressWarnings("unchecked")

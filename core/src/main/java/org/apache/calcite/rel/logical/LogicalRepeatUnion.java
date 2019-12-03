@@ -29,44 +29,41 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.RepeatUnion}
  * not targeted at any particular engine or calling convention.
  *
- * <p>NOTE: The current API is experimental and subject to change without notice.</p>
+ * <p>NOTE: The current API is experimental and subject to change without
+ * notice.
  */
 @Experimental
 public class LogicalRepeatUnion extends RepeatUnion {
 
   //~ Constructors -----------------------------------------------------------
-  private LogicalRepeatUnion(
-            RelOptCluster cluster,
-            RelTraitSet traitSet,
-            RelNode seed,
-            RelNode iterative,
-            boolean all,
-            int maxRep) {
-    super(cluster, traitSet, seed, iterative, all, maxRep);
+  private LogicalRepeatUnion(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode seed, RelNode iterative, boolean all, int iterationLimit) {
+    super(cluster, traitSet, seed, iterative, all, iterationLimit);
   }
 
   /** Creates a LogicalRepeatUnion. */
-  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative, boolean all) {
+  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative,
+      boolean all) {
     return create(seed, iterative, all, -1);
   }
 
   /** Creates a LogicalRepeatUnion. */
-  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative, boolean all,
-                                          int maxRep) {
+  public static LogicalRepeatUnion create(RelNode seed, RelNode iterative,
+      boolean all, int iterationLimit) {
     RelOptCluster cluster = seed.getCluster();
     RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalRepeatUnion(cluster, traitSet, seed, iterative, all, maxRep);
+    return new LogicalRepeatUnion(cluster, traitSet, seed, iterative, all, iterationLimit);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public LogicalRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  @Override public LogicalRepeatUnion copy(RelTraitSet traitSet,
+      List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.size() == 2;
     return new LogicalRepeatUnion(getCluster(), traitSet,
-        inputs.get(0), inputs.get(1), all, maxRep);
+        inputs.get(0), inputs.get(1), all, iterationLimit);
   }
-
 }
 
 // End LogicalRepeatUnion.java

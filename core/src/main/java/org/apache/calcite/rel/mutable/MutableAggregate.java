@@ -40,6 +40,11 @@ public class MutableAggregate extends MutableSingleRel {
     this.groupSets = groupSets == null
         ? ImmutableList.of(groupSet)
         : ImmutableList.copyOf(groupSets);
+    assert ImmutableBitSet.ORDERING.isStrictlyOrdered(
+        this.groupSets) : this.groupSets;
+    for (ImmutableBitSet set : this.groupSets) {
+      assert groupSet.contains(set);
+    }
     this.aggCalls = aggCalls;
   }
 

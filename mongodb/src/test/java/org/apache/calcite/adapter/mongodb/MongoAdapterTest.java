@@ -94,7 +94,7 @@ public class MongoAdapterTest implements SchemaFactory {
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
-    if (datatypes.count() > 0) {
+    if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
     }
 
@@ -112,7 +112,7 @@ public class MongoAdapterTest implements SchemaFactory {
       throws IOException {
     Objects.requireNonNull(collection, "collection");
 
-    if (collection.count() > 0) {
+    if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
       collection.deleteMany(new BsonDocument());
     }
@@ -393,9 +393,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testCountGroupByEmptyMultiplyBy2() {
-    // This operation is not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
-
     assertModel(MODEL)
         .query("select count(*)*2 from zips")
         .returns(String.format(Locale.ROOT, "EXPR$0=%d\n", ZIPS_SIZE * 2))
@@ -465,8 +462,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testGroupByAvgSumCount() {
-    // This operation not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
@@ -478,8 +473,8 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {POP: '$pop', STATE: '$state'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
-                "{$sort: {STATE: 1}}",
-                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}",
+                "{$sort: {STATE: 1}}"));
   }
 
   @Test public void testGroupByHaving() {
@@ -591,9 +586,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testDistinctCountOrderBy() {
-    // java.lang.ClassCastException: com.mongodb.BasicDBObject cannot be cast to java.lang.Number
-    // https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc\n"
             + "from zips\n"

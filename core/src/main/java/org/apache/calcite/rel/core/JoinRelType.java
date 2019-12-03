@@ -16,8 +16,6 @@
  */
 package org.apache.calcite.rel.core;
 
-import org.apache.calcite.linq4j.CorrelateJoinType;
-
 import java.util.Locale;
 
 /**
@@ -59,7 +57,7 @@ public enum JoinRelType {
   SEMI,
 
   /**
-   * Anti-join.
+   * Anti-join (also known as Anti-semi-join).
    *
    * <p>For example, {@code EMP anti-join DEPT} finds all {@code EMP} records
    * that do not have a corresponding {@code DEPT} record:
@@ -151,35 +149,8 @@ public enum JoinRelType {
     }
   }
 
-  /** Transform this JoinRelType to CorrelateJoinType. **/
-  public CorrelateJoinType toLinq4j() {
-    switch (this) {
-    case INNER:
-      return CorrelateJoinType.INNER;
-    case LEFT:
-      return CorrelateJoinType.LEFT;
-    case SEMI:
-      return CorrelateJoinType.SEMI;
-    case ANTI:
-      return CorrelateJoinType.ANTI;
-    }
-    throw new IllegalStateException(
-        "Unable to convert " + this + " to CorrelateJoinType");
-  }
-
   public boolean projectsRight() {
-    switch (this) {
-    case INNER:
-    case LEFT:
-    case RIGHT:
-    case FULL:
-      return true;
-    case SEMI:
-    case ANTI:
-      return false;
-    }
-    throw new IllegalStateException(
-        "Unable to convert " + this + " to JoinRelType");
+    return this != SEMI && this != ANTI;
   }
 }
 

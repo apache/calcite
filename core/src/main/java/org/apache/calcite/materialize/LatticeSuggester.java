@@ -63,6 +63,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -215,20 +216,23 @@ public class LatticeSuggester {
             new Lattice.Measure(measure.aggregate, measure.distinct,
                 measure.name,
                 Lists.transform(measure.arguments, colRef -> {
+                  final Lattice.Column column;
                   if (colRef instanceof BaseColRef) {
                     final BaseColRef baseColRef = (BaseColRef) colRef;
                     final MutableNode node = nodes.get(baseColRef.t);
                     final int table = flatNodes.indexOf(node);
-                    return latticeBuilder.column(table, baseColRef.c);
+                    column = latticeBuilder.column(table, baseColRef.c);
                   } else if (colRef instanceof DerivedColRef) {
                     final DerivedColRef derivedColRef =
                         (DerivedColRef) colRef;
                     final String alias = deriveAlias(measure, derivedColRef);
-                    return latticeBuilder.expression(derivedColRef.e, alias,
+                    column = latticeBuilder.expression(derivedColRef.e, alias,
                         derivedColRef.tableAliases());
                   } else {
                     throw new AssertionError("expression in measure");
                   }
+                  latticeBuilder.use(column, true);
+                  return column;
                 })));
       }
 
@@ -239,6 +243,7 @@ public class LatticeSuggester {
           final Lattice.Column expression =
               latticeBuilder.expression(derivedColRef.e,
                   derivedColRef.alias, derivedColRef.tableAliases());
+          latticeBuilder.use(expression, false);
         }
       }
 
@@ -323,12 +328,8 @@ public class LatticeSuggester {
         final CalciteSchema rootSchema = CalciteSchema.createRootSchema(false);
         final Lattice.Builder builder =
             new Lattice.Builder(space, rootSchema, mutableNode);
-        for (Lattice.Measure measure : bestMatch.defaultMeasures) {
-          builder.addMeasure(measure.copy(mapper(bestMatch, builder)));
-        }
-        for (Lattice.Measure measure : lattice.defaultMeasures) {
-          builder.addMeasure(measure.copy(mapper(lattice, builder)));
-        }
+        copyMeasures(builder, bestMatch);
+        copyMeasures(builder, lattice);
         final Lattice lattice2 = builder.build();
         latticeMap.remove(bestMatch.toString());
         obsoleteLatticeMap.put(bestMatch, lattice2);
@@ -342,19 +343,29 @@ public class LatticeSuggester {
     return lattice;
   }
 
-  private java.util.function.Function<Lattice.Column, Lattice.Column> mapper(
-      final Lattice lattice, final Lattice.Builder builder) {
-    return (Lattice.Column c) -> {
-      if (c instanceof Lattice.BaseColumn) {
-        Lattice.BaseColumn baseColumn = (Lattice.BaseColumn) c;
-        Pair<Path, Integer> p = lattice.columnToPathOffset(baseColumn);
-        return builder.pathOffsetToColumn(p.left, p.right);
-      } else {
-        final Lattice.DerivedColumn derivedColumn = (Lattice.DerivedColumn) c;
-        return builder.expression(derivedColumn.e, derivedColumn.alias,
-            derivedColumn.tables);
-      }
-    };
+  /** Copies measures and column usages from an existing lattice into a builder,
+   * using a mapper to translate old-to-new columns, so that the new lattice can
+   * inherit from the old. */
+  private void copyMeasures(Lattice.Builder builder, Lattice lattice) {
+    final Function<Lattice.Column, Lattice.Column> mapper =
+        (Lattice.Column c) -> {
+          if (c instanceof Lattice.BaseColumn) {
+            Lattice.BaseColumn baseColumn = (Lattice.BaseColumn) c;
+            Pair<Path, Integer> p = lattice.columnToPathOffset(baseColumn);
+            return builder.pathOffsetToColumn(p.left, p.right);
+          } else {
+            final Lattice.DerivedColumn derivedColumn = (Lattice.DerivedColumn) c;
+            return builder.expression(derivedColumn.e, derivedColumn.alias,
+                derivedColumn.tables);
+          }
+        };
+    for (Lattice.Measure measure : lattice.defaultMeasures) {
+      builder.addMeasure(measure.copy(mapper));
+    }
+    for (Map.Entry<Integer, Boolean> entry : lattice.columnUses.entries()) {
+      final Lattice.Column column = lattice.columns.get(entry.getKey());
+      builder.use(mapper.apply(column), entry.getValue());
+    }
   }
 
   private int matchQuality(Lattice lattice, Lattice target) {

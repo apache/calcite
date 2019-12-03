@@ -20,12 +20,12 @@ limitations under the License.
   <parent>
     <groupId>org.apache.calcite</groupId>
     <artifactId>calcite</artifactId>
-    <version>1.20.0-SNAPSHOT</version>
+    <version>1.22.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>calcite-mongodb</artifactId>
   <packaging>jar</packaging>
-  <version>1.20.0-SNAPSHOT</version>
+  <version>1.22.0-SNAPSHOT</version>
   <name>Calcite MongoDB</name>
   <description>MongoDB adapter for Calcite</description>
 
@@ -70,9 +70,16 @@ limitations under the License.
       <artifactId>hamcrest-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- mongo-java-server is embedded, fake mongo engine used for tests -->
     <dependency>
-      <groupId>com.github.fakemongo</groupId>
-      <artifactId>fongo</artifactId>
+      <groupId>de.bwaldvogel</groupId>
+      <artifactId>mongo-java-server-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.bwaldvogel</groupId>
+      <artifactId>mongo-java-server-memory-backend</artifactId>
+      <version>${mongo-java-server.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
