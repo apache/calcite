@@ -951,7 +951,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
           Filter.class, relBuilderFactory, Aggregate.class);
       this.aggregateProjectPullUpConstantsRule = new AggregateProjectPullUpConstantsRule(
           Aggregate.class, Filter.class, relBuilderFactory, "AggFilterPullUpConstants");
-      this.projectMergeRule = ProjectMergeRule.INSTANCE;
+      this.projectMergeRule = new ProjectMergeRule(
+          Project.class, Project.class, true, relBuilderFactory);
     }
 
     @Override protected boolean isValidPlan(Project topProject, RelNode node,

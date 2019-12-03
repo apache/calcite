@@ -1479,7 +1479,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPushProjectPastFilter() {
     final String sql = "select empno + deptno from emp where sal = 10 * comm\n"
         + "and upper(ename) = 'FOO'";
-    sql(sql).withRule(ProjectFilterTransposeRule.LOGICAL_INSTANCE).check();
+    sql(sql).withRule(ProjectFilterTransposeRule.INSTANCE).check();
   }
 
   /** Test case for
@@ -1490,7 +1490,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select count(*)\n"
         + "from emp\n"
         + "where case when mgr < 10 then true else false end";
-    sql(sql).withRule(ProjectFilterTransposeRule.LOGICAL_INSTANCE).check();
+    sql(sql).withRule(ProjectFilterTransposeRule.INSTANCE).check();
   }
 
   @Test public void testPushProjectPastJoin() {
@@ -1530,7 +1530,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "where exists (select empno, deptno from dept d2 where e1.deptno = d2.deptno)";
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(FilterProjectTransposeRule.LOGICAL_INSTANCE)
-        .addRuleInstance(ProjectFilterTransposeRule.LOGICAL_INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
         .addRuleInstance(ProjectCorrelateTransposeRule.INSTANCE)
         .build();
     sql(sql)
@@ -3286,7 +3286,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testPullFilterThroughAggregate() throws Exception {
     HepProgram preProgram = HepProgram.builder()
         .addRuleInstance(ProjectMergeRule.LOGICAL_INSTANCE)
-        .addRuleInstance(ProjectFilterTransposeRule.LOGICAL_INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
         .build();
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
@@ -3303,7 +3303,7 @@ public class RelOptRulesTest extends RelOptTestBase {
       throws Exception {
     HepProgram preProgram = HepProgram.builder()
         .addRuleInstance(ProjectMergeRule.LOGICAL_INSTANCE)
-        .addRuleInstance(ProjectFilterTransposeRule.LOGICAL_INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
         .build();
     HepProgram program = HepProgram.builder()
         .addRuleInstance(AggregateFilterTransposeRule.INSTANCE)
@@ -5623,7 +5623,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(ProjectFilterTransposeRule.LOGICAL_INSTANCE)
+        .addRuleInstance(ProjectFilterTransposeRule.INSTANCE)
         .build();
 
     HepPlanner hepPlanner = new HepPlanner(program);
