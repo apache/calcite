@@ -16,42 +16,20 @@
  */
 package org.apache.calcite.adapter.file;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-
-import java.io.IOException;
-import java.net.Socket;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Unit test suite for Calcite File adapter.
+ * Enables to activate test conditionally if the specified host is reachable.
+ * Note: it is recommended to avoid creating tests that depend on external servers.
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ FileReaderTest.class, SqlTest.class })
-public class FileSuite {
-  private FileSuite() {}
-
-  private static final String TEST_HOST = "en.wikipedia.org";
-
-  static boolean hazNetwork() {
-    Socket socket = null;
-    boolean reachable = false;
-    try {
-      socket = new Socket(FileSuite.TEST_HOST, 80);
-      reachable = true;
-    } catch (Exception e) {
-      // do nothing
-    } finally {
-      if (socket != null) {
-        try {
-          socket.close();
-        } catch (IOException e) {
-          // do nothing
-        }
-      }
-    }
-    return reachable;
-  }
-
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface RequiresNetwork {
+  String host() default  "en.wikipedia.org";
+  int port() default 80;
 }
 
-// End FileSuite.java
+// End RequiresNetwork.java

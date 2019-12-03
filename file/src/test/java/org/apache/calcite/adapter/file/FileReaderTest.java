@@ -21,9 +21,9 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 
 import org.jsoup.select.Elements;
-import org.junit.Assume;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.net.MalformedURLException;
 import java.sql.Connection;
@@ -33,6 +33,8 @@ import java.sql.Statement;
 import java.util.Iterator;
 import java.util.Properties;
 
+import static org.apache.calcite.util.TestUtil.getJavaMajorVersion;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,10 +42,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.lang.System.getProperty;
 
 /**
  * Unit tests for FileReader.
  */
+@ExtendWith(RequiresNetworkExtension.class)
 public class FileReaderTest {
 
   private static final Source CITIES_SOURCE =
@@ -62,20 +68,18 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
-  @Test public void testFileReaderUrlNoPath() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
-
+  @Test @RequiresNetwork public void testFileReaderUrlNoPath() throws FileReaderException {
     // Under OpenJDK, test fails with the following, so skip test:
     //   javax.net.ssl.SSLHandshakeException:
     //   sun.security.validator.ValidatorException: PKIX path building failed:
     //   sun.security.provider.certpath.SunCertPathBuilderException:
     //   unable to find valid certification path to requested target
-    final String r = System.getProperty("java.runtime.name");
+    final String r = getProperty("java.runtime.name");
     // http://openjdk.java.net/jeps/319 => root certificates are bundled with JEP 10
-    Assume.assumeTrue("Java 10+ should have root certificates (JEP 319). Runtime is "
-            + r + ", Jave major version is " + TestUtil.getJavaMajorVersion(),
-        !r.equals("OpenJDK Runtime Environment")
-            || TestUtil.getJavaMajorVersion() > 10);
+    assumeTrue(!r.equals("OpenJDK Runtime Environment")
+            || getJavaMajorVersion() > 10,
+        "Java 10+ should have root certificates (JEP 319). Runtime is "
+            + r + ", Jave major version is " + getJavaMajorVersion());
 
     FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
@@ -83,8 +87,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} URL instantiation - with path. */
   @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testFileReaderUrlWithPath() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Test @RequiresNetwork public void testFileReaderUrlWithPath() throws FileReaderException {
     FileReader t =
         new FileReader(CITIES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);
@@ -93,8 +96,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} URL fetch. */
   @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testFileReaderUrlFetch() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Test @RequiresNetwork public void testFileReaderUrlFetch() throws FileReaderException {
     FileReader t =
         new FileReader(STATES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);

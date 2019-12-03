@@ -29,8 +29,6 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -41,7 +39,6 @@ import java.util.function.Function;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-@RunWith(Parameterized.class)
 @NotThreadSafe
 public class EnumerableRepeatUnionHierarchyTest {
 
@@ -58,7 +55,6 @@ public class EnumerableRepeatUnionHierarchyTest {
   private static final String EMP4 = "empid=4; name=Emp4";
   private static final String EMP5 = "empid=5; name=Emp5";
 
-  @Parameterized.Parameters(name = "{index} : hierarchy(startId:{0}, ascendant:{1}, maxDepth:{2})")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][] {
         { 1, true, -1, new String[]{EMP1} },
