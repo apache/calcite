@@ -36,6 +36,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -229,6 +230,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case REGEXP_SUBSTR:
       unparseRegexSubstr(writer, call, leftPrec, rightPrec);
+      break;
+    case TO_NUMBER:
+      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -776,6 +776,11 @@ public enum SqlKind {
   EXTRACT,
 
   /**
+   * The "TO_NUMBER" function.
+   */
+  TO_NUMBER,
+
+  /**
    * The "REVERSE" function (SQL Server, MySQL).
    */
   REVERSE,

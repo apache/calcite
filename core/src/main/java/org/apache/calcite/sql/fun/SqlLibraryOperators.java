@@ -43,6 +43,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
@@ -416,6 +417,20 @@ public abstract class SqlLibraryOperators {
           OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.STRING);
 
+  /** The "TO_NUMBER(string1, string2)" function; casts string1
+   * as hexadecimal to a NUMBER using the format specified in string2. */
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TO_NUMBER =
+      new SqlFunction(
+          "TO_NUMBER",
+          SqlKind.TO_NUMBER,
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING),
+          OperandTypes.STRING_STRING_STRING,
+          OperandTypes.family(SqlTypeFamily.NULL)),
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java

@@ -31,6 +31,7 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.ToNumberUtils;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -164,6 +165,9 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case FORMAT:
       unparseFormat(writer, call, leftPrec, rightPrec);
+      break;
+    case TO_NUMBER:
+      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
