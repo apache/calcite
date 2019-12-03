@@ -25,11 +25,13 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -392,6 +394,19 @@ public class EnumUtils {
               Expressions.unbox(operand, toBox),
               toBox));
     } else if (fromPrimitive != null && toBox != null) {
+      // E.g. from "int" to "Long".
+      // Generate Long.valueOf(x)
+      // Eliminate primitive casts like Long.valueOf((long) x)
+      if (operand instanceof UnaryExpression) {
+        UnaryExpression una = (UnaryExpression) operand;
+        if (una.nodeType == ExpressionType.Convert
+            && Primitive.of(una.getType()) == toBox) {
+          Primitive origin = Primitive.of(una.expression.type);
+          if (origin != null && toBox.assignableFrom(origin)) {
+            return Expressions.box(una.expression, toBox);
+          }
+        }
+      }
       if (fromType == toBox.primitiveClass) {
         return Expressions.box(operand, toBox);
       }
