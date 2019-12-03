@@ -230,9 +230,6 @@ public class RelMdUniqueKeys
   public Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     final List<ImmutableBitSet> keys = rel.getTable().getKeys();
-    if (keys.isEmpty()) {
-      return null;
-    }
     for (ImmutableBitSet key : keys) {
       assert rel.getTable().isKey(key);
     }
