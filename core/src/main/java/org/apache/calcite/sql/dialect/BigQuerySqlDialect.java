@@ -35,6 +35,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
 
@@ -148,6 +149,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       SqlSyntax.BINARY.unparse(writer, INTERSECT_DISTINCT, call, leftPrec,
           rightPrec);
+      break;
+    case TO_NUMBER:
+      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

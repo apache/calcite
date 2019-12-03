@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
@@ -36,6 +37,7 @@ import java.util.List;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -341,6 +343,21 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
+
+  /** The "TO_NUMBER(string1, string2)" function; casts string1
+   * as hexadecimal to a NUMBER using the format specified in string2. */
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TO_NUMBER =
+    new SqlFunction(
+      "TO_NUMBER",
+      SqlKind.TO_NUMBER,
+      ReturnTypes.BIGINT_FORCE_NULLABLE,
+      null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING,
+      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+      OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING),
+      OperandTypes.STRING_STRING_STRING,
+      OperandTypes.family(SqlTypeFamily.NULL)),
+      SqlFunctionCategory.STRING);
 
 }
 

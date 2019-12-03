@@ -108,6 +108,7 @@ public class DocumentationTest {
       switch (library) {
       case STANDARD:
       case SPATIAL:
+      case TERADATA:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",
