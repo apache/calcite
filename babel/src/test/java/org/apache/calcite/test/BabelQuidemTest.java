@@ -39,9 +39,7 @@ import net.hydromatic.quidem.Command;
 import net.hydromatic.quidem.CommandHandler;
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
 import java.util.Collection;
@@ -53,14 +51,7 @@ import java.util.regex.Pattern;
 /**
  * Unit tests for the Babel SQL parser.
  */
-@RunWith(Parameterized.class)
 public class BabelQuidemTest extends QuidemTest {
-  /** Creates a BabelQuidemTest. Public per {@link Parameterized}. */
-  @SuppressWarnings("WeakerAccess")
-  public BabelQuidemTest(String path) {
-    super(path);
-  }
-
   /** Runs a test from the command line.
    *
    * <p>For example:
@@ -70,17 +61,15 @@ public class BabelQuidemTest extends QuidemTest {
    * </blockquote> */
   public static void main(String[] args) throws Exception {
     for (String arg : args) {
-      new BabelQuidemTest(arg).test();
+      new BabelQuidemTest().test(arg);
     }
   }
 
-  @Override @Test public void test() throws Exception {
+  @BeforeEach public void setup() {
     MaterializationService.setThreadLocal();
-    super.test();
   }
 
-  /** For {@link Parameterized} runner. */
-  @Parameterized.Parameters(name = "{index}: quidem({0})")
+  /** For {@link QuidemTest#test(String)} parameters. */
   public static Collection<Object[]> data() {
     // Start with a test file we know exists, then find the directory and list
     // its files.

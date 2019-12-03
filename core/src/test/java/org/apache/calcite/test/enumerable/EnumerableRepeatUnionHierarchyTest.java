@@ -27,7 +27,8 @@ import org.apache.calcite.tools.RelBuilder;
 
 import net.jcip.annotations.NotThreadSafe;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -81,37 +82,30 @@ public class EnumerableRepeatUnionHierarchyTest {
     });
   }
 
-  private final int startId;
-  private final int maxDepth;
-  private final String fromField;
-  private final String toField;
-  private final String[] expected;
-
-  public EnumerableRepeatUnionHierarchyTest(int startId, boolean ascendant,
-                                            int maxDepth, String[] expected) {
-    this.startId = startId;
-    this.maxDepth = maxDepth;
-    this.expected = expected;
-
+  @ParameterizedTest
+  @MethodSource("data")
+  public void testHierarchy(int startId, boolean ascendant,
+                            int maxDepth, String[] expected) {
+    final String fromField;
+    final String toField;
     if (ascendant) {
-      this.fromField = "subordinateid";
-      this.toField = "managerid";
+      fromField = "subordinateid";
+      toField = "managerid";
     } else {
-      this.fromField = "managerid";
-      this.toField = "subordinateid";
+      fromField = "managerid";
+      toField = "subordinateid";
     }
-  }
 
-  @Test public void testHierarchy() {
     final Schema schema = new ReflectiveSchema(new HierarchySchema());
     CalciteAssert.that()
         .withSchema("s", schema)
         .query("?")
-        .withRel(hierarchy())
+        .withRel(hierarchy(startId, fromField, toField, maxDepth))
         .returnsOrdered(expected);
   }
 
-  private Function<RelBuilder, RelNode> hierarchy() {
+  private Function<RelBuilder, RelNode> hierarchy(int startId, String fromField,
+                                                  String toField, int maxDepth) {
 
     //   WITH RECURSIVE delta(empid, name) as (
     //       SELECT empid, name FROM emps WHERE empid = <startId>

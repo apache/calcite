@@ -77,7 +77,7 @@ dependencies {
     testImplementation("sqlline:sqlline")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
-    testImplementation(kotlin("test-junit"))
+    testImplementation(kotlin("test-junit5"))
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }
 
