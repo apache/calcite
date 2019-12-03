@@ -20,8 +20,14 @@ import org.apache.calcite.piglet.PigConverter;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.FrameworkConfig;
 
-import org.junit.Assume;
 import org.junit.jupiter.api.BeforeEach;
+
+import static org.apache.calcite.piglet.PigConverter.create;
+import static org.apache.calcite.test.PigRelBuilderTest.config;
+
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
+import static java.lang.System.getProperty;
 
 /**
  * Abstract class for Pig to {@link RelNode} tests.
@@ -31,11 +37,11 @@ public abstract class PigRelTestBase {
 
   @BeforeEach
   public void testSetup() throws Exception {
-    Assume.assumeFalse("Skip: Pig/Hadoop tests do not work on Windows",
-        System.getProperty("os.name").startsWith("Windows"));
+    assumeFalse(getProperty("os.name").startsWith("Windows"),
+        "Skip: Pig/Hadoop tests do not work on Windows");
 
-    final FrameworkConfig config = PigRelBuilderTest.config().build();
-    converter = PigConverter.create(config);
+    final FrameworkConfig config = config().build();
+    converter = create(config);
   }
 }
 

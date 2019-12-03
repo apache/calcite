@@ -104,7 +104,6 @@ import com.google.common.collect.Sets;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
-import org.junit.Assume;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -141,6 +140,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Unit test for {@link DefaultRelMetadataProvider}. See
@@ -839,10 +839,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * Too slow to run every day, and it does not reproduce the issue. */
   @Tag("slow")
   @Test public void testMetadataHandlerCacheLimit() {
-    Assume.assumeTrue("If cache size is too large, this test may fail and the "
-            + "test won't be to blame",
-        CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value()
-            < 10_000);
+    assumeTrue(CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value() < 10_000,
+        "If cache size is too large, this test may fail and the test won't be to blame");
     final int iterationCount = 2_000;
     final RelNode rel = convertSql("select * from emp");
     final RelMetadataProvider metadataProvider =
