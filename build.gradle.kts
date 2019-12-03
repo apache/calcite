@@ -180,7 +180,7 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
         manifest {
             attributes(
                 "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to sqllineClasspath.map { it.absolutePath }.joinToString(" ")
+                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
             )
         }
     }
