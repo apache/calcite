@@ -19,5 +19,3 @@
  * Utilities required at runtime.
  */
 package org.apache.calcite.runtime;
-
-// End package-info.java

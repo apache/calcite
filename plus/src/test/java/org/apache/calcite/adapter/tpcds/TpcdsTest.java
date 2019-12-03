@@ -398,5 +398,3 @@ public class TpcdsTest {
     assertThat(root, hasTree(expectResult));
   }
 }
-
-// End TpcdsTest.java

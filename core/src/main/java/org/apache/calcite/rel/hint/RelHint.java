@@ -175,5 +175,3 @@ public class RelHint {
     return builder.toString();
   }
 }
-
-// End RelHint.java

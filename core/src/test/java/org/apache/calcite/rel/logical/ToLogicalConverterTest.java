@@ -469,5 +469,3 @@ public class ToLogicalConverterTest {
     verify(rel(sql), expectedPhysial, expectedLogical);
   }
 }
-
-// End ToLogicalConverterTest.java

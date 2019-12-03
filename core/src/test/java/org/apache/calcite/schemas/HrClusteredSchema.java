@@ -126,5 +126,3 @@ public final class HrClusteredSchema extends AbstractSchema {
 
   }
 }
-
-// End HrClusteredSchema.java

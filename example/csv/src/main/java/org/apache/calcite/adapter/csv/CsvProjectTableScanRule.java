@@ -77,5 +77,3 @@ public class CsvProjectTableScanRule extends RelOptRule {
     return fields;
   }
 }
-
-// End CsvProjectTableScanRule.java

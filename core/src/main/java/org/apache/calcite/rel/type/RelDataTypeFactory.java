@@ -584,5 +584,3 @@ public interface RelDataTypeFactory {
     }
   }
 }
-
-// End RelDataTypeFactory.java

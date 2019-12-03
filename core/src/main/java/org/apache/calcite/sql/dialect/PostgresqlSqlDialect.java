@@ -122,5 +122,3 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End PostgresqlSqlDialect.java

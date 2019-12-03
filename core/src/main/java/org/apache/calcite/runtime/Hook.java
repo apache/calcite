@@ -192,5 +192,3 @@ public enum Hook {
     @Override void close();
   }
 }
-
-// End Hook.java

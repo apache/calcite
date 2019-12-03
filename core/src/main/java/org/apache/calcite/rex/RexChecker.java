@@ -184,5 +184,3 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
     return expr.accept(this);
   }
 }
-
-// End RexChecker.java

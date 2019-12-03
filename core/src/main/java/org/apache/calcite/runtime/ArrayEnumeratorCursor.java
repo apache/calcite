@@ -37,5 +37,3 @@ public class ArrayEnumeratorCursor extends EnumeratorCursor<Object[]> {
     return new ArrayGetter(ordinal);
   }
 }
-
-// End ArrayEnumeratorCursor.java

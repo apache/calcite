@@ -45,5 +45,3 @@ public class KafkaMockConsumer extends MockConsumer {
     }
   }
 }
-
-// End KafkaMockConsumer.java

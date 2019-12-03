@@ -181,5 +181,3 @@ public class TableInRootSchemaTest {
     }
   }
 }
-
-// End TableInRootSchemaTest.java

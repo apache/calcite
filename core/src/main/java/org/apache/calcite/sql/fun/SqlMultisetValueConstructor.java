@@ -120,5 +120,3 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlMultisetValueConstructor.java

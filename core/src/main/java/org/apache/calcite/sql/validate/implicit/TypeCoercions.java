@@ -31,5 +31,3 @@ public class TypeCoercions {
     return new TypeCoercionImpl(validator);
   }
 }
-
-// End TypeCoercions.java

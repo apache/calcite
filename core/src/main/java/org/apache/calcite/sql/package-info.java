@@ -92,5 +92,3 @@
  * {@link org.apache.calcite.sql.SqlDialect} defines how this happens.</p>
  */
 package org.apache.calcite.sql;
-
-// End package-info.java

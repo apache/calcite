@@ -85,5 +85,3 @@ public enum JoinType {
   }
 
 }
-
-// End JoinType.java

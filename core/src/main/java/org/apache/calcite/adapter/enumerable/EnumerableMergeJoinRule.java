@@ -96,5 +96,3 @@ class EnumerableMergeJoinRule extends ConverterRule {
         join.getJoinType());
   }
 }
-
-// End EnumerableMergeJoinRule.java

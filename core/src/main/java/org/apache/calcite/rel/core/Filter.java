@@ -153,5 +153,3 @@ public abstract class Filter extends SingleRel {
         .item("condition", condition);
   }
 }
-
-// End Filter.java

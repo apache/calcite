@@ -561,5 +561,3 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
     }
   }
 }
-
-// End EnumerableRelImplementor.java

@@ -82,5 +82,3 @@ public class ProjectSortTransposeRule extends RelOptRule {
     call.transformTo(newSort);
   }
 }
-
-// End ProjectSortTransposeRule.java

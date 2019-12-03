@@ -147,8 +147,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test
-  public void testJoinUsingDynamicTable() {
+  @Test public void testJoinUsingDynamicTable() {
     final String sql = "select * from SALES.NATION t1\n"
         + "join SALES.NATION t2\n"
         + "using (n_nationkey)";
@@ -3683,5 +3682,3 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     }
   }
 }
-
-// End SqlToRelConverterTest.java

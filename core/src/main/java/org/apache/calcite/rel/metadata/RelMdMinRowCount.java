@@ -167,5 +167,3 @@ public class RelMdMinRowCount
     return null;
   }
 }
-
-// End RelMdMinRowCount.java

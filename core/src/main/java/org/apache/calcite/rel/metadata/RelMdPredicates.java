@@ -911,5 +911,3 @@ public class RelMdPredicates
     }
   }
 }
-
-// End RelMdPredicates.java

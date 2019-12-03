@@ -153,5 +153,3 @@ public class ComboRuleTest {
     }
   }
 }
-
-// End ComboRuleTest.java

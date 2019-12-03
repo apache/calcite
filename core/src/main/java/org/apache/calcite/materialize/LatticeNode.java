@@ -112,5 +112,3 @@ public abstract class LatticeNode {
   }
 
 }
-
-// End LatticeNode.java

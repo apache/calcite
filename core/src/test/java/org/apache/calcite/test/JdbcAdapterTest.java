@@ -947,5 +947,3 @@ public class JdbcAdapterTest {
     }
   }
 }
-
-// End JdbcAdapterTest.java

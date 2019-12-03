@@ -159,5 +159,3 @@ public class RelMdPopulationSize
     return null;
   }
 }
-
-// End RelMdPopulationSize.java

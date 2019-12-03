@@ -66,5 +66,3 @@ public class HepRuleCall extends RelOptRuleCall {
     return results;
   }
 }
-
-// End HepRuleCall.java

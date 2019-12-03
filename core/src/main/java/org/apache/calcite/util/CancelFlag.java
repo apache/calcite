@@ -61,5 +61,3 @@ public class CancelFlag {
     atomicBoolean.compareAndSet(true, false);
   }
 }
-
-// End CancelFlag.java

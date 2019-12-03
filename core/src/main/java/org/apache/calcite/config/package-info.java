@@ -19,5 +19,3 @@
  * Configuration.
  */
 package org.apache.calcite.config;
-
-// End package-info.java

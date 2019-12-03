@@ -28,5 +28,3 @@
  * to extend this one.
  */
 package org.apache.calcite.sql.ddl;
-
-// End package-info.java

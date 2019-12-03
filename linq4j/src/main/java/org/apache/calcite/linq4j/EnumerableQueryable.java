@@ -568,5 +568,3 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.aggregate(getThis(), seed, func, selector);
   }
 }
-
-// End EnumerableQueryable.java

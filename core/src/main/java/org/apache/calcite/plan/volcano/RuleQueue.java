@@ -696,5 +696,3 @@ class RuleQueue {
     }
   }
 }
-
-// End RuleQueue.java

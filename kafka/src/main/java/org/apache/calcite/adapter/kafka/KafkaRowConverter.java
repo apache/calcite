@@ -49,5 +49,3 @@ public interface KafkaRowConverter<K, V> {
    */
   Object[] toRow(ConsumerRecord<K, V> message);
 }
-
-// End KafkaRowConverter.java

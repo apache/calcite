@@ -78,5 +78,3 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     return false;
   }
 }
-
-// End ReflectiveCallNotNullImplementor.java

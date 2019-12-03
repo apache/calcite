@@ -60,5 +60,3 @@ class EnumerableOrderedQueryable<T> extends EnumerableQueryable<T>
         comparator);
   }
 }
-
-// End EnumerableOrderedQueryable.java

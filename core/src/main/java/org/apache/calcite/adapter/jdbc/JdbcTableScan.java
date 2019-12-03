@@ -53,5 +53,3 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
         ImmutableList.of(JdbcImplementor.Clause.FROM), this, null);
   }
 }
-
-// End JdbcTableScan.java

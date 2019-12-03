@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
 public interface IntegerFunction1<T0> extends Function<Integer> {
   int apply(T0 v0);
 }
-
-// End IntegerFunction1.java

@@ -269,5 +269,3 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
   }
 }
-
-// End GeodeTable.java

@@ -93,5 +93,3 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     return new KafkaStreamTable(tableOptionBuilder);
   }
 }
-
-// End KafkaTableFactory.java

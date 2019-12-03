@@ -129,5 +129,3 @@ public class LexEscapeTest {
     runProjectQueryWithLex(Lex.JAVA, sql);
   }
 }
-
-// End LexEscapeTest.java

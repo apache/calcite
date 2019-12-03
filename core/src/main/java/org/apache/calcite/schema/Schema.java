@@ -344,5 +344,3 @@ public interface Schema {
     }
   }
 }
-
-// End Schema.java

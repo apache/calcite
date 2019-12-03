@@ -758,5 +758,3 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 }
-
-// End AggregateNode.java

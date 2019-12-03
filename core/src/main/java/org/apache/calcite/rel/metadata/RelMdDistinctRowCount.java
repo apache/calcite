@@ -284,5 +284,3 @@ public class RelMdDistinctRowCount
     return d;
   }
 }
-
-// End RelMdDistinctRowCount.java

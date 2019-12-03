@@ -137,5 +137,3 @@ public class EnumerableCorrelate extends Correlate
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableCorrelate.java

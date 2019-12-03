@@ -81,5 +81,3 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     return validateOperands(validator, scope, call);
   }
 }
-
-// End SqlWithinGroupOperator.java

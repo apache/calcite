@@ -277,5 +277,3 @@ public class SqlTypeNameTest {
     assertEquals(null, tn, "SQLXML maps to non-null type");
   }
 }
-
-// End SqlTypeNameTest.java

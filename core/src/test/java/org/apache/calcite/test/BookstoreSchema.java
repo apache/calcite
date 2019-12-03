@@ -141,5 +141,3 @@ public final class BookstoreSchema {
     }
   }
 }
-
-// End BookstoreSchema.java

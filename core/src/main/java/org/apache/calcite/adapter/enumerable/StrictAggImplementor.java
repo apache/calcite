@@ -206,5 +206,3 @@ public abstract class StrictAggImplementor implements AggImplementor {
     return result.accumulator().get(0);
   }
 }
-
-// End StrictAggImplementor.java

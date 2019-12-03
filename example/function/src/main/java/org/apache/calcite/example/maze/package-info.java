@@ -19,5 +19,3 @@
  * User-defined table function that generates a maze.
  */
 package org.apache.calcite.example.maze;
-
-// End package-info.java

@@ -49,5 +49,3 @@ class EnumerableCalcRule extends ConverterRule {
         calc.getProgram());
   }
 }
-
-// End EnumerableCalcRule.java

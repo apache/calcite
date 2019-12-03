@@ -58,5 +58,3 @@ public class ExtensionSqlParserTest extends SqlParserTest {
         .fails("(?s)Encountered \"POWER\" at line 1, column 14..*");
   }
 }
-
-// End ExtensionSqlParserTest.java

@@ -66,5 +66,3 @@ public abstract class AbstractTableQueryable<T> extends AbstractQueryable<T> {
     return Linq4j.enumeratorIterator(enumerator());
   }
 }
-
-// End AbstractTableQueryable.java

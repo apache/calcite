@@ -138,5 +138,3 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     }
   }
 }
-
-// End SparkHandlerImpl.java

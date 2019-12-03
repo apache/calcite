@@ -180,5 +180,3 @@ public class RelMdDistribution
     return distribution;
   }
 }
-
-// End RelMdDistribution.java

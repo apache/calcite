@@ -222,5 +222,3 @@ public class FileReader implements Iterable<Elements> {
     }
   }
 }
-
-// End FileReader.java

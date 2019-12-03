@@ -267,5 +267,3 @@ public class CollationConversionTest {
     }
   }
 }
-
-// End CollationConversionTest.java

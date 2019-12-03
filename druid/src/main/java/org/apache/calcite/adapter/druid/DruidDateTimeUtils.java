@@ -391,5 +391,3 @@ public class DruidDateTimeUtils {
     }
   }
 }
-
-// End DruidDateTimeUtils.java

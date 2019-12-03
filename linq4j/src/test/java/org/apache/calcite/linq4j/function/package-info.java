@@ -19,5 +19,3 @@
  * Tests for functions.
  */
 package org.apache.calcite.linq4j.function;
-
-// End package-info.java

@@ -129,8 +129,7 @@ public class ElasticSearchAdapterTest {
   /**
    * Tests using calcite view
    */
-  @Test
-  public void view() {
+  @Test public void view() {
     calciteAssert()
         .query("select * from zips where city = 'BROOKLYN'")
         .returns("city=BROOKLYN; longitude=-73.956985; latitude=40.646694; "
@@ -138,8 +137,7 @@ public class ElasticSearchAdapterTest {
         .returnsCount(1);
   }
 
-  @Test
-  public void emptyResult() {
+  @Test public void emptyResult() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select * from zips limit 0")
@@ -151,8 +149,7 @@ public class ElasticSearchAdapterTest {
         .returnsCount(0);
   }
 
-  @Test
-  public void basic() {
+  @Test public void basic() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         // by default elastic returns max 10 records
@@ -376,8 +373,7 @@ public class ElasticSearchAdapterTest {
                 "size:3"));
   }
 
-  @Test
-  public void limit2() {
+  @Test public void limit2() {
     final String sql = "select id from zips limit 5";
     calciteAssert()
         .query(sql)
@@ -508,8 +504,7 @@ public class ElasticSearchAdapterTest {
             "state=WY; city=CHEYENNE");
   }
 
-  @Test
-  public void agg1() {
+  @Test public void agg1() {
     calciteAssert()
         .query("select count(*) from zips")
         .queryContains(
@@ -550,8 +545,7 @@ public class ElasticSearchAdapterTest {
         .returns("EXPR$0=149; EXPR$1=112047; EXPR$2=21; EXPR$3=7865489; EXPR$4=52788\n");
   }
 
-  @Test
-  public void groupBy() {
+  @Test public void groupBy() {
     // distinct
     calciteAssert()
         .query("select distinct state\n"
@@ -662,8 +656,7 @@ public class ElasticSearchAdapterTest {
   /**
    * Testing {@code NOT} operator
    */
-  @Test
-  public void notOperator() {
+  @Test public void notOperator() {
     // largest zips (states) in mini-zip by pop (sorted) : IL, NY, CA, MI
     calciteAssert()
         .query("select count(*), max(pop) from zips where state not in ('IL')")
@@ -693,8 +686,7 @@ public class ElasticSearchAdapterTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html">Cardinality Aggregation</a>
    * (approximate counts using HyperLogLog++ algorithm).
    */
-  @Test
-  public void approximateCount() throws Exception {
+  @Test public void approximateCount() throws Exception {
     calciteAssert()
         .query("select state, approx_count_distinct(city), approx_count_distinct(pop) from zips"
             + " group by state order by state limit 3")
@@ -712,5 +704,3 @@ public class ElasticSearchAdapterTest {
   }
 
 }
-
-// End ElasticSearchAdapterTest.java

@@ -593,5 +593,3 @@ public class StreamTest {
     }
   }
 }
-
-// End StreamTest.java

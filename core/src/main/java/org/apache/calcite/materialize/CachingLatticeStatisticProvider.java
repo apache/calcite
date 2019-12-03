@@ -57,5 +57,3 @@ class CachingLatticeStatisticProvider implements LatticeStatisticProvider {
     return (int) Lattice.getRowCount(lattice.getFactRowCount(), counts);
   }
 }
-
-// End CachingLatticeStatisticProvider.java

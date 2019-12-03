@@ -134,5 +134,3 @@ public class AggregateProjectMergeRule extends RelOptRule {
     return relBuilder.build();
   }
 }
-
-// End AggregateProjectMergeRule.java

@@ -180,5 +180,3 @@ public class CalciteContextException extends CalciteException {
     return super.getMessage() + ": " + getCause().getMessage();
   }
 }
-
-// End CalciteContextException.java

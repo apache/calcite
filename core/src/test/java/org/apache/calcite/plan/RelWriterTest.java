@@ -838,5 +838,3 @@ public class RelWriterTest {
     return rel;
   }
 }
-
-// End RelWriterTest.java

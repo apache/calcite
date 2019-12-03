@@ -106,5 +106,3 @@ public interface Convention extends RelTrait {
     }
   }
 }
-
-// End Convention.java

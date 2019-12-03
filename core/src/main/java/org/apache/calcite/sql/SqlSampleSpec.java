@@ -169,5 +169,3 @@ public abstract class SqlSampleSpec {
     }
   }
 }
-
-// End SqlSampleSpec.java

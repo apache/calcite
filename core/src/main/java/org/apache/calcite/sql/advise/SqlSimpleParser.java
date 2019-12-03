@@ -830,5 +830,3 @@ public class SqlSimpleParser {
     }
   }
 }
-
-// End SqlSimpleParser.java

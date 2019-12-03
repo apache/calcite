@@ -187,5 +187,3 @@ public abstract class Calc extends SingleRel {
     return copy(traitSet, getInput(), newProgram);
   }
 }
-
-// End Calc.java

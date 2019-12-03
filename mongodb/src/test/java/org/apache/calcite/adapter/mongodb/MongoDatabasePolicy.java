@@ -91,5 +91,3 @@ class MongoDatabasePolicy extends ExternalResource {
   }
 
 }
-
-// End MongoDatabasePolicy.java

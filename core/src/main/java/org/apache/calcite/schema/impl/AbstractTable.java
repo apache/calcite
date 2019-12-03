@@ -62,5 +62,3 @@ public abstract class AbstractTable implements Table, Wrapper {
     return true;
   }
 }
-
-// End AbstractTable.java

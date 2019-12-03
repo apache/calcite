@@ -66,5 +66,3 @@ public class MemoryEnumerableTest {
     assertThat(minus.toString(), is("3 mod 5"));
   }
 }
-
-// End MemoryEnumerableTest.java

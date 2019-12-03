@@ -129,5 +129,3 @@ public class TypeFinderTest {
     });
   }
 }
-
-// End TypeFinderTest.java

@@ -83,5 +83,3 @@ public class FlightRecorderProfiler implements ExternalProfiler {
     return "Collects Java Flight Recorder profile";
   }
 }
-
-// End FlightRecorderProfiler.java

@@ -91,5 +91,3 @@ public interface RelOptNode {
    */
   RelOptCluster getCluster();
 }
-
-// End RelOptNode.java

@@ -45,5 +45,3 @@ class EnumerableCollectRule extends ConverterRule {
         collect.getFieldName());
   }
 }
-
-// End EnumerableCollectRule.java

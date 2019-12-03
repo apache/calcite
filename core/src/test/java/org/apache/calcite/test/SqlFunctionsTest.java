@@ -944,5 +944,3 @@ public class SqlFunctionsTest {
     }
   }
 }
-
-// End SqlFunctionsTest.java

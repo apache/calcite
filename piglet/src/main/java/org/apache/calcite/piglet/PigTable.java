@@ -72,5 +72,3 @@ public class PigTable extends AbstractTable implements ScannableTable {
     return null;
   }
 }
-
-// End PigTable.java

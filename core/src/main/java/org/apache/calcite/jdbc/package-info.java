@@ -19,5 +19,3 @@
  * JDBC driver for Calcite.
  */
 package org.apache.calcite.jdbc;
-
-// End package-info.java

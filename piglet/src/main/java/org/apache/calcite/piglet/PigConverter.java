@@ -284,5 +284,3 @@ public class PigConverter extends PigServer {
     }
   }
 }
-
-// End PigConverter.java

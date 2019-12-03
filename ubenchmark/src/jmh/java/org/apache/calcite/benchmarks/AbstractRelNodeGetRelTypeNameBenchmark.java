@@ -256,5 +256,3 @@ public class AbstractRelNodeGetRelTypeNameBenchmark {
     new Runner(opt).run();
   }
 }
-
-// End AbstractRelNodeGetRelTypeNameBenchmark.java

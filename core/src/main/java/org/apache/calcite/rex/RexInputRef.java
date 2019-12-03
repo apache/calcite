@@ -124,5 +124,3 @@ public class RexInputRef extends RexSlot {
     return NAMES.get(index);
   }
 }
-
-// End RexInputRef.java

@@ -48,5 +48,3 @@ public class CalciteResourceTest {
     assertThat(props.get("SQLSTATE"), CoreMatchers.equalTo("42000"));
   }
 }
-
-// End CalciteResourceTest.java

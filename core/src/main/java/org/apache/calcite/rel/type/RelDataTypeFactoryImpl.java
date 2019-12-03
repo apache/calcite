@@ -677,5 +677,3 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
   }
 }
-
-// End RelDataTypeFactoryImpl.java

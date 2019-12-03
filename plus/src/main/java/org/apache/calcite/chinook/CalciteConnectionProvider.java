@@ -52,5 +52,3 @@ public class CalciteConnectionProvider {
   }
 
 }
-
-// End CalciteConnectionProvider.java

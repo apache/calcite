@@ -315,5 +315,3 @@ public abstract class SqlNode implements Cloneable {
     return litmus.succeed();
   }
 }
-
-// End SqlNode.java

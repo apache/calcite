@@ -164,5 +164,3 @@ class EmbeddedElasticsearchNode implements AutoCloseable {
     }
   }
 }
-
-// End EmbeddedElasticsearchNode.java

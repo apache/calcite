@@ -41,5 +41,3 @@ public class RelMdPercentageOriginalRowsTest {
                     CalciteAssert.checkResultContains("EnumerableCorrelate"));
   }
 }
-
-// End RelMdPercentageOriginalRowsTest.java

@@ -269,5 +269,3 @@
  *     (1993)</a>.</p>
  */
 package org.apache.calcite.plan.volcano;
-
-// End package-info.java

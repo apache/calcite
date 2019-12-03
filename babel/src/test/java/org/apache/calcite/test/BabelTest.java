@@ -98,5 +98,3 @@ public class BabelTest {
     }
   }
 }
-
-// End BabelTest.java

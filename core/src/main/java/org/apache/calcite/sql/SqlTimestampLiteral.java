@@ -66,5 +66,3 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
     writer.getDialect().unparseDateTimeLiteral(writer, this, leftPrec, rightPrec);
   }
 }
-
-// End SqlTimestampLiteral.java

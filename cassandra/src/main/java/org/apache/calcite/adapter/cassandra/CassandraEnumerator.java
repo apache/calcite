@@ -111,5 +111,3 @@ class CassandraEnumerator implements Enumerator<Object> {
     // Nothing to do here
   }
 }
-
-// End CassandraEnumerator.java

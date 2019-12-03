@@ -82,5 +82,3 @@ public class NameSet {
     return Collections.unmodifiableSet(names.map().keySet());
   }
 }
-
-// End NameSet.java

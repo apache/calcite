@@ -26,5 +26,3 @@
  * source SQL system.</p>
  */
 package org.apache.calcite.linq4j.tree;
-
-// End package-info.java

@@ -20,5 +20,3 @@
  * relational expressions.
  */
 package org.apache.calcite.plan;
-
-// End package-info.java

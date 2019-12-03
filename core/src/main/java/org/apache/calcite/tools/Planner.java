@@ -130,5 +130,3 @@ public interface Planner extends AutoCloseable {
 
   RelTraitSet getEmptyTraitSet();
 }
-
-// End Planner.java

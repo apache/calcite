@@ -156,5 +156,3 @@ public class SortProjectTransposeRule extends RelOptRule {
     call.transformTo(newProject, equiv);
   }
 }
-
-// End SortProjectTransposeRule.java

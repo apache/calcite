@@ -327,5 +327,3 @@ public class JoinPushThroughJoinRule extends RelOptRule {
     }
   }
 }
-
-// End JoinPushThroughJoinRule.java

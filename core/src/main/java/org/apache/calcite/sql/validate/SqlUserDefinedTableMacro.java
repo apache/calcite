@@ -198,5 +198,3 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   private static class NonLiteralException extends Exception {
   }
 }
-
-// End SqlUserDefinedTableMacro.java

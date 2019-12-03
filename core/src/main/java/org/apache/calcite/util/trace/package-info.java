@@ -19,5 +19,3 @@
  * Tracing services.
  */
 package org.apache.calcite.util.trace;
-
-// End package-info.java

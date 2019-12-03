@@ -1342,5 +1342,3 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
   }
 }
-
-// End CalcitePrepareImpl.java

@@ -118,5 +118,3 @@ public class SortUnionTransposeRule extends RelOptRule {
     call.transformTo(result);
   }
 }
-
-// End SortUnionTransposeRule.java

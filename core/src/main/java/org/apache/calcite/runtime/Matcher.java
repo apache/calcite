@@ -349,5 +349,3 @@ public class Matcher<E> {
     }
   }
 }
-
-// End Matcher.java

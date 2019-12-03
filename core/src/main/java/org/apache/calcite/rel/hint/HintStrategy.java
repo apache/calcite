@@ -44,5 +44,3 @@ public interface HintStrategy {
    */
   boolean supportsRel(RelHint hint, RelNode rel);
 }
-
-// End HintStrategy.java

@@ -1476,5 +1476,3 @@ public enum SqlKind {
     return set;
   }
 }
-
-// End SqlKind.java

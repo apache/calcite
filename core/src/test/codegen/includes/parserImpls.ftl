@@ -55,5 +55,3 @@ SqlNode SqlDescribeSpacePower() :
         return null;
     }
 }
-
-// End parserImpls.ftl

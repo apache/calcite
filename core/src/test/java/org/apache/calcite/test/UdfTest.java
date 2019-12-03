@@ -939,8 +939,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2053">[CALCITE-2053]
    * Overloaded user-defined functions that have Double and BigDecimal arguments
    * will goes wrong </a>. */
-  @Test
-  public void testBigDecimalAndLong() {
+  @Test public void testBigDecimalAndLong() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
             .returns("EXPR$0=1.0\n");
@@ -1093,5 +1092,3 @@ public class UdfTest {
   }
 
 }
-
-// End UdfTest.java

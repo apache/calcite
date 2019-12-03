@@ -571,5 +571,3 @@ public class SqlValidatorTestCase {
     }
   }
 }
-
-// End SqlValidatorTestCase.java

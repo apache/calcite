@@ -55,5 +55,3 @@ public class RexPatternFieldRef extends RexInputRef {
     return SqlKind.PATTERN_INPUT_REF;
   }
 }
-
-// End RexPatternFieldRef.java

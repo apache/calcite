@@ -63,5 +63,3 @@ public interface RexToSqlNodeConverter {
    */
   SqlNode convertInputRef(RexInputRef ref);
 }
-
-// End RexToSqlNodeConverter.java

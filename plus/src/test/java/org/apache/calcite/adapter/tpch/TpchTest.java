@@ -937,5 +937,3 @@ public class TpchTest {
       .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
   }
 }
-
-// End TpchTest.java

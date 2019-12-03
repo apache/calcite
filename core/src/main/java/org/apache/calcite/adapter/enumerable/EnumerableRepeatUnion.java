@@ -85,5 +85,3 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
   }
 
 }
-
-// End EnumerableRepeatUnion.java

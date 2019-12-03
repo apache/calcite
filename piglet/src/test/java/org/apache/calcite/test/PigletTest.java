@@ -295,5 +295,3 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 }
-
-// End PigletTest.java

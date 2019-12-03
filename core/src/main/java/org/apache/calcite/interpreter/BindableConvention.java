@@ -70,5 +70,3 @@ public enum BindableConvention implements Convention {
     return false;
   }
 }
-
-// End BindableConvention.java

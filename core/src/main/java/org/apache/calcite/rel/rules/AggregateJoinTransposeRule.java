@@ -448,5 +448,3 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     boolean aggregate;
   }
 }
-
-// End AggregateJoinTransposeRule.java

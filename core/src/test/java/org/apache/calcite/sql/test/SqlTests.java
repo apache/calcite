@@ -635,5 +635,3 @@ public abstract class SqlTests {
     }
   }
 }
-
-// End SqlTests.java

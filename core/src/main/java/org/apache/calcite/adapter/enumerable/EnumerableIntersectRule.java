@@ -41,5 +41,3 @@ class EnumerableIntersectRule extends ConverterRule {
         convertList(intersect.getInputs(), out), intersect.all);
   }
 }
-
-// End EnumerableIntersectRule.java

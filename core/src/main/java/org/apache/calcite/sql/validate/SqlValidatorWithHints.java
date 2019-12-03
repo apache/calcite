@@ -64,5 +64,3 @@ public interface SqlValidatorWithHints extends SqlValidator {
    */
   SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
 }
-
-// End SqlValidatorWithHints.java

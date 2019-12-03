@@ -197,5 +197,3 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
   }
 
 }
-
-// End VolcanoRuleMatch.java

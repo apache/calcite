@@ -1028,5 +1028,3 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }
 }
-
-// End QueryableRecorder.java

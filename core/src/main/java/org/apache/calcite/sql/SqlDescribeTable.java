@@ -86,5 +86,3 @@ public class SqlDescribeTable extends SqlCall {
     return column;
   }
 }
-
-// End SqlDescribeTable.java

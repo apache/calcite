@@ -506,5 +506,3 @@ public class TableFunctionTest {
     }
   }
 }
-
-// End TableFunctionTest.java

@@ -110,5 +110,3 @@ public class ClassDeclaration extends MemberDeclaration {
         extended, implemented);
   }
 }
-
-// End ClassDeclaration.java

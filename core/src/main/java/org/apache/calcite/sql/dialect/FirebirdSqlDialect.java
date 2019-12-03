@@ -32,5 +32,3 @@ public class FirebirdSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End FirebirdSqlDialect.java

@@ -661,5 +661,3 @@ public abstract class Types {
 
   }
 }
-
-// End Types.java

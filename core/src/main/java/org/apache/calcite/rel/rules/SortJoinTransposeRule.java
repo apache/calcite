@@ -162,5 +162,3 @@ public class SortJoinTransposeRule extends RelOptRule {
   }
 
 }
-
-// End SortJoinTransposeRule.java

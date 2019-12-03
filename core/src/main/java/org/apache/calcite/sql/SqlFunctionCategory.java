@@ -87,5 +87,3 @@ public enum SqlFunctionCategory {
     USER_DEFINED, TABLE_FUNCTION, SPECIFIC, FUNCTION
   }
 }
-
-// End SqlFunctionCategory.java

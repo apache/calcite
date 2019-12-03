@@ -146,5 +146,3 @@ public class SqlValidatorDynamicTest extends SqlValidatorTestCase {
   }
 
 }
-
-// End SqlValidatorDynamicTest.java

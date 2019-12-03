@@ -185,5 +185,3 @@ public class BabelQuidemTest extends QuidemTest {
     }
   }
 }
-
-// End BabelQuidemTest.java

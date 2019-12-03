@@ -538,5 +538,3 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
   }
 }
-
-// End RelOptTableImpl.java

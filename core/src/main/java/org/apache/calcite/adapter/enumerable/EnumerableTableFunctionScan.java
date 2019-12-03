@@ -104,5 +104,3 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     return QueryableTable.class.isAssignableFrom(method.getReturnType());
   }
 }
-
-// End EnumerableTableFunctionScan.java

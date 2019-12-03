@@ -250,5 +250,3 @@ public class EnumerableTableScan
     return implementor.result(physType, Blocks.toBlock(expression));
   }
 }
-
-// End EnumerableTableScan.java

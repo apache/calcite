@@ -168,5 +168,3 @@ public class JoinNode implements Node {
     }
   }
 }
-
-// End JoinNode.java

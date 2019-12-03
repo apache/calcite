@@ -771,5 +771,3 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.zip(getThis(), source1, resultSelector);
   }
 }
-
-// End DefaultEnumerable.java

@@ -84,5 +84,3 @@ public interface InitializerContext {
    */
   RexNode convertExpression(SqlNode expr);
 }
-
-// End InitializerContext.java

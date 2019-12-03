@@ -20,5 +20,3 @@
  * expressions.
  */
 package org.apache.calcite.rel.metadata;
-
-// End package-info.java

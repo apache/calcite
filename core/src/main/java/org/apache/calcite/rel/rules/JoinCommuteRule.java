@@ -235,5 +235,3 @@ public class JoinCommuteRule extends RelOptRule {
     }
   }
 }
-
-// End JoinCommuteRule.java

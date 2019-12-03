@@ -101,5 +101,3 @@ public class FilteratorTest {
     assertEquals("[1, 2, 4]", result.toString());
   }
 }
-
-// End FilteratorTest.java

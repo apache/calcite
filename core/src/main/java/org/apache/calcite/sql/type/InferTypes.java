@@ -124,5 +124,3 @@ public abstract class InferTypes {
     return new ExplicitOperandTypeInference(ImmutableList.copyOf(types));
   }
 }
-
-// End InferTypes.java

@@ -48,5 +48,3 @@ public class ExplicitHintStrategy implements HintStrategy {
     return this.matcher.apply(hint, rel);
   }
 }
-
-// End ExplicitHintStrategy.java

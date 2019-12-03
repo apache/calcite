@@ -272,5 +272,3 @@ public class AggregateStarTableRule extends RelOptRule {
     return -1;
   }
 }
-
-// End AggregateStarTableRule.java

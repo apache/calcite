@@ -513,5 +513,3 @@ public class RelMdCollation
     return ImmutableList.of();
   }
 }
-
-// End RelMdCollation.java

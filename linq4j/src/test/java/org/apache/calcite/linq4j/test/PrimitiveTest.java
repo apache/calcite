@@ -304,5 +304,3 @@ public class PrimitiveTest {
         Primitive.BOOLEAN.arrayToString(booleans4));
   }
 }
-
-// End PrimitiveTest.java

@@ -19,5 +19,3 @@
  * Provides utility classes.
  */
 package org.apache.calcite.util;
-
-// End package-info.java

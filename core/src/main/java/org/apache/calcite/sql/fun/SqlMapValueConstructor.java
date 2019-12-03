@@ -88,5 +88,3 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
         typeFactory.leastRestrictive(Util.quotientList(argTypes, 2, 1)));
   }
 }
-
-// End SqlMapValueConstructor.java

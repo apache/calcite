@@ -239,5 +239,3 @@ class VolcanoCost implements RelOptCost {
     }
   }
 }
-
-// End VolcanoCost.java

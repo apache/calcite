@@ -1168,5 +1168,3 @@ public interface ExtendedEnumerable<TSource> {
   <T1, TResult> Enumerable<TResult> zip(Enumerable<T1> source1,
       Function2<TSource, T1, TResult> resultSelector);
 }
-
-// End ExtendedEnumerable.java

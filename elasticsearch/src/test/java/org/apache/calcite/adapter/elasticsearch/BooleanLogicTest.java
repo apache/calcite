@@ -89,8 +89,7 @@ public class BooleanLogicTest {
     };
   }
 
-  @Test
-  public void expressions() {
+  @Test public void expressions() {
     assertSingle("select * from view");
     assertSingle("select * from view where a = 'a'");
     assertEmpty("select * from view where a <> 'a'");
@@ -138,8 +137,7 @@ public class BooleanLogicTest {
   /**
    * Tests negations ({@code NOT} operator).
    */
-  @Test
-  public void notExpression() {
+  @Test public void notExpression() {
     assertEmpty("select * from view where not a = 'a'");
     assertSingle("select * from view where not not a = 'a'");
     assertEmpty("select * from view where not not not a = 'a'");
@@ -181,5 +179,3 @@ public class BooleanLogicTest {
   }
 
 }
-
-// End BooleanLogicTest.java

@@ -51,5 +51,3 @@ class DruidChecker implements Consumer<List> {
     }
   }
 }
-
-// End DruidChecker.java

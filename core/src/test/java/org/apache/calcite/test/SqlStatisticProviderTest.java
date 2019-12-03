@@ -131,5 +131,3 @@ public class SqlStatisticProviderTest {
         .collect(Collectors.toList());
   }
 }
-
-// End SqlStatisticProviderTest.java

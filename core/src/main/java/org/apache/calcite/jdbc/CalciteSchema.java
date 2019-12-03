@@ -826,5 +826,3 @@ public abstract class CalciteSchema {
   }
 
 }
-
-// End CalciteSchema.java

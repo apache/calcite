@@ -194,5 +194,3 @@ public class InduceGroupingTypeTest {
         Aggregate.Group.induce(groupSet, groupSets));
   }
 }
-
-// End InduceGroupingTypeTest.java

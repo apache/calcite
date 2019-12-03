@@ -270,5 +270,3 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     }
   }
 }
-
-// End SqlBetweenOperator.java

@@ -68,5 +68,3 @@ public class ServerQuidemTest extends QuidemTest {
     };
   }
 }
-
-// End ServerQuidemTest.java

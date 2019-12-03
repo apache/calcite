@@ -153,5 +153,3 @@ public enum JoinRelType {
     return this != SEMI && this != ANTI;
   }
 }
-
-// End JoinRelType.java

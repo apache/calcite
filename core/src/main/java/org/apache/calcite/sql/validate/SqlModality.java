@@ -21,5 +21,3 @@ public enum SqlModality {
   RELATION,
   STREAM
 }
-
-// End SqlModality.java

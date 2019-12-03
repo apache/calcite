@@ -2056,5 +2056,3 @@ public class SubstitutionVisitor {
     }
   }
 }
-
-// End SubstitutionVisitor.java

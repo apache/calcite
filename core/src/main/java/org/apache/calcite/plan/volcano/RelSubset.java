@@ -640,5 +640,3 @@ public class RelSubset extends AbstractRelNode {
     }
   }
 }
-
-// End RelSubset.java

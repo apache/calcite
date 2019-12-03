@@ -19,5 +19,3 @@
  * Tests for Enumerable convention runtime.
  */
 package org.apache.calcite.test.enumerable;
-
-// End package-info.java

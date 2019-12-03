@@ -542,5 +542,3 @@ public class DeterministicTest {
             + "}\n"));
   }
 }
-
-// End DeterministicTest.java

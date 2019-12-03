@@ -19,5 +19,3 @@
  * Executes queries via Splunk's REST API.
  */
 package org.apache.calcite.adapter.splunk.search;
-
-// End package-info.java

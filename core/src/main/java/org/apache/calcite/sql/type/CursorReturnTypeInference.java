@@ -43,5 +43,3 @@ public class CursorReturnTypeInference implements SqlReturnTypeInference {
     return opBinding.getCursorOperand(ordinal);
   }
 }
-
-// End CursorReturnTypeInference.java

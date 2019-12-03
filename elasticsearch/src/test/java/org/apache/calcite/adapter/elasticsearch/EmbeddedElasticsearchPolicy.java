@@ -217,5 +217,3 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   }
 
 }
-
-// End EmbeddedElasticsearchPolicy.java

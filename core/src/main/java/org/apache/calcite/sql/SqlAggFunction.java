@@ -205,5 +205,3 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return false;
   }
 }
-
-// End SqlAggFunction.java

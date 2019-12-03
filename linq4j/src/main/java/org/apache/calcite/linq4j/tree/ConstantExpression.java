@@ -354,5 +354,3 @@ public class ConstantExpression extends Expression {
     return Objects.hash(nodeType, type, value);
   }
 }
-
-// End ConstantExpression.java

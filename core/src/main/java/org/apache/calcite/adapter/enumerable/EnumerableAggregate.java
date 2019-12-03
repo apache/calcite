@@ -610,5 +610,3 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
     }
   }
 }
-
-// End EnumerableAggregate.java

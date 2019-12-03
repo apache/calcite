@@ -152,5 +152,3 @@ public interface RelOptTable extends Wrapper {
     RelOptCluster getCluster();
   }
 }
-
-// End RelOptTable.java

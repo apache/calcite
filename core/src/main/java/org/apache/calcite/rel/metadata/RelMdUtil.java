@@ -949,5 +949,3 @@ public class RelMdUtil {
   }
 
 }
-
-// End RelMdUtil.java

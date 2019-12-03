@@ -169,5 +169,3 @@ public class StringConstructBenchmark {
     new Runner(opt).run();
   }
 }
-
-// End StringConstructBenchmark.java

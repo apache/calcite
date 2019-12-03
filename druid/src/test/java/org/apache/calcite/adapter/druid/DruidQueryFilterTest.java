@@ -127,5 +127,3 @@ public class DruidQueryFilterTest {
         .build();
   }
 }
-
-// End DruidQueryFilterTest.java

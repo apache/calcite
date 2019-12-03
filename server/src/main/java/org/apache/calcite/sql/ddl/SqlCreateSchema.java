@@ -87,5 +87,3 @@ public class SqlCreateSchema extends SqlCreate
     pair.left.add(pair.right, subSchema);
   }
 }
-
-// End SqlCreateSchema.java

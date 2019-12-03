@@ -51,5 +51,3 @@ public interface InterpretableRel extends RelNode {
     }
   }
 }
-
-// End InterpretableRel.java

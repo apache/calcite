@@ -147,8 +147,7 @@ public class MatchTest {
    *
    * @throws Exception
    */
-  @Test
-  public void testMatchQuery() throws Exception {
+  @Test public void testMatchQuery() throws Exception {
 
     CalciteConnection con = (CalciteConnection) newConnectionFactory()
         .createConnection();
@@ -211,5 +210,3 @@ public class MatchTest {
     }
   }
 }
-
-// End MatchTest.java

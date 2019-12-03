@@ -120,5 +120,3 @@ public class Statistics {
     };
   }
 }
-
-// End Statistics.java

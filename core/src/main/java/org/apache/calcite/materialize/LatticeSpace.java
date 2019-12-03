@@ -169,5 +169,3 @@ class LatticeSpace {
     }
   }
 }
-
-// End LatticeSpace.java

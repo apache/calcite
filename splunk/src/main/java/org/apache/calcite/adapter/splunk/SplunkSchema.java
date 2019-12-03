@@ -46,5 +46,3 @@ public class SplunkSchema extends AbstractSchema {
     return TABLE_MAP;
   }
 }
-
-// End SplunkSchema.java

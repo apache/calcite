@@ -90,5 +90,3 @@ class FileTableScan extends TableScan implements EnumerableRel {
                 Expressions.constant(fields))));
   }
 }
-
-// End FileTableScan.java

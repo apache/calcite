@@ -74,5 +74,3 @@ public class MapSqlType extends AbstractSqlType {
     return this;
   }
 }
-
-// End MapSqlType.java

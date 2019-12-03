@@ -1000,5 +1000,3 @@ public class RexProgram {
     }
   }
 }
-
-// End RexProgram.java

@@ -240,5 +240,3 @@ public class MongoFilter extends Filter implements MongoRel {
     }
   }
 }
-
-// End MongoFilter.java

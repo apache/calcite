@@ -51,5 +51,3 @@ public class PigTableFactory implements TableFactory<PigTable> {
     return result;
   }
 }
-
-// End PigTableFactory.java

@@ -780,5 +780,3 @@ public class MongoAdapterTest implements SchemaFactory {
     };
   }
 }
-
-// End MongoAdapterTest.java

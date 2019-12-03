@@ -853,5 +853,3 @@ public class LatticeSuggesterTest {
     }
   }
 }
-
-// End LatticeSuggesterTest.java

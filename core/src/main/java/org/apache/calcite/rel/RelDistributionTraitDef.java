@@ -71,5 +71,3 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     return true;
   }
 }
-
-// End RelDistributionTraitDef.java

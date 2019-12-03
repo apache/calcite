@@ -216,5 +216,3 @@ public class SqlExplain extends SqlCall {
         writer, getOperator().getLeftPrec(), getOperator().getRightPrec());
   }
 }
-
-// End SqlExplain.java

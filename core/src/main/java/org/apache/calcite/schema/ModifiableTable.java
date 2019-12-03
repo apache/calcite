@@ -50,5 +50,3 @@ public interface ModifiableTable extends QueryableTable {
       List<RexNode> sourceExpressionList,
       boolean flattened);
 }
-
-// End ModifiableTable.java

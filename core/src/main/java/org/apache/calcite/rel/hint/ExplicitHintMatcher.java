@@ -39,5 +39,3 @@ import org.apache.calcite.rel.RelNode;
 public interface ExplicitHintMatcher<R extends RelNode> {
   boolean apply(RelHint hint, R node);
 }
-
-// End ExplicitHintMatcher.java

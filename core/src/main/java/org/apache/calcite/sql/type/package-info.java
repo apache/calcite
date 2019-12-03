@@ -19,5 +19,3 @@
  * SQL type system.
  */
 package org.apache.calcite.sql.type;
-
-// End package-info.java

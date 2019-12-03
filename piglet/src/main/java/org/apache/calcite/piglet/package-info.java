@@ -17,5 +17,3 @@
 
 /** Piglet, a Pig-like language. */
 package org.apache.calcite.piglet;
-
-// End package-info.java

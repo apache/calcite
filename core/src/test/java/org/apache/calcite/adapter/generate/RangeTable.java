@@ -122,5 +122,3 @@ public class RangeTable extends AbstractQueryableTable {
     }
   }
 }
-
-// End RangeTable.java

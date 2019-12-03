@@ -87,5 +87,3 @@ public class MongoTableScan extends TableScan implements MongoRel {
     implementor.table = table;
   }
 }
-
-// End MongoTableScan.java

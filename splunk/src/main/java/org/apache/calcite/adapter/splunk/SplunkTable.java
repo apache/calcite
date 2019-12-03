@@ -98,5 +98,3 @@ class SplunkTable extends AbstractQueryableTable implements TranslatableTable {
     }
   }
 }
-
-// End SplunkTable.java

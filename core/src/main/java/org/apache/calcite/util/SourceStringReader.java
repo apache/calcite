@@ -42,5 +42,3 @@ public class SourceStringReader extends StringReader {
     return s;
   }
 }
-
-// End SourceStringReader.java

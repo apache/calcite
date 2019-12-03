@@ -265,5 +265,3 @@ public class BigQuerySqlDialect extends SqlDialect {
       new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
 
 }
-
-// End BigQuerySqlDialect.java

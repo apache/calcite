@@ -1577,5 +1577,3 @@ public class SqlDialect {
     }
   }
 }
-
-// End SqlDialect.java

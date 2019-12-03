@@ -96,5 +96,3 @@ public class MultisetOperandTypeChecker implements SqlOperandTypeChecker {
     return Consistency.NONE;
   }
 }
-
-// End MultisetOperandTypeChecker.java

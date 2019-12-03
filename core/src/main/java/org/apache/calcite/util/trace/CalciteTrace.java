@@ -135,5 +135,3 @@ public abstract class CalciteTrace {
     return DYNAMIC_HANDLER;
   }
 }
-
-// End CalciteTrace.java

@@ -62,5 +62,3 @@ public class SqlValidatorException extends Exception
     }
   }
 }
-
-// End SqlValidatorException.java

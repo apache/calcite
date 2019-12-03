@@ -642,5 +642,3 @@ public class RexImplicationCheckerTest {
     }
   }
 }
-
-// End RexImplicationCheckerTest.java

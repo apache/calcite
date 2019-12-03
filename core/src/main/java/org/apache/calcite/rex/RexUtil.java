@@ -2682,5 +2682,3 @@ public class RexUtil {
     }
   }
 }
-
-// End RexUtil.java

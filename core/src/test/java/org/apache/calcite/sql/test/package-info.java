@@ -19,5 +19,3 @@
  * Regression tests for the SQL model.
  */
 package org.apache.calcite.sql.test;
-
-// End package-info.java

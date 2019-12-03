@@ -496,5 +496,3 @@ public class RelMdExpressionLineage
     return inputFinder.inputBitSet.build();
   }
 }
-
-// End RelMdExpressionLineage.java

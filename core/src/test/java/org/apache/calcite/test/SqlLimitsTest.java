@@ -219,5 +219,3 @@ public class SqlLimitsTest {
     }
   }
 }
-
-// End SqlLimitsTest.java

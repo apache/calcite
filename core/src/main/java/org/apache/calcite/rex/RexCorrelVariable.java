@@ -67,5 +67,3 @@ public class RexCorrelVariable extends RexVariable {
     return Objects.hash(digest, type, id);
   }
 }
-
-// End RexCorrelVariable.java

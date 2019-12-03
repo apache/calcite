@@ -1145,5 +1145,3 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
   }
 }
-
-// End ReduceExpressionsRule.java

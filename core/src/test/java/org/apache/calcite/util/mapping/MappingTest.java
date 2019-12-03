@@ -226,5 +226,3 @@ public class MappingTest {
     }
   }
 }
-
-// End MappingTest.java

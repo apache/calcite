@@ -28,5 +28,3 @@ public interface ScannableTable extends Table {
    * as an array of its column values. */
   Enumerable<Object[]> scan(DataContext root);
 }
-
-// End ScannableTable.java

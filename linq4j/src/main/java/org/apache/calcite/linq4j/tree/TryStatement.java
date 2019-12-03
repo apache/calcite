@@ -98,5 +98,3 @@ public class TryStatement extends Statement {
     return Objects.hash(nodeType, type, body, catchBlocks, fynally);
   }
 }
-
-// End TryStatement.java

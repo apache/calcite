@@ -1132,5 +1132,3 @@ public class Smalls {
     }
   }
 }
-
-// End Smalls.java

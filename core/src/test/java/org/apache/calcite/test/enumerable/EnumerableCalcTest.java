@@ -56,5 +56,3 @@ public class EnumerableCalcTest {
             "$f0=1000");
   }
 }
-
-// End EnumerableCalcTest.java

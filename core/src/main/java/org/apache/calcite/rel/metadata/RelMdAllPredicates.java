@@ -325,5 +325,3 @@ public class RelMdAllPredicates
   }
 
 }
-
-// End RelMdAllPredicates.java

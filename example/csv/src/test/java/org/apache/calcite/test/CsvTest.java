@@ -1076,5 +1076,3 @@ public class CsvTest {
     }
   }
 }
-
-// End CsvTest.java

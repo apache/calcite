@@ -109,5 +109,3 @@ public class CorrelateJoinTest {
     assertArrayEquals(expected, actual);
   }
 }
-
-// End CorrelateJoinTest.java

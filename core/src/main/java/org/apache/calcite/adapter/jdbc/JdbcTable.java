@@ -227,5 +227,3 @@ public class JdbcTable extends AbstractQueryableTable
     }
   }
 }
-
-// End JdbcTable.java

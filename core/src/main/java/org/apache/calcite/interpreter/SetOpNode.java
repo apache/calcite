@@ -83,5 +83,3 @@ public class SetOpNode implements Node {
     }
   }
 }
-
-// End SetOpNode.java

@@ -57,5 +57,3 @@ public class SqlColumnListConstructor extends SqlSpecialOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlColumnListConstructor.java

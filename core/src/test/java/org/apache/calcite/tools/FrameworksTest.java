@@ -549,5 +549,3 @@ public class FrameworksTest {
     }
   }
 }
-
-// End FrameworksTest.java

@@ -288,8 +288,7 @@ public class EnumerablesTest {
         equalTo("[Dept(15, Marketing)]"));
   }
 
-  @Test
-  @Disabled // TODO fix this
+  @Test @Disabled // TODO fix this
   public void testMatch() {
     final Enumerable<Emp> emps = Linq4j.asEnumerable(
         Arrays.asList(
@@ -474,5 +473,3 @@ public class EnumerablesTest {
     }
   }
 }
-
-// End EnumerablesTest.java

@@ -86,5 +86,3 @@ public interface RelWriter {
     return false;
   }
 }
-
-// End RelWriter.java

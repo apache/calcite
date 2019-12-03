@@ -23,5 +23,3 @@
  * fields are held in a map field called "_others".</p>
  */
 package org.apache.calcite.adapter.splunk;
-
-// End package-info.java

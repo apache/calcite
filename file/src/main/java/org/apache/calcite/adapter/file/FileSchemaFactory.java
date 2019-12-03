@@ -54,5 +54,3 @@ public class FileSchemaFactory implements SchemaFactory {
     return new FileSchema(parentSchema, name, directoryFile, tables);
   }
 }
-
-// End FileSchemaFactory.java

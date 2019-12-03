@@ -20,5 +20,3 @@
  * structures.
  */
 package org.apache.calcite.adapter.java;
-
-// End package-info.java

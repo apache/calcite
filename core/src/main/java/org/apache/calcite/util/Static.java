@@ -53,5 +53,3 @@ public abstract class Static {
     return ConsList.of(first, rest);
   }
 }
-
-// End Static.java

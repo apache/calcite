@@ -42,5 +42,3 @@ import org.junit.runners.Suite;
     })
 public class Linq4jSuite {
 }
-
-// End Linq4jSuite.java

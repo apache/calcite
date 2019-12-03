@@ -56,8 +56,7 @@ public class PigScriptTest extends PigRelTestBase {
     Files.delete(Paths.get(dataFile));
   }
 
-  @Test
-  public void testReadScript() throws IOException {
+  @Test public void testReadScript() throws IOException {
     Map<String, String> params = new HashMap<>();
     params.put("input", dataFile);
     params.put("output", "outputFile");
@@ -75,5 +74,3 @@ public class PigScriptTest extends PigRelTestBase {
     assertThat(rel, hasTree(expectedPlan));
   }
 }
-
-// End PigScriptTest.java

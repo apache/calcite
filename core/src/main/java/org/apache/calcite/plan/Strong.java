@@ -295,5 +295,3 @@ public class Strong {
     AS_IS,
   }
 }
-
-// End Strong.java

@@ -94,5 +94,3 @@ public class Db2SqlDialect extends SqlDialect {
   }
 
 }
-
-// End Db2SqlDialect.java

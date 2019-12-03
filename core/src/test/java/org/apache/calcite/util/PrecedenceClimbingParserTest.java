@@ -172,5 +172,3 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("(((a = b) like c) = d)"));
   }
 }
-
-// End PrecedenceClimbingParserTest.java

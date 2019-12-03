@@ -2949,5 +2949,3 @@ public class MaterializationTest {
     }
   }
 }
-
-// End MaterializationTest.java

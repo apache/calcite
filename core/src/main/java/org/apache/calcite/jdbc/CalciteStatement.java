@@ -85,5 +85,3 @@ public abstract class CalciteStatement extends AvaticaStatement {
     }
   }
 }
-
-// End CalciteStatement.java

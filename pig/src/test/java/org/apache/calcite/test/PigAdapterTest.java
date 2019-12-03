@@ -172,5 +172,3 @@ public class PigAdapterTest extends AbstractPigTest {
     };
   }
 }
-
-// End PigAdapterTest.java

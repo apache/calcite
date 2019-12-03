@@ -122,5 +122,3 @@ public class JoinUnionTransposeRule extends RelOptRule {
     call.transformTo(newUnionRel);
   }
 }
-
-// End JoinUnionTransposeRule.java

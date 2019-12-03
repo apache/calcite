@@ -6508,5 +6508,3 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
 }
-
-// End SqlValidatorImpl.java

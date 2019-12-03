@@ -195,5 +195,3 @@ public class RelOptRules {
       AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE,
       AbstractMaterializedViewRule.INSTANCE_AGGREGATE);
 }
-
-// End RelOptRules.java

@@ -577,8 +577,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test
-  public void testSingleOrDefaultPredicate1() {
+  @Test public void testSingleOrDefaultPredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -2196,5 +2195,3 @@ public class Linq4jTest {
       new Department("Marketing", 30, ImmutableList.of(emps[1])),
   };
 }
-
-// End Linq4jTest.java

@@ -33,5 +33,3 @@ public class ParaccelSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End ParaccelSqlDialect.java

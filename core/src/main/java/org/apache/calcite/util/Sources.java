@@ -307,5 +307,3 @@ public abstract class Sources {
     }
   }
 }
-
-// End Sources.java

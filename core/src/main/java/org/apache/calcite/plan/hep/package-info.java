@@ -20,5 +20,3 @@
  * {@link org.apache.calcite.plan}.
  */
 package org.apache.calcite.plan.hep;
-
-// End package-info.java

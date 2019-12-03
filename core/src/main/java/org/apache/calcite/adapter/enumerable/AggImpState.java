@@ -46,5 +46,3 @@ public class AggImpState {
     }
   }
 }
-
-// End AggImpState.java

@@ -58,5 +58,3 @@ public enum SqlStateCodes {
     return stateClass + stateSubClass;
   }
 }
-
-// End SqlStateCodes.java

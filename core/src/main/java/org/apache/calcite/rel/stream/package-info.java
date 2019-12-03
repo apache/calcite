@@ -28,5 +28,3 @@
  * </ul>
  */
 package org.apache.calcite.rel.stream;
-
-// End package-info.java

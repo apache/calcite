@@ -80,5 +80,3 @@ public abstract class BiRel extends AbstractRelNode {
         .input("right", right);
   }
 }
-
-// End BiRel.java

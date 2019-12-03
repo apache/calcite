@@ -47,5 +47,3 @@ public interface VolcanoPlannerPhaseRuleMappingInitializer {
    */
   void initialize(Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap);
 }
-
-// End VolcanoPlannerPhaseRuleMappingInitializer.java

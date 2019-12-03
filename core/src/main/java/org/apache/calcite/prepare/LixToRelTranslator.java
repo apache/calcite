@@ -176,5 +176,3 @@ class LixToRelTranslator {
         .toRex(expression.body);
   }
 }
-
-// End LixToRelTranslator.java

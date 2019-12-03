@@ -269,5 +269,3 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return program;
   }
 }
-
-// End EnumerableCalc.java

@@ -249,5 +249,3 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
             .toBlock());
   }
 }
-
-// End EnumerableHashJoin.java

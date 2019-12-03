@@ -869,5 +869,3 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     return relBuilder;
   }
 }
-
-// End AggregateExpandDistinctAggregatesRule.java

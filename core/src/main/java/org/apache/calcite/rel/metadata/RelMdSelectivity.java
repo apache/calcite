@@ -196,5 +196,3 @@ public class RelMdSelectivity
     return RelMdUtil.guessSelectivity(predicate);
   }
 }
-
-// End RelMdSelectivity.java

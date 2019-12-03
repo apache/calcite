@@ -64,5 +64,3 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
     return Optionality.IGNORED;
   }
 }
-
-// End SqlBitOpAggFunction.java

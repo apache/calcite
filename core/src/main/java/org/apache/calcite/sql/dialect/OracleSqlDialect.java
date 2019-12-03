@@ -163,5 +163,3 @@ public class OracleSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End OracleSqlDialect.java

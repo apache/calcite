@@ -145,5 +145,3 @@ public class RexTableInputRef extends RexInputRef {
     }
   }
 }
-
-// End RexTableInputRef.java

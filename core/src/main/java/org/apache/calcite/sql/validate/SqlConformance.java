@@ -409,5 +409,3 @@ public interface SqlConformance {
    */
   boolean allowPluralTimeUnits();
 }
-
-// End SqlConformance.java

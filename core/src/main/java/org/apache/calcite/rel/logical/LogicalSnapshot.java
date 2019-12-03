@@ -70,5 +70,3 @@ public class LogicalSnapshot extends Snapshot {
     return new LogicalSnapshot(cluster, traitSet, input, period);
   }
 }
-
-// End LogicalSnapshot.java

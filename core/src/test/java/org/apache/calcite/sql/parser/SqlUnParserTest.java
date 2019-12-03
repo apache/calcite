@@ -36,5 +36,3 @@ public class SqlUnParserTest extends SqlParserTest {
     return true;
   }
 }
-
-// End SqlUnParserTest.java

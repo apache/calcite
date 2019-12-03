@@ -19,5 +19,3 @@
  * Contains definitions of functions and predicates.
  */
 package org.apache.calcite.linq4j.function;
-
-// End package-info.java

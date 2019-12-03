@@ -223,5 +223,3 @@ public class InlinerTest {
         builder.toBlock().toString());
   }
 }
-
-// End InlinerTest.java

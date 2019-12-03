@@ -986,5 +986,3 @@ public class LatticeTest {
     assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
   }
 }
-
-// End LatticeTest.java

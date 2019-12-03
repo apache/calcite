@@ -88,5 +88,3 @@ class FileEnumerator implements Enumerator<Object> {
   }
 
 }
-
-// End FileEnumerator.java

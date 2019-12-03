@@ -60,5 +60,3 @@ class EmpInitializerExpressionFactory
     }
   }
 }
-
-// End EmpInitializerExpressionFactory.java

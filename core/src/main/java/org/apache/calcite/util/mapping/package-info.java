@@ -19,5 +19,3 @@
  * Support for algebraic maps.
  */
 package org.apache.calcite.util.mapping;
-
-// End package-info.java

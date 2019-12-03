@@ -601,5 +601,3 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 }
-
-// End Aggregate.java

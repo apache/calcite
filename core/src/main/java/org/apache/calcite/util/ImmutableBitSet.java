@@ -1172,5 +1172,3 @@ public class ImmutableBitSet
     }
   }
 }
-
-// End ImmutableBitSet.java

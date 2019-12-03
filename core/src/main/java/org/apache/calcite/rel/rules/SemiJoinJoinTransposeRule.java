@@ -218,5 +218,3 @@ public class SemiJoinJoinTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End SemiJoinJoinTransposeRule.java

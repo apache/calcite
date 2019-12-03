@@ -458,5 +458,3 @@ public class RelMdColumnUniqueness
     return checkingColumns;
   }
 }
-
-// End RelMdColumnUniqueness.java

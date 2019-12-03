@@ -159,5 +159,3 @@ public class RexCallBinding extends SqlOperatorBinding {
     }
   }
 }
-
-// End RexCallBinding.java

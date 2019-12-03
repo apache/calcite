@@ -1142,5 +1142,3 @@ public class RexLiteral extends RexNode {
     return visitor.visitLiteral(this, arg);
   }
 }
-
-// End RexLiteral.java

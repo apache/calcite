@@ -19,5 +19,3 @@
  * SQL unparsers for JDBC dialects.
  */
 package org.apache.calcite.sql.dialect;
-
-// End package-info.java

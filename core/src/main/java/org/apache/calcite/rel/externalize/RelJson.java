@@ -673,5 +673,3 @@ public class RelJson {
     return map;
   }
 }
-
-// End RelJson.java

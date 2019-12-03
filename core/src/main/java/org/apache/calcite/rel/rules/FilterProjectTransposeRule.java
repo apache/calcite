@@ -206,5 +206,3 @@ public class FilterProjectTransposeRule extends RelOptRule {
         xBuilder.getTypeFactory(), simplifier.simplifyUnknownAsFalse(condition));
   }
 }
-
-// End FilterProjectTransposeRule.java

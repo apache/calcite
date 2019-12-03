@@ -139,5 +139,3 @@ public class UnionPullUpConstantsRule extends RelOptRule {
   }
 
 }
-
-// End UnionPullUpConstantsRule.java

@@ -81,5 +81,3 @@ public interface CalciteConnection extends Connection, QueryProvider {
   /** Creates a context for preparing a statement for execution. */
   Context createPrepareContext();
 }
-
-// End CalciteConnection.java

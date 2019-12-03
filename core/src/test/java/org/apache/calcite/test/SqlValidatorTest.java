@@ -5126,8 +5126,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <p>Make sure table name of GROUP BY item with nested field could be
    * properly validated.
    */
-  @Test
-  public void testInvalidGroupByWithInvalidTableName() {
+  @Test public void testInvalidGroupByWithInvalidTableName() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
@@ -11237,5 +11236,3 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
 }
-
-// End SqlValidatorTest.java

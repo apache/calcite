@@ -768,5 +768,3 @@ public class DateRangeRulesTest {
     }
   }
 }
-
-// End DateRangeRulesTest.java

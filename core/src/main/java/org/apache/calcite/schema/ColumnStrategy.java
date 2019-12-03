@@ -47,5 +47,3 @@ public enum ColumnStrategy {
     return this != STORED && this != VIRTUAL;
   }
 }
-
-// End ColumnStrategy.java

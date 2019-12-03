@@ -107,5 +107,3 @@ public class RelDataTypeFieldImpl implements RelDataTypeField, Serializable {
   }
 
 }
-
-// End RelDataTypeFieldImpl.java

@@ -90,5 +90,3 @@
  * <a href="https://docs.google.com/document/d/1mykz-w2t1Yw7CH6NjUWpWqCAf_6YNKxSc59gXafrNCs/edit?usp=sharing">Calcite SQL and Planner Hints Design</a>.
  */
 package org.apache.calcite.rel.hint;
-
-// End package-info.java

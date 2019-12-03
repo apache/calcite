@@ -19,5 +19,3 @@
  * Parse tree for SQL extensions used by the Babel parser.
  */
 package org.apache.calcite.sql.babel;
-
-// End package-info.java

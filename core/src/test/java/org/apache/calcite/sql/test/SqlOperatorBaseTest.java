@@ -9195,5 +9195,3 @@ public abstract class SqlOperatorBaseTest {
     }
   }
 }
-
-// End SqlOperatorBaseTest.java

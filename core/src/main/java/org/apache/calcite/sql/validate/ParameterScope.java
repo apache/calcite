@@ -61,5 +61,3 @@ public class ParameterScope extends EmptyScope {
     return nameToTypeMap.get(name);
   }
 }
-
-// End ParameterScope.java

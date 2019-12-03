@@ -246,5 +246,3 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     };
   }
 }
-
-// End LookupImpl.java

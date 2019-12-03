@@ -443,5 +443,3 @@ public class PrecedenceClimbingParser {
     }
   }
 }
-
-// End PrecedenceClimbingParser.java

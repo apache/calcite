@@ -96,5 +96,3 @@ public class RelCollationTest {
     return RelCollations.of(list);
   }
 }
-
-// End RelCollationTest.java

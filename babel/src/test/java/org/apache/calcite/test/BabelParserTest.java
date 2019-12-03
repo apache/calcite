@@ -256,5 +256,3 @@ public class BabelParserTest extends SqlParserTest {
     sql(sql).ok(expected);
   }
 }
-
-// End BabelParserTest.java

@@ -369,5 +369,3 @@ public class HepPlannerTest extends RelOptTestBase {
     }
   }
 }
-
-// End HepPlannerTest.java

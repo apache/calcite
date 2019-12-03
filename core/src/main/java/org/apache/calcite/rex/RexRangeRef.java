@@ -92,5 +92,3 @@ public class RexRangeRef extends RexNode {
     return "offset(" + offset + ")";
   }
 }
-
-// End RexRangeRef.java

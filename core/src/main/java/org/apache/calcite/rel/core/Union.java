@@ -66,5 +66,3 @@ public abstract class Union extends SetOp {
     return RelMdUtil.getUnionAllRowCount(mq, (Union) rel);
   }
 }
-
-// End Union.java

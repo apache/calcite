@@ -111,5 +111,3 @@ public class SqlLineTest {
     checkScriptFile("!tables", false, equalTo(SqlLine.Status.OK), equalTo(""));
   }
 }
-
-// End SqlLineTest.java

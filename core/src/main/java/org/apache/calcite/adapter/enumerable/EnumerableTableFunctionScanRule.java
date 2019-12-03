@@ -56,5 +56,3 @@ public class EnumerableTableFunctionScanRule extends ConverterRule {
         tbl.getCall(), tbl.getColumnMappings());
   }
 }
-
-// End EnumerableTableFunctionScanRule.java

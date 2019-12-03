@@ -70,5 +70,3 @@ public class SqlAccessType {
     return create(accessNames);
   }
 }
-
-// End SqlAccessType.java

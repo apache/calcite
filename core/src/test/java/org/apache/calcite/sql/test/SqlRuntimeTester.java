@@ -93,5 +93,3 @@ public class SqlRuntimeTester extends AbstractSqlTester {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, stage);
   }
 }
-
-// End SqlRuntimeTester.java

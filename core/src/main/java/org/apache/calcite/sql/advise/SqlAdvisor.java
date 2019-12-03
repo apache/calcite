@@ -705,5 +705,3 @@ public class SqlAdvisor {
     }
   }
 }
-
-// End SqlAdvisor.java

@@ -85,5 +85,3 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
     return cardinality;
   }
 }
-
-// End ProfilerLatticeStatisticProvider.java

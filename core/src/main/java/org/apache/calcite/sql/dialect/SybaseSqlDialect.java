@@ -52,5 +52,3 @@ public class SybaseSqlDialect extends SqlDialect {
     writer.keyword(")");
   }
 }
-
-// End SybaseSqlDialect.java

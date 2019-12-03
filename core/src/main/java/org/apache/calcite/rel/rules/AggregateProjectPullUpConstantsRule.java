@@ -189,5 +189,3 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
   }
 
 }
-
-// End AggregateProjectPullUpConstantsRule.java

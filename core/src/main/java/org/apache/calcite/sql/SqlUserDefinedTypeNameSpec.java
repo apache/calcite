@@ -64,5 +64,3 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
     return litmus.succeed();
   }
 }
-
-// End SqlUserDefinedTypeNameSpec.java

@@ -362,5 +362,3 @@ public class ArrayTableTest {
     assertEquals(expectedString, x.toString());
   }
 }
-
-// End ArrayTableTest.java

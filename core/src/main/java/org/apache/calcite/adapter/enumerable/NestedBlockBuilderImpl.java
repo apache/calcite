@@ -116,5 +116,3 @@ public class NestedBlockBuilderImpl implements NestedBlockBuilder {
     nullables.remove(nullables.size() - 1);
   }
 }
-
-// End NestedBlockBuilderImpl.java

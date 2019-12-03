@@ -3021,5 +3021,3 @@ public class RexImpTable {
     }
   }
 }
-
-// End RexImpTable.java

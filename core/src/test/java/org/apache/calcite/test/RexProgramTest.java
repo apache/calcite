@@ -2836,5 +2836,3 @@ public class RexProgramTest extends RexProgramBuilderBase {
     checkSimplifyFilter(gt(ref, literal(9)), relOptPredicateList, "false");
   }
 }
-
-// End RexProgramTest.java

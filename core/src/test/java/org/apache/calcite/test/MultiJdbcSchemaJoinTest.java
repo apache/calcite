@@ -265,5 +265,3 @@ public class MultiJdbcSchemaJoinTest {
     }
   }
 }
-
-// End MultiJdbcSchemaJoinTest.java

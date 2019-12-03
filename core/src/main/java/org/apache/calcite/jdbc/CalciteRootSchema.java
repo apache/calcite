@@ -28,5 +28,3 @@ public class CalciteRootSchema extends CachingCalciteSchema {
     super(null, schema, "");
   }
 }
-
-// End CalciteRootSchema.java

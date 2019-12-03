@@ -152,5 +152,3 @@ public class AggregateUnionAggregateRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End AggregateUnionAggregateRule.java

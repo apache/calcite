@@ -61,5 +61,3 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
     return null;
   }
 }
-
-// End SqlReturnTypeInferenceChain.java

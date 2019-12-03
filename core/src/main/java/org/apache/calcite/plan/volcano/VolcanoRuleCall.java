@@ -375,5 +375,3 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     }
   }
 }
-
-// End VolcanoRuleCall.java

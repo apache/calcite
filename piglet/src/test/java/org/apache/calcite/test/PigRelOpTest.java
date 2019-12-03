@@ -1610,5 +1610,3 @@ public class PigRelOpTest extends PigRelTestBase {
         .assertSql(is(sql));
   }
 }
-
-// End PigRelOpTest.java

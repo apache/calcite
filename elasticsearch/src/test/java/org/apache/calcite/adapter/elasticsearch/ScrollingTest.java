@@ -77,8 +77,7 @@ public class ScrollingTest {
     };
   }
 
-  @Test
-  public void scrolling() throws Exception {
+  @Test public void scrolling() throws Exception {
     final String[] expected = IntStream.range(0, SIZE).mapToObj(i -> "V=" + i)
         .toArray(String[]::new);
     final String query = String.format(Locale.ROOT, "select _MAP['value'] as v from "
@@ -121,5 +120,3 @@ public class ScrollingTest {
 
 
 }
-
-// End ScrollingTest.java

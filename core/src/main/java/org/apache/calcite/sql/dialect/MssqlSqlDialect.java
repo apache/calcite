@@ -294,5 +294,3 @@ public class MssqlSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 }
-
-// End MssqlSqlDialect.java

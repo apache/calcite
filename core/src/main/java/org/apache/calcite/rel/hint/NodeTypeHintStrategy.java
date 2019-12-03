@@ -77,5 +77,3 @@ public class NodeTypeHintStrategy implements HintStrategy {
     }
   }
 }
-
-// End NodeTypeHintStrategy.java

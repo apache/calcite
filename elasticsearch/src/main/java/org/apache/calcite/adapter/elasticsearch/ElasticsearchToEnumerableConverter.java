@@ -123,5 +123,3 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
     return values.stream().map(Expressions::constant).collect(Collectors.toList());
   }
 }
-
-// End ElasticsearchToEnumerableConverter.java

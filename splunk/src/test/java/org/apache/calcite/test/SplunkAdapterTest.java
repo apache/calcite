@@ -291,5 +291,3 @@ public class SplunkAdapterTest {
     }
   }
 }
-
-// End SplunkAdapterTest.java

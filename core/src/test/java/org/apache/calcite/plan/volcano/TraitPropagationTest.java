@@ -427,5 +427,3 @@ public class TraitPropagationTest {
         prepareContext.getRootSchema().plus());
   }
 }
-
-// End TraitPropagationTest.java

@@ -32,5 +32,3 @@ public class JsonTypeAttribute {
    */
   public String type;
 }
-
-// End JsonTypeAttribute.java

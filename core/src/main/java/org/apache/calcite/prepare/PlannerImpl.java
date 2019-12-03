@@ -396,5 +396,3 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
   }
 }
-
-// End PlannerImpl.java

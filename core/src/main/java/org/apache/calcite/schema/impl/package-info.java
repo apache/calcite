@@ -19,5 +19,3 @@
  * Utilities to help implement Calcite's SPIs.
  */
 package org.apache.calcite.schema.impl;
-
-// End package-info.java

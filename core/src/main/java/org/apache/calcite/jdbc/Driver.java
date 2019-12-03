@@ -179,5 +179,3 @@ public class Driver extends UnregisteredDriver {
             rootSchema, typeFactory);
   }
 }
-
-// End Driver.java

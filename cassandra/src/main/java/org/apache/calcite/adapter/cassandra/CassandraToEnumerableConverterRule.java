@@ -50,5 +50,3 @@ public class CassandraToEnumerableConverterRule extends ConverterRule {
     return new CassandraToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End CassandraToEnumerableConverterRule.java

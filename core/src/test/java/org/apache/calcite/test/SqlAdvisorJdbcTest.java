@@ -168,5 +168,3 @@ public class SqlAdvisorJdbcTest {
   }
 
 }
-
-// End SqlAdvisorJdbcTest.java

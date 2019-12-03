@@ -277,5 +277,3 @@ public class TraitConversionTest {
     }
   }
 }
-
-// End TraitConversionTest.java

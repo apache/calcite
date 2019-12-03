@@ -122,5 +122,3 @@ public class ElasticsearchChecker {
   }
 
 }
-
-// End ElasticsearchChecker.java

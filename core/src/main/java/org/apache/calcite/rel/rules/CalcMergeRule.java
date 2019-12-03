@@ -95,5 +95,3 @@ public class CalcMergeRule extends RelOptRule {
     call.transformTo(newCalc);
   }
 }
-
-// End CalcMergeRule.java

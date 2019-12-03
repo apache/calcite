@@ -59,5 +59,3 @@ public class ContextSqlValidator extends SqlValidatorImpl {
         new CalciteConnectionConfigImpl(new Properties()));
   }
 }
-
-// End ContextSqlValidator.java

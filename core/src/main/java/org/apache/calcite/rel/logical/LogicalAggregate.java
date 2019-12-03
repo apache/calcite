@@ -130,5 +130,3 @@ public final class LogicalAggregate extends Aggregate {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalAggregate.java

@@ -78,5 +78,3 @@ public class CountingFactory extends NullInitializerExpressionFactory {
        constructorArgs, context);
   }
 }
-
-// End CountingFactory.java

@@ -122,5 +122,3 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.add("{" + query.toString() + "}");
   }
 }
-
-// End ElasticsearchProject.java

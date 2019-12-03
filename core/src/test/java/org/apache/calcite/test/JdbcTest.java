@@ -6001,8 +6001,7 @@ public class JdbcTest {
   }
 
   /** Tests accessing a column in a JDBC source whose type is DATE. */
-  @Test
-  public void testGetDate() throws Exception {
+  @Test public void testGetDate() throws Exception {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -7133,8 +7132,7 @@ public class JdbcTest {
         .returns("C1=1; C2=2; C3=1; C4=1\n");
   }
 
-  @Test
-  public void testJsonPretty() {
+  @Test public void testJsonPretty() {
     CalciteAssert.that()
         .query("SELECT JSON_PRETTY(v) AS c1\n"
             + "FROM (VALUES ('{\"a\": [10, true],\"b\": [10, true]}')) as t(v)\n"
@@ -7820,5 +7818,3 @@ public class JdbcTest {
     }
   }
 }
-
-// End JdbcTest.java

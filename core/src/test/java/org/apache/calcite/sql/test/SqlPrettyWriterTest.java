@@ -374,5 +374,3 @@ public class SqlPrettyWriterTest {
         .check();
   }
 }
-
-// End SqlPrettyWriterTest.java

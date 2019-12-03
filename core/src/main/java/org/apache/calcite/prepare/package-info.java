@@ -19,5 +19,3 @@
  * Preparation of queries (parsing, planning and implementation).
  */
 package org.apache.calcite.prepare;
-
-// End package-info.java

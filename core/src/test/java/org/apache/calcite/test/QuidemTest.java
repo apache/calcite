@@ -292,5 +292,3 @@ public abstract class QuidemTest {
   }
 
 }
-
-// End QuidemTest.java

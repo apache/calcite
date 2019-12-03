@@ -68,5 +68,3 @@ public class UdtTest {
     withUdt().query(sql).returns("C=null\n");
   }
 }
-
-// End UdtTest.java

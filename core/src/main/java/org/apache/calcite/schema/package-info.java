@@ -23,5 +23,3 @@
  * identifiers to objects.
  */
 package org.apache.calcite.schema;
-
-// End package-info.java

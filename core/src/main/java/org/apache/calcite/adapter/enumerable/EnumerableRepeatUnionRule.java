@@ -52,5 +52,3 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
         union.iterationLimit);
   }
 }
-
-// End EnumerableRepeatUnionRule.java

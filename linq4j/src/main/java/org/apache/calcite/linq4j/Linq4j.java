@@ -737,5 +737,3 @@ public abstract class Linq4j {
     }
   }
 }
-
-// End Linq4j.java

@@ -19,5 +19,3 @@
  * Provides compilers for Java code.
  */
 package org.apache.calcite.util.javac;
-
-// End package-info.java

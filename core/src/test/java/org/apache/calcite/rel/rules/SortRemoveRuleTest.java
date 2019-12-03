@@ -210,5 +210,3 @@ public final class SortRemoveRuleTest {
             SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
 }
-
-// End SortRemoveRuleTest.java

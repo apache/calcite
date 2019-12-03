@@ -1744,5 +1744,3 @@ public abstract class Mappings {
     }
   }
 }
-
-// End Mappings.java

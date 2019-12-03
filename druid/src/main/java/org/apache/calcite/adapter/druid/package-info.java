@@ -19,5 +19,3 @@
  * Query provider based on a Druid database.
  */
 package org.apache.calcite.adapter.druid;
-
-// End package-info.java

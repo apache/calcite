@@ -548,5 +548,3 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
     return product;
   }
 }
-
-// End Permutation.java

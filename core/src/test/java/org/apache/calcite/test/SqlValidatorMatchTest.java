@@ -246,5 +246,3 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
         .fails("First column of ORDER BY must be of type TIMESTAMP");
   }
 }
-
-// End SqlValidatorMatchTest.java

@@ -47,5 +47,3 @@ public abstract class TransformedEnumerator<F, E> implements Enumerator<E> {
     enumerator.close();
   }
 }
-
-// End TransformedEnumerator.java

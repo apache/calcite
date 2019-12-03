@@ -2180,5 +2180,3 @@ public class ConcurrentTestCommandScript
     Unsafe.systemExit(status);
   }
 }
-
-// End ConcurrentTestCommandScript.java

@@ -242,5 +242,3 @@ public class ProjectWindowTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End ProjectWindowTransposeRule.java

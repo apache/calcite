@@ -829,5 +829,3 @@ public interface SqlValidator {
    */
   void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules);
 }
-
-// End SqlValidator.java

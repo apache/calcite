@@ -94,5 +94,3 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
     call.transformTo(newMultiJoin);
   }
 }
-
-// End FilterMultiJoinMergeRule.java

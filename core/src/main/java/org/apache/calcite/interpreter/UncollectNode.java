@@ -68,5 +68,3 @@ public class UncollectNode extends AbstractSingleNode<Uncollect> {
     }
   }
 }
-
-// End UncollectNode.java

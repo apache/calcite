@@ -19,5 +19,3 @@
  * Tests for Calcite.
  */
 package org.apache.calcite.test;
-
-// End package-info.java

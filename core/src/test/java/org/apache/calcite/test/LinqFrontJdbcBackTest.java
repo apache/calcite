@@ -56,5 +56,3 @@ public class LinqFrontJdbcBackTest {
     Util.discard(s);
   }
 }
-
-// End LinqFrontJdbcBackTest.java

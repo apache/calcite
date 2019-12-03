@@ -31,5 +31,3 @@ public @interface RequiresNetwork {
   String host() default  "en.wikipedia.org";
   int port() default 80;
 }
-
-// End RequiresNetwork.java

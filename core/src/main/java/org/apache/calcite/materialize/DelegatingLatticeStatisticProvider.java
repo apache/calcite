@@ -39,5 +39,3 @@ public class DelegatingLatticeStatisticProvider
     return provider.cardinality(columns);
   }
 }
-
-// End DelegatingLatticeStatisticProvider.java

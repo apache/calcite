@@ -654,5 +654,3 @@ public class ScannableTableTest {
     };
   }
 }
-
-// End ScannableTableTest.java

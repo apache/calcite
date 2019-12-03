@@ -393,5 +393,3 @@ public class CassandraRules {
     }
   }
 }
-
-// End CassandraRules.java

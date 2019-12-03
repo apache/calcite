@@ -1496,5 +1496,3 @@ public abstract class SqlImplementor {
     FROM, WHERE, GROUP_BY, HAVING, SELECT, SET_OP, ORDER_BY, FETCH, OFFSET
   }
 }
-
-// End SqlImplementor.java

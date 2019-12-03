@@ -217,5 +217,3 @@ public class RelMdMaxRowCount
     return null;
   }
 }
-
-// End RelMdMaxRowCount.java

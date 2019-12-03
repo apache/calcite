@@ -69,5 +69,3 @@ public abstract class SqlTypeNameSpec {
     return typeName;
   }
 }
-
-// End SqlTypeNameSpec.java

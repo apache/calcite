@@ -19,5 +19,3 @@
  * TPC-DS schema.
  */
 package org.apache.calcite.adapter.tpcds;
-
-// End package-info.java

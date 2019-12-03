@@ -155,5 +155,3 @@ public class SqlValidatorUtilTest {
     assertThat(sensitiveMatcher.frequency(beatles, "Ringo"), is(0));
   }
 }
-
-// End SqlValidatorUtilTest.java

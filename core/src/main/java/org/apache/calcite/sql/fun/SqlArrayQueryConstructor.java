@@ -29,5 +29,3 @@ public class SqlArrayQueryConstructor extends SqlMultisetQueryConstructor {
     super("ARRAY", SqlKind.ARRAY_QUERY_CONSTRUCTOR);
   }
 }
-
-// End SqlArrayQueryConstructor.java

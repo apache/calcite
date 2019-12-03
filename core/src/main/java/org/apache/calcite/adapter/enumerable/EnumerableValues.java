@@ -113,5 +113,3 @@ public class EnumerableValues extends Values implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableValues.java

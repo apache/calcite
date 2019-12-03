@@ -394,5 +394,3 @@ public abstract class Window extends SingleRel {
     }
   }
 }
-
-// End Window.java

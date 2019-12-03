@@ -268,5 +268,3 @@ public class StatementTest {
   }
 
 }
-
-// End StatementTest.java

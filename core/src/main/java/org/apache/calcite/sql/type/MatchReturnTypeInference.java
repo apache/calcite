@@ -70,5 +70,3 @@ public class MatchReturnTypeInference implements SqlReturnTypeInference {
     return null;
   }
 }
-
-// End MatchReturnTypeInference.java

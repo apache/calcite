@@ -109,5 +109,3 @@ public class KafkaAdapterTest {
         .failsAtValidation("Cannot convert stream 'MOCKTABLE' to relation");
   }
 }
-
-// End KafkaAdapterTest.java

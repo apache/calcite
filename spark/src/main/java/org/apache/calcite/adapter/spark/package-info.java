@@ -19,5 +19,3 @@
  * Adapter based on the Apache Spark data management system.
  */
 package org.apache.calcite.adapter.spark;
-
-// End package-info.java

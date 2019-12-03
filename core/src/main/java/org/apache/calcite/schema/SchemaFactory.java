@@ -70,5 +70,3 @@ public interface SchemaFactory {
       String name,
       Map<String, Object> operand);
 }
-
-// End SchemaFactory.java

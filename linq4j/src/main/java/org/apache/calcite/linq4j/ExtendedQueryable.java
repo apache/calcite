@@ -729,5 +729,3 @@ interface ExtendedQueryable<TSource> extends ExtendedEnumerable<TSource> {
   <T1, TResult> Queryable<TResult> zip(Enumerable<T1> source1,
       FunctionExpression<Function2<TSource, T1, TResult>> resultSelector);
 }
-
-// End ExtendedQueryable.java

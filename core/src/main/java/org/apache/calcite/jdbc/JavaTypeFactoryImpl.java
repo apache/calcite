@@ -425,5 +425,3 @@ public class JavaTypeFactoryImpl
     }
   }
 }
-
-// End JavaTypeFactoryImpl.java

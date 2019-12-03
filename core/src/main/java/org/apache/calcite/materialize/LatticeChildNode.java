@@ -42,5 +42,3 @@ public class LatticeChildNode extends LatticeNode {
     }
   }
 }
-
-// End LatticeChildNode.java

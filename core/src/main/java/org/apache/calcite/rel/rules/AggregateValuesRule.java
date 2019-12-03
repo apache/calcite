@@ -106,5 +106,3 @@ public class AggregateValuesRule extends RelOptRule {
     call.getPlanner().setImportance(aggregate, 0.0);
   }
 }
-
-// End AggregateValuesRule.java

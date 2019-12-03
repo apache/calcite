@@ -227,5 +227,3 @@ public class CassandraAdapterTest {
         .explainContains("CassandraTableScan(table=[[twissandra, Tweets_By_User]])");
   }
 }
-
-// End CassandraAdapterTest.java

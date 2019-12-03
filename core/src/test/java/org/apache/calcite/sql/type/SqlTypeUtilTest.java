@@ -35,8 +35,7 @@ public class SqlTypeUtilTest {
 
   private final SqlTypeFixture f = new SqlTypeFixture();
 
-  @Test
-  public void testTypesIsSameFamilyWithNumberTypes() {
+  @Test public void testTypesIsSameFamilyWithNumberTypes() {
     assertThat(areSameFamily(ImmutableList.of(f.sqlBigInt, f.sqlBigInt)), is(true));
     assertThat(areSameFamily(ImmutableList.of(f.sqlInt, f.sqlBigInt)), is(true));
     assertThat(areSameFamily(ImmutableList.of(f.sqlFloat, f.sqlBigInt)), is(true));
@@ -44,23 +43,20 @@ public class SqlTypeUtilTest {
         is(true));
   }
 
-  @Test
-  public void testTypesIsSameFamilyWithCharTypes() {
+  @Test public void testTypesIsSameFamilyWithCharTypes() {
     assertThat(areSameFamily(ImmutableList.of(f.sqlVarchar, f.sqlVarchar)), is(true));
     assertThat(areSameFamily(ImmutableList.of(f.sqlVarchar, f.sqlChar)), is(true));
     assertThat(areSameFamily(ImmutableList.of(f.sqlVarchar, f.sqlVarcharNullable)),
         is(true));
   }
 
-  @Test
-  public void testTypesIsSameFamilyWithInconvertibleTypes() {
+  @Test public void testTypesIsSameFamilyWithInconvertibleTypes() {
     assertThat(areSameFamily(ImmutableList.of(f.sqlBoolean, f.sqlBigInt)), is(false));
     assertThat(areSameFamily(ImmutableList.of(f.sqlFloat, f.sqlBoolean)), is(false));
     assertThat(areSameFamily(ImmutableList.of(f.sqlInt, f.sqlDate)), is(false));
   }
 
-  @Test
-  public void testTypesIsSameFamilyWithNumberStructTypes() {
+  @Test public void testTypesIsSameFamilyWithNumberStructTypes() {
     final RelDataType bigIntAndFloat = struct(f.sqlBigInt, f.sqlFloat);
     final RelDataType floatAndBigInt = struct(f.sqlFloat, f.sqlBigInt);
 
@@ -74,8 +70,7 @@ public class SqlTypeUtilTest {
         is(true));
   }
 
-  @Test
-  public void testTypesIsSameFamilyWithCharStructTypes() {
+  @Test public void testTypesIsSameFamilyWithCharStructTypes() {
     final RelDataType varCharStruct = struct(f.sqlVarchar);
     final RelDataType charStruct = struct(f.sqlChar);
 
@@ -85,8 +80,7 @@ public class SqlTypeUtilTest {
     assertThat(areSameFamily(ImmutableList.of(charStruct, charStruct)), is(true));
   }
 
-  @Test
-  public void testTypesIsSameFamilyWithInconvertibleStructTypes() {
+  @Test public void testTypesIsSameFamilyWithInconvertibleStructTypes() {
     final RelDataType dateStruct = struct(f.sqlDate);
     final RelDataType boolStruct = struct(f.sqlBoolean);
     assertThat(areSameFamily(ImmutableList.of(dateStruct, boolStruct)), is(false));
@@ -102,8 +96,7 @@ public class SqlTypeUtilTest {
         is(false));
   }
 
-  @Test
-  public void testModifyTypeCoercionMappings() {
+  @Test public void testModifyTypeCoercionMappings() {
     SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
     final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
     builder.addAll(defaultRules.getTypeMapping());
@@ -132,5 +125,3 @@ public class SqlTypeUtilTest {
     return builder.build();
   }
 }
-
-// End SqlTypeUtilTest.java

@@ -797,5 +797,3 @@ public class DiffRepository {
         String expanded);
   }
 }
-
-// End DiffRepository.java

@@ -37,5 +37,3 @@ class CalciteDriverVersion {
   private CalciteDriverVersion() {
   }
 }
-
-// End CalciteDriverVersion.java

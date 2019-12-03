@@ -39,5 +39,3 @@ public class VerticaSqlDialect extends SqlDialect {
     return false;
   }
 }
-
-// End VerticaSqlDialect.java

@@ -558,5 +558,3 @@ class QueryBuilders {
     }
   }
 }
-
-// End QueryBuilders.java

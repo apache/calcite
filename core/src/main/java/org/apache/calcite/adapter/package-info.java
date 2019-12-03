@@ -38,5 +38,3 @@
  * </blockquote>
  */
 package org.apache.calcite.adapter;
-
-// End package-info.java

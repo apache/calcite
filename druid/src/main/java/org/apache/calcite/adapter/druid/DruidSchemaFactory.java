@@ -67,5 +67,3 @@ public class DruidSchemaFactory implements SchemaFactory {
     return new DruidSchema(url, coordinatorUrl, !containsTables);
   }
 }
-
-// End DruidSchemaFactory.java

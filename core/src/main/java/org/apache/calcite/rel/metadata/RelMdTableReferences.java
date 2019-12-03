@@ -236,5 +236,3 @@ public class RelMdTableReferences
   }
 
 }
-
-// End RelMdTableReferences.java

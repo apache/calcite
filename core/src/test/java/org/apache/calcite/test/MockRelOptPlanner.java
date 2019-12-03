@@ -240,5 +240,3 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     }
   }
 }
-
-// End MockRelOptPlanner.java

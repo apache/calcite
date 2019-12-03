@@ -151,5 +151,3 @@ public abstract class ConverterRule extends RelOptRule {
   //~ Inner Classes ----------------------------------------------------------
 
 }
-
-// End ConverterRule.java

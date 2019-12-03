@@ -162,5 +162,3 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
     }
   }
 }
-
-// End TableFunctionImpl.java

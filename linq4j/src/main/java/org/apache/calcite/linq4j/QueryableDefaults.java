@@ -1211,5 +1211,3 @@ public abstract class QueryableDefaults {
     }
   }
 }
-
-// End QueryableDefaults.java

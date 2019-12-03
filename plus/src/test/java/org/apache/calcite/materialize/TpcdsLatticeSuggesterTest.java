@@ -205,5 +205,3 @@ public class TpcdsLatticeSuggesterTest {
     }
   }
 }
-
-// End TpcdsLatticeSuggesterTest.java

@@ -33,5 +33,3 @@ public class NetezzaSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End NetezzaSqlDialect.java

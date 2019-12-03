@@ -315,5 +315,3 @@ public enum SqlConformanceEnum implements SqlConformance {
   }
 
 }
-
-// End SqlConformanceEnum.java

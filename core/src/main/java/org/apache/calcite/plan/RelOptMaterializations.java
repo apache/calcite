@@ -238,5 +238,3 @@ public abstract class RelOptMaterializations {
     return false;
   }
 }
-
-// End RelOptMaterializations.java

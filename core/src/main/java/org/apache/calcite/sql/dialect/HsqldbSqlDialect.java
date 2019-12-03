@@ -130,5 +130,3 @@ public class HsqldbSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End HsqldbSqlDialect.java

@@ -19,5 +19,3 @@
  * Translates a relational expression to SQL parse tree.
  */
 package org.apache.calcite.rel.rel2sql;
-
-// End package-info.java

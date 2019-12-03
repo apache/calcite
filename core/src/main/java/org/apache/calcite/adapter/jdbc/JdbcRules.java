@@ -1081,5 +1081,3 @@ public class JdbcRules {
   }
 
 }
-
-// End JdbcRules.java

@@ -225,5 +225,3 @@ public class EnumerableBatchNestedLoopJoinTest {
         .withSchema("s", new ReflectiveSchema(schema));
   }
 }
-
-// End EnumerableBatchNestedLoopJoinTest.java

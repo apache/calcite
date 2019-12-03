@@ -1641,5 +1641,3 @@ public class RexBuilder {
     return new ByteString(Arrays.copyOf(s.getBytes(), length));
   }
 }
-
-// End RexBuilder.java

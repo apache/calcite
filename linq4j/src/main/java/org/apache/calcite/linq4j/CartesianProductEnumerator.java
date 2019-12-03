@@ -89,5 +89,3 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
     }
   }
 }
-
-// End CartesianProductEnumerator.java

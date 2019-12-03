@@ -19,5 +19,3 @@
  * Examples of using linq4j.
  */
 package com.example;
-
-// End package-info.java

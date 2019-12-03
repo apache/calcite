@@ -55,5 +55,3 @@ public class SqlFunctionalOperator extends SqlSpecialOperator {
     SqlUtil.unparseFunctionSyntax(this, writer, call);
   }
 }
-
-// End SqlFunctionalOperator.java

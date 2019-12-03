@@ -63,5 +63,3 @@ public class TypeTest {
     java.io.Serializable o = true ? "x" : 1;
   }
 }
-
-// End TypeTest.java

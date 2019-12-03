@@ -151,5 +151,3 @@ public abstract class ProjectTableScanRule extends RelOptRule {
     }
   }
 }
-
-// End ProjectTableScanRule.java

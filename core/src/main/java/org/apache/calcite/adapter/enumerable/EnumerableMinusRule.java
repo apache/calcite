@@ -42,5 +42,3 @@ class EnumerableMinusRule extends ConverterRule {
         convertList(minus.getInputs(), out), minus.all);
   }
 }
-
-// End EnumerableMinusRule.java

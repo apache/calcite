@@ -44,5 +44,3 @@ public abstract class PigRelTestBase {
     converter = create(config);
   }
 }
-
-// End PigRelTestBase.java

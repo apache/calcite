@@ -579,5 +579,3 @@ public abstract class RexProgramBuilderBase {
         arg + MAX_FIELDS);
   }
 }
-
-// End RexProgramBuilderBase.java

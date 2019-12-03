@@ -211,5 +211,3 @@ public class MongoTable extends AbstractQueryableTable
     }
   }
 }
-
-// End MongoTable.java

@@ -108,5 +108,3 @@ public class SqlTimestampAddFunction extends SqlFunction {
         SqlFunctionCategory.TIMEDATE);
   }
 }
-
-// End SqlTimestampAddFunction.java

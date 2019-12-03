@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
 public interface DoubleFunction1<T0> extends Function<Double> {
   double apply(T0 v0);
 }
-
-// End DoubleFunction1.java

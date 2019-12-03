@@ -190,5 +190,3 @@ public class RelMdPercentageOriginalRows
     }
   }
 }
-
-// End RelMdPercentageOriginalRows.java

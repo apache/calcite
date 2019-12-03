@@ -24,5 +24,3 @@ import org.apache.calcite.rel.RelNode;
 public interface JdbcRel extends RelNode {
   JdbcImplementor.Result implement(JdbcImplementor implementor);
 }
-
-// End JdbcRel.java

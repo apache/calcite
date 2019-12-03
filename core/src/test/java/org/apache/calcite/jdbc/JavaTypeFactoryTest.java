@@ -106,5 +106,3 @@ public final class JavaTypeFactoryTest {
     public String strField;
   }
 }
-
-// End JavaTypeFactoryTest.java

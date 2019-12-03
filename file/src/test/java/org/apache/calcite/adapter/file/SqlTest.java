@@ -416,5 +416,3 @@ public class SqlTest {
         .ok();
   }
 }
-
-// End SqlTest.java

@@ -419,5 +419,3 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
     void checkResult(ResultSet result) throws Exception;
   }
 }
-
-// End SqlTester.java

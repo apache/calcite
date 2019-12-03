@@ -104,5 +104,3 @@ abstract class SqlDropObject extends SqlDrop
     }
   }
 }
-
-// End SqlDropObject.java

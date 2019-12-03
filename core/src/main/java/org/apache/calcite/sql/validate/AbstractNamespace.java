@@ -219,5 +219,3 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
         .build();
   }
 }
-
-// End AbstractNamespace.java

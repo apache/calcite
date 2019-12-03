@@ -32,5 +32,3 @@ public class InterbaseSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End InterbaseSqlDialect.java

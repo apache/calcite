@@ -314,5 +314,3 @@
  *
  */
 package org.apache.calcite.test.concurrent;
-
-// End package-info.java

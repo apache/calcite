@@ -19,5 +19,3 @@
  * Core linq4j tests.
  */
 package org.apache.calcite.linq4j.test;
-
-// End package-info.java

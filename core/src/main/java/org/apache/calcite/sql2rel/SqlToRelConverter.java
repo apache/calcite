@@ -5874,5 +5874,3 @@ public class SqlToRelConverter {
     }
   }
 }
-
-// End SqlToRelConverter.java

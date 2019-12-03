@@ -156,5 +156,3 @@ public class JsonEnumerator implements Enumerator<Object[]> {
     }
   }
 }
-
-// End JsonEnumerator.java

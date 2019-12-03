@@ -71,5 +71,3 @@ public class GeodeSimpleScannableTable extends AbstractTable implements Scannabl
     };
   }
 }
-
-// End GeodeSimpleScannableTable.java

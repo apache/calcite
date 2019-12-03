@@ -20,5 +20,3 @@
  * XML and JSON format.
  */
 package org.apache.calcite.rel.externalize;
-
-// End package-info.java

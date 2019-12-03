@@ -56,5 +56,3 @@ public class HintStrategyCascade implements HintStrategy {
     return true;
   }
 }
-
-// End HintStrategyCascade.java

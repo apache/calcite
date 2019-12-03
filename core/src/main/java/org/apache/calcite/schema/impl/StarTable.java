@@ -136,5 +136,3 @@ public class StarTable extends AbstractTable implements TranslatableTable {
     }
   }
 }
-
-// End StarTable.java

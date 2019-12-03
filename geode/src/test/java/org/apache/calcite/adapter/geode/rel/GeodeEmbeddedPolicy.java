@@ -146,5 +146,3 @@ public class GeodeEmbeddedPolicy extends ExternalResource {
     }
   }
 }
-
-// End GeodeEmbeddedPolicy.java

@@ -44,5 +44,3 @@ public class RedshiftSqlDialect extends SqlDialect {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 }
-
-// End RedshiftSqlDialect.java

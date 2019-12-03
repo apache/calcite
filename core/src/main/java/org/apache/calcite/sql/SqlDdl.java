@@ -38,5 +38,3 @@ public abstract class SqlDdl extends SqlCall {
     return operator;
   }
 }
-
-// End SqlDdl.java

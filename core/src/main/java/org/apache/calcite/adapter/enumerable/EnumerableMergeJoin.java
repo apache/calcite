@@ -185,5 +185,3 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         joinType.generatesNullsOnRight())))).toBlock());
   }
 }
-
-// End EnumerableMergeJoin.java

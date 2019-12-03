@@ -547,5 +547,3 @@ public class RelOptUtilTest {
             .toString()));
   }
 }
-
-// End RelOptUtilTest.java

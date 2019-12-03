@@ -635,5 +635,3 @@ public class ProfilerTest {
     }
   }
 }
-
-// End ProfilerTest.java

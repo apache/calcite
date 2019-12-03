@@ -39,5 +39,3 @@ import static java.lang.annotation.ElementType.TYPE;
 @Experimental
 public @interface SemiStrict {
 }
-
-// End SemiStrict.java

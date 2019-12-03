@@ -268,5 +268,3 @@ public class RexCall extends RexNode {
     return toString().hashCode();
   }
 }
-
-// End RexCall.java

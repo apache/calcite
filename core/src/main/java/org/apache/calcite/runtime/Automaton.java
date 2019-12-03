@@ -150,5 +150,3 @@ public class Automaton {
     }
   }
 }
-
-// End Automaton.java

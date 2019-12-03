@@ -314,5 +314,3 @@ public class ServerParserTest extends SqlParserTest {
   }
 
 }
-
-// End ServerParserTest.java

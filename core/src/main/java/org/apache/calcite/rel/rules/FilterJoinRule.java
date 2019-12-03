@@ -392,5 +392,3 @@ public abstract class FilterJoinRule extends RelOptRule {
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
   }
 }
-
-// End FilterJoinRule.java

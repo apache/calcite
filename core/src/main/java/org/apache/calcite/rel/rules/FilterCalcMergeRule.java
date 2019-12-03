@@ -92,5 +92,3 @@ public class FilterCalcMergeRule extends RelOptRule {
     call.transformTo(newCalc);
   }
 }
-
-// End FilterCalcMergeRule.java

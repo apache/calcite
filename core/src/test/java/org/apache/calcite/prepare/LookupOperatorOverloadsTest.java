@@ -184,5 +184,3 @@ public class LookupOperatorOverloadsTest {
     }
   }
 }
-
-// End LookupOperatorOverloadsTest.java

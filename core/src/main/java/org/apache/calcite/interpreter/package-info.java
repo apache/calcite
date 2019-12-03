@@ -23,5 +23,3 @@
  * competitive for queries over small data sets.
  */
 package org.apache.calcite.interpreter;
-
-// End package-info.java

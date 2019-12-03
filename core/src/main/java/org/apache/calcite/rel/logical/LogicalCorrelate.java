@@ -109,5 +109,3 @@ public final class LogicalCorrelate extends Correlate {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalCorrelate.java

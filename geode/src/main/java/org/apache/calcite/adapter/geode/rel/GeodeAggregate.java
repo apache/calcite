@@ -135,5 +135,3 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     return names;
   }
 }
-
-// End GeodeAggregate.java

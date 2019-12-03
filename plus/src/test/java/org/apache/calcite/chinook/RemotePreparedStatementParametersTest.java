@@ -72,5 +72,3 @@ public class RemotePreparedStatementParametersTest {
     server.stop();
   }
 }
-
-// End RemotePreparedStatementParametersTest.java

@@ -149,5 +149,3 @@ public class JdbcFrontJdbcBackTest {
             + "c0=8.55\n");
   }
 }
-
-// End JdbcFrontJdbcBackTest.java

@@ -343,5 +343,3 @@ public class ImmutableIntList extends FlatLists.AbstractFlatList<Integer> {
     }
   }
 }
-
-// End ImmutableIntList.java

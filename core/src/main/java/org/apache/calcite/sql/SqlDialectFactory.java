@@ -40,5 +40,3 @@ public interface SqlDialectFactory {
   SqlDialect create(DatabaseMetaData databaseMetaData);
 
 }
-
-// End SqlDialectFactory.java

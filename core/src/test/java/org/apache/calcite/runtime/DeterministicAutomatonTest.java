@@ -100,5 +100,3 @@ public class DeterministicAutomatonTest {
     assertThat(da.getEndStates().size(), is(1));
   }
 }
-
-// End DeterministicAutomatonTest.java

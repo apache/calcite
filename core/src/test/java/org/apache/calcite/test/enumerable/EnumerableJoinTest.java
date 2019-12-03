@@ -226,5 +226,3 @@ public class EnumerableJoinTest {
         .withSchema("s", new ReflectiveSchema(schema));
   }
 }
-
-// End EnumerableJoinTest.java

@@ -1578,5 +1578,3 @@ public abstract class SqlTypeUtil {
     return factory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, maxScale);
   }
 }
-
-// End SqlTypeUtil.java

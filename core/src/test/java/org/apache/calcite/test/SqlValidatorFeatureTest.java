@@ -152,5 +152,3 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
   }
 }
-
-// End SqlValidatorFeatureTest.java

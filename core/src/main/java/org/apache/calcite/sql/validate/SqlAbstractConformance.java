@@ -107,5 +107,3 @@ public abstract class SqlAbstractConformance implements SqlConformance {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }
 }
-
-// End SqlAbstractConformance.java

@@ -118,5 +118,3 @@ public class MutableMatch extends MutableSingleRel {
         partitionKeys, orderKeys, interval);
   }
 }
-
-// End MutableMatch.java

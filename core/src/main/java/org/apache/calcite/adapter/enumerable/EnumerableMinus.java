@@ -77,5 +77,3 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableMinus.java

@@ -190,5 +190,3 @@ public class SqlUpdate extends SqlCall {
     validator.validateUpdate(this);
   }
 }
-
-// End SqlUpdate.java

@@ -88,5 +88,3 @@ public class DateTimeStringUtils {
   }
 
 }
-
-// End DateTimeStringUtils.java

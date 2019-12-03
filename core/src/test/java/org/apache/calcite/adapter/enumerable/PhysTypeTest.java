@@ -68,5 +68,3 @@ public final class PhysTypeTest {
   }
 
 }
-
-// End PhysTypeTest.java

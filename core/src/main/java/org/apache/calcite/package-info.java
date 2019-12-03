@@ -19,5 +19,3 @@
  * Main package for Calcite, the dynamic data management platform.
  */
 package org.apache.calcite;
-
-// End package-info.java

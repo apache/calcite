@@ -58,5 +58,3 @@ public abstract class HintStrategies {
     return new HintStrategyCascade(hintStrategies);
   }
 }
-
-// End HintStrategies.java

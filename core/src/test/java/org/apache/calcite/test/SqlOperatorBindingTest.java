@@ -122,5 +122,3 @@ public class SqlOperatorBindingTest {
     assertSame(false, RexUtil.isLiteral(castCastLiteral, true));
   }
 }
-
-// End SqlOperatorBindingTest.java

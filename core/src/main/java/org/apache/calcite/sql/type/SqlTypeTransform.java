@@ -43,5 +43,3 @@ public interface SqlTypeTransform {
       SqlOperatorBinding opBinding,
       RelDataType typeToTransform);
 }
-
-// End SqlTypeTransform.java

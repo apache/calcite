@@ -131,5 +131,3 @@ public class SqlSnapshot extends SqlCall {
     }
   }
 }
-
-// End SqlSnapshot.java

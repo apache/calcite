@@ -790,5 +790,3 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     }
   }
 }
-
-// End SqlJdbcFunctionCall.java

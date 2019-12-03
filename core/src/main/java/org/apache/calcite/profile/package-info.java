@@ -19,5 +19,3 @@
  * Utilities to analyze data sets.
  */
 package org.apache.calcite.profile;
-
-// End package-info.java

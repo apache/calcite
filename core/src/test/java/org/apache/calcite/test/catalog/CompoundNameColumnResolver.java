@@ -146,5 +146,3 @@ final class CompoundNameColumnResolver implements MockCatalogReader.ColumnResolv
         });
   }
 }
-
-// End CompoundNameColumnResolver.java

@@ -82,7 +82,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals("select case when 1 > 0 then t2_bigint else t2_decimal end from t2");
   }
 
-  @Test  public void testBuiltinFunctionCoercion() {
+  @Test public void testBuiltinFunctionCoercion() {
     checkPlanEquals("select 1||'a' from (values true)");
   }
 
@@ -106,5 +106,3 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     tester.assertConvertsTo(sql, "${plan}");
   }
 }
-
-// End TypeCoercionConverterTest.java

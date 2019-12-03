@@ -3049,5 +3049,3 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 }
-
-// End RelBuilderTest.java

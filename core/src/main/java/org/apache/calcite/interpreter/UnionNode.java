@@ -57,5 +57,3 @@ public class UnionNode implements Node {
     }
   }
 }
-
-// End UnionNode.java

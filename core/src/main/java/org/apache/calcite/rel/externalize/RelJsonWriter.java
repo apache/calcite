@@ -143,5 +143,3 @@ public class RelJsonWriter implements RelWriter {
     return jsonBuilder.toJsonString(map);
   }
 }
-
-// End RelJsonWriter.java

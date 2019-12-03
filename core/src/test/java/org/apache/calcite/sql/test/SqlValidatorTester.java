@@ -44,5 +44,3 @@ public class SqlValidatorTester extends AbstractSqlTester {
         transform.apply(validatorTransform));
   }
 }
-
-// End SqlValidatorTester.java

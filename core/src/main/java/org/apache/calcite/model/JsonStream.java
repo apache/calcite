@@ -37,5 +37,3 @@ public class JsonStream {
    */
   public boolean history = false;
 }
-
-// End JsonStream.java

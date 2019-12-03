@@ -190,5 +190,3 @@ public class PermutationTestCase {
     assertThat(perm2, is(new Permutation(new int[]{1, 0})));
   }
 }
-
-// End PermutationTestCase.java

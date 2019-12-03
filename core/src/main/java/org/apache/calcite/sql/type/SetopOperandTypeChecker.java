@@ -155,5 +155,3 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
     return Consistency.NONE;
   }
 }
-
-// End SetopOperandTypeChecker.java

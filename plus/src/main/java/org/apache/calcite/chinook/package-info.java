@@ -19,5 +19,3 @@
  * End to end tests.
  */
 package org.apache.calcite.chinook;
-
-// End package-info.java

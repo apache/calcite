@@ -275,5 +275,3 @@ public final class MultiJoin extends AbstractRelNode {
     return false;
   }
 }
-
-// End MultiJoin.java

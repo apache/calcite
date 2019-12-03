@@ -146,8 +146,7 @@ public class BlockBuilderTest {
   }
 
   /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
-  @Test
-  public void testOptimizeBoxedFalseEqNull() {
+  @Test public void testOptimizeBoxedFalseEqNull() {
     BlockBuilder outer = new BlockBuilder();
     outer.append(
         Expressions.equal(
@@ -171,5 +170,3 @@ public class BlockBuilderTest {
   }
 
 }
-
-// End BlockBuilderTest.java

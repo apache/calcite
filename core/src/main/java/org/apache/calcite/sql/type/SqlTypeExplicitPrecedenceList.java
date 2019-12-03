@@ -164,5 +164,3 @@ public class SqlTypeExplicitPrecedenceList
     return TYPE_NAME_TO_PRECEDENCE_LIST.get(typeName);
   }
 }
-
-// End SqlTypeExplicitPrecedenceList.java

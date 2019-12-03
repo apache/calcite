@@ -38,5 +38,3 @@ class SqlGroupIdFunction extends SqlAbstractGroupFunction {
         OperandTypes.NILADIC, SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlGroupIdFunction.java

@@ -446,5 +446,3 @@ public class JdbcFrontLinqBackTest {
         .throws_("Incompatible types");
   }
 }
-
-// End JdbcFrontLinqBackTest.java

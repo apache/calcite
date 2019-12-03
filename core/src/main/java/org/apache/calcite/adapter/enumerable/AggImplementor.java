@@ -85,5 +85,3 @@ public interface AggImplementor {
    */
   Expression implementResult(AggContext info, AggResultContext result);
 }
-
-// End AggImplementor.java

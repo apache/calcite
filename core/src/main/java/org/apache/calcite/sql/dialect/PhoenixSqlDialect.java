@@ -37,5 +37,3 @@ public class PhoenixSqlDialect extends SqlDialect {
     return false;
   }
 }
-
-// End PhoenixSqlDialect.java

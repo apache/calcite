@@ -396,5 +396,3 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     }
   }
 }
-
-// End RelMdSize.java

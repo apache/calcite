@@ -147,5 +147,3 @@ public class SourceTest {
     assertThat(fooBar.relative(baz), is(fooBar));
   }
 }
-
-// End SourceTest.java

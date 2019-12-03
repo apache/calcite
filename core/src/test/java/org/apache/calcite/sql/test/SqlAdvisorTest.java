@@ -1586,5 +1586,3 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, EXPR_KEYWORDS, Arrays.asList("TABLE(a)"), DEPT_COLUMNS);
   }
 }
-
-// End SqlAdvisorTest.java

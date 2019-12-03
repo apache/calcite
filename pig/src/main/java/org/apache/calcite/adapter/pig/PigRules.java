@@ -140,5 +140,3 @@ public class PigRules {
     }
   }
 }
-
-// End PigRules.java

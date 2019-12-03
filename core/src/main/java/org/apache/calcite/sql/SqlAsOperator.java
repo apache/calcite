@@ -139,5 +139,3 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return call.getOperandMonotonicity(0);
   }
 }
-
-// End SqlAsOperator.java

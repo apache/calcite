@@ -1509,8 +1509,7 @@ public class DruidAdapterIT {
             "day=13; product_id=1016", "day=16; product_id=1016");
   }
 
-  @Test
-  public void testPushAggregateOnTimeWithExtractHourOfDay() {
+  @Test public void testPushAggregateOnTimeWithExtractHourOfDay() {
     String sql =
         "select EXTRACT( hour from \"timestamp\") as \"hourOfDay\",\"product_id\"  from "
             + "\"foodmart\" where \"product_id\" = 1016 and "
@@ -2881,8 +2880,7 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
   }
 
-  @Test
-  public void testDistinctCountOnMetric() {
+  @Test public void testDistinctCountOnMetric() {
     final String sql = "select count(distinct \"store_sales\") from \"foodmart\" "
         + "where \"store_state\" = 'WA'";
     final String expectedSubExplainNoApprox = "PLAN=EnumerableInterpreter\n"
@@ -2937,8 +2935,7 @@ public class DruidAdapterIT {
     testCountWithApproxDistinct(false, sql, expectedSubExplain);
   }
 
-  @Test
-  public void testDistinctCountOnMetricRenamed() {
+  @Test public void testDistinctCountOnMetricRenamed() {
     final String sql = "select \"B\", count(distinct \"A\") from "
         + "(select \"unit_sales\" as \"A\", \"store_state\" as \"B\" from \"foodmart\") "
         + "group by \"B\"";
@@ -3222,8 +3219,7 @@ public class DruidAdapterIT {
             new DruidChecker(druidQuery));
   }
 
-  @Test
-  public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
+  @Test public void testSelectFloorOnTimeWithFilterOnFloorOnTime() {
     final String sql = "Select cast(floor(\"timestamp\" to MONTH) as timestamp) as t from "
         + "\"foodmart\" where floor(\"timestamp\" to MONTH) >= '1997-05-01 00:00:00 UTC' order by t"
         + " limit 1";
@@ -3352,8 +3348,7 @@ public class DruidAdapterIT {
         .returnsOrdered("T=1997-05-01 00:00:00");
   }
 
-  @Test
-  public void testExpressionsFilter() {
+  @Test public void testExpressionsFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ABS(-EXP(LN(SQRT"
         + "(\"store_sales\")))) = 1";
     sql(sql, FOODMART)
@@ -3361,8 +3356,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=32");
   }
 
-  @Test
-  public void testExpressionsFilter2() {
+  @Test public void testExpressionsFilter2() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CAST(SQRT(ABS(-\"store_sales\"))"
         + " /2 as INTEGER) = 1";
     sql(sql, FOODMART)
@@ -3370,8 +3364,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=62449");
   }
 
-  @Test
-  public void testExpressionsLikeFilter() {
+  @Test public void testExpressionsLikeFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"product_id\" LIKE '1%'";
     sql(sql, FOODMART)
         .queryContains(
@@ -3379,8 +3372,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=36839");
   }
 
-  @Test
-  public void testExpressionsSTRLENFilter() {
+  @Test public void testExpressionsSTRLENFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CHAR_LENGTH(\"product_id\") = 2";
     sql(sql, FOODMART)
         .queryContains(
@@ -3388,8 +3380,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=4876");
   }
 
-  @Test
-  public void testExpressionsUpperLowerFilter() {
+  @Test public void testExpressionsUpperLowerFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(lower(\"city\")) = "
         + "'SPOKANE'";
     sql(sql, FOODMART)
@@ -3399,8 +3390,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsLowerUpperFilter() {
+  @Test public void testExpressionsLowerUpperFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(upper(\"city\")) = "
         + "'spokane'";
     sql(sql, FOODMART)
@@ -3410,8 +3400,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsLowerFilterNotMatching() {
+  @Test public void testExpressionsLowerFilterNotMatching() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(\"city\") = 'Spokane'";
     sql(sql, FOODMART)
         .queryContains(
@@ -3420,8 +3409,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=0");
   }
 
-  @Test
-  public void testExpressionsLowerFilterMatching() {
+  @Test public void testExpressionsLowerFilterMatching() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where lower(\"city\") = 'spokane'";
     sql(sql, FOODMART)
         .queryContains(
@@ -3430,8 +3418,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsUpperFilterNotMatching() {
+  @Test public void testExpressionsUpperFilterNotMatching() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(\"city\") = 'Spokane'";
     sql(sql, FOODMART)
         .queryContains(
@@ -3440,8 +3427,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=0");
   }
 
-  @Test
-  public void testExpressionsUpperFilterMatching() {
+  @Test public void testExpressionsUpperFilterMatching() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where upper(\"city\") = 'SPOKANE'";
     sql(sql, FOODMART)
         .queryContains(
@@ -3450,8 +3436,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsConcatFilter() {
+  @Test public void testExpressionsConcatFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || '_extra') = "
         + "'Spokane_extra'";
     sql(sql, FOODMART)
@@ -3461,8 +3446,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsNotNull() {
+  @Test public void testExpressionsNotNull() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || 'extra') IS NOT NULL";
     sql(sql, FOODMART)
         .queryContains(
@@ -3471,8 +3455,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=86829");
   }
 
-  @Test
-  public void testComplexExpressionsIsNull() {
+  @Test public void testComplexExpressionsIsNull() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ( cast(null as INTEGER) + cast"
         + "(\"city\" as INTEGER)) IS NULL";
     sql(sql, FOODMART)
@@ -3490,8 +3473,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=86829");
   }
 
-  @Test
-  public void testExpressionsConcatFilterMultipleColumns() {
+  @Test public void testExpressionsConcatFilterMultipleColumns() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
         + " = 'SpokaneWA'";
     sql(sql, FOODMART)
@@ -3500,8 +3482,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testAndCombinationOfExpAndSimpleFilter() {
+  @Test public void testAndCombinationOfExpAndSimpleFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
         + " = 'SpokaneWA' "
         + "AND \"state_province\" = 'WA'";
@@ -3513,8 +3494,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testOrCombinationOfExpAndSimpleFilter() {
+  @Test public void testOrCombinationOfExpAndSimpleFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where (\"city\" || \"state_province\")"
         + " = 'SpokaneWA' "
         + "OR (\"state_province\" = 'CA' AND \"city\" IS NOT NULL)";
@@ -3527,8 +3507,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=31835");
   }
 
-  @Test
-  public void testColumnAEqColumnB() {
+  @Test public void testColumnAEqColumnB() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"city\" = \"state_province\"";
     sql(sql, FOODMART)
         .queryContains(
@@ -3537,8 +3516,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=0");
   }
 
-  @Test
-  public void testColumnANotEqColumnB() {
+  @Test public void testColumnANotEqColumnB() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where \"city\" <> \"state_province\"";
     sql(sql, FOODMART)
         .queryContains(
@@ -3547,8 +3525,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=86829");
   }
 
-  @Test
-  public void testAndCombinationOfComplexExpAndSimpleFilter() {
+  @Test public void testAndCombinationOfComplexExpAndSimpleFilter() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where ((\"city\" || "
         + "\"state_province\") = 'SpokaneWA' OR (\"city\" || '_extra') = 'Spokane_extra') "
         + "AND \"state_province\" = 'WA'";
@@ -3565,8 +3542,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=7394");
   }
 
-  @Test
-  public void testExpressionsFilterWithCast() {
+  @Test public void testExpressionsFilterWithCast() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\" where CAST(( SQRT(\"store_sales\") - 1 "
         + ") / 3 + 1 AS INTEGER) > 1";
     sql(sql, FOODMART)
@@ -3575,8 +3551,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=476");
   }
 
-  @Test
-  public void testExpressionsFilterWithCastTimeToDateToChar() {
+  @Test public void testExpressionsFilterWithCastTimeToDateToChar() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\" where CAST(CAST(\"timestamp\" as "
         + "DATE) as VARCHAR) = '1997-01-01'";
     sql(sql, FOODMART)
@@ -3591,8 +3566,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=117");
   }
 
-  @Test
-  public void testExpressionsFilterWithExtract() {
+  @Test public void testExpressionsFilterWithExtract() {
     final String sql = "SELECT COUNT(*) FROM \"foodmart\"  where CAST((EXTRACT(MONTH FROM "
         + "\"timestamp\") - 1 ) / 3 + 1 AS INTEGER) = 1";
     sql(sql, FOODMART)
@@ -3602,8 +3576,7 @@ public class DruidAdapterIT {
         .returnsUnordered("EXPR$0=21587");
   }
 
-  @Test
-  public void testExtractYearFilterExpression() {
+  @Test public void testExtractYearFilterExpression() {
     final String sql = "SELECT count(*) from \"foodmart\" WHERE"
             + " EXTRACT(YEAR from \"timestamp\") + 1 > 1997";
     final String filterPart1 = "'filter':{'type':'expression','expression':"
@@ -3619,8 +3592,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(filterPart1, filterTimezoneName));
   }
 
-  @Test
-  public void testExtractMonthFilterExpression() {
+  @Test public void testExtractMonthFilterExpression() {
     final String sql = "SELECT count(*) from \"foodmart\" WHERE"
             + " EXTRACT(MONTH from \"timestamp\") + 1 = 02";
     final String filterPart1 = "'filter':{'type':'expression','expression':"
@@ -3636,8 +3608,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(filterPart1, filterTimezoneName, "MONTH", "== 2"));
   }
 
-  @Test
-  public void testExtractHourFilterExpression() {
+  @Test public void testExtractHourFilterExpression() {
     final String sql = "SELECT EXTRACT(HOUR from \"timestamp\") "
             + "from \"foodmart\" WHERE EXTRACT(HOUR from \"timestamp\") = 17 "
             + "group by EXTRACT(HOUR from \"timestamp\") ";
@@ -3673,8 +3644,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=0");
   }
 
-  @Test
-  public void testExtractHourFilterExpressionWithCast() {
+  @Test public void testExtractHourFilterExpressionWithCast() {
     final String sql = "SELECT EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) "
         + "from \"foodmart\" WHERE EXTRACT(HOUR from \"timestamp\") = 17 "
         + "group by EXTRACT(HOUR from CAST(\"timestamp\" AS TIMESTAMP)) ";
@@ -3710,8 +3680,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=0");
   }
 
-  @Test
-  public void testTimeFloorExpressions() {
+  @Test public void testTimeFloorExpressions() {
 
     final String sql =
         "SELECT CAST(FLOOR(\"timestamp\" to DAY) as TIMESTAMP) as d from \"foodmart\" WHERE "
@@ -3727,8 +3696,7 @@ public class DruidAdapterIT {
         .returnsOrdered("D=1997-01-01 00:00:00", "D=1997-01-02 00:00:00", "D=1997-01-03 00:00:00");
   }
 
-  @Test
-  public void testDruidTimeFloorAndTimeParseExpressions() {
+  @Test public void testDruidTimeFloorAndTimeParseExpressions() {
     final String sql = "SELECT CAST(\"timestamp\" AS TIMESTAMP), count(*) "
         + "from \"foodmart\" WHERE "
         + "CAST(('1997' || '-01' || '-01') AS DATE) = CAST(\"timestamp\" AS DATE) "
@@ -3741,8 +3709,7 @@ public class DruidAdapterIT {
                 "== timestamp_floor("));
   }
 
-  @Test
-  public void testDruidTimeFloorAndTimeParseExpressions2() {
+  @Test public void testDruidTimeFloorAndTimeParseExpressions2() {
     final String sql = "SELECT CAST(\"timestamp\" AS TIMESTAMP), count(*) "
         + "from \"foodmart\" WHERE "
         + "CAST(('1997' || '-01' || '-01') AS TIMESTAMP) = CAST(\"timestamp\" AS TIMESTAMP) "
@@ -3754,8 +3721,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=1997-01-01 00:00:00; EXPR$1=117");
   }
 
-  @Test
-  public void testFilterFloorOnMetricColumn() {
+  @Test public void testFilterFloorOnMetricColumn() {
     final String sql = "SELECT count(*) from \"foodmart\" WHERE floor(\"store_sales\") = 23";
     final String plan = "PLAN=EnumerableInterpreter\n"
             + "  DruidQuery(table=[[foodmart, foodmart]], "
@@ -3768,8 +3734,7 @@ public class DruidAdapterIT {
   }
 
 
-  @Test
-  public void testExpressionFilterSimpleColumnAEqColumnB() {
+  @Test public void testExpressionFilterSimpleColumnAEqColumnB() {
     final String sql = "SELECT count(*) from \"foodmart\" where \"product_id\" = \"city\"";
     sql(sql, FOODMART)
         .explainContains("PLAN=EnumerableInterpreter\n"
@@ -3782,8 +3747,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=0");
   }
 
-  @Test
-  public void testCastPlusMathOps() {
+  @Test public void testCastPlusMathOps() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE
         + "WHERE (CAST(\"product_id\" AS INTEGER) + 1 * \"store_sales\")/(\"store_cost\" - 5) "
         + "<= floor(\"store_sales\") * 25 + 2";
@@ -3802,8 +3766,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=82129");
   }
 
-  @Test
-  public void testBooleanFilterExpressions() {
+  @Test public void testBooleanFilterExpressions() {
     final String sql = "SELECT count(*) from " + FOODMART_TABLE
         + " WHERE (CAST((\"product_id\" <> '1') AS BOOLEAN)) IS TRUE";
     sql(sql, FOODMART)
@@ -3816,8 +3779,7 @@ public class DruidAdapterIT {
   }
 
 
-  @Test
-  public void testCombinationOfValidAndNotValidFilters() {
+  @Test public void testCombinationOfValidAndNotValidFilters() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE
         + "WHERE ((CAST(\"product_id\" AS INTEGER) + 1 * \"store_sales\")/(\"store_cost\" - 5) "
         + "<= floor(\"store_sales\") * 25 + 2) AND \"timestamp\" < CAST('1997-01-02' as TIMESTAMP)"
@@ -3871,8 +3833,7 @@ public class DruidAdapterIT {
   }
 
 
-  @Test
-  public void testCeilFilterExpression() {
+  @Test public void testCeilFilterExpression() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE ceil(\"store_sales\") > 1"
         + " AND ceil(\"timestamp\" TO DAY) < CAST('1997-01-05' AS TIMESTAMP)"
         + " AND ceil(\"timestamp\" TO MONTH) < CAST('1997-03-01' AS TIMESTAMP)"
@@ -3887,8 +3848,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=408");
   }
 
-  @Test
-  public void testSubStringExpressionFilter() {
+  @Test public void testSubStringExpressionFilter() {
     final String sql =
         "SELECT COUNT(*) AS C, SUBSTRING(\"product_id\" from 1 for 4) FROM " + FOODMART_TABLE
             + " WHERE SUBSTRING(\"product_id\" from 1 for 4) like '12%' "
@@ -3917,8 +3877,7 @@ public class DruidAdapterIT {
                     + "\"outputType\":\"STRING\"}]"));
   }
 
-  @Test
-  public void testSubStringWithNonConstantIndexes() {
+  @Test public void testSubStringWithNonConstantIndexes() {
     final String sql = "SELECT COUNT(*) FROM "
         + FOODMART_TABLE
         + " WHERE SUBSTRING(\"product_id\" from CAST(\"store_cost\" as INT)/1000 + 2  "
@@ -3934,8 +3893,7 @@ public class DruidAdapterIT {
                 + "groups=[{}], aggs=[[COUNT()]])\n\n");
   }
 
-  @Test
-  public void testSubStringWithNonConstantIndex() {
+  @Test public void testSubStringWithNonConstantIndex() {
     final String sql = "SELECT COUNT(*) FROM "
         + FOODMART_TABLE
         + " WHERE SUBSTRING(\"product_id\" from CAST(\"store_cost\" as INT)/1000 + 1) like '1%'";
@@ -3955,8 +3913,7 @@ public class DruidAdapterIT {
    * Need to make sure that when there we have a valid filter with no conjunction we still push
    * all the valid filters.
    */
-  @Test
-  public void testFilterClauseWithNoConjunction() {
+  @Test public void testFilterClauseWithNoConjunction() {
     String sql = "select sum(\"store_sales\")"
         + "from \"foodmart\" where \"product_id\" > 1555 or \"store_cost\" > 5 or extract(year "
         + "from \"timestamp\") = 1997 "
@@ -3972,8 +3929,7 @@ public class DruidAdapterIT {
   /**
    * Test case for https://issues.apache.org/jira/browse/CALCITE-2123
    */
-  @Test
-  public void testBetweenFilterWithCastOverNumeric() {
+  @Test public void testBetweenFilterWithCastOverNumeric() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + " WHERE \"product_id\" = 16.0";
     // After CALCITE-2302 the Druid query changed a bit and the type of the
     // filter became an expression (instead of a bound filter) but it still
@@ -3987,8 +3943,7 @@ public class DruidAdapterIT {
                 + "}"));
   }
 
-  @Test
-  public void testTrigonometryMathFunctions() {
+  @Test public void testTrigonometryMathFunctions() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
         + "SIN(\"store_cost\") > SIN(20) AND COS(\"store_sales\") > COS(20) "
         + "AND FLOOR(TAN(\"store_cost\")) = 2 "
@@ -4003,8 +3958,7 @@ public class DruidAdapterIT {
             + "groups=[{}], aggs=[[COUNT()]])");
   }
 
-  @Test
-  public void testCastLiteralToTimestamp() {
+  @Test public void testCastLiteralToTimestamp() {
     final String sql = "SELECT COUNT(*) FROM "
         + FOODMART_TABLE + " WHERE \"timestamp\" < CAST('1997-01-02' as TIMESTAMP)"
         + " AND EXTRACT(MONTH FROM \"timestamp\") / 4 + 1 = 1 ";
@@ -4022,8 +3976,7 @@ public class DruidAdapterIT {
                     + "'intervals':['1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z'],'context':{'skipEmptyBuckets':false}}"));
   }
 
-  @Test
-  public void testNotTrueSimpleFilter() {
+  @Test public void testNotTrueSimpleFilter() {
     final String sql = "SELECT COUNT(*) FROM " + FOODMART_TABLE + "WHERE "
         + "(\"product_id\" = 1020 ) IS NOT TRUE AND (\"product_id\" = 1020 ) IS FALSE";
     final String result = "EXPR$0=86773";
@@ -4041,8 +3994,7 @@ public class DruidAdapterIT {
 
   // ADDING COMPLEX PROJECT PUSHDOWN
 
-  @Test
-  public void testPushOfSimpleMathOps() {
+  @Test public void testPushOfSimpleMathOps() {
     final String sql =
         "SELECT COS(\"store_sales\") + 1, SIN(\"store_cost\"), EXTRACT(DAY from \"timestamp\") + 1  as D FROM "
             + FOODMART_TABLE + "WHERE \"store_sales\" < 20 order by D limit 3";
@@ -4058,8 +4010,7 @@ public class DruidAdapterIT {
             + " +(EXTRACT(FLAG(DAY), $0), 1)]])");
   }
 
-  @Test
-  public void testPushOfSimpleColumnAPlusColumnB() {
+  @Test public void testPushOfSimpleColumnAPlusColumnB() {
     final String sql =
         "SELECT COS(\"store_sales\" + \"store_cost\") + 1, EXTRACT(DAY from \"timestamp\") + 1  as D FROM "
             + FOODMART_TABLE + "WHERE \"store_sales\" < 20 order by D limit 3";
@@ -4075,8 +4026,7 @@ public class DruidAdapterIT {
             + "+(EXTRACT(FLAG(DAY), $0), 1)]])");
   }
 
-  @Test
-  public void testSelectExtractMonth() {
+  @Test public void testSelectExtractMonth() {
     final String sql = "SELECT  EXTRACT(YEAR FROM \"timestamp\") FROM " + FOODMART_TABLE;
     sql(sql, FOODMART)
         .limit(1)
@@ -4089,8 +4039,7 @@ public class DruidAdapterIT {
                 + "\"expression\":\"timestamp_extract(\\\"__time\\\""));
   }
 
-  @Test
-  public void testAggOnArithmeticProject() {
+  @Test public void testAggOnArithmeticProject() {
     final String sql = "SELECT SUM(\"store_sales\" + 1) FROM " + FOODMART_TABLE;
     sql(sql, FOODMART)
         .returnsOrdered("EXPR$0=652067.1299999984")
@@ -4103,8 +4052,7 @@ public class DruidAdapterIT {
                 "\"doubleSum\",\"name\":\"EXPR$0\",\"expression\":\"(\\\"store_sales\\\" + 1)\""));
   }
 
-  @Test
-  public void testAggOnArithmeticProject2() {
+  @Test public void testAggOnArithmeticProject2() {
     final String sql = "SELECT SUM(-\"store_sales\" * 2) as S FROM " + FOODMART_TABLE
         + "Group by \"timestamp\" order by s LIMIT 2";
     sql(sql, FOODMART)
@@ -4119,8 +4067,7 @@ public class DruidAdapterIT {
                 "{'type':'doubleSum','name':'S','expression':'((- \\'store_sales\\') * 2)'}]"));
   }
 
-  @Test
-  public void testAggOnArithmeticProject3() {
+  @Test public void testAggOnArithmeticProject3() {
     final String sql = "SELECT SUM(-\"store_sales\" * 2)-Max(\"store_cost\" * \"store_cost\") AS S,"
         + "Min(\"store_sales\" + \"store_cost\") as S2 FROM " + FOODMART_TABLE
         + "Group by \"timestamp\" order by s LIMIT 2";
@@ -4141,8 +4088,7 @@ public class DruidAdapterIT {
                 + "\"name\":\"S\",\"expression\":\"(\\\"$f1\\\" - \\\"$f2\\\")\"}]"));
   }
 
-  @Test
-  public void testGroupByVirtualColumn() {
+  @Test public void testGroupByVirtualColumn() {
     final String sql =
         "SELECT \"product_id\" || '_' ||\"city\", SUM(\"store_sales\" + "
             + "CAST(\"cost\" AS DOUBLE)) as S FROM " + FOODMART_TABLE
@@ -4161,8 +4107,7 @@ public class DruidAdapterIT {
                     + "'virtualColumns':[{'type':'expression','name':'vc"));
   }
 
-  @Test
-  public void testCountOverVirtualColumn() {
+  @Test public void testCountOverVirtualColumn() {
     final String sql = "SELECT COUNT(\"product_id\" || '_' || \"city\") FROM "
         + FOODMART_TABLE + "WHERE \"state_province\" = 'CA'";
     sql(sql, FOODMART)
@@ -4179,8 +4124,7 @@ public class DruidAdapterIT {
                     + "{\"type\":\"expression\",\"expression\":\"concat(concat(\\\"product_id\\\""));
   }
 
-  @Test
-  public void testAggOverStringToLong() {
+  @Test public void testAggOverStringToLong() {
     final String sql = "SELECT SUM(cast(\"product_id\" AS INTEGER)) FROM " + FOODMART_TABLE;
     sql(sql, FOODMART)
         .queryContains(
@@ -4190,8 +4134,7 @@ public class DruidAdapterIT {
         .returnsOrdered("EXPR$0=68222919");
   }
 
-  @Test
-  public void testAggOnTimeExtractColumn() {
+  @Test public void testAggOnTimeExtractColumn() {
     final String sql = "SELECT SUM(EXTRACT(MONTH FROM \"__time\")) FROM \"wikipedia\"";
     sql(sql, WIKI_AUTO2)
         .returnsOrdered("EXPR$0=353196")
@@ -4201,8 +4144,7 @@ public class DruidAdapterIT {
                 + "'type':'longSum','name':'EXPR$0','expression':'timestamp_extract(\\'__time\\'"));
   }
 
-  @Test
-  public void testAggOnTimeExtractColumn2() {
+  @Test public void testAggOnTimeExtractColumn2() {
     final String sql = "SELECT MAX(EXTRACT(MONTH FROM \"timestamp\")) FROM \"foodmart\"";
     sql(sql, FOODMART)
         .returnsOrdered("EXPR$0=12")
@@ -4212,8 +4154,7 @@ public class DruidAdapterIT {
                 + "'type':'longMax','name':'EXPR$0','expression':'timestamp_extract(\\'__time\\'"));
   }
 
-  @Test
-  public void testStackedAggregateFilters() {
+  @Test public void testStackedAggregateFilters() {
     final String sql = "SELECT COUNT(\"product_id\") filter (WHERE \"state_province\" = 'CA' "
         + "OR \"store_sales\" > 100 AND \"product_id\" <> '100'), count(*) FROM " + FOODMART_TABLE;
     final String query = "{'queryType':'timeseries','dataSource':'foodmart','descending':false,"
@@ -4232,8 +4173,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker(query));
   }
 
-  @Test
-  public void testCastOverPostAggregates() {
+  @Test public void testCastOverPostAggregates() {
     final String sql =
         "SELECT CAST(COUNT(*) + SUM(\"store_sales\") as INTEGER) FROM " + FOODMART_TABLE;
     sql(sql, FOODMART)
@@ -4244,8 +4184,7 @@ public class DruidAdapterIT {
             + "aggs=[[COUNT(), SUM($0)]], post_projects=[[CAST(+($0, $1)):INTEGER]])");
   }
 
-  @Test
-  public void testSubStringOverPostAggregates() {
+  @Test public void testSubStringOverPostAggregates() {
     final String sql =
         "SELECT \"product_id\", SUBSTRING(\"product_id\" from 1 for 2) FROM " + FOODMART_TABLE
             + " GROUP BY \"product_id\"";
@@ -4257,8 +4196,7 @@ public class DruidAdapterIT {
             + "post_projects=[[$0, SUBSTRING($0, 1, 2)]])");
   }
 
-  @Test
-  public void testTableQueryExtractYearQuarter() {
+  @Test public void testTableQueryExtractYearQuarter() {
     final String sql = "SELECT * FROM (SELECT CAST((MONTH(\"timestamp\") - 1) / 3 + 1 AS BIGINT)"
         + "AS qr_timestamp_ok,  SUM(\"store_sales\") AS sum_store_sales, YEAR(\"timestamp\") AS yr_timestamp_ok"
         + " FROM \"foodmart\" GROUP BY CAST((MONTH(\"timestamp\") - 1) / 3 + 1 AS BIGINT),"
@@ -4281,8 +4219,7 @@ public class DruidAdapterIT {
             + "EXTRACT(FLAG(YEAR), $0), $90]], groups=[{0, 1}], aggs=[[SUM($2)]], fetch=[1])");
   }
 
-  @Test
-  public void testTableauQueryExtractMonthDayYear() {
+  @Test public void testTableauQueryExtractMonthDayYear() {
     final String sql = "SELECT * FROM (SELECT (((YEAR(\"foodmart\".\"timestamp\") * 10000) + "
         + "(MONTH(\"foodmart\".\"timestamp\") * 100)) + "
         + "EXTRACT(DAY FROM \"foodmart\".\"timestamp\")) AS md_t_timestamp_ok,\n"
@@ -4300,8 +4237,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker("\"queryType\":\"groupBy\""));
   }
 
-  @Test
-  public void testTableauQuerySubStringHourMinutes() {
+  @Test public void testTableauQuerySubStringHourMinutes() {
     final String sql = "SELECT * FROM (SELECT CAST(SUBSTRING(CAST(CAST(\"foodmart\".\"timestamp\" "
         + "AS TIMESTAMP) AS VARCHAR) from 12 for 2) AS INT) AS hr_t_timestamp_ok,\n"
         + "  MINUTE(\"foodmart\".\"timestamp\") AS mi_t_timestamp_ok,\n"
@@ -4322,8 +4258,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker("\"queryType\":\"groupBy\""));
   }
 
-  @Test
-  public void testTableauQueryMinutesSecondsExtract() {
+  @Test public void testTableauQueryMinutesSecondsExtract() {
     final String sql =  "SELECT * FROM (SELECT SECOND(\"timestamp\") AS sc_t_timestamp_ok,"
         + "MINUTE(\"timestamp\") AS mi_t_timestamp_ok,  SUM(\"store_sales\") AS sum_store_sales "
         + " FROM \"foodmart\" GROUP BY SECOND(\"timestamp\"), MINUTE(\"timestamp\"))"
@@ -4338,8 +4273,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker("\"queryType\":\"groupBy\""));
   }
 
-  @Test
-  public void testQueryWithExtractsTimes() {
+  @Test public void testQueryWithExtractsTimes() {
     final String sql = "SELECT * FROM (SELECT QUARTER(\"__time\") AS QUARTER ,"
         + "EXTRACT(WEEK FROM \"__time\") AS WEEK, DAYOFWEEK(\"__time\") AS DAYOFWEEK, "
         + "DAYOFMONTH(\"__time\") AS DAYOFMONTH, DAYOFYEAR(\"__time\") AS DAYOFYEAR, "
@@ -4361,8 +4295,7 @@ public class DruidAdapterIT {
         .queryContains(new DruidChecker("\"queryType\":\"groupBy\""));
   }
 
-  @Test
-  public void testCastConcatOverPostAggregates() {
+  @Test public void testCastConcatOverPostAggregates() {
     final String sql =
         "SELECT CAST(COUNT(*) + SUM(\"store_sales\") as VARCHAR) || '_' || CAST(SUM(\"store_cost\") "
             + "AS VARCHAR) FROM " + FOODMART_TABLE;
@@ -4375,8 +4308,7 @@ public class DruidAdapterIT {
             + "CAST($2):VARCHAR)]])");
   }
 
-  @Test
-  public void testHavingSpecs() {
+  @Test public void testHavingSpecs() {
     final String sql = "SELECT \"product_id\" AS P, SUM(\"store_sales\") AS S FROM \"foodmart\" "
         + " GROUP BY  \"product_id\" HAVING  SUM(\"store_sales\") > 220  ORDER BY P LIMIT 2";
     sql(sql, FOODMART)
@@ -4390,8 +4322,7 @@ public class DruidAdapterIT {
                 + "'dimension':'S','lower':'220','lowerStrict':true,'ordering':'numeric'}}"));
   }
 
-  @Test
-  public void testTransposableHavingFilter() {
+  @Test public void testTransposableHavingFilter() {
     final String sql = "SELECT \"product_id\" AS P, SUM(\"store_sales\") AS S FROM \"foodmart\" "
         + " GROUP BY  \"product_id\" HAVING  SUM(\"store_sales\") > 220 AND \"product_id\" > '10'"
         + "  ORDER BY P LIMIT 2";
@@ -4405,8 +4336,7 @@ public class DruidAdapterIT {
             new DruidChecker("{'queryType':'groupBy','dataSource':'foodmart','granularity':'all'"));
   }
 
-  @Test
-  public void testProjectSameColumnMultipleTimes() {
+  @Test public void testProjectSameColumnMultipleTimes() {
     final String sql =
         "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
             + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
@@ -4426,8 +4356,7 @@ public class DruidAdapterIT {
         .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
   }
 
-  @Test
-  public void testProjectSameMetricsColumnMultipleTimes() {
+  @Test public void testProjectSameMetricsColumnMultipleTimes() {
     final String sql =
         "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
             + "\"store_sales\" as S1, \"store_sales\" as S2 FROM " + FOODMART_TABLE
@@ -4447,8 +4376,7 @@ public class DruidAdapterIT {
         .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=11.4; S2=11.4");
   }
 
-  @Test
-  public void testAggSameColumnMultipleTimes() {
+  @Test public void testAggSameColumnMultipleTimes() {
     final String sql =
         "SELECT \"product_id\" as prod_id1, \"product_id\" as prod_id2, "
             + "SUM(\"store_sales\") as S1, SUM(\"store_sales\") as S2 FROM " + FOODMART_TABLE
@@ -4463,8 +4391,7 @@ public class DruidAdapterIT {
         .returnsOrdered("PROD_ID1=1; PROD_ID2=1; S1=236.55; S2=236.55");
   }
 
-  @Test
-  public void testGroupBy1() {
+  @Test public void testGroupBy1() {
     final String sql = "SELECT SUM(\"store_sales\") FROM \"foodmart\" "
         + "GROUP BY 1 HAVING (COUNT(1) > 0)";
     sql(sql, FOODMART)
@@ -4480,8 +4407,7 @@ public class DruidAdapterIT {
                 + "'lowerStrict':true,'ordering':'numeric'}}}"));
   }
 
-  @Test
-  public void testFloorQuarter() {
+  @Test public void testFloorQuarter() {
     String sql = "SELECT floor(\"timestamp\" TO quarter), SUM(\"store_sales\") FROM "
         + FOODMART_TABLE
         + " GROUP BY floor(\"timestamp\" TO quarter)";
@@ -4494,8 +4420,7 @@ public class DruidAdapterIT {
                 + "\"intervals\":[\"1900-01-09T00:00:00.000Z/2992-01-10T00:00:00.000Z\"],\"context\":{\"skipEmptyBuckets\":true}}"));
   }
 
-  @Test
-  public void testFloorQuarterPlusDim() {
+  @Test public void testFloorQuarterPlusDim() {
     String sql =
         "SELECT floor(\"timestamp\" TO quarter),\"product_id\",  SUM(\"store_sales\") FROM "
             + FOODMART_TABLE
@@ -4512,8 +4437,7 @@ public class DruidAdapterIT {
   }
 
 
-  @Test
-  public void testExtractQuarterPlusDim() {
+  @Test public void testExtractQuarterPlusDim() {
     String sql =
         "SELECT EXTRACT(quarter from \"timestamp\"),\"product_id\",  SUM(\"store_sales\") FROM "
             + FOODMART_TABLE
@@ -4533,8 +4457,7 @@ public class DruidAdapterIT {
                 "QUARTER"));
   }
 
-  @Test
-  public void testExtractQuarter() {
+  @Test public void testExtractQuarter() {
     String sql = "SELECT EXTRACT(quarter from \"timestamp\"),  SUM(\"store_sales\") FROM "
         + FOODMART_TABLE
         + " GROUP BY EXTRACT(quarter from \"timestamp\")";
@@ -4553,8 +4476,7 @@ public class DruidAdapterIT {
 
 
   // Case https://issues.apache.org/jira/browse/CALCITE-2262
-  @Test
-  public void testSelectCountStarPlusOtherAggs() {
+  @Test public void testSelectCountStarPlusOtherAggs() {
     final String sql = "SELECT COUNT(*), SUM(\"store_sales\"), COUNT(\"store_sales\") FROM "
         + FOODMART_TABLE;
     sql(sql, FOODMART)
@@ -4564,8 +4486,7 @@ public class DruidAdapterIT {
 
   }
 
-  @Test
-  public void testGroupByWithBooleanExpression() {
+  @Test public void testGroupByWithBooleanExpression() {
     final String sql = "SELECT \"product_id\" > 1000 as pid_category, COUNT(\"store_sales\") FROM "
                        + FOODMART_TABLE + "GROUP BY \"product_id\" > 1000";
     sql(sql, FOODMART)
@@ -4577,5 +4498,3 @@ public class DruidAdapterIT {
 
   }
 }
-
-// End DruidAdapterIT.java

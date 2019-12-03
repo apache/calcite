@@ -200,5 +200,3 @@ public class RexMultisetUtil {
     }
   }
 }
-
-// End RexMultisetUtil.java

@@ -258,5 +258,3 @@ public class SqlJoin extends SqlCall {
     }
   }
 }
-
-// End SqlJoin.java

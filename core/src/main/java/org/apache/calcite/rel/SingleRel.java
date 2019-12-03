@@ -88,5 +88,3 @@ public abstract class SingleRel extends AbstractRelNode {
     return input.getRowType();
   }
 }
-
-// End SingleRel.java

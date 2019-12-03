@@ -946,5 +946,3 @@ public abstract class SqlOperator {
     return true;
   }
 }
-
-// End SqlOperator.java

@@ -116,5 +116,3 @@ public class SqlNumericLiteral extends SqlLiteral {
     return 0 == scale.intValue();
   }
 }
-
-// End SqlNumericLiteral.java

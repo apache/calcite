@@ -548,5 +548,3 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
   }
 }
-
-// End JaninoRelMetadataProvider.java

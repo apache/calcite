@@ -21,5 +21,3 @@
  * <p>One Kafka topic is mapping to one STREAM table.</p>
  */
 package org.apache.calcite.adapter.kafka;
-
-// End package-info.java

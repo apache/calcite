@@ -60,5 +60,3 @@ public interface SqlTypeMappingRule {
     return rule.contains(from);
   }
 }
-
-// End SqlTypeMappingRule.java

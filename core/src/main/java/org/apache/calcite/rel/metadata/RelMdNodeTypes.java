@@ -180,5 +180,3 @@ public class RelMdNodeTypes
   }
 
 }
-
-// End RelMdNodeTypes.java

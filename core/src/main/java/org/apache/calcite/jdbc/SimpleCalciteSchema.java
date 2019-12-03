@@ -184,5 +184,3 @@ class SimpleCalciteSchema extends CalciteSchema {
   }
 
 }
-
-// End SimpleCalciteSchema.java

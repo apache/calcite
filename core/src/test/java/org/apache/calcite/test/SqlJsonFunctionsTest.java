@@ -918,5 +918,3 @@ public class SqlJsonFunctionsTest {
     };
   }
 }
-
-// End SqlJsonFunctionsTest.java

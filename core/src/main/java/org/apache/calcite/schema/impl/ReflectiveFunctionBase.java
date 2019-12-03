@@ -141,5 +141,3 @@ public abstract class ReflectiveFunctionBase implements Function {
     }
   }
 }
-
-// End ReflectiveFunctionBase.java

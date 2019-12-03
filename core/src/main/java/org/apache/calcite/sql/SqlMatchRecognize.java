@@ -404,5 +404,3 @@ public class SqlMatchRecognize extends SqlCall {
     }
   }
 }
-
-// End SqlMatchRecognize.java

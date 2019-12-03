@@ -223,5 +223,3 @@ public class RelMdRowCount
     return mq.getRowCount(rel.getInput());
   }
 }
-
-// End RelMdRowCount.java

@@ -2065,5 +2065,3 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         joinInfo.leftSet());
   }
 }
-
-// End LoptOptimizeJoinRule.java

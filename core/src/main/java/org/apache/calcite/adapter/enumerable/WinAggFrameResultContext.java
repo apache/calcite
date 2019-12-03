@@ -64,5 +64,3 @@ public interface WinAggFrameResultContext extends WinAggFrameContext {
    */
   Expression compareRows(Expression a, Expression b);
 }
-
-// End WinAggFrameResultContext.java

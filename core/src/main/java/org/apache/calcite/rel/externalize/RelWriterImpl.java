@@ -174,5 +174,3 @@ public class RelWriterImpl implements RelWriter {
     return buf.toString();
   }
 }
-
-// End RelWriterImpl.java

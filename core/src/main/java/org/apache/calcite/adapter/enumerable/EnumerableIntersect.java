@@ -77,5 +77,3 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableIntersect.java

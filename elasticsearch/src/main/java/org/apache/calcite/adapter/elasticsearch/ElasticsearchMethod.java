@@ -56,5 +56,3 @@ enum ElasticsearchMethod {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 }
-
-// End ElasticsearchMethod.java

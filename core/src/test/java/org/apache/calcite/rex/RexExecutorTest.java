@@ -423,5 +423,3 @@ public class RexExecutorTest {
     }
   }
 }
-
-// End RexExecutorTest.java

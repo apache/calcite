@@ -109,5 +109,3 @@ public class LazyAggregateLambdaFactory<TSource, TKey, TOrigAccumulate, TResult>
     void accumulate(Iterable<TSource> sourceIterable, TOrigAccumulate accumulator);
   }
 }
-
-// End LazyAggregateLambdaFactory.java

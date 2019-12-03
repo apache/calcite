@@ -49,5 +49,3 @@ public class RelDistributionTest {
     assertThat(distribution2.compareTo(distribution2), is(0));
   }
 }
-
-// End RelDistributionTest.java

@@ -44,5 +44,3 @@ public class RequiresNetworkExtension implements ExecutionCondition {
         .orElseGet(() -> enabled("@RequiresNetwork is not found"));
   }
 }
-
-// End RequiresNetworkExtension.java

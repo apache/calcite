@@ -93,5 +93,3 @@ class EnumerableJoinRule extends ConverterRule {
         join.getJoinType());
   }
 }
-
-// End EnumerableJoinRule.java

@@ -399,5 +399,3 @@ public interface CalcitePrepare {
     }
   }
 }
-
-// End CalcitePrepare.java

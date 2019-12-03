@@ -70,5 +70,3 @@ public class GeodeProject extends Project implements GeodeRel {
     geodeImplementContext.addSelectFields(fields);
   }
 }
-
-// End GeodeProject.java

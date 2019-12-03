@@ -31,5 +31,3 @@ public interface TemporalTable extends Table {
    * time of each row. */
   @Nonnull String getSysEndFieldName();
 }
-
-// End TemporalTable.java

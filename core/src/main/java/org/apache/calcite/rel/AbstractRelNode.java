@@ -464,5 +464,3 @@ public abstract class AbstractRelNode implements RelNode {
     }
   }
 }
-
-// End AbstractRelNode.java

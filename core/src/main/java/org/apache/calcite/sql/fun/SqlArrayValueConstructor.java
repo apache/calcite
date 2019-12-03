@@ -42,5 +42,3 @@ public class SqlArrayValueConstructor extends SqlMultisetValueConstructor {
         opBinding.getTypeFactory(), type, false);
   }
 }
-
-// End SqlArrayValueConstructor.java

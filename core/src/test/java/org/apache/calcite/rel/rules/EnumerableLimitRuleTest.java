@@ -99,5 +99,3 @@ public class EnumerableLimitRuleTest {
     assertThat(fieldCollationList.get(0).getFieldIndex(), is(0));
   }
 }
-
-// End EnumerableLimitRuleTest.java

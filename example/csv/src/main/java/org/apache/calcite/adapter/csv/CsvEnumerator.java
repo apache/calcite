@@ -375,5 +375,3 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 }
-
-// End CsvEnumerator.java

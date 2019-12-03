@@ -78,5 +78,3 @@ public class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     });
   }
 }
-
-// End SqlToRelConverterExtendedTest.java

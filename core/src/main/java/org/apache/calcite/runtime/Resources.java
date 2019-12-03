@@ -1120,5 +1120,3 @@ public class Resources {
     }
   }
 }
-
-// End Resources.java

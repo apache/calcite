@@ -168,5 +168,3 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
     return returnType;
   }
 }
-
-// End ScalarFunctionImpl.java

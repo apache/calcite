@@ -104,5 +104,3 @@ class Fluent {
     return this;
   }
 }
-
-// End Fluent.java

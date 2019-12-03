@@ -72,5 +72,3 @@ public abstract class GeodeSimpleEnumerator<E> implements Enumerator<E> {
 
   public abstract E convert(Object obj);
 }
-
-// End GeodeSimpleEnumerator.java

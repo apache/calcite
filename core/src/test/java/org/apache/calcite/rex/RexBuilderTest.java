@@ -87,8 +87,7 @@ public class RexBuilderTest {
   /**
    * Test RexBuilder.ensureType()
    */
-  @Test
-  public void testEnsureTypeWithAny() {
+  @Test public void testEnsureTypeWithAny() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
@@ -103,8 +102,7 @@ public class RexBuilderTest {
   /**
    * Test RexBuilder.ensureType()
    */
-  @Test
-  public void testEnsureTypeWithItself() {
+  @Test public void testEnsureTypeWithItself() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
@@ -119,8 +117,7 @@ public class RexBuilderTest {
   /**
    * Test RexBuilder.ensureType()
    */
-  @Test
-  public void testEnsureTypeWithDifference() {
+  @Test public void testEnsureTypeWithDifference() {
     final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     RexBuilder builder = new RexBuilder(typeFactory);
 
@@ -721,5 +718,3 @@ public class RexBuilderTest {
   }
 
 }
-
-// End RexBuilderTest.java

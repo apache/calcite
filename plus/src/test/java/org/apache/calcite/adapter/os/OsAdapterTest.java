@@ -387,5 +387,3 @@ public class OsAdapterTest {
         .query(sql);
   }
 }
-
-// End OsAdapterTest.java

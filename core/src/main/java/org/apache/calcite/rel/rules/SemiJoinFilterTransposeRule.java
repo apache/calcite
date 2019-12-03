@@ -78,5 +78,3 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
     call.transformTo(newFilter);
   }
 }
-
-// End SemiJoinFilterTransposeRule.java

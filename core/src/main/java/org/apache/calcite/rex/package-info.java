@@ -80,5 +80,3 @@
  * </ul>
  */
 package org.apache.calcite.rex;
-
-// End package-info.java

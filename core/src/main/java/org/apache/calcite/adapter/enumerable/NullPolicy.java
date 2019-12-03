@@ -44,5 +44,3 @@ public enum NullPolicy {
   NOT,
   NONE
 }
-
-// End NullPolicy.java

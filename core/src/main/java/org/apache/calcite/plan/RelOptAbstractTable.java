@@ -124,5 +124,3 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
 }
-
-// End RelOptAbstractTable.java

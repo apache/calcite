@@ -99,5 +99,3 @@ public enum SqlJdbcDataTypeName {
     }
   }
 }
-
-// End SqlJdbcDataTypeName.java

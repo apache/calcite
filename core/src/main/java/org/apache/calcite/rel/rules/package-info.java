@@ -48,5 +48,3 @@
  * </ul>
  */
 package org.apache.calcite.rel.rules;
-
-// End package-info.java

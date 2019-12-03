@@ -158,5 +158,3 @@ public class MongoToEnumerableConverter
     return Lists.transform(values, Expressions::constant);
   }
 }
-
-// End MongoToEnumerableConverter.java

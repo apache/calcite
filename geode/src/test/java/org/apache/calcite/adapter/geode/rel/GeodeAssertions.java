@@ -40,5 +40,3 @@ class GeodeAssertions {
   }
 
 }
-
-// End GeodeAssertions.java

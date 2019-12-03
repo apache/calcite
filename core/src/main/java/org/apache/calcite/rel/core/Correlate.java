@@ -210,5 +210,3 @@ public abstract class Correlate extends BiRel {
         0, 0).plus(rescanCost);
   }
 }
-
-// End Correlate.java

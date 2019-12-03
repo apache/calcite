@@ -65,5 +65,3 @@ public class TryThreadLocal<T> extends ThreadLocal<T> {
     @Override void close();
   }
 }
-
-// End TryThreadLocal.java

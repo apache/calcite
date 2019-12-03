@@ -169,5 +169,3 @@ class Scrolling {
     }
   }
 }
-
-// End Scrolling.java

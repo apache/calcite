@@ -301,5 +301,3 @@ public class MysqlSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End MysqlSqlDialect.java

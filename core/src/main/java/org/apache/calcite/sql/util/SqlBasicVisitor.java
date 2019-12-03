@@ -124,5 +124,3 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
     }
   }
 }
-
-// End SqlBasicVisitor.java

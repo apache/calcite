@@ -136,5 +136,3 @@ public class SqlGroupedWindowFunction extends SqlFunction {
     return getKind().name();
   }
 }
-
-// End SqlGroupedWindowFunction.java

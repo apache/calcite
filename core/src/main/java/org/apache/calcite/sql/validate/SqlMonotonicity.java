@@ -108,5 +108,3 @@ public enum SqlMonotonicity {
     }
   }
 }
-
-// End SqlMonotonicity.java

@@ -199,5 +199,3 @@ public class EnumerableHashJoinTest {
         .withSchema("s", new ReflectiveSchema(schema));
   }
 }
-
-// End EnumerableHashJoinTest.java

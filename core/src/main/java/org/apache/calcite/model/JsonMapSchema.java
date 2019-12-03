@@ -63,5 +63,3 @@ public class JsonMapSchema extends JsonSchema {
     }
   }
 }
-
-// End JsonMapSchema.java

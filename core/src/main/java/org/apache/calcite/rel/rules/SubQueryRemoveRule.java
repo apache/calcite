@@ -704,5 +704,3 @@ public abstract class SubQueryRemoveRule extends RelOptRule {
     }
   }
 }
-
-// End SubQueryRemoveRule.java

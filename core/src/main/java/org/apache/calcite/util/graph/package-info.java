@@ -19,5 +19,3 @@
  * Graph-theoretic algorithms and data structures.
  */
 package org.apache.calcite.util.graph;
-
-// End package-info.java

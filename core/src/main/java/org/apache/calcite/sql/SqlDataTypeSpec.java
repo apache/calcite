@@ -246,5 +246,3 @@ public class SqlDataTypeSpec extends SqlNode {
     return typeFactory.createTypeWithNullability(type, nullable);
   }
 }
-
-// End SqlDataTypeSpec.java

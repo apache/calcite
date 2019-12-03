@@ -241,5 +241,3 @@ public class TimeExtractionFunction implements ExtractionFunction {
   }
 
 }
-
-// End TimeExtractionFunction.java

@@ -254,5 +254,3 @@ public class RelMdColumnOrigins
     return set;
   }
 }
-
-// End RelMdColumnOrigins.java

@@ -62,5 +62,3 @@ public class RelTraitTest {
         () -> ImmutableList.of(RelCollations.of(0), RelCollations.of(1)));
   }
 }
-
-// End RelTraitTest.java

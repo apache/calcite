@@ -40,5 +40,3 @@ public class EnumerableMatchRule extends ConverterRule {
         match.getOrderKeys(), match.getInterval());
   }
 }
-
-// End EnumerableMatchRule.java

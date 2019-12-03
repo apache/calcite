@@ -273,5 +273,3 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             " left.hashJoin(right, new org.apache.calcite.linq4j.function.Function1() {\n");
   }
 }
-
-// End JdbcFrontJdbcBackLinqMiddleTest.java

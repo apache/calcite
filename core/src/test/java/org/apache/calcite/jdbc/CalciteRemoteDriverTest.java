@@ -885,5 +885,3 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemotePreparedStatementInsert2() throws Exception {
   }
 }
-
-// End CalciteRemoteDriverTest.java

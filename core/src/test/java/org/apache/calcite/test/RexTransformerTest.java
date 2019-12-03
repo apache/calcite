@@ -413,5 +413,3 @@ public class RexTransformerTest {
     return list.get(0);
   }
 }
-
-// End RexTransformerTest.java

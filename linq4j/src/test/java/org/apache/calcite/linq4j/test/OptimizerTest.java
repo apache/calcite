@@ -757,5 +757,3 @@ public class OptimizerTest {
             + "}\n"));
   }
 }
-
-// End OptimizerTest.java

@@ -200,5 +200,3 @@ public class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.JAVA, sql);
   }
 }
-
-// End LexCaseSensitiveTest.java

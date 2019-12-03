@@ -64,5 +64,3 @@ public class EnumerableTableScanRule extends ConverterRule {
     return EnumerableTableScan.create(scan.getCluster(), relOptTable);
   }
 }
-
-// End EnumerableTableScanRule.java

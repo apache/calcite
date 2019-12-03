@@ -93,5 +93,3 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End ProjectMultiJoinMergeRule.java

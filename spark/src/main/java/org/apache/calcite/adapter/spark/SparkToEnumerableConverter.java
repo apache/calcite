@@ -122,5 +122,3 @@ public class SparkToEnumerableConverter
     }
   }
 }
-
-// End SparkToEnumerableConverter.java

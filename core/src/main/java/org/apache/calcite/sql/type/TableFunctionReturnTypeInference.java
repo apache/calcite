@@ -205,5 +205,3 @@ public class TableFunctionReturnTypeInference
     expandedFieldNames.add(cursorField.getName());
   }
 }
-
-// End TableFunctionReturnTypeInference.java

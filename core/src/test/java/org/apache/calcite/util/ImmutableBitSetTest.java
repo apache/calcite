@@ -571,5 +571,3 @@ public class ImmutableBitSetTest {
     assertThat(emptyBitSet.get(73, 10000), is(ImmutableBitSet.of()));
   }
 }
-
-// End ImmutableBitSetTest.java

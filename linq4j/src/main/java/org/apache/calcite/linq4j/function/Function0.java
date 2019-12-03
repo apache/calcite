@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
 public interface Function0<R> extends Function<R> {
   R apply();
 }
-
-// End Function0.java

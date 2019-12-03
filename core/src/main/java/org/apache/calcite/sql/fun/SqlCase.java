@@ -140,5 +140,3 @@ public class SqlCase extends SqlCall {
     return elseExpr;
   }
 }
-
-// End SqlCase.java

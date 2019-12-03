@@ -40,5 +40,3 @@ public interface AggResultContext extends NestedBlockBuilder, AggResetContext {
 
   AggregateCall call();
 }
-
-// End AggResultContext.java

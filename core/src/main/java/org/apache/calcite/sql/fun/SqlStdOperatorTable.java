@@ -2544,5 +2544,3 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   }
 
 }
-
-// End SqlStdOperatorTable.java

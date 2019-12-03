@@ -80,5 +80,3 @@
  * <p>See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>.
  */
 package org.apache.calcite.sql.validate.implicit;
-
-// End package-info.java

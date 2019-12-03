@@ -101,5 +101,3 @@ public class ExampleFunctionTest {
     assertThat(b.toString(), is(maze));
   }
 }
-
-// End ExampleFunctionTest.java

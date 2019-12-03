@@ -292,5 +292,3 @@ public enum JavaRowFormat {
   public abstract Expression field(Expression expression, int field,
       Type fromType, Type fieldType);
 }
-
-// End JavaRowFormat.java

@@ -60,5 +60,3 @@ public class SqlProcedureCallOperator extends SqlPrefixOperator {
         null);
   }
 }
-
-// End SqlProcedureCallOperator.java

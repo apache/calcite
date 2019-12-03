@@ -19,5 +19,3 @@
  * Utilities for RPC to Splunk.
  */
 package org.apache.calcite.adapter.splunk.util;
-
-// End package-info.java

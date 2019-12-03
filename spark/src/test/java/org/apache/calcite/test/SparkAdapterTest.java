@@ -774,5 +774,3 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 }
-
-// End SparkAdapterTest.java

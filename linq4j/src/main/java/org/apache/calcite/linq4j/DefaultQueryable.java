@@ -527,5 +527,3 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.zip(getThis(), source1, resultSelector);
   }
 }
-
-// End DefaultQueryable.java

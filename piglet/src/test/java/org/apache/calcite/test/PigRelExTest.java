@@ -65,13 +65,11 @@ public class PigRelExTest extends PigRelTestBase {
     }
   }
 
-  @Test
-  public void testConstantBoolean() {
+  @Test public void testConstantBoolean() {
     checkTranslation("g == false", inTree("NOT($6)"));
   }
 
-  @Test
-  public void testConstantType() {
+  @Test public void testConstantType() {
     checkType("0L as longCol", containsString("BIGINT longCol"));
     checkType("0 as intCol", containsString("INTEGER intCol"));
     checkType("0.0 as doubleCol", containsString("DOUBLE doubleCol"));
@@ -79,140 +77,114 @@ public class PigRelExTest extends PigRelTestBase {
     checkType("true as boolCol", containsString("BOOLEAN boolCol"));
   }
 
-  @Test
-  public void testConstantFloat() {
+  @Test public void testConstantFloat() {
     checkTranslation(".1E6 == -2.3", inTree("=(1E5:DOUBLE, -2.3:DECIMAL(2, 1))"));
   }
 
-  @Test
-  public void testConstantString() {
+  @Test public void testConstantString() {
     checkTranslation("'test' == 'passed'", inTree("=('test', 'passed')"));
   }
 
-  @Test
-  public void testProjection() {
+  @Test public void testProjection() {
     checkTranslation("g", inTree("=[$6]"));
   }
 
-  @Test
-  public void testNegation() {
+  @Test public void testNegation() {
     checkTranslation("-b == -6", inTree("=(-($1), -6)"));
   }
 
-  @Test
-  public void testEqual() {
+  @Test public void testEqual() {
     checkTranslation("a == 10", inTree("=($0, 10)"));
   }
 
-  @Test
-  public void testNotEqual() {
+  @Test public void testNotEqual() {
     checkTranslation("b != 10", inTree("<>($1, 10)"));
   }
 
-  @Test
-  public void testLessThan() {
+  @Test public void testLessThan() {
     checkTranslation("b < 10", inTree("<($1, 10)"));
   }
 
-  @Test
-  public void testLessThanEqual() {
+  @Test public void testLessThanEqual() {
     checkTranslation("b <= 10", inTree("<=($1, 10)"));
   }
 
-  @Test
-  public void testGreaterThan() {
+  @Test public void testGreaterThan() {
     checkTranslation("b > 10", inTree(">($1, 10)"));
   }
 
-  @Test
-  public void testGreaterThanEqual() {
+  @Test public void testGreaterThanEqual() {
     checkTranslation("b >= 10", inTree(">=($1, 10)"));
   }
 
-  @Test
-  @Disabled
+  @Test @Disabled
   public void testMatch() {
     checkTranslation("e matches 'A*BC.D'", inTree("LIKE($4, 'A%BC_D')"));
   }
 
-  @Test// End PigRelExTest.java
-  public void testIsNull() {
+  @Test public void testIsNull() {
     checkTranslation("e is null", inTree("IS NULL($4)"));
   }
 
-  @Test
-  public void testIsNotNull() {
+  @Test public void testIsNotNull() {
     checkTranslation("c is not null", inTree("IS NOT NULL($2)"));
   }
 
-  @Test
-  public void testNot() {
+  @Test public void testNot() {
     checkTranslation("NOT(a is null)", inTree("IS NOT NULL($0)"));
     checkTranslation("NOT(g)", inTree("NOT($6)"));
   }
 
-  @Test
-  public void testAnd() {
+  @Test public void testAnd() {
     checkTranslation("a > 10 and g", inTree("AND(>($0, 10), $6)"));
   }
 
-  @Test
-  public void testOr() {
+  @Test public void testOr() {
     checkTranslation("a > 10 or g", inTree("OR(>($0, 10), $6)"));
   }
 
-  @Test
-  public void testAdd() {
+  @Test public void testAdd() {
     checkTranslation("b + 3", inTree("+($1, 3)"));
   }
 
-  @Test
-  public void testSubtract() {
+  @Test public void testSubtract() {
     checkTranslation("b - 3", inTree("-($1, 3)"));
   }
 
-  @Test
-  public void testMultiply() {
+  @Test public void testMultiply() {
     checkTranslation("b * 3", inTree("*($1, 3)"));
   }
 
-  @Test
-  public void testMod() {
+  @Test public void testMod() {
     checkTranslation("b % 3", inTree("MOD($1, 3)"));
   }
 
-  @Test
-  public void testDivide() {
+  @Test public void testDivide() {
     checkTranslation("b / 3", inTree("/($1, 3)"));
     checkTranslation("c / 3.1", inTree("/($2, 3.1E0:DOUBLE)"));
   }
 
-  @Test
-  public void testBinCond() {
+  @Test public void testBinCond() {
     checkTranslation("(b == 1 ? 2 : 3)", inTree("CASE(=($1, 1), 2, 3)"));
   }
 
-  @Test
-  public void testTupleDereference() {
+  @Test public void testTupleDereference() {
     checkTranslation("k2.k21", inTree("[$11.k21]"));
     checkTranslation("k2.(k21, k22)", inTree("[ROW($11.k21, $11.k22)]"));
     checkTranslation("k2.k22.(k221,k222)",
         inTree("[ROW($11.k22.k221, $11.k22.k222)]"));
   }
 
-  @Test
-  public void testBagDereference() {
+  @Test public void testBagDereference() {
     checkTranslation("l2.l22", inTree("[MULTISET_PROJECTION($13, 1)]"));
     checkTranslation("l2.(l21, l22)", inTree("[MULTISET_PROJECTION($13, 0, 1)]"));
   }
 
-  @Test
-  public void testMapLookup() {
+  @Test public void testMapLookup() {
     checkTranslation("m2#'testKey'", inTree("ITEM($15, 'testKey')"));
   }
 
-  @Test
-  public void testCast() {
+  @Test public void testCast() {
     checkTranslation("(int) b", inTree("CAST($1):INTEGER"));
     checkTranslation("(long) a", inTree("CAST($0):BIGINT"));
     checkTranslation("(float) b", inTree("CAST($1):FLOAT"));
@@ -238,13 +210,10 @@ public class PigRelExTest extends PigRelTestBase {
         inTree("CAST($1):(VARCHAR NOT NULL, RecordType(INTEGER val_0, FLOAT val_1)) MAP"));
   }
 
-  @Test
-  public void testPigBuiltinFunctions() {
+  @Test public void testPigBuiltinFunctions() {
     checkTranslation("ABS(-5)", inTree("ABS(-5)"));
     checkTranslation("AddDuration(h, 'P1D')",
         inTree("AddDuration(PIG_TUPLE($7, 'P1D'))"));
     checkTranslation("CEIL(1.2)", inTree("CEIL(1.2E0:DOUBLE)"));
   }
 }
-
-// End PigRelExTest.java

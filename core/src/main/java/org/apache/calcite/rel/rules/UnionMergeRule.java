@@ -140,5 +140,3 @@ public class UnionMergeRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End UnionMergeRule.java

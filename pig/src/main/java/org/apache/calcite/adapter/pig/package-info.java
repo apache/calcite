@@ -20,5 +20,3 @@
  *
  */
 package org.apache.calcite.adapter.pig;
-
-// End package-info.java

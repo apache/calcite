@@ -66,5 +66,3 @@ public class UnionToDistinctRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End UnionToDistinctRule.java

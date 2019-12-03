@@ -203,5 +203,3 @@ public class ProjectJoinTransposeRule extends RelOptRule {
     call.transformTo(topProject);
   }
 }
-
-// End ProjectJoinTransposeRule.java

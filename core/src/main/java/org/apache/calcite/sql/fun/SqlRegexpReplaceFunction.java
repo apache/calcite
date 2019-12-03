@@ -78,5 +78,3 @@ public class SqlRegexpReplaceFunction extends SqlFunction {
         .checkOperandTypes(callBinding, throwOnFailure);
   }
 }
-
-// End SqlRegexpReplaceFunction.java

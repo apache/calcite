@@ -75,5 +75,3 @@ public class RelMdColumnOriginsTest {
     connection.close();
   }
 }
-
-// End RelMdColumnOriginsTest.java

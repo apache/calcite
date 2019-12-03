@@ -102,5 +102,3 @@ public interface EnumerableRel
     }
   }
 }
-
-// End EnumerableRel.java

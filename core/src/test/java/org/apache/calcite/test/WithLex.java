@@ -31,5 +31,3 @@ import java.lang.annotation.Target;
 public @interface WithLex {
   Lex value() default Lex.ORACLE;
 }
-
-// End WithLex.java

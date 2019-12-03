@@ -20,5 +20,3 @@
  * sources in your operating system and environment.
  */
 package org.apache.calcite.adapter.os;
-
-// End package-info.java

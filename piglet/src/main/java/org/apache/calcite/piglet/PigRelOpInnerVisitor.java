@@ -247,5 +247,3 @@ class PigRelOpInnerVisitor extends PigRelOpVisitor {
     return false;
   }
 }
-
-// End PigRelOpInnerVisitor.java

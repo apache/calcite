@@ -52,5 +52,3 @@ public interface JavaTypeFactory extends RelDataTypeFactory {
   /** Converts a type in Java format to a SQL-oriented type. */
   RelDataType toSql(RelDataType type);
 }
-
-// End JavaTypeFactory.java

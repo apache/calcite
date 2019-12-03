@@ -19,5 +19,3 @@
  * Utility classes for the SQL object model, parsing, and validation.
  */
 package org.apache.calcite.sql.util;
-
-// End package-info.java

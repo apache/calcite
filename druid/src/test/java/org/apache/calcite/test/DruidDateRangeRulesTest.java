@@ -194,5 +194,3 @@ public class DruidDateRangeRulesTest {
     }
   }
 }
-
-// End DruidDateRangeRulesTest.java

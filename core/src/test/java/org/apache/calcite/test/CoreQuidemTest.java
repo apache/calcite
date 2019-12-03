@@ -77,5 +77,3 @@ public class CoreQuidemTest extends QuidemTest {
   }
 
 }
-
-// End CoreQuidemTest.java

@@ -32,5 +32,3 @@ public class IngresSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End IngresSqlDialect.java

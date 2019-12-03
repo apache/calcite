@@ -19,5 +19,3 @@
  * Provides a pretty-printer for SQL statements.
  */
 package org.apache.calcite.sql.pretty;
-
-// End package-info.java

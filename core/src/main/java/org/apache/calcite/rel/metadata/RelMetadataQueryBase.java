@@ -103,5 +103,3 @@ public class RelMetadataQueryBase {
     map.row(rel).clear();
   }
 }
-
-// End RelMetadataQueryBase.java

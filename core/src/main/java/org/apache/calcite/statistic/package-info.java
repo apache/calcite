@@ -21,5 +21,3 @@
  * @see org.apache.calcite.materialize.SqlStatisticProvider
  */
 package org.apache.calcite.statistic;
-
-// End package-info.java

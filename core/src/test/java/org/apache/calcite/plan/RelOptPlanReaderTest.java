@@ -88,5 +88,3 @@ public class RelOptPlanReaderTest {
     }
   }
 }
-
-// End RelOptPlanReaderTest.java

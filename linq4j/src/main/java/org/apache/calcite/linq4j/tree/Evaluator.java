@@ -60,5 +60,3 @@ class Evaluator {
     values.clear();
   }
 }
-
-// End Evaluator.java

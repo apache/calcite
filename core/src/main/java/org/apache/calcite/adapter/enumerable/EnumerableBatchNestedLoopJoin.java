@@ -214,5 +214,3 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableBatchNestedLoopJoin.java

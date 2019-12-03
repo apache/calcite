@@ -93,5 +93,3 @@ public interface Hintable {
    */
   ImmutableList<RelHint> getHints();
 }
-
-// End Hintable.java

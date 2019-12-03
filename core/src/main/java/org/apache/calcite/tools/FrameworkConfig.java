@@ -140,5 +140,3 @@ public interface FrameworkConfig {
    */
   RelOptTable.ViewExpander getViewExpander();
 }
-
-// End FrameworkConfig.java

@@ -198,5 +198,3 @@ public class SqlHint extends SqlCall {
     return false;
   }
 }
-
-// End SqlHint.java

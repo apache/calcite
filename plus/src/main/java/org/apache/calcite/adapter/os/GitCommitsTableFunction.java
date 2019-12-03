@@ -172,5 +172,3 @@ public class GitCommitsTableFunction {
     };
   }
 }
-
-// End GitCommitsTableFunction.java

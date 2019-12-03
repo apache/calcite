@@ -38,5 +38,3 @@ public class SqlJsonStorageSizeFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlJsonStorageSizeFunction.java

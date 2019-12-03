@@ -33,5 +33,3 @@ public class CyclicDefinitionException extends RuntimeException {
     this.path = ImmutableList.copyOf(path);
   }
 }
-
-// End CyclicDefinitionException.java

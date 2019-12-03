@@ -32,5 +32,3 @@
  * </ul>
  */
 package org.apache.calcite.rel.logical;
-
-// End package-info.java

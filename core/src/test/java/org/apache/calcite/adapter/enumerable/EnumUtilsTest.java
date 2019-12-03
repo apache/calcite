@@ -151,5 +151,3 @@ public final class EnumUtilsTest {
         is("Double.valueOf((double) intV)"));
   }
 }
-
-// End EnumUtilsTest.java

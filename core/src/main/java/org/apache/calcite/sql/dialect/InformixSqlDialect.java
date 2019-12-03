@@ -32,5 +32,3 @@ public class InformixSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End InformixSqlDialect.java

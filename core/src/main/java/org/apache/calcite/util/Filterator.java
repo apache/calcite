@@ -84,5 +84,3 @@ public class Filterator<E> implements Iterator<E> {
     iterator.remove();
   }
 }
-
-// End Filterator.java

@@ -34,5 +34,3 @@ public class MaterializedViewSubstitutionVisitor extends SubstitutionVisitor {
     super(target_, query_, DEFAULT_RULES, relBuilderFactory);
   }
 }
-
-// End MaterializedViewSubstitutionVisitor.java

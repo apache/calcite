@@ -226,5 +226,3 @@ public class BitSetsTest {
     assertThat("argument modified", map2.toString(), equalTo(original2));
   }
 }
-
-// End BitSetsTest.java

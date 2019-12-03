@@ -36,5 +36,3 @@ class SplunkDriverVersion extends DriverVersion {
         1);
   }
 }
-
-// End SplunkDriverVersion.java

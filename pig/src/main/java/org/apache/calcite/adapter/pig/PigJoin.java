@@ -109,5 +109,3 @@ public class PigJoin extends Join implements PigRel {
     }
   }
 }
-
-// End PigJoin.java

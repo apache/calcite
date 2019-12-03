@@ -125,5 +125,3 @@ public final class LogicalCalc extends Calc {
     variableSet.addAll(vuv.variables);
   }
 }
-
-// End LogicalCalc.java

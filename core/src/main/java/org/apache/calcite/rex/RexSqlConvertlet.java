@@ -35,5 +35,3 @@ public interface RexSqlConvertlet {
       RexToSqlNodeConverter converter,
       RexCall call);
 }
-
-// End RexSqlConvertlet.java

@@ -65,5 +65,3 @@ public interface RelShuttle {
 
   RelNode visit(RelNode other);
 }
-
-// End RelShuttle.java

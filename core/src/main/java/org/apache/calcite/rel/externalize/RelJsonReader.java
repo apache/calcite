@@ -298,5 +298,3 @@ public class RelJsonReader {
     return node;
   }
 }
-
-// End RelJsonReader.java

@@ -100,5 +100,3 @@ public class LiteralOperandTypeChecker implements SqlSingleOperandTypeChecker {
     return Consistency.NONE;
   }
 }
-
-// End LiteralOperandTypeChecker.java

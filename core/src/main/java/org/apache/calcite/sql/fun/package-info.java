@@ -28,5 +28,3 @@
  * {@link org.apache.calcite.sql} instead.</p>
  */
 package org.apache.calcite.sql.fun;
-
-// End package-info.java

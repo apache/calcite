@@ -837,5 +837,3 @@ public interface QueryableFactory<T> {
       Enumerable<T1> source1,
       FunctionExpression<Function2<T, T1, TResult>> resultSelector);
 }
-
-// End QueryableFactory.java

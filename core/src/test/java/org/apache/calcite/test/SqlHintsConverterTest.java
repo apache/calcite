@@ -610,5 +610,3 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     }
   }
 }
-
-// End SqlHintsConverterTest.java

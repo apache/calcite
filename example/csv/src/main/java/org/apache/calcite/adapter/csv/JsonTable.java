@@ -48,5 +48,3 @@ public class JsonTable extends AbstractTable {
     return Statistics.UNKNOWN;
   }
 }
-
-// End JsonTable.java

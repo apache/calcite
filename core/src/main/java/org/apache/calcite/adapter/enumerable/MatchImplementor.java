@@ -42,5 +42,3 @@ public interface MatchImplementor {
       ParameterExpression currentIndex);
 
 }
-
-// End MatchImplementor.java

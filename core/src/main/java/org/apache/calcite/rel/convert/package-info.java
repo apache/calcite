@@ -20,5 +20,3 @@
  * conventions.
  */
 package org.apache.calcite.rel.convert;
-
-// End package-info.java

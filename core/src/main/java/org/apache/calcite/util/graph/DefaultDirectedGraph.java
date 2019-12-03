@@ -181,5 +181,3 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     public List<E> outEdges = new ArrayList<>();
   }
 }
-
-// End DefaultDirectedGraph.java

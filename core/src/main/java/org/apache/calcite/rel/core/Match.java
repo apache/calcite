@@ -339,5 +339,3 @@ public abstract class Match extends SingleRel {
     }
   }
 }
-
-// End Match.java

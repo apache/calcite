@@ -623,5 +623,3 @@ public final class Schemas {
     }
   }
 }
-
-// End Schemas.java

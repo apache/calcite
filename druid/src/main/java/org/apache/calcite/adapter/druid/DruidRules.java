@@ -902,5 +902,3 @@ public class DruidRules {
   }
 
 }
-
-// End DruidRules.java

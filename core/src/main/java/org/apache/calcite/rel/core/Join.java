@@ -352,5 +352,3 @@ public abstract class Join extends BiRel implements Hintable {
     return hints;
   }
 }
-
-// End Join.java

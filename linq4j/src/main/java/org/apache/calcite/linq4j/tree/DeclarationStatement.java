@@ -109,5 +109,3 @@ public class DeclarationStatement extends Statement {
     return Objects.hash(nodeType, type, modifiers, parameter, initializer);
   }
 }
-
-// End DeclarationStatement.java

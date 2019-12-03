@@ -99,5 +99,3 @@ public abstract class AbstractNode implements Node {
     return Objects.hash(nodeType, type);
   }
 }
-
-// End AbstractNode.java

@@ -413,5 +413,3 @@ public class ReflectiveSchema
     }
   }
 }
-
-// End ReflectiveSchema.java

@@ -74,5 +74,3 @@ public enum EnumerableConvention implements Convention {
     return useAbstractConvertersForConversion;
   }
 }
-
-// End EnumerableConvention.java

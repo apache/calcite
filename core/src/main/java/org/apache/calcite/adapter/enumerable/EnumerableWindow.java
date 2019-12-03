@@ -977,5 +977,3 @@ public class EnumerableWindow extends Window implements EnumerableRel {
         rows_, val, searchLower, searchUpper, keySelector, keyComparator);
   }
 }
-
-// End EnumerableWindow.java

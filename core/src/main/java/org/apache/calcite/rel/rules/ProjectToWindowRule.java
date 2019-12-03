@@ -376,5 +376,3 @@ public abstract class ProjectToWindowRule extends RelOptRule {
     }
   }
 }
-
-// End ProjectToWindowRule.java

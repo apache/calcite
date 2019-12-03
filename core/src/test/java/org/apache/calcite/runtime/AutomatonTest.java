@@ -245,5 +245,3 @@ public class AutomatonTest {
     };
   }
 }
-
-// End AutomatonTest.java

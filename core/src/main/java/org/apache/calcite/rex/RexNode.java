@@ -110,5 +110,3 @@ public abstract class RexNode {
    */
   @Override public abstract int hashCode();
 }
-
-// End RexNode.java

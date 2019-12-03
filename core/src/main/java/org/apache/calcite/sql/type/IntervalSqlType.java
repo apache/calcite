@@ -142,5 +142,3 @@ public class IntervalSqlType extends AbstractSqlType {
     return intervalQualifier.getFractionalSecondPrecision(typeSystem);
   }
 }
-
-// End IntervalSqlType.java
