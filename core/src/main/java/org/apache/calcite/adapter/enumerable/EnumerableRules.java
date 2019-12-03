@@ -66,7 +66,7 @@ public class EnumerableRules {
       new EnumerableSortRule();
 
   public static final EnumerableLimitRule ENUMERABLE_LIMIT_RULE =
-      new EnumerableLimitRule();
+      EnumerableLimitRule.INSTANCE;
 
   public static final EnumerableUnionRule ENUMERABLE_UNION_RULE =
       new EnumerableUnionRule();

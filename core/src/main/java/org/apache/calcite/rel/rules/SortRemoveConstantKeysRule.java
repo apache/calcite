@@ -44,7 +44,7 @@ public class SortRemoveConstantKeysRule extends RelOptRule {
       new SortRemoveConstantKeysRule(Sort.class);
 
   public static final SortRemoveConstantKeysRule LOGICAL_INSTANCE =
-    new SortRemoveConstantKeysRule(Sort.class);
+      new SortRemoveConstantKeysRule(LogicalSort.class);
 
   private SortRemoveConstantKeysRule(Class<? extends Sort> sortClass) {
     super(

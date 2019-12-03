@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
-import sun.rmi.runtime.Log;
 
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Sort} that has
@@ -31,16 +30,10 @@ import sun.rmi.runtime.Log;
  */
 class EnumerableLimitRule extends RelOptRule {
   public static final EnumerableLimitRule INSTANCE =
-    new EnumerableLimitRule(Sort.class);
+      new EnumerableLimitRule(Sort.class);
 
   public static final EnumerableLimitRule LOGICAL_INSTANCE =
-    new EnumerableLimitRule(LogicalSort.class);
-
-  EnumerableLimitRule() {
-    super(
-        operand(LogicalSort.class, any()),
-        "EnumerableLimitRule");
-  }
+      new EnumerableLimitRule(LogicalSort.class);
 
   EnumerableLimitRule(Class<? extends Sort> sortClass) {
     super(

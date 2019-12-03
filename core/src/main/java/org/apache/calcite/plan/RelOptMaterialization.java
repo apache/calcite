@@ -276,7 +276,7 @@ public class RelOptMaterialization {
             JoinProjectTransposeRule.LEFT_PROJECT,
             FilterJoinRule.FilterIntoJoinRule.FILTER_ON_JOIN,
             ProjectRemoveRule.INSTANCE,
-            ProjectMergeRule.LOGICAL_INSTANCE),
+            ProjectMergeRule.INSTANCE),
         false,
         DefaultRelMetadataProvider.INSTANCE);
     if (CalciteSystemProperty.DEBUG.value()) {
