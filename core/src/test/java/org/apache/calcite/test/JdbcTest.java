@@ -6988,6 +6988,22 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3565">[CALCITE-3565]
+   * Explicitly cast assignable operand types to decimal for udf</a>. */
+  @Test public void testAssignableTypeCast() {
+    final String sql = "SELECT ST_MakePoint(1, 2.1)";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.GEO)
+        .query(sql)
+        .planContains("static final java.math.BigDecimal $L4J$C$new_java_math_BigDecimal_1_ = "
+            + "new java.math.BigDecimal(\n"
+            + "              1)")
+        .planContains("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
+            + "$L4J$C$new_java_math_BigDecimal_1_, v)")
+        .returns("EXPR$0={\"x\":1,\"y\":2.1}\n");
+  }
+
   @Test public void testMatchSimple() {
     final String sql = "select *\n"
         + "from \"hr\".\"emps\" match_recognize (\n"

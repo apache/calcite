@@ -529,6 +529,55 @@ public class EnumUtils {
         || type == java.sql.Timestamp.class;
   }
 
+  /**
+   * In {@code SqlTypeAssignmentRules}, Calcite determines whether a type
+   * can be assignable from another type. Based on these rules, Calcite
+   * has the ability to accept function arguments with assignable types
+   * (see {@code SqlUtil#filterRoutinesByParameterType}). For example,
+   * we can also pass an Integer input to the function {@code f(arg: Long)}.
+   *
+   * However, the assignable type is just a "logical" concept.
+   * In the runtime layer (Java), explicit conversion is required for some types.
+   * E.g., {@code new BigDecimal(int v)} for Decimal, which can be assigned from Integer
+   *
+   * @param targetTypes types required for function arguments
+   * @param arguments the input expressions for the function
+   * @return argument list after type conversion
+   */
+  static List<Expression> convertAssignableTypes(Class<?>[] targetTypes,
+      List<Expression> arguments) {
+    final List<Expression> list = new ArrayList<>();
+    if (targetTypes.length == arguments.size()) {
+      for (int i = 0; i < arguments.size(); i++) {
+        list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
+      }
+    } else {
+      int j = 0;
+      for (Expression argument: arguments) {
+        Class<?> type;
+        if (!targetTypes[j].isArray()) {
+          type = targetTypes[j];
+          j++;
+        } else {
+          type = targetTypes[j].getComponentType();
+        }
+        list.add(convertAssignableType(argument, type));
+      }
+    }
+    return list;
+  }
+
+  /**
+   * Handle decimal type specifically with explicit type conversion
+   */
+  private static Expression convertAssignableType(
+      Expression argument,  Type targetType) {
+    if (targetType != BigDecimal.class) {
+      return argument;
+    }
+    return convert(argument, targetType);
+  }
+
   /** Transforms a JoinRelType to Linq4j JoinType. **/
   static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
     switch (joinRelType) {
