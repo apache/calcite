@@ -508,6 +508,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               RexNode newPred =
                   simplify.simplifyUnknownAsFalse(viewCompensationPred);
               viewWithFilter = builder.push(view).filter(newPred).build();
+              // No need to do anything if it's a leaf node.
+              if (viewWithFilter.getInputs().isEmpty()) {
+                call.transformTo(viewWithFilter);
+                return;
+              }
               // We add (and push) the filter to the view plan before triggering the rewriting.
               // This is useful in case some of the columns can be folded to same value after
               // filter is added.
