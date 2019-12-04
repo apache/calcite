@@ -737,6 +737,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("TIMESTAMPDIFF", simple(SqlStdOperatorTable.TIMESTAMP_DIFF));
       map.put("TO_DATE", simple(SqlLibraryOperators.TO_DATE));
       map.put("TO_TIMESTAMP", simple(SqlLibraryOperators.TO_TIMESTAMP));
+      map.put("TO_NUMBER", simple(SqlLibraryOperators.TO_NUMBER));
 
       map.put("DATABASE", simple(SqlStdOperatorTable.CURRENT_CATALOG));
       map.put("IFNULL",
