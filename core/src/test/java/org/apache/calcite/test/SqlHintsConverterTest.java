@@ -411,10 +411,10 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
     MockEnumerableJoinRule(RelHint hint) {
       super(
-        LogicalJoin.class,
-        Convention.NONE,
-        EnumerableConvention.INSTANCE,
-        "MockEnumerableJoinRule");
+          LogicalJoin.class,
+          Convention.NONE,
+          EnumerableConvention.INSTANCE,
+          "MockEnumerableJoinRule");
       this.expectedHint = hint;
     }
 

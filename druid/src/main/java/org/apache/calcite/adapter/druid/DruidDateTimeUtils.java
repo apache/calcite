@@ -170,8 +170,7 @@ public class DruidDateTimeUtils {
     case LESS_THAN:
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    {
+    case GREATER_THAN_OR_EQUAL: {
       final Long value;
       SqlKind kind = call.getKind();
       if (call.getOperands().get(0) instanceof RexInputRef
@@ -200,8 +199,7 @@ public class DruidDateTimeUtils {
         return ImmutableList.of(Range.lessThan(value), Range.greaterThan(value));
       }
     }
-    case BETWEEN:
-    {
+    case BETWEEN: {
       final Long value1;
       final Long value2;
       if (literalValue(call.getOperands().get(2)) != null
@@ -220,8 +218,7 @@ public class DruidDateTimeUtils {
       return ImmutableList.of(Range.lessThan(inverted ? value2 : value1),
           Range.greaterThan(inverted ? value1 : value2));
     }
-    case IN:
-    {
+    case IN: {
       ImmutableList.Builder<Range<Long>> ranges =
           ImmutableList.builder();
       for (RexNode operand : Util.skip(call.operands)) {

@@ -1153,8 +1153,8 @@ public class SubstitutionVisitor {
 
     private JoinOnLeftCalcToJoinUnifyRule() {
       super(
-        operand(MutableJoin.class, operand(MutableCalc.class, query(0)), query(1)),
-        operand(MutableJoin.class, target(0), target(1)), 2);
+          operand(MutableJoin.class, operand(MutableCalc.class, query(0)), query(1)),
+          operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {

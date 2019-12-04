@@ -59,8 +59,8 @@ public class ProjectMultiJoinMergeRule extends RelOptRule {
   public ProjectMultiJoinMergeRule(Class<? extends Project> projectClass,
       RelBuilderFactory relBuilderFactory) {
     super(
-      operand(projectClass,
-        operand(MultiJoin.class, any())), relBuilderFactory, null);
+        operand(projectClass,
+         operand(MultiJoin.class, any())), relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

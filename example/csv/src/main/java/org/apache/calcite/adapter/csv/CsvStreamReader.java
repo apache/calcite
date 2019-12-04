@@ -52,12 +52,12 @@ class CsvStreamReader extends CSVReader implements Closeable {
 
   CsvStreamReader(Source source) {
     this(source,
-      CSVParser.DEFAULT_SEPARATOR,
-      CSVParser.DEFAULT_QUOTE_CHARACTER,
-      CSVParser.DEFAULT_ESCAPE_CHARACTER,
-      DEFAULT_SKIP_LINES,
-      CSVParser.DEFAULT_STRICT_QUOTES,
-      CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
+        CSVParser.DEFAULT_SEPARATOR,
+        CSVParser.DEFAULT_QUOTE_CHARACTER,
+        CSVParser.DEFAULT_ESCAPE_CHARACTER,
+        DEFAULT_SKIP_LINES,
+        CSVParser.DEFAULT_STRICT_QUOTES,
+        CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
   }
 
   /**

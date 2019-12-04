@@ -29,10 +29,10 @@ public class EnumerableRepeatUnionRule extends ConverterRule {
 
   EnumerableRepeatUnionRule() {
     super(
-      LogicalRepeatUnion.class,
-      Convention.NONE,
-      EnumerableConvention.INSTANCE,
-      "EnumerableRepeatUnionRule");
+        LogicalRepeatUnion.class,
+        Convention.NONE,
+        EnumerableConvention.INSTANCE,
+        "EnumerableRepeatUnionRule");
 
   }
 

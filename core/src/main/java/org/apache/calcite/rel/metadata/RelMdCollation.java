@@ -254,7 +254,7 @@ public class RelMdCollation
         program
             .getProjectList()
             .stream()
-            .map((p) -> program.expandLocalRef(p))
+            .map(program::expandLocalRef)
             .collect(Collectors.toList());
     return project(mq, input, projects);
   }

@@ -43,7 +43,7 @@ public class NameSet {
 
   /** Creates a NameSet that is an immutable copy of a given collection. */
   public static NameSet immutableCopyOf(Set<String> names) {
-    return new NameSet(NameMap.immutableCopyOf(Maps.asMap(names, (k) -> DUMMY)));
+    return new NameSet(NameMap.immutableCopyOf(Maps.asMap(names, k -> DUMMY)));
   }
 
   @Override public String toString() {

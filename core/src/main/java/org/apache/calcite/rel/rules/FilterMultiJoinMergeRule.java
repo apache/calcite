@@ -60,9 +60,9 @@ public class FilterMultiJoinMergeRule extends RelOptRule {
   public FilterMultiJoinMergeRule(Class<? extends Filter> filterClass,
       RelBuilderFactory relBuilderFactory) {
     super(
-      operand(filterClass,
-        operand(MultiJoin.class, any())),
-      relBuilderFactory, null);
+        operand(filterClass,
+          operand(MultiJoin.class, any())),
+        relBuilderFactory, null);
   }
 
   //~ Methods ----------------------------------------------------------------

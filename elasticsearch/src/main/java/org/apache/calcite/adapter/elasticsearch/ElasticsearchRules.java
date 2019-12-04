@@ -237,7 +237,7 @@ class ElasticsearchRules {
 
     private ElasticsearchFilterRule() {
       super(LogicalFilter.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-        "ElasticsearchFilterRule");
+          "ElasticsearchFilterRule");
     }
 
     @Override public RelNode convert(RelNode relNode) {
@@ -288,7 +288,7 @@ class ElasticsearchRules {
 
     private ElasticsearchProjectRule() {
       super(LogicalProject.class, Convention.NONE, ElasticsearchRel.CONVENTION,
-        "ElasticsearchProjectRule");
+          "ElasticsearchProjectRule");
     }
 
     @Override public RelNode convert(RelNode relNode) {

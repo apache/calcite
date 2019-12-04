@@ -46,7 +46,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       RelDataType rowType, RexNode call,
       Set<RelColumnMapping> columnMappings) {
     super(cluster, traits, inputs, call, elementType, rowType,
-      columnMappings);
+        columnMappings);
   }
 
   @Override public EnumerableTableFunctionScan copy(

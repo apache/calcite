@@ -804,7 +804,7 @@ public class DruidRules {
           operand(Project.class,
               operand(Filter.class,
                   operand(DruidQuery.class, none()))),
-              expr -> false,
+          expr -> false,
           relBuilderFactory);
     }
   }

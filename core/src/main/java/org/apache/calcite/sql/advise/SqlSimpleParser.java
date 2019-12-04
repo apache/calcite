@@ -261,11 +261,11 @@ public class SqlSimpleParser {
   //~ Inner Classes ----------------------------------------------------------
 
   public static class Tokenizer {
-    private static final Map<String, TokenType> map = new HashMap<>();
+    private static final Map<String, TokenType> TOKEN_TYPES = new HashMap<>();
 
     static {
       for (TokenType type : TokenType.values()) {
-        map.put(type.name(), type);
+        TOKEN_TYPES.put(type.name(), type);
       }
     }
 
@@ -373,8 +373,8 @@ public class SqlSimpleParser {
               pos = indexOfLineEnd(sql, pos + 2);
               return new Token(TokenType.COMMENT);
             }
-            // fall through
           }
+          // fall through
 
         case '-':
           // possible start of '--' comment
@@ -415,7 +415,7 @@ public class SqlSimpleParser {
               }
             }
             String name = sql.substring(start, pos);
-            TokenType tokenType = map.get(name.toUpperCase(Locale.ROOT));
+            TokenType tokenType = TOKEN_TYPES.get(name.toUpperCase(Locale.ROOT));
             if (tokenType == null) {
               return new IdToken(TokenType.ID, name);
             } else {
@@ -480,7 +480,7 @@ public class SqlSimpleParser {
   static class Query extends Token {
     private final List<Token> tokenList;
 
-    public Query(List<Token> tokenList) {
+    Query(List<Token> tokenList) {
       super(TokenType.QUERY);
       this.tokenList = new ArrayList<>(tokenList);
     }
@@ -718,7 +718,7 @@ public class SqlSimpleParser {
         Token token = sublist.get(i);
         switch (token.type) {
         case QUERY:
-          if (((Query)token).contains(hintToken)) {
+          if (((Query) token).contains(hintToken)) {
             found = true;
           }
           break;
