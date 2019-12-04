@@ -2067,6 +2067,33 @@ public class JdbcTest {
             "I=20; O=2");
   }
 
+  @Test public void testUnnestRecordType() {
+    // unnest(RecordType(Array))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values array[10, 20], array[30, 40]) as t(x))\n"
+            + " with ordinality as t(a, o)")
+        .returnsUnordered("A=10; O=1", "A=20; O=2",
+            "A=30; O=1", "A=40; O=2");
+
+    // unnest(RecordType(Multiset))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values multiset[10, 20], array[30, 40]) as t(x))\n"
+            + " with ordinality as t(a, o)")
+        .returnsUnordered("A=10; O=1", "A=20; O=2",
+            "A=30; O=1", "A=40; O=2");
+
+    // unnest(RecordType(Map))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values map['a', 20], map['b', 30], map['c', 40]) as t(x))\n"
+            + " with ordinality as t(a, b, o)")
+        .returnsUnordered("A=a; B=20; O=1",
+            "A=b; B=30; O=1",
+            "A=c; B=40; O=1");
+  }
+
   @Test public void testUnnestMultiset() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.REGULAR)
