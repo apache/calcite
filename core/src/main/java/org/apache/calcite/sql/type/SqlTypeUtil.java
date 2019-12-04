@@ -805,9 +805,9 @@ public abstract class SqlTypeUtil {
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
    * necessary. We're using it as a hack because
-   * {@link SqlTypeFactoryImpl#leastRestrictiveSqlType} isn't complete enough
+   * {@link SqlTypeFactoryImpl#leastRestrictive} isn't complete enough
    * yet.  Once it is, this param (and the non-coerce rules of
-   * {@link SqlTypeAssignmentRules}) should go away.
+   * {@link SqlTypeAssignmentRule}) should go away.
    *
    * @param toType   target of assignment
    * @param fromType source of assignment
@@ -904,8 +904,8 @@ public abstract class SqlTypeUtil {
     // where internally a cast across character repertoires is OK.  Should
     // probably clean that up.
 
-    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance(coerce);
-    return rules.canCastFrom(toTypeName, fromTypeName);
+    SqlTypeMappingRule rules = SqlTypeMappingRules.instance(coerce);
+    return rules.canApplyFrom(toTypeName, fromTypeName);
   }
 
   /**
