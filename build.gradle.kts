@@ -2,18 +2,17 @@
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
+ * The ASF licenses this file to you under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
 import com.github.spotbugs.SpotBugsTask
@@ -23,7 +22,6 @@ import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
-import com.github.vlsi.gradle.properties.dsl.stringProperty
 import com.github.vlsi.gradle.release.RepositoryType
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
@@ -59,7 +57,7 @@ fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: false)
 val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
-val enableSpotBugs = props.bool("spotbugs", default = false)
+val enableSpotBugs = props.bool("spotbugs")
 val skipCheckstyle by props()
 val skipSpotless by props()
 val skipJavadoc by props()
@@ -68,8 +66,8 @@ val enableGradleMetadata by props()
 // By default use Java implementation to sign artifacts
 // When useGpgCmd=true, then gpg command line tool is used for signing
 val useGpgCmd by props()
-val slowSuiteLogThreshold = stringProperty("slowSuiteLogThreshold")?.toLong() ?: 0
-val slowTestLogThreshold = stringProperty("slowTestLogThreshold")?.toLong() ?: 2000
+val slowSuiteLogThreshold by props(0L)
+val slowTestLogThreshold by props(2000L)
 
 ide {
     copyrightToAsf()
@@ -187,7 +185,6 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
 }
 
 val semaphore = `java.util.concurrent`.Semaphore(1)
-val licenseHeaderFile = file("config/license.header.java")
 
 val javaccGeneratedPatterns = arrayOf(
     "org/apache/calcite/jdbc/CalciteDriverVersion.java",
@@ -396,7 +393,7 @@ allprojects {
             spotless {
                 java {
                     targetExclude(*javaccGeneratedPatterns + "**/test/java/*.java")
-                    licenseHeaderFile(licenseHeaderFile)
+                    licenseHeader(rootProject.ide.licenseHeaderJava)
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")
                         replaceRegex("junit5: Before", "org.junit.Before\\b", "org.junit.jupiter.api.BeforeEach")
@@ -470,15 +467,6 @@ allprojects {
                 )
             )
             signaturesFiles = files("$rootDir/src/main/config/forbidden-apis/signatures.txt")
-        }
-
-        (sourceSets) {
-            "main" {
-                resources {
-                    // TODO: remove when LICENSE is removed (it is used by Maven build for now)
-                    exclude("src/main/resources/META-INF/LICENSE")
-                }
-            }
         }
 
         tasks {
