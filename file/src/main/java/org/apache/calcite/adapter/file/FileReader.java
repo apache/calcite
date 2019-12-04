@@ -26,6 +26,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +45,7 @@ public class FileReader implements Iterable<Elements> {
   public FileReader(Source source, String selector, Integer index)
       throws FileReaderException {
     if (source == null) {
-      throw new FileReaderException("URL must not be null");
+      throw new FileReaderException("source must not be null");
     }
     this.source = source;
     this.selector = selector;
@@ -63,13 +64,17 @@ public class FileReader implements Iterable<Elements> {
     final Document doc;
     try {
       String proto = source.protocol();
-      if (proto.equals("file")) {
+      if ("file".equals(proto)) {
         doc = Jsoup.parse(source.file(), this.charset.name());
-      } else {
+      } else if (Arrays.asList("http", "https", "ftp").contains(proto)) {
+        // known protocols handled by URL
         doc = Jsoup.parse(source.url(), (int) TimeUnit.SECONDS.toMillis(20));
+      } else {
+        // generically read this source
+        doc = Jsoup.parse(source.openStream(), charset.name(), "");
       }
     } catch (IOException e) {
-      throw new FileReaderException("Cannot read " + source.path(), e);
+      throw new FileReaderException("Cannot read " + source, e);
     }
 
     this.tableElement = (this.selector != null && !this.selector.equals(""))
