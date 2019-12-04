@@ -429,8 +429,8 @@ public class RexLiteral extends RexNode {
       NlsString nlsString = (NlsString) value;
 
       // Ignore type information for 'Bar':CHAR(3)
-      if (((nlsString.getCharset() != null
-          && type.getCharset().equals(nlsString.getCharset()))
+      if ((
+          (nlsString.getCharset() != null && type.getCharset().equals(nlsString.getCharset()))
           || (nlsString.getCharset() == null
           && SqlCollation.IMPLICIT.getCharset().equals(type.getCharset())))
           && nlsString.getCollation().equals(type.getCollation())

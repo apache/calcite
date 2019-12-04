@@ -204,8 +204,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
         new ReflectiveRelMetadataProvider.Space((Multimap) map);
     for (MetadataHandler provider : space.providerMap.values()) {
       if (providerSet.add(provider)) {
-        providerList.add(Pair.of("provider" + (providerSet.size() - 1),
-            provider));
+        providerList.add(
+            Pair.of("provider" + (providerSet.size() - 1), provider));
       }
     }
 

@@ -1956,8 +1956,10 @@ public class Linq4jTest {
   @Test public void testGroupByWithKeySelectorAndResultSelector() {
     String s =
         Linq4j.asEnumerable(emps)
-            .groupBy(EMP_DEPTNO_SELECTOR, (key, group) -> String.format(Locale.ROOT, "%s: %s", key,
-                stringJoin("+", group.select(element -> element.name))))
+            .groupBy(
+                EMP_DEPTNO_SELECTOR,
+                (key, group) -> String.format(Locale.ROOT, "%s: %s", key,
+                    stringJoin("+", group.select(element -> element.name))))
             .toList()
             .toString();
     assertEquals(
