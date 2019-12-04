@@ -56,6 +56,7 @@ dependencies {
     implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
+    implementation("commons-io:commons-io")
     implementation("org.codehaus.janino:commons-compiler")
     implementation("org.codehaus.janino:janino")
     implementation("org.slf4j:slf4j-api")
