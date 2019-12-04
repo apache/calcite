@@ -129,7 +129,7 @@ public class InterpreterTest {
     return new Sql(sql, dataContext, planner, false);
   }
 
-  @BeforeEach public void setUp() {
+  private void reset() {
     rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
@@ -138,6 +138,10 @@ public class InterpreterTest {
         .build();
     planner = Frameworks.getPlanner(config);
     dataContext = new MyDataContext(planner);
+  }
+
+  @BeforeEach public void setUp() {
+    reset();
   }
 
   @AfterEach public void tearDown() {
@@ -439,6 +443,51 @@ public class InterpreterTest {
         + "from (values ('a', -1.2), ('a', 2.3), ('a', 15)) as t(x, y)\n"
         + "group by x";
     sql(sql).returnsRows("[a, -1.2, 15.0, 16.1, 5.366666666666667]");
+  }
+
+  @Test public void testInterpretUnnest() throws Exception {
+    sql("select * from unnest(array[1, 2])").returnsRows("[1]", "[2]");
+
+    reset();
+    sql("select * from unnest(multiset[1, 2])").returnsRowsUnordered("[1]", "[2]");
+
+    reset();
+    sql("select * from unnest(map['a', 12])").returnsRows("[a, 12]");
+
+    reset();
+    sql("select * from unnest(\n"
+        + "select * from (values array[10, 20], array[30, 40]))\n"
+        + "with ordinality as t(i, o)")
+        .returnsRows("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
+
+    reset();
+    sql("select * from unnest(map['a', 12, 'b', 13]) with ordinality as t(a, b, o)")
+        .returnsRows("[a, 12, 1]", "[b, 13, 2]");
+
+    reset();
+    sql("select * from unnest(\n"
+        + "select * from (values multiset[10, 20], multiset[30, 40]))\n"
+        + "with ordinality as t(i, o)")
+        .returnsRows("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
+
+    reset();
+    sql("select * from unnest(array[cast(null as integer), 10])")
+        .returnsRows("[null]", "[10]");
+
+    reset();
+    sql("select * from unnest(map[cast(null as integer), 10, 10, cast(null as integer)])")
+        .returnsRowsUnordered("[null, 10]", "[10, null]");
+
+    reset();
+    sql("select * from unnest(multiset[cast(null as integer), 10])")
+        .returnsRowsUnordered("[null]", "[10]");
+
+    try {
+      reset();
+      sql("select * from unnest(cast(null as int array))").returnsRows("");
+    } catch (NullPointerException e) {
+      assertThat(e.getMessage(), equalTo("NULL value for unnest."));
+    }
   }
 }
 
