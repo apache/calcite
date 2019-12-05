@@ -70,6 +70,10 @@ public class SparkSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public boolean supportsGroupByWithCube() {
     return true;
   }

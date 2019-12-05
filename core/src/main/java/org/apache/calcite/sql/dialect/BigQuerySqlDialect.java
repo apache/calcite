@@ -108,6 +108,10 @@ public class BigQuerySqlDialect extends SqlDialect {
             && !SqlTypeUtil.isNumeric(call.type);
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
