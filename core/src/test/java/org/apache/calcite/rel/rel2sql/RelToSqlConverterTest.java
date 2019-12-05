@@ -4574,9 +4574,9 @@ public class RelToSqlConverterTest {
   @Test
   public void testToNumberFunctionHandlingCaseWhenThen() {
     final String query = "select case when TO_NUMBER('12.77') is not null then "
-      + "'is_numeric' else 'is not numeric' end";
+        + "'is_numeric' else 'is not numeric' end";
     final String expected = "SELECT CASE WHEN CAST('12.77' AS FLOAT) IS NOT NULL THEN "
-      + "'is_numeric    ' ELSE 'is not numeric' END";
+        + "'is_numeric    ' ELSE 'is not numeric' END";
     sql(query)
       .withBigQuery()
       .ok(expected)
