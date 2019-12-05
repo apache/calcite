@@ -2039,8 +2039,8 @@ SELECT "TO_DATE"('02 Oct 2001', 'DD Mon YYYY')
 
 # TO_NUMBER
 -- returns -12454.8
-select to_number('12,454.8-', '99G999D9S');
-SELECT "TO_NUMBER"('12,454.8-', '99G999D9S')
+#select to_number('12,454.8-', '99G999D9S');
+#SELECT "TO_NUMBER"('12,454.8-', '99G999D9S')
 !explain-validated-on calcite
 
 # 12 System Administration Functions

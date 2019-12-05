@@ -4247,9 +4247,14 @@ public class RelToSqlConverterTest {
   @Test
   public void testToNumberFunctionHandlingHexaToInt() {
     String query = "select TO_NUMBER('03ea02653f6938ba','XXXXXXXXXXXXXXXX')";
-    final String expected = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS INTEGER)";
+    final String expectedBigQuery = "SELECT CAST(CONCAT('0x', '03ea02653f6938ba') AS INTEGER)";
+    final String expected = "SELECT CONV('03ea02653f6938ba', 16, 10)";
     sql(query)
       .withBigQuery()
+      .ok(expectedBigQuery)
+      .withHive()
+      .ok(expected)
+      .withSpark()
       .ok(expected);
   }
 
@@ -4572,6 +4577,45 @@ public class RelToSqlConverterTest {
       + "'is_numeric' else 'is not numeric' end";
     final String expected = "SELECT CASE WHEN CAST('12.77' AS FLOAT) IS NOT NULL THEN "
       + "'is_numeric    ' ELSE 'is not numeric' END";
+    sql(query)
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
+  }
+
+  @Test
+  public void testToNumberFunctionHandlingWithGDS() {
+    String query = "SELECT TO_NUMBER ('12,454.8-', '99G999D9S')";
+    final String expected = "SELECT CAST('-12454.8' AS FLOAT)";
+    sql(query)
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
+  }
+
+  @Test
+  public void testToNumberFunctionHandlingWithCurrencyNameFloat() {
+    String query = "SELECT TO_NUMBER('dollar12.34','L99D99','NLS_CURRENCY=''dollar''')";
+    final String expected = "SELECT CAST('12.34' AS FLOAT)";
+    sql(query)
+      .withBigQuery()
+      .ok(expected)
+      .withHive()
+      .ok(expected)
+      .withSpark()
+      .ok(expected);
+  }
+
+  @Test
+  public void testToNumberFunctionHandlingWithCurrencyNameNull() {
+    String query = "SELECT TO_NUMBER('dollar12.34','L99D99',null)";
+    final String expected = "SELECT CAST(NULL AS INTEGER)";
     sql(query)
       .withBigQuery()
       .ok(expected)

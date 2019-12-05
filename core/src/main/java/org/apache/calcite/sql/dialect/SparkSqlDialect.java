@@ -33,6 +33,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ToNumberUtils;
 
+import java.util.regex.Pattern;
+
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
@@ -100,7 +102,12 @@ public class SparkSqlDialect extends SqlDialect {
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
       case TO_NUMBER:
-        ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+        if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
+          .toString())) {
+          ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+          break;
+        }
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
         break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);

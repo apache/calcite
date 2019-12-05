@@ -151,7 +151,7 @@ public class BigQuerySqlDialect extends SqlDialect {
           rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

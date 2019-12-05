@@ -21,13 +21,18 @@ import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSetOperator;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -35,17 +40,20 @@ import java.util.regex.Pattern;
  */
 public class ToNumberUtils {
 
+  private static final SqlSetOperator CONV =
+    new SqlSetOperator("CONV", SqlKind.CONV, 18, false);
+
   private ToNumberUtils() {
   }
 
   private static void handleCasting(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
-      SqlTypeName sqlTypeName) {
+    SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+    SqlTypeName sqlTypeName) {
     SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), new SqlDataTypeSpec(new
-        SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
-        SqlParserPos.ZERO)};
+      SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
+      SqlParserPos.ZERO)};
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-        extractNodeOperands, SqlParserPos.ZERO);
+      extractNodeOperands, SqlParserPos.ZERO);
 
     SqlStdOperatorTable.CAST.unparse(writer, extractCallCast, leftPrec, rightPrec);
   }
@@ -57,102 +65,100 @@ public class ToNumberUtils {
     }
 
     SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
-        SqlParserPos.ZERO)};
+      SqlParserPos.ZERO)};
     call.setOperand(0, sqlNode[0]);
   }
 
-  public static boolean handleIfOperandIsNull(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    if (call.operand(0).toString().equalsIgnoreCase("null")
-        || (call.getOperandList().size() == 2 && call.operand(1).toString().equalsIgnoreCase
-        ("null"))) {
+  private static boolean handleNullOperand(
+    SqlWriter writer, int leftPrec, int rightPrec) {
+    SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
+      SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
+      SqlParserPos.ZERO), new SqlDataTypeSpec(new
+      SqlBasicTypeNameSpec(SqlTypeName.INTEGER, SqlParserPos.ZERO),
+      SqlParserPos.ZERO)};
 
-      SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
-          SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
-          SqlParserPos.ZERO), new SqlDataTypeSpec(new
-          SqlBasicTypeNameSpec(SqlTypeName.INTEGER, SqlParserPos.ZERO),
-          SqlParserPos.ZERO)};
+    SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
+      extractNodeOperands, SqlParserPos.ZERO);
 
-      SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-          extractNodeOperands, SqlParserPos.ZERO);
+    SqlStdOperatorTable.CAST.unparse(writer, extractCallCast, leftPrec, rightPrec);
+    return true;
+  }
 
-      SqlStdOperatorTable.CAST.unparse(writer, extractCallCast, leftPrec, rightPrec);
-      return true;
+  private static boolean isOperandNull(SqlCall call) {
+    for (SqlNode sqlNode : call.getOperandList()) {
+      if (sqlNode.toString().equalsIgnoreCase("null")) {
+        return true;
+      }
     }
     return false;
   }
 
-  public static void handleToNumber(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+  public static void unparseToNumbertoConv(
+    SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+
+    SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createExactNumeric("16",
+      SqlParserPos.ZERO), SqlLiteral.createExactNumeric("10",
+      SqlParserPos.ZERO)};
+
+    List<SqlNode> operandList = new ArrayList<>();
+    operandList.add(call.getOperandList().get(0));
+    operandList.add(sqlNode[0]);
+    operandList.add(sqlNode[1]);
+
+    SqlCall sqlCall = call.getOperator().createCall(null, SqlParserPos.ZERO,
+      operandList.toArray(new SqlNode[0]));
+    SqlSyntax.FUNCTION.unparse(writer, CONV, sqlCall, leftPrec, rightPrec);
+  }
+
+  public static void unparseToNumber(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperandList().size()) {
     case 1:
-      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec)) {
-        return;
-      }
-      if (call.operand(0) instanceof SqlCharStringLiteral && Pattern.matches("['.-[0-9]]+", call
-          .operand(0).toString())) {
-        String regEx1 = "[',]+";
-        String firstOperand = call.operand(0).toString().replaceAll(regEx1, "");
-        SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
+    case 3:
+      if (isOperandNull(call)) {
+        handleNullOperand(writer, leftPrec, rightPrec);
+      } else {
+        if (call.operand(0) instanceof SqlCharStringLiteral) {
+          String regEx1 = "[',A-Za-z]+";
+          String firstOperand = call.operand(0).toString().replaceAll(regEx1, "");
+          SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
             SqlParserPos.ZERO)};
-        call.setOperand(0, sqlNode[0]);
-      }
+          call.setOperand(0, sqlNode[0]);
+        }
 
-      SqlTypeName sqlTypeName = call.operand(0).toString().contains(".")
+        SqlTypeName sqlTypeName = call.operand(0).toString().contains(".")
           ? SqlTypeName.FLOAT : SqlTypeName.INTEGER;
-      handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName);
-
+        handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName);
+      }
       break;
     case 2:
-      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec)) {
-        return;
-      }
-      if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
-
-        if (!writer.getDialect().getConformance().toString().equals("BIG_QUERY")) {
-          throw new UnsupportedOperationException();
-        }
-        SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
-            SqlParserPos.ZERO), call.operand(0)};
-        SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
-            SqlParserPos.ZERO);
-        call.setOperand(0, extractCall);
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
-
-      } else if (call.operand(0).toString().contains(".")) {
-        String regEx = "[-',]+";
-        handleNegativeValue(call, regEx);
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.FLOAT);
+      if (isOperandNull(call)) {
+        handleNullOperand(writer, leftPrec, rightPrec);
       } else {
-        String regEx = "[-',$]+";
-        if (call.operand(1).toString().contains("C")) {
-          regEx = "[-',$A-Za-z]+";
-        }
+        if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
+          SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
+            SqlParserPos.ZERO), call.operand(0)};
+          SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
+            SqlParserPos.ZERO);
+          call.setOperand(0, extractCall);
+          handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
 
-        handleNegativeValue(call, regEx);
-        SqlTypeName sqlType = call.operand(0).toString().contains("E")
+        } else if (call.operand(0).toString().contains(".")) {
+          String regEx = "[-',]+";
+          handleNegativeValue(call, regEx);
+          handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.FLOAT);
+        } else {
+          String regEx = "[-',$]+";
+          if (call.operand(1).toString().contains("C")) {
+            regEx = "[-',$A-Za-z]+";
+          }
+
+          handleNegativeValue(call, regEx);
+          SqlTypeName sqlType = call.operand(0).toString().contains("E")
             && call.operand(1).toString().contains("E")
             ? SqlTypeName.DECIMAL : SqlTypeName.INTEGER;
 
-        handleCasting(writer, call, leftPrec, rightPrec, sqlType);
-      }
-      break;
-    case 3:
-      if (call.operand(1).toString().replaceAll("[L']+", "").length()
-          + call.operand(2).toString().split("=")[1].replaceAll("[']+", "").length()
-          == call.operand(0).toString().replaceAll("[']+", "").length()) {
-
-        int lengthOfFirstArgument = call.operand(0).toString().replaceAll("[']+", "").length()
-            - call.operand(1).toString().replaceAll("[L']+", "").length();
-
-        SqlNode[] sqlNodes = new SqlNode[]{
-            SqlLiteral.createCharString(call.operand(0).toString().replaceAll("[']+", "")
-                    .substring(lengthOfFirstArgument, call.operand(0)
-                        .toString().replaceAll("[']+", "").length()),
-                call.operand(1).getParserPosition())};
-
-        call.setOperand(0, sqlNodes[0]);
-
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
+          handleCasting(writer, call, leftPrec, rightPrec, sqlType);
+        }
       }
       break;
     default:
