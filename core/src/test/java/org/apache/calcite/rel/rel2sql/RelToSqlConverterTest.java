@@ -4276,7 +4276,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingFloatingPointWithD() {
     String query = "select TO_NUMBER('1.789','9D999')";
     final String expected = "SELECT CAST('1.789' AS FLOAT)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4290,7 +4290,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithComma() {
     String query = "SELECT TO_NUMBER ('1,789', '9,999')";
     final String expected = "SELECT CAST('1789' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4304,7 +4304,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithCurrency() {
     String query = "SELECT TO_NUMBER ('$1789', '$9999')";
     final String expected = "SELECT CAST('1789' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4318,7 +4318,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithCurrencyAndL() {
     String query = "SELECT TO_NUMBER ('$1789', 'L9999')";
     final String expected = "SELECT CAST('1789' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4332,7 +4332,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithMinus() {
     String query = "SELECT TO_NUMBER ('-12334', 'S99999')";
     final String expected = "SELECT CAST('-12334' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4346,7 +4346,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithMinusLast() {
     String query = "SELECT TO_NUMBER ('12334-', '99999S')";
     final String expected = "SELECT CAST('-12334' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4360,7 +4360,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithE() {
     String query = "SELECT TO_NUMBER ('12E3', '99EEEE')";
     final String expected = "SELECT CAST('12E3' AS DECIMAL)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4374,7 +4374,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithCurrencyName() {
     String query = "SELECT TO_NUMBER('dollar1234','L9999','NLS_CURRENCY=''dollar''')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4388,7 +4388,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithG() {
     String query = "SELECT TO_NUMBER ('1,2345', '9G9999')";
     final String expected = "SELECT CAST('12345' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4402,7 +4402,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithU() {
     String query = "SELECT TO_NUMBER ('$1234', 'U9999')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4416,7 +4416,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithPR() {
     String query = "SELECT TO_NUMBER (' 123 ', '999PR')";
     final String expected = "SELECT CAST('123' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4430,7 +4430,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithMI() {
     String query = "SELECT TO_NUMBER ('1234-', '9999MI')";
     final String expected = "SELECT CAST('-1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4444,7 +4444,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithMIDecimal() {
     String query = "SELECT TO_NUMBER ('1.234-', '9.999MI')";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4458,7 +4458,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithZero() {
     String query = "select TO_NUMBER('01234','09999')";
     final String expected = "SELECT CAST('01234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4472,7 +4472,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithB() {
     String query = "select TO_NUMBER('1234','B9999')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4486,7 +4486,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithC() {
     String query = "select TO_NUMBER('USD1234','C9999')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4500,7 +4500,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandling() {
     final String query = "SELECT TO_NUMBER ('1234', '9999')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4514,7 +4514,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingSingleArgumentInt() {
     final String query = "SELECT TO_NUMBER ('1234')";
     final String expected = "SELECT CAST('1234' AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4528,7 +4528,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingSingleArgumentFloat() {
     final String query = "SELECT TO_NUMBER ('-1.234')";
     final String expected = "SELECT CAST('-1.234' AS FLOAT)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4542,7 +4542,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingNull() {
     final String query = "SELECT TO_NUMBER ('-1.234',null)";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4556,7 +4556,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingSecoNull() {
     final String query = "SELECT TO_NUMBER(null,'9D99')";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4570,9 +4570,9 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingFunctionAsArgument() {
     final String query = "SELECT TO_NUMBER(SUBSTRING('12345',2))";
     final String expected = "SELECT CAST(SUBSTR('12345', 2) AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     final String expectedSpark = "SELECT CAST(SUBSTRING('12345', 2) AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4586,7 +4586,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithNullArgument() {
     final String query = "SELECT TO_NUMBER (null)";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4615,7 +4615,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithGDS() {
     String query = "SELECT TO_NUMBER ('12,454.8-', '99G999D9S')";
     final String expected = "SELECT CAST('-12454.8' AS FLOAT)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4629,7 +4629,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithCurrencyNameFloat() {
     String query = "SELECT TO_NUMBER('dollar12.34','L99D99','NLS_CURRENCY=''dollar''')";
     final String expected = "SELECT CAST('12.34' AS FLOAT)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
@@ -4643,7 +4643,7 @@ public class RelToSqlConverterTest {
   public void testToNumberFunctionHandlingWithCurrencyNameNull() {
     String query = "SELECT TO_NUMBER('dollar12.34','L99D99',null)";
     final String expected = "SELECT CAST(NULL AS INTEGER)\n"
-      + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(query)
       .withBigQuery()
       .ok(expected)
