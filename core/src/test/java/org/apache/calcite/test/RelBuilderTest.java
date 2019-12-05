@@ -2027,7 +2027,41 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptInputRef() {
+  @Test public void testProjectExceptInputRefWithOrdinal() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field(2),
+                builder.field(3))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptInputRefWithName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("MGR"),
+                builder.field("JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptInputRefWithExplicitAliasAndName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2045,7 +2079,24 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptSimpleCall() {
+  @Test public void testProjectExceptInputRefWithImplicitAliasAndName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("EMP", "MGR"),
+                builder.field("EMP", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptSimpleCallByName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2057,6 +2108,28 @@ public class RelBuilderTest {
                     builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
                         builder.field(3)), "y"))
             .projectExcept(builder.field("y"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(x=[+($0, $3)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptSimpleCallByOrdinal() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .project(
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.PLUS, builder.field(0),
+                        builder.field(3)), "x"),
+                builder.alias(
+                    builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
+                        builder.field(3)), "y"))
+            .projectExcept(builder.field(1))
             .build();
     final String expected = ""
         + "LogicalProject(x=[+($0, $3)])\n"
