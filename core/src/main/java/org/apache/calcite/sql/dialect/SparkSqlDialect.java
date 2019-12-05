@@ -33,6 +33,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ToNumberUtils;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -80,6 +83,10 @@ public class SparkSqlDialect extends SqlDialect {
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
+  }
+
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("");
   }
 
   @Override public void unparseCall(SqlWriter writer, SqlCall call,

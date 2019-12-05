@@ -34,6 +34,9 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.ToNumberUtils;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -74,6 +77,10 @@ public class HiveSqlDialect extends SqlDialect {
     }
 
     return null;
+  }
+
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("");
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,

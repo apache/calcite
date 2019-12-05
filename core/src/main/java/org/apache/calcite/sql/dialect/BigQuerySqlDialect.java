@@ -158,6 +158,10 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("");
+  }
+
   /** BigQuery data type reference:
    * <a href="https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types">
    * BigQuery Standard SQL Data Types</a>
