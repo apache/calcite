@@ -348,7 +348,7 @@ public abstract class SqlLibraryOperators {
    * as hexadecimal to a NUMBER using the format specified in string2. */
   @LibraryOperator(libraries = {TERADATA, POSTGRESQL, ORACLE})
   public static final SqlFunction TO_NUMBER =
-    new SqlFunction(
+      new SqlFunction(
       "TO_NUMBER",
       SqlKind.TO_NUMBER,
       ReturnTypes.BIGINT_FORCE_NULLABLE,

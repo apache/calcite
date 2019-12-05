@@ -114,7 +114,7 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case TO_NUMBER:
       if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
-        .toString())) {
+          .toString())) {
         ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
         break;
       }

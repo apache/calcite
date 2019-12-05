@@ -41,19 +41,19 @@ import java.util.regex.Pattern;
 public class ToNumberUtils {
 
   private static final SqlSetOperator CONV =
-    new SqlSetOperator("CONV", SqlKind.CONV, 18, false);
+      new SqlSetOperator("CONV", SqlKind.CONV, 18, false);
 
   private ToNumberUtils() {
   }
 
   private static void handleCasting(
-    SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
-    SqlTypeName sqlTypeName) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
+      SqlTypeName sqlTypeName) {
     SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), new SqlDataTypeSpec(new
       SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
       SqlParserPos.ZERO)};
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-      extractNodeOperands, SqlParserPos.ZERO);
+        extractNodeOperands, SqlParserPos.ZERO);
 
     SqlStdOperatorTable.CAST.unparse(writer, extractCallCast, leftPrec, rightPrec);
   }
@@ -70,7 +70,7 @@ public class ToNumberUtils {
   }
 
   private static boolean handleNullOperand(
-    SqlWriter writer, int leftPrec, int rightPrec) {
+      SqlWriter writer, int leftPrec, int rightPrec) {
     SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
       SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
       SqlParserPos.ZERO), new SqlDataTypeSpec(new
@@ -78,7 +78,7 @@ public class ToNumberUtils {
       SqlParserPos.ZERO)};
 
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
-      extractNodeOperands, SqlParserPos.ZERO);
+        extractNodeOperands, SqlParserPos.ZERO);
 
     SqlStdOperatorTable.CAST.unparse(writer, extractCallCast, leftPrec, rightPrec);
     return true;
@@ -94,7 +94,7 @@ public class ToNumberUtils {
   }
 
   public static void unparseToNumbertoConv(
-    SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
 
     SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createExactNumeric("16",
       SqlParserPos.ZERO), SqlLiteral.createExactNumeric("10",
@@ -106,7 +106,7 @@ public class ToNumberUtils {
     operandList.add(sqlNode[1]);
 
     SqlCall sqlCall = call.getOperator().createCall(null, SqlParserPos.ZERO,
-      operandList.toArray(new SqlNode[0]));
+        operandList.toArray(new SqlNode[0]));
     SqlSyntax.FUNCTION.unparse(writer, CONV, sqlCall, leftPrec, rightPrec);
   }
 
@@ -126,7 +126,7 @@ public class ToNumberUtils {
         }
 
         SqlTypeName sqlTypeName = call.operand(0).toString().contains(".")
-          ? SqlTypeName.FLOAT : SqlTypeName.INTEGER;
+            ? SqlTypeName.FLOAT : SqlTypeName.INTEGER;
         handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName);
       }
       break;
@@ -138,7 +138,7 @@ public class ToNumberUtils {
           SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
             SqlParserPos.ZERO), call.operand(0)};
           SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
-            SqlParserPos.ZERO);
+              SqlParserPos.ZERO);
           call.setOperand(0, extractCall);
           handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
 
@@ -154,8 +154,8 @@ public class ToNumberUtils {
 
           handleNegativeValue(call, regEx);
           SqlTypeName sqlType = call.operand(0).toString().contains("E")
-            && call.operand(1).toString().contains("E")
-            ? SqlTypeName.DECIMAL : SqlTypeName.INTEGER;
+              && call.operand(1).toString().contains("E")
+              ? SqlTypeName.DECIMAL : SqlTypeName.INTEGER;
 
           handleCasting(writer, call, leftPrec, rightPrec, sqlType);
         }
