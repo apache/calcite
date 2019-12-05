@@ -2026,13 +2026,13 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
-   * Add method in RelBuilder for conveniently projecting out expressions</a>. */
-  @Test public void testProjectMinusInputRef() {
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptInputRef() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
             .as("e")
-            .projectMinus(
+            .projectExcept(
                 builder.field("e", "MGR"),
                 builder.field("e", "JOB"))
             .build();
@@ -2044,8 +2044,8 @@ public class RelBuilderTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
-   * Add method in RelBuilder for conveniently projecting out expressions</a>. */
-  @Test public void testProjectMinusSimpleCall() {
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptSimpleCall() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2056,7 +2056,7 @@ public class RelBuilderTest {
                 builder.alias(
                     builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
                         builder.field(3)), "y"))
-            .projectMinus(builder.field("y"))
+            .projectExcept(builder.field("y"))
             .build();
     final String expected = ""
         + "LogicalProject(x=[+($0, $3)])\n"

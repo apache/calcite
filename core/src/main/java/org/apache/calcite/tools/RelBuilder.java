@@ -1262,15 +1262,15 @@ public class RelBuilder {
     return project(builder.addAll(fields()).addAll(nodes).build());
   }
 
-  /** Creates a {@link Project} of all original fields, minus the given
+  /** Creates a {@link Project} of all original fields, except the given
    * expressions. */
-  public RelBuilder projectMinus(RexNode... expressions) {
-    return projectMinus(ImmutableList.copyOf(expressions));
+  public RelBuilder projectExcept(RexNode... expressions) {
+    return projectExcept(ImmutableList.copyOf(expressions));
   }
 
-  /** Creates a {@link Project} of all original fields, minus the given
+  /** Creates a {@link Project} of all original fields, except the given
    * expressions. */
-  public RelBuilder projectMinus(Iterable<RexNode> expressions) {
+  public RelBuilder projectExcept(Iterable<RexNode> expressions) {
     List<RexNode> allExpressions = new ArrayList<>(fields());
     for (RexNode excludeExp : expressions) {
       allExpressions.remove(excludeExp);
