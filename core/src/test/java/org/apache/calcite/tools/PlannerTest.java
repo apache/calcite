@@ -1372,7 +1372,7 @@ public class PlannerTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-648">[CALCITE-649]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-648">[CALCITE-648]
    * Update ProjectMergeRule description for new naming convention</a>. */
   @Test public void testMergeProjectForceMode() throws Exception {
     RuleSet ruleSet =

@@ -853,7 +853,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1919">[CALCITE-1919]
    * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
   @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {
     final Driver driver = new Driver();

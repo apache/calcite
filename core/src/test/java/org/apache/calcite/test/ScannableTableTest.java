@@ -319,7 +319,7 @@ public class ScannableTableTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-3405]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3405">[CALCITE-3405]
    * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
   @Test public void testPushNonSimpleMappingProject() throws Exception {
     final StringBuilder buf = new StringBuilder();
@@ -342,7 +342,7 @@ public class ScannableTableTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1031">[CALCITE-3405]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3405">[CALCITE-3405]
    * Prune columns for ProjectableFilterable when project is not simple mapping</a>. */
   @Test public void testPushSimpleMappingProject() throws Exception {
     final StringBuilder buf = new StringBuilder();

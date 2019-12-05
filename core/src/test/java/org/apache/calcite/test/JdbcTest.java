@@ -2113,7 +2113,7 @@ public class JdbcTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2381">[CALCITE-2391]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2391">[CALCITE-2391]
    * Aggregate query with UNNEST or LATERAL fails with
    * ClassCastException</a>. */
   @Test public void testAggUnnestColumn() {
