@@ -652,6 +652,15 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_id\") AS \"t1\"";
     final String expectedVertica = expectedPostgresql;
+    final String expectedBigQuery = "SELECT SUM(net_weight1) AS net_weight_converted\n"
+        + "FROM (SELECT SUM(net_weight) AS net_weight1\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id) AS t1";
+    final String expectedHive = "SELECT SUM(net_weight1) net_weight_converted\n"
+        + "FROM (SELECT SUM(net_weight) net_weight1\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id) t1";
+    final String expectedSpark = expectedHive;
     sql(query)
         .withOracle()
         .ok(expectedOracle)
@@ -660,7 +669,13 @@ public class RelToSqlConverterTest {
         .withVertica()
         .ok(expectedVertica)
         .withPostgresql()
-        .ok(expectedPostgresql);
+        .ok(expectedPostgresql)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark);
   }
 
   /** Test case for

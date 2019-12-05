@@ -151,6 +151,10 @@ public class HiveSqlDialect extends SqlDialect {
     return true;
   }
 
+  @Override public boolean supportsNestedAggregations() {
+    return false;
+  }
+
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
