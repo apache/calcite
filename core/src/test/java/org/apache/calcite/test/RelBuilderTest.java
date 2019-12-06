@@ -2118,6 +2118,33 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test(expected = CalciteException.class) public void testProjectExceptWithDuplicateField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP")
+        .projectExcept(
+            builder.field("EMP", "MGR"),
+            builder.field("EMP", "MGR"));
+    fail("Project should fail since we are trying to remove the same field two times.");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test(expected = CalciteException.class) public void testProjectExceptWithMissingField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    RexNode deptnoField = builder.field("DEPTNO");
+    builder.project(
+        builder.field("EMPNO"),
+        builder.field("ENAME"))
+        .projectExcept(
+            deptnoField);
+    fail("Project should fail since we are trying to remove a field that does not exist.");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test public void testProjectExceptSimpleCallByOrdinal() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =

@@ -900,6 +900,9 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Expression ''{0}'' not found")
+  ExInst<CalciteException> expressionNotFound(String tableName);
 }
 
 // End CalciteResource.java

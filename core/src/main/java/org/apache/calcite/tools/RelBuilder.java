@@ -1273,7 +1273,9 @@ public class RelBuilder {
   public RelBuilder projectExcept(Iterable<RexNode> expressions) {
     List<RexNode> allExpressions = new ArrayList<>(fields());
     for (RexNode excludeExp : expressions) {
-      allExpressions.remove(excludeExp);
+      if (!allExpressions.remove(excludeExp)) {
+        throw RESOURCE.expressionNotFound(excludeExp.toString()).ex();
+      }
     }
     return this.project(allExpressions);
   }
