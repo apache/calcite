@@ -89,6 +89,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -2096,28 +2097,29 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test(expected = CalciteException.class) public void testProjectExceptWithDuplicateField() {
+  @Test public void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    builder.scan("EMP")
-        .projectExcept(
+    assertThrows(CalciteException.class, () -> {
+      builder.scan("EMP")
+          .projectExcept(
             builder.field("EMP", "MGR"),
             builder.field("EMP", "MGR"));
-    fail("Project should fail since we are trying to remove the same field two times.");
+    }, "Project should fail since we are trying to remove the same field two times.");
   }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test(expected = CalciteException.class) public void testProjectExceptWithMissingField() {
+  @Test public void testProjectExceptWithMissingField() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
     RexNode deptnoField = builder.field("DEPTNO");
-    builder.project(
-        builder.field("EMPNO"),
-        builder.field("ENAME"))
-        .projectExcept(
-            deptnoField);
-    fail("Project should fail since we are trying to remove a field that does not exist.");
+    assertThrows(CalciteException.class, () -> {
+      builder.project(
+            builder.field("EMPNO"),
+            builder.field("ENAME"))
+          .projectExcept(deptnoField);
+    }, "Project should fail since we are trying to remove a field that does not exist.");
   }
 
   @Test public void testMultiLevelAlias() {
