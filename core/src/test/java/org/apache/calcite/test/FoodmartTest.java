@@ -20,7 +20,9 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.util.IntegerIntervalSet;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,12 +40,8 @@ import java.util.stream.Stream;
 @Tag("slow")
 public class FoodmartTest {
 
-  private static final CalciteAssert.AssertThat ASSERT_FOODMART = CalciteAssert.that()
-      .with(CalciteAssert.Config.FOODMART_CLONE)
-      .pooled();
-  private static final CalciteAssert.AssertThat ASSERT_FOODMART_LATTICE = CalciteAssert.that()
-      .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
-      .pooled();
+  private static CalciteAssert.AssertThat assertFoodmart;
+  private static CalciteAssert.AssertThat assertFoodmartLattice;
 
   private static final int[] DISABLED_IDS = {
       58, 83, 202, 204, 205, 206, 207, 209, 211, 231, 247, 275, 309, 383, 384,
@@ -102,6 +100,22 @@ public class FoodmartTest {
   // 2542: timeout. Running big, simple SQL cartesian product.
   //
 
+  @BeforeAll
+  public static void setupAsserts() {
+    assertFoodmart = CalciteAssert.that()
+      .with(CalciteAssert.Config.FOODMART_CLONE)
+      .pooled();
+    assertFoodmartLattice = CalciteAssert.that()
+      .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+      .pooled();
+  }
+
+  @AfterAll
+  public static void tearDownAsserts() {
+    assertFoodmart = null;
+    assertFoodmartLattice = null;
+  }
+
   // 202 and others: strip away "CAST(the_year AS UNSIGNED) = 1997"
   public static Stream<FoodMartQuerySet.FoodmartQuery> queries() throws IOException {
     String idList = CalciteSystemProperty.TEST_FOODMART_QUERY_IDS.value();
@@ -137,7 +151,7 @@ public class FoodmartTest {
   @MethodSource("queries")
   public void test(FoodMartQuerySet.FoodmartQuery query) {
     Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
-      ASSERT_FOODMART.query(query.sql).runs();
+      assertFoodmart.query(query.sql).runs();
     });
   }
 
@@ -146,7 +160,7 @@ public class FoodmartTest {
   @MethodSource("queries")
   public void testWithLattice(FoodMartQuerySet.FoodmartQuery query) {
     Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
-      ASSERT_FOODMART_LATTICE
+      assertFoodmartLattice
         .withDefaultSchema("foodmart")
         .query(query.sql)
         .enableMaterializations(true)
