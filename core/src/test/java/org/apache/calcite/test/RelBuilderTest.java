@@ -2027,7 +2027,7 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptInputRefWithOrdinal() {
+  @Test public void testProjectExceptWithOrdinal() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2044,7 +2044,7 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptInputRefWithName() {
+  @Test public void testProjectExceptWithName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2061,7 +2061,7 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptInputRefWithExplicitAliasAndName() {
+  @Test public void testProjectExceptWithExplicitAliasAndName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
@@ -2079,7 +2079,7 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptInputRefWithImplicitAliasAndName() {
+  @Test public void testProjectExceptWithImplicitAliasAndName() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
         builder.scan("EMP")
