@@ -2096,28 +2096,6 @@ public class RelBuilderTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptSimpleCallByName() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
-        builder.scan("EMP")
-            .project(
-                builder.alias(
-                    builder.call(SqlStdOperatorTable.PLUS, builder.field(0),
-                        builder.field(3)), "x"),
-                builder.alias(
-                    builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
-                        builder.field(3)), "y"))
-            .projectExcept(builder.field("y"))
-            .build();
-    final String expected = ""
-        + "LogicalProject(x=[+($0, $3)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
-   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test(expected = CalciteException.class) public void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP")
@@ -2140,28 +2118,6 @@ public class RelBuilderTest {
         .projectExcept(
             deptnoField);
     fail("Project should fail since we are trying to remove a field that does not exist.");
-  }
-
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
-   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
-  @Test public void testProjectExceptSimpleCallByOrdinal() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
-        builder.scan("EMP")
-            .project(
-                builder.alias(
-                    builder.call(SqlStdOperatorTable.PLUS, builder.field(0),
-                        builder.field(3)), "x"),
-                builder.alias(
-                    builder.call(SqlStdOperatorTable.MINUS, builder.field(0),
-                        builder.field(3)), "y"))
-            .projectExcept(builder.field(1))
-            .build();
-    final String expected = ""
-        + "LogicalProject(x=[+($0, $3)])\n"
-        + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
   }
 
   @Test public void testMultiLevelAlias() {
