@@ -147,7 +147,7 @@ public class FoodmartTest {
     return list.stream();
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(name = "{0}")
   @MethodSource("queries")
   public void test(FoodMartQuerySet.FoodmartQuery query) {
     Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
@@ -155,7 +155,7 @@ public class FoodmartTest {
     });
   }
 
-  @ParameterizedTest
+  @ParameterizedTest(name = "{0}")
   @Disabled
   @MethodSource("queries")
   public void testWithLattice(FoodMartQuerySet.FoodmartQuery query) {
