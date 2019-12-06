@@ -114,6 +114,7 @@ public class DocumentationTest {
       case BIGQUERY:
       case HIVE:
       case SPARK:
+      case TERADATA:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",

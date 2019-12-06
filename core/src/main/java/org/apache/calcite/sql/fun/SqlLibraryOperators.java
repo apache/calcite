@@ -44,6 +44,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
+import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTEGER;
 import static org.apache.calcite.sql.type.OperandTypes.DATETIME_INTERVAL;
 
@@ -125,7 +126,7 @@ public abstract class SqlLibraryOperators {
    *
    * <p>It has similar semantics to standard SQL's
    * {@link SqlStdOperatorTable#SUBSTRING} function but different syntax. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {ORACLE, BIGQUERY})
   public static final SqlFunction SUBSTR =
       new SqlFunction("SUBSTR", SqlKind.OTHER_FUNCTION,
           ReturnTypes.ARG0_NULLABLE_VARYING, null, null,
@@ -182,6 +183,29 @@ public abstract class SqlLibraryOperators {
 
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
+
+  /**
+   * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
+   * that matches the regex_pattern. Returns NULL if there is no match.
+   *
+   * The REGEXP_EXTRACT_ALL(source_string, regex_pattern) returns an array of all substrings of
+   * source_string that match the regex_pattern.
+   */
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+          SqlTypeTransforms.TO_NULLABLE),
+      null, OperandTypes.STRING_STRING,
+      SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+          SqlTypeTransforms.TO_NULLABLE),
+      null, OperandTypes.STRING_STRING,
+      SqlFunctionCategory.STRING);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
@@ -392,6 +416,21 @@ public abstract class SqlLibraryOperators {
           SqlKind.FORMAT,
           ReturnTypes.VARCHAR_2000, null,
           OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.STRING);
+
+  /** The "TO_NUMBER(string1, string2)" function; casts string1
+   * as hexadecimal to a NUMBER using the format specified in string2. */
+  @LibraryOperator(libraries = {TERADATA})
+  public static final SqlFunction TO_NUMBER =
+      new SqlFunction(
+          "TO_NUMBER",
+          SqlKind.TO_NUMBER,
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null, OperandTypes.or(OperandTypes.STRING, OperandTypes.STRING_STRING,
+          OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NULL),
+          OperandTypes.family(SqlTypeFamily.NULL, SqlTypeFamily.STRING),
+          OperandTypes.STRING_STRING_STRING,
+          OperandTypes.family(SqlTypeFamily.NULL)),
           SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {HIVE, SPARK})

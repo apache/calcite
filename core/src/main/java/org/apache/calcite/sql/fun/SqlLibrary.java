@@ -56,7 +56,9 @@ public enum SqlLibrary {
   /** A collection of operators that are in Hive but not in standard SQL. */
   HIVE("h"),
   /** A collection of operators that are in Spark but not in standard SQL. */
-  SPARK("s");
+  SPARK("s"),
+  /** A collection of operators that are in Teradata but not in standard SQL. */
+  TERADATA("t");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
