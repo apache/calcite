@@ -92,6 +92,16 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).convertsTo(plan);
   }
 
+  @Disabled("CALCITE-3571") // Passes when RelBuilder#shouldMergeProject returns false.
+  @Test public void testJoinWithMergeProjectShouldParse() {
+    final String sql = "WITH query as "
+        + "  (select empno, deptno as deptno11, deptno as deptno12 from emp)\n"
+        + "select query.deptno11, emp.deptno, query.deptno12\n"
+        + "FROM query\n"
+        + "JOIN emp ON (cast(query.empno as Integer) = cast(emp.empno as Integer))";
+    sql(sql).ok();
+  }
+
   @Test public void testDotLiteralAfterNestedRow() {
     final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
     sql(sql).ok();

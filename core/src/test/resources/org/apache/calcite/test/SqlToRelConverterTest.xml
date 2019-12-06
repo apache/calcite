@@ -917,6 +917,26 @@ LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
             <![CDATA[values (character_length('foo'))]]>
         </Resource>
     </TestCase>
+  <TestCase name="testJoinShouldMergeProject">
+    <Resource name="sql">
+      <![CDATA[WITH query as (select empno, deptno as deptno11, deptno as deptno12 from emp)
+select query.deptno11, emp.deptno, query.deptno12
+FROM query
+JOIN emp ON (cast(query.empno as Integer) = cast(emp.empno as Integer))]]>
+    </Resource>
+    <Resource name="plan">
+      <![CDATA[
+LogicalProject(DEPTNO11=[$1], DEPTNO=[$10], DEPTNO12=[$2])
+  LogicalProject(EMPNO=[$0], DEPTNO11=[$1], DEPTNO12=[$2], EMPNO1=[$4], ENAME=[$5], JOB=[$6], MGR=[$7], HIREDATE=[$8], SAL=[$9], COMM=[$10], DEPTNO=[$11], SLACKER=[$12])
+    LogicalJoin(condition=[=($3, $13)], joinType=[inner])
+      LogicalProject(EMPNO=[$0], DEPTNO11=[$1], DEPTNO12=[$2], EMPNO0=[$0])
+        LogicalProject(EMPNO=[$0], DEPTNO11=[$7], DEPTNO12=[$7])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EMPNO0=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
     <TestCase name="testDotLiteralAfterNestedRow">
         <Resource name="sql">
             <![CDATA[select ((1,2),(3,4,5))."EXPR$1"."EXPR$2" from emp]]>
