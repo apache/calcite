@@ -38,6 +38,13 @@ import java.util.stream.Stream;
 @Tag("slow")
 public class FoodmartTest {
 
+  private static final CalciteAssert.AssertThat ASSERT_FOODMART = CalciteAssert.that()
+      .with(CalciteAssert.Config.FOODMART_CLONE)
+      .pooled();
+  private static final CalciteAssert.AssertThat ASSERT_FOODMART_LATTICE = CalciteAssert.that()
+      .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
+      .pooled();
+
   private static final int[] DISABLED_IDS = {
       58, 83, 202, 204, 205, 206, 207, 209, 211, 231, 247, 275, 309, 383, 384,
       385, 448, 449, 471, 494, 495, 496, 497, 499, 500, 501, 502, 503, 505, 506,
@@ -130,11 +137,7 @@ public class FoodmartTest {
   @MethodSource("queries")
   public void test(FoodMartQuerySet.FoodmartQuery query) {
     Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
-      CalciteAssert.that()
-        .with(CalciteAssert.Config.FOODMART_CLONE)
-        .pooled()
-        .query(query.sql)
-        .runs();
+      ASSERT_FOODMART.query(query.sql).runs();
     });
   }
 
@@ -143,9 +146,7 @@ public class FoodmartTest {
   @MethodSource("queries")
   public void testWithLattice(FoodMartQuerySet.FoodmartQuery query) {
     Assertions.assertTimeoutPreemptively(Duration.ofMinutes(2), () -> {
-      CalciteAssert.that()
-        .with(CalciteAssert.Config.JDBC_FOODMART_WITH_LATTICE)
-        .pooled()
+      ASSERT_FOODMART_LATTICE
         .withDefaultSchema("foodmart")
         .query(query.sql)
         .enableMaterializations(true)
