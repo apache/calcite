@@ -32,9 +32,6 @@
  * instantiating materializations from the intermediate results of queries, and
  * recognize what materializations would be useful based on actual query load.
  */
-@PackageMarker
 package org.apache.calcite.materialize;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

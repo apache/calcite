@@ -100,14 +100,15 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
 import org.hamcrest.Matcher;
+import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.hsqldb.jdbcDriver;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Connection;
@@ -138,6 +139,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.sql.DataSource;
 
 import static org.apache.calcite.test.Matchers.isLinux;
@@ -152,13 +154,13 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for using Calcite via JDBC.
@@ -223,6 +225,15 @@ public class JdbcTest {
       + "  defaultSchema: 'hr',\n"
       + "   schemas: [\n"
       + HR_SCHEMA
+      + "   ]\n"
+      + "}";
+
+  public static final String FOODMART_SCOTT_MODEL = "{\n"
+      + "  version: '1.0',\n"
+      + "   schemas: [\n"
+      + FOODMART_SCHEMA
+      + ",\n"
+      + SCOTT_SCHEMA
       + "   ]\n"
       + "}";
 
@@ -400,6 +411,19 @@ public class JdbcTest {
   }
 
   /**
+   * Adds table macro for connection, with catalog named "s"
+   * and the method reflection name as the name of the macro.
+   */
+  private void addTableMacro(Connection connection, Method method) throws SQLException {
+    CalciteConnection calciteConnection =
+        connection.unwrap(CalciteConnection.class);
+    SchemaPlus rootSchema = calciteConnection.getRootSchema();
+    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+    final TableMacro tableMacro = TableMacroImpl.create(method);
+    schema.add(method.getName(), tableMacro);
+  }
+
+  /**
    * Tests a relation that is accessed via method syntax.
    *
    * <p>The function ({@link Smalls#view(String)} has a return type
@@ -410,14 +434,9 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.VIEW_METHOD);
-    schema.add("View", tableMacro);
+    addTableMacro(connection, Smalls.VIEW_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"View\"('(10), (20)')) as t(n)\n"
+        + "from table(\"s\".\"view\"('(10), (20)')) as t(n)\n"
         + "where n < 15");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
@@ -436,19 +455,60 @@ public class JdbcTest {
       throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
-    CalciteConnection calciteConnection =
-        connection.unwrap(CalciteConnection.class);
-    SchemaPlus rootSchema = calciteConnection.getRootSchema();
-    SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
-    final TableMacro tableMacro = TableMacroImpl.create(Smalls.STR_METHOD);
-    schema.add("Str", tableMacro);
+    addTableMacro(connection, Smalls.STR_METHOD);
     ResultSet resultSet = connection.createStatement().executeQuery("select *\n"
-        + "from table(\"s\".\"Str\"(MAP['a', 1, 'baz', 2],\n"
+        + "from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],\n"
         + "                         ARRAY[3, 4, CAST(null AS INTEGER)])) as t(n)");
     // The call to "View('(10), (2)')" expands to 'values (1), (3), (10), (20)'.
     assertThat(CalciteAssert.toString(resultSet),
         equalTo("N={'a'=1, 'baz'=2}\n"
             + "N=[3, 4, null]    \n"));
+    connection.close();
+  }
+
+  /**
+   * <p>Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3423">[CALCITE-3423]
+   * Support using CAST operation and BOOLEAN type value in table macro</a>. */
+  @Test public void testTableMacroWithCastOrBoolean() throws SQLException {
+    Connection connection =
+        DriverManager.getConnection("jdbc:calcite:");
+    addTableMacro(connection, Smalls.STR_METHOD);
+    // check for cast
+    ResultSet resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], cast(1 as bigint))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+    // check for Boolean type
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2], true)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=true            \n"));
+    // check for nested cast
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(1 as int) as varchar(1)))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}\n"
+            + "N=1               \n"));
+
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"str\"(MAP['a', 1, 'baz', 2],"
+            + "cast(cast(cast('2019-10-18 10:35:23' as TIMESTAMP) as BIGINT) as VARCHAR))) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N={'a'=1, 'baz'=2}     \n"
+            + "N='2019-10-18 10:35:23'\n"));
+
+    // check for implicit type coercion
+    addTableMacro(connection, Smalls.VIEW_METHOD);
+    resultSet = connection.createStatement().executeQuery(
+        "select * from table(\"s\".\"view\"(5)) as t(n)");
+    assertThat(CalciteAssert.toString(resultSet),
+        equalTo("N=1\n"
+            + "N=3\n"
+            + "N=5\n"));
     connection.close();
   }
 
@@ -473,13 +533,13 @@ public class JdbcTest {
         .returns(expected2);
     with.query("select * from table(\"adhoc\".\"View\"(t=>'5', t=>'6'))")
         .throws_("Duplicate argument name 'T'");
-    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
-        .throws_(
-            "No match found for function signature View(T => <CHARACTER>, S => <CHARACTER>)");
     final String expected3 = "c=1\n"
         + "c=3\n"
         + "c=6\n"
         + "c=5\n";
+    // implicit type coercion
+    with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
+        .returns(expected3);
     with.query("select * from table(\"adhoc\".\"View\"(t=>5, s=>'6'))")
         .returns(expected3);
   }
@@ -744,7 +804,7 @@ public class JdbcTest {
     final int driverMajor = metaData.getDriverMajorVersion();
     final int driverMinor = metaData.getDriverMinorVersion();
     assertEquals(1, driverMajor);
-    assertTrue(driverMinor >= 0 && driverMinor < 20);
+    assertTrue(driverMinor >= 0 && driverMinor < 30);
 
     assertEquals("Calcite", metaData.getDatabaseProductName());
     final String databaseVersion =
@@ -989,7 +1049,7 @@ public class JdbcTest {
             + "the_year=1998; C=365; M=April\n");
   }
 
-  @Ignore("The test returns expected results. Not sure why it is disabled")
+  @Disabled("The test returns expected results. Not sure why it is disabled")
   @Test public void testCloneGroupBy2() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1011,7 +1071,7 @@ public class JdbcTest {
   }
 
   /** Tests plan for a query with 4 tables, 3 joins. */
-  @Ignore("The actual and expected plan differ")
+  @Disabled("The actual and expected plan differ")
   @Test public void testCloneGroupBy2Plan() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1019,10 +1079,10 @@ public class JdbcTest {
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
         .returns("PLAN=EnumerableAggregate(group=[{0, 1, 2}], m0=[SUM($3)])\n"
             + "  EnumerableCalc(expr#0..37=[{inputs}], c0=[$t9], c1=[$t13], c2=[$t4], unit_sales=[$t22])\n"
-            + "    EnumerableJoin(condition=[=($23, $0)], joinType=[inner])\n"
+            + "    EnumerableHashJoin(condition=[=($23, $0)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "      EnumerableJoin(condition=[=($10, $19)], joinType=[inner])\n"
-            + "        EnumerableJoin(condition=[=($11, $0)], joinType=[inner])\n"
+            + "      EnumerableHashJoin(condition=[=($10, $19)], joinType=[inner])\n"
+            + "        EnumerableHashJoin(condition=[=($11, $0)], joinType=[inner])\n"
             + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
             + "            EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
@@ -1053,8 +1113,8 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
-                + "  EnumerableJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
+                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
+                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
                 + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
                 + "      EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
@@ -1066,7 +1126,7 @@ public class JdbcTest {
    * First join sales_fact_1997 to customer;
    * in parallel join product to product_class;
    * then join the results. */
-  @Ignore("extremely slow - a bit better if you disable ProjectMergeRule")
+  @Disabled("extremely slow - a bit better if you disable ProjectMergeRule")
   @Test public void testBushy() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1132,7 +1192,7 @@ public class JdbcTest {
       "EXPR$0=86805\n",
       "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
       "c0=1997\n"
-        + "c0=1998\n",
+          + "c0=1998\n",
       "select \"store\".\"store_country\" as \"c0\" from \"store\" as \"store\" where UPPER(\"store\".\"store_country\") = UPPER('USA') group by \"store\".\"store_country\" order by \"store\".\"store_country\" ASC",
       "c0=USA\n",
       "select \"store\".\"store_state\" as \"c0\" from \"store\" as \"store\" where (\"store\".\"store_country\" = 'USA') and UPPER(\"store\".\"store_state\") = UPPER('CA') group by \"store\".\"store_state\" order by \"store\".\"store_state\" ASC",
@@ -1530,6 +1590,19 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3435">[CALCITE-3435]
+   * Enable decimal modulus operation to allow numeric with non-zero scale</a>. */
+  @Test public void testModOperation() {
+    CalciteAssert.that()
+        .query("select mod(33.5, 7) as c0, floor(mod(33.5, 7)) as c1, "
+            + "mod(11, 3.2) as c2, floor(mod(11, 3.2)) as c3,"
+            + "mod(12, 3) as c4, floor(mod(12, 3)) as c5")
+        .typeIs("[C0 DECIMAL NOT NULL, C1 DECIMAL NOT NULL, C2 DECIMAL NOT NULL, "
+            + "C3 DECIMAL NOT NULL, C4 INTEGER NOT NULL, C5 INTEGER NOT NULL]")
+        .returns("C0=5.5; C1=5; C2=1.4; C3=1; C4=0; C5=0\n");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-387">[CALCITE-387]
    * CompileException when cast TRUE to nullable boolean</a>. */
   @Test public void testTrue() {
@@ -1640,7 +1713,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-35">[CALCITE-35]
    * Support parenthesized sub-clause in JOIN</a>. */
-  @Ignore
+  @Disabled
   @Test public void testJoinJoin() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1686,7 +1759,7 @@ public class JdbcTest {
   }
 
   /** Four-way join. Used to take 80 seconds. */
-  @Ignore
+  @Disabled
   @Test public void testJoinFiveWay() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -1786,7 +1859,7 @@ public class JdbcTest {
   }
 
   /** A selection of queries generated by Mondrian. */
-  @Ignore
+  @Disabled
   @Test public void testCloneQueries() {
     CalciteAssert.AssertThat with =
         CalciteAssert.that()
@@ -1973,7 +2046,6 @@ public class JdbcTest {
   }
 
   @Test public void testMultisetQueryWithSingleColumn() {
-    Assume.assumeTrue("[CALCITE-2776]", Bug.CALCITE_2776_FIXED);
     CalciteAssert.hr()
         .query("select multiset(\n"
             + "  select \"deptno\" from \"hr\".\"emps\") as a\n"
@@ -1993,6 +2065,33 @@ public class JdbcTest {
         .query("select*from unnest(array[10,20]) with ordinality as t(i, o)")
         .returnsUnordered("I=10; O=1",
             "I=20; O=2");
+  }
+
+  @Test public void testUnnestRecordType() {
+    // unnest(RecordType(Array))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values array[10, 20], array[30, 40]) as t(x))\n"
+            + " with ordinality as t(a, o)")
+        .returnsUnordered("A=10; O=1", "A=20; O=2",
+            "A=30; O=1", "A=40; O=2");
+
+    // unnest(RecordType(Multiset))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values multiset[10, 20], array[30, 40]) as t(x))\n"
+            + " with ordinality as t(a, o)")
+        .returnsUnordered("A=10; O=1", "A=20; O=2",
+            "A=30; O=1", "A=40; O=2");
+
+    // unnest(RecordType(Map))
+    CalciteAssert.that()
+        .query("select * from unnest\n"
+            + "(select t.x from (values map['a', 20], map['b', 30], map['c', 40]) as t(x))\n"
+            + " with ordinality as t(a, b, o)")
+        .returnsUnordered("A=a; B=20; O=1",
+            "A=b; B=30; O=1",
+            "A=c; B=40; O=1");
   }
 
   @Test public void testUnnestMultiset() {
@@ -2117,9 +2216,31 @@ public class JdbcTest {
             + " UNNEST(d.\"employees\", array[1, 2]) with ordinality as e (ei, d, n, s, c, i, o)\n"
             + "where ei + i > 151")
         .returnsUnordered(
-            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=2",
-            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=4",
-            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=5");
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=1; O=1",
+            "name=HR; EI=200; D=20; N=Eric; S=8000.0; C=500; I=2; O=2",
+            "name=Sales; EI=150; D=10; N=Sebastian; S=7000.0; C=null; I=2; O=4");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3498">[CALCITE-3498]
+   * Unnest operation's ordinality should be deterministic</a>. */
+  @Test public void testUnnestArrayWithDeterministicOrdinality() {
+    CalciteAssert.that()
+        .query("select v, o\n"
+            + "from unnest(array[100, 200]) with ordinality as t1(v, o)\n"
+            + "where v > 1")
+        .returns("V=100; O=1\n"
+            + "V=200; O=2\n");
+
+    CalciteAssert.that()
+        .query("with\n"
+            + "  x as (select * from unnest(array[100, 200]) with ordinality as t1(v, o)), "
+            + "  y as (select * from unnest(array[1000, 2000]) with ordinality as t2(v, o))\n"
+            + "select x.o as o1, x.v as v1, y.o as o2, y.v as v2 "
+            + "from x join y on x.o=y.o")
+        .returnsUnordered(
+            "O1=1; V1=100; O2=1; V2=1000",
+            "O1=2; V1=200; O2=2; V2=2000");
   }
 
   /** Test case for
@@ -2184,7 +2305,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-92">[CALCITE-92]
    * Project should be optimized away, not converted to EnumerableCalcRel</a>.
    */
-  @Ignore
+  @Disabled
   @Test public void testNoCalcBetweenJoins() throws IOException {
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     CalciteAssert.that()
@@ -2211,7 +2332,7 @@ public class JdbcTest {
    * applied. The plan must not contain cartesian joins.
    * {@link org.apache.calcite.rel.rules.JoinPushThroughJoinRule} makes this
    * possible. */
-  @Ignore
+  @Disabled
   @Test public void testExplainJoin() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -2232,7 +2353,7 @@ public class JdbcTest {
    * applied. The plan is left-deep (agg_c_14_sales_fact_1997 the most
    * rows, then time_by_day, then store). This makes for efficient
    * hash-joins. */
-  @Ignore
+  @Disabled
   @Test public void testExplainJoin2() throws IOException {
     withFoodMartQuery(2482)
         .explainContains(""
@@ -2252,7 +2373,7 @@ public class JdbcTest {
   }
 
   /** One of the most expensive foodmart queries. */
-  @Ignore // OOME on Travis; works on most other machines
+  @Disabled // OOME on Travis; works on most other machines
   @Test public void testExplainJoin3() throws IOException {
     withFoodMartQuery(8)
         .explainContains(""
@@ -2272,7 +2393,7 @@ public class JdbcTest {
 
   /** Tests that a relatively complex query on the foodmart schema creates
    * an in-memory aggregate table and then uses it. */
-  @Ignore // DO NOT CHECK IN
+  @Disabled // DO NOT CHECK IN
   @Test public void testFoodmartLattice() throws IOException {
     // 8: select ... from customer, sales, time ... group by ...
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
@@ -2295,7 +2416,7 @@ public class JdbcTest {
   /** Test case for (not yet fixed)
    * <a href="https://issues.apache.org/jira/browse/CALCITE-99">[CALCITE-99]
    * Recognize semi-join that has high selectivity and push it down</a>. */
-  @Ignore
+  @Disabled
   @Test public void testExplainJoin4() throws IOException {
     withFoodMartQuery(5217)
         .explainContains(""
@@ -2323,7 +2444,7 @@ public class JdbcTest {
 
   /** Condition involving OR makes this more complex than
    * {@link #testExplainJoin()}. */
-  @Ignore
+  @Disabled
   @Test public void testExplainJoinOrderingWithOr() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -2388,26 +2509,26 @@ public class JdbcTest {
   @Test public void testReuseExpressionWhenNullChecking3() {
     CalciteAssert.hr()
         .query(
-            "select substring(\"name\", \"deptno\"+case when user <> 'sa' then 1 end) from \"hr\".\"emps\"")
+            "select substring(\"name\", \"deptno\"+case when CURRENT_PATH <> '' then 1 end) from \"hr\".\"emps\"")
         .planContains(
             "final String inp2_ = current.name;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.ne(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.ne(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_ne_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_sa_sa_ ? (String) null"
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_ne_ ? (String) null"
             + " : org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "current.deptno + 1);");
+            + "Integer.valueOf(current.deptno + 1).intValue());");
   }
 
   @Test public void testReuseExpressionWhenNullChecking4() {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 4\n" /* diff from 5 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2419,19 +2540,19 @@ public class JdbcTest {
         .planContains(
             "final int inp1_ = current.deptno;")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| !v5 && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), (v5 ? 4 : 5) - 2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), Integer.valueOf((v5 ? 4 : 5) - 2).intValue());")
         .returns("T=ill\n"
             + "T=ric\n"
             + "T=ebastian\n"
@@ -2442,7 +2563,7 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select substring(trim(\n"
             + "substring(\"name\",\n"
-            + "  \"deptno\"*0+case when user = 'sa' then 1 end)\n"
+            + "  \"deptno\"*0+case when CURRENT_PATH = '' then 1 end)\n"
             + "), case when \"empid\">\"deptno\" then 5\n" /* diff from 4 */
             + "   else\n"
             + "     case when \"deptno\"*8>8 then 5 end\n"
@@ -2455,20 +2576,24 @@ public class JdbcTest {
             "final int inp1_ = current.deptno;")
         .planContains(
             "static final int $L4J$C$5_2 = 5 - 2;")
+        .planContains(
+            "static final Integer $L4J$C$Integer_valueOf_5_2_ = Integer.valueOf($L4J$C$5_2);")
+        .planContains(
+            "static final int $L4J$C$Integer_valueOf_5_2_intValue_ = $L4J$C$Integer_valueOf_5_2_.intValue();")
         .planContains("static final boolean "
-            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "org.apache.calcite.runtime.SqlFunctions.eq(\"sa\", \"sa\");")
+            + "$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "org.apache.calcite.runtime.SqlFunctions.eq(\"\", \"\");")
         .planContains("static final boolean "
-            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ = "
-            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_;")
+            + "$L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ = "
+            + "!$L4J$C$org_apache_calcite_runtime_SqlFunctions_eq_;")
         .planContains("return inp2_ == null "
-            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_sa_sa_ "
+            + "|| $L4J$C$_org_apache_calcite_runtime_SqlFunctions_eq_ "
             + "|| current.empid <= inp1_ && inp1_ * 8 <= 8 "
             + "? (String) null "
             + ": org.apache.calcite.runtime.SqlFunctions.substring("
             + "org.apache.calcite.runtime.SqlFunctions.trim(true, true, \" \", "
             + "org.apache.calcite.runtime.SqlFunctions.substring(inp2_, "
-            + "inp1_ * 0 + 1), true), $L4J$C$5_2);")
+            + "Integer.valueOf(inp1_ * 0 + 1).intValue()), true), $L4J$C$Integer_valueOf_5_2_intValue_);")
         .returns("T=ll\n"
             + "T=ic\n"
             + "T=bastian\n"
@@ -2581,7 +2706,7 @@ public class JdbcTest {
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
             + "  EnumerableAggregate(group=[{1, 2}])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], proj#0..3=[{exprs}], $condition=[$t8])\n"
-            + "      EnumerableJoin(condition=[true], joinType=[inner])\n"
+            + "      EnumerableHashJoin(condition=[true], joinType=[inner])\n"
             + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
             + "        EnumerableTableScan(table=[[SALES, EMPS]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
@@ -2597,7 +2722,7 @@ public class JdbcTest {
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t2], deptno=[$t0], name=[$t1])\n"
-            + "  EnumerableJoin(condition=[=($0, $3)], joinType=[inner])\n"
+            + "  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -2669,7 +2794,7 @@ public class JdbcTest {
         .explainContains(""
             + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
             + "  EnumerableAggregate(group=[{1, 3}])\n"
-            + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+            + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
             + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
             + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
@@ -2704,17 +2829,17 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(s)
         .returns("the_month=April; c=30; c2=10\n"
-                + "the_month=August; c=31; c2=11\n"
-                + "the_month=December; c=31; c2=11\n"
-                + "the_month=February; c=28; c2=8\n"
-                + "the_month=January; c=31; c2=11\n"
-                + "the_month=July; c=31; c2=11\n"
-                + "the_month=June; c=30; c2=10\n"
-                + "the_month=March; c=31; c2=11\n"
-                + "the_month=May; c=31; c2=11\n"
-                + "the_month=November; c=30; c2=10\n"
-                + "the_month=October; c=31; c2=11\n"
-                + "the_month=September; c=30; c2=10\n");
+            + "the_month=August; c=31; c2=11\n"
+            + "the_month=December; c=31; c2=11\n"
+            + "the_month=February; c=28; c2=8\n"
+            + "the_month=January; c=31; c2=11\n"
+            + "the_month=July; c=31; c2=11\n"
+            + "the_month=June; c=30; c2=10\n"
+            + "the_month=March; c=31; c2=11\n"
+            + "the_month=May; c=31; c2=11\n"
+            + "the_month=November; c=30; c2=10\n"
+            + "the_month=October; c=31; c2=11\n"
+            + "the_month=September; c=30; c2=10\n");
   }
 
   /** Tests a simple IN query implemented as a semi-join. */
@@ -2732,7 +2857,7 @@ public class JdbcTest {
             + "})])\n"
             + "    EnumerableTableScan(table=[[hr, depts]])")
         .explainContains(""
-            + "EnumerableSemiJoin(condition=[=($0, $5)], joinType=[inner])\n"
+            + "EnumerableHashJoin(condition=[=($0, $5)], joinType=[semi])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
             + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
@@ -2742,7 +2867,7 @@ public class JdbcTest {
 
   /** A difficult query: an IN list so large that the planner promotes it
    * to a semi-join against a VALUES relation. */
-  @Ignore
+  @Disabled
   @Test public void testIn() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -3497,14 +3622,14 @@ public class JdbcTest {
             + "        MINa2w0,\n"
             + "        COUNTa3w0});"
             : "_list.add(new Object[] {\n"
-                + "        row[0],\n" // box-unbox is optimized
-                + "        row[1],\n"
-                + "        row[2],\n"
-                + "        row[3],\n"
-                + "        a0w0,\n"
-                + "        a1w0,\n"
-                + "        a2w0,\n"
-                + "        a3w0});")
+            + "        row[0],\n" // box-unbox is optimized
+            + "        row[1],\n"
+            + "        row[2],\n"
+            + "        row[3],\n"
+            + "        a0w0,\n"
+            + "        a1w0,\n"
+            + "        a2w0,\n"
+            + "        a3w0});")
         .planContains("return new Object[] {\n"
             + "                  current[1],\n"
             + "                  current[0],\n"
@@ -3926,6 +4051,30 @@ public class JdbcTest {
   }
 
   /**
+   * Tests LAG function with IGNORE NULLS.
+   */
+  @Test public void testLagIgnoreNulls() {
+    final String sql = "select\n"
+        + "  lag(rn, expected, 42) ignore nulls over (w) l,\n"
+        + "  lead(rn, expected) over (w),\n"
+        + "  lead(rn, expected) over (order by expected)\n"
+        + "from (values"
+        + "  (1,0,1),\n"
+        + "  (2,0,1),\n"
+        + "  (2,0,1),\n"
+        + "  (3,1,2),\n"
+        + "  (4,0,3),\n"
+        + "  (cast(null as int),0,3),\n"
+        + "  (5,0,3),\n"
+        + "  (6,0,3),\n"
+        + "  (7,1,4),\n"
+        + "  (8,1,4)) as t(rn,val,expected)\n"
+        + "window w as (order by rn)";
+    CalciteAssert.that().query(sql)
+        .throws_("IGNORE NULLS not supported");
+  }
+
+  /**
    * Tests NTILE(2).
    */
   @Test public void testNtile1() {
@@ -3968,7 +4117,7 @@ public class JdbcTest {
   /**
    * Tests expression in offset value of LAG function.
    */
-  @Ignore("Have no idea how to validate that expression is constant")
+  @Disabled("Have no idea how to validate that expression is constant")
   @Test public void testNtileConstantArgs() {
     CalciteAssert.that()
         .query("select rn, ntile(1+1) over (order by rn) l\n"
@@ -4320,7 +4469,7 @@ public class JdbcTest {
    * different flavors of boolean logic</a>.
    *
    * @see QuidemTest sql/conditions.iq */
-  @Ignore("Fails with org.codehaus.commons.compiler.CompileException: Line 16, Column 112:"
+  @Disabled("Fails with org.codehaus.commons.compiler.CompileException: Line 16, Column 112:"
       + " Cannot compare types \"int\" and \"java.lang.String\"\n")
   @Test public void testComparingIntAndString() throws Exception {
     // if (((...test.ReflectiveSchemaTest.IntAndString) inputEnumerator.current()).id == "T")
@@ -4549,7 +4698,7 @@ public class JdbcTest {
         + " where e.\"deptno\"=\"depts\".\"deptno\") on true";
     final String explain = ""
         + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[$t6])\n"
-        + "  EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
@@ -4621,7 +4770,7 @@ public class JdbcTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-685">[CALCITE-685]
    * Correlated scalar sub-query in SELECT clause throws</a>. */
-  @Ignore("[CALCITE-685]")
+  @Disabled("[CALCITE-685]")
   @Test public void testCorrelatedScalarSubQuery() throws SQLException {
     final String sql = "select e.department_id, sum(e.employee_id),\n"
         + "       ( select sum(e2.employee_id)\n"
@@ -4630,7 +4779,7 @@ public class JdbcTest {
         + "       )\n"
         + "from employee e\n"
         + "group by e.department_id\n";
-    final String explain = "EnumerableJoin(condition=[true], joinType=[left])\n"
+    final String explain = "EnumerableHashJoin(condition=[true], joinType=[left])\n"
         + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
         + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
         + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
@@ -4967,7 +5116,7 @@ public class JdbcTest {
   /** Defines a materialized view and tests that the query is rewritten to use
    * it, and that the query produces the same result with and without it. There
    * are more comprehensive tests in {@link MaterializationTest}. */
-  @Ignore("until JdbcSchema can define materialized views")
+  @Disabled("until JdbcSchema can define materialized views")
   @Test public void testModelWithMaterializedView() {
     CalciteAssert.model(FOODMART_MODEL)
         .enable(false)
@@ -5318,7 +5467,7 @@ public class JdbcTest {
 
         // all table types
         try (ResultSet r =
-             metaData.getTables(null, "adhoc", null, null)) {
+                 metaData.getTables(null, "adhoc", null, null)) {
           assertEquals(
               "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
                   + "TABLE_CAT=null; TABLE_SCHEM=adhoc; TABLE_NAME=MUTABLE_EMPLOYEES; TABLE_TYPE=TABLE; REMARKS=null; TYPE_CAT=null; TYPE_SCHEM=null; TYPE_NAME=null; SELF_REFERENCING_COL_NAME=null; REF_GENERATION=null\n"
@@ -5524,7 +5673,8 @@ public class JdbcTest {
         .returns("PLAN=EnumerableValues(tuples=[[{ 1, 'ab' }]])\n\n");
     final String expectedXml = "PLAN=<RelNode type=\"EnumerableValues\">\n"
         + "\t<Property name=\"tuples\">\n"
-        + "\t\t[{ 1, &#39;ab&#39; }]\t</Property>\n"
+        + "\t\t[{ 1, &#39;ab&#39; }]\n"
+        + "\t</Property>\n"
         + "\t<Inputs/>\n"
         + "</RelNode>\n"
         + "\n";
@@ -5657,10 +5807,7 @@ public class JdbcTest {
             String s1 = resultSet.getString(1);
             assertFalse(resultSet.next());
 
-            assertTrue("\n"
-                    + "s0=" + s0 + "\n"
-                    + "s1=" + s1 + "\n",
-                s0.compareTo(s1) < 0);
+            assertThat(s0, ComparatorMatcherBuilder.<String>usingNaturalOrdering().lessThan(s1));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -5775,19 +5922,19 @@ public class JdbcTest {
       // timetz: 15:00:00+03
       ts = rs.getTimestamp(c);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
-                                                // 1970-01-01 13:00:00 +0100
+      // 1970-01-01 13:00:00 +0100
       ts = rs.getTimestamp(c, cUtc);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
-                                                // 1970-01-01 12:00:00 +0000
+      // 1970-01-01 12:00:00 +0000
       ts = rs.getTimestamp(c, cGmt03);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
-                                                // 1970-01-01 15:00:00 +0300
+      // 1970-01-01 15:00:00 +0300
       ts = rs.getTimestamp(c, cGmt05);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
-                                                // 1970-01-01 07:00:00 -0500
+      // 1970-01-01 07:00:00 -0500
       ts = rs.getTimestamp(c, cGmt13);
       assertEquals(43200000L, ts.getTime());    // 1970-01-01 15:00:00 +0300 ->
-                                                // 1970-01-02 01:00:00 +1300
+      // 1970-01-02 01:00:00 +1300
       ++c;
     }
 
@@ -5807,6 +5954,48 @@ public class JdbcTest {
     ++c;
 
     assertTrue(!rs.next());
+  }
+
+  /** Test for MONTHNAME and DAYNAME functions in two locales. */
+  @Test public void testMonthName() {
+    final String sql = "SELECT * FROM (VALUES(\n"
+        + " monthname(TIMESTAMP '1969-01-01 00:00:00'),\n"
+        + " monthname(DATE '1969-01-01'),\n"
+        + " monthname(DATE '2019-02-10'),\n"
+        + " monthname(TIMESTAMP '2019-02-10 02:10:12'),\n"
+        + " dayname(TIMESTAMP '1969-01-01 00:00:00'),\n"
+        + " dayname(DATE '1969-01-01'),\n"
+        + " dayname(DATE '2019-02-10'),\n"
+        + " dayname(TIMESTAMP '2019-02-10 02:10:12')\n"
+        + ")) AS t(t0, t1, t2, t3, t4, t5, t6, t7)";
+    Stream.of(TestLocale.values()).forEach(t -> {
+      try {
+        CalciteAssert.that()
+            .with(CalciteConnectionProperty.LOCALE, t.localeName)
+            .with(CalciteConnectionProperty.FUN, "mysql")
+            .doWithConnection(connection -> {
+              try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery(sql)) {
+                  assertThat(rs.next(), is(true));
+                  assertThat(rs.getString(1), is(t.january));
+                  assertThat(rs.getString(2), is(t.january));
+                  assertThat(rs.getString(3), is(t.february));
+                  assertThat(rs.getString(4), is(t.february));
+                  assertThat(rs.getString(5), is(t.wednesday));
+                  assertThat(rs.getString(6), is(t.wednesday));
+                  assertThat(rs.getString(7), is(t.sunday));
+                  assertThat(rs.getString(8), is(t.sunday));
+                  assertThat(rs.next(), is(false));
+                }
+              } catch (SQLException e) {
+                throw TestUtil.rethrow(e);
+              }
+            });
+      } catch (Exception e) {
+        System.out.println(t.localeName + ":" + Locale.getDefault().toString());
+        throw TestUtil.rethrow(e);
+      }
+    });
   }
 
   /** Tests accessing a column in a JDBC source whose type is DATE. */
@@ -5862,6 +6051,22 @@ public class JdbcTest {
         .with(CalciteAssert.Config.JDBC_SCOTT)
         .query("SELECT empno FROM JDBC_SCOTT.emp WHERE (ename, job) < ('Blake', 'Manager')")
         .returnsUnordered("EMPNO=7876", "EMPNO=7499", "EMPNO=7698");
+  }
+
+  @Test public void testTimestampEqualsComparison() {
+    CalciteAssert.that()
+        .query("select time0 = time1, time0 <> time1"
+            + " from ("
+            + "  select timestamp'2000-12-30 21:07:32'as time0,"
+            + "         timestamp'2000-12-30 21:07:32'as time1 "
+            + "  union all"
+            + "  select cast(null as timestamp) as time0,"
+            + "         cast(null as timestamp) as time1"
+            + ") calcs")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.eq(inp0_, inp1_)")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.ne(inp0_, inp1_)")
+        .returns("EXPR$0=true; EXPR$1=false\n"
+            + "EXPR$0=null; EXPR$1=null\n");
   }
 
   @Test public void testUnicode() throws Exception {
@@ -6540,20 +6745,20 @@ public class JdbcTest {
     Properties info = new Properties();
     info.put("model",
         "inline:"
-        + "{\n"
-        + "  version: '1.0',\n"
-        + "  defaultSchema: 'BASEJDBC',\n"
-        + "  schemas: [\n"
-        + "     {\n"
-        + "       type: 'jdbc',\n"
-        + "       name: 'BASEJDBC',\n"
-        + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
-        + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
-        + "       jdbcCatalog: null,\n"
-        + "       jdbcSchema: null\n"
-        + "     }\n"
-        + "  ]\n"
-        + "}");
+            + "{\n"
+            + "  version: '1.0',\n"
+            + "  defaultSchema: 'BASEJDBC',\n"
+            + "  schemas: [\n"
+            + "     {\n"
+            + "       type: 'jdbc',\n"
+            + "       name: 'BASEJDBC',\n"
+            + "       jdbcDriver: '" + jdbcDriver.class.getName() + "',\n"
+            + "       jdbcUrl: '" + hsqldbMemUrl + "',\n"
+            + "       jdbcCatalog: null,\n"
+            + "       jdbcSchema: null\n"
+            + "     }\n"
+            + "  ]\n"
+            + "}");
 
     Connection calciteConnection =
         DriverManager.getConnection("jdbc:calcite:", info);
@@ -6653,20 +6858,20 @@ public class JdbcTest {
    * ClassCastException in table from CloneSchema</a>. */
   @Test public void testNullableNumericColumnInCloneSchema() {
     CalciteAssert.model("{\n"
-            + "  version: '1.0',\n"
-            + "  defaultSchema: 'SCOTT_CLONE',\n"
-            + "  schemas: [ {\n"
-            + "    name: 'SCOTT_CLONE',\n"
-            + "    type: 'custom',\n"
-            + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
-            + "    operand: {\n"
-            + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
-            + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
-            + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
-            + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
-            + "      jdbcSchema: 'SCOTT'\n"
-            + "   } } ]\n"
-            + "}")
+        + "  version: '1.0',\n"
+        + "  defaultSchema: 'SCOTT_CLONE',\n"
+        + "  schemas: [ {\n"
+        + "    name: 'SCOTT_CLONE',\n"
+        + "    type: 'custom',\n"
+        + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
+        + "    operand: {\n"
+        + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
+        + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
+        + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
+        + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
+        + "      jdbcSchema: 'SCOTT'\n"
+        + "   } } ]\n"
+        + "}")
         .query("select * from emp")
         .returns(input -> {
           final StringBuilder buf = new StringBuilder();
@@ -6720,6 +6925,21 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3039">[CALCITE-3039]
+   * In Interpreter, min() incorrectly returns maximum double value</a>. */
+  @Test public void testMinAggWithDouble() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      CalciteAssert.hr()
+          .query(
+              "select min(div) as _min from ("
+                  + "select \"empid\", \"deptno\", CAST(\"empid\" AS DOUBLE)/\"deptno\" as div from \"hr\".\"emps\")")
+          .explainContains("BindableAggregate(group=[{}], _MIN=[MIN($0)])\n"
+              + "  BindableProject(DIV=[/(CAST($0):DOUBLE NOT NULL, $1)])\n"
+              + "    BindableTableScan(table=[[hr, emps]])")
+          .returns("_MIN=10.0\n");
+    }
+  }
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2224">[CALCITE-2224]
@@ -6795,7 +7015,73 @@ public class JdbcTest {
         .returns("EXPR$0=[250, 500, 1000]\n");
   }
 
-  @Ignore
+  @Test public void testMatchSimple() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"emps\" match_recognize (\n"
+        + "  order by \"empid\" desc\n"
+        + "  measures up.\"commission\" as c,\n"
+        + "    up.\"empid\" as empid,\n"
+        + "    2 as two\n"
+        + "  pattern (up s)\n"
+        + "  define up as up.\"empid\" = 100)";
+    final String convert = ""
+        + "LogicalProject(C=[$0], EMPID=[$1], TWO=[$2])\n"
+        + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n";
+    final String plan = "PLAN="
+        + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "  EnumerableTableScan(table=[[hr, emps]])";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .convertContains(convert)
+        .explainContains(plan)
+        .returns("C=1000; EMPID=100; TWO=2\nC=500; EMPID=200; TWO=2\n");
+  }
+
+  @Test public void testMatch() {
+    final String sql = "select *\n"
+        + "from \"hr\".\"emps\" match_recognize (\n"
+        + "  order by \"empid\" desc\n"
+        + "  measures \"commission\" as c,\n"
+        + "    \"empid\" as empid\n"
+        + "  pattern (s up)\n"
+        + "  define up as up.\"commission\" < prev(up.\"commission\"))";
+    final String convert = ""
+        + "LogicalProject(C=[$0], EMPID=[$1])\n"
+        + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "    EnumerableTableScan(table=[[hr, emps]])\n";
+    final String plan = "PLAN="
+        + "EnumerableMatch(partition=[[]], order=[[0 DESC]], "
+        + "outputFields=[[C, EMPID]], allRows=[false], "
+        + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
+        + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
+        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "inputFields=[[empid, deptno, name, salary, commission]])\n"
+        + "  EnumerableTableScan(table=[[hr, emps]])";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.REGULAR)
+        .query(sql)
+        .convertContains(convert)
+        .explainContains(plan)
+        .returns("C=1000; EMPID=100\nC=500; EMPID=200\n");
+  }
+
   @Test public void testJsonType() {
     CalciteAssert.that()
         .query("SELECT JSON_TYPE(v) AS c1\n"
@@ -6807,7 +7093,6 @@ public class JdbcTest {
         .returns("C1=OBJECT; C2=ARRAY; C3=INTEGER; C4=BOOLEAN\n");
   }
 
-  @Ignore
   @Test public void testJsonDepth() {
     CalciteAssert.that()
         .query("SELECT JSON_DEPTH(v) AS c1\n"
@@ -6817,6 +7102,17 @@ public class JdbcTest {
             + "FROM (VALUES ('{\"a\": [10, true],\"b\": \"[10, true]\"}')) AS t(v)\n"
             + "limit 10")
         .returns("C1=3; C2=2; C3=1; C4=1\n");
+  }
+
+  @Test public void testJsonLength() {
+    CalciteAssert.that()
+        .query("SELECT JSON_LENGTH(v) AS c1\n"
+            + ",JSON_LENGTH(v, 'lax $.a') AS c2\n"
+            + ",JSON_LENGTH(v, 'strict $.a[0]') AS c3\n"
+            + ",JSON_LENGTH(v, 'strict $.a[1]') AS c4\n"
+            + "FROM (VALUES ('{\"a\": [10, true]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=1; C2=2; C3=1; C4=1\n");
   }
 
   @Test
@@ -6829,6 +7125,37 @@ public class JdbcTest {
             + "  \"a\" : [ 10, true ],\n"
             + "  \"b\" : [ 10, true ]\n"
             + "}\n");
+  }
+
+  @Test public void testJsonKeys() {
+    CalciteAssert.that()
+        .query("SELECT JSON_KEYS(v) AS c1\n"
+            + ",JSON_KEYS(v, 'lax $.a') AS c2\n"
+            + ",JSON_KEYS(v, 'lax $.b') AS c3\n"
+            + ",JSON_KEYS(v, 'strict $.a[0]') AS c4\n"
+            + ",JSON_KEYS(v, 'strict $.a[1]') AS c5\n"
+            + "FROM (VALUES ('{\"a\": [10, true],\"b\": {\"c\": 30}}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"b\"]; C2=null; C3=[\"c\"]; C4=null; C5=null\n");
+  }
+
+  @Test public void testJsonRemove() {
+    CalciteAssert.that()
+        .query("SELECT JSON_REMOVE(v, '$[1]') AS c1\n"
+            + "FROM (VALUES ('[\"a\", [\"b\", \"c\"], \"d\"]')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1=[\"a\",\"d\"]\n");
+  }
+
+  @Test public void testJsonStorageSize() {
+    CalciteAssert.that()
+        .query("SELECT\n"
+            + "JSON_STORAGE_SIZE('[100, \"sakila\", [1, 3, 5], 425.05]') AS A,\n"
+            + "JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"a\", \"c\": \"[1, 3, 5, 7]\"}') AS B,\n"
+            + "JSON_STORAGE_SIZE('{\"a\": 10, \"b\": \"xyz\", \"c\": \"[1, 3, 5, 7]\"}') AS C,\n"
+            + "JSON_STORAGE_SIZE('[100, \"json\", [[10, 20, 30], 3, 5], 425.05]') AS D\n"
+            + "limit 10")
+        .returns("A=29; B=35; C=37; D=36\n");
   }
 
   /**
@@ -6884,6 +7211,21 @@ public class JdbcTest {
     }
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3347">[CALCITE-3347]
+   * IndexOutOfBoundsException in FixNullabilityShuttle when using FilterIntoJoinRule</a>.
+   */
+  @Test public void testSemiJoin() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .query("select *\n"
+            + " from \"foodmart\".\"employee\""
+            + " where \"employee_id\" = 1 and \"last_name\" in"
+            + " (select \"last_name\" from \"foodmart\".\"employee\" where \"employee_id\" = 2)")
+        .runs();
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
@@ -6900,6 +7242,34 @@ public class JdbcTest {
   // Disable checkstyle, so it doesn't complain about fields like "customer_id".
   //CHECKSTYLE: OFF
 
+  /** A schema that contains two tables by reflection.
+   *
+   * <p>Here is the SQL to create equivalent tables in Oracle:
+   *
+   * <blockquote>
+   * <pre>
+   * CREATE TABLE "emps" (
+   *   "empid" INTEGER NOT NULL,
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "salary" NUMBER(6, 2) NOT NULL,
+   *   "commission" INTEGER);
+   * INSERT INTO "emps" VALUES (100, 10, 'Bill', 10000, 1000);
+   * INSERT INTO "emps" VALUES (200, 20, 'Eric', 8000, 500);
+   * INSERT INTO "emps" VALUES (150, 10, 'Sebastian', 7000, null);
+   * INSERT INTO "emps" VALUES (110, 10, 'Theodore', 11500, 250);
+   *
+   * CREATE TABLE "depts" (
+   *   "deptno" INTEGER NOT NULL,
+   *   "name" VARCHAR2(10) NOT NULL,
+   *   "employees" ARRAY OF "Employee",
+   *   "location" "Location");
+   * INSERT INTO "depts" VALUES (10, 'Sales', null, (-122, 38));
+   * INSERT INTO "depts" VALUES (30, 'Marketing', null, (0, 52));
+   * INSERT INTO "depts" VALUES (40, 'HR', null, null);
+   * </pre>
+   * </blockquote>
+   */
   public static class HrSchema {
     @Override public String toString() {
       return "HrSchema";
@@ -6933,6 +7303,81 @@ public class JdbcTest {
     public TranslatableTable view(String s) {
       return Smalls.view(s);
     }
+  }
+
+  public static class HrSchemaBig {
+    @Override public String toString() {
+      return "HrSchema";
+    }
+
+    public final Employee[] emps = {
+        new Employee(1, 10, "Bill", 10000, 1000),
+        new Employee(2, 20, "Eric", 8000, 500),
+        new Employee(3, 10, "Sebastian", 7000, null),
+        new Employee(4, 10, "Theodore", 11500, 250),
+        new Employee(5, 10, "Marjorie", 10000, 1000),
+        new Employee(6, 20, "Guy", 8000, 500),
+        new Employee(7, 10, "Dieudonne", 7000, null),
+        new Employee(8, 10, "Haroun", 11500, 250),
+        new Employee(9, 10, "Sarah", 10000, 1000),
+        new Employee(10, 20, "Gabriel", 8000, 500),
+        new Employee(11, 10, "Pierre", 7000, null),
+        new Employee(12, 10, "Paul", 11500, 250),
+        new Employee(13, 10, "Jacques", 100, 1000),
+        new Employee(14, 20, "Khawla", 8000, 500),
+        new Employee(15, 10, "Brielle", 7000, null),
+        new Employee(16, 10, "Hyuna", 11500, 250),
+        new Employee(17, 10, "Ahmed", 10000, 1000),
+        new Employee(18, 20, "Lara", 8000, 500),
+        new Employee(19, 10, "Capucine", 7000, null),
+        new Employee(20, 10, "Michelle", 11500, 250),
+        new Employee(21, 10, "Cerise", 10000, 1000),
+        new Employee(22, 80, "Travis", 8000, 500),
+        new Employee(23, 10, "Taylor", 7000, null),
+        new Employee(24, 10, "Seohyun", 11500, 250),
+        new Employee(25, 70, "Helen", 10000, 1000),
+        new Employee(26, 50, "Patric", 8000, 500),
+        new Employee(27, 10, "Clara", 7000, null),
+        new Employee(28, 10, "Catherine", 11500, 250),
+        new Employee(29, 10, "Anibal", 10000, 1000),
+        new Employee(30, 30, "Ursula", 8000, 500),
+        new Employee(31, 10, "Arturito", 7000, null),
+        new Employee(32, 70, "Diane", 11500, 250),
+        new Employee(33, 10, "Phoebe", 10000, 1000),
+        new Employee(34, 20, "Maria", 8000, 500),
+        new Employee(35, 10, "Edouard", 7000, null),
+        new Employee(36, 110, "Isabelle", 11500, 250),
+        new Employee(37, 120, "Olivier", 10000, 1000),
+        new Employee(38, 20, "Yann", 8000, 500),
+        new Employee(39, 60, "Ralf", 7000, null),
+        new Employee(40, 60, "Emmanuel", 11500, 250),
+        new Employee(41, 10, "Berenice", 10000, 1000),
+        new Employee(42, 20, "Kylie", 8000, 500),
+        new Employee(43, 80, "Natacha", 7000, null),
+        new Employee(44, 100, "Henri", 11500, 250),
+        new Employee(45, 90, "Pascal", 10000, 1000),
+        new Employee(46, 90, "Sabrina", 8000, 500),
+        new Employee(47, 8, "Riyad", 7000, null),
+        new Employee(48, 5, "Andy", 11500, 250),
+    };
+    public final Department[] depts = {
+        new Department(10, "Sales", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(20, "Marketing", ImmutableList.of(), new Location(0, 52)),
+        new Department(30, "HR", Collections.singletonList(emps[1]), null),
+        new Department(40, "Administration", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(50, "Design", ImmutableList.of(), new Location(0, 52)),
+        new Department(60, "IT", Collections.singletonList(emps[1]), null),
+        new Department(70, "Production", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(80, "Finance", ImmutableList.of(), new Location(0, 52)),
+        new Department(90, "Accounting", Collections.singletonList(emps[1]), null),
+        new Department(100, "Research", Arrays.asList(emps[0], emps[2]),
+            new Location(-122, 38)),
+        new Department(110, "Maintenance", ImmutableList.of(), new Location(0, 52)),
+        new Department(120, "Client Support", Collections.singletonList(emps[1]), null),
+    };
   }
 
   public static class Employee {
@@ -7320,6 +7765,42 @@ public class JdbcTest {
     public MyTable2[] mytable2 = { new MyTable2() };
   }
 
+  /** Locales for which to test DAYNAME and MONTHNAME functions,
+   * and expected results of those functions. */
+  enum TestLocale {
+    ROOT(Locale.ROOT.toString(), shorten("Wednesday"), shorten("Sunday"),
+        shorten("January"), shorten("February")),
+    EN("en", "Wednesday", "Sunday", "January", "February"),
+    FR("fr", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
+    FR_FR("fr_FR", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
+    FR_CA("fr_CA", "mercredi", "dimanche", "janvier", "f\u00e9vrier"),
+    ZH_CN("zh_CN", "\u661f\u671f\u4e09", "\u661f\u671f\u65e5", "\u4e00\u6708",
+        "\u4e8c\u6708"),
+    ZH("zh", "\u661f\u671f\u4e09", "\u661f\u671f\u65e5", "\u4e00\u6708",
+        "\u4e8c\u6708");
+
+    private static String shorten(String name) {
+      // In root locale, for Java versions 9 and higher, day and month names
+      // are shortened to 3 letters. This means root locale behaves differently
+      // to English.
+      return TestUtil.getJavaMajorVersion() > 8 ? name.substring(0, 3) : name;
+    }
+
+    public final String localeName;
+    public final String wednesday;
+    public final String sunday;
+    public final String january;
+    public final String february;
+
+    TestLocale(String localeName, String wednesday, String sunday,
+        String january, String february) {
+      this.localeName = localeName;
+      this.wednesday = wednesday;
+      this.sunday = sunday;
+      this.january = january;
+      this.february = february;
+    }
+  }
 }
 
 // End JdbcTest.java

@@ -37,7 +37,7 @@ limitations under the License.
     <!-- Verify that EVERY source file has the appropriate license -->
   <module name="Header">
     <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.java.txt"/>
-    <property name="fileExtensions" value="cql,java,jj,json,kt"/>
+    <property name="fileExtensions" value="cql,jj,json"/>
   </module>
   <module name="Header">
     <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.properties.txt"/>
@@ -66,7 +66,7 @@ limitations under the License.
   <module name="FileTabCharacter"/>
 
   <module name="TreeWalker">
-    <property name="cacheFile" value="target/checkstyle-cachefile"/>
+    <property name="cacheFile" value="build/checkstyle-cachefile"/>
 
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
@@ -129,13 +129,6 @@ limitations under the License.
       <property name="processJavadoc" value="true"/>
     </module>
     <module name="IllegalImport" />
-    <module name="AvoidStarImport" />
-    <module name="ImportOrder">
-      <property name="groups" value="org.apache.calcite,org.apache,au.com.,com.,io.,mondrian.,net.,org.,scala.,/^javax?\./"/>
-      <property name="ordered" value="true"/>
-      <property name="separated" value="true"/>
-      <property name="option" value="bottom"/>
-    </module>
 
     <!-- Checks for Javadoc comments (tree walker).       -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
@@ -285,4 +278,8 @@ limitations under the License.
   </module>
 
   <module name="net.hydromatic.toolbox.checkstyle.HydromaticFileSetCheck"/>
+
+  <module name="SuppressionFilter">
+    <property name="file" value="${base_dir}/src/main/config/checkstyle/suppressions.xml"/>
+  </module>
 </module>

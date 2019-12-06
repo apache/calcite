@@ -37,8 +37,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
+import org.bson.json.JsonWriterSettings;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -52,11 +51,20 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Testing mongo adapter functionality. By default runs with
@@ -90,7 +98,7 @@ public class MongoAdapterTest implements SchemaFactory {
     // Manually insert data for data-time test.
     MongoCollection<BsonDocument> datatypes =  database.getCollection("datatypes")
         .withDocumentClass(BsonDocument.class);
-    if (datatypes.count() > 0) {
+    if (datatypes.countDocuments() > 0) {
       datatypes.deleteMany(new BsonDocument());
     }
 
@@ -108,7 +116,7 @@ public class MongoAdapterTest implements SchemaFactory {
       throws IOException {
     Objects.requireNonNull(collection, "collection");
 
-    if (collection.count() > 0) {
+    if (collection.countDocuments() > 0) {
       // delete any existing documents (run from a clean set)
       collection.deleteMany(new BsonDocument());
     }
@@ -389,9 +397,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testCountGroupByEmptyMultiplyBy2() {
-    // This operation is not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
-
     assertModel(MODEL)
         .query("select count(*)*2 from zips")
         .returns(String.format(Locale.ROOT, "EXPR$0=%d\n", ZIPS_SIZE * 2))
@@ -461,8 +466,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testGroupByAvgSumCount() {
-    // This operation not supported by fongo: https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query(
             "select state, avg(pop) as a, sum(pop) as s, count(pop) as c from zips group by state order by state")
@@ -471,7 +474,7 @@ public class MongoAdapterTest implements SchemaFactory {
             + "STATE=AL; A=43383; S=130151; C=3\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
                 "{$sort: {STATE: 1}}",
@@ -587,9 +590,6 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   @Test public void testDistinctCountOrderBy() {
-    // java.lang.ClassCastException: com.mongodb.BasicDBObject cannot be cast to java.lang.Number
-    // https://github.com/fakemongo/fongo/issues/152
-    MongoAssertions.assumeRealMongoInstance();
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc\n"
             + "from zips\n"
@@ -723,8 +723,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .query("select count(*) from zips")
         .returns(input -> {
           try {
-            Assert.assertThat(input.next(), CoreMatchers.is(true));
-            Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
+            assertThat(input.next(), is(true));
+            assertThat(input.getInt(1), is(ZIPS_SIZE));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -732,20 +732,51 @@ public class MongoAdapterTest implements SchemaFactory {
   }
 
   /**
-   * Returns a function that checks that a particular MongoDB pipeline is
-   * generated to implement a query.
+   * Returns a function that checks that a particular MongoDB query
+   * has been called.
    *
-   * @param strings Expected expressions
+   * @param expected Expected query (as array)
    * @return validation function
    */
-  private static Consumer<List> mongoChecker(final String... strings) {
+  private static Consumer<List> mongoChecker(final String... expected) {
     return actual -> {
-      Object[] actualArray =
-          actual == null || actual.isEmpty()
-              ? null
-              : ((List) actual.get(0)).toArray();
-      CalciteAssert.assertArrayEqual("expected MongoDB query not found",
-          strings, actualArray);
+      if (expected == null) {
+        assertThat("null mongo Query", actual, nullValue());
+        return;
+      }
+
+      if (expected.length == 0) {
+        CalciteAssert.assertArrayEqual("empty Mongo query", expected,
+            actual.toArray(new Object[0]));
+        return;
+      }
+
+      // comparing list of Bsons (expected and actual)
+      final List<BsonDocument> expectedBsons = Arrays.stream(expected).map(BsonDocument::parse)
+          .collect(Collectors.toList());
+
+      final List<BsonDocument> actualBsons =  ((List<?>) actual.get(0))
+          .stream()
+          .map(Objects::toString)
+          .map(BsonDocument::parse)
+          .collect(Collectors.toList());
+
+      // compare Bson (not string) representation
+      if (!expectedBsons.equals(actualBsons)) {
+        final JsonWriterSettings settings = JsonWriterSettings.builder().indent(true).build();
+        // outputs Bson in pretty Json format (with new lines)
+        // so output is human friendly in IDE diff tool
+        final Function<List<BsonDocument>, String> prettyFn = bsons -> bsons.stream()
+            .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
+
+        // used to pretty print Assertion error
+        assertEquals(
+            prettyFn.apply(expectedBsons),
+            prettyFn.apply(actualBsons),
+            "expected and actual Mongo queries (pipelines) do not match");
+
+        fail("Should have failed previously because expected != actual is known to be true");
+      }
     };
   }
 }

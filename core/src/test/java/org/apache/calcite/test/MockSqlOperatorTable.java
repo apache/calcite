@@ -18,16 +18,22 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.util.ListSqlOperatorTable;
+import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
@@ -61,6 +67,8 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
     // using reflection when we are deserializing from JSON.
     opTab.addOperator(new RampFunction());
     opTab.addOperator(new DedupFunction());
+    opTab.addOperator(new MyFunction());
+    opTab.addOperator(new MyAvgAggFunction());
   }
 
   /** "RAMP" user-defined function. */
@@ -100,6 +108,40 @@ public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
       return typeFactory.builder()
           .add("NAME", SqlTypeName.VARCHAR, 1024)
           .build();
+    }
+  }
+
+  /** "MYFUN" user-defined scalar function. */
+  public static class MyFunction extends SqlFunction {
+    public MyFunction() {
+      super("MYFUN",
+          new SqlIdentifier("MYFUN", SqlParserPos.ZERO),
+          SqlKind.OTHER_FUNCTION,
+          null,
+          null,
+          OperandTypes.NUMERIC,
+          null,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
+    public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+      final RelDataTypeFactory typeFactory =
+          opBinding.getTypeFactory();
+      return typeFactory.createSqlType(SqlTypeName.BIGINT);
+    }
+  }
+
+  /** "MYAGG" user-defined aggregate function. This agg function accept two numeric arguments
+   * in order to reproduce the throws of CALCITE-2744. */
+  public static class MyAvgAggFunction extends SqlAggFunction {
+    public MyAvgAggFunction() {
+      super("MYAGG", null, SqlKind.AVG, ReturnTypes.AVG_AGG_FUNCTION,
+          null, OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC),
+          SqlFunctionCategory.NUMERIC, false, false, Optionality.FORBIDDEN);
+    }
+
+    @Override public boolean isDeterministic() {
+      return false;
     }
   }
 }

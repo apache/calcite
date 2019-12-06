@@ -42,6 +42,7 @@ presenting the data as tables within a schema.
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
 * Eclipse Memory Analyzer (MAT) adapter (<a href="https://github.com/vlsi/mat-calcite-plugin">mat-calcite-plugin</a>)
+* [Apache Kafka adapter](kafka_adapter.html)
 
 ### Other language interfaces
 
@@ -101,18 +102,19 @@ as implemented by Avatica's
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#TIME_ZONE">timeZone</a> | Time zone, for example "gmt-3". Default is the JVM's time zone.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#TYPE_SYSTEM">typeSystem</a> | Type system. The name of a class that implements [<code>interface RelDataTypeSystem</code>]({{ site.apiRoot }}/org/apache/calcite/rel/type/RelDataTypeSystem.html) and has a public default constructor or an `INSTANCE` constant.
 | <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#UNQUOTED_CASING">unquotedCasing</a> | How identifiers are stored if they are not quoted. Values are UNCHANGED, TO_UPPER, TO_LOWER. If not specified, value from `lex` is used.
+| <a href="{{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#TYPE_COERCION">typeCoercion</a> | Whether to make implicit type coercion when type mismatch during sql node validation, default is true.
 
 To make a connection to a single schema based on a built-in schema type, you don't need to specify
 a model. For example,
 
-  jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart
+  `jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart`
 
 creates a connection with a schema mapped via the JDBC schema adapter to the foodmart database.
 
 Similarly, you can connect to a single schema based on a user-defined schema adapter.
 For example,
 
-  jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra
+  `jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra`
 
 makes a connection to the Cassandra adapter, equivalent to writing the following model file:
 
@@ -154,6 +156,8 @@ adding some DDL commands:
 * `CREATE` and `DROP TABLE` (including `CREATE TABLE ... AS SELECT`)
 * `CREATE` and `DROP MATERIALIZED VIEW`
 * `CREATE` and `DROP VIEW`
+* `CREATE` and `DROP FUNCTION`
+* `CREATE` and `DROP TYPE`
 
 Commands are described in the [SQL reference](reference.html#ddl-extensions).
 
@@ -569,7 +573,7 @@ Calcite generates Java code, compiles it, and executes inside its own JVM.
 Enumerable convention is less efficient than, say, a distributed engine
 running over column-oriented data files, but it can implement all core
 relational operators and all built-in SQL functions and operators. If a data
-source cannot an implement a relational operator, enumerable convention is
+source cannot implement a relational operator, enumerable convention is
 a fall-back.
 
 ### Statistics and cost
@@ -610,4 +614,3 @@ While preparing a query Calcite combines all of the applicable metadata
 providers and maintains a cache so that a given piece of metadata (for example
 the selectivity of the condition `x > 10` in a particular `Filter` operator)
 is computed only once.
-

@@ -321,8 +321,13 @@ public interface SqlWriter {
 
   /**
    * Prints an identifier, quoting as necessary.
+   *
+   * @param name   The identifier name
+   * @param quoted Whether this identifier was quoted in the original sql statement,
+   *               this may not be the only factor to decide whether this identifier
+   *               should be quoted
    */
-  void identifier(String name);
+  void identifier(String name, boolean quoted);
 
   /**
    * Prints a dynamic parameter (e.g. {@code ?} for default JDBC)
@@ -333,6 +338,13 @@ public interface SqlWriter {
    * Prints the OFFSET/FETCH clause.
    */
   void fetchOffset(SqlNode fetch, SqlNode offset);
+
+  /**
+   * Prints the TOP(n) clause.
+   *
+   * @see #fetchOffset
+   */
+  void topN(SqlNode fetch, SqlNode offset);
 
   /**
    * Prints a new line, and indents.

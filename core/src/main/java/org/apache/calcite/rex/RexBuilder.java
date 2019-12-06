@@ -286,7 +286,6 @@ public class RexBuilder {
    *
    * @param aggCall aggregate call to be added
    * @param groupCount number of groups in the aggregate relation
-   * @param indicator Whether the Aggregate has indicator (GROUPING) columns
    * @param aggCalls destination list of aggregate calls
    * @param aggCallMapping the dictionary of already added calls
    * @param aggArgTypes Argument types, not null
@@ -294,7 +293,7 @@ public class RexBuilder {
    * @return Rex expression for the given aggregate call
    */
   public RexNode addAggCall(AggregateCall aggCall, int groupCount,
-      boolean indicator, List<AggregateCall> aggCalls,
+      List<AggregateCall> aggCalls,
       Map<AggregateCall, RexNode> aggCallMapping,
       final List<RelDataType> aggArgTypes) {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
@@ -308,12 +307,27 @@ public class RexBuilder {
     }
     RexNode rex = aggCallMapping.get(aggCall);
     if (rex == null) {
-      int index = aggCalls.size() + groupCount * (indicator ? 2 : 1);
+      int index = aggCalls.size() + groupCount;
       aggCalls.add(aggCall);
       rex = makeInputRef(aggCall.getType(), index);
       aggCallMapping.put(aggCall, rex);
     }
     return rex;
+  }
+
+  /**
+   * Creates a reference to an aggregate call, checking for repeated calls.
+   */
+  @Deprecated // to be removed before 2.0
+  public RexNode addAggCall(AggregateCall aggCall, int groupCount,
+      boolean indicator, List<AggregateCall> aggCalls,
+      Map<AggregateCall, RexNode> aggCallMapping,
+      final List<RelDataType> aggArgTypes) {
+    Preconditions.checkArgument(!indicator,
+        "indicator is deprecated, use GROUPING function instead");
+    return addAggCall(aggCall, groupCount, aggCalls,
+        aggCallMapping, aggArgTypes);
+
   }
 
   private static List<Integer> nullableArgs(List<Integer> list0,
@@ -325,6 +339,17 @@ public class RexBuilder {
       }
     }
     return list;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public RexNode makeOver(RelDataType type, SqlAggFunction operator,
+      List<RexNode> exprs, List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound, RexWindowBound upperBound,
+      boolean physical, boolean allowPartial, boolean nullWhenCountZero,
+      boolean distinct) {
+    return makeOver(type, operator, exprs, partitionKeys, orderKeys, lowerBound,
+        upperBound, physical, allowPartial, nullWhenCountZero, distinct, false);
   }
 
   /**
@@ -341,7 +366,8 @@ public class RexBuilder {
       boolean physical,
       boolean allowPartial,
       boolean nullWhenCountZero,
-      boolean distinct) {
+      boolean distinct,
+      boolean ignoreNulls) {
     assert operator != null;
     assert exprs != null;
     assert partitionKeys != null;
@@ -353,14 +379,15 @@ public class RexBuilder {
             lowerBound,
             upperBound,
             physical);
-    final RexOver over = new RexOver(type, operator, exprs, window, distinct);
+    final RexOver over = new RexOver(type, operator, exprs, window,
+        distinct, ignoreNulls);
     RexNode result = over;
 
     // This should be correct but need time to go over test results.
     // Also want to look at combing with section below.
     if (nullWhenCountZero) {
-      final RelDataType bigintType = getTypeFactory().createSqlType(
-          SqlTypeName.BIGINT);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
       result = makeCall(
           SqlStdOperatorTable.CASE,
           makeCall(
@@ -370,21 +397,22 @@ public class RexBuilder {
                   SqlStdOperatorTable.COUNT,
                   exprs,
                   window,
-                  distinct),
+                  distinct,
+                  ignoreNulls),
               makeLiteral(
                   BigDecimal.ZERO,
                   bigintType,
                   SqlTypeName.DECIMAL)),
           ensureType(type, // SUM0 is non-nullable, thus need a cast
               new RexOver(typeFactory.createTypeWithNullability(type, false),
-              operator, exprs, window, distinct),
+                  operator, exprs, window, distinct, ignoreNulls),
               false),
-          makeCast(type, constantNull()));
+          makeNullLiteral(type));
     }
     if (!allowPartial) {
       Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
-      final RelDataType bigintType = getTypeFactory().createSqlType(
-          SqlTypeName.BIGINT);
+      final RelDataType bigintType =
+          typeFactory.createSqlType(SqlTypeName.BIGINT);
       // todo: read bound
       result =
           makeCall(
@@ -396,7 +424,8 @@ public class RexBuilder {
                       SqlStdOperatorTable.COUNT,
                       ImmutableList.of(),
                       window,
-                      distinct),
+                      distinct,
+                      ignoreNulls),
                   makeLiteral(
                       BigDecimal.valueOf(2),
                       bigintType,
@@ -434,7 +463,11 @@ public class RexBuilder {
 
   /**
    * Creates a constant for the SQL <code>NULL</code> value.
+   *
+   * @deprecated Use {@link #makeNullLiteral(RelDataType)}, which produces a
+   * NULL of the correct type
    */
+  @Deprecated // to be removed before 2.0
   public RexLiteral constantNull() {
     return constantNull;
   }
@@ -642,10 +675,8 @@ public class RexBuilder {
         multiplier, divider);
     if (scale > 0) {
       RelDataType decimalType =
-          getTypeFactory().createSqlType(
-              SqlTypeName.DECIMAL,
-              scale + exp.getType().getPrecision(),
-              scale);
+          typeFactory.createSqlType(SqlTypeName.DECIMAL,
+              scale + exp.getType().getPrecision(), scale);
       value = encodeIntervalOrDecimal(value, decimalType, false);
     }
     return ensureType(toType, value, false);
@@ -839,6 +870,18 @@ public class RexBuilder {
   public RexPatternFieldRef makePatternFieldRef(String alpha, RelDataType type, int i) {
     type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
     return new RexPatternFieldRef(alpha, i, type);
+  }
+
+  /**
+   * Create a reference to local variable.
+   *
+   * @param type Type of variable
+   * @param i    Ordinal of variable
+   * @return  Reference to local variable
+   */
+  public RexLocalRef makeLocalRef(RelDataType type, int i) {
+    type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
+    return new RexLocalRef(i, type);
   }
 
   /**
@@ -1089,9 +1132,7 @@ public class RexBuilder {
     boolean typeNullability = type.isNullable();
     boolean valueNullability = value.getType().isNullable();
     if (typeNullability != valueNullability) {
-      return getTypeFactory().createTypeWithNullability(
-          type,
-          valueNullability);
+      return typeFactory.createTypeWithNullability(type, valueNullability);
     }
     return type;
   }
@@ -1227,7 +1268,7 @@ public class RexBuilder {
     if (!type.isNullable()) {
       type = typeFactory.createTypeWithNullability(type, true);
     }
-    return (RexLiteral) makeCast(type, constantNull());
+    return (RexLiteral) makeCast(type, constantNull);
   }
 
   /** @deprecated Use {@link #makeNullLiteral(RelDataType)} */
@@ -1390,6 +1431,8 @@ public class RexBuilder {
     case INTERVAL_SECOND:
       return makeIntervalLiteral((BigDecimal) value,
           type.getIntervalQualifier());
+    case SYMBOL:
+      return makeFlag((Enum) value);
     case MAP:
       final MapSqlType mapType = (MapSqlType) type;
       @SuppressWarnings("unchecked")

@@ -39,16 +39,26 @@ public class PigAggregate extends Aggregate implements PigRel {
   public static final String DISTINCT_FIELD_SUFFIX = "_DISTINCT";
 
   /** Creates a PigAggregate. */
-  public PigAggregate(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-    super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
+  public PigAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     assert getConvention() == PigRel.CONVENTION;
   }
 
-  @Override public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-    return new PigAggregate(input.getCluster(), traitSet, input, indicator, groupSet, groupSets,
-        aggCalls);
+  @Deprecated // to be removed before 2.0
+  public PigAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
+  @Override public Aggregate copy(RelTraitSet traitSet, RelNode input,
+      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    return new PigAggregate(input.getCluster(), traitSet, input, groupSet,
+        groupSets, aggCalls);
   }
 
   @Override public void implement(Implementor implementor) {

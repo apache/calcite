@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Paraccel database.
  */
 public class ParaccelSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new ParaccelSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.PARACCEL)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.PARACCEL)
+      .withIdentifierQuoteString("\"");
+
+  public static final SqlDialect DEFAULT = new ParaccelSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a ParaccelSqlDialect. */
   public ParaccelSqlDialect(Context context) {

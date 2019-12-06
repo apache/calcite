@@ -18,9 +18,6 @@
 /**
  * TPC-DS schema.
  */
-@PackageMarker
 package org.apache.calcite.adapter.tpcds;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

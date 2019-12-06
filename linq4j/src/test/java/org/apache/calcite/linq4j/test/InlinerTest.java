@@ -17,15 +17,17 @@
 package org.apache.calcite.linq4j.test;
 
 import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.DeclarationStatement;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.linq4j.tree.Statement;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 
@@ -33,8 +35,8 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests expression inlining in BlockBuilder.
@@ -42,7 +44,7 @@ import static org.junit.Assert.assertThat;
 public class InlinerTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }
@@ -193,6 +195,32 @@ public class InlinerTest {
             + "  return u + v;\n"
             + "}\n",
         Expressions.toString(builder.toBlock()));
+  }
+
+  @Test public void testInlineInTryCatchStatement() {
+    final BlockBuilder builder = new BlockBuilder(true);
+    final ParameterExpression t = Expressions.parameter(int.class, "t");
+    builder.add(Expressions.declare(Modifier.FINAL, t, ONE));
+    final ParameterExpression u = Expressions.parameter(int.class, "u");
+    builder.add(Expressions.declare(Modifier.FINAL, u, null));
+    Statement st = Expressions.statement(
+        Expressions.assign(u,
+            Expressions.makeBinary(ExpressionType.Add, t, TWO)));
+    ParameterExpression e = Expressions.parameter(0, Exception.class, "e");
+    CatchBlock cb = Expressions.catch_(e, Expressions.throw_(e));
+    builder.add(Expressions.tryCatch(st, cb));
+    builder.add(Expressions.return_(null, u));
+    assertEquals(
+        "{\n"
+            + "  final int u;\n"
+            + "  try {\n"
+            + "    u = 1 + 2;\n"
+            + "  } catch (Exception e) {\n"
+            + "    throw e;\n"
+            + "  }\n"
+            + "  return u;\n"
+            + "}\n",
+        builder.toBlock().toString());
   }
 }
 

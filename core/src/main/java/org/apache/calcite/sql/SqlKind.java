@@ -92,6 +92,16 @@ public enum SqlKind {
   SELECT,
 
   /**
+   * Sql Hint statement.
+   */
+  HINT,
+
+  /**
+   * Table reference.
+   */
+  TABLE_REF,
+
+  /**
    * JOIN operator or compound FROM clause.
    *
    * <p>A FROM clause with more than one table is represented as if it were a
@@ -177,6 +187,9 @@ public enum SqlKind {
   /** Item in WITH clause. */
   WITH_ITEM,
 
+  /** Item expression */
+  ITEM,
+
   /**
    * Union
    */
@@ -211,6 +224,16 @@ public enum SqlKind {
    * OVER operator
    */
   OVER,
+
+  /**
+   * RESPECT NULLS operator
+   */
+  RESPECT_NULLS("RESPECT NULLS"),
+
+  /**
+   * IGNORE NULLS operator
+   */
+  IGNORE_NULLS("IGNORE NULLS"),
 
   /**
    * FILTER operator
@@ -405,6 +428,16 @@ public enum SqlKind {
    * The "SIMILAR" operator.
    */
   SIMILAR,
+
+  /**
+   * The "~" operator.
+   */
+  POSIX_REGEX_CASE_SENSITIVE,
+
+  /**
+   * The "~*" operator.
+   */
+  POSIX_REGEX_CASE_INSENSITIVE,
 
   /**
    * The "BETWEEN" operator.
@@ -678,7 +711,8 @@ public enum SqlKind {
   COLUMN_LIST,
 
   /**
-   * The "CAST" operator.
+   * The "CAST" operator, and also the PostgreSQL-style infix cast operator
+   * "::".
    */
   CAST,
 
@@ -723,6 +757,11 @@ public enum SqlKind {
   EXTRACT,
 
   /**
+   * The "REVERSE" function (SQL Server, MySQL).
+   */
+  REVERSE,
+
+  /**
    * Call to a function using JDBC function syntax.
    */
   JDBC_FN,
@@ -741,11 +780,6 @@ public enum SqlKind {
    * The JSON value expression.
    */
   JSON_VALUE_EXPRESSION,
-
-  /**
-   * The JSON API common syntax.
-   */
-  JSON_API_COMMON_SYNTAX,
 
   /**
    * The {@code JSON_ARRAYAGG} aggregate function.
@@ -920,6 +954,9 @@ public enum SqlKind {
 
   /** The {@code NTH_VALUE} aggregate function. */
   NTH_VALUE,
+
+  /** The {@code LISTAGG} aggregate function. */
+  LISTAGG,
 
   /** The {@code COLLECT} aggregate function. */
   COLLECT,
@@ -1115,7 +1152,7 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, LISTAGG);
 
   /**
    * Category consisting of all DML operators.
@@ -1143,6 +1180,7 @@ public enum SqlKind {
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
           CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
           CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+          CREATE_FUNCTION, DROP_FUNCTION,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
           DROP_MATERIALIZED_VIEW,
@@ -1194,13 +1232,14 @@ public enum SqlKind {
           concat(
               EnumSet.of(AS, ARGUMENT_ASSIGNMENT, DEFAULT,
                   RUNNING, FINAL, LAST, FIRST, PREV, NEXT,
+                  FILTER, WITHIN_GROUP, IGNORE_NULLS, RESPECT_NULLS,
                   DESCENDING, CUBE, ROLLUP, GROUPING_SETS, EXTEND, LATERAL,
                   SELECT, JOIN, OTHER_FUNCTION, POSITION, CAST, TRIM, FLOOR, CEIL,
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
-                  JSON_VALUE_EXPRESSION, JSON_API_COMMON_SYNTAX),
+                  VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  JSON_VALUE_EXPRESSION),
               AGGREGATE, DML, DDL));
 
   /**
@@ -1214,10 +1253,10 @@ public enum SqlKind {
    * Category consisting of regular and special functions.
    *
    * <p>Consists of regular functions {@link #OTHER_FUNCTION} and special
-   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #JDBC_FN}.
+   * functions {@link #ROW}, {@link #TRIM}, {@link #CAST}, {@link #REVERSE}, {@link #JDBC_FN}.
    */
   public static final Set<SqlKind> FUNCTION =
-      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, JDBC_FN, POSITION);
+      EnumSet.of(OTHER_FUNCTION, ROW, TRIM, LTRIM, RTRIM, CAST, REVERSE, JDBC_FN, POSITION);
 
   /**
    * Category of SqlAvgAggFunction.
@@ -1254,6 +1293,49 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /**
+   * Category of binary arithmetic.
+   *
+   * <p>Consists of:
+   * {@link #PLUS}
+   * {@link #MINUS}
+   * {@link #TIMES}
+   * {@link #DIVIDE}
+   * {@link #MOD}.
+   */
+  public static final Set<SqlKind> BINARY_ARITHMETIC =
+      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+
+  /**
+   * Category of binary equality.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   */
+  public static final Set<SqlKind> BINARY_EQUALITY =
+      EnumSet.of(EQUALS, NOT_EQUALS);
+
+  /**
+   * Category of binary comparison.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   * {@link #GREATER_THAN}
+   * {@link #GREATER_THAN_OR_EQUAL}
+   * {@link #LESS_THAN}
+   * {@link #LESS_THAN_OR_EQUAL}
+   * {@link #IS_DISTINCT_FROM}
+   * {@link #IS_NOT_DISTINCT_FROM}
+   */
+  public static final Set<SqlKind> BINARY_COMPARISON =
+      EnumSet.of(
+          EQUALS, NOT_EQUALS,
+          GREATER_THAN, GREATER_THAN_OR_EQUAL,
+          LESS_THAN, LESS_THAN_OR_EQUAL,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);

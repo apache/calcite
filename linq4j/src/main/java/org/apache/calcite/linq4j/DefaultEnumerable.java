@@ -216,12 +216,21 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.except(getThis(), enumerable1);
+    return except(enumerable1, false);
+  }
+
+  public Enumerable<T> except(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.except(getThis(), enumerable1, comparer);
+    return except(enumerable1, comparer, false);
+  }
+
+  public Enumerable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, comparer, all);
   }
 
   public T first() {
@@ -328,12 +337,21 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1);
+    return intersect(enumerable1, false);
+  }
+
+  public Enumerable<T> intersect(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer);
+    return intersect(enumerable1, comparer, false);
+  }
+
+  public Enumerable<T> intersect(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer, all);
   }
 
   public <C extends Collection<? super T>> C into(C sink) {
@@ -344,36 +362,48 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.remove(getThis(), sink);
   }
 
-  public <TInner, TKey, TResult> Enumerable<TResult> join(
+  public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector) {
-    return EnumerableDefaults.join(getThis(), inner, outerKeySelector,
+    return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector);
   }
 
-  public <TInner, TKey, TResult> Enumerable<TResult> join(
+  public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer) {
-    return EnumerableDefaults.join(getThis(), inner, outerKeySelector,
+    return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer);
   }
 
-  public <TInner, TKey, TResult> Enumerable<TResult> join(
+  public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
       Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
       Function1<TInner, TKey> innerKeySelector,
       Function2<T, TInner, TResult> resultSelector,
       EqualityComparer<TKey> comparer,
       boolean generateNullsOnLeft, boolean generateNullsOnRight) {
-    return EnumerableDefaults.join(getThis(), inner, outerKeySelector,
+    return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
         innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
         generateNullsOnRight);
   }
 
+  public <TInner, TKey, TResult> Enumerable<TResult> hashJoin(
+      Enumerable<TInner> inner, Function1<T, TKey> outerKeySelector,
+      Function1<TInner, TKey> innerKeySelector,
+      Function2<T, TInner, TResult> resultSelector,
+      EqualityComparer<TKey> comparer,
+      boolean generateNullsOnLeft, boolean generateNullsOnRight,
+      Predicate2<T, TInner> predicate) {
+    return EnumerableDefaults.hashJoin(getThis(), inner, outerKeySelector,
+        innerKeySelector, resultSelector, comparer, generateNullsOnLeft,
+        generateNullsOnRight, predicate);
+  }
+
   public <TInner, TResult> Enumerable<TResult> correlateJoin(
-      CorrelateJoinType joinType, Function1<T, Enumerable<TInner>> inner,
+      JoinType joinType, Function1<T, Enumerable<TInner>> inner,
       Function2<T, TInner, TResult> resultSelector) {
     return EnumerableDefaults.correlateJoin(joinType, getThis(), inner,
         resultSelector);

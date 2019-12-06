@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.function.ObjIntConsumer;
 
 /**
  * Pair of an element and an ordinal.
@@ -139,6 +140,41 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     throw new UnsupportedOperationException();
   }
 
+  /** Applies an action to every element of an iterable, passing the zero-based
+   * ordinal of the element to the action.
+   *
+   * @see List#forEach(java.util.function.Consumer)
+   * @see Map#forEach(java.util.function.BiConsumer)
+   *
+   * @param iterable Iterable
+   * @param action The action to be performed for each element
+   * @param <T> Element type
+   */
+  public static <T> void forEach(Iterable<T> iterable,
+      ObjIntConsumer<? super T> action) {
+    int i = 0;
+    for (T t : iterable) {
+      action.accept(t, i++);
+    }
+  }
+
+  /** Applies an action to every element of an array, passing the zero-based
+   * ordinal of the element to the action.
+   *
+   * @see List#forEach(java.util.function.Consumer)
+   * @see Map#forEach(java.util.function.BiConsumer)
+   *
+   * @param ts Array
+   * @param action The action to be performed for each element
+   * @param <T> Element type
+   */
+  public static <T> void forEach(T[] ts,
+      ObjIntConsumer<? super T> action) {
+    for (int i = 0; i < ts.length; i++) {
+      action.accept(ts[i], i);
+    }
+  }
+
   /** List of {@link Ord} backed by a list of elements.
    *
    * @param <E> element type */
@@ -150,7 +186,7 @@ public class Ord<E> implements Map.Entry<Integer, E> {
     }
 
     public Ord<E> get(int index) {
-      return of(index, elements.get(index));
+      return Ord.of(index, elements.get(index));
     }
 
     public int size() {

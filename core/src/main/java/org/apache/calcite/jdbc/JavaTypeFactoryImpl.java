@@ -34,10 +34,9 @@ import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-
-import com.google.common.collect.Lists;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -49,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link JavaTypeFactory}.
@@ -214,6 +214,8 @@ public class JavaTypeFactoryImpl
         return Enum.class;
       case ANY:
         return Object.class;
+      case NULL:
+        return Void.class;
       }
     }
     switch (type.getSqlTypeName()) {
@@ -240,26 +242,46 @@ public class JavaTypeFactoryImpl
   /** Converts a type in Java format to a SQL-oriented type. */
   public static RelDataType toSql(final RelDataTypeFactory typeFactory,
       RelDataType type) {
-    return toSql(typeFactory, type, true);
+    if (type instanceof RelRecordType) {
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createStructType(
+              type.getFieldList()
+                  .stream()
+                  .map(field -> toSql(typeFactory, field.getType()))
+                  .collect(Collectors.toList()),
+              type.getFieldNames()),
+          type.isNullable());
+    } else if (type instanceof JavaType) {
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
+      final RelDataType relDataType;
+      if (SqlTypeUtil.isArray(type)) {
+        // Transform to sql type, take care for two cases:
+        // 1. type.getJavaClass() is collection with erased generic type
+        // 2. ElementType returned by JavaType is also of JavaType,
+        // and needs conversion using typeFactory
+        final RelDataType elementType = toSqlTypeWithNullToAny(
+            typeFactory, type.getComponentType());
+        relDataType = typeFactory.createArrayType(elementType, -1);
+      } else if (SqlTypeUtil.isMap(type)) {
+        final RelDataType keyType = toSqlTypeWithNullToAny(
+            typeFactory, type.getKeyType());
+        final RelDataType valueType = toSqlTypeWithNullToAny(
+            typeFactory, type.getValueType());
+        relDataType = typeFactory.createMapType(keyType, valueType);
+      } else {
+        relDataType = typeFactory.createSqlType(sqlTypeName);
+      }
+      return typeFactory.createTypeWithNullability(relDataType, type.isNullable());
+    }
+    return type;
   }
 
-  private static RelDataType toSql(final RelDataTypeFactory typeFactory,
-      RelDataType type, boolean mustSetNullability) {
-    RelDataType sqlType = type;
-    if (type instanceof RelRecordType) {
-      // We do not need to change the nullability of the nested fields,
-      // since it can be overridden by the existing implementation of createTypeWithNullability
-      // when we treat the nullability of the root struct type.
-      sqlType = typeFactory.createStructType(
-              Lists.transform(type.getFieldList(),
-                field -> toSql(typeFactory, field.getType(), false)),
-              type.getFieldNames());
-    } else if (type instanceof JavaType) {
-      sqlType = typeFactory.createSqlType(type.getSqlTypeName());
+  private static RelDataType toSqlTypeWithNullToAny(
+      final RelDataTypeFactory typeFactory, RelDataType type) {
+    if (type == null) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
     }
-    return mustSetNullability
-            ? typeFactory.createTypeWithNullability(sqlType, type.isNullable())
-            : sqlType;
+    return toSql(typeFactory, type);
   }
 
   public Type createSyntheticType(List<Type> types) {

@@ -79,8 +79,8 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
-    this.type = Objects.requireNonNull(type);
-    this.op = Objects.requireNonNull(op);
+    this.type = Objects.requireNonNull(type, "type");
+    this.op = Objects.requireNonNull(op, "operator");
     this.operands = ImmutableList.copyOf(operands);
     assert op.getKind() != null : op;
     assert op.validRexOperands(operands.size(), Litmus.THROW) : this;

@@ -22,6 +22,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.avatica.ConnectionProperty;
 import org.apache.calcite.avatica.util.DateTimeUtils;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
@@ -31,8 +32,11 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.model.ModelHandler;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
@@ -40,13 +44,18 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Closer;
 import org.apache.calcite.util.Holder;
@@ -59,7 +68,6 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
 import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import com.google.common.collect.ImmutableList;
@@ -105,16 +113,19 @@ import javax.sql.DataSource;
 
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.Util.toLinux;
+
+import static org.apache.commons.lang3.StringUtils.countMatches;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Fluid DSL for testing Calcite connections and queries.
@@ -244,24 +255,23 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkException(final String expected) {
     return p0 -> {
-      assertNotNull(
-          "expected exception but none was thrown", p0);
+      assertNotNull(p0, "expected exception but none was thrown");
       String stack = TestUtil.printStackTrace(p0);
-      assertTrue(stack, stack.contains(expected));
+      assertThat(stack, containsString(expected));
     };
   }
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
       @Override public void accept(@Nullable Throwable throwable) {
-        assertNotNull("Nothing was thrown", throwable);
+        assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);
 
-        assertTrue("Expected to fail at validation, but did not", exception != null);
+        assertNotNull(exception, "Expected to fail at validation, but did not");
         if (expected != null) {
           String stack = TestUtil.printStackTrace(exception);
-          assertTrue(stack, stack.contains(expected));
+          assertThat(stack, containsString(expected));
         }
       }
 
@@ -429,9 +439,8 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertTrue(
-            actual + " should have " + count + " occurrence of " + expected,
-            StringUtils.countMatches(actual, expected) == count);
+        assertEquals(count, countMatches(actual, expected),
+            () -> actual + " should have " + count + " occurrence of " + expected);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -663,7 +672,7 @@ public class CalciteAssert {
   }
 
   /** Converts a {@link ResultSet} to a string. */
-  static String toString(ResultSet resultSet) throws SQLException {
+  public static String toString(ResultSet resultSet) throws SQLException {
     return new ResultSetFormatter().resultSet(resultSet).string();
   }
 
@@ -848,7 +857,75 @@ public class CalciteAssert {
                   + " as t(empno, name, deptno, gender, city, empid, age, slacker, manager, joinedat)",
               ImmutableList.of(), ImmutableList.of("POST", "EMPS"),
               null));
+      post.add("TICKER",
+          ViewTable.viewMacro(post,
+            "select * from (values\n"
+                + "    ('ACME', '2017-12-01', 12),\n"
+                + "    ('ACME', '2017-12-02', 17),\n"
+                + "    ('ACME', '2017-12-03', 19),\n"
+                + "    ('ACME', '2017-12-04', 21),\n"
+                + "    ('ACME', '2017-12-05', 25),\n"
+                + "    ('ACME', '2017-12-06', 12),\n"
+                + "    ('ACME', '2017-12-07', 15),\n"
+                + "    ('ACME', '2017-12-08', 20),\n"
+                + "    ('ACME', '2017-12-09', 24),\n"
+                + "    ('ACME', '2017-12-10', 25),\n"
+                + "    ('ACME', '2017-12-11', 19),\n"
+                + "    ('ACME', '2017-12-12', 15),\n"
+                + "    ('ACME', '2017-12-13', 25),\n"
+                + "    ('ACME', '2017-12-14', 25),\n"
+                + "    ('ACME', '2017-12-15', 14),\n"
+                + "    ('ACME', '2017-12-16', 12),\n"
+                + "    ('ACME', '2017-12-17', 14),\n"
+                + "    ('ACME', '2017-12-18', 24),\n"
+                + "    ('ACME', '2017-12-19', 23),\n"
+                + "    ('ACME', '2017-12-20', 22))\n"
+                + " as t(SYMBOL, tstamp, price)",
+            ImmutableList.<String>of(), ImmutableList.of("POST", "TICKER"),
+            null));
       return post;
+    case FAKE_FOODMART:
+      // Similar to FOODMART, but not based on JdbcSchema.
+      // Contains 2 tables that do not extend JdbcTable.
+      // They redirect requests for SqlDialect and DataSource to the real JDBC
+      // FOODMART, and this allows statistics queries to be executed.
+      foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
+      final Wrapper salesTable = (Wrapper) foodmart.getTable("sales_fact_1997");
+      SchemaPlus fake =
+          rootSchema.add(schema.schemaName, new AbstractSchema());
+      fake.add("time_by_day", new AbstractTable() {
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return typeFactory.builder()
+              .add("time_id", SqlTypeName.INTEGER)
+              .add("the_year", SqlTypeName.INTEGER)
+              .build();
+        }
+
+        public <C> C unwrap(Class<C> aClass) {
+          if (aClass.isAssignableFrom(SqlDialect.class)
+              || aClass.isAssignableFrom(DataSource.class)) {
+            return salesTable.unwrap(aClass);
+          }
+          return super.unwrap(aClass);
+        }
+      });
+      fake.add("sales_fact_1997", new AbstractTable() {
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return typeFactory.builder()
+              .add("time_id", SqlTypeName.INTEGER)
+              .add("customer_id", SqlTypeName.INTEGER)
+              .build();
+        }
+
+        public <C> C unwrap(Class<C> aClass) {
+          if (aClass.isAssignableFrom(SqlDialect.class)
+              || aClass.isAssignableFrom(DataSource.class)) {
+            return salesTable.unwrap(aClass);
+          }
+          return super.unwrap(aClass);
+        }
+      });
+      return fake;
     case AUX:
       SchemaPlus aux =
           rootSchema.add(schema.schemaName, new AbstractSchema());
@@ -895,7 +972,7 @@ public class CalciteAssert {
    * they are considered equal.
    *
    * <p>This method produces more user-friendly error messages than
-   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   * {@link org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)}
    *
    * @param message the identifying message for the {@link AssertionError} (<code>null</code>
    * okay)
@@ -904,7 +981,7 @@ public class CalciteAssert {
    */
   public static void assertArrayEqual(
       String message, Object[] expected, Object[] actual) {
-    assertEquals(message, str(expected), str(actual));
+    assertEquals(str(expected), str(actual), message);
   }
 
   private static String str(Object[] objects) {
@@ -1368,7 +1445,7 @@ public class CalciteAssert {
       try (Connection c = createConnection()) {
         f.accept(c);
       } catch (SQLException e) {
-        TestUtil.rethrow(e);
+        throw TestUtil.rethrow(e);
       }
       return this;
     }
@@ -1534,32 +1611,28 @@ public class CalciteAssert {
 
     public AssertQuery planContains(String expected) {
       ensurePlan(null);
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 
     public AssertQuery planUpdateHasSql(String expected, int count) {
       ensurePlan(checkUpdateCount(count));
-      expected = "getDataSource(), \""
+      expected = ".unwrap(javax.sql.DataSource.class), \""
           + expected.replace("\\", "\\\\")
           .replace("\"", "\\\"")
           .replaceAll("\n", "\\\\n")
           + "\"";
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 
     public AssertQuery planHasSql(String expected) {
       return planContains(
-          "getDataSource(), \""
+          ".unwrap(javax.sql.DataSource.class), \""
               + expected.replace("\\", "\\\\")
               .replace("\"", "\\\"")
               .replaceAll("\n", "\\\\n")
@@ -1570,12 +1643,16 @@ public class CalciteAssert {
       if (plan != null) {
         return;
       }
-      addHook(Hook.JAVA_PLAN, (Consumer<String>) a0 -> plan = a0);
+      addHook(Hook.JAVA_PLAN, this::setPlan);
       withConnection(connection -> {
         assertQuery(connection, sql, limit, materializationsEnabled,
             hooks, null, checkUpdate, null);
         assertNotNull(plan);
       });
+    }
+
+    private void setPlan(String plan) {
+      this.plan = plan;
     }
 
     /** Runs the query and applies a checker to the generated third-party
@@ -1655,9 +1732,20 @@ public class CalciteAssert {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
           pair -> {
-            final RelBuilder b = RelBuilder.create(pair.left);
+            final FrameworkConfig config = forceDecorrelate(pair.left);
+            final RelBuilder b = RelBuilder.create(config);
             pair.right.set(CalcitePrepare.Query.of(relFn.apply(b)));
           });
+    }
+
+    /** Creates a {@link FrameworkConfig} that does not decorrelate. */
+    private FrameworkConfig forceDecorrelate(FrameworkConfig config) {
+      return Frameworks.newConfigBuilder(config)
+          .context(
+              Contexts.of(new CalciteConnectionConfigImpl(new Properties())
+                  .set(CalciteConnectionProperty.FORCE_DECORRELATE,
+                      Boolean.toString(false))))
+          .build();
     }
   }
 
@@ -1838,6 +1926,7 @@ public class CalciteAssert {
   /** Specification for common test schemas. */
   public enum SchemaSpec {
     REFLECTIVE_FOODMART("foodmart"),
+    FAKE_FOODMART("foodmart"),
     JDBC_FOODMART("foodmart"),
     CLONE_FOODMART("foodmart2"),
     JDBC_FOODMART_WITH_LATTICE("lattice"),

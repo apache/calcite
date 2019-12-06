@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Validation tests for the {@code MATCH_RECOGNIZE} clause.
@@ -140,7 +140,7 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
         + "      up as up.sal > prev(up.sal)\n"
         + "  ) mr";
     sql(sql)
-        .fails("(?s).*Encountered \"to null\" at .*");
+        .fails("(?s).*Encountered \"null\" at .*");
   }
 
   @Test public void testMatchRecognizeSkipTo2() throws Exception {
@@ -190,7 +190,7 @@ public class SqlValidatorMatchTest extends SqlValidatorTestCase {
     sql(sql)
         .fails("Unknown pattern 'strt'");
     sql(sql)
-        .tester(tester.withCaseSensitive(false))
+        .withCaseSensitive(false)
         .sansCarets()
         .ok();
   }

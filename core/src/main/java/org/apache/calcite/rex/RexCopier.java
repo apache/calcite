@@ -24,9 +24,6 @@ import org.apache.calcite.rel.type.RelDataType;
  * <p>This is useful when copying objects from one type factory or builder to
  * another.
  *
- * <p>Due to the laziness of the author, not all Rex types are supported at
- * present.
- *
  * @see RexBuilder#copy(RexNode)
  */
 class RexCopier extends RexShuttle {
@@ -52,11 +49,10 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitOver(RexOver over) {
-    throw new UnsupportedOperationException();
-  }
-
-  public RexWindow visitWindow(RexWindow window) {
-    throw new UnsupportedOperationException();
+    final boolean[] update = null;
+    return new RexOver(copy(over.getType()), over.getAggOperator(),
+        visitList(over.getOperands(), update), visitWindow(over.getWindow()),
+        over.isDistinct(), over.ignoreNulls());
   }
 
   public RexNode visitCall(final RexCall call) {
@@ -67,7 +63,7 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitCorrelVariable(RexCorrelVariable variable) {
-    throw new UnsupportedOperationException();
+    return builder.makeCorrel(copy(variable.getType()), variable.id);
   }
 
   public RexNode visitFieldAccess(RexFieldAccess fieldAccess) {
@@ -80,7 +76,7 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitLocalRef(RexLocalRef localRef) {
-    throw new UnsupportedOperationException();
+    return new RexLocalRef(localRef.getIndex(), copy(localRef.getType()));
   }
 
   public RexNode visitLiteral(RexLiteral literal) {
@@ -90,11 +86,13 @@ class RexCopier extends RexShuttle {
   }
 
   public RexNode visitDynamicParam(RexDynamicParam dynamicParam) {
-    throw new UnsupportedOperationException();
+    return builder.makeDynamicParam(copy(dynamicParam.getType()),
+        dynamicParam.getIndex());
   }
 
   public RexNode visitRangeRef(RexRangeRef rangeRef) {
-    throw new UnsupportedOperationException();
+    return builder.makeRangeReference(copy(rangeRef.getType()),
+        rangeRef.getOffset(), false);
   }
 }
 

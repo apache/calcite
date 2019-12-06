@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.elasticsearch;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Check that internal queries are correctly converted to ES search query (as JSON)
@@ -170,6 +170,15 @@ public class QueryBuildersTest {
   public void matchAll() throws IOException {
     assertEquals("{\"match_all\":{}}",
         toJson(QueryBuilders.matchAll()));
+  }
+
+  @Test
+  public void match() throws IOException {
+    assertEquals("{\"match\":{\"foo\":[\"bar\"]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton("bar"))));
+
+    assertEquals("{\"match\":{\"foo\":[true]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton(true))));
   }
 
   private String toJson(QueryBuilders.QueryBuilder builder) throws IOException {

@@ -167,6 +167,22 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
     return requiresOver;
   }
 
+  /** Returns whether this aggregate function allows the {@code DISTINCT}
+   * keyword.
+   *
+   * <p>The default implementation returns {@link Optionality#OPTIONAL},
+   * which is appropriate for most aggregate functions, including {@code SUM}
+   * and {@code COUNT}.
+   *
+   * <p>Some aggregate functions, for example {@code MIN}, produce the same
+   * result with or without {@code DISTINCT}, and therefore return
+   * {@link Optionality#IGNORED} to indicate this. For such functions,
+   * Calcite will probably remove {@code DISTINCT} while optimizing the query.
+   */
+  public @Nonnull Optionality getDistinctOptionality() {
+    return Optionality.OPTIONAL;
+  }
+
   @Deprecated // to be removed before 2.0
   public List<RelDataType> getParameterTypes(RelDataTypeFactory typeFactory) {
     throw new UnsupportedOperationException("remove before calcite-2.0");
@@ -181,6 +197,12 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * clause. */
   public boolean allowsFilter() {
     return true;
+  }
+
+  /** Returns whether this aggregate function allows specifying null treatment
+   * ({@code RESPECT NULLS} or {@code IGNORE NULLS}). */
+  public boolean allowsNullTreatment() {
+    return false;
   }
 }
 

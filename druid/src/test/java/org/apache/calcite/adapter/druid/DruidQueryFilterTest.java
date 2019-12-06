@@ -30,9 +30,8 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -40,6 +39,8 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 /**
@@ -48,7 +49,7 @@ import static org.hamcrest.core.Is.is;
 public class DruidQueryFilterTest {
 
   private DruidQuery druidQuery;
-  @Before
+  @BeforeEach
   public void testSetup() {
     druidQuery = Mockito.mock(DruidQuery.class);
     final CalciteConnectionConfig connectionConfigMock = Mockito
@@ -73,14 +74,14 @@ public class DruidQueryFilterTest {
         f.rexBuilder.makeCall(SqlStdOperatorTable.IN, listRexNodes);
     DruidJsonFilter returnValue = DruidJsonFilter
         .toDruidFilters(inRexNode, f.varcharRowType, druidQuery);
-    Assert.assertNotNull("Filter is null", returnValue);
+    assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
 
-    Assert.assertThat(sw.toString(),
+    assertThat(sw.toString(),
         is("{\"type\":\"in\",\"dimension\":\"dimensionName\","
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
@@ -98,13 +99,13 @@ public class DruidQueryFilterTest {
 
     DruidJsonFilter returnValue = DruidJsonFilter
         .toDruidFilters(betweenRexNode, f.varcharRowType, druidQuery);
-    Assert.assertNotNull("Filter is null", returnValue);
+    assertThat("Filter is null", returnValue, notNullValue());
     JsonFactory jsonFactory = new JsonFactory();
     final StringWriter sw = new StringWriter();
     JsonGenerator jsonGenerator = jsonFactory.createGenerator(sw);
     returnValue.write(jsonGenerator);
     jsonGenerator.close();
-    Assert.assertThat(sw.toString(),
+    assertThat(sw.toString(),
         is("{\"type\":\"bound\",\"dimension\":\"dimensionName\",\"lower\":\"lower-bound\","
             + "\"lowerStrict\":false,\"upper\":\"upper-bound\",\"upperStrict\":false,"
             + "\"ordering\":\"lexicographic\"}"));

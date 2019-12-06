@@ -20,9 +20,6 @@
  *
  * <p>There is one table for each Cassandra column family.</p>
  */
-@PackageMarker
 package org.apache.calcite.adapter.cassandra;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

@@ -17,21 +17,31 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SemiJoinType;
+import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -39,6 +49,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,19 +122,6 @@ public class EnumUtils {
     };
   }
 
-  static Expression joinSelector(SemiJoinType semiJoinType, PhysType physType,
-      List<PhysType> inputPhysTypes) {
-    JoinRelType joinRelType;
-    if (semiJoinType.returnsJustFirstInput()) {
-      // Actual join type does not matter much, joinSelector would skip selection
-      // of the columns that are not required (see if (expressions.size() == outputFieldCount) {)
-      joinRelType = JoinRelType.INNER;
-    } else {
-      joinRelType = semiJoinType.toJoinType();
-    }
-    return joinSelector(joinRelType, physType, inputPhysTypes);
-  }
-
   static Expression joinSelector(JoinRelType joinType, PhysType physType,
       List<PhysType> inputPhysTypes) {
     // A parameter for each input.
@@ -167,42 +165,104 @@ public class EnumUtils {
         parameters);
   }
 
+  /**
+   * In Calcite, {@code java.sql.Date} and {@code java.sql.Time} are
+   * stored as {@code Integer} type, {@code java.sql.Timestamp} is
+   * stored as {@code Long} type.
+   */
+  static Expression toInternal(Expression operand, Type targetType) {
+    return toInternal(operand, operand.getType(), targetType);
+  }
+
+  private static Expression toInternal(Expression operand,
+      Type fromType, Type targetType) {
+    if (fromType == java.sql.Date.class) {
+      if (targetType == int.class) {
+        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
+      } else if (targetType == Integer.class) {
+        return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, operand);
+      }
+    } else if (fromType == java.sql.Time.class) {
+      if (targetType == int.class) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT.method, operand);
+      } else if (targetType == Integer.class) {
+        return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, operand);
+      }
+    } else if (fromType == java.sql.Timestamp.class) {
+      if (targetType == long.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, operand);
+      } else if (targetType == Long.class) {
+        return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, operand);
+      }
+    }
+    return operand;
+  }
+
   /** Converts from internal representation to JDBC representation used by
    * arguments of user-defined functions. For example, converts date values from
    * {@code int} to {@link java.sql.Date}. */
-  static Expression fromInternal(Expression e, Class<?> targetType) {
-    if (e == ConstantUntypedNull.INSTANCE) {
-      return e;
+  private static Expression fromInternal(Expression operand, Type targetType) {
+    return fromInternal(operand, operand.getType(), targetType);
+  }
+
+  private static Expression fromInternal(Expression operand,
+      Type fromType, Type targetType) {
+    if (operand == ConstantUntypedNull.INSTANCE) {
+      return operand;
     }
-    if (!(e.getType() instanceof Class)) {
-      return e;
+    if (!(operand.getType() instanceof Class)) {
+      return operand;
     }
-    if (targetType.isAssignableFrom((Class) e.getType())) {
-      return e;
+    if (Types.isAssignableFrom(targetType, fromType)) {
+      return operand;
     }
     if (targetType == java.sql.Date.class) {
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, e);
+      // E.g. from "int" or "Integer" to "java.sql.Date",
+      // generate "SqlFunctions.internalToDate".
+      if (isA(fromType, Primitive.INT)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
+      }
+    } else if (targetType == java.sql.Time.class) {
+      // E.g. from "int" or "Integer" to "java.sql.Time",
+      // generate "SqlFunctions.internalToTime".
+      if (isA(fromType, Primitive.INT)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
+      }
+    } else if (targetType == java.sql.Timestamp.class) {
+      // E.g. from "long" or "Long" to "java.sql.Timestamp",
+      // generate "SqlFunctions.internalToTimestamp".
+      if (isA(fromType, Primitive.LONG)) {
+        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, operand);
+      }
     }
-    if (targetType == java.sql.Time.class) {
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, e);
-    }
-    if (targetType == java.sql.Timestamp.class) {
-      return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method, e);
-    }
-    if (Primitive.is(e.type)
+    if (Primitive.is(operand.type)
         && Primitive.isBox(targetType)) {
-      // E.g. e is "int", target is "Long", generate "(long) e".
-      return Expressions.convert_(e,
+      // E.g. operand is "int", target is "Long", generate "(long) operand".
+      return Expressions.convert_(operand,
           Primitive.ofBox(targetType).primitiveClass);
     }
-    return e;
+    return operand;
   }
 
   static List<Expression> fromInternal(Class<?>[] targetTypes,
       List<Expression> expressions) {
     final List<Expression> list = new ArrayList<>();
-    for (int i = 0; i < expressions.size(); i++) {
-      list.add(fromInternal(expressions.get(i), targetTypes[i]));
+    if (targetTypes.length == expressions.size()) {
+      for (int i = 0; i < expressions.size(); i++) {
+        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+      }
+    } else {
+      int j = 0;
+      for (int i = 0; i < expressions.size(); i++) {
+        Class<?> type;
+        if (!targetTypes[j].isArray()) {
+          type = targetTypes[j];
+          j++;
+        } else {
+          type = targetTypes[j].getComponentType();
+        }
+        list.add(fromInternal(expressions.get(i), type));
+      }
     }
     return list;
   }
@@ -217,7 +277,7 @@ public class EnumUtils {
     return type;
   }
 
-  static Type toInternal(RelDataType type) {
+  private static Type toInternal(RelDataType type) {
     switch (type.getSqlTypeName()) {
     case DATE:
     case TIME:
@@ -233,33 +293,295 @@ public class EnumUtils {
     return Util.transform(operandList, node -> toInternal(node.getType()));
   }
 
-  static Expression enforce(final Type storageType,
-      final Expression e) {
-    if (storageType != null && e.type != storageType) {
-      if (e.type == java.sql.Date.class) {
-        if (storageType == int.class) {
-          return Expressions.call(BuiltInMethod.DATE_TO_INT.method, e);
+  /**
+   * Convert {@code operand} to target type {@code toType}.
+   *
+   * @param operand The expression to convert
+   * @param toType  Target type
+   * @return A new expression with type {@code toType} or original if there
+   * is no need to convert
+   */
+  public static Expression convert(Expression operand, Type toType) {
+    final Type fromType = operand.getType();
+    return EnumUtils.convert(operand, fromType, toType);
+  }
+
+  /**
+   * Convert {@code operand} to target type {@code toType}.
+   *
+   * @param operand  The expression to convert
+   * @param fromType Field type
+   * @param toType   Target type
+   * @return A new expression with type {@code toType} or original if there
+   * is no need to convert
+   */
+  public static Expression convert(Expression operand, Type fromType,
+      Type toType) {
+    if (!Types.needTypeCast(fromType, toType)) {
+      return operand;
+    }
+    // E.g. from "Short" to "int".
+    // Generate "x.intValue()".
+    final Primitive toPrimitive = Primitive.of(toType);
+    final Primitive toBox = Primitive.ofBox(toType);
+    final Primitive fromBox = Primitive.ofBox(fromType);
+    final Primitive fromPrimitive = Primitive.of(fromType);
+    final boolean fromNumber = fromType instanceof Class
+        && Number.class.isAssignableFrom((Class) fromType);
+    if (fromType == String.class) {
+      if (toPrimitive != null) {
+        switch (toPrimitive) {
+        case CHAR:
+        case SHORT:
+        case INT:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+          // Generate "SqlFunctions.toShort(x)".
+          return Expressions.call(
+              SqlFunctions.class,
+              "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
+              operand);
+        default:
+          // Generate "Short.parseShort(x)".
+          return Expressions.call(
+              toPrimitive.boxClass,
+              "parse" + SqlFunctions.initcap(toPrimitive.primitiveName),
+              operand);
         }
-        if (storageType == Integer.class) {
-          return Expressions.call(BuiltInMethod.DATE_TO_INT_OPTIONAL.method, e);
-        }
-      } else if (e.type == java.sql.Time.class) {
-        if (storageType == int.class) {
-          return Expressions.call(BuiltInMethod.TIME_TO_INT.method, e);
-        }
-        if (storageType == Integer.class) {
-          return Expressions.call(BuiltInMethod.TIME_TO_INT_OPTIONAL.method, e);
-        }
-      } else if (e.type == java.sql.Timestamp.class) {
-        if (storageType == long.class) {
-          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG.method, e);
-        }
-        if (storageType == Long.class) {
-          return Expressions.call(BuiltInMethod.TIMESTAMP_TO_LONG_OPTIONAL.method, e);
+      }
+      if (toBox != null) {
+        switch (toBox) {
+        case CHAR:
+          // Generate "SqlFunctions.toCharBoxed(x)".
+          return Expressions.call(
+              SqlFunctions.class,
+              "to" + SqlFunctions.initcap(toBox.primitiveName) + "Boxed",
+              operand);
+        default:
+          // Generate "Short.valueOf(x)".
+          return Expressions.call(
+              toBox.boxClass,
+              "valueOf",
+              operand);
         }
       }
     }
-    return e;
+    if (toPrimitive != null) {
+      if (fromPrimitive != null) {
+        // E.g. from "float" to "double"
+        return Expressions.convert_(
+            operand, toPrimitive.primitiveClass);
+      }
+      if (fromNumber || fromBox == Primitive.CHAR) {
+        // Generate "x.shortValue()".
+        return Expressions.unbox(operand, toPrimitive);
+      } else {
+        // E.g. from "Object" to "short".
+        // Generate "SqlFunctions.toShort(x)"
+        return Expressions.call(
+            SqlFunctions.class,
+            "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
+            operand);
+      }
+    } else if (fromNumber && toBox != null) {
+      // E.g. from "Short" to "Integer"
+      // Generate "x == null ? null : Integer.valueOf(x.intValue())"
+      return Expressions.condition(
+          Expressions.equal(operand, RexImpTable.NULL_EXPR),
+          RexImpTable.NULL_EXPR,
+          Expressions.box(
+              Expressions.unbox(operand, toBox),
+              toBox));
+    } else if (fromPrimitive != null && toBox != null) {
+      // E.g. from "int" to "Long".
+      // Generate Long.valueOf(x)
+      // Eliminate primitive casts like Long.valueOf((long) x)
+      if (operand instanceof UnaryExpression) {
+        UnaryExpression una = (UnaryExpression) operand;
+        if (una.nodeType == ExpressionType.Convert
+            || Primitive.of(una.getType()) == toBox) {
+          return Expressions.box(una.expression, toBox);
+        }
+      }
+      if (fromType == toBox.primitiveClass) {
+        return Expressions.box(operand, toBox);
+      }
+      // E.g., from "int" to "Byte".
+      // Convert it first and generate "Byte.valueOf((byte)x)"
+      // Because there is no method "Byte.valueOf(int)" in Byte
+      return Expressions.box(
+          Expressions.convert_(operand, toBox.primitiveClass),
+          toBox);
+    }
+    // Convert datetime types to internal storage type:
+    // 1. java.sql.Date -> int or Integer
+    // 2. java.sql.Time -> int or Integer
+    // 3. java.sql.Timestamp -> long or Long
+    if (representAsInternalType(fromType)) {
+      final Expression internalTypedOperand =
+          toInternal(operand, fromType, toType);
+      if (operand != internalTypedOperand) {
+        return internalTypedOperand;
+      }
+    }
+    // Convert internal storage type to datetime types:
+    // 1. int or Integer -> java.sql.Date
+    // 2. int or Integer -> java.sql.Time
+    // 3. long or Long -> java.sql.Timestamp
+    if (representAsInternalType(toType)) {
+      final Expression originTypedOperand =
+          fromInternal(operand, fromType, toType);
+      if (operand != originTypedOperand) {
+        return originTypedOperand;
+      }
+    }
+    if (toType == BigDecimal.class) {
+      if (fromBox != null) {
+        // E.g. from "Integer" to "BigDecimal".
+        // Generate "x == null ? null : new BigDecimal(x.intValue())"
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.new_(
+                BigDecimal.class,
+                Expressions.unbox(operand, fromBox)));
+      }
+      if (fromPrimitive != null) {
+        // E.g. from "int" to "BigDecimal".
+        // Generate "new BigDecimal(x)"
+        // Fix CALCITE-2325, we should decide null here for int type.
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.new_(
+                BigDecimal.class,
+                operand));
+      }
+      // E.g. from "Object" to "BigDecimal".
+      // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
+      return Expressions.condition(
+          Expressions.equal(operand, RexImpTable.NULL_EXPR),
+          RexImpTable.NULL_EXPR,
+          Expressions.call(
+              SqlFunctions.class,
+              "toBigDecimal",
+              operand));
+    } else if (toType == String.class) {
+      if (fromPrimitive != null) {
+        switch (fromPrimitive) {
+        case DOUBLE:
+        case FLOAT:
+          // E.g. from "double" to "String"
+          // Generate "SqlFunctions.toString(x)"
+          return Expressions.call(
+              SqlFunctions.class,
+              "toString",
+              operand);
+        default:
+          // E.g. from "int" to "String"
+          // Generate "Integer.toString(x)"
+          return Expressions.call(
+              fromPrimitive.boxClass,
+              "toString",
+              operand);
+        }
+      } else if (fromType == BigDecimal.class) {
+        // E.g. from "BigDecimal" to "String"
+        // Generate "SqlFunctions.toString(x)"
+        return Expressions.condition(
+            Expressions.equal(operand, RexImpTable.NULL_EXPR),
+            RexImpTable.NULL_EXPR,
+            Expressions.call(
+                SqlFunctions.class,
+                "toString",
+                operand));
+      } else {
+        Expression result;
+        try {
+          // Try to call "toString()" method
+          // E.g. from "Integer" to "String"
+          // Generate "x == null ? null : x.toString()"
+          result = Expressions.condition(
+              Expressions.equal(operand, RexImpTable.NULL_EXPR),
+              RexImpTable.NULL_EXPR,
+              Expressions.call(operand, "toString"));
+        } catch (RuntimeException e) {
+          // For some special cases, e.g., "BuiltInMethod.LESSER",
+          // its return type is generic ("Comparable"), which contains
+          // no "toString()" method. We fall through to "(String)x".
+          return Expressions.convert_(operand, toType);
+        }
+        return result;
+      }
+    }
+    return Expressions.convert_(operand, toType);
+  }
+
+  private static boolean isA(Type fromType, Primitive primitive) {
+    return Primitive.of(fromType) == primitive
+        || Primitive.ofBox(fromType) == primitive;
+  }
+
+  private static boolean representAsInternalType(Type type) {
+    return type == java.sql.Date.class
+        || type == java.sql.Time.class
+        || type == java.sql.Timestamp.class;
+  }
+
+  /** Transforms a JoinRelType to Linq4j JoinType. **/
+  static JoinType toLinq4jJoinType(JoinRelType joinRelType) {
+    switch (joinRelType) {
+    case INNER:
+      return JoinType.INNER;
+    case LEFT:
+      return JoinType.LEFT;
+    case RIGHT:
+      return JoinType.RIGHT;
+    case FULL:
+      return JoinType.FULL;
+    case SEMI:
+      return JoinType.SEMI;
+    case ANTI:
+      return JoinType.ANTI;
+    }
+    throw new IllegalStateException(
+        "Unable to convert " + joinRelType + " to Linq4j JoinType");
+  }
+
+  /** Returns a predicate expression based on a join condition. **/
+  static Expression generatePredicate(
+      EnumerableRelImplementor implementor,
+      RexBuilder rexBuilder,
+      RelNode left,
+      RelNode right,
+      PhysType leftPhysType,
+      PhysType rightPhysType,
+      RexNode condition) {
+    final BlockBuilder builder = new BlockBuilder();
+    final ParameterExpression left_ =
+        Expressions.parameter(leftPhysType.getJavaRowType(), "left");
+    final ParameterExpression right_ =
+        Expressions.parameter(rightPhysType.getJavaRowType(), "right");
+    final RexProgramBuilder program =
+        new RexProgramBuilder(
+            implementor.getTypeFactory().builder()
+                .addAll(left.getRowType().getFieldList())
+                .addAll(right.getRowType().getFieldList())
+                .build(),
+            rexBuilder);
+    program.addCondition(condition);
+    builder.add(
+        Expressions.return_(null,
+            RexToLixTranslator.translateCondition(program.getProgram(),
+                implementor.getTypeFactory(),
+                builder,
+                new RexToLixTranslator.InputGetterImpl(
+                    ImmutableList.of(Pair.of(left_, leftPhysType),
+                        Pair.of(right_, rightPhysType))),
+                implementor.allCorrelateVariables,
+                implementor.getConformance())));
+    return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
   }
 }
 

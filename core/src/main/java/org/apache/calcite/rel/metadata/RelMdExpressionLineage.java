@@ -27,8 +27,10 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -37,11 +39,13 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -186,7 +190,7 @@ public class RelMdExpressionLineage
     // Extract input fields referenced by expression
     final ImmutableBitSet inputFieldsUsed = extractInputRefs(outputExpression);
 
-    if (rel.getJoinType() != JoinRelType.INNER) {
+    if (rel.getJoinType().isOuterJoin()) {
       // If we reference the inner side, we will bail out
       if (rel.getJoinType() == JoinRelType.LEFT) {
         ImmutableBitSet rightFields = ImmutableBitSet.range(
@@ -258,11 +262,17 @@ public class RelMdExpressionLineage
         }
         // Right input references might need to be updated if there are
         // table names clashes with left input
+        final RelDataType fullRowType = SqlValidatorUtil.createJoinType(
+            rexBuilder.getTypeFactory(),
+            rel.getLeft().getRowType(),
+            rel.getRight().getRowType(),
+            null,
+            ImmutableList.of());
         final Set<RexNode> updatedExprs = ImmutableSet.copyOf(
             Iterables.transform(originalExprs, e ->
                 RexUtil.swapTableReferences(rexBuilder, e,
                     currentTablesMapping)));
-        mapping.put(RexInputRef.of(idx, rel.getRowType().getFieldList()), updatedExprs);
+        mapping.put(RexInputRef.of(idx, fullRowType), updatedExprs);
       }
     }
 
@@ -377,6 +387,14 @@ public class RelMdExpressionLineage
    * Expression lineage from Sort.
    */
   public Set<RexNode> getExpressionLineage(Sort rel, RelMetadataQuery mq,
+      RexNode outputExpression) {
+    return mq.getExpressionLineage(rel.getInput(), outputExpression);
+  }
+
+  /**
+   * Expression lineage from TableModify.
+   */
+  public Set<RexNode> getExpressionLineage(TableModify rel, RelMetadataQuery mq,
       RexNode outputExpression) {
     return mq.getExpressionLineage(rel.getInput(), outputExpression);
   }

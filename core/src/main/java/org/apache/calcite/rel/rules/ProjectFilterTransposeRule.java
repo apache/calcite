@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -95,6 +96,29 @@ public class ProjectFilterTransposeRule extends RelOptRule {
       // invocation; pushdown will be considered after the windowed
       // aggregate has been implemented. It's OK if the filter contains a
       // windowed aggregate.
+      return;
+    }
+
+    if ((origProj != null)
+        && origProj.getRowType().isStruct()
+        && origProj.getRowType().getFieldList().stream()
+          .anyMatch(RelDataTypeField::isDynamicStar)) {
+      // The PushProjector would change the plan:
+      //
+      //    prj(**=[$0])
+      //    : - filter
+      //        : - scan
+      //
+      // to form like:
+      //
+      //    prj(**=[$0])                    (1)
+      //    : - filter                      (2)
+      //        : - prj(**=[$0], ITEM= ...) (3)
+      //            :  - scan
+      // This new plan has more cost that the old one, because of the new
+      // redundant project (3), if we also have FilterProjectTransposeRule in
+      // the rule set, it will also trigger infinite match of the ProjectMergeRule
+      // for project (1) and (3).
       return;
     }
 

@@ -331,6 +331,6 @@ This rule still presents some limitations. In particular, the rewriting rule att
 
 <ul>
 <li>[<a name="ref-gl01">GL01</a>] Jonathan Goldstein and Per-åke Larson.
-    <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.95.113">Optimizing queries using materialized views: A practical, scalable solution</a>.
+    <a href="https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.95.113">Optimizing queries using materialized views: A practical, scalable solution</a>.
     In <i>Proc. ACM SIGMOD Conf.</i>, 2001.</li>
 </ul>

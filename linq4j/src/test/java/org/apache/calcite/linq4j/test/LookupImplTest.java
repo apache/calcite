@@ -19,8 +19,8 @@ package org.apache.calcite.linq4j.test;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Lookup;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public class LookupImplTest extends TestCase {
 
   private Lookup<Integer, String> impl;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     impl = Linq4j.asEnumerable(Linq4jTest.emps).toLookup(
       Linq4jTest.EMP_DEPTNO_SELECTOR,

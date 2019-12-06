@@ -214,12 +214,13 @@ public abstract class Mappings {
    *
    * @param mapping Mapping
    * @param bitSets Collection of bit sets
-   * @return Bit sets with mapping applied
+   * @return Sorted bit sets with mapping applied
    */
   public static ImmutableList<ImmutableBitSet> apply2(final Mapping mapping,
       Iterable<ImmutableBitSet> bitSets) {
     return ImmutableList.copyOf(
-        Iterables.transform(bitSets, input1 -> apply(mapping, input1)));
+        ImmutableBitSet.ORDERING.sortedCopy(
+            Iterables.transform(bitSets, input1 -> apply(mapping, input1))));
   }
 
   /**
@@ -415,6 +416,26 @@ public abstract class Mappings {
     for (int i = 0; i < mapping.getSourceCount(); i++) {
       if (mapping.getTargetOpt(i) != i) {
         return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether a mapping keeps order.
+   *
+   * <p>For example, {0:0, 1:1} and {0:1, 1:1} keeps order,
+   * and {0:1, 1:0} breaks the initial order.
+   */
+  public static boolean keepsOrdering(TargetMapping mapping) {
+    int prevTarget = -1;
+    for (int i = 0; i < mapping.getSourceCount(); i++) {
+      int target = mapping.getTargetOpt(i);
+      if (target != -1) {
+        if (target < prevTarget) {
+          return false;
+        }
+        prevTarget = target;
       }
     }
     return true;

@@ -16,7 +16,18 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
+import org.apache.calcite.rel.RelDistributions;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -34,17 +45,22 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link RelOptUtil} and other classes in this package.
@@ -58,15 +74,15 @@ public class RelOptUtilTest {
         .defaultSchema(CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.SCOTT));
   }
 
-  private static final RelBuilder REL_BUILDER = RelBuilder.create(config().build());
-  private static final RelNode EMP_SCAN = REL_BUILDER.scan("EMP").build();
-  private static final RelNode DEPT_SCAN = REL_BUILDER.scan("DEPT").build();
+  private RelBuilder relBuilder;
 
-  private static final RelDataType EMP_ROW = EMP_SCAN.getRowType();
-  private static final RelDataType DEPT_ROW = DEPT_SCAN.getRowType();
+  private RelNode empScan;
+  private RelNode deptScan;
 
-  private static final List<RelDataTypeField> EMP_DEPT_JOIN_REL_FIELDS =
-      Lists.newArrayList(Iterables.concat(EMP_ROW.getFieldList(), DEPT_ROW.getFieldList()));
+  private RelDataType empRow;
+  private RelDataType deptRow;
+
+  private List<RelDataTypeField> empDeptJoinRelFields;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -74,6 +90,19 @@ public class RelOptUtilTest {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @BeforeEach public void setUp() {
+    relBuilder = RelBuilder.create(config().build());
+
+    empScan = relBuilder.scan("EMP").build();
+    deptScan = relBuilder.scan("DEPT").build();
+
+    empRow = empScan.getRowType();
+    deptRow = deptScan.getRowType();
+
+    empDeptJoinRelFields =
+        Lists.newArrayList(Iterables.concat(empRow.getFieldList(), deptRow.getFieldList()));
+  }
 
   @Test public void testTypeDump() {
     RelDataTypeFactory typeFactory =
@@ -123,24 +152,93 @@ public class RelOptUtilTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3136">[CALCITE-3136]
+   * Fix the default rule description of ConverterRule</a>. */
+  @Test public void testConvertRuleDefaultRuleDescription() {
+    RelCollation collation1 =
+            RelCollations.of(new RelFieldCollation(4, RelFieldCollation.Direction.DESCENDING));
+    RelCollation collation2 =
+            RelCollations.of(new RelFieldCollation(0, RelFieldCollation.Direction.DESCENDING));
+    RelDistribution distribution1 = RelDistributions.hash(ImmutableList.of(0, 1));
+    RelDistribution distribution2 =  RelDistributions.range(ImmutableList.of());
+    RelOptRule collationConvertRule = new ConverterRule(RelNode.class,
+            collation1,
+            collation2,
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule distributionConvertRule = new ConverterRule(RelNode.class,
+            distribution1,
+            distribution2,
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule compositeConvertRule = new ConverterRule(RelNode.class,
+            RelCompositeTrait.of(RelCollationTraitDef.INSTANCE,
+                    ImmutableList.of(collation2, collation1)),
+            RelCompositeTrait.of(RelCollationTraitDef.INSTANCE,
+                    ImmutableList.of(collation1)),
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    RelOptRule compositeConvertRule0 = new ConverterRule(RelNode.class,
+            RelCompositeTrait.of(RelDistributionTraitDef.INSTANCE,
+                    ImmutableList.of(distribution1, distribution2)),
+            RelCompositeTrait.of(RelDistributionTraitDef.INSTANCE,
+                    ImmutableList.of(distribution1)),
+            null) {
+      @Override public RelNode convert(RelNode rel) {
+        return null;
+      }
+    };
+    assertEquals("ConverterRule(in:[4 DESC],out:[0 DESC])", collationConvertRule.toString());
+    assertEquals("ConverterRule(in:hash[0, 1],out:range)", distributionConvertRule.toString());
+    assertEquals("ConverterRule(in:[[0 DESC], [4 DESC]],out:[4 DESC])",
+            compositeConvertRule.toString());
+    assertEquals("ConverterRule(in:[hash[0, 1], range],out:hash[0, 1])",
+            compositeConvertRule0.toString());
+    try {
+      Util.discard(
+              new ConverterRule(RelNode.class,
+              new Convention.Impl("{sourceConvention}", RelNode.class),
+              new Convention.Impl("<targetConvention>", RelNode.class),
+              null) {
+          @Override public RelNode convert(RelNode rel) {
+            return null;
+          } });
+      fail("expected exception");
+    } catch (RuntimeException e) {
+      assertEquals(
+              "Rule description 'ConverterRule(in:{sourceConvention},out:<targetConvention>)' is not valid",
+              e.getMessage());
+    }
+  }
+
   /**
    * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
    * where the join condition contains just one which is a EQUAL operator.
    */
   @Test public void testSplitJoinConditionEquals() {
-    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
-    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
 
-    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.EQUALS,
-        RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS),
-        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.EQUALS,
+        RexInputRef.of(leftJoinIndex, empDeptJoinRelFields),
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields));
 
     splitJoinConditionHelper(
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
         Collections.singletonList(true),
-        REL_BUILDER.literal(true));
+        relBuilder.literal(true));
   }
 
   /**
@@ -148,19 +246,19 @@ public class RelOptUtilTest {
    * where the join condition contains just one which is a IS NOT DISTINCT operator.
    */
   @Test public void testSplitJoinConditionIsNotDistinctFrom() {
-    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
-    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
 
-    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
-        RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS),
-        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS));
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+        RexInputRef.of(leftJoinIndex, empDeptJoinRelFields),
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields));
 
     splitJoinConditionHelper(
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
         Collections.singletonList(false),
-        REL_BUILDER.literal(true));
+        relBuilder.literal(true));
   }
 
   /**
@@ -168,39 +266,285 @@ public class RelOptUtilTest {
    * where the join condition contains an expanded version of IS NOT DISTINCT
    */
   @Test public void testSplitJoinConditionExpandedIsNotDistinctFrom() {
-    int leftJoinIndex = EMP_SCAN.getRowType().getFieldNames().indexOf("DEPTNO");
-    int rightJoinIndex = DEPT_ROW.getFieldNames().indexOf("DEPTNO");
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
 
-    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
     RexInputRef rightKeyInputRef =
-        RexInputRef.of(EMP_ROW.getFieldCount() + rightJoinIndex, EMP_DEPT_JOIN_REL_FIELDS);
-    RexNode joinCond = REL_BUILDER.call(SqlStdOperatorTable.OR,
-        REL_BUILDER.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef),
-        REL_BUILDER.call(SqlStdOperatorTable.AND,
-            REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
-            REL_BUILDER.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.OR,
+        relBuilder.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.AND,
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
 
     splitJoinConditionHelper(
         joinCond,
         Collections.singletonList(leftJoinIndex),
         Collections.singletonList(rightJoinIndex),
         Collections.singletonList(false),
-        REL_BUILDER.literal(true));
+        relBuilder.literal(true));
   }
 
-  private static void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains an expanded version of IS NOT DISTINCT using CASE
+   */
+  @Test public void testSplitJoinConditionExpandedIsNotDistinctFromUsingCase() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = RelOptUtil.isDistinctFrom(
+        relBuilder.getRexBuilder(),
+        leftKeyInputRef,
+        rightKeyInputRef,
+        true);
+
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        relBuilder.literal(true));
+  }
+
+  /**
+   * Test {@link RelOptUtil#splitJoinCondition(RelNode, RelNode, RexNode, List, List, List)}
+   * where the join condition contains an expanded version of IS NOT DISTINCT using CASE
+   */
+  @Test public void testSplitJoinConditionExpandedIsNotDistinctFromUsingCase2() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.CASE,
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, leftKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.EQUALS, leftKeyInputRef, rightKeyInputRef));
+
+    splitJoinConditionHelper(
+        joinCond,
+        Collections.singletonList(leftJoinIndex),
+        Collections.singletonList(rightJoinIndex),
+        Collections.singletonList(false),
+        relBuilder.literal(true));
+  }
+
+  private void splitJoinConditionHelper(RexNode joinCond, List<Integer> expLeftKeys,
       List<Integer> expRightKeys, List<Boolean> expFilterNulls, RexNode expRemaining) {
     List<Integer> actLeftKeys = new ArrayList<>();
     List<Integer> actRightKeys = new ArrayList<>();
     List<Boolean> actFilterNulls = new ArrayList<>();
 
-    RexNode actRemaining = RelOptUtil.splitJoinCondition(EMP_SCAN, DEPT_SCAN, joinCond, actLeftKeys,
+    RexNode actRemaining = RelOptUtil.splitJoinCondition(empScan, deptScan, joinCond, actLeftKeys,
         actRightKeys, actFilterNulls);
 
-    assertEquals(expRemaining.toString(), actRemaining.toString());
+    assertEquals(expRemaining, actRemaining);
     assertEquals(expFilterNulls, actFilterNulls);
     assertEquals(expLeftKeys, actLeftKeys);
     assertEquals(expRightKeys, actRightKeys);
+  }
+
+  /**
+   * Test {@link RelOptUtil#pushDownJoinConditions(org.apache.calcite.rel.core.Join, RelBuilder)}
+   * where the join condition contains a complex expression
+   */
+  @Test public void testPushDownJoinConditions() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.EQUALS,
+        relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+        rightKeyInputRef);
+
+
+    // Build the join operator and push down join conditions
+    relBuilder.push(empScan);
+    relBuilder.push(deptScan);
+    relBuilder.join(JoinRelType.INNER, joinCond);
+    Join join = (Join) relBuilder.build();
+    RelNode transformed = RelOptUtil.pushDownJoinConditions(join, relBuilder);
+
+    // Assert the new join operator
+    assertThat(transformed.getRowType(), is(join.getRowType()));
+    assertThat(transformed, is(instanceOf(Project.class)));
+    RelNode transformedInput = transformed.getInput(0);
+    assertThat(transformedInput, is(instanceOf(Join.class)));
+    Join newJoin = (Join) transformedInput;
+    assertThat(newJoin.getCondition().toString(),
+        is(
+            relBuilder.call(
+                SqlStdOperatorTable.EQUALS,
+                // Computed field is added at the end (and index start at 0)
+                RexInputRef.of(empRow.getFieldCount(), join.getRowType()),
+                // Right side is shifted by 1
+                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex, join.getRowType()))
+            .toString()));
+    assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
+    Project leftInput = (Project) newJoin.getLeft();
+    assertThat(leftInput.getChildExps().get(empRow.getFieldCount()).toString(),
+        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
+            .toString()));
+  }
+
+  /**
+   * Test {@link RelOptUtil#pushDownJoinConditions(org.apache.calcite.rel.core.Join, RelBuilder)}
+   * where the join condition contains a complex expression
+   */
+  @Test public void testPushDownJoinConditionsWithIsNotDistinct() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+        relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+        rightKeyInputRef);
+
+
+    // Build the join operator and push down join conditions
+    relBuilder.push(empScan);
+    relBuilder.push(deptScan);
+    relBuilder.join(JoinRelType.INNER, joinCond);
+    Join join = (Join) relBuilder.build();
+    RelNode transformed = RelOptUtil.pushDownJoinConditions(join, relBuilder);
+
+    // Assert the new join operator
+    assertThat(transformed.getRowType(), is(join.getRowType()));
+    assertThat(transformed, is(instanceOf(Project.class)));
+    RelNode transformedInput = transformed.getInput(0);
+    assertThat(transformedInput, is(instanceOf(Join.class)));
+    Join newJoin = (Join) transformedInput;
+    assertThat(newJoin.getCondition().toString(),
+        is(
+            relBuilder.call(
+                SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                // Computed field is added at the end (and index start at 0)
+                RexInputRef.of(empRow.getFieldCount(), join.getRowType()),
+                // Right side is shifted by 1
+                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex, join.getRowType()))
+            .toString()));
+    assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
+    Project leftInput = (Project) newJoin.getLeft();
+    assertThat(leftInput.getChildExps().get(empRow.getFieldCount()).toString(),
+        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
+            .toString()));
+
+  }
+
+  /**
+   * Test {@link RelOptUtil#pushDownJoinConditions(org.apache.calcite.rel.core.Join, RelBuilder)}
+   * where the join condition contains a complex expression
+   */
+  @Test public void testPushDownJoinConditionsWithExpandedIsNotDistinct() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.OR,
+        relBuilder.call(SqlStdOperatorTable.EQUALS,
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+            rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.AND,
+            relBuilder.call(SqlStdOperatorTable.IS_NULL,
+                relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef,
+                    relBuilder.literal(1))),
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef)));
+
+
+    // Build the join operator and push down join conditions
+    relBuilder.push(empScan);
+    relBuilder.push(deptScan);
+    relBuilder.join(JoinRelType.INNER, joinCond);
+    Join join = (Join) relBuilder.build();
+    RelNode transformed = RelOptUtil.pushDownJoinConditions(join, relBuilder);
+
+    // Assert the new join operator
+    assertThat(transformed.getRowType(), is(join.getRowType()));
+    assertThat(transformed, is(instanceOf(Project.class)));
+    RelNode transformedInput = transformed.getInput(0);
+    assertThat(transformedInput, is(instanceOf(Join.class)));
+    Join newJoin = (Join) transformedInput;
+    assertThat(newJoin.getCondition().toString(),
+        is(
+            relBuilder.call(
+                SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                // Computed field is added at the end (and index start at 0)
+                RexInputRef.of(empRow.getFieldCount(), join.getRowType()),
+                // Right side is shifted by 1
+                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex, join.getRowType()))
+                .toString()));
+    assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
+    Project leftInput = (Project) newJoin.getLeft();
+    assertThat(leftInput.getChildExps().get(empRow.getFieldCount()).toString(),
+        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
+            .toString()));
+  }
+
+  /**
+   * Test {@link RelOptUtil#pushDownJoinConditions(org.apache.calcite.rel.core.Join, RelBuilder)}
+   * where the join condition contains a complex expression
+   */
+  @Test public void testPushDownJoinConditionsWithExpandedIsNotDistinctUsingCase() {
+    int leftJoinIndex = empScan.getRowType().getFieldNames().indexOf("DEPTNO");
+    int rightJoinIndex = deptRow.getFieldNames().indexOf("DEPTNO");
+
+    RexInputRef leftKeyInputRef = RexInputRef.of(leftJoinIndex, empDeptJoinRelFields);
+    RexInputRef rightKeyInputRef =
+        RexInputRef.of(empRow.getFieldCount() + rightJoinIndex, empDeptJoinRelFields);
+    RexNode joinCond = relBuilder.call(SqlStdOperatorTable.CASE,
+        relBuilder.call(SqlStdOperatorTable.IS_NULL,
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL, rightKeyInputRef),
+        relBuilder.call(SqlStdOperatorTable.IS_NULL,
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))),
+        relBuilder.call(SqlStdOperatorTable.EQUALS,
+            relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1)),
+            rightKeyInputRef));
+
+
+    // Build the join operator and push down join conditions
+    relBuilder.push(empScan);
+    relBuilder.push(deptScan);
+    relBuilder.join(JoinRelType.INNER, joinCond);
+    Join join = (Join) relBuilder.build();
+    RelNode transformed = RelOptUtil.pushDownJoinConditions(join, relBuilder);
+
+    // Assert the new join operator
+    assertThat(transformed.getRowType(), is(join.getRowType()));
+    assertThat(transformed, is(instanceOf(Project.class)));
+    RelNode transformedInput = transformed.getInput(0);
+    assertThat(transformedInput, is(instanceOf(Join.class)));
+    Join newJoin = (Join) transformedInput;
+    assertThat(newJoin.getCondition().toString(),
+        is(
+            relBuilder.call(
+                SqlStdOperatorTable.IS_NOT_DISTINCT_FROM,
+                // Computed field is added at the end (and index start at 0)
+                RexInputRef.of(empRow.getFieldCount(), join.getRowType()),
+                // Right side is shifted by 1
+                RexInputRef.of(empRow.getFieldCount() + 1 + rightJoinIndex, join.getRowType()))
+              .toString()));
+    assertThat(newJoin.getLeft(), is(instanceOf(Project.class)));
+    Project leftInput = (Project) newJoin.getLeft();
+    assertThat(leftInput.getChildExps().get(empRow.getFieldCount()).toString(),
+        is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
+            .toString()));
   }
 }
 

@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockStatement;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 
 /**
  * A relational expression of one of the
@@ -27,9 +26,6 @@ import org.apache.calcite.rel.core.RelFactories;
  */
 public interface EnumerableRel
     extends RelNode {
-  RelFactories.FilterFactory FILTER_FACTORY = EnumerableFilter::create;
-
-  RelFactories.ProjectFactory PROJECT_FACTORY = EnumerableProject::create;
 
   //~ Methods ----------------------------------------------------------------
 

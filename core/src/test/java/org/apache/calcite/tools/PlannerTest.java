@@ -25,7 +25,6 @@ import org.apache.calcite.adapter.jdbc.JdbcConvention;
 import org.apache.calcite.adapter.jdbc.JdbcImplementor;
 import org.apache.calcite.adapter.jdbc.JdbcRel;
 import org.apache.calcite.adapter.jdbc.JdbcRules;
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -41,20 +40,26 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.JoinToCorrelateRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
+import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
+import org.apache.calcite.rel.rules.UnionMergeRule;
+import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -67,6 +72,7 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.test.SqlTests;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -75,14 +81,19 @@ import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,10 +103,11 @@ import static org.apache.calcite.plan.RelOptRule.operand;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link Planner}.
@@ -125,11 +137,13 @@ public class PlannerTest {
         + "    EnumerableTableScan(table=[[hr, emps]])\n");
   }
 
-  @Test(expected = SqlParseException.class)
-  public void testParseIdentiferMaxLengthWithDefault() throws Exception {
-    Planner planner = getPlanner(null, SqlParser.configBuilder().build());
-    planner.parse("select name as "
-        + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
+  @Test
+  public void testParseIdentiferMaxLengthWithDefault() {
+    Assertions.assertThrows(SqlParseException.class, () -> {
+      Planner planner = getPlanner(null, SqlParser.configBuilder().build());
+      planner.parse("select name as "
+          + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa from \"emps\"");
+    });
   }
 
   @Test
@@ -234,6 +248,27 @@ public class PlannerTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3547">[CALCITE-3547]
+   * SqlValidatorException because Planner cannot find UDFs added to schema</a>. */
+  @Test public void testValidateUserDefinedFunctionInSchema() throws Exception {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("my_plus",
+        ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    final String sql = "select \"my_plus\"(\"deptno\", 100) as \"p\"\n"
+        + "from \"hr\".\"emps\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    assertThat(Util.toLinux(validate.toString()),
+        equalTo("SELECT `my_plus`(`emps`.`deptno`, 100) AS `p`\n"
+            + "FROM `hr`.`emps` AS `emps`"));
+  }
+
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
     return getPlanner(traitDefs, SqlParser.Config.DEFAULT, programs);
   }
@@ -277,7 +312,7 @@ public class PlannerTest {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode rel = planner.rel(validate).project();
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
     final String buf = predicates.pulledUpPredicates.toString();
     assertThat(buf, equalTo(expectedPredicates));
@@ -372,6 +407,147 @@ public class PlannerTest {
             + "  EnumerableTableScan(table=[[hr, emps]])\n"));
   }
 
+  /** Unit test that parses, validates, converts and plans. */
+  @Test public void trimEmptyUnion2() throws Exception {
+    checkUnionPruning("values(1) union all select * from (values(2)) where false",
+        "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n");
+
+    checkUnionPruning("select * from (values(2)) where false union all values(1)",
+        "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n");
+  }
+
+  @Test public void trimEmptyUnion31() throws Exception {
+    emptyUnions31();
+  }
+
+  @Test public void trimEmptyUnion31withUnionMerge() throws Exception {
+    emptyUnions31(UnionMergeRule.INSTANCE);
+  }
+
+  private void emptyUnions31(UnionMergeRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    String plan = "EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n";
+    checkUnionPruning("values(1)"
+            + " union all select * from (values(2)) where false"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all values(1)"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all select * from (values(3)) where false"
+            + " union all values(1)",
+        plan, extraRules);
+  }
+
+  @Disabled("[CALCITE-2773] java.lang.AssertionError: rel"
+      + " [rel#69:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#78,input#1=RelSubset#71,all=true)]"
+      + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io} than best cost {5.0 rows, 5.0 cpu, 0.0 io}"
+      + " of subset [rel#67:Subset#6.ENUMERABLE.[]]")
+  @Test public void trimEmptyUnion32() throws Exception {
+    emptyUnions32();
+  }
+
+  @Test public void trimEmptyUnion32withUnionMerge() throws Exception {
+    emptyUnions32(UnionMergeRule.INSTANCE);
+  }
+
+  private void emptyUnions32(UnionMergeRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    String plan = "EnumerableUnion(all=[true])\n"
+        + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n"
+        + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 2 }]])\n";
+
+    checkUnionPruning("values(1)"
+            + " union all values(2)"
+            + " union all select * from (values(3)) where false",
+        plan, extraRules);
+
+    checkUnionPruning("values(1)"
+            + " union all select * from (values(3)) where false"
+            + " union all values(2)",
+        plan, extraRules);
+
+    checkUnionPruning("select * from (values(2)) where false"
+            + " union all values(1)"
+            + " union all values(2)",
+        plan, extraRules);
+  }
+
+  private void checkUnionPruning(String sql, String plan, RelOptRule... extraRules)
+      throws SqlParseException, ValidationException, RelConversionException {
+    ImmutableList.Builder<RelOptRule> rules = ImmutableList.<RelOptRule>builder().add(
+        PruneEmptyRules.UNION_INSTANCE,
+        ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_FILTER_RULE,
+        EnumerableRules.ENUMERABLE_VALUES_RULE,
+        EnumerableRules.ENUMERABLE_UNION_RULE);
+    rules.add(extraRules);
+    Program program = Programs.ofRules(rules.build());
+    Planner planner = getPlanner(null, program);
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).project();
+    RelTraitSet traitSet = convert.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    RelNode transform = planner.transform(0, traitSet, convert);
+    assertThat("Empty values should be removed from " + sql,
+        toString(transform), equalTo(plan));
+  }
+
+  @Disabled("[CALCITE-2773] java.lang.AssertionError: rel"
+      + " [rel#17:EnumerableUnion.ENUMERABLE.[](input#0=RelSubset#26,input#1=RelSubset#19,all=true)]"
+      + " has lower cost {4.0 rows, 4.0 cpu, 0.0 io}"
+      + " than best cost {5.0 rows, 5.0 cpu, 0.0 io} of subset [rel#15:Subset#5.ENUMERABLE.[]]")
+  @Test public void trimEmptyUnion32viaRelBuidler() throws Exception {
+    RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+
+    // This somehow blows up (see trimEmptyUnion32, the second case)
+    // (values(1) union all select * from (values(3)) where false)
+    // union all values(2)
+
+    // Non-trivial filter is important for the test to fail
+    RelNode relNode = relBuilder
+        .values(new String[]{"x"}, "1")
+        .values(new String[]{"x"}, "3")
+        .filter(relBuilder.equals(relBuilder.field("x"), relBuilder.literal("30")))
+        .union(true)
+        .values(new String[]{"x"}, "2")
+        .union(true)
+        .build();
+
+    RelOptPlanner planner = relNode.getCluster().getPlanner();
+    RuleSet ruleSet =
+        RuleSets.ofList(
+            PruneEmptyRules.UNION_INSTANCE,
+            ValuesReduceRule.FILTER_INSTANCE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_VALUES_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE);
+    Program program = Programs.of(ruleSet);
+
+    RelTraitSet toTraits = relNode.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+
+    // Expected outcomes are:
+    // 1) relation is optimized to simple VALUES
+    // 2) the number of rule invocations is reasonable
+    // 3) planner does not throw OutOfMemoryError
+    assertThat("empty union should be pruned out of " + toString(relNode),
+        Util.toLinux(toString(output)),
+        equalTo("EnumerableUnion(all=[true])\n"
+            + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 1 }]])\n"
+            + "  EnumerableValues(type=[RecordType(INTEGER EXPR$0)], tuples=[[{ 2 }]])\n"));
+  }
+
   /** Unit test that parses, validates, converts and
    * plans for query using order by */
   @Test public void testSortPlan() throws Exception {
@@ -397,7 +573,7 @@ public class PlannerTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2554">[CALCITE-2554]
-   * Enrich EnumerableJoin operator with order preserving information</a>.
+   * Enrich EnumerableHashJoin operator with order preserving information</a>.
    *
    * <p>Since the left input to the join is sorted, and this join preserves
    * order, there shouldn't be any sort operator above the join.
@@ -427,7 +603,7 @@ public class PlannerTest {
     assertThat(toString(transform),
         equalTo("EnumerableProject(deptno=[$1])\n"
         + "  EnumerableLimit(fetch=[10])\n"
-        + "    EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
         + "      EnumerableLimit(fetch=[10])\n"
         + "        EnumerableSort(sort0=[$1], dir0=[ASC])\n"
         + "          EnumerableTableScan(table=[[hr, emps]])\n"
@@ -556,6 +732,23 @@ public class PlannerTest {
             + "  EnumerableProject(empid=[$0], deptno=[$1])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n"));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3029">[CALCITE-3029]
+   * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
+   * SQL-oriented</a>. */
+  @Test public void testInsertSourceRelTypeWithNullValues() throws Exception {
+    Planner planner = getPlanner(null, Programs.standard());
+    SqlNode parse = planner.parse(
+        "insert into \"emps\" values(1, 1, null, 1, 1)");
+    SqlNode validate = planner.validate(parse);
+    RelNode convert = planner.rel(validate).rel;
+    RelDataType insertSourceType = convert.getInput(0).getRowType();
+    String typeString = SqlTests.getTypeString(insertSourceType);
+    assertEquals("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, VARCHAR name, "
+            + "REAL NOT NULL salary, INTEGER commission) NOT NULL", typeString);
+  }
+
 
   /** Unit test that parses, validates, converts and plans. Planner is
    * provided with a list of RelTraitDefs to register. */
@@ -711,9 +904,29 @@ public class PlannerTest {
             + "  MockJdbcTableScan(table=[[hr, emps]])\n"));
   }
 
-  /** Unit test that plans a query with a large number of joins. */
-  @Test public void testPlanNWayJoin()
+  @Test public void testPlan5WayJoin()
       throws Exception {
+    checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
+  }
+
+  @Test public void testPlan9WayJoin()
+      throws Exception {
+    checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
+  }
+
+  @Test public void testPlan35WayJoin()
+      throws Exception {
+    checkJoinNWay(35); // takes about 2s
+  }
+
+  @Tag("slow")
+  @Test public void testPlan60WayJoin()
+      throws Exception {
+    checkJoinNWay(60); // takes about 15s
+  }
+
+  /** Test that plans a query with a large number of joins. */
+  private void checkJoinNWay(int n) throws Exception {
     // Here the times before and after enabling LoptOptimizeJoinRule.
     //
     // Note the jump between N=6 and N=7; LoptOptimizeJoinRule is disabled if
@@ -732,15 +945,6 @@ public class PlannerTest {
     //      13 OOM              96
     //      35 OOM           1,716
     //      60 OOM          12,230
-    checkJoinNWay(5); // LoptOptimizeJoinRule disabled; takes about .4s
-    checkJoinNWay(9); // LoptOptimizeJoinRule enabled; takes about 0.04s
-    checkJoinNWay(35); // takes about 2s
-    if (CalciteSystemProperty.TEST_SLOW.value()) {
-      checkJoinNWay(60); // takes about 15s
-    }
-  }
-
-  private void checkJoinNWay(int n) throws Exception {
     final StringBuilder buf = new StringBuilder();
     buf.append("select *");
     for (int i = 0; i < n; i++) {
@@ -763,7 +967,7 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform),
         containsString(
-            "EnumerableJoin(condition=[=($0, $5)], joinType=[inner])"));
+            "EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])"));
   }
 
   /** Test case for
@@ -782,14 +986,13 @@ public class PlannerTest {
         + "left join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[$8], location9=[$9], empid0=[$10], name1=[$11])\n"
-        + "  EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], x=[$10], y=[$11], empid0=[$0], name1=[$1])\n"
-        + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "      EnumerableTableScan(table=[[hr, dependents]])\n"
-        + "      EnumerableJoin(condition=[=($1, $5)], joinType=[left])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])\n"
-        + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "          EnumerableTableScan(table=[[hr, depts]])";
+        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     checkHeuristic(sql, expected);
   }
 
@@ -804,15 +1007,14 @@ public class PlannerTest {
         + "right join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[$8], location9=[$9], empid0=[$10], name1=[$11])\n"
-        + "  EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], x=[$10], y=[$11], empid0=[$0], name1=[$1])\n"
-        + "    EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "      EnumerableTableScan(table=[[hr, dependents]])\n"
-        + "      EnumerableProject(empid=[$5], deptno=[$6], name=[$7], salary=[$8], commission=[$9], deptno0=[$0], name0=[$1], employees=[$2], x=[$3], y=[$4])\n"
-        + "        EnumerableJoin(condition=[=($0, $6)], joinType=[left])\n"
-        + "          EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "            EnumerableTableScan(table=[[hr, depts]])\n"
-        + "          EnumerableTableScan(table=[[hr, emps]])";
+        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "    EnumerableProject(empid=[$5], deptno=[$6], name=[$7], salary=[$8], commission=[$9], deptno0=[$0], name0=[$1], employees=[$2], x=[$3], y=[$4])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])\n"
+        + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+        + "          EnumerableTableScan(table=[[hr, depts]])\n"
+        + "        EnumerableTableScan(table=[[hr, emps]])";
     checkHeuristic(sql, expected);
   }
 
@@ -823,14 +1025,13 @@ public class PlannerTest {
         + "join \"depts\" as d on e.\"deptno\" = d.\"deptno\"\n"
         + "right join \"dependents\" as p on e.\"empid\" = p.\"empid\"";
     final String expected = ""
-        + "EnumerableProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4], deptno0=[$5], name0=[$6], employees=[$7], location=[$8], location9=[$9], empid0=[$10], name1=[$11])\n"
-        + "  EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], x=[$10], y=[$11], empid0=[$0], name1=[$1])\n"
-        + "    EnumerableJoin(condition=[=($0, $2)], joinType=[left])\n"
-        + "      EnumerableTableScan(table=[[hr, dependents]])\n"
-        + "      EnumerableJoin(condition=[=($1, $5)], joinType=[inner])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])\n"
-        + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "          EnumerableTableScan(table=[[hr, depts]])";
+        + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[left])\n"
+        + "    EnumerableTableScan(table=[[hr, dependents]])\n"
+        + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[inner])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     checkHeuristic(sql, expected);
   }
 
@@ -860,10 +1061,10 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51])\n"
         + "  EnumerableProject(product_id0=[$44], time_id=[$45], customer_id0=[$46], promotion_id=[$47], store_id=[$48], store_sales=[$49], store_cost=[$50], unit_sales=[$51], customer_id=[$15], account_num=[$16], lname=[$17], fname=[$18], mi=[$19], address1=[$20], address2=[$21], address3=[$22], address4=[$23], city=[$24], state_province=[$25], postal_code=[$26], country=[$27], customer_region_id=[$28], phone1=[$29], phone2=[$30], birthdate=[$31], marital_status=[$32], yearly_income=[$33], gender=[$34], total_children=[$35], num_children_at_home=[$36], education=[$37], date_accnt_opened=[$38], member_card=[$39], occupation=[$40], houseowner=[$41], num_cars_owned=[$42], fullname=[$43], product_class_id=[$0], product_id=[$1], brand_name=[$2], product_name=[$3], SKU=[$4], SRP=[$5], gross_weight=[$6], net_weight=[$7], recyclable_package=[$8], low_fat=[$9], units_per_case=[$10], cases_per_pallet=[$11], shelf_width=[$12], shelf_height=[$13], shelf_depth=[$14])\n"
-        + "    EnumerableJoin(condition=[=($1, $44)], joinType=[inner])\n"
+        + "    EnumerableHashJoin(condition=[=($1, $44)], joinType=[inner])\n"
         + "      EnumerableFilter(condition=[=($2, 'Washington')])\n"
         + "        EnumerableTableScan(table=[[foodmart2, product]])\n"
-        + "      EnumerableJoin(condition=[=($0, $31)], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $31)], joinType=[inner])\n"
         + "        EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
         + "          EnumerableTableScan(table=[[foodmart2, customer]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
@@ -891,11 +1092,11 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56])\n"
         + "  EnumerableProject(product_id0=[$49], time_id=[$50], customer_id0=[$51], promotion_id=[$52], store_id=[$53], store_sales=[$54], store_cost=[$55], unit_sales=[$56], customer_id=[$0], account_num=[$1], lname=[$2], fname=[$3], mi=[$4], address1=[$5], address2=[$6], address3=[$7], address4=[$8], city=[$9], state_province=[$10], postal_code=[$11], country=[$12], customer_region_id=[$13], phone1=[$14], phone2=[$15], birthdate=[$16], marital_status=[$17], yearly_income=[$18], gender=[$19], total_children=[$20], num_children_at_home=[$21], education=[$22], date_accnt_opened=[$23], member_card=[$24], occupation=[$25], houseowner=[$26], num_cars_owned=[$27], fullname=[$28], product_class_id0=[$34], product_id=[$35], brand_name=[$36], product_name=[$37], SKU=[$38], SRP=[$39], gross_weight=[$40], net_weight=[$41], recyclable_package=[$42], low_fat=[$43], units_per_case=[$44], cases_per_pallet=[$45], shelf_width=[$46], shelf_height=[$47], shelf_depth=[$48], product_class_id=[$29], product_subcategory=[$30], product_category=[$31], product_department=[$32], product_family=[$33])\n"
-        + "    EnumerableJoin(condition=[=($0, $51)], joinType=[inner])\n"
+        + "    EnumerableHashJoin(condition=[=($0, $51)], joinType=[inner])\n"
         + "      EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
         + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
-        + "      EnumerableJoin(condition=[=($6, $20)], joinType=[inner])\n"
-        + "        EnumerableJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])\n"
+        + "        EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])\n"
         + "          EnumerableTableScan(table=[[foodmart2, product_class]])\n"
         + "          EnumerableFilter(condition=[=($2, 'Washington')])\n"
         + "            EnumerableTableScan(table=[[foodmart2, product]])\n"
@@ -920,13 +1121,13 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], product_class_id=[$37], product_id0=[$38], brand_name=[$39], product_name=[$40], SKU=[$41], SRP=[$42], gross_weight=[$43], net_weight=[$44], recyclable_package=[$45], low_fat=[$46], units_per_case=[$47], cases_per_pallet=[$48], shelf_width=[$49], shelf_height=[$50], shelf_depth=[$51], product_class_id0=[$52], product_subcategory=[$53], product_category=[$54], product_department=[$55], product_family=[$56], store_id0=[$57], store_type=[$58], region_id=[$59], store_name=[$60], store_number=[$61], store_street_address=[$62], store_city=[$63], store_state=[$64], store_postal_code=[$65], store_country=[$66], store_manager=[$67], store_phone=[$68], store_fax=[$69], first_opened_date=[$70], last_remodel_date=[$71], store_sqft=[$72], grocery_sqft=[$73], frozen_sqft=[$74], meat_sqft=[$75], coffee_bar=[$76], video_store=[$77], salad_bar=[$78], prepared_food=[$79], florist=[$80])\n"
         + "  EnumerableProject(product_id0=[$73], time_id=[$74], customer_id0=[$75], promotion_id=[$76], store_id0=[$77], store_sales=[$78], store_cost=[$79], unit_sales=[$80], customer_id=[$24], account_num=[$25], lname=[$26], fname=[$27], mi=[$28], address1=[$29], address2=[$30], address3=[$31], address4=[$32], city=[$33], state_province=[$34], postal_code=[$35], country=[$36], customer_region_id=[$37], phone1=[$38], phone2=[$39], birthdate=[$40], marital_status=[$41], yearly_income=[$42], gender=[$43], total_children=[$44], num_children_at_home=[$45], education=[$46], date_accnt_opened=[$47], member_card=[$48], occupation=[$49], houseowner=[$50], num_cars_owned=[$51], fullname=[$52], product_class_id0=[$58], product_id=[$59], brand_name=[$60], product_name=[$61], SKU=[$62], SRP=[$63], gross_weight=[$64], net_weight=[$65], recyclable_package=[$66], low_fat=[$67], units_per_case=[$68], cases_per_pallet=[$69], shelf_width=[$70], shelf_height=[$71], shelf_depth=[$72], product_class_id=[$53], product_subcategory=[$54], product_category=[$55], product_department=[$56], product_family=[$57], store_id=[$0], store_type=[$1], region_id=[$2], store_name=[$3], store_number=[$4], store_street_address=[$5], store_city=[$6], store_state=[$7], store_postal_code=[$8], store_country=[$9], store_manager=[$10], store_phone=[$11], store_fax=[$12], first_opened_date=[$13], last_remodel_date=[$14], store_sqft=[$15], grocery_sqft=[$16], frozen_sqft=[$17], meat_sqft=[$18], coffee_bar=[$19], video_store=[$20], salad_bar=[$21], prepared_food=[$22], florist=[$23])\n"
-        + "    EnumerableJoin(condition=[=($0, $77)], joinType=[inner])\n"
+        + "    EnumerableHashJoin(condition=[=($0, $77)], joinType=[inner])\n"
         + "      EnumerableTableScan(table=[[foodmart2, store]])\n"
-        + "      EnumerableJoin(condition=[=($0, $51)], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $51)], joinType=[inner])\n"
         + "        EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
         + "          EnumerableTableScan(table=[[foodmart2, customer]])\n"
-        + "        EnumerableJoin(condition=[=($6, $20)], joinType=[inner])\n"
-        + "          EnumerableJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "        EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])\n"
+        + "          EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])\n"
         + "            EnumerableTableScan(table=[[foodmart2, product_class]])\n"
         + "            EnumerableTableScan(table=[[foodmart2, product]])\n"
         + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
@@ -943,9 +1144,9 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38])\n"
         + "  EnumerableProject(product_id=[$31], time_id=[$32], customer_id0=[$33], promotion_id=[$34], store_id=[$35], store_sales=[$36], store_cost=[$37], unit_sales=[$38], customer_id=[$2], account_num=[$3], lname=[$4], fname=[$5], mi=[$6], address1=[$7], address2=[$8], address3=[$9], address4=[$10], city=[$11], state_province=[$12], postal_code=[$13], country=[$14], customer_region_id=[$15], phone1=[$16], phone2=[$17], birthdate=[$18], marital_status=[$19], yearly_income=[$20], gender=[$21], total_children=[$22], num_children_at_home=[$23], education=[$24], date_accnt_opened=[$25], member_card=[$26], occupation=[$27], houseowner=[$28], num_cars_owned=[$29], fullname=[$30], department_id=[$0], department_description=[$1])\n"
-        + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
+        + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
         + "      EnumerableTableScan(table=[[foodmart2, department]])\n"
-        + "      EnumerableJoin(condition=[=($0, $31)], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $31)], joinType=[inner])\n"
         + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])";
     checkBushy(sql, expected);
@@ -963,11 +1164,11 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38], employee_id=[$39], full_name=[$40], first_name=[$41], last_name=[$42], position_id=[$43], position_title=[$44], store_id0=[$45], department_id0=[$46], birth_date=[$47], hire_date=[$48], end_date=[$49], salary=[$50], supervisor_id=[$51], education_level=[$52], marital_status0=[$53], gender0=[$54], management_role=[$55])\n"
         + "  EnumerableProject(product_id=[$48], time_id=[$49], customer_id0=[$50], promotion_id=[$51], store_id0=[$52], store_sales=[$53], store_cost=[$54], unit_sales=[$55], customer_id=[$19], account_num=[$20], lname=[$21], fname=[$22], mi=[$23], address1=[$24], address2=[$25], address3=[$26], address4=[$27], city=[$28], state_province=[$29], postal_code=[$30], country=[$31], customer_region_id=[$32], phone1=[$33], phone2=[$34], birthdate=[$35], marital_status0=[$36], yearly_income=[$37], gender0=[$38], total_children=[$39], num_children_at_home=[$40], education=[$41], date_accnt_opened=[$42], member_card=[$43], occupation=[$44], houseowner=[$45], num_cars_owned=[$46], fullname=[$47], department_id=[$0], department_description=[$1], employee_id=[$2], full_name=[$3], first_name=[$4], last_name=[$5], position_id=[$6], position_title=[$7], store_id=[$8], department_id0=[$9], birth_date=[$10], hire_date=[$11], end_date=[$12], salary=[$13], supervisor_id=[$14], education_level=[$15], marital_status=[$16], gender=[$17], management_role=[$18])\n"
-        + "    EnumerableJoin(condition=[true], joinType=[inner])\n"
-        + "      EnumerableJoin(condition=[=($0, $9)], joinType=[inner])\n"
+        + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $9)], joinType=[inner])\n"
         + "        EnumerableTableScan(table=[[foodmart2, department]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, employee]])\n"
-        + "      EnumerableJoin(condition=[=($0, $31)], joinType=[inner])\n"
+        + "      EnumerableHashJoin(condition=[=($0, $31)], joinType=[inner])\n"
         + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
     checkBushy(sql, expected);
@@ -1187,6 +1388,57 @@ public class PlannerTest {
                 RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3376">[CALCITE-3376]
+   * VolcanoPlanner CannotPlanException: best rel is null even though there is
+   * an option with non-infinite cost</a>. */
+  @Test public void testCorrelatedJoinWithIdenticalInputs() throws Exception {
+    final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
+    final RuleSet ruleSet =
+        RuleSets.ofList(
+            JoinToCorrelateRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_CORRELATE_RULE,
+            EnumerableRules.ENUMERABLE_PROJECT_RULE,
+            EnumerableRules.ENUMERABLE_FILTER_RULE,
+            EnumerableRules.ENUMERABLE_SORT_RULE,
+            EnumerableRules.ENUMERABLE_UNION_RULE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+
+    builder
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .scan("EMP")
+        .scan("EMP")
+        .union(true)
+
+        .join(
+            JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "EMPNO")));
+
+    final RelNode relNode = builder.build();
+    final RelOptPlanner planner = relNode.getCluster().getPlanner();
+    final Program program = Programs.of(ruleSet);
+    final RelTraitSet toTraits = relNode.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    final RelNode output = program.run(planner, relNode, toTraits,
+        ImmutableList.of(), ImmutableList.of());
+    final String plan = toString(output);
+    assertThat(plan,
+        equalTo(
+            "EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])\n"
+            + "    EnumerableUnion(all=[true])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"));
   }
 
   @Test public void testView() throws Exception {

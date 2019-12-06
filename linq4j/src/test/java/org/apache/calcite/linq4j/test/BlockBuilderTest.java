@@ -25,8 +25,8 @@ import org.apache.calcite.linq4j.tree.OptimizeShuttle;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Shuttle;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.function.Function;
@@ -35,7 +35,7 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.FOUR;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests BlockBuilder.
@@ -43,7 +43,7 @@ import static org.junit.Assert.assertEquals;
 public class BlockBuilderTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }
@@ -102,28 +102,26 @@ public class BlockBuilderTest {
   @Test public void testRenameVariablesWithEmptyInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(null, null);
 
-    assertEquals("x in the second block should be renamed to avoid name clash",
-        "{\n"
+    assertEquals("{\n"
             + "  int x;\n"
             + "  x = 1;\n"
             + "  int x0;\n"
             + "  x0 = 42;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "x in the second block should be renamed to avoid name clash");
   }
 
   @Test public void testRenameVariablesWithInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(
         Expressions.constant(7), Expressions.constant(8));
 
-    assertEquals("x in the second block should be renamed to avoid name clash",
-        "{\n"
+    assertEquals("{\n"
             + "  int x = 7;\n"
             + "  x = 1;\n"
             + "  int x0 = 8;\n"
             + "  x0 = 42;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "x in the second block should be renamed to avoid name clash");
   }
 
   /**
@@ -156,11 +154,10 @@ public class BlockBuilderTest {
             OptimizeShuttle.BOXED_FALSE_EXPR,
             Expressions.constant(null)));
 
-    assertEquals("Expected to optimize Boolean.FALSE = null to false",
-        "{\n"
+    assertEquals("{\n"
             + "  return false;\n"
-            + "}\n",
-        Expressions.toString(outer.toBlock()));
+            + "}\n", Expressions.toString(outer.toBlock()),
+        "Expected to optimize Boolean.FALSE = null to false");
   }
 
   /**

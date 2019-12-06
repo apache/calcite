@@ -445,8 +445,7 @@ public class DruidRules {
         return;
       }
 
-      if (aggregate.indicator
-          || aggregate.getGroupSets().size() != 1) {
+      if (aggregate.getGroupSets().size() != 1) {
         return;
       }
       if (DruidQuery
@@ -492,8 +491,7 @@ public class DruidRules {
       if (!DruidQuery.isValidSignature(query.signature() + 'p' + 'a')) {
         return;
       }
-      if (aggregate.indicator
-          || aggregate.getGroupSets().size() != 1) {
+      if (aggregate.getGroupSets().size() != 1) {
         return;
       }
       if (DruidQuery
@@ -596,15 +594,15 @@ public class DruidRules {
       // Erase references to filters
       for (AggregateCall aggCall : aggregate.getAggCallList()) {
         if ((uniqueFilterRefs.size() == 1
-                && allHaveFilters) // filters get extracted
-            || project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
+            && allHaveFilters) // filters get extracted
+            || aggCall.hasFilter()
+            && project.getProjects().get(aggCall.filterArg).isAlwaysTrue()) {
           aggCall = aggCall.copy(aggCall.getArgList(), -1, aggCall.collation);
         }
         newCalls.add(aggCall);
       }
       aggregate = aggregate.copy(aggregate.getTraitSet(), aggregate.getInput(),
-              aggregate.indicator, aggregate.getGroupSet(), aggregate.getGroupSets(),
-              newCalls);
+          aggregate.getGroupSet(), aggregate.getGroupSets(), newCalls);
 
       if (containsFilter) {
         // AND the current filterNode with the filter node inside filter

@@ -19,14 +19,14 @@ package org.apache.calcite.sql.type;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
-import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
-
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.apache.calcite.sql.type.SqlTypeUtil.areSameFamily;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test of {@link org.apache.calcite.sql.type.SqlTypeUtil}.
@@ -100,6 +100,28 @@ public class SqlTypeUtilTest {
     final RelDataType floatIntStruct = struct(f.sqlInt, f.sqlFloat);
     assertThat(areSameFamily(ImmutableList.of(boolDateStruct, floatIntStruct)),
         is(false));
+  }
+
+  @Test
+  public void testModifyTypeCoercionMappings() {
+    SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
+    final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
+    builder.addAll(defaultRules.getTypeMapping());
+    // Do the tweak, for example, if we want to add a rule to allow
+    // coerce BOOLEAN to TIMESTAMP.
+    builder.add(SqlTypeName.TIMESTAMP,
+        builder.copyValues(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.BOOLEAN).build());
+
+    // Initialize a SqlTypeCoercionRules with the new builder mappings.
+    SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+        is(false));
+    SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+        is(true));
+    // Recover the mappings to default.
+    SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
   }
 
   private RelDataType struct(RelDataType...relDataTypes) {

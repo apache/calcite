@@ -22,18 +22,20 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test for {@link SqlTypeFactoryImpl}.
@@ -59,6 +61,17 @@ public class SqlTypeFactoryTest {
     RelDataType leastRestrictive =
         f.typeFactory.leastRestrictive(Lists.newArrayList(f.sqlVarcharNullable, f.sqlAny));
     assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ANY));
+    assertThat(leastRestrictive.isNullable(), is(true));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2994">[CALCITE-2994]
+   * Least restrictive type among structs does not consider nullability</a>. */
+  @Test public void testLeastRestrictiveWithNullableStruct() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType leastRestrictive =
+        f.typeFactory.leastRestrictive(ImmutableList.of(f.structOfIntNullable, f.structOfInt));
+    assertThat(leastRestrictive.getSqlTypeName(), is(SqlTypeName.ROW));
     assertThat(leastRestrictive.isNullable(), is(true));
   }
 
@@ -139,6 +152,23 @@ public class SqlTypeFactoryTest {
     final RelDataType copyRecordType = typeFactory.createTypeWithNullability(recordType, true);
     assertFalse(recordType.isNullable());
     assertTrue(copyRecordType.isNullable());
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3429">[CALCITE-3429]
+   * AssertionError thrown for user-defined table function with map argument</a>. */
+  @Test public void testCreateTypeWithJavaMapType() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType relDataType = f.typeFactory.createJavaType(Map.class);
+    assertThat(relDataType.getSqlTypeName(), is(SqlTypeName.MAP));
+    assertThat(relDataType.getKeyType().getSqlTypeName(), is(SqlTypeName.ANY));
+
+    try {
+      f.typeFactory.createSqlType(SqlTypeName.MAP);
+      fail();
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("use createMapType() instead"));
+    }
   }
 
 }

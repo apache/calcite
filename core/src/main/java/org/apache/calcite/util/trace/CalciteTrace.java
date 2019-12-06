@@ -31,7 +31,7 @@ import java.io.File;
  * Contains all of the {@link org.slf4j.Logger tracers} used within
  * org.apache.calcite class libraries.
  *
- * <h3>Note to developers</h3>
+ * <h2>Note to developers</h2>
  *
  * <p>Please ensure that every tracer used in org.apache.calcite is added to
  * this class as a <em>public static final</em> member called <code>
@@ -116,6 +116,14 @@ public abstract class CalciteTrace {
    */
   public static Logger getSqlToRelTracer() {
     return LoggerFactory.getLogger("org.apache.calcite.sql2rel");
+  }
+
+  /**
+   * The tracers report important/useful information related with the execution
+   * of unit tests.
+   */
+  public static Logger getTestTracer(Class<?> testClass) {
+    return LoggerFactory.getLogger(testClass.getName());
   }
 
   /**

@@ -20,7 +20,7 @@ import org.apache.calcite.runtime.Utilities;
 
 import com.google.common.collect.Iterables;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.LongBuffer;
 import java.util.Arrays;
@@ -35,11 +35,11 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link org.apache.calcite.util.ImmutableBitSet}.
@@ -349,6 +349,39 @@ public class ImmutableBitSetTest {
     assertThat(ImmutableBitSet.of().indexOf(-2), equalTo(-1));
     assertThat(ImmutableBitSet.of().indexOf(0), equalTo(-1));
     assertThat(ImmutableBitSet.of().indexOf(1000), equalTo(-1));
+  }
+
+  /** Tests {@link ImmutableBitSet.Builder#buildAndReset()}. */
+  @Test public void testReset() {
+    final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
+    builder.set(2);
+    assertThat(builder.build().toString(), is("{2}"));
+    try {
+      builder.set(4);
+      fail("expected exception");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+    try {
+      final ImmutableBitSet bitSet = builder.build();
+      fail("expected exception, got " + bitSet);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+    try {
+      final ImmutableBitSet bitSet = builder.buildAndReset();
+      fail("expected exception, got " + bitSet);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("can only use builder once"));
+    }
+
+    final ImmutableBitSet.Builder builder2 = ImmutableBitSet.builder();
+    builder2.set(2);
+    assertThat(builder2.buildAndReset().toString(), is("{2}"));
+    assertThat(builder2.buildAndReset().toString(), is("{}"));
+    builder2.set(151);
+    builder2.set(3);
+    assertThat(builder2.buildAndReset().toString(), is("{3, 151}"));
   }
 
   @Test public void testNth() {

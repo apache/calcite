@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.sql.validate;
 
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptSchemaWithSampling;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
@@ -30,15 +34,21 @@ import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.schema.CustomColumnResolvingTable;
 import org.apache.calcite.schema.ExtensibleTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -57,11 +67,14 @@ import com.google.common.collect.Lists;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -104,10 +117,9 @@ public class SqlValidatorUtil {
       if (resolvedNamespace.isWrapperFor(TableNamespace.class)) {
         final TableNamespace tableNamespace = resolvedNamespace.unwrap(TableNamespace.class);
         final SqlValidatorTable validatorTable = tableNamespace.getTable();
-        final RelDataTypeFactory typeFactory = catalogReader.getTypeFactory();
         final List<RelDataTypeField> extendedFields = dmlNamespace.extendList == null
             ? ImmutableList.of()
-            : getExtendedColumns(typeFactory, validatorTable, dmlNamespace.extendList);
+            : getExtendedColumns(namespace.getValidator(), validatorTable, dmlNamespace.extendList);
         return getRelOptTable(
             tableNamespace, catalogReader, datasetName, usedDataset, extendedFields);
       }
@@ -142,7 +154,7 @@ public class SqlValidatorUtil {
    * Gets a list of extended columns with field indices to the underlying table.
    */
   public static List<RelDataTypeField> getExtendedColumns(
-      RelDataTypeFactory typeFactory, SqlValidatorTable table, SqlNodeList extendedColumns) {
+      SqlValidator validator, SqlValidatorTable table, SqlNodeList extendedColumns) {
     final ImmutableList.Builder<RelDataTypeField> extendedFields =
         ImmutableList.builder();
     final ExtensibleTable extTable = table.unwrap(ExtensibleTable.class);
@@ -156,7 +168,7 @@ public class SqlValidatorUtil {
       extendedFields.add(
           new RelDataTypeFieldImpl(identifier.toString(),
               extendedFieldOffset++,
-              type.deriveType(typeFactory)));
+              type.deriveType(validator)));
     }
     return extendedFields.build();
   }
@@ -484,6 +496,10 @@ public class SqlValidatorUtil {
     case FULL:
       leftType = typeFactory.createTypeWithNullability(leftType, true);
       rightType = typeFactory.createTypeWithNullability(rightType, true);
+      break;
+    case SEMI:
+    case ANTI:
+      rightType = null;
       break;
     default:
       break;
@@ -836,7 +852,7 @@ public class SqlValidatorUtil {
       SqlIdentifier expr = (SqlIdentifier) expandedGroupExpr;
 
       // column references should be fully qualified.
-      assert expr.names.size() == 2;
+      assert expr.names.size() >= 2;
       String originalRelName = expr.names.get(0);
       String originalFieldName = expr.names.get(1);
 
@@ -1090,6 +1106,111 @@ public class SqlValidatorUtil {
     return false;
   }
 
+  /**
+   * Lookup sql function by sql identifier and function category.
+   *
+   * @param opTab    operator table to look up
+   * @param funName  function name
+   * @param funcType function category
+   * @return A sql function if and only if there is one operator matches, else null
+   */
+  public static SqlOperator lookupSqlFunctionByID(SqlOperatorTable opTab,
+      SqlIdentifier funName,
+      SqlFunctionCategory funcType) {
+    if (funName.isSimple()) {
+      final List<SqlOperator> list = new ArrayList<>();
+      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list,
+          SqlNameMatchers.withCaseSensitive(funName.isComponentQuoted(0)));
+      if (list.size() == 1) {
+        return list.get(0);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Validate the sql node with specified base table row type. For "base table", we mean the
+   * table that the sql node expression references fields with.
+   *
+   * @param caseSensitive whether to match the catalog case-sensitively
+   * @param operatorTable operator table
+   * @param typeFactory   type factory
+   * @param rowType       the table row type that has fields referenced by the expression
+   * @param expr          the expression to validate
+   * @return pair of a validated expression sql node and its data type,
+   * usually a SqlUnresolvedFunction is converted to a resolved function
+   */
+  public static Pair<SqlNode, RelDataType> validateExprWithRowType(
+      boolean caseSensitive,
+      SqlOperatorTable operatorTable,
+      RelDataTypeFactory typeFactory,
+      RelDataType rowType,
+      SqlNode expr) {
+    final String tableName = "_table_";
+    final SqlSelect select0 = new SqlSelect(SqlParserPos.ZERO, null,
+        new SqlNodeList(Collections.singletonList(expr), SqlParserPos.ZERO),
+        new SqlIdentifier(tableName, SqlParserPos.ZERO),
+        null, null, null, null, null, null, null, null);
+    Prepare.CatalogReader catalogReader = createSingleTableCatalogReader(
+        caseSensitive,
+        tableName,
+        typeFactory,
+        rowType);
+    SqlValidator validator = newValidator(operatorTable,
+        catalogReader,
+        typeFactory,
+        SqlConformanceEnum.DEFAULT);
+    final SqlSelect select = (SqlSelect) validator.validate(select0);
+    assert select.getSelectList().size() == 1
+        : "Expression " + expr + " should be atom expression";
+    final SqlNode node = select.getSelectList().get(0);
+    final RelDataType nodeType = validator
+        .getValidatedNodeType(select)
+        .getFieldList()
+        .get(0).getType();
+    return Pair.of(node, nodeType);
+  }
+
+  /**
+   * Creates a catalog reader that contains a single {@link Table} with temporary table name
+   * and specified {@code rowType}.
+   *
+   * <p>Make this method public so that other systems can also use it.
+   *
+   * @param caseSensitive whether to match case sensitively
+   * @param tableName     table name to register with
+   * @param typeFactory   type factory
+   * @param rowType       table row type
+   * @return the {@link CalciteCatalogReader} instance
+   */
+  public static CalciteCatalogReader createSingleTableCatalogReader(
+      boolean caseSensitive,
+      String tableName,
+      RelDataTypeFactory typeFactory,
+      RelDataType rowType) {
+    // connection properties
+    Properties properties = new Properties();
+    properties.put(
+        CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
+        String.valueOf(caseSensitive));
+    CalciteConnectionConfig connectionConfig = new CalciteConnectionConfigImpl(properties);
+
+    // prepare root schema
+    final ExplicitRowTypeTable table = new ExplicitRowTypeTable(rowType);
+    final Map<String, Table> tableMap = Collections.singletonMap(tableName, table);
+    CalciteSchema schema = CalciteSchema.createRootSchema(
+        false,
+        false,
+        "",
+        new ExplicitTableSchema(tableMap));
+
+    return new CalciteCatalogReader(
+        schema,
+        new ArrayList<>(new ArrayList<>()),
+        typeFactory,
+        connectionConfig);
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1132,7 +1253,8 @@ public class SqlValidatorUtil {
     public SqlNode visit(SqlIdentifier id) {
       // First check for builtin functions which don't have parentheses,
       // like "LOCALTIME".
-      final SqlCall call = SqlUtil.makeCall(getScope().getValidator().getOperatorTable(), id);
+      SqlValidator validator = getScope().getValidator();
+      final SqlCall call = validator.makeNullaryCall(id);
       if (call != null) {
         return call;
       }
@@ -1167,11 +1289,7 @@ public class SqlValidatorUtil {
           + Math.max(size, attempt);
 
   public static final Suggester ATTEMPT_SUGGESTER =
-      new Suggester() {
-        public String apply(String original, int attempt, int size) {
-          return Util.first(original, "$") + attempt;
-        }
-      };
+      (original, attempt, size) -> Util.first(original, "$") + attempt;
 
   /** Builds a list of GROUP BY expressions. */
   static class GroupAnalyzer {
@@ -1190,6 +1308,36 @@ public class SqlValidatorUtil {
       // TODO: create an expression that could have no other source
       return SqlLiteral.createCharString("xyz" + groupCount++,
           SqlParserPos.ZERO);
+    }
+  }
+
+  /**
+   * A {@link AbstractTable} that can specify the row type explicitly.
+   */
+  private static class ExplicitRowTypeTable extends AbstractTable {
+    private final RelDataType rowType;
+
+    ExplicitRowTypeTable(RelDataType rowType) {
+      this.rowType = Objects.requireNonNull(rowType);
+    }
+
+    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return this.rowType;
+    }
+  }
+
+  /**
+   * A {@link AbstractSchema} that can specify the table map explicitly.
+   */
+  private static class ExplicitTableSchema extends AbstractSchema {
+    private final Map<String, Table> tableMap;
+
+    ExplicitTableSchema(Map<String, Table> tableMap) {
+      this.tableMap = Objects.requireNonNull(tableMap);
+    }
+
+    @Override protected Map<String, Table> getTableMap() {
+      return tableMap;
     }
   }
 }

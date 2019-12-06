@@ -18,11 +18,12 @@
 ::
 :: Example:
 :: > sqlline.bat
-:: sqlline> !connect jdbc:calcite: admin admin 
+:: sqlline> !connect jdbc:calcite: admin admin
 
-:: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
-if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)
+:: Copy dependency jars on first call.
+:: To force jar refresh, remove core\target\dependencies)
+if not exist build\libs\sqllineClasspath.jar (call gradlew buildSqllineClasspath)
 
-java -Xmx1G -cp ".\target\dependencies\*;core\target\dependencies\*;cassandra\target\dependencies\*;druid\target\dependencies\*;elasticsearch2\target\dependencies\*;elasticsearch5\target\dependencies\*;geode\target\dependencies\*;file\target\dependencies\*;mongodb\target\dependencies\*;server\target\dependencies\*;spark\target\dependencies\*;splunk\target\dependencies\*" sqlline.SqlLine --verbose=true %*
+java -Xmx1G -jar build\libs\sqllineClasspath.jar %*
 
 :: End sqlline.bat

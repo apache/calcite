@@ -477,7 +477,7 @@ public class Util {
 
   /**
    * Prints a string, enclosing in double quotes (") and escaping if
-   * necessary. For examples, <code>printDoubleQuoted(w,"x\"y",false)</code>
+   * necessary. For example, <code>printDoubleQuoted(w,"x\"y",false)</code>
    * prints <code>"x\"y"</code>.
    *
    * <p>The appendable where the value is printed must not incur I/O operations. This method is
@@ -857,6 +857,18 @@ public class Util {
   }
 
   /**
+   * Wraps an exception with {@link RuntimeException} and return it.
+   * If the exception is already an instance of RuntimeException,
+   * returns it directly.
+   */
+  public static RuntimeException toUnchecked(Exception e) {
+    if (e instanceof RuntimeException) {
+      return (RuntimeException) e;
+    }
+    return new RuntimeException(e);
+  }
+
+  /**
    * Retrieves messages in a exception and writes them to a string. In the
    * string returned, each message will appear on a different line.
    *
@@ -976,10 +988,10 @@ public class Util {
    *
    * <p>but the usual usage is to pass in a descriptive string.
    *
-   * <h3>Examples</h3>
+   * <p><b>Examples</b>
    *
-   * <h4>Example #1: Using <code>deprecated</code> to fail if a piece of
-   * supposedly dead code is reached</h4>
+   * <p><b>Example #1: Using <code>deprecated</code> to fail if a piece of
+   * supposedly dead code is reached</b>
    *
    * <blockquote>
    * <pre><code>void foo(int x) {
@@ -994,8 +1006,8 @@ public class Util {
    * }</code></pre>
    * </blockquote>
    *
-   * <h4>Example #2: Using <code>deprecated</code> to comment out dead
-   * code</h4>
+   * <p><b>Example #2: Using <code>deprecated</code> to comment out dead
+   * code</b>
    *
    * <blockquote>
    * <pre>if (Util.deprecated(false, false)) {
@@ -2400,6 +2412,25 @@ public class Util {
   public static <E> Iterator<E> filter(Iterator<E> iterator,
       Predicate<E> predicate) {
     return new FilteringIterator<>(iterator, predicate);
+  }
+
+  /** Returns a view of a list, picking the elements of a list with the given
+   * set of ordinals. */
+  public static <E> List<E> select(List<E> list, List<Integer> ordinals) {
+    return new AbstractList<E>() {
+      @Override public int size() {
+        return ordinals.size();
+      }
+
+      @Override public E get(int index) {
+        return list.get(ordinals.get(index));
+      }
+    };
+  }
+
+  /** Returns a map which ignores any write operation. */
+  public static <K, V> Map<K, V> blackholeMap() {
+    return BlackholeMap.of();
   }
 
   //~ Inner Classes ----------------------------------------------------------

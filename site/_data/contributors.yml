@@ -1,4 +1,3 @@
-# Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
 # The ASF licenses this file to you under the Apache License, Version 2.0
@@ -48,6 +47,16 @@
   githubId: beikov
   org: Blazebit
   role: Committer
+- name: Chunwei Lei
+  apacheId: chunwei
+  githubId: chunweilei
+  org: Alibaba
+  role: Committer
+- name: Danny Chan
+  apacheId: danny0405
+  githubId: danny0405
+  org: Alibaba
+  role: PMC
 - name: Edmon Begoli
   apacheId: ebegoli
   githubId: ebegoli
@@ -62,6 +71,16 @@
   apacheId: gian
   githubId: gianm
   org: Imply
+  role: Committer
+- name: Haisheng Yuan
+  apacheId: hyuan
+  githubId: hsyuan
+  org: Alibaba
+  role: PMC
+- name: Hongze Zhang
+  apacheId: hongze
+  githubId: zhztheplayer
+  org: Tencent
   role: Committer
 - name: James R. Taylor
   apacheId: jamestaylor
@@ -98,6 +117,11 @@
   githubId: joshelser
   org: Hortonworks
   role: PMC
+- name: Julian Feinauer
+  apacheId: jfeinauer
+  githubId: JulianFeinauer
+  org: Pragmatic Minds
+  role: Committer
 - name: Julian Hyde
   apacheId: jhyde
   githubId: julianhyde
@@ -141,6 +165,11 @@
   githubId: minji-kim
   org: Oracle
   role: Committer
+- name: Muhammad Gelbana
+  apacheId: mgelbana
+  githubId: MGelbana
+  org: Incorta
+  role: Committer
 - name: Nick Dimiduk
   apacheId: ndimiduk
   githubId: ndimiduk
@@ -151,6 +180,11 @@
   apacheId: nishant
   githubId: nishantmonu51
   org: Hortonworks
+  role: Committer
+- name: Ruben Quesada Lopez
+  apacheId: rubenql
+  githubId: rubenada
+  org: TIBCO
   role: Committer
 - name: Sergey Nuyanzin
   apacheId: snuyanzin
@@ -167,6 +201,12 @@
   githubId: b-slim
   org: Hortonworks
   role: Committer
+- name: Stamatis Zampetakis
+  apacheId: zabetak
+  githubId: zabetak
+  org: TIBCO
+  role: PMC
+  homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
   githubId: stevenn
@@ -197,6 +237,11 @@
   apacheId: zhiqianghe
   githubId: Zhiqiang-He
   org: Huawei
+  role: Committer
+- name: Zhiwei Peng
+  apacheId: zhiwei
+  githubId: pengzhiwei2018
+  org: Ant Financial Group
   role: Committer
 - name: Zoltan Haindrich
   apacheId: kgyrtkirk

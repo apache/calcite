@@ -1,0 +1,108 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The default workflow for GitHub Actions that is used for continuous
+# integration. A configuration file that is used to control when, where,
+# and how different CI jobs are executed.
+# For more information on how to modify this file check the following link:
+# https://help.github.com/en/actions/automating-your-workflow-with-github-actions
+
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - 'site/**'
+    branches:
+      - '*'
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths-ignore:
+      - 'site/**'
+    branches:
+      - '*'
+
+jobs:
+  windows:
+    if: github.event.action != 'labeled'
+    name: 'Windows (JDK 8)'
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1.1.0
+      with:
+        fetch-depth: 50
+    - name: 'Set up JDK 8'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 8
+    - name: 'Test'
+      shell: cmd
+      run: |
+        ./gradlew --no-parallel --no-daemon build javadoc
+
+  linux-avatica:
+    if: github.event.action != 'labeled'
+    name: 'Linux (JDK 11), Avatica master'
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Set up JDK 11'
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - name: 'Install Avatica to Maven Local repository'
+      run: |
+        git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
+        cd ../calcite-avatica
+        ./gradlew publishToMavenLocal -Pcalcite.avatica.version=1.0.0-dev-master -PskipJavadoc
+    - uses: actions/checkout@v1.1.0
+      with:
+        fetch-depth: 50
+    - name: 'Test'
+      run: |
+        ./gradlew --no-parallel --no-daemon build javadoc -Pcalcite.avatica.version=1.0.0-dev-master-SNAPSHOT -PenableMavenLocal
+
+  mac:
+    if: github.event.action != 'labeled'
+    name: 'macOS (JDK 13)'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v1.1.0
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 13'
+        uses: actions/setup-java@v1
+        with:
+          java-version: 13
+      - name: 'Test'
+        run: |
+          ./gradlew --no-parallel --no-daemon build javadoc
+
+  linux-slow:
+    # Run slow tests when the commit is on master or it is requested explicitly by adding an
+    # appropriate label in the PR
+    if: github.ref == 'refs/heads/master' || contains(github.event.pull_request.labels.*.name, 'slow-tests-needed')
+    name: 'Linux (JDK 8) Slow Tests'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1.1.0
+        with:
+          fetch-depth: 50
+      - name: 'Set up JDK 8'
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - name: 'Test'
+        run: |
+          ./gradlew --no-parallel --no-daemon testSlow

@@ -17,15 +17,15 @@
 package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUnresolvedFunction;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Glossary;
 
@@ -328,14 +328,11 @@ public abstract class SqlAbstractParserImpl {
 
   //~ Instance fields --------------------------------------------------------
 
-  /**
-   * Operator table containing the standard SQL operators and functions.
-   */
-  protected final SqlStdOperatorTable opTab = SqlStdOperatorTable.instance();
-
   protected int nDynamicParams;
 
   protected String originalSql;
+
+  protected final List<CalciteContextException> warnings = new ArrayList<>();
 
   //~ Methods ----------------------------------------------------------------
 
@@ -384,26 +381,10 @@ public abstract class SqlAbstractParserImpl {
       SqlFunctionCategory funcType,
       SqlLiteral functionQualifier,
       SqlNode[] operands) {
-    SqlOperator fun = null;
-
-    // First, try a half-hearted resolution as a builtin function.
-    // If we find one, use it; this will guarantee that we
-    // preserve the correct syntax (i.e. don't quote builtin function
-    /// name when regenerating SQL).
-    if (funName.isSimple()) {
-      final List<SqlOperator> list = new ArrayList<>();
-      opTab.lookupOperatorOverloads(funName, funcType, SqlSyntax.FUNCTION, list);
-      if (list.size() == 1) {
-        fun = list.get(0);
-      }
-    }
-
-    // Otherwise, just create a placeholder function.  Later, during
+    // Create a placeholder function.  Later, during
     // validation, it will be resolved into a real function reference.
-    if (fun == null) {
-      fun = new SqlUnresolvedFunction(funName, null, null, null, null,
-          funcType);
-    }
+    SqlOperator fun = new SqlUnresolvedFunction(funName, null, null, null, null,
+        funcType);
 
     return fun.createCall(functionQualifier, pos, operands);
   }
@@ -447,6 +428,15 @@ public abstract class SqlAbstractParserImpl {
    * @return constructed parse tree.
    */
   public abstract SqlNode parseSqlStmtEof() throws Exception;
+
+  /**
+   * Parses a list of SQL statements separated by semicolon and constructs a
+   * parse tree. The semicolon is required between statements, but is
+   * optional at the end.
+   *
+   * @return constructed list of SQL statements.
+   */
+  public abstract SqlNodeList parseSqlStmtList() throws Exception;
 
   /**
    * Sets the tab stop size.

@@ -29,8 +29,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -86,7 +86,7 @@ public class SqlLimitsTest {
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 0));
   }
 
-  @BeforeClass public static void setUSLocale() {
+  @BeforeAll public static void setUSLocale() {
     // This ensures numbers in exceptions are printed as in asserts.
     // For example, 1,000 vs 1 000
     Locale.setDefault(Locale.US);

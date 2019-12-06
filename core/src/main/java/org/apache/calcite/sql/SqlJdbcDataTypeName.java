@@ -92,8 +92,7 @@ public enum SqlJdbcDataTypeName {
   public SqlNode createDataType(SqlParserPos pos) {
     if (typeName != null) {
       assert range == null;
-      final SqlIdentifier id = new SqlIdentifier(typeName.name(), pos);
-      return new SqlDataTypeSpec(id, -1, -1, null, null, pos);
+      return new SqlDataTypeSpec(new SqlBasicTypeNameSpec(typeName, pos), pos);
     } else {
       assert range != null;
       return new SqlIntervalQualifier(range.startUnit, range.endUnit, pos);

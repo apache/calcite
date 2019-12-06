@@ -41,8 +41,10 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.hamcrest.comparator.ComparatorMatcherBuilder;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -53,9 +55,8 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for streaming queries.
@@ -191,7 +192,7 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:00:00; PRODUCT=paint; UNITS=3"));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testStreamUnionAllOrderBy() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
@@ -238,7 +239,7 @@ public class StreamTest {
         .returnsCount(100);
   }
 
-  @Test(timeout = 10000) public void testStreamCancel() {
+  @Test @Timeout(10) public void testStreamCancel() {
     final String explain = "EnumerableInterpreter\n"
         + "  BindableTableScan(table=[[INFINITE_STREAMS, ORDERS, (STREAM)]])";
     CalciteAssert.model(STREAM_MODEL)
@@ -266,7 +267,8 @@ public class StreamTest {
           }
           // With a 3 millisecond delay, typically n is between 200 - 400
           // before cancel takes effect.
-          assertTrue("n is " + n, n > 5);
+          assertThat(n,
+              ComparatorMatcherBuilder.<Integer>usingNaturalOrdering().greaterThan(5));
         });
   }
 
@@ -284,7 +286,7 @@ public class StreamTest {
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "  EnumerableHashJoin(condition=[=($4, $5)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
             + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
@@ -296,7 +298,7 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testTumbleViaOver() {
     String sql = "WITH HourlyOrderTotals (rowtime, productId, c, su) AS (\n"
         + "  SELECT FLOOR(rowtime TO HOUR),\n"

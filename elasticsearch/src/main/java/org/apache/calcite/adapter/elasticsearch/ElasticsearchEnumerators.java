@@ -53,7 +53,7 @@ class ElasticsearchEnumerators {
       final Object value;
       if (ElasticsearchConstants.ID.equals(key)
           || ElasticsearchConstants.ID.equals(mapping.getOrDefault(fieldName, fieldName))) {
-        // is the original projection on _id field ?
+        // is the original projection on _id field?
         value = hit.id();
       } else {
         value = hit.valueOrNull(key);
@@ -87,7 +87,7 @@ class ElasticsearchEnumerators {
         if (ElasticsearchConstants.ID.equals(key)
             || ElasticsearchConstants.ID.equals(mapping.get(field.getKey()))
             || ElasticsearchConstants.ID.equals(field.getKey())) {
-          // is the original projection on _id field ?
+          // is the original projection on _id field?
           value = hit.id();
         } else {
           value = hit.valueOrNull(key);

@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.jdbc;
 
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -44,7 +45,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
@@ -60,17 +60,21 @@ import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.slf4j.Logger;
@@ -90,6 +94,124 @@ public class JdbcRules {
   }
 
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
+
+  static final RelFactories.ProjectFactory PROJECT_FACTORY =
+      (input, projects, fieldNames) -> {
+        final RelOptCluster cluster = input.getCluster();
+        final RelDataType rowType =
+            RexUtil.createStructType(cluster.getTypeFactory(), projects,
+                fieldNames, SqlValidatorUtil.F_SUGGESTER);
+        return new JdbcProject(cluster, input.getTraitSet(), input, projects,
+            rowType);
+      };
+
+  static final RelFactories.FilterFactory FILTER_FACTORY =
+      (input, condition, variablesSet) -> {
+        Preconditions.checkArgument(variablesSet.isEmpty(),
+            "JdbcFilter does not allow variables");
+        return new JdbcFilter(input.getCluster(),
+            input.getTraitSet(), input, condition);
+      };
+
+  static final RelFactories.JoinFactory JOIN_FACTORY =
+      (left, right, condition, variablesSet, joinType, semiJoinDone) -> {
+        final RelOptCluster cluster = left.getCluster();
+        final RelTraitSet traitSet = cluster.traitSetOf(left.getConvention());
+        try {
+          return new JdbcJoin(cluster, traitSet, left, right, condition,
+              variablesSet, joinType);
+        } catch (InvalidRelException e) {
+          throw new AssertionError(e);
+        }
+      };
+
+  static final RelFactories.CorrelateFactory CORRELATE_FACTORY =
+      (left, right, correlationId, requiredColumns, joinType) -> {
+        throw new UnsupportedOperationException("JdbcCorrelate");
+      };
+
+  public static final RelFactories.SortFactory SORT_FACTORY =
+      (input, collation, offset, fetch) -> {
+        throw new UnsupportedOperationException("JdbcSort");
+      };
+
+  public static final RelFactories.ExchangeFactory EXCHANGE_FACTORY =
+      (input, distribution) -> {
+        throw new UnsupportedOperationException("JdbcExchange");
+      };
+
+  public static final RelFactories.SortExchangeFactory SORT_EXCHANGE_FACTORY =
+      (input, distribution, collation) -> {
+        throw new UnsupportedOperationException("JdbcSortExchange");
+      };
+
+  public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
+      (input, groupSet, groupSets, aggCalls) -> {
+        final RelOptCluster cluster = input.getCluster();
+        final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
+        try {
+          return new JdbcAggregate(cluster, traitSet, input, groupSet,
+              groupSets, aggCalls);
+        } catch (InvalidRelException e) {
+          throw new AssertionError(e);
+        }
+      };
+
+  public static final RelFactories.MatchFactory MATCH_FACTORY =
+      (input, pattern, rowType, strictStart, strictEnd, patternDefinitions,
+          measures, after, subsets, allRows, partitionKeys, orderKeys,
+          interval) -> {
+        throw new UnsupportedOperationException("JdbcMatch");
+      };
+
+  public static final RelFactories.SetOpFactory SET_OP_FACTORY =
+      (kind, inputs, all) -> {
+        RelNode input = inputs.get(0);
+        RelOptCluster cluster = input.getCluster();
+        final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
+        switch (kind) {
+        case UNION:
+          return new JdbcUnion(cluster, traitSet, inputs, all);
+        case INTERSECT:
+          return new JdbcIntersect(cluster, traitSet, inputs, all);
+        case EXCEPT:
+          return new JdbcMinus(cluster, traitSet, inputs, all);
+        default:
+          throw new AssertionError("unknown: " + kind);
+        }
+      };
+
+  public static final RelFactories.ValuesFactory VALUES_FACTORY =
+      (cluster, rowType, tuples) -> {
+        throw new UnsupportedOperationException();
+      };
+
+  public static final RelFactories.TableScanFactory TABLE_SCAN_FACTORY =
+      (cluster, table) -> {
+        throw new UnsupportedOperationException();
+      };
+
+  public static final RelFactories.SnapshotFactory SNAPSHOT_FACTORY =
+      (input, period) -> {
+        throw new UnsupportedOperationException();
+      };
+
+  /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
+   * create JDBC relational expressions for everything. */
+  public static final RelBuilderFactory JDBC_BUILDER =
+      RelBuilder.proto(
+          Contexts.of(PROJECT_FACTORY,
+              FILTER_FACTORY,
+              JOIN_FACTORY,
+              SORT_FACTORY,
+              EXCHANGE_FACTORY,
+              SORT_EXCHANGE_FACTORY,
+              AGGREGATE_FACTORY,
+              MATCH_FACTORY,
+              SET_OP_FACTORY,
+              VALUES_FACTORY,
+              TABLE_SCAN_FACTORY,
+              SNAPSHOT_FACTORY));
 
   public static List<RelOptRule> rules(JdbcConvention out) {
     return rules(out, RelFactories.LOGICAL_BUILDER);
@@ -157,12 +279,16 @@ public class JdbcRules {
     }
 
     @Override public RelNode convert(RelNode rel) {
-      if (rel instanceof SemiJoin) {
-        // It's not possible to convert semi-joins. They have fewer columns
+      final Join join = (Join) rel;
+      switch (join.getJoinType()) {
+      case SEMI:
+      case ANTI:
+        // It's not possible to convert semi-joins or anti-joins. They have fewer columns
         // than regular joins.
         return null;
+      default:
+        return convert(join, true);
       }
-      return convert((Join) rel, true);
     }
 
     /**
@@ -544,7 +670,7 @@ public class JdbcRules {
           agg.getTraitSet().replace(out);
       try {
         return new JdbcAggregate(rel.getCluster(), traitSet,
-            convert(agg.getInput(), out), agg.indicator, agg.getGroupSet(),
+            convert(agg.getInput(), out), false, agg.getGroupSet(),
             agg.getGroupSets(), agg.getAggCallList());
       } catch (InvalidRelException e) {
         LOGGER.debug(e.toString());
@@ -565,15 +691,13 @@ public class JdbcRules {
         RelOptCluster cluster,
         RelTraitSet traitSet,
         RelNode input,
-        boolean indicator,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
-      assert !this.indicator;
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
       for (AggregateCall aggCall : aggCalls) {
         if (!canImplement(aggCall.getAggregation(), dialect)) {
@@ -583,11 +707,20 @@ public class JdbcRules {
       }
     }
 
+    @Deprecated // to be removed before 2.0
+    public JdbcAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+        RelNode input, boolean indicator, ImmutableBitSet groupSet,
+        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+        throws InvalidRelException {
+      this(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      checkIndicator(indicator);
+    }
+
     @Override public JdbcAggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-        return new JdbcAggregate(getCluster(), traitSet, input, indicator,
+        return new JdbcAggregate(getCluster(), traitSet, input,
             groupSet, groupSets, aggCalls);
       } catch (InvalidRelException e) {
         // Semantic error not possible. Must be a bug. Convert to

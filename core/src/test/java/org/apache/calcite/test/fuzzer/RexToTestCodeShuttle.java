@@ -22,6 +22,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -43,6 +44,7 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
           .put(SqlStdOperatorTable.AND, "and")
           .put(SqlStdOperatorTable.OR, "or")
           .put(SqlStdOperatorTable.CASE, "case_")
+          .put(SqlStdOperatorTable.CAST, "abstractCast")
           .put(SqlStdOperatorTable.COALESCE, "coalesce")
           .put(SqlStdOperatorTable.IS_NULL, "isNull")
           .put(SqlStdOperatorTable.IS_NOT_NULL, "isNotNull")
@@ -65,6 +67,7 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
           .put(SqlStdOperatorTable.UNARY_PLUS, "unaryPlus")
           .put(SqlStdOperatorTable.MINUS, "sub")
           .put(SqlStdOperatorTable.UNARY_MINUS, "unaryMinus")
+          .put(SqlStdOperatorTable.MULTIPLY, "mul")
           .build();
 
 
@@ -93,6 +96,15 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
         sb.append(", ");
       }
       sb.append(operand.accept(this));
+    }
+    if (operator.kind == SqlKind.CAST) {
+      sb.append(", t");
+      appendSqlType(sb, call.getType());
+      sb.append('(');
+      if (call.getType().isNullable()) {
+        sb.append("true");
+      }
+      sb.append(')');
     }
     sb.append(')');
     return sb.toString();
@@ -125,6 +137,17 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
     StringBuilder sb = new StringBuilder();
     sb.append("v");
     RelDataType type = fieldAccess.getType();
+    appendSqlType(sb, type);
+    if (!type.isNullable()) {
+      sb.append("NotNull");
+    }
+    sb.append("(");
+    sb.append(fieldAccess.getField().getIndex() % 10);
+    sb.append(")");
+    return sb.toString();
+  }
+
+  private void appendSqlType(StringBuilder sb, RelDataType type) {
     switch (type.getSqlTypeName()) {
     case BOOLEAN:
       sb.append("Bool");
@@ -136,13 +159,6 @@ public class RexToTestCodeShuttle extends RexVisitorImpl<String> {
       sb.append("Varchar");
       break;
     }
-    if (!type.isNullable()) {
-      sb.append("NotNull");
-    }
-    sb.append("(");
-    sb.append(fieldAccess.getField().getIndex() % 10);
-    sb.append(")");
-    return sb.toString();
   }
 }
 

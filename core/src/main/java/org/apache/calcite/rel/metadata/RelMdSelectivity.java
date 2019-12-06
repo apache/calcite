@@ -20,9 +20,10 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.core.SemiJoin;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -96,6 +97,11 @@ public class RelMdSelectivity
     return mq.getSelectivity(rel.getInput(), predicate);
   }
 
+  public Double getSelectivity(TableModify rel, RelMetadataQuery mq,
+      RexNode predicate) {
+    return mq.getSelectivity(rel.getInput(), predicate);
+  }
+
   public Double getSelectivity(Filter rel, RelMetadataQuery mq,
       RexNode predicate) {
     // Take the difference between the predicate passed in and the
@@ -113,8 +119,10 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(SemiJoin rel, RelMetadataQuery mq,
-      RexNode predicate) {
+  public Double getSelectivity(Join rel, RelMetadataQuery mq, RexNode predicate) {
+    if (!rel.isSemiJoin()) {
+      return getSelectivity((RelNode) rel, mq, predicate);
+    }
     // create a RexNode representing the selectivity of the
     // semijoin filter and pass it to getSelectivity
     RexBuilder rexBuilder = rel.getCluster().getRexBuilder();

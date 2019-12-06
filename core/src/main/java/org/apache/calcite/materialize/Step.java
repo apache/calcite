@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.materialize;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Ordering;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,10 +39,29 @@ import java.util.Objects;
 class Step extends DefaultEdge {
   final List<IntPair> keys;
 
-  Step(LatticeTable source, LatticeTable target, List<IntPair> keys) {
+  /** String representation of {@link #keys}. Computing the string requires a
+   * {@link LatticeSpace}, so we pre-compute it before construction. */
+  final String keyString;
+
+  private Step(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, String keyString) {
     super(source, target);
     this.keys = ImmutableList.copyOf(keys);
+    this.keyString = Objects.requireNonNull(keyString);
     assert IntPair.ORDERING.isStrictlyOrdered(keys); // ordered and unique
+  }
+
+  /** Creates a Step. */
+  static Step create(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, LatticeSpace space) {
+    final StringBuilder b = new StringBuilder();
+    for (IntPair key : keys) {
+      b.append(' ')
+          .append(space.fieldName(source, key.source))
+          .append(':')
+          .append(space.fieldName(target, key.target));
+    }
+    return new Step(source, target, keys, b.toString());
   }
 
   @Override public int hashCode() {
@@ -56,20 +77,7 @@ class Step extends DefaultEdge {
   }
 
   @Override public String toString() {
-    final StringBuilder b = new StringBuilder()
-        .append("Step(")
-        .append(source)
-        .append(", ")
-        .append(target)
-        .append(",");
-    for (IntPair key : keys) {
-      b.append(' ')
-          .append(source().field(key.source).getName())
-          .append(':')
-          .append(target().field(key.target).getName());
-    }
-    return b.append(")")
-        .toString();
+    return "Step(" + source + ", " + target + "," + keyString + ")";
   }
 
   LatticeTable source() {
@@ -81,22 +89,61 @@ class Step extends DefaultEdge {
   }
 
   boolean isBackwards(SqlStatisticProvider statisticProvider) {
-    return source == target
-        ? keys.get(0).source < keys.get(0).target // want PK on the right
-        : cardinality(statisticProvider, source())
-            < cardinality(statisticProvider, target());
+    final RelOptTable sourceTable = source().t;
+    final List<Integer> sourceColumns = IntPair.left(keys);
+    final RelOptTable targetTable = target().t;
+    final List<Integer> targetColumns = IntPair.right(keys);
+    final boolean noDerivedSourceColumns =
+        sourceColumns.stream().allMatch(i ->
+            i < sourceTable.getRowType().getFieldCount());
+    final boolean noDerivedTargetColumns =
+        targetColumns.stream().allMatch(i ->
+            i < targetTable.getRowType().getFieldCount());
+    final boolean forwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(sourceTable, sourceColumns,
+            targetTable, targetColumns)
+        && statisticProvider.isKey(targetTable, targetColumns);
+    final boolean backwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(targetTable, targetColumns,
+            sourceTable, sourceColumns)
+        && statisticProvider.isKey(sourceTable, sourceColumns);
+    if (backwardForeignKey != forwardForeignKey) {
+      return backwardForeignKey;
+    }
+    // Tie-break if it's a foreign key in neither or both directions
+    return compare(sourceTable, sourceColumns, targetTable, targetColumns) < 0;
+  }
+
+  /** Arbitrarily compares (table, columns). */
+  private static int compare(RelOptTable table1, List<Integer> columns1,
+      RelOptTable table2, List<Integer> columns2) {
+    int c = Ordering.natural().<String>lexicographical()
+        .compare(table1.getQualifiedName(), table2.getQualifiedName());
+    if (c == 0) {
+      c = Ordering.natural().<Integer>lexicographical()
+          .compare(columns1, columns2);
+    }
+    return c;
   }
 
   /** Temporary method. We should use (inferred) primary keys to figure out
    * the direction of steps. */
   private double cardinality(SqlStatisticProvider statisticProvider,
       LatticeTable table) {
-    return statisticProvider.tableCardinality(table.t.getQualifiedName());
+    return statisticProvider.tableCardinality(table.t);
   }
 
   /** Creates {@link Step} instances. */
   static class Factory implements AttributedDirectedGraph.AttributedEdgeFactory<
       LatticeTable, Step> {
+    private final LatticeSpace space;
+
+    Factory(LatticeSpace space) {
+      this.space = Objects.requireNonNull(space);
+    }
+
     public Step createEdge(LatticeTable source, LatticeTable target) {
       throw new UnsupportedOperationException();
     }
@@ -105,7 +152,7 @@ class Step extends DefaultEdge {
         Object... attributes) {
       @SuppressWarnings("unchecked") final List<IntPair> keys =
           (List) attributes[0];
-      return new Step(source, target, keys);
+      return Step.create(source, target, keys, space);
     }
   }
 }

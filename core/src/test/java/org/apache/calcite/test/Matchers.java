@@ -28,10 +28,10 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
+import org.hamcrest.core.StringContains;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -129,9 +129,25 @@ public class Matchers {
    * Creates a matcher that matches when the examined object is within
    * {@code epsilon} of the specified <code>operand</code>.
    */
-  @Factory
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
     return new IsWithin<T>(value, epsilon);
+  }
+
+  /**
+   * Creates a matcher that matches if the examined value is between bounds:
+   * <code>min &le; value &le; max</code>.
+   *
+   * @param <T> value type
+   * @param min Lower bound
+   * @param max Upper bound
+   */
+  public static <T extends Comparable<T>> Matcher<T> between(T min, T max) {
+    return new CustomTypeSafeMatcher<T>("between " + min + " and " + max) {
+      protected boolean matchesSafely(T item) {
+        return min.compareTo(item) <= 0
+            && item.compareTo(max) <= 0;
+      }
+    };
   }
 
   /** Creates a matcher by applying a function to a value before calling
@@ -157,19 +173,30 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> isLinux(final String value) {
     return compose(Is.is(value), input -> input == null ? null : Util.toLinux(input));
   }
 
   /**
-   * Creates a Matcher that matches a {@link RelNode} its string representation,
-   * after converting Windows-style line endings ("\r\n")
+   * Creates a Matcher that matches a {@link RelNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
    * to Unix-style line endings ("\n"), is equal to the given {@code value}.
    */
-  @Factory
   public static Matcher<RelNode> hasTree(final String value) {
     return compose(Is.is(value), input -> {
+      // Convert RelNode to a string with Linux line-endings
+      return Util.toLinux(RelOptUtil.toString(input));
+    });
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RelNode} if its string
+   * representation, after converting Windows-style line endings ("\r\n")
+   * to Unix-style line endings ("\n"), contains the given {@code value}
+   * as a substring.
+   */
+  public static Matcher<RelNode> inTree(final String value) {
+    return compose(StringContains.containsString(value), input -> {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
     });
@@ -191,7 +218,6 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> containsStringLinux(String value) {
     return compose(CoreMatchers.containsString(value), Util::toLinux);
   }

@@ -75,19 +75,20 @@ import java.util.Objects;
 public class JdbcTable extends AbstractQueryableTable
     implements TranslatableTable, ScannableTable, ModifiableTable {
   private RelProtoDataType protoRowType;
-  private final JdbcSchema jdbcSchema;
-  private final String jdbcCatalogName;
-  private final String jdbcSchemaName;
-  private final String jdbcTableName;
-  private final Schema.TableType jdbcTableType;
+  public final JdbcSchema jdbcSchema;
+  public final String jdbcCatalogName;
+  public final String jdbcSchemaName;
+  public final String jdbcTableName;
+  public final Schema.TableType jdbcTableType;
 
   JdbcTable(JdbcSchema jdbcSchema, String jdbcCatalogName,
-      String jdbcSchemaName, String tableName, Schema.TableType jdbcTableType) {
+      String jdbcSchemaName, String jdbcTableName,
+      Schema.TableType jdbcTableType) {
     super(Object[].class);
-    this.jdbcSchema = jdbcSchema;
+    this.jdbcSchema = Objects.requireNonNull(jdbcSchema);
     this.jdbcCatalogName = jdbcCatalogName;
     this.jdbcSchemaName = jdbcSchemaName;
-    this.jdbcTableName = tableName;
+    this.jdbcTableName = Objects.requireNonNull(jdbcTableName);
     this.jdbcTableType = Objects.requireNonNull(jdbcTableType);
   }
 
@@ -97,6 +98,16 @@ public class JdbcTable extends AbstractQueryableTable
 
   @Override public Schema.TableType getJdbcTableType() {
     return jdbcTableType;
+  }
+
+  @Override public <C> C unwrap(Class<C> aClass) {
+    if (aClass.isInstance(jdbcSchema.getDataSource())) {
+      return aClass.cast(jdbcSchema.getDataSource());
+    } else if (aClass.isInstance(jdbcSchema.dialect)) {
+      return aClass.cast(jdbcSchema.dialect);
+    } else {
+      return super.unwrap(aClass);
+    }
   }
 
   public RelDataType getRowType(RelDataTypeFactory typeFactory) {
@@ -136,22 +147,24 @@ public class JdbcTable extends AbstractQueryableTable
             SqlParserPos.ZERO);
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null);
+            tableName(), null, null, null, null, null, null, null, null);
     final SqlPrettyWriter writer = new SqlPrettyWriter(jdbcSchema.dialect);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();
   }
 
-  SqlIdentifier tableName() {
-    final List<String> strings = new ArrayList<>();
+  /** Returns the table name, qualified with catalog and schema name if
+   * applicable, as a parse tree node ({@link SqlIdentifier}). */
+  public SqlIdentifier tableName() {
+    final List<String> names = new ArrayList<>(3);
     if (jdbcSchema.catalog != null) {
-      strings.add(jdbcSchema.catalog);
+      names.add(jdbcSchema.catalog);
     }
     if (jdbcSchema.schema != null) {
-      strings.add(jdbcSchema.schema);
+      names.add(jdbcSchema.schema);
     }
-    strings.add(jdbcTableName);
-    return new SqlIdentifier(strings, SqlParserPos.ZERO);
+    names.add(jdbcTableName);
+    return new SqlIdentifier(names, SqlParserPos.ZERO);
   }
 
   public RelNode toRel(RelOptTable.ToRelContext context,

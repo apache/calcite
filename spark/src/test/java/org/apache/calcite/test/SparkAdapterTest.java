@@ -19,8 +19,8 @@ package org.apache.calcite.test;
 import org.apache.calcite.adapter.spark.SparkRel;
 import org.apache.calcite.util.Util;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for using Calcite with Spark as an internal engine, as implemented by
@@ -376,7 +376,7 @@ public class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Y=[$t3], Z=[$t1])\n"
-        + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
@@ -399,7 +399,7 @@ public class SparkAdapterTest {
 
     final String plan = "PLAN="
         + "EnumerableCalc(expr#0..3=[{inputs}], Z=[$t1])\n"
-        + "  EnumerableJoin(condition=[=($0, $2)], joinType=[inner])\n"
+        + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }]])\n"
         + "    EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
@@ -576,7 +576,7 @@ public class SparkAdapterTest {
         + "where x is null";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[false], proj#0..1=[{exprs}], $condition=[$t2])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t0)], proj#0..1=[{exprs}], $condition=[$t2])\n"
         + "  EnumerableValues(tuples=[[{ 1, 'a' }, { 2, 'b' }, { 1, 'b' }, { 2, 'c' }, { 2, 'c' }]])\n\n";
 
     final String expectedResult = "";
@@ -700,7 +700,7 @@ public class SparkAdapterTest {
 
   // Tests involving sub-queries (both correlated and non correlated)
 
-  @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
+  @Disabled("[CALCITE-2184] ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testFilterExists() {
     final String sql = "select *\n"
         + "from " + VALUES4 + "\n"
@@ -721,7 +721,7 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
+  @Disabled("[CALCITE-2184] ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testFilterNotExists() {
     final String sql = "select *\n"
         + "from " + VALUES4 + "\n"
@@ -739,7 +739,7 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
+  @Disabled("[CALCITE-2184] ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testSubQueryAny() {
     final String sql = "select x\n"
         + "from " + VALUES1 + "\n"
@@ -757,7 +757,7 @@ public class SparkAdapterTest {
         .explainContains(plan);
   }
 
-  @Ignore("[CALCITE-2184] java.lang.ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
+  @Disabled("[CALCITE-2184] ClassCastException: RexSubQuery cannot be cast to RexLocalRef")
   @Test public void testSubQueryAll() {
     final String sql = "select x\n"
         + "from " + VALUES1 + "\n"

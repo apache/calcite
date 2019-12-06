@@ -20,17 +20,14 @@ import org.apache.calcite.avatica.ConnectionConfigImpl;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
-import org.apache.calcite.prepare.CalciteCatalogReader;
-import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.ConsList;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibrary;
+import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Properties;
 
 /** Implementation of {@link CalciteConnectionConfig}. */
@@ -40,12 +37,32 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     super(properties);
   }
 
-  /** Returns a copy of this configuration with one property changed. */
+  /** Returns a copy of this configuration with one property changed.
+   *
+   * <p>Does not modify this configuration. */
   public CalciteConnectionConfigImpl set(CalciteConnectionProperty property,
       String value) {
-    final Properties properties1 = new Properties(properties);
-    properties1.setProperty(property.camelName(), value);
-    return new CalciteConnectionConfigImpl(properties1);
+    final Properties newProperties = (Properties) properties.clone();
+    newProperties.setProperty(property.camelName(), value);
+    return new CalciteConnectionConfigImpl(newProperties);
+  }
+
+  /** Returns a copy of this configuration with the value of a property
+   * removed.
+   *
+   * <p>Does not modify this configuration. */
+  public CalciteConnectionConfigImpl unset(CalciteConnectionProperty property) {
+    final Properties newProperties = (Properties) properties.clone();
+    newProperties.remove(property.camelName());
+    return new CalciteConnectionConfigImpl(newProperties);
+  }
+
+  /** Returns whether a given property has been assigned a value.
+   *
+   * <p>If not, the value returned for the property will be its default value.
+   */
+  public boolean isSet(CalciteConnectionProperty property) {
+    return properties.containsKey(property.camelName());
   }
 
   public boolean approximateDistinctCount() {
@@ -92,32 +109,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     if (fun == null || fun.equals("") || fun.equals("standard")) {
       return defaultOperatorTable;
     }
-    final Collection<SqlOperatorTable> tables = new LinkedHashSet<>();
-    for (String s : fun.split(",")) {
-      operatorTable(s, tables);
-    }
-    tables.add(SqlStdOperatorTable.instance());
-    return operatorTableClass.cast(
-        ChainedSqlOperatorTable.of(
-            tables.toArray(new SqlOperatorTable[0])));
-  }
-
-  private static void operatorTable(String s,
-        Collection<SqlOperatorTable> tables) {
-    switch (s) {
-    case "standard":
-      tables.add(SqlStdOperatorTable.instance());
-      return;
-    case "oracle":
-      tables.add(OracleSqlOperatorTable.instance());
-      return;
-    case "spatial":
-      tables.add(
-          CalciteCatalogReader.operatorTable(GeoFunctions.class.getName()));
-      return;
-    default:
-      throw new IllegalArgumentException("Unknown operator table: " + s);
-    }
+    final List<SqlLibrary> libraryList = SqlLibrary.parse(fun);
+    final SqlOperatorTable operatorTable =
+            SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(
+                ConsList.of(SqlLibrary.STANDARD, libraryList));
+    return operatorTableClass.cast(operatorTable);
   }
 
   public String model() {
@@ -187,6 +183,21 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
   @Override public String timeZone() {
     return CalciteConnectionProperty.TIME_ZONE.wrap(properties)
             .getString();
+  }
+
+  public String locale() {
+    return CalciteConnectionProperty.LOCALE.wrap(properties)
+        .getString();
+  }
+
+  public boolean typeCoercion() {
+    return CalciteConnectionProperty.TYPE_COERCION.wrap(properties)
+        .getBoolean();
+  }
+
+  public boolean lenientOperatorLookup() {
+    return CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP.wrap(properties)
+        .getBoolean();
   }
 }
 

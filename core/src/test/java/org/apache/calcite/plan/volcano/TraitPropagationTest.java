@@ -73,7 +73,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,7 +81,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that determine whether trait propagation work in Volcano Planner.
@@ -110,9 +110,9 @@ public class TraitPropagationTest {
           RelOptUtil.dumpPlan("LOGICAL PLAN", planned, SqlExplainFormat.TEXT,
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
-    assertEquals("Sortedness was not propagated", 3,
-        mq.getCumulativeCost(planned).getRows(), 0);
+    final RelMetadataQuery mq = planned.getCluster().getMetadataQuery();
+    assertEquals(3, 0, mq.getCumulativeCost(planned).getRows(),
+        "Sortedness was not propagated");
   }
 
   /**
@@ -165,10 +165,10 @@ public class TraitPropagationTest {
 
       // aggregate on s, count
       AggregateCall aggCall = AggregateCall.create(SqlStdOperatorTable.COUNT,
-          false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
+          false, false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
           sqlBigInt, "cnt");
       RelNode agg = new LogicalAggregate(cluster,
-          cluster.traitSetOf(Convention.NONE), project, false,
+          cluster.traitSetOf(Convention.NONE), project,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
 
       final RelNode rootRel = agg;
@@ -206,7 +206,7 @@ public class TraitPropagationTest {
       RelNode convertedInput = convert(rel.getInput(), desiredTraits);
       call.transformTo(
           new PhysAgg(rel.getCluster(), empty.replace(PHYSICAL),
-              convertedInput, rel.indicator, rel.getGroupSet(),
+              convertedInput, rel.getGroupSet(),
               rel.getGroupSets(), rel.getAggCallList()));
     }
   }
@@ -294,17 +294,16 @@ public class TraitPropagationTest {
 
   /** Physical Aggregate RelNode */
   private static class PhysAgg extends Aggregate implements Phys {
-    PhysAgg(RelOptCluster cluster, RelTraitSet traits, RelNode child,
-        boolean indicator, ImmutableBitSet groupSet,
+    PhysAgg(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
-
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
     }
 
     public Aggregate copy(RelTraitSet traitSet, RelNode input,
-        boolean indicator, ImmutableBitSet groupSet,
+        ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      return new PhysAgg(getCluster(), traitSet, input, indicator, groupSet,
+      return new PhysAgg(getCluster(), traitSet, input, groupSet,
           groupSets, aggCalls);
     }
 
@@ -324,7 +323,7 @@ public class TraitPropagationTest {
     public static PhysProj create(final RelNode input,
         final List<RexNode> projects, RelDataType rowType) {
       final RelOptCluster cluster = input.getCluster();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelTraitSet traitSet =
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(

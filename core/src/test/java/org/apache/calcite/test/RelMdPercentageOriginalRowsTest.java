@@ -20,7 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Test case for CALCITE-2894 */
 public class RelMdPercentageOriginalRowsTest {
@@ -38,7 +38,7 @@ public class RelMdPercentageOriginalRowsTest {
                             + " select e.deptno from emps e where exists (select 1 from depts d where d.deptno=e.deptno)\n"
                             + " union select e.deptno from emps e where e.salary > 10000) ")
             .explainMatches("including all attributes ",
-                    CalciteAssert.checkResultContains("EnumerableSemiJoin"));
+                    CalciteAssert.checkResultContains("EnumerableCorrelate"));
   }
 }
 

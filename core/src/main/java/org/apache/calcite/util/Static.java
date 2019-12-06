@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Definitions of objects to be statically imported.
  *
- * <h3>Note to developers</h3>
+ * <h2>Note to developers</h2>
  *
  * <p>Please give careful consideration before including an object in this
  * class. Pros:

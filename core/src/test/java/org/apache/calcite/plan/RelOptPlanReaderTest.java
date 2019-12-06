@@ -21,13 +21,13 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.logical.LogicalProject;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.

@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.geode.cache.CacheClosedException;
 import org.apache.geode.cache.GemFireCache;
 import org.apache.geode.cache.Region;
+import org.apache.geode.cache.RegionExistsException;
 import org.apache.geode.cache.client.ClientCache;
 import org.apache.geode.cache.client.ClientCacheFactory;
 import org.apache.geode.cache.client.ClientRegionShortcut;
@@ -102,7 +103,6 @@ public class GeodeUtils {
         .addPoolLocator(locatorHost, locatorPort)
         .setPdxSerializer(new ReflectionBasedAutoSerializer(autoSerializerPackagePath))
         .setPdxReadSerialized(readSerialized)
-        .setPdxPersistent(false)
         .create();
   }
 
@@ -131,8 +131,9 @@ public class GeodeUtils {
         region = ((ClientCache) cache)
             .createClientRegionFactory(ClientRegionShortcut.PROXY)
             .create(regionName);
-      } catch (IllegalStateException e) {
-        // means this is a server cache (probably part of embedded testing)
+      } catch (IllegalStateException | RegionExistsException e) {
+        // means this is a server cache (probably part of embedded testing
+        // or clientCache is passed directly)
         region = cache.getRegion(regionName);
       }
 
@@ -255,12 +256,13 @@ public class GeodeUtils {
       primitive = Primitive.ofBox(clazz);
     }
     if (clazz == null) {
-      // This is in case of nested Objects!
-      if (o instanceof PdxInstance) {
-        return Util.toString(
-            ((PdxInstance) o).getFieldNames(), "PDX[", ",", "]");
-      }
       return o.toString();
+    }
+    if (Map.class.isAssignableFrom(clazz)
+            && o instanceof PdxInstance) {
+      // This is in case of nested Objects!
+      return Util.toString(
+              ((PdxInstance) o).getFieldNames(), "PDX[", ",", "]");
     }
     if (clazz.isInstance(o)) {
       return o;

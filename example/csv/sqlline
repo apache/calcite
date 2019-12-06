@@ -18,7 +18,8 @@
 #
 # Example:
 # $ ./sqlline
-# sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
+# sqlline> !connect jdbc:calcite:model=src/test/resources/model.json admin admin
+# sqlline> !tables
 
 # Deduce whether we are running cygwin
 case $(uname -s) in
@@ -26,21 +27,19 @@ case $(uname -s) in
 (*) cygwin=;;
 esac
 
-# Build classpath on first call. (To force rebuild, remove .classpath.txt.)
+# Build classpath on first call. (To update it run ../gradlew buildSqllineClasspath)
 cd $(dirname $0)
-if [ ! -f target/classpath.txt ]; then
-    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+
+if [ ! -f build/libs/sqllineClasspath.jar ]; then
+    ../../gradlew buildSqllineClasspath
 fi
 
-CP="target/classes:target/test-classes:$(cat target/classpath.txt)"
 VM_OPTS=
 if [ "$cygwin" ]; then
-  CP=$(cygpath -wp "$CP")
-
   # Work around https://github.com/jline/jline2/issues/62
   VM_OPTS=-Djline.terminal=jline.UnixTerminal
 fi
 
-exec java $VM_OPTS -cp "${CP}" sqlline.SqlLine "$@"
+exec java -Xmx1g $VM_OPTS -jar build/libs/sqllineClasspath.jar "$@"
 
 # End sqlline

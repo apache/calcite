@@ -48,6 +48,7 @@ public class SqlSelect extends SqlCall {
   SqlNodeList orderBy;
   SqlNode offset;
   SqlNode fetch;
+  SqlNodeList hints;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -61,7 +62,8 @@ public class SqlSelect extends SqlCall {
       SqlNodeList windowDecls,
       SqlNodeList orderBy,
       SqlNode offset,
-      SqlNode fetch) {
+      SqlNode fetch,
+      SqlNodeList hints) {
     super(pos);
     this.keywordList = Objects.requireNonNull(keywordList != null
         ? keywordList : new SqlNodeList(pos));
@@ -75,6 +77,7 @@ public class SqlSelect extends SqlCall {
     this.orderBy = orderBy;
     this.offset = offset;
     this.fetch = fetch;
+    this.hints = hints;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -210,6 +213,19 @@ public class SqlSelect extends SqlCall {
 
   public void setFetch(SqlNode fetch) {
     this.fetch = fetch;
+  }
+
+  public void setHints(SqlNodeList hints) {
+    this.hints = hints;
+  }
+
+  public SqlNodeList getHints() {
+    return this.hints;
+  }
+
+  public boolean hasHints() {
+    // The hints may be passed as null explicitly.
+    return this.hints != null && this.hints.size() > 0;
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {

@@ -38,8 +38,8 @@ import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for user-defined functions;
@@ -112,6 +112,12 @@ public class UdfTest {
         + "           name: 'MY_DOUBLE',\n"
         + "           className: '"
         + Smalls.MyDoubleFunction.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'MY_EXCEPTION',\n"
+        + "           className: '"
+        + Smalls.MyExceptionFunction.class.getName()
         + "'\n"
         + "         },\n"
         + "         {\n"
@@ -178,11 +184,11 @@ public class UdfTest {
 
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
-  @Ignore("[CALCITE-1561] Intermittent test failures")
+  @Disabled("[CALCITE-1561] Intermittent test failures")
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT;
+    final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT.get();
     final int before = c.get();
     withUdf().query(sql).returnsUnordered("P=110",
         "P=120",
@@ -199,7 +205,7 @@ public class UdfTest {
   @Test public void testUserDefinedFunctionInstanceCount() throws Exception {
     final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
-    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT;
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
     final int before = c.get();
     withUdf().query(sql).returnsUnordered("P=110",
         "P=120",
@@ -217,6 +223,50 @@ public class UdfTest {
         + "P=20\n"
         + "P=20\n";
     withUdf().query(sql).returns(expected);
+  }
+
+  @Test public void testUserDefinedFunctionWithNull() throws Exception {
+    final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 1 + null) as p\n"
+        + "from \"adhoc\".EMPLOYEES where 1 > 0 or nullif(null, 1) is null";
+    final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
+    final int before = c.get();
+    withUdf()
+        .query(sql)
+        .returnsUnordered("P=null",
+            "P=null",
+            "P=null",
+            "P=null");
+    final int after = c.get();
+    assertThat(after, is(before + 1));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3195">[CALCITE-3195]
+   * Handle a UDF that throws checked exceptions in the Enumerable code generator</a>. */
+  @Test public void testUserDefinedFunctionWithException() throws Exception {
+    final String sql1 = "select \"adhoc\".my_exception(\"deptno\") as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final String expected1 = "P=20\n"
+        + "P=30\n"
+        + "P=20\n"
+        + "P=20\n";
+    withUdf().query(sql1).returns(expected1);
+
+    final String sql2 = "select cast(\"adhoc\".my_exception(\"deptno\") as double) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final String expected2 = "P=20.0\n"
+        + "P=30.0\n"
+        + "P=20.0\n"
+        + "P=20.0\n";
+    withUdf().query(sql2).returns(expected2);
+
+    final String sql3 = "select \"adhoc\".my_exception(\"deptno\" * 2 + 11) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final String expected3 = "P=41\n"
+        + "P=61\n"
+        + "P=41\n"
+        + "P=41\n";
+    withUdf().query(sql3).returns(expected3);
   }
 
   /** Test case for
@@ -397,13 +447,13 @@ public class UdfTest {
         .throws_("No match found for function signature MY_LEFT(n => <NUMERIC>)");
     with.query("values (\"adhoc\".my_left(\"s\" => 'hello'))")
         .throws_("No match found for function signature MY_LEFT(s => <CHARACTER>)");
-    // arguments of wrong type
+    // arguments of wrong type, will do implicitly type coercion.
     with.query("values (\"adhoc\".my_left(\"n\" => 'hello', \"s\" => 'x'))")
-        .throws_("No match found for function signature "
-            + "MY_LEFT(n => <CHARACTER>, s => <CHARACTER>)");
+        .throws_("java.lang.NumberFormatException: For input string: \"hello\"");
+    with.query("values (\"adhoc\".my_left(\"n\" => '1', \"s\" => 'x'))")
+        .returns("EXPR$0=x\n");
     with.query("values (\"adhoc\".my_left(\"n\" => 1, \"s\" => 0))")
-        .throws_("No match found for function signature "
-            + "MY_LEFT(n => <NUMERIC>, s => <NUMERIC>)");
+        .returns("EXPR$0=0\n");
   }
 
   /** Tests calling a user-defined function some of whose parameters are
@@ -430,8 +480,11 @@ public class UdfTest {
         .throws_("No match found for function signature ABCDE(<NUMERIC>, <NUMERIC>)");
     with.query("values (\"adhoc\".abcde(1,DEFAULT,3))")
         .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+    // implicit type coercion.
     with.query("values (\"adhoc\".abcde(1,DEFAULT,'abcde'))")
-        .throws_("No match found for function signature ABCDE(<NUMERIC>, <ANY>, <CHARACTER>)");
+        .throws_("java.lang.NumberFormatException: For input string: \"abcde\"");
+    with.query("values (\"adhoc\".abcde(1,DEFAULT,'123'))")
+        .returns("EXPR$0={a: 1, b: null, c: 123, d: null, e: null}\n");
     with.query("values (\"adhoc\".abcde(true))")
         .throws_("No match found for function signature ABCDE(<BOOLEAN>)");
     with.query("values (\"adhoc\".abcde(true,DEFAULT))")
@@ -512,8 +565,9 @@ public class UdfTest {
             "Expression 'deptno' is not being grouped");
     with.query("select my_sum(\"deptno\") as p from EMPLOYEES\n")
         .returns("P=50\n");
+    // implicit type coercion.
     with.query("select my_sum(\"name\") as p from EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM(<CHARACTER>)");
+        .throws_("java.lang.NumberFormatException: For input string: \"Bill\"");
     with.query("select my_sum(\"deptno\", 1) as p from EMPLOYEES\n")
         .throws_(
             "No match found for function signature MY_SUM(<NUMERIC>, <NUMERIC>)");
@@ -589,21 +643,20 @@ public class UdfTest {
             "name=Eric; P=220",
             "name=Bill; P=110",
             "name=Sebastian; P=0");
+    // implicit type coercion.
     with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"salary\") as p "
-        + "from \"adhoc\".EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
-            + "<NUMERIC>, <APPROXIMATE_NUMERIC>)");
+        + "from \"adhoc\".EMPLOYEES\n");
     with.query("select \"adhoc\".my_sum3(\"empid\",\"deptno\",\"name\") as p "
-        + "from \"adhoc\".EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM3(<NUMERIC>, "
-            + "<NUMERIC>, <CHARACTER>)");
+        + "from \"adhoc\".EMPLOYEES\n");
     with.query("select \"adhoc\".my_sum2(\"commission\",250) as p "
         + "from \"adhoc\".EMPLOYEES\n")
         .returns("P=1500\n");
+    // implicit type coercion.
     with.query("select \"adhoc\".my_sum2(\"name\",250) as p from \"adhoc\".EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM2(<CHARACTER>, <NUMERIC>)");
+        .throws_("java.lang.NumberFormatException: For input string: \"Bill\"");
+    // implicit type coercion.
     with.query("select \"adhoc\".my_sum2(\"empid\",0.0) as p from \"adhoc\".EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM2(<NUMERIC>, <NUMERIC>)");
+        .returns("P=560\n");
   }
 
   /** Test for
@@ -655,8 +708,9 @@ public class UdfTest {
         .throws_("Expression 'deptno' is not being grouped");
     with.query("select my_sum3(\"deptno\") as p from EMPLOYEES\n")
         .returns("P=50\n");
+    // implicit type coercion.
     with.query("select my_sum3(\"name\") as p from EMPLOYEES\n")
-        .throws_("No match found for function signature MY_SUM3(<CHARACTER>)");
+        .throws_("java.lang.NumberFormatException: For input string: \"Bill\"");
     with.query("select my_sum3(\"deptno\", 1) as p from EMPLOYEES\n")
         .throws_("No match found for function signature "
             + "MY_SUM3(<NUMERIC>, <NUMERIC>)");

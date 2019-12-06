@@ -19,7 +19,6 @@ package org.apache.calcite.sql.ddl;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
@@ -60,6 +59,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
@@ -127,7 +127,7 @@ public class SqlCreateTable extends SqlCreate
   public void execute(CalcitePrepare.Context context) {
     final Pair<CalciteSchema, String> pair =
         SqlDdlNodes.schema(context, true, name);
-    final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    final JavaTypeFactory typeFactory = context.getTypeFactory();
     final RelDataType queryRowType;
     if (query != null) {
       // A bit of a hack: pretend it's a view, to get its row type
@@ -164,22 +164,13 @@ public class SqlCreateTable extends SqlCreate
     final ImmutableList.Builder<ColumnDef> b = ImmutableList.builder();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final RelDataTypeFactory.Builder storedBuilder = typeFactory.builder();
+    // REVIEW 2019-08-19 Danny Chan: Should we implement the
+    // #validate(SqlValidator) to get the SqlValidator instance?
+    final SqlValidator validator = SqlDdlNodes.validator(context, true);
     for (Ord<SqlNode> c : Ord.zip(columnList)) {
       if (c.e instanceof SqlColumnDeclaration) {
         final SqlColumnDeclaration d = (SqlColumnDeclaration) c.e;
-        RelDataType type = d.dataType.deriveType(typeFactory, true);
-        final Pair<CalciteSchema, String> pairForType =
-            SqlDdlNodes.schema(context, true, d.dataType.getTypeName());
-        if (type == null) {
-          CalciteSchema.TypeEntry typeEntry = pairForType.left.getType(pairForType.right, false);
-          if (typeEntry != null) {
-            type = typeEntry.getType().apply(typeFactory);
-            if (d.dataType.getNullable() != null
-                    && d.dataType.getNullable() != type.isNullable()) {
-              type = typeFactory.createTypeWithNullability(type, d.dataType.getNullable());
-            }
-          }
-        }
+        final RelDataType type = d.dataType.deriveType(validator, true);
         builder.add(d.name.getSimple(), type);
         if (d.strategy != ColumnStrategy.VIRTUAL) {
           storedBuilder.add(d.name.getSimple(), type);
@@ -216,7 +207,12 @@ public class SqlCreateTable extends SqlCreate
               int iColumn, InitializerContext context) {
             final ColumnDef c = columns.get(iColumn);
             if (c.expr != null) {
-              return context.convertExpression(c.expr);
+              // REVIEW Danny 2019-10-09: Should we support validation for DDL nodes?
+              final SqlNode validated = context.validateExpression(storedRowType, c.expr);
+              // The explicit specified type should have the same nullability
+              // with the column expression inferred type,
+              // actually they should be exactly the same.
+              return context.convertExpression(validated);
             }
             return super.newColumnDefaultValue(table, iColumn, context);
           }

@@ -356,7 +356,7 @@ class RuleQueue {
    *
    * <ul>
    * <li>the root {@link RelSubset} has an importance of 1</li>
-   * <li>the importance of any other subset is the sum of its importance to
+   * <li>the importance of any other subset is the max of its importance to
    * its parents</li>
    * <li>The importance of children is pro-rated according to the cost of the
    * children. Consider a node which has a cost of 3, and children with costs
@@ -368,7 +368,7 @@ class RuleQueue {
    *
    * <p>The formula for the importance <i>I</i> of node n is:
    *
-   * <blockquote>I<sub>n</sub> = Sum<sub>parents p of n</sub>{I<sub>p</sub> .
+   * <blockquote>I<sub>n</sub> = Max<sub>parents p of n</sub>{I<sub>p</sub> .
    * W <sub>n, p</sub>}</blockquote>
    *
    * <p>where W<sub>n, p</sub>, the weight of n within its parent p, is
@@ -405,6 +405,7 @@ class RuleQueue {
       dump(pw);
       pw.flush();
       LOGGER.trace(sw.toString());
+      planner.getRoot().getCluster().invalidateMetadataQuery();
     }
   }
 

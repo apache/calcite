@@ -46,8 +46,8 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -58,6 +58,7 @@ import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.MessageFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -75,6 +76,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
@@ -85,8 +87,10 @@ import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.ObjIntConsumer;
 
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.BitString.createFromBitString;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -96,12 +100,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link Util} and other classes in this package.
@@ -114,7 +118,7 @@ public class UtilTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @BeforeClass public static void setUSLocale() {
+  @BeforeAll public static void setUSLocale() {
     // This ensures numbers in exceptions are printed as in asserts.
     // For example, 1,000 vs 1 000
     Locale.setDefault(Locale.US);
@@ -345,10 +349,7 @@ public class UtilTest {
   }
 
   private static void assertReversible(String s) {
-    assertEquals(
-        s,
-        BitString.createFromBitString(s).toBitString(),
-        s);
+    assertEquals(createFromBitString(s).toBitString(), s, s);
     assertEquals(
         s,
         BitString.createFromHexString(s).toHexString());
@@ -1124,12 +1125,12 @@ public class UtilTest {
     final List<String> anb0 = Arrays.asList("A", null, "B");
     assertEquals(anb, anb0);
     assertEquals(anb.hashCode(), anb0.hashCode());
-    assertEquals(anb + ".indexOf(null)", 1, anb.indexOf(null));
-    assertEquals(anb + ".lastIndexOf(null)", 1, anb.lastIndexOf(null));
-    assertEquals(anb + ".indexOf(B)", 2, anb.indexOf("B"));
-    assertEquals(anb + ".lastIndexOf(A)", 0, anb.lastIndexOf("A"));
-    assertEquals(anb + ".indexOf(Z)", -1, anb.indexOf("Z"));
-    assertEquals(anb + ".lastIndexOf(Z)", -1, anb.lastIndexOf("Z"));
+    assertEquals(1, anb.indexOf(null), anb + ".indexOf(null)");
+    assertEquals(1, anb.lastIndexOf(null), anb + ".lastIndexOf(null)");
+    assertEquals(2, anb.indexOf("B"), anb + ".indexOf(B)");
+    assertEquals(0, anb.lastIndexOf("A"), anb + ".lastIndexOf(A)");
+    assertEquals(-1, anb.indexOf("Z"), anb + ".indexOf(Z)");
+    assertEquals(-1, anb.lastIndexOf("Z"), anb + ".lastIndexOf(Z)");
 
     // Comparisons
     assertThat(emp, instanceOf(Comparable.class));
@@ -1885,6 +1886,22 @@ public class UtilTest {
     assertThat(reverse.hasNext(), is(false));
   }
 
+  /** Tests {@link Ord#forEach(Iterable, ObjIntConsumer)}. */
+  @Test public void testOrdForEach() {
+    final String[] strings = {"ab", "", "cde"};
+    final StringBuilder b = new StringBuilder();
+    final String expected = "0:ab;1:;2:cde;";
+
+    Ord.forEach(strings,
+        (e, i) -> b.append(i).append(":").append(e).append(";"));
+    assertThat(b.toString(), is(expected));
+    b.setLength(0);
+
+    final List<String> list = Arrays.asList(strings);
+    Ord.forEach(list, (e, i) -> b.append(i).append(":").append(e).append(";"));
+    assertThat(b.toString(), is(expected));
+  }
+
   /** Tests {@link org.apache.calcite.util.ReflectUtil#getParameterName}. */
   @Test public void testParameterName() throws NoSuchMethodException {
     final Method method = UtilTest.class.getMethod("foo", int.class, int.class);
@@ -2395,6 +2412,40 @@ public class UtilTest {
         isIterable(Arrays.asList("John", "Paul", "Ringo")));
   }
 
+  /** Tests {@link Util#select(List, List)}. */
+  @Test public void testSelect() {
+    final List<String> beatles =
+        Arrays.asList("John", "Paul", "George", "Ringo");
+    final List<String> nullBeatles =
+        Arrays.asList("John", "Paul", null, "Ringo");
+
+    final List<Integer> emptyOrdinals = Collections.emptyList();
+    assertThat(Util.select(beatles, emptyOrdinals).isEmpty(), is(true));
+    assertThat(Util.select(beatles, emptyOrdinals).toString(), is("[]"));
+
+    final List<Integer> ordinal0 = Collections.singletonList(0);
+    assertThat(Util.select(beatles, ordinal0).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal0).toString(), is("[John]"));
+
+    final List<Integer> ordinal20 = Arrays.asList(2, 0);
+    assertThat(Util.select(beatles, ordinal20).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal20).toString(),
+        is("[George, John]"));
+
+    final List<Integer> ordinal232 = Arrays.asList(2, 3, 2);
+    assertThat(Util.select(beatles, ordinal232).isEmpty(), is(false));
+    assertThat(Util.select(beatles, ordinal232).toString(),
+        is("[George, Ringo, George]"));
+    assertThat(Util.select(beatles, ordinal232),
+        isIterable(Arrays.asList("George", "Ringo", "George")));
+
+    assertThat(Util.select(nullBeatles, ordinal232).isEmpty(), is(false));
+    assertThat(Util.select(nullBeatles, ordinal232).toString(),
+        is("[null, Ringo, null]"));
+    assertThat(Util.select(nullBeatles, ordinal232),
+        isIterable(Arrays.asList(null, "Ringo", null)));
+  }
+
   @Test public void testEquivalenceSet() {
     final EquivalenceSet<String> c = new EquivalenceSet<>();
     assertThat(c.size(), is(0));
@@ -2433,6 +2484,25 @@ public class UtilTest {
     assertThat(c.classCount(), is(0));
   }
 
+  @Test public void testBlackHoleMap() {
+    final Map<Integer, Integer> map = BlackholeMap.of();
+
+    for (int i = 0; i < 100; i++) {
+      assertThat(map.put(i, i * i), is(nullValue()));
+      assertThat(map.size(), is(0));
+      assertThat(map.entrySet().add(new SimpleEntry<>(i, i * i)), is(true));
+      assertThat(map.entrySet().size(), is(0));
+      assertThat(map.keySet().size(), is(0));
+      assertThat(map.values().size(), is(0));
+      assertThat(map.entrySet().iterator().hasNext(), is(false));
+      try {
+        map.entrySet().iterator().next();
+        fail();
+      } catch (NoSuchElementException e) {
+        // Success
+      }
+    }
+  }
   private static <E> Matcher<Iterable<E>> isIterable(final Iterable<E> iterable) {
     final List<E> list = toList(iterable);
     return new TypeSafeMatcher<Iterable<E>>() {

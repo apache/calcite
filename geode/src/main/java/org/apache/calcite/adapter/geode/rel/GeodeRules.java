@@ -39,7 +39,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -80,18 +79,7 @@ public class GeodeRules {
   }
 
   static List<String> geodeFieldNames(final RelDataType rowType) {
-
-    List<String> fieldNames = new AbstractList<String>() {
-      @Override public String get(int index) {
-        return rowType.getFieldList().get(index).getName();
-      }
-
-      @Override public int size() {
-        return rowType.getFieldCount();
-      }
-    };
-
-    return SqlValidatorUtil.uniquify(fieldNames, true);
+    return SqlValidatorUtil.uniquify(rowType.getFieldNames(), true);
   }
 
   /**
@@ -193,7 +181,6 @@ public class GeodeRules {
           aggregate.getCluster(),
           traitSet,
           convert(aggregate.getInput(), traitSet.simplify()),
-          aggregate.indicator,
           aggregate.getGroupSet(),
           aggregate.getGroupSets(),
           aggregate.getAggCallList());
@@ -344,12 +331,7 @@ public class GeodeRules {
         String rightName = fieldNames.get(right1.getIndex());
 
         return (leftName != null) && (rightName != null);
-      }
-      if (left.isA(SqlKind.OTHER_FUNCTION) && right.isA(SqlKind.LITERAL)) {
-        if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
-          return false;
-        }
-        // Should be ITEM
+      } else if (left.isA(SqlKind.ITEM) && right.isA(SqlKind.LITERAL)) {
         return true;
       }
 

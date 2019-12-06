@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -171,6 +172,18 @@ public class JoinProjectTransposeRule extends RelOptRule {
       return;
     }
 
+    if (includeOuter) {
+      if (leftProj != null && joinType.generatesNullsOnLeft()
+          && !Strong.allStrong(leftProj.getProjects())) {
+        return;
+      }
+
+      if (rightProj != null && joinType.generatesNullsOnRight()
+          && !Strong.allStrong(rightProj.getProjects())) {
+        return;
+      }
+    }
+
     // Construct two RexPrograms and combine them.  The bottom program
     // is a join of the projection expressions from the left and/or
     // right projects that feed into the join.  The top program contains
@@ -268,7 +281,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
     int[] adjustments = new int[nJoinFields];
     for (int i = 0; i < nProjExprs; i++) {
       RexNode newExpr = mergedProgram.expandLocalRef(projList.get(i));
-      if (joinType != JoinRelType.INNER) {
+      if (joinType.isOuterJoin()) {
         newExpr =
             newExpr.accept(
                 new RelOptUtil.RexInputConverter(
@@ -286,7 +299,7 @@ public class JoinProjectTransposeRule extends RelOptRule {
     relBuilder.project(newProjExprs, joinRel.getRowType().getFieldNames());
     // if the join was outer, we might need a cast after the
     // projection to fix differences wrt nullability of fields
-    if (joinType != JoinRelType.INNER) {
+    if (joinType.isOuterJoin()) {
       relBuilder.convert(joinRel.getRowType(), false);
     }
 

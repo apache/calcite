@@ -49,7 +49,7 @@ import java.util.TreeMap;
  * {@link RelMetadataQuery#getPulledUpPredicates(RelNode)}; the input does not
  * need to be a {@link org.apache.calcite.rel.core.Project}.
  *
- * <p>This rules never removes the last column, because {@code Aggregate([])}
+ * <p>This rule never removes the last column, because {@code Aggregate([])}
  * returns 1 row even if its input is empty.
  *
  * <p>Since the transformed relational expression has to match the original
@@ -98,7 +98,6 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule {
     final Aggregate aggregate = call.rel(0);
     final RelNode input = call.rel(1);
 
-    assert !aggregate.indicator : "predicate ensured no grouping sets";
     final int groupCount = aggregate.getGroupCount();
     if (groupCount == 1) {
       // No room for optimization since we cannot convert from non-empty

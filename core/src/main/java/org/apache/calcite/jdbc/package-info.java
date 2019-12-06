@@ -18,9 +18,6 @@
 /**
  * JDBC driver for Calcite.
  */
-@PackageMarker
 package org.apache.calcite.jdbc;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

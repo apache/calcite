@@ -219,9 +219,9 @@ public class PhysTypeImpl implements PhysType {
     final List<Expression> expressions = new ArrayList<>();
     for (int field : argList) {
       expressions.add(
-          Types.castIfNecessary(
-              fieldClass(field),
-              fieldReference(v1, field)));
+          EnumUtils.convert(
+              fieldReference(v1, field),
+              fieldClass(field)));
     }
     return expressions;
   }
@@ -235,6 +235,7 @@ public class PhysTypeImpl implements PhysType {
         Primitive.box(javaRowClass), format);
   }
 
+  @SuppressWarnings("deprecation")
   public Expression convertTo(Expression exp, PhysType targetPhysType) {
     return convertTo(exp, targetPhysType.getFormat());
   }
@@ -307,8 +308,8 @@ public class PhysTypeImpl implements PhysType {
       Expression arg1 = fieldReference(parameterV1, index);
       switch (Primitive.flavor(fieldClass(index))) {
       case OBJECT:
-        arg0 = Types.castIfNecessary(Comparable.class, arg0);
-        arg1 = Types.castIfNecessary(Comparable.class, arg1);
+        arg0 = EnumUtils.convert(arg0, Comparable.class);
+        arg1 = EnumUtils.convert(arg1, Comparable.class);
       }
       final boolean nullsFirst =
           collation.nullDirection
@@ -406,8 +407,8 @@ public class PhysTypeImpl implements PhysType {
       Expression arg1 = fieldReference(parameterV1, index);
       switch (Primitive.flavor(fieldClass(index))) {
       case OBJECT:
-        arg0 = Types.castIfNecessary(Comparable.class, arg0);
-        arg1 = Types.castIfNecessary(Comparable.class, arg1);
+        arg0 = EnumUtils.convert(arg0, Comparable.class);
+        arg1 = EnumUtils.convert(arg1, Comparable.class);
       }
       final boolean nullsFirst =
           fieldCollation.nullDirection
@@ -565,9 +566,9 @@ public class PhysTypeImpl implements PhysType {
       // }
       Class returnType = fieldClasses.get(field0);
       Expression fieldReference =
-          Types.castIfNecessary(
-              returnType,
-              fieldReference(v1, field0));
+          EnumUtils.convert(
+              fieldReference(v1, field0),
+              returnType);
       return Expressions.lambda(
           Function1.class,
           fieldReference,
@@ -657,7 +658,9 @@ public class PhysTypeImpl implements PhysType {
       fieldType = null;
     } else {
       fieldType = fieldClass(field);
-      if (fieldType != java.sql.Date.class) {
+      if (fieldType != java.sql.Date.class
+          && fieldType != java.sql.Time.class
+          && fieldType != java.sql.Timestamp.class) {
         fieldType = null;
       }
     }

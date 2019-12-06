@@ -17,6 +17,7 @@
 package org.apache.calcite.prepare;
 
 import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.materialize.Lattice;
@@ -111,6 +112,16 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       Expression expression) {
     return new RelOptTableImpl(schema, rowType, names, null,
         c -> expression, null);
+  }
+
+  public static RelOptTableImpl create(
+      RelOptSchema schema,
+      RelDataType rowType,
+      List<String> names,
+      Table table,
+      Expression expression) {
+    return new RelOptTableImpl(schema, rowType, names, table,
+        c -> expression, table.getStatistic().getRowCount());
   }
 
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
@@ -272,7 +283,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     if (Hook.ENABLE_BINDABLE.get(false)) {
       return LogicalTableScan.create(cluster, this);
     }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
         && table instanceof QueryableTable) {
       return EnumerableTableScan.create(cluster, this);
     }
@@ -281,7 +292,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         || table instanceof ProjectableFilterableTable) {
       return LogicalTableScan.create(cluster, this);
     }
-    if (CalcitePrepareImpl.ENABLE_ENUMERABLE) {
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
       return EnumerableTableScan.create(cluster, this);
     }
     throw new AssertionError();
@@ -306,6 +317,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return table.getStatistic().isKey(columns);
     }
     return false;
+  }
+
+  public List<ImmutableBitSet> getKeys() {
+    return table.getStatistic().getKeys();
   }
 
   public List<RelReferentialConstraint> getReferentialConstraints() {

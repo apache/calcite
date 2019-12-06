@@ -50,9 +50,7 @@ public final class LogicalAggregate extends Aggregate {
    *
    * @param cluster    Cluster that this relational expression belongs to
    * @param traitSet   Traits
-   * @param child      input relational expression
-   * @param indicator  Whether row type should include indicator fields to
-   *                   indicate which grouping set is active
+   * @param input      Input relational expression
    * @param groupSet Bit set of grouping fields
    * @param groupSets Grouping sets, or null to use just {@code groupSet}
    * @param aggCalls Array of aggregates to compute, not null
@@ -60,24 +58,28 @@ public final class LogicalAggregate extends Aggregate {
   public LogicalAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
-      RelNode child,
-      boolean indicator,
+      RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, child, indicator, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
   }
 
   @Deprecated // to be removed before 2.0
-  public LogicalAggregate(
-      RelOptCluster cluster,
-      RelNode child,
-      boolean indicator,
-      ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
-      List<AggregateCall> aggCalls) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), child, indicator,
-        groupSet, groupSets, aggCalls);
+  public LogicalAggregate(RelOptCluster cluster, RelTraitSet traitSet,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalAggregate(RelOptCluster cluster,
+      RelNode input, boolean indicator, ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+    super(cluster, cluster.traitSetOf(Convention.NONE), input, groupSet,
+        groupSets, aggCalls);
+    checkIndicator(indicator);
   }
 
   /**
@@ -91,7 +93,7 @@ public final class LogicalAggregate extends Aggregate {
   public static LogicalAggregate create(final RelNode input,
       ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    return create_(input, false, groupSet, groupSets, aggCalls);
+    return create_(input, groupSet, groupSets, aggCalls);
   }
 
   @Deprecated // to be removed before 2.0
@@ -100,27 +102,27 @@ public final class LogicalAggregate extends Aggregate {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    return create_(input, indicator, groupSet, groupSets, aggCalls);
+    checkIndicator(indicator);
+    return create_(input, groupSet, groupSets, aggCalls);
   }
 
   private static LogicalAggregate create_(final RelNode input,
-      boolean indicator,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalAggregate(cluster, traitSet, input, indicator, groupSet,
+    return new LogicalAggregate(cluster, traitSet, input, groupSet,
         groupSets, aggCalls);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalAggregate copy(RelTraitSet traitSet, RelNode input,
-      boolean indicator, ImmutableBitSet groupSet,
+      ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     assert traitSet.containsIfApplicable(Convention.NONE);
-    return new LogicalAggregate(getCluster(), traitSet, input, indicator,
+    return new LogicalAggregate(getCluster(), traitSet, input,
         groupSet, groupSets, aggCalls);
   }
 

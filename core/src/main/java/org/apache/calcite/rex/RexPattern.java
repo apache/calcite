@@ -20,6 +20,7 @@ package org.apache.calcite.rex;
  * A <code>RexPattern</code> represents an expression with holes in it. The
  * {@link #match} method tests whether a given expression matches the pattern.
  */
+@Deprecated // to be removed before 2.0
 public interface RexPattern {
   //~ Methods ----------------------------------------------------------------
 

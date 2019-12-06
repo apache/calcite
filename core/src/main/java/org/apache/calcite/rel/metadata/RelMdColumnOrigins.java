@@ -27,13 +27,12 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
-
-import com.google.common.collect.ImmutableSet;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -65,17 +64,10 @@ public class RelMdColumnOrigins
       return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
     }
 
-    if (rel.indicator) {
-      if (iOutputColumn < rel.getGroupCount() + rel.getIndicatorCount()) {
-        // The indicator column is originated here.
-        return ImmutableSet.of();
-      }
-    }
-
     // Aggregate columns are derived from input columns
     AggregateCall call =
         rel.getAggCallList().get(iOutputColumn
-                - rel.getGroupCount() - rel.getIndicatorCount());
+                - rel.getGroupCount());
 
     final Set<RelColumnOrigin> set = new HashSet<>();
     for (Integer iInput : call.getArgList()) {
@@ -162,6 +154,11 @@ public class RelMdColumnOrigins
   }
 
   public Set<RelColumnOrigin> getColumnOrigins(Sort rel, RelMetadataQuery mq,
+      int iOutputColumn) {
+    return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
+  }
+
+  public Set<RelColumnOrigin> getColumnOrigins(TableModify rel, RelMetadataQuery mq,
       int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }

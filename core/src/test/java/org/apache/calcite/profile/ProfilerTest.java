@@ -22,7 +22,6 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.Matchers;
-import org.apache.calcite.test.SlowTests;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.TestUtil;
@@ -34,9 +33,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 
 import org.hamcrest.Matcher;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -54,13 +53,13 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for {@link Profiler}.
  */
-@Category(SlowTests.class)
+@Tag("slow")
 public class ProfilerTest {
   @Test public void testProfileZeroRows() throws Exception {
     final String sql = "select * from \"scott\".dept where false";
@@ -261,7 +260,7 @@ public class ProfilerTest {
   }
 
   /** As {@link #testProfileScott3()}, but uses the breadth-first profiler. */
-  @Ignore
+  @Disabled
   @Test public void testProfileScott5() throws Exception {
     scott().factory(Fluid.PROFILER_FACTORY).unordered(
         "{type:distribution,columns:[COMM],values:[0.00,300.00,500.00,1400.00],cardinality:5,nullCount:10,expectedCardinality:14.0,surprise:0.473}",
@@ -285,7 +284,7 @@ public class ProfilerTest {
 
   /** Profiles a star-join query on the Foodmart schema using the breadth-first
    * profiler. */
-  @Ignore
+  @Disabled
   @Test public void testProfileFoodmart() throws Exception {
     foodmart().factory(Fluid.PROFILER_FACTORY).unordered(
         "{type:distribution,columns:[brand_name],cardinality:111,expectedCardinality:86837.0,surprise:0.997}",

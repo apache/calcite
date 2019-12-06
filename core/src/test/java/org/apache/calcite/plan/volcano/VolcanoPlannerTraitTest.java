@@ -44,15 +44,15 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for handling of traits by {@link VolcanoPlanner}.
@@ -105,7 +105,7 @@ public class VolcanoPlannerTraitTest {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Ignore
+  @Disabled
   @Test public void testDoubleConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
@@ -193,7 +193,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(result instanceof IterMergedRel);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testTraitPropagation() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
@@ -264,12 +264,12 @@ public class VolcanoPlannerTraitTest {
     RelOptCluster cluster = newCluster(planner);
     NoneTinyLeafRel leaf = new NoneTinyLeafRel(cluster, "noneLeafRel");
     planner.setRoot(leaf);
-    RelOptCost cost = planner.getCost(leaf, RelMetadataQuery.instance());
+    RelOptCost cost = planner.getCost(leaf, cluster.getMetadataQuery());
 
     assertTrue(cost.isInfinite());
 
     planner.setNoneConventionHasInfiniteCost(false);
-    cost = planner.getCost(leaf, RelMetadataQuery.instance());
+    cost = planner.getCost(leaf, cluster.getMetadataQuery());
     assertTrue(!cost.isInfinite());
   }
 
@@ -342,7 +342,7 @@ public class VolcanoPlannerTraitTest {
       RelTrait fromTrait = rel.getTraitSet().getTrait(this);
 
       if (conversionMap.containsKey(fromTrait)) {
-        final RelMetadataQuery mq = RelMetadataQuery.instance();
+        final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
         for (Pair<RelTrait, ConverterRule> traitAndRule
             : conversionMap.get(fromTrait)) {
           RelTrait trait = traitAndRule.left;

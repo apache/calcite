@@ -59,7 +59,7 @@ public abstract class LatticeNode {
         if (i++ > 0) {
           sb.append(",");
         }
-        sb.append(parent.table.field(p.source).getName());
+        sb.append(space.fieldName(parent.table, p.source));
       }
     }
     if (mutableNode.children.isEmpty()) {

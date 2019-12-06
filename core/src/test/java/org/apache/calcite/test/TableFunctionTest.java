@@ -28,8 +28,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,8 +43,8 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for user-defined table functions.
@@ -102,6 +102,42 @@ public class TableFunctionTest {
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
           equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  @Test public void testTableFunctionWithArrayParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputSize\"(ARRAY[5,4,3,1,2])) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  @Test public void testTableFunctionWithMapParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_MAP_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputMapSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputMapSize\"(Map[5,4,3,1])) as t(n, c)\n"
+          + "where char_length(c) > 0";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=1; C=a\n"));
     }
   }
 
@@ -224,7 +260,7 @@ public class TableFunctionTest {
    * Tests that non-nullable arguments of a table function must be provided
    * as literals.
    */
-  @Ignore("SQLException does not include message from nested exception")
+  @Disabled("SQLException does not include message from nested exception")
   @Test public void testTableFunctionNonNullableMustBeLiterals()
       throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
@@ -245,8 +281,7 @@ public class TableFunctionTest {
     }
   }
 
-  private Connection getConnectionWithMultiplyFunction()
-      throws ClassNotFoundException, SQLException {
+  private Connection getConnectionWithMultiplyFunction() throws SQLException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -262,7 +297,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes cursor input.
    */
-  @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorInputs()
       throws SQLException, ClassNotFoundException {
@@ -297,7 +332,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes multiple cursor inputs.
    */
-  @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorsInputs()
       throws SQLException, ClassNotFoundException {
@@ -360,12 +395,10 @@ public class TableFunctionTest {
   }
 
   @Test public void testUserDefinedTableFunction4() {
-    final String q = "select *\n"
+    final String q = "select \"c1\"\n"
         + "from table(\"s\".\"multiplication\"('2', 3, 100))\n"
-        + "where c1 + 2 < c2";
-    final String e = "No match found for function signature "
-        + "multiplication(<CHARACTER>, <NUMERIC>, <NUMERIC>)";
-    with().query(q).throws_(e);
+        + "where \"c1\" + 2 < \"c2\"";
+    with().query(q).returnsUnordered("c1=103");
   }
 
   @Test public void testUserDefinedTableFunction5() {
@@ -429,6 +462,20 @@ public class TableFunctionTest {
               "C=5; N=3",
               "C=5; N=5");
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2004">[CALCITE-2004]
+   * Wrong plan generated for left outer apply with table function</a>. */
+  @Test public void testLeftOuterApply() {
+    final String sql = "select *\n"
+        + "from (values 4) as t (c)\n"
+        + "left join lateral table(\"s\".\"fibonacci2\"(c)) as R(n) on c=n";
+    with()
+        .with(CalciteConnectionProperty.CONFORMANCE,
+            SqlConformanceEnum.LENIENT)
+        .query(sql)
+        .returnsUnordered("C=4; N=null");
   }
 
   /** Test case for

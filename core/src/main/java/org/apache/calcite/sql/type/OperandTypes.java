@@ -240,6 +240,9 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker INTERVAL =
       family(SqlTypeFamily.DATETIME_INTERVAL);
 
+  public static final SqlSingleOperandTypeChecker CHARACTER_CHARACTER_DATETIME =
+      family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME);
+
   public static final SqlSingleOperandTypeChecker PERIOD =
       new PeriodOperandTypeChecker();
 
@@ -405,6 +408,16 @@ public abstract class OperandTypes {
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING,
           SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
 
+  public static final SqlSingleOperandTypeChecker STRING_INTEGER =
+      family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER);
+
+  /** Operand type-checking strategy where the first operand is a character or
+   * binary string (CHAR, VARCHAR, BINARY or VARBINARY), and the second operand
+   * is INTEGER. */
+  public static final SqlSingleOperandTypeChecker CBSTRING_INTEGER =
+      or(family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER),
+          family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER));
+
   /**
    * Operand type-checking strategy where two operands must both be in the
    * same string type family and last type is INTEGER.
@@ -502,63 +515,79 @@ public abstract class OperandTypes {
    *
    * @see #COLLECTION */
   public static final SqlSingleOperandTypeChecker RECORD_COLLECTION =
-      new SqlSingleOperandTypeChecker() {
-        public boolean checkSingleOperandType(
-            SqlCallBinding callBinding,
-            SqlNode node,
-            int iFormalOperand,
-            boolean throwOnFailure) {
-          assert 0 == iFormalOperand;
-          RelDataType type =
-              callBinding.getValidator().deriveType(
-                  callBinding.getScope(),
-                  node);
-          boolean validationError = false;
-          if (!type.isStruct()) {
-            validationError = true;
-          } else if (type.getFieldList().size() != 1) {
-            validationError = true;
-          } else {
-            SqlTypeName typeName =
-                type.getFieldList().get(0).getType().getSqlTypeName();
-            if (typeName != SqlTypeName.MULTISET
-                && typeName != SqlTypeName.ARRAY) {
-              validationError = true;
-            }
-          }
+      new RecordTypeWithOneFieldChecker(
+          sqlTypeName ->
+              sqlTypeName != SqlTypeName.ARRAY && sqlTypeName != SqlTypeName.MULTISET) {
 
-          if (validationError && throwOnFailure) {
-            throw callBinding.newValidationSignatureError();
-          }
-          return !validationError;
-        }
-
-        public boolean checkOperandTypes(
-            SqlCallBinding callBinding,
-            boolean throwOnFailure) {
-          return checkSingleOperandType(
-              callBinding,
-              callBinding.operand(0),
-              0,
-              throwOnFailure);
-        }
-
-        public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.of(1);
-        }
-
-        public String getAllowedSignatures(SqlOperator op, String opName) {
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return "UNNEST(<MULTISET>)";
         }
-
-        public boolean isOptional(int i) {
-          return false;
-        }
-
-        public Consistency getConsistency() {
-          return Consistency.NONE;
-        }
       };
+
+
+  /**
+   * Checker for record just has one field.
+   */
+  private abstract static class RecordTypeWithOneFieldChecker
+      implements SqlSingleOperandTypeChecker {
+
+    private final Predicate<SqlTypeName> typeNamePredicate;
+
+    private RecordTypeWithOneFieldChecker(Predicate<SqlTypeName> predicate) {
+      this.typeNamePredicate = predicate;
+    }
+
+    public boolean checkSingleOperandType(
+        SqlCallBinding callBinding,
+        SqlNode node,
+        int iFormalOperand,
+        boolean throwOnFailure) {
+      assert 0 == iFormalOperand;
+      RelDataType type =
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(),
+              node);
+      boolean validationError = false;
+      if (!type.isStruct()) {
+        validationError = true;
+      } else if (type.getFieldList().size() != 1) {
+        validationError = true;
+      } else {
+        SqlTypeName typeName =
+            type.getFieldList().get(0).getType().getSqlTypeName();
+        if (typeNamePredicate.test(typeName)) {
+          validationError = true;
+        }
+      }
+
+      if (validationError && throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      }
+      return !validationError;
+    }
+
+    public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      return checkSingleOperandType(
+          callBinding,
+          callBinding.operand(0),
+          0,
+          throwOnFailure);
+    }
+
+    public SqlOperandCountRange getOperandCountRange() {
+      return SqlOperandCountRanges.of(1);
+    }
+
+    public boolean isOptional(int i) {
+      return false;
+    }
+
+    public Consistency getConsistency() {
+      return Consistency.NONE;
+    }
+  }
 
   /** Checker that returns whether a value is a collection (multiset or array)
    * of scalar or record values. */
@@ -566,7 +595,17 @@ public abstract class OperandTypes {
       OperandTypes.or(COLLECTION, RECORD_COLLECTION);
 
   public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION_OR_MAP =
-      OperandTypes.or(COLLECTION_OR_MAP, RECORD_COLLECTION);
+      OperandTypes.or(COLLECTION_OR_MAP,
+          new RecordTypeWithOneFieldChecker(
+              sqlTypeName ->
+                  sqlTypeName != SqlTypeName.MULTISET
+                      && sqlTypeName != SqlTypeName.ARRAY
+                      && sqlTypeName != SqlTypeName.MAP) {
+
+          @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "UNNEST(<MULTISET>)\nUNNEST(<ARRAY>)\nUNNEST(<MAP>)";
+          }
+        });
 
   public static final SqlOperandTypeChecker MULTISET_MULTISET =
       new MultisetOperandTypeChecker();

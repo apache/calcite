@@ -18,11 +18,12 @@
 ::
 :: Example:
 :: > sqlline.bat
-:: sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin 
+:: sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
+:: sqlline> !tables
 
-:: Copy dependency jars on first call. (To force jar refresh, remove target\dependencies)
-if not exist target\dependencies (call mvn -B dependency:copy-dependencies -DoverWriteReleases=false -DoverWriteSnapshots=false -DoverWriteIfNewer=true -DoutputDirectory=target\dependencies)
+:: Copy dependency jars on first call. To update it run ./gradlew buildSqllineClasspath
+if not exist build\libs\sqllineClasspath.jar (call ../../gradlew buildSqllineClasspath)
 
-java -Xmx1G -cp ".\target\test-classes;.\target\classes;.\target\dependencies\*" sqlline.SqlLine --verbose=true %*
+java -Xmx1g -jar build\libs\sqllineClasspath.jar sqlline.SqlLine %*
 
 :: End sqlline.bat

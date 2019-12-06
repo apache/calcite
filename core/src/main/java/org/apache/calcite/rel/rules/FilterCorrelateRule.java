@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -84,10 +83,10 @@ public class FilterCorrelateRule extends RelOptRule {
     RelOptUtil.classifyFilters(
         corr,
         aboveFilters,
-        JoinRelType.INNER,
+        corr.getJoinType(),
         false,
-        !corr.getJoinType().toJoinType().generatesNullsOnLeft(),
-        !corr.getJoinType().toJoinType().generatesNullsOnRight(),
+        true,
+        !corr.getJoinType().generatesNullsOnRight(),
         aboveFilters,
         leftFilters,
         rightFilters);

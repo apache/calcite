@@ -230,7 +230,7 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 
 !ok
 
-# same as above, but expressed as a theta-join
+# same as above, but expressed as a nestedLoop-join
 select * from (select * from emp where gender ='F') as emp full join dept on emp.deptno - dept.deptno = 0;
 +-------+--------+--------+---------+-------------+
 | ENAME | DEPTNO | GENDER | DEPTNO0 | DNAME       |
@@ -247,7 +247,7 @@ select * from (select * from emp where gender ='F') as emp full join dept on emp
 (8 rows)
 
 !ok
-EnumerableThetaJoin(condition=[=(-($1, $3), 0)], joinType=[full])
+EnumerableNestedLoopJoin(condition=[=(-($1, $3), 0)], joinType=[full])
   EnumerableCalc(expr#0..2=[{inputs}], expr#3=['F'], expr#4=[=($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])
     EnumerableUnion(all=[true])
       EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])

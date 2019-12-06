@@ -34,6 +34,15 @@ public enum EnumerableConvention implements Convention {
    * "typical" calling convention. */
   public static final double COST_MULTIPLIER = 1.0d;
 
+  /**
+   * This config is used to allow conversion by
+   * {@link org.apache.calcite.plan.volcano.AbstractConverter}, which is relied
+   * upon when converting collations/distributions of input to fit the parent node.
+   * Some tests enable this config to test sepcific phsyical operators,
+   * e.g. {@link org.apache.calcite.adapter.enumerable.EnumerableMergeJoin}.
+   */
+  public static boolean useAbstractConvertersForConversion = false;
+
   @Override public String toString() {
     return getName();
   }
@@ -62,7 +71,7 @@ public enum EnumerableConvention implements Convention {
 
   public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
-    return false;
+    return useAbstractConvertersForConversion;
   }
 }
 

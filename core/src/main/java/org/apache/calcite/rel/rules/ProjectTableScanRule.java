@@ -25,16 +25,20 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Planner rule that converts a {@link Project}
@@ -104,29 +108,47 @@ public abstract class ProjectTableScanRule extends RelOptRule {
     final RelOptTable table = scan.getTable();
     assert table.unwrap(ProjectableFilterableTable.class) != null;
 
-    final Mappings.TargetMapping mapping = project.getMapping();
-    if (mapping == null
-        || Mappings.isIdentity(mapping)) {
-      return;
-    }
+    final List<Integer> selectedColumns = new ArrayList<>();
+    project.getProjects().forEach(proj -> {
+      proj.accept(new RexVisitorImpl<Void>(true) {
+        public Void visitInputRef(RexInputRef inputRef) {
+          if (!selectedColumns.contains(inputRef.getIndex())) {
+            selectedColumns.add(inputRef.getIndex());
+          }
+          return null;
+        }
+      });
+    });
 
-    final ImmutableIntList projects;
-    final ImmutableList<RexNode> filters;
+    final List<RexNode> filtersPushDown;
+    final List<Integer> projectsPushDown;
     if (scan instanceof Bindables.BindableTableScan) {
       final Bindables.BindableTableScan bindableScan =
           (Bindables.BindableTableScan) scan;
-      filters = bindableScan.filters;
-      projects = bindableScan.projects;
+      filtersPushDown = bindableScan.filters;
+      projectsPushDown = selectedColumns.stream()
+          .map(col -> bindableScan.projects.get(col))
+          .collect(Collectors.toList());
     } else {
-      filters = ImmutableList.of();
-      projects = scan.identity();
+      filtersPushDown = ImmutableList.of();
+      projectsPushDown = selectedColumns;
     }
+    Bindables.BindableTableScan newScan = Bindables.BindableTableScan.create(
+        scan.getCluster(), scan.getTable(), filtersPushDown, projectsPushDown);
+    Mapping mapping =
+        Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
+    final List<RexNode> newProjectRexNodes =
+        ImmutableList.copyOf(RexUtil.apply(mapping, project.getProjects()));
 
-    final List<Integer> projects2 =
-        Mappings.apply((Mapping) mapping, projects);
-    call.transformTo(
-        Bindables.BindableTableScan.create(scan.getCluster(), scan.getTable(),
-            filters, projects2));
+    if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
+      call.transformTo(newScan);
+    } else {
+      call.transformTo(
+          call.builder()
+              .push(newScan)
+              .project(newProjectRexNodes)
+              .build());
+    }
   }
 }
 

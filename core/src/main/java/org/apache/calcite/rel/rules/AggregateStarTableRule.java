@@ -178,7 +178,7 @@ public class AggregateStarTableRule extends RelOptRule {
         aggCalls.add(copy);
       }
       relBuilder.push(
-          aggregate.copy(aggregate.getTraitSet(), relBuilder.build(), false,
+          aggregate.copy(aggregate.getTraitSet(), relBuilder.build(),
               groupSet.build(), null, aggCalls));
     } else if (!tileKey.measures.equals(measures)) {
       if (CalciteSystemProperty.DEBUG.value()) {
@@ -193,7 +193,6 @@ public class AggregateStarTableRule extends RelOptRule {
                   tileKey.dimensions.cardinality() + tileKey.measures.size(),
                   aggregate.getRowType().getFieldCount()) {
                 public int getSourceOpt(int source) {
-                  assert aggregate.getIndicatorCount() == 0;
                   if (source < aggregate.getGroupCount()) {
                     int in = tileKey.dimensions.nth(source);
                     return aggregate.getGroupSet().indexOf(in);
@@ -234,8 +233,8 @@ public class AggregateStarTableRule extends RelOptRule {
       if (roll == null) {
         break tryRoll;
       }
-      return AggregateCall.create(roll, false,
-          aggregateCall.isApproximate(), ImmutableList.of(offset + i), -1,
+      return AggregateCall.create(roll, false, aggregateCall.isApproximate(),
+          aggregateCall.ignoreNulls(), ImmutableList.of(offset + i), -1,
           aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
@@ -252,7 +251,8 @@ public class AggregateStarTableRule extends RelOptRule {
         newArgs.add(z);
       }
       return AggregateCall.create(aggregation, false,
-          aggregateCall.isApproximate(), newArgs, -1, aggregateCall.collation,
+          aggregateCall.isApproximate(), aggregateCall.ignoreNulls(),
+          newArgs, -1, aggregateCall.collation,
           groupCount, relBuilder.peek(), null, aggregateCall.name);
     }
 

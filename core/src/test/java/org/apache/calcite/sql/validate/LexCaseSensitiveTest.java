@@ -36,14 +36,15 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Testing {@link SqlValidator} and {@link Lex}.
@@ -91,13 +92,13 @@ public class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test(expected = ValidationException.class)
-  public void testCalciteCaseOracleException()
-      throws SqlParseException, ValidationException, RelConversionException {
-    // Oracle is case sensitive, so EMPID should not be found.
-    String sql = "select EMPID, \"empid\" from\n"
-        + " (select \"empid\" from \"emps\" order by \"emps\".\"deptno\")";
-    runProjectQueryWithLex(Lex.ORACLE, sql);
+  @Test public void testCalciteCaseOracleException() {
+    assertThrows(ValidationException.class, () -> {
+      // Oracle is case sensitive, so EMPID should not be found.
+      String sql = "select EMPID, \"empid\" from\n"
+          + " (select \"empid\" from \"emps\" order by \"emps\".\"deptno\")";
+      runProjectQueryWithLex(Lex.ORACLE, sql);
+    });
   }
 
   @Test public void testCalciteCaseMySql()
@@ -149,13 +150,13 @@ public class LexCaseSensitiveTest {
     runProjectQueryWithLex(Lex.JAVA, sql);
   }
 
-  @Test(expected = ValidationException.class)
-  public void testCalciteCaseJavaException()
-      throws SqlParseException, ValidationException, RelConversionException {
-    // JAVA is case sensitive, so EMPID should not be found.
-    String sql = "select EMPID, empid from\n"
-        + " (select empid from emps order by emps.deptno)";
-    runProjectQueryWithLex(Lex.JAVA, sql);
+  @Test public void testCalciteCaseJavaException() {
+    assertThrows(ValidationException.class, () -> {
+      // JAVA is case sensitive, so EMPID should not be found.
+      String sql = "select EMPID, empid from\n"
+          + " (select empid from emps order by emps.deptno)";
+      runProjectQueryWithLex(Lex.JAVA, sql);
+    });
   }
 
   @Test public void testCalciteCaseJoinOracle()

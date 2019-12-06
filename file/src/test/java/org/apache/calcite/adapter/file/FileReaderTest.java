@@ -21,18 +21,10 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 
 import org.jsoup.select.Elements;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -41,9 +33,23 @@ import java.sql.Statement;
 import java.util.Iterator;
 import java.util.Properties;
 
+import static org.apache.calcite.util.TestUtil.getJavaMajorVersion;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import static java.lang.System.getProperty;
+
 /**
  * Unit tests for FileReader.
  */
+@ExtendWith(RequiresNetworkExtension.class)
 public class FileReaderTest {
 
   private static final Source CITIES_SOURCE =
@@ -53,44 +59,35 @@ public class FileReaderTest {
       Sources.url(
           "http://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States");
 
-  /** Converts a path that is relative to the module into a path that is
-   * relative to where the test is running. */
-  public static String file(String s) {
-    if (new File("file").exists()) {
-      return "file/" + s;
-    } else {
-      return s;
-    }
+  private static Source resource(String path) {
+    return Sources.of(FileReaderTest.class.getResource("/" + path));
   }
 
-  private static String resourcePath(String path) throws Exception {
-    return Sources.of(FileReaderTest.class.getResource("/" + path)).file().getAbsolutePath();
+  private static String resourcePath(String path) {
+    return resource(path).file().getAbsolutePath();
   }
 
   /** Tests {@link FileReader} URL instantiation - no path. */
-  @Test public void testFileReaderUrlNoPath() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
-
+  @Test @RequiresNetwork public void testFileReaderUrlNoPath() throws FileReaderException {
     // Under OpenJDK, test fails with the following, so skip test:
     //   javax.net.ssl.SSLHandshakeException:
     //   sun.security.validator.ValidatorException: PKIX path building failed:
     //   sun.security.provider.certpath.SunCertPathBuilderException:
     //   unable to find valid certification path to requested target
-    final String r = System.getProperty("java.runtime.name");
+    final String r = getProperty("java.runtime.name");
     // http://openjdk.java.net/jeps/319 => root certificates are bundled with JEP 10
-    Assume.assumeTrue("Java 10+ should have root certificates (JEP 319). Runtime is "
-            + r + ", Jave major version is " + TestUtil.getJavaMajorVersion(),
-        !r.equals("OpenJDK Runtime Environment")
-            || TestUtil.getJavaMajorVersion() > 10);
+    assumeTrue(!r.equals("OpenJDK Runtime Environment")
+            || getJavaMajorVersion() > 10,
+        "Java 10+ should have root certificates (JEP 319). Runtime is "
+            + r + ", Jave major version is " + getJavaMajorVersion());
 
     FileReader t = new FileReader(STATES_SOURCE);
     t.refresh();
   }
 
   /** Tests {@link FileReader} URL instantiation - with path. */
-  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testFileReaderUrlWithPath() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
+  @Test @RequiresNetwork public void testFileReaderUrlWithPath() throws FileReaderException {
     FileReader t =
         new FileReader(CITIES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);
@@ -98,9 +95,8 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} URL fetch. */
-  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testFileReaderUrlFetch() throws FileReaderException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
+  @Test @RequiresNetwork public void testFileReaderUrlFetch() throws FileReaderException {
     FileReader t =
         new FileReader(STATES_SOURCE,
             "#mw-content-text > table.wikitable.sortable", 0);
@@ -123,27 +119,27 @@ public class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad URL. */
-  @Test(expected = FileReaderException.class)
-  public void testFileReaderBadUrl() throws FileReaderException {
+  @Test public void testFileReaderBadUrl() {
     final String uri =
         "http://ex.wikipedia.org/wiki/List_of_United_States_cities_by_population";
-    FileReader t = new FileReader(Sources.url(uri), "table:eq(4)");
-    t.refresh();
+    assertThrows(FileReaderException.class, () -> {
+      FileReader t = new FileReader(Sources.url(uri), "table:eq(4)");
+      t.refresh();
+    });
   }
 
   /** Tests failed {@link FileReader} instantiation - bad selector. */
-  @Test(expected = FileReaderException.class)
-  public void testFileReaderBadSelector() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
-    FileReader t = new FileReader(source, "table:eq(1)");
-    t.refresh();
+  @Test public void testFileReaderBadSelector() {
+    final Source source = resource("tableOK.html");
+    assertThrows(FileReaderException.class, () -> {
+      FileReader t = new FileReader(source, "table:eq(1)");
+      t.refresh();
+    });
   }
 
   /** Test {@link FileReader} with static file - headings. */
   @Test public void testFileReaderHeadings() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
@@ -151,8 +147,7 @@ public class FileReaderTest {
 
   /** Test {@link FileReader} with static file - data. */
   @Test public void testFileReaderData() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -163,8 +158,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with bad static file - headings. */
   @Test public void testFileReaderHeadingsBadFile() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
     assertTrue(headings.get(1).text().equals("H1"));
@@ -172,8 +166,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with bad static file - data. */
   @Test public void testFileReaderDataBadFile() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTheadTbody.html"));
+    final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -184,8 +177,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} with no headings static file - data. */
   @Test public void testFileReaderDataNoTh() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableNoTH.html"));
+    final Source source = resource("tableNoTH.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
     Elements row = i.next();
@@ -194,8 +186,7 @@ public class FileReaderTest {
 
   /** Tests {@link FileReader} iterator with static file, */
   @Test public void testFileReaderIterator() throws FileReaderException {
-    final Source source =
-        Sources.file(null, file("target/test-classes/tableOK.html"));
+    final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements row = null;
     for (Elements aT : t) {
@@ -240,6 +231,87 @@ public class FileReaderTest {
       assertThat(rs.getString(1), is("20"));
       assertThat(rs.next(), is(true));
       assertThat(rs.getString(1), is("30"));
+      assertThat(rs.next(), is(false));
+      rs.close();
+    }
+  }
+
+  /**
+   * Tests reading a JSON file via the file adapter.
+   */
+  @Test public void testJsonFile() throws Exception {
+    Properties info = new Properties();
+    final String path = resourcePath("sales-json");
+    final String model = "inline:"
+        + "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"XXX\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": " + TestUtil.escapeString(path) + "\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    info.put("model", model);
+    info.put("lex", "JAVA");
+
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement stmt = connection.createStatement()) {
+      final String sql = "select * from FILES.DEPTS";
+      final ResultSet rs = stmt.executeQuery(sql);
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("10"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("20"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("30"));
+      assertThat(rs.next(), is(false));
+      rs.close();
+    }
+  }
+
+  /**
+   * Tests reading two JSON file with join via the file adapter.
+   */
+  @Test public void testJsonFileWithJoin() throws Exception {
+    Properties info = new Properties();
+    final String path = resourcePath("sales-json");
+    final String model = "inline:"
+        + "{\n"
+        + "  \"version\": \"1.0\",\n"
+        + "  \"defaultSchema\": \"XXX\",\n"
+        + "  \"schemas\": [\n"
+        + "    {\n"
+        + "      \"name\": \"FILES\",\n"
+        + "      \"type\": \"custom\",\n"
+        + "      \"factory\": \"org.apache.calcite.adapter.file.FileSchemaFactory\",\n"
+        + "      \"operand\": {\n"
+        + "        \"directory\": " + TestUtil.escapeString(path) + "\n"
+        + "      }\n"
+        + "    }\n"
+        + "  ]\n"
+        + "}";
+    info.put("model", model);
+    info.put("lex", "JAVA");
+
+    try (Connection connection =
+             DriverManager.getConnection("jdbc:calcite:", info);
+         Statement stmt = connection.createStatement()) {
+      final String sql = "select a.EMPNO,a.NAME,a.CITY,b.DEPTNO "
+          + "from FILES.EMPS a, FILES.DEPTS b where a.DEPTNO = b.DEPTNO";
+      final ResultSet rs = stmt.executeQuery(sql);
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("100"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("110"));
+      assertThat(rs.next(), is(true));
+      assertThat(rs.getString(1), is("120"));
       assertThat(rs.next(), is(false));
       rs.close();
     }

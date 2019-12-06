@@ -117,7 +117,7 @@ public class PigRules {
       final LogicalAggregate agg = (LogicalAggregate) rel;
       final RelTraitSet traitSet = agg.getTraitSet().replace(PigRel.CONVENTION);
       return new PigAggregate(agg.getCluster(), traitSet, agg.getInput(),
-          agg.indicator, agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
+          agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
     }
   }
 

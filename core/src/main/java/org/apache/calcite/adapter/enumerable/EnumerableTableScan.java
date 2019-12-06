@@ -83,16 +83,6 @@ public class EnumerableTableScan
     return new EnumerableTableScan(cluster, traitSet, relOptTable, elementType);
   }
 
-  @Override public boolean equals(Object obj) {
-    return obj == this
-        || obj instanceof EnumerableTableScan
-        && table.equals(((EnumerableTableScan) obj).table);
-  }
-
-  @Override public int hashCode() {
-    return table.hashCode();
-  }
-
   /** Returns whether EnumerableTableScan can generate code to handle a
    * particular variant of the Table SPI. */
   public static boolean canHandle(Table table) {

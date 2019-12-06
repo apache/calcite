@@ -27,9 +27,6 @@
  * which are not row-level (e.g. select and join) should be defined in package
  * {@link org.apache.calcite.sql} instead.</p>
  */
-@PackageMarker
 package org.apache.calcite.sql.fun;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

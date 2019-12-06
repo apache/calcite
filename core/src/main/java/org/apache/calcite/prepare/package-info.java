@@ -18,9 +18,6 @@
 /**
  * Preparation of queries (parsing, planning and implementation).
  */
-@PackageMarker
 package org.apache.calcite.prepare;
-
-import org.apache.calcite.avatica.util.PackageMarker;
 
 // End package-info.java

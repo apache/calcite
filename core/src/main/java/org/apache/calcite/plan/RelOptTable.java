@@ -100,6 +100,12 @@ public interface RelOptTable extends Wrapper {
   boolean isKey(ImmutableBitSet columns);
 
   /**
+   * Returns a list of unique keys, empty list if no key exist,
+   * the result should be consistent with {@code isKey}
+   */
+  List<ImmutableBitSet> getKeys();
+
+  /**
    * Returns the referential constraints existing for this table. These constraints
    * are represented over other tables using {@link RelReferentialConstraint} nodes.
    */

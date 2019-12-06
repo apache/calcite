@@ -46,6 +46,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,7 +81,6 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
 
     this.unionGroups = union;
     this.outputRowLength = unionGroups.cardinality()
-        + (rel.indicator ? unionGroups.cardinality() : 0)
         + rel.getAggCallList().size();
 
     ImmutableList.Builder<AccumulatorFactory> builder = ImmutableList.builder();
@@ -123,6 +123,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case FLOAT:
         clazz = DoubleSum.class;
         break;
+      case DECIMAL:
+        clazz = BigDecimalSum.class;
+        break;
       case INTEGER:
         clazz = IntSum.class;
         break;
@@ -151,6 +154,12 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case REAL:
         clazz = MinDouble.class;
         break;
+      case DECIMAL:
+        clazz = MinBigDecimal.class;
+        break;
+      case BOOLEAN:
+        clazz = MinBoolean.class;
+        break;
       default:
         clazz = MinLong.class;
         break;
@@ -169,6 +178,9 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
       case DOUBLE:
       case REAL:
         clazz = MaxDouble.class;
+        break;
+      case DECIMAL:
+        clazz = MaxBigDecimal.class;
         break;
       default:
         clazz = MaxLong.class;
@@ -374,9 +386,6 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
         for (Integer groupPos : unionGroups) {
           if (grouping.get(groupPos)) {
             rb.set(index, key.getObject(index));
-            if (rel.indicator) {
-              rb.set(unionGroups.cardinality() + index, true);
-            }
           }
           // need to set false when not part of grouping set.
 
@@ -474,6 +483,29 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
+  /** Implementation of {@code SUM} over BigDecimal values as a user-defined
+   * aggregate. */
+  public static class BigDecimalSum {
+    public BigDecimalSum(){
+    }
+
+    public BigDecimal init() {
+      return new BigDecimal("0");
+    }
+
+    public BigDecimal add(BigDecimal accumulator, BigDecimal v) {
+      return accumulator.add(v);
+    }
+
+    public BigDecimal merge(BigDecimal accumulator0, BigDecimal accumulator01) {
+      return add(accumulator0, accumulator01);
+    }
+
+    public BigDecimal result(BigDecimal accumulator) {
+      return accumulator;
+    }
+  }
+
   /** Common implementation of comparison aggregate methods over numeric
    * values as a user-defined aggregate.
    * @param <T> The numeric type
@@ -536,11 +568,47 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
    */
   public static class MinDouble extends NumericComparison<Double> {
     public MinDouble() {
-      super(Double.MAX_VALUE, Math::max);
+      super(Double.MAX_VALUE, Math::min);
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code BigDecimal} values as a user-defined aggregate.
+   */
+  public static class MinBigDecimal extends NumericComparison<BigDecimal> {
+    public MinBigDecimal() {
+      super(new BigDecimal(Double.MAX_VALUE), MinBigDecimal::min);
+    }
+
+    public static BigDecimal min(BigDecimal a, BigDecimal b) {
+      return a.min(b);
+    }
+  }
+
+  /** Implementation of {@code MIN} function to calculate the minimum of
+   * {@code boolean} values as a user-defined aggregate.
+   */
+  public static class MinBoolean {
+    public MinBoolean() { }
+
+    public Boolean init() {
+      return Boolean.TRUE;
+    }
+
+    public Boolean add(Boolean accumulator, Boolean value) {
+      return accumulator.compareTo(value) < 0 ? accumulator : value;
+    }
+
+    public Boolean merge(Boolean accumulator0, Boolean accumulator1) {
+      return add(accumulator0, accumulator1);
+    }
+
+    public Boolean result(Boolean accumulator) {
+      return accumulator;
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code integer} values as a user-defined aggregate.
    */
   public static class MaxInt extends NumericComparison<Integer> {
@@ -549,7 +617,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code long} values as a user-defined aggregate.
    */
   public static class MaxLong extends NumericComparison<Long> {
@@ -558,7 +626,7 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code float} values as a user-defined aggregate.
    */
   public static class MaxFloat extends NumericComparison<Float> {
@@ -567,12 +635,25 @@ public class AggregateNode extends AbstractSingleNode<Aggregate> {
     }
   }
 
-  /** Implementation of {@code MAX} function to calculate the minimum of
+  /** Implementation of {@code MAX} function to calculate the maximum of
    * {@code double} and {@code real} values as a user-defined aggregate.
    */
   public static class MaxDouble extends NumericComparison<Double> {
     public MaxDouble() {
       super(Double.MIN_VALUE, Math::max);
+    }
+  }
+
+  /** Implementation of {@code MAX} function to calculate the maximum of
+   * {@code BigDecimal} values as a user-defined aggregate.
+   */
+  public static class MaxBigDecimal extends NumericComparison<BigDecimal> {
+    public MaxBigDecimal() {
+      super(new BigDecimal(Double.MIN_VALUE), MaxBigDecimal::max);
+    }
+
+    public static BigDecimal max(BigDecimal a, BigDecimal b) {
+      return a.max(b);
     }
   }
 

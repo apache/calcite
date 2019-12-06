@@ -137,15 +137,6 @@ public abstract class Bug {
    * Array items in MongoDB adapter</a> is fixed. */
   public static final boolean CALCITE_194_FIXED = false;
 
-  /** Whether the remaining issues raised in
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-461">[CALCITE-461]
-   * Convert more planner rules to handle grouping sets</a> are fixed.
-   *
-   * <p>Now that [CALCITE-461] is fixed, the tracking bug is
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-574">[CALCITE-574]
-   * Remove org.apache.calcite.util.Bug.CALCITE_461_FIXED</a>. */
-  public static final boolean CALCITE_461_FIXED = false;
-
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-673">[CALCITE-673]
    * Timeout executing joins against MySQL</a> is fixed. */
@@ -160,6 +151,14 @@ public abstract class Bug {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1045">[CALCITE-1045]
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
   public static final boolean CALCITE_1045_FIXED = false;
+
+  /**
+   * Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
+   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressions Rule</a>
+   * is fixed.
+   */
+  public static final boolean CALCITE_2223_FIXED = false;
 
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2400">[CALCITE-2400]
@@ -179,9 +178,14 @@ public abstract class Bug {
   public static final boolean CALCITE_2539_FIXED = false;
 
   /** Whether
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2776">[CALCITE-2776]
-   * Wrong value when accessing struct types with one attribute</a> is fixed. */
-  public static final boolean CALCITE_2776_FIXED = false;
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2869">[CALCITE-2869]
+   * JSON data type support</a> is fixed. */
+  public static final boolean CALCITE_2869_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3243">[CALCITE-3243]
+   * Incomplete validation of operands in JSON functions</a> is fixed. */
+  public static final boolean CALCITE_3243_FIXED = false;
 
   /**
    * Use this to flag temporary code.

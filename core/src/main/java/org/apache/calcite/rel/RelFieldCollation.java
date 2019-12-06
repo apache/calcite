@@ -19,6 +19,7 @@ package org.apache.calcite.rel;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose
@@ -125,7 +126,7 @@ public class RelFieldCollation {
 
     /** Returns the null direction if not specified. Consistent with Oracle,
      * NULLS are sorted as if they were positive infinity. */
-    public NullDirection defaultNullDirection() {
+    public @Nonnull NullDirection defaultNullDirection() {
       switch (this) {
       case ASCENDING:
       case STRICTLY_ASCENDING:
@@ -216,11 +217,27 @@ public class RelFieldCollation {
   /**
    * Creates a copy of this RelFieldCollation against a different field.
    */
+  public RelFieldCollation withFieldIndex(int fieldIndex) {
+    return this.fieldIndex == fieldIndex ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+  }
+
+  @Deprecated // to be removed before 2.0
   public RelFieldCollation copy(int target) {
-    if (target == fieldIndex) {
-      return this;
-    }
-    return new RelFieldCollation(target, direction, nullDirection);
+    return withFieldIndex(target);
+  }
+
+  /** Creates a copy of this RelFieldCollation with a different direction. */
+  public RelFieldCollation withDirection(Direction direction) {
+    return this.direction == direction ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
+  }
+
+  /** Creates a copy of this RelFieldCollation with a different null
+   * direction. */
+  public RelFieldCollation withNullDirection(NullDirection nullDirection) {
+    return this.nullDirection == nullDirection ? this
+        : new RelFieldCollation(fieldIndex, direction, nullDirection);
   }
 
   /**
@@ -228,7 +245,7 @@ public class RelFieldCollation {
    * {@code offset} to the right.
    */
   public RelFieldCollation shift(int offset) {
-    return copy(fieldIndex + offset);
+    return withFieldIndex(fieldIndex + offset);
   }
 
   @Override public boolean equals(Object o) {

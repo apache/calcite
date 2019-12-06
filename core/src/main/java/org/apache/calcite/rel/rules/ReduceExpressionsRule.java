@@ -21,17 +21,20 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
-import org.apache.calcite.rel.core.EquiJoin;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -55,6 +58,7 @@ import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
@@ -76,6 +80,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Collection of planner rules that apply various simplifying transformations on
@@ -129,6 +134,14 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
    */
   public static final ReduceExpressionsRule CALC_INSTANCE =
       new CalcReduceExpressionsRule(LogicalCalc.class, true,
+          RelFactories.LOGICAL_BUILDER);
+
+  /**
+   * Singleton rule that reduces constants inside a
+   * {@link org.apache.calcite.rel.logical.LogicalWindow}.
+   */
+  public static final ReduceExpressionsRule WINDOW_INSTANCE =
+      new WindowReduceExpressionsRule(LogicalWindow.class, true,
           RelFactories.LOGICAL_BUILDER);
 
   protected final boolean matchNullability;
@@ -332,15 +345,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           matchNullability)) {
         return;
       }
-      if (join instanceof EquiJoin) {
-        final JoinInfo joinInfo =
-            JoinInfo.of(join.getLeft(), join.getRight(), expList.get(0));
-        if (!joinInfo.isEqui()) {
-          // This kind of join must be an equi-join, and the condition is
-          // no longer an equi-join. SemiJoin is an example of this.
-          return;
-        }
-      }
       call.transformTo(
           join.copy(
               join.getTraitSet(),
@@ -450,6 +454,77 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
      */
     protected RelNode createEmptyRelOrEquivalent(RelOptRuleCall call, Calc input) {
       return call.builder().push(input).empty().build();
+    }
+  }
+
+  /**
+   * Rule that reduces constants inside a {@link org.apache.calcite.rel.core.Window}.
+   */
+  public static class WindowReduceExpressionsRule
+      extends ReduceExpressionsRule {
+
+    public WindowReduceExpressionsRule(Class<? extends Window> windowClass,
+        boolean matchNullability, RelBuilderFactory relBuilderFactory) {
+      super(windowClass, matchNullability, relBuilderFactory,
+          "ReduceExpressionsRule(Window)");
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      LogicalWindow window = call.rel(0);
+      RexBuilder rexBuilder = window.getCluster().getRexBuilder();
+      final RelMetadataQuery mq = call.getMetadataQuery();
+      final RelOptPredicateList predicates = mq
+          .getPulledUpPredicates(window.getInput());
+
+      boolean reduced = false;
+      final List<Window.Group> groups = new ArrayList<>();
+      for (Window.Group group : window.groups) {
+        List<Window.RexWinAggCall> aggCalls = new ArrayList<>();
+        for (Window.RexWinAggCall aggCall : group.aggCalls) {
+          final List<RexNode> expList = new ArrayList<>(aggCall.getOperands());
+          if (reduceExpressions(window, expList, predicates)) {
+            aggCall = new Window.RexWinAggCall(
+                (SqlAggFunction) aggCall.getOperator(), aggCall.type, expList,
+                aggCall.ordinal, aggCall.distinct, aggCall.ignoreNulls);
+            reduced = true;
+          }
+          aggCalls.add(aggCall);
+        }
+
+        final ImmutableBitSet.Builder keyBuilder = ImmutableBitSet.builder();
+        group.keys.asList().stream()
+            .filter(key ->
+                !predicates.constantMap.containsKey(
+                    rexBuilder.makeInputRef(window.getInput(), key)))
+            .collect(Collectors.toList())
+            .forEach(i -> keyBuilder.set(i));
+        final ImmutableBitSet keys = keyBuilder.build();
+        reduced |= keys.cardinality() != group.keys.cardinality();
+
+        final List<RelFieldCollation> collationsList = group.orderKeys
+            .getFieldCollations().stream()
+            .filter(fc ->
+                !predicates.constantMap.containsKey(
+                    rexBuilder.makeInputRef(window.getInput(),
+                        fc.getFieldIndex())))
+            .collect(Collectors.toList());
+
+        boolean collationReduced =
+            group.orderKeys.getFieldCollations().size() != collationsList.size();
+        reduced |= collationReduced;
+        RelCollation relCollation = collationReduced
+            ? RelCollations.of(collationsList)
+            : group.orderKeys;
+        groups.add(
+            new Window.Group(keys, group.isRows, group.lowerBound,
+                group.upperBound, relCollation, aggCalls));
+      }
+      if (reduced) {
+        call.transformTo(LogicalWindow
+            .create(window.getTraitSet(), window.getInput(),
+                window.getConstants(), window.getRowType(), groups));
+        call.getPlanner().setImportance(window, 0);
+      }
     }
   }
 

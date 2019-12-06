@@ -40,7 +40,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
@@ -98,26 +98,34 @@ public class RelToSqlConverterStructsTest {
     }
   };
 
-  // Table schema is as following:
-  // { a: INT, n1: { n11: { b INT }, n12: {c: Int } }, n2: { d: Int }, e: Int }
   private static final Table TABLE = new Table() {
-    @Override public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-      final RelDataType aType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType bType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType cType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType dType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType eType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RelDataType n11Type = typeFactory
-          .createStructType(ImmutableList.of(bType), ImmutableList.of("b"));
-      final RelDataType n12Type = typeFactory
-          .createStructType(ImmutableList.of(cType), ImmutableList.of("c"));
-      final RelDataType n1Type = typeFactory
-          .createStructType(ImmutableList.of(n11Type, n12Type), ImmutableList.of("n11", "n12"));
-      final RelDataType n2Type = typeFactory
-          .createStructType(ImmutableList.of(dType), ImmutableList.of("d"));
-      return typeFactory.createStructType(
-              ImmutableList.of(aType, n1Type, n2Type, eType),
-              ImmutableList.of("a", "n1", "n2", "e"));
+    /**
+     * Table schema is as following:
+     *  myTable(
+     *          a: BIGINT,
+     *          n1: STRUCT<
+     *                n11: STRUCT<b: BIGINT>,
+     *                n12: STRUCT<c: BIGINT>
+     *              >,
+     *          n2: STRUCT<d: BIGINT>,
+     *          e: BIGINT
+     *  )
+     */
+    @Override public RelDataType getRowType(RelDataTypeFactory tf) {
+      RelDataType bigint = tf.createSqlType(SqlTypeName.BIGINT);
+      RelDataType n1Type = tf.createStructType(
+          ImmutableList.of(
+              tf.createStructType(ImmutableList.of(bigint),
+                  ImmutableList.of("b")),
+              tf.createStructType(ImmutableList.of(bigint),
+                  ImmutableList.of("c"))),
+          ImmutableList.of("n11", "n12"));
+      RelDataType n2Type = tf.createStructType(
+          ImmutableList.of(bigint),
+          ImmutableList.of("d"));
+      return tf.createStructType(
+          ImmutableList.of(bigint, n1Type, n2Type, bigint),
+          ImmutableList.of("a", "n1", "n2", "e"));
     }
 
     @Override public Statistic getStatistic() {
@@ -149,6 +157,10 @@ public class RelToSqlConverterStructsTest {
       return false;
     }
 
+    @Override public List<ImmutableBitSet> getKeys() {
+      return ImmutableList.of();
+    }
+
     @Override public List<RelReferentialConstraint> getReferentialConstraints() {
       return ImmutableList.of();
     }
@@ -174,9 +186,8 @@ public class RelToSqlConverterStructsTest {
   @Test public void testNestedSchemaSelectStar() {
     String query = "SELECT * FROM \"myTable\"";
     String expected = "SELECT \"a\", "
-        + "\"n1\".\"n11\".\"b\" AS \"n1\", "
-        + "\"n1\".\"n12\".\"c\" AS \"n12\", "
-        + "\"n2\".\"d\" AS \"n2\", "
+        + "ROW(ROW(\"n1\".\"n11\".\"b\"), ROW(\"n1\".\"n12\".\"c\")) AS \"n1\", "
+        + "ROW(\"n2\".\"d\") AS \"n2\", "
         + "\"e\"\n"
         + "FROM \"myDb\".\"myTable\"";
     sql(query).ok(expected);

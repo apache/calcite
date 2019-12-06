@@ -18,6 +18,7 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.EnumerableUnion;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
@@ -36,18 +37,21 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.calcite.plan.volcano.PlannerTests.AssertOperandsDifferentRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.GoodSingleRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_2;
+import static org.apache.calcite.plan.volcano.PlannerTests.PhysBiRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysSingleRel;
@@ -56,10 +60,10 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
@@ -122,6 +126,84 @@ public class VolcanoPlannerTest {
     assertTrue(result instanceof PhysSingleRel);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3118">[CALCITE-3118]
+   * VolcanoRuleCall should look at RelSubset rather than RelSet
+   * when checking child ordinal of a parent operand</a>. */
+  @Test public void testMatchedOperandsDifferent() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The rule that triggers the assert rule
+    planner.addRule(new PhysLeafRule());
+
+    // The rule asserting that the matched operands are different
+    planner.addRule(new AssertOperandsDifferentRule());
+
+    // Construct two children in the same set and a parent RelNode
+    NoneLeafRel leftRel = new NoneLeafRel(cluster, "a");
+    RelNode leftPhy = planner
+        .changeTraits(leftRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    PhysLeafRel rightPhy =
+        new PhysLeafRel(cluster, PHYS_CALLING_CONVENTION_2, "b");
+
+    PhysBiRel parent =
+        new PhysBiRel(cluster, cluster.traitSetOf(PHYS_CALLING_CONVENTION),
+            leftPhy, rightPhy);
+    planner.setRoot(parent);
+
+    // Make sure both RelNodes are in the same set, but different subset
+    planner.ensureRegistered(leftPhy, rightPhy);
+
+    planner.chooseDelegate().findBestExp();
+  }
+
+  /**
+   * A pattern that matches a three input union with third child matching for
+   * a PhysLeafRel node.
+   */
+  static class ThreeInputsUnionRule extends RelOptRule {
+    ThreeInputsUnionRule() {
+      super(
+          operand(EnumerableUnion.class,
+              some(
+                  operand(PhysBiRel.class, any()),
+                  operand(PhysBiRel.class, any()),
+                  operand(PhysLeafRel.class, any()))));
+    }
+
+    public void onMatch(RelOptRuleCall call) {
+    }
+  }
+
+  @Test public void testMultiInputsParentOpMatching() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    RelOptCluster cluster = newCluster(planner);
+
+    // The trigger rule that generates PhysLeafRel from NoneLeafRel
+    planner.addRule(new PhysLeafRule());
+
+    // The rule with third child op matching PhysLeafRel, which should not be
+    // matched at all
+    planner.addRule(new ThreeInputsUnionRule());
+
+    // Construct a union with only two children
+    NoneLeafRel leftRel = new NoneLeafRel(cluster, "b");
+    RelNode leftPhy = planner
+        .changeTraits(leftRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    PhysLeafRel rightPhy =
+        new PhysLeafRel(cluster, PHYS_CALLING_CONVENTION, "b");
+
+    planner.setRoot(
+        new EnumerableUnion(cluster,
+            cluster.traitSetOf(PHYS_CALLING_CONVENTION),
+            Arrays.asList(leftPhy, rightPhy), false));
+
+    planner.chooseDelegate().findBestExp();
+  }
+
   /**
    * Tests a rule that is fired once per subset (whereas most rules are fired
    * once per rel in a set or rel in a subset)
@@ -155,7 +237,6 @@ public class VolcanoPlannerTest {
         equalTo(
             sort(
                 "NoneSingleRel:Subset#0.NONE",
-                "PhysSingleRel:Subset#0.NONE",
                 "PhysSingleRel:Subset#0.PHYS")));
   }
 
@@ -173,7 +254,7 @@ public class VolcanoPlannerTest {
    * Tests transformation of a single+leaf from NONE to PHYS. In the past,
    * this one didn't work due to the definition of ReformedSingleRule.
    */
-  @Ignore // broken, because ReformedSingleRule matches child traits strictly
+  @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test public void testTransformSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -265,7 +346,7 @@ public class VolcanoPlannerTest {
    * Previously, this didn't work because ReformedRemoveSingleRule uses a
    * pattern which spans calling conventions.
    */
-  @Ignore // broken, because ReformedSingleRule matches child traits strictly
+  @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test public void testRemoveSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.ambitious = true;
@@ -332,7 +413,7 @@ public class VolcanoPlannerTest {
         resultLeaf.label);
   }
 
-  @Ignore("CALCITE-2592 EnumerableMergeJoin is never taken")
+  @Disabled("CALCITE-2592 EnumerableMergeJoin is never taken")
   @Test public void testMergeJoin() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -373,7 +454,7 @@ public class VolcanoPlannerTest {
   /**
    * Tests whether planner correctly notifies listeners of events.
    */
-  @Ignore
+  @Disabled
   @Test public void testListener() {
     TestListener listener = new TestListener();
 

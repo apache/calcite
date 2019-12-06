@@ -22,11 +22,15 @@ import org.apache.calcite.rel.RelCollations;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.lang.Integer.toHexString;
+import static java.lang.System.identityHashCode;
 
 /**
  * Test to verify {@link RelCompositeTrait}.
@@ -38,10 +42,10 @@ public class RelTraitTest {
     RelTrait trait1 = RelCompositeTrait.of(COLLATION, collation.get());
     RelTrait trait2 = RelCompositeTrait.of(COLLATION, collation.get());
 
-    Assert.assertEquals(
-        "RelCompositeTrait.of should return the same instance for " + message,
-        trait1 + " @" + Integer.toHexString(System.identityHashCode(trait1)),
-        trait2 + " @" + Integer.toHexString(System.identityHashCode(trait2)));
+    assertEquals(
+        trait1 + " @" + toHexString(identityHashCode(trait1)),
+        trait2 + " @" + toHexString(identityHashCode(trait2)),
+        () -> "RelCompositeTrait.of should return the same instance for " + message);
   }
 
   @Test public void compositeEmpty() {

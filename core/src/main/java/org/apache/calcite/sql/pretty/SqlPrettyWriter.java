@@ -896,10 +896,11 @@ public class SqlPrettyWriter implements SqlWriter {
     charCount += String.valueOf(x).length();
   }
 
-  public void identifier(String name) {
+  public void identifier(String name, boolean quoted) {
     String qName = name;
-    if (isQuoteAllIdentifiers()
-        || dialect.identifierNeedsToBeQuoted(name)) {
+    // If configured globally or the original identifier is quoted,
+    // then quotes the identifier.
+    if (isQuoteAllIdentifiers() || quoted) {
       qName = dialect.quoteIdentifier(name);
     }
     maybeWhitespace(qName);
@@ -922,6 +923,13 @@ public class SqlPrettyWriter implements SqlWriter {
       return;
     }
     dialect.unparseOffsetFetch(this, offset, fetch);
+  }
+
+  public void topN(SqlNode fetch, SqlNode offset) {
+    if (fetch == null && offset == null) {
+      return;
+    }
+    dialect.unparseTopN(this, offset, fetch);
   }
 
   public Frame startFunCall(String funName) {

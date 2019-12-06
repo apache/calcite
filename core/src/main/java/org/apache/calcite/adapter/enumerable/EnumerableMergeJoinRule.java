@@ -20,7 +20,6 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -37,7 +36,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalJoin} relational expression
  * {@link EnumerableConvention enumerable calling convention}.
  *
- * @see org.apache.calcite.adapter.enumerable.EnumerableJoinRule
+ * @see EnumerableJoinRule
  */
 class EnumerableMergeJoinRule extends ConverterRule {
   EnumerableMergeJoinRule() {
@@ -49,8 +48,7 @@ class EnumerableMergeJoinRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
-    final JoinInfo info =
-        JoinInfo.of(join.getLeft(), join.getRight(), join.getCondition());
+    final JoinInfo info = join.analyzeCondition();
     if (join.getJoinType() != JoinRelType.INNER) {
       // EnumerableMergeJoin only supports inner join.
       // (It supports non-equi join, using a post-filter; see below.)
@@ -83,31 +81,19 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
-    RelNode newRel;
-    try {
-      RelTraitSet traits = join.getTraitSet()
-          .replace(EnumerableConvention.INSTANCE);
-      if (!collations.isEmpty()) {
-        traits = traits.replace(collations);
-      }
-      newRel = new EnumerableMergeJoin(cluster,
-          traits,
-          left,
-          right,
-          info.getEquiCondition(left, right, cluster.getRexBuilder()),
-          info.leftKeys,
-          info.rightKeys,
-          join.getVariablesSet(),
-          join.getJoinType());
-    } catch (InvalidRelException e) {
-      EnumerableRules.LOGGER.debug(e.toString());
-      return null;
+
+    RelTraitSet traitSet = join.getTraitSet()
+        .replace(EnumerableConvention.INSTANCE);
+    if (!collations.isEmpty()) {
+      traitSet = traitSet.replace(collations);
     }
-    if (!info.isEqui()) {
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, info.getRemaining(cluster.getRexBuilder()));
-    }
-    return newRel;
+    return new EnumerableMergeJoin(cluster,
+        traitSet,
+        left,
+        right,
+        join.getCondition(),
+        join.getVariablesSet(),
+        join.getJoinType());
   }
 }
 

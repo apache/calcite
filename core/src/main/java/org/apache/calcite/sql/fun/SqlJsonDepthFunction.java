@@ -23,12 +23,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
@@ -38,7 +38,8 @@ public class SqlJsonDepthFunction extends SqlFunction {
   public SqlJsonDepthFunction() {
     super("JSON_DEPTH",
         SqlKind.OTHER_FUNCTION,
-        ReturnTypes.INTEGER_NULLABLE,
+        ReturnTypes.cascade(ReturnTypes.INTEGER,
+            SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM);
@@ -56,11 +57,6 @@ public class SqlJsonDepthFunction extends SqlFunction {
   @Override public SqlCall createCall(SqlLiteral functionQualifier,
       SqlParserPos pos, SqlNode... operands) {
     return super.createCall(functionQualifier, pos, operands);
-  }
-
-  @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
-    super.unparse(writer, call, 0, 0);
   }
 }
 

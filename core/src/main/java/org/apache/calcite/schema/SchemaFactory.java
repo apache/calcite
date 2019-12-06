@@ -37,7 +37,7 @@ import java.util.Map;
  *       "factory": "org.apache.calcite.adapter.csv.CsvSchemaFactory",
  *       "mutable": true,
  *       "operand": {
- *         directory: "target/test-classes/sales"
+ *         directory: "sales"
  *       },
  *       "tables": [
  *         {

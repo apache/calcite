@@ -18,7 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
@@ -40,7 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Planner rule that recognizes a {@link org.apache.calcite.rel.core.Aggregate}
@@ -79,15 +78,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
   public static RelNode apply(RelOptRuleCall call, Aggregate aggregate,
       Project project) {
     // Find all fields which we need to be straightforward field projections.
-    final Set<Integer> interestingFields = new TreeSet<>();
-    interestingFields.addAll(aggregate.getGroupSet().asList());
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
-      interestingFields.addAll(aggregateCall.getArgList());
-      if (aggregateCall.filterArg >= 0) {
-        interestingFields.add(aggregateCall.filterArg);
-      }
-      interestingFields.addAll(RelCollations.ordinals(aggregateCall.collation));
-    }
+    final Set<Integer> interestingFields = RelOptUtil.getAllFields(aggregate);
 
     // Build the map from old to new; abort if any entry is not a
     // straightforward field projection.
@@ -120,8 +111,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
 
     final Aggregate newAggregate =
         aggregate.copy(aggregate.getTraitSet(), project.getInput(),
-            aggregate.indicator, newGroupSet, newGroupingSets,
-            aggCalls.build());
+            newGroupSet, newGroupingSets, aggCalls.build());
 
     // Add a project if the group set is not in the same order or
     // contains duplicates.
@@ -134,13 +124,7 @@ public class AggregateProjectMergeRule extends RelOptRule {
       for (int newKey : newKeys) {
         posList.add(newGroupSet.indexOf(newKey));
       }
-      if (aggregate.indicator) {
-        for (int newKey : newKeys) {
-          posList.add(aggregate.getGroupCount() + newGroupSet.indexOf(newKey));
-        }
-      }
-      for (int i = newAggregate.getGroupCount()
-                   + newAggregate.getIndicatorCount();
+      for (int i = newAggregate.getGroupCount();
            i < newAggregate.getRowType().getFieldCount(); i++) {
         posList.add(i);
       }

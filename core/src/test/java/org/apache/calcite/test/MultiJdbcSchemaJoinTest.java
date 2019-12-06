@@ -17,14 +17,20 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
+import org.apache.calcite.adapter.jdbc.JdbcCatalogSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.jdbc.CalciteJdbc41Factory;
+import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.schema.SchemaPlus;
+
+import org.apache.commons.dbcp2.BasicDataSource;
 
 import com.google.common.collect.Sets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,13 +39,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /** Test case for joining tables from two different JDBC databases. */
 public class MultiJdbcSchemaJoinTest {
@@ -88,6 +96,30 @@ public class MultiJdbcSchemaJoinTest {
     test();
   }
 
+  /** Tests {@link org.apache.calcite.adapter.jdbc.JdbcCatalogSchema}. */
+  @Test public void test3() throws SQLException {
+    final BasicDataSource dataSource = new BasicDataSource();
+    dataSource.setUrl(TempDb.INSTANCE.getUrl());
+    dataSource.setUsername("");
+    dataSource.setPassword("");
+    final JdbcCatalogSchema schema =
+        JdbcCatalogSchema.create(null, "", dataSource, "PUBLIC");
+    assertThat(schema.getSubSchemaNames(),
+        is(Sets.newHashSet("INFORMATION_SCHEMA", "PUBLIC", "SYSTEM_LOBS")));
+    final CalciteSchema rootSchema0 =
+        CalciteSchema.createRootSchema(false, false, "", schema);
+    final Driver driver = new Driver();
+    final CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
+    final String sql = "select count(*) as c from information_schema.schemata";
+    try (Connection connection =
+             factory.newConnection(driver, factory,
+                 "jdbc:calcite:", new Properties(), rootSchema0, null);
+         Statement stmt3 = connection.createStatement();
+         ResultSet rs = stmt3.executeQuery(sql)) {
+      assertThat(CalciteAssert.toString(rs), equalTo("C=3\n"));
+    }
+  }
+
   private Connection setup() throws SQLException {
     // Create a jdbc database & table
     final String db = TempDb.INSTANCE.getUrl();
@@ -113,7 +145,7 @@ public class MultiJdbcSchemaJoinTest {
     return connection;
   }
 
-  @Test public void testJdbcWithEnumerableJoin() throws SQLException {
+  @Test public void testJdbcWithEnumerableHashJoin() throws SQLException {
     // This query works correctly
     String query = "select t.id, t.field1 "
         + "from db.table1 t join \"hr\".\"emps\" e on e.\"empid\" = t.id";
@@ -122,7 +154,7 @@ public class MultiJdbcSchemaJoinTest {
   }
 
   @Test public void testEnumerableWithJdbcJoin() throws SQLException {
-    //  * compared to testJdbcWithEnumerableJoin, the join order is reversed
+    //  * compared to testJdbcWithEnumerableHashJoin, the join order is reversed
     //  * the query fails with a CannotPlanException
     String query = "select t.id, t.field1 "
         + "from \"hr\".\"emps\" e join db.table1 t on e.\"empid\" = t.id";

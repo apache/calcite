@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,13 +40,14 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * System test of the Calcite file adapter, which can also read and parse
  * HTML tables over HTTP.
  */
+@ExtendWith(RequiresNetworkExtension.class)
 public class SqlTest {
   // helper functions
 
@@ -88,7 +89,7 @@ public class SqlTest {
         final List<String> lines = new ArrayList<>();
         SqlTest.collect(lines, resultSet);
         Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
+        assertEquals(expectedLines, lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -121,7 +122,7 @@ public class SqlTest {
     try {
       Properties info = new Properties();
       info.put("model",
-          FileReaderTest.file("target/test-classes/" + model + ".json"));
+          Sources.of(SqlTest.class.getResource("/" + model + ".json")).path());
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet = statement.executeQuery(sql);
@@ -175,8 +176,7 @@ public class SqlTest {
 
   /** Reads from a local file without table headers &lt;TH&gt; and checks the
    * result. */
-  @Test public void testNoThSelect() throws SQLException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Test @RequiresNetwork public void testNoThSelect() throws SQLException {
     final String sql = "select \"col1\" from T1_NO_TH where \"col0\" like 'R0%'";
     sql("testModel", sql).returns("col1=R0C1").ok();
   }
@@ -189,9 +189,8 @@ public class SqlTest {
   }
 
   /** Reads from a URL and checks the result. */
-  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testUrlSelect() throws SQLException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
+  @Test @RequiresNetwork public void testUrlSelect() throws SQLException {
     final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"
         + "where \"State\" = 'California'";
     sql("wiki", sql).returns("State=California; Statehood=1850-09-09").ok();
@@ -274,7 +273,7 @@ public class SqlTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
    * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
    * to long</a>. */
-  @Test public void testGroupByTimestampAdd() throws SQLException {
+  @Test public void testCsvGroupByTimestampAdd() throws SQLException {
     final String sql = "select count(*) as c,\n"
         + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
         + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
@@ -342,6 +341,79 @@ public class SqlTest {
     Fluent returnsUnordered(String... expectedLines) {
       return checking(expectUnordered(expectedLines));
     }
+  }
+
+  /** Reads the DEPTS table from the JSON schema. */
+  @Test public void testJsonSalesDepts() throws SQLException {
+    final String sql = "select * from sales.depts";
+    sql("sales-json", sql)
+        .returns("DEPTNO=10; NAME=Sales",
+            "DEPTNO=20; NAME=Marketing",
+            "DEPTNO=30; NAME=Accounts")
+        .ok();
+  }
+
+  /** Reads the EMPS table from the JSON schema. */
+  @Test public void testJsonSalesEmps() throws SQLException {
+    final String sql = "select * from sales.emps";
+    final String[] lines = {
+        "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
+        "EMPNO=110; NAME=Eric; DEPTNO=20; GENDER=M; CITY=San Francisco; EMPID=3; AGE=80; SLACKER=null; MANAGER=false; JOINEDAT=2001-01-01",
+        "EMPNO=110; NAME=John; DEPTNO=40; GENDER=M; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2002-05-03",
+        "EMPNO=120; NAME=Wilma; DEPTNO=20; GENDER=F; CITY=; EMPID=1; AGE=5; SLACKER=null; MANAGER=true; JOINEDAT=2005-09-07",
+        "EMPNO=130; NAME=Alice; DEPTNO=40; GENDER=F; CITY=Vancouver; EMPID=2; AGE=null; SLACKER=false; MANAGER=true; JOINEDAT=2007-01-01",
+    };
+    sql("sales-json", sql).returns(lines).ok();
+  }
+
+  /** Reads the EMPTY table from the JSON schema. The JSON file has no lines,
+   * therefore the table has a system-generated column called
+   * "EmptyFileHasNoColumns". */
+  @Test public void testJsonSalesEmpty() throws SQLException {
+    final String sql = "select * from sales.\"EMPTY\"";
+    checkSql(sql, "sales-json", resultSet -> {
+      try {
+        assertThat(resultSet.getMetaData().getColumnCount(), is(1));
+        assertThat(resultSet.getMetaData().getColumnName(1),
+            is("EmptyFileHasNoColumns"));
+        assertThat(resultSet.getMetaData().getColumnType(1),
+            is(Types.BOOLEAN));
+        String actual = toString(resultSet);
+        assertThat(actual, is(""));
+      } catch (SQLException e) {
+        throw TestUtil.rethrow(e);
+      }
+      return null;
+    });
+  }
+
+  /** Test returns the result of two json file joins. */
+  @Test public void testJsonJoinOnString() {
+    final String sql = "select emps.EMPNO, emps.NAME, depts.deptno from emps\n"
+        + "join depts on emps.deptno = depts.deptno";
+    final String[] lines = {
+        "EMPNO=100; NAME=Fred; DEPTNO=10",
+        "EMPNO=110; NAME=Eric; DEPTNO=20",
+        "EMPNO=120; NAME=Wilma; DEPTNO=20",
+    };
+    sql("sales-json", sql).returns(lines).ok();
+  }
+
+  /** The folder contains both JSON files and CSV files joins. */
+  @Test public void testJsonWithCsvJoin() {
+    final String sql = "select emps.empno,\n"
+        + " NAME,\n"
+        + " \"DATE\".JOINEDAT\n"
+        + " from \"DATE\"\n"
+        + "join emps on emps.empno = \"DATE\".EMPNO limit 3";
+    final String[] lines = {
+        "EMPNO=100; NAME=Fred; JOINEDAT=1996-08-03",
+        "EMPNO=110; NAME=Eric; JOINEDAT=2001-01-01",
+        "EMPNO=110; NAME=Eric; JOINEDAT=2002-05-03",
+    };
+    sql("sales-json", sql)
+        .returns(lines)
+        .ok();
   }
 }
 

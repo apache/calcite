@@ -17,12 +17,11 @@
 package org.apache.calcite.sql.parser.parserextensiontesting;
 
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserTest;
 
 import org.hamcrest.core.IsNull;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Testing for extension functionality of the base SQL parser impl.
@@ -36,15 +35,15 @@ public class ExtensionSqlParserTest extends SqlParserTest {
     return ExtensionSqlParserImpl.FACTORY;
   }
 
-  @Test public void testAlterSystemExtension() throws SqlParseException {
-    check("alter system upload jar '/path/to/jar'",
-        "ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
+  @Test public void testAlterSystemExtension() {
+    sql("alter system upload jar '/path/to/jar'")
+        .ok("ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
   }
 
-  @Test public void testAlterSystemExtensionWithoutAlter() throws SqlParseException {
+  @Test public void testAlterSystemExtensionWithoutAlter() {
     // We need to include the scope for custom alter operations
-    checkFails("^upload^ jar '/path/to/jar'",
-        "(?s).*Encountered \"upload\" at .*");
+    sql("^upload^ jar '/path/to/jar'")
+        .fails("(?s).*Encountered \"upload\" at .*");
   }
 
   @Test public void testCreateTable() {
