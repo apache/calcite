@@ -290,8 +290,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
@@ -314,8 +314,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
