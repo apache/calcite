@@ -37,8 +37,9 @@ on emp.deptno = dept.deptno or emp.ename = dept.dname;
 !ok
 
 # As an INNER join, it can be executed as an equi-join followed by a filter
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t1, $t3)], expr#6=[CAST($t0):CHAR(11) NOT NULL], expr#7=[=($t6, $t4)], expr#8=[OR($t5, $t7)], proj#0..4=[{exprs}], $condition=[$t8])
-  EnumerableHashJoin(condition=[true], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], ENAME=[$t2], DEPTNO=[$t3], GENDER=[$t4], DEPTNO0=[$t0], DNAME=[$t1])
+  EnumerableHashJoin(condition=[OR(=($3, $0), =(CAST($2):CHAR(11) NOT NULL, $1))], joinType=[inner])
+    EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
     EnumerableUnion(all=[true])
       EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
         EnumerableValues(tuples=[[{ 0 }]])
@@ -58,7 +59,6 @@ EnumerableCalc(expr#0..4=[{inputs}], expr#5=[=($t1, $t3)], expr#6=[CAST($t0):CHA
         EnumerableValues(tuples=[[{ 0 }]])
       EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
         EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableValues(tuples=[[{ 10, 'Sales      ' }, { 20, 'Marketing  ' }, { 30, 'Engineering' }, { 40, 'Empty      ' }]])
 !plan
 
 # Now the same, but LEFT join
