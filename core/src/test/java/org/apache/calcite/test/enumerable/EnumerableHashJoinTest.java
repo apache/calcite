@@ -54,9 +54,9 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts d"
                 + " on e.deptno=d.deptno and e.empid<150 and e.empid>d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], expr#5=[>($t0,"
-            + " $t3)], empid=[$t0], name=[$t2], dept=[$t4], $condition=[$t5])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+        .explainContains(
+            "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept=[$t4])\n"
+            + "  EnumerableHashJoin(condition=[AND(=($1, $3), >($0, $3))], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], "
             + "expr#6=[<($t0, $t5)], proj#0..2=[{exprs}], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
