@@ -2333,6 +2333,7 @@ Note:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
 * `EXTRACTVALUE` returns null if any argument is null
+
 Usage Examples:
 
 ##### JSON_TYPE example
