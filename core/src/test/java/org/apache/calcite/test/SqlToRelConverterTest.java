@@ -3409,7 +3409,15 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testWithinGroup1() {
+  @Test
+  public void testExtractValue() {
+    final String sql = "select ExtractValue(ename,ename)\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
+  @Test
+  public void testWithinGroup1() {
     final String sql = "select deptno,\n"
         + " collect(empno) within group (order by deptno, hiredate desc)\n"
         + "from emp\n"
@@ -3417,7 +3425,8 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testWithinGroup2() {
+  @Test
+  public void testWithinGroup2() {
     final String sql = "select dept.deptno,\n"
         + " collect(sal) within group (order by sal desc) as s,\n"
         + " collect(sal) within group (order by 1)as s1,\n"

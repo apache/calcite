@@ -2288,6 +2288,7 @@ semantics.
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
+| m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
@@ -2331,7 +2332,7 @@ Note:
 * `JSON_LENGTH` defines a JSON value's length as follows:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
-
+* `EXTRACTVALUE` returns null if any argument is null
 Usage Examples:
 
 ##### JSON_TYPE example

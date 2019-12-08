@@ -3863,7 +3863,16 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testCrossJoinEmulationForSpark() {
+  @Test
+  public void testExtractValue() {
+    String query = "select ExtractValue('<a><b/></a>','/a/b') from \"product\"";
+    final String expected = "SELECT EXTRACTVALUE('<a><b/></a>', '/a/b')\n"
+        + "FROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+  }
+
+  @Test
+  public void testCrossJoinEmulationForSpark() {
     String query = "select * from \"employee\", \"department\"";
     final String expected = "SELECT *\n"
         + "FROM foodmart.employee\n"
@@ -3871,7 +3880,8 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
-  @Test public void testSubstringInSpark() {
+  @Test
+  public void testSubstringInSpark() {
     final String query = "select substring(\"brand_name\" from 2) "
         + "from \"product\"\n";
     final String expected = "SELECT SUBSTRING(brand_name, 2)\n"
@@ -3879,7 +3889,8 @@ public class RelToSqlConverterTest {
     sql(query).withSpark().ok(expected);
   }
 
-  @Test public void testSubstringWithForInSpark() {
+  @Test
+  public void testSubstringWithForInSpark() {
     final String query = "select substring(\"brand_name\" from 2 for 3) "
         + "from \"product\"\n";
     final String expected = "SELECT SUBSTRING(brand_name, 2, 3)\n"

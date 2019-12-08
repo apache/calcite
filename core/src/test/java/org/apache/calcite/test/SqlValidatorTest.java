@@ -11094,6 +11094,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Cannot apply.*");
   }
 
+  @Test public void testExtractValue() {
+    expr("ExtractValue('<a></a>', '/a')").ok();
+    expr("ExtractValue('<a></a>', '/a')")
+        .columnType("VARCHAR(2000)");
+    expr("ExtractValue('<a></a>', NULL)")
+        .columnType("VARCHAR(2000)");
+    expr("ExtractValue(NULL, '/a')")
+        .columnType("VARCHAR(2000)");
+    sql("select ^ExtractValue('<a></a>')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
   @Test public void testRegexpReplace() {
     final SqlOperatorTable oracleTable =
         SqlLibraryOperatorTableFactory.INSTANCE.getOperatorTable(

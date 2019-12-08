@@ -5169,7 +5169,31 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'[]' is not json scalar", true);
   }
 
-  @Test public void testLowerFunc() {
+  @Test
+  public void testExtractValue() {
+    tester.checkNull("ExtractValue(NULL, '//b')");
+    tester.checkNull("ExtractValue('', NULL)");
+    strictTester.checkFails("ExtractValue('<a><b/></a>', '#/a/b')",
+        "Illegal error behavior '.*", true);
+    strictTester.checkFails("ExtractValue('<a><b/></a></a>', '/b')",
+        "Illegal error behavior '.*", true);
+
+    tester.checkString("ExtractValue('<a>c</a>', '//a')",
+        "c", "VARCHAR(2000)");
+    tester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/a')",
+        "ccc", "VARCHAR(2000)");
+    tester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/a/b')",
+        "ddd", "VARCHAR(2000)");
+    tester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/b')",
+        "", "VARCHAR(2000)");
+    tester.checkString("ExtractValue('<a>ccc<b>ddd</b><b>eee</b></a>', '//b')",
+        "ddd eee", "VARCHAR(2000)");
+    tester.checkString("ExtractValue('<a><b/></a>', 'count(/a/b)')",
+        "1", "VARCHAR(2000)");
+  }
+
+  @Test
+  public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 
     // SQL:2003 6.29.8 The type of lower is the type of its argument
