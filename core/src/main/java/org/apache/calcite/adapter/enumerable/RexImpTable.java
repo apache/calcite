@@ -527,7 +527,7 @@ public class RexImpTable {
     defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
     defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
 
-    //Xml Operators
+    // Xml Operators
     defineMethod(EXTRACTVALUE, BuiltInMethod.EXTRACTVALUE.method, NullPolicy.ARG0);
 
     // Json Operators

@@ -5174,9 +5174,9 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("ExtractValue(NULL, '//b')");
     tester.checkNull("ExtractValue('', NULL)");
     strictTester.checkFails("ExtractValue('<a><b/></a>', '#/a/b')",
-        "Illegal error behavior '.*", true);
+        "Illegal behavior '.*", true);
     strictTester.checkFails("ExtractValue('<a><b/></a></a>', '/b')",
-        "Illegal error behavior '.*", true);
+        "Illegal behavior '.*", true);
 
     tester.checkString("ExtractValue('<a>c</a>', '//a')",
         "c", "VARCHAR(2000)");
