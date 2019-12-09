@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlWriter;
@@ -432,75 +431,6 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_STRING,
           OperandTypes.family(SqlTypeFamily.NULL)),
           SqlFunctionCategory.STRING);
-
-  @LibraryOperator(libraries = {HIVE, SPARK})
-  public static final SqlFunction REGEXP_REPLACE_TRIM = new SqlRegexpReplaceFunction() {
-    @Override public void unparse(
-        SqlWriter writer,
-        SqlCall call,
-        int leftPrec,
-        int rightPrec) {
-      assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-      SqlLiteral flag = call.operand(0);
-      SqlLiteral charToTrim = call.operand(1);
-      String regexPattern = null;
-      final String operatorName;
-      if (!charToTrim.toValue().matches("\\s+")) {
-        operatorName = "REGEXP_REPLACE";
-        String regexToReplace = escapeMetaCharacters(charToTrim.toValue());
-        switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
-        case LEADING:
-          regexPattern = "^(".concat(regexToReplace).concat(")+|\\$");
-          break;
-        case TRAILING:
-          regexPattern = "^|(".concat(regexToReplace).concat(")*\\$");
-          break;
-        default:
-          regexPattern = "^(".concat(regexToReplace).concat(")+|\\(")
-              .concat(regexToReplace).concat(")+$");
-          break;
-        }
-      } else {
-        switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
-        case LEADING:
-          operatorName = "LTRIM";
-          break;
-        case TRAILING:
-          operatorName = "RTRIM";
-          break;
-        default:
-          operatorName = call.getOperator().getName();
-          break;
-        }
-      }
-
-      final SqlWriter.Frame frame = writer.startFunCall(operatorName);
-      call.operand(2).unparse(writer, leftPrec, rightPrec);
-      if (!charToTrim.toValue().matches("\\s+")) {
-        writer.literal(",");
-        writer.setNeedWhitespace(false);
-        writer.print("'" + regexPattern + "'");
-        writer.setNeedWhitespace(false);
-        writer.literal(",");
-        writer.setNeedWhitespace(false);
-        writer.literal("''");
-      }
-      writer.endFunCall(frame);
-    }
-
-    public String escapeMetaCharacters(String inputString) {
-      final String[] metaCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-          "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
-
-      for (int i = 0; i < metaCharacters.length; i++) {
-        if (inputString.contains(metaCharacters[i])) {
-          inputString = inputString.replace(metaCharacters[i], "\\\\" + metaCharacters[i]);
-        }
-      }
-      return inputString;
-    }
-  };
-
 }
 
 // End SqlLibraryOperators.java
