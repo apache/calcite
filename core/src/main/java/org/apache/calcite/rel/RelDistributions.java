@@ -80,6 +80,15 @@ public class RelDistributions {
     return RelDistributionTraitDef.INSTANCE.canonize(trait);
   }
 
+  /** Creates a distribution. */
+  public static RelDistribution distribution(
+      RelDistribution.Type type, List<Number> keys) {
+    ImmutableIntList list = ImmutableIntList.copyOf(keys);
+    RelDistributionImpl trait =
+        new RelDistributionImpl(type, list);
+    return RelDistributionTraitDef.INSTANCE.canonize(trait);
+  }
+
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */
   private static class RelDistributionImpl implements RelDistribution {
     private static final Ordering<Iterable<Integer>> ORDERING =
