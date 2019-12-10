@@ -1297,8 +1297,8 @@ public class RelBuilder {
     return this.project(allExpressions);
   }
 
-  /** Creates a {@link Project} of the given expressions, using the given
-   * names.
+  /** Creates a {@link Project} of the given list
+   * of expressions, using the given names.
    *
    * <p>Names are deduced as follows:
    * <ul>
@@ -2041,7 +2041,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Correlate}
-   * with a {@link CorrelationId} and an array of fields that are used by correlation. */
+   * with a {@link CorrelationId} and a list of fields that are used by correlation. */
   public RelBuilder correlate(JoinRelType joinType,
       CorrelationId correlationId, Iterable<? extends RexNode> requiredFields) {
     Frame right = stack.pop();
