@@ -50,7 +50,9 @@ public enum SqlLibrary {
   ORACLE("o"),
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
-  POSTGRESQL("p");
+  POSTGRESQL("p"),
+  /** A collection of operators that are in Teradata but not in standard SQL. */
+  TERADATA("t");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

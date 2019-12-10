@@ -206,6 +206,11 @@ public enum SqlKind {
   INTERSECT,
 
   /**
+   * Conv
+   */
+  CONV,
+
+  /**
    * AS operator
    */
   AS,
@@ -755,6 +760,11 @@ public enum SqlKind {
    * The "EXTRACT" function.
    */
   EXTRACT,
+
+  /**
+   * The "TO_NUMBER" function.
+   */
+  TO_NUMBER,
 
   /**
    * The "REVERSE" function (SQL Server, MySQL).

@@ -32,6 +32,12 @@ import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.util.ToNumberUtils;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -73,6 +79,10 @@ public class HiveSqlDialect extends SqlDialect {
     return null;
   }
 
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("");
+  }
+
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
       final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
@@ -108,6 +118,14 @@ public class HiveSqlDialect extends SqlDialect {
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case TO_NUMBER:
+      if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
+          .toString())) {
+        ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+        break;
+      }
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

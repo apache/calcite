@@ -143,6 +143,9 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlMultisetSetOperator MULTISET_INTERSECT =
       new SqlMultisetSetOperator("MULTISET INTERSECT ALL", 18, true);
 
+  /** Converts string_expr to a NUMBER data type. */
+  public static final SqlFunction TO_NUMBER = SqlLibraryOperators.TO_NUMBER;
+
   //-------------------------------------------------------------
   //                   BINARY OPERATORS
   //-------------------------------------------------------------

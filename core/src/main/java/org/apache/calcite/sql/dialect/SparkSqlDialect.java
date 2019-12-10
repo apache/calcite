@@ -31,6 +31,12 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.ToNumberUtils;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -79,6 +85,10 @@ public class SparkSqlDialect extends SqlDialect {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
+  @Override public List<String> getSingleRowTableName() {
+    return ImmutableList.of("");
+  }
+
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
@@ -98,7 +108,14 @@ public class SparkSqlDialect extends SqlDialect {
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
-
+      case TO_NUMBER:
+        if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
+            .toString())) {
+          ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+          break;
+        }
+        ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
