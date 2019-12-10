@@ -2705,10 +2705,10 @@ public class JdbcTest {
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
         .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
             + "  EnumerableAggregate(group=[{1, 2}])\n"
-            + "    EnumerableHashJoin(condition=[=(CAST($3):INTEGER NOT NULL, $0)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], proj#0..3=[{exprs}], $condition=[$t8])\n"
+            + "      EnumerableHashJoin(condition=[true], joinType=[inner])\n"
             + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
-            + "      EnumerableTableScan(table=[[SALES, EMPS]])\n")
+            + "        EnumerableTableScan(table=[[SALES, EMPS]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 
