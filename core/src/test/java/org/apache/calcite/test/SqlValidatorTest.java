@@ -7920,6 +7920,24 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'NONEXISTENT' not found");
   }
 
+  @Test public void testRandFunction() {
+    sql("select ^rand(1.5)^")
+        .fails("Cannot apply 'RAND' to arguments of type "
+            + "'RAND\\(<DECIMAL\\(2, 1\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'RAND\\(\\)'\n"
+            + "'RAND\\(<INTEGER>\\)'");
+    sql("select ^rand_integer(1.5)^")
+        .fails("Cannot apply 'RAND_INTEGER' to arguments of type "
+            + "'RAND_INTEGER\\(<DECIMAL\\(2, 1\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'RAND_INTEGER\\(<INTEGER>\\)'\n"
+            + "'RAND_INTEGER\\(<INTEGER>, <INTEGER>\\)'");
+    sql("select ^rand_integer(1, 1.5)^")
+        .fails("Cannot apply 'RAND_INTEGER' to arguments of type "
+            + "'RAND_INTEGER\\(<INTEGER>, <DECIMAL\\(2, 1\\)>\\)'\\. "
+            + "Supported form\\(s\\): 'RAND_INTEGER\\(<INTEGER>\\)'\n"
+            + "'RAND_INTEGER\\(<INTEGER>, <INTEGER>\\)'");
+  }
+
   @Test public void testCollectionTable() {
     sql("select * from table(ramp(3))")
         .type("RecordType(INTEGER NOT NULL I) NOT NULL");

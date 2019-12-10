@@ -40,7 +40,7 @@ public class SqlRandFunction extends SqlFunction {
         SqlKind.OTHER_FUNCTION,
         ReturnTypes.DOUBLE,
         null,
-        OperandTypes.or(OperandTypes.NILADIC, OperandTypes.NUMERIC),
+        OperandTypes.or(OperandTypes.NILADIC, OperandTypes.INTEGER),
         SqlFunctionCategory.NUMERIC);
   }
 
