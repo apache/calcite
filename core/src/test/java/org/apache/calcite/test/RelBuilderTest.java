@@ -2099,7 +2099,7 @@ public class RelBuilderTest {
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test public void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    assertThrows(CalciteException.class, () -> {
+    assertThrows(IllegalArgumentException.class, () -> {
       builder.scan("EMP")
           .projectExcept(
             builder.field("EMP", "MGR"),
@@ -2114,7 +2114,7 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
     RexNode deptnoField = builder.field("DEPTNO");
-    assertThrows(CalciteException.class, () -> {
+    assertThrows(IllegalArgumentException.class, () -> {
       builder.project(
             builder.field("EMPNO"),
             builder.field("ENAME"))
