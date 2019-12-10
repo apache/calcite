@@ -141,8 +141,8 @@ public final class LogicalProject extends Project {
     return shuttle.visit(this);
   }
 
-  @Override public RelNode attachHints(List<RelHint> hintList) {
-    return new LogicalProject(getCluster(), traitSet, mergeHints(hintList),
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    return new LogicalProject(getCluster(), traitSet, hintList,
         input, getProjects(), rowType);
   }
 }
