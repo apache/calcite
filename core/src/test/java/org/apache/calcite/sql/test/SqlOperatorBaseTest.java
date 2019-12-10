@@ -5192,8 +5192,7 @@ public abstract class SqlOperatorBaseTest {
         "1", "VARCHAR(2000)");
   }
 
-  @Test
-  public void testLowerFunc() {
+  @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 
     // SQL:2003 6.29.8 The type of lower is the type of its argument
