@@ -6085,18 +6085,6 @@ LogicalProject(EXPR$0=[IS JSON VALUE($1)], EXPR$1=[IS JSON VALUE($1)], EXPR$2=[I
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testExtractValue">
-        <Resource name="sql">
-            <![CDATA[select ExtractValue(ename,ename)
-from emp]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[EXTRACTVALUE($1, $1)])
-  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-]]>
-        </Resource>
-    </TestCase>
     <TestCase name="testWithinGroup1">
         <Resource name="sql">
             <![CDATA[select deptno,
