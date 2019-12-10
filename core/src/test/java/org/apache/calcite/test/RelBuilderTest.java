@@ -85,6 +85,7 @@ import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -2099,12 +2100,13 @@ public class RelBuilderTest {
    * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
   @Test public void testProjectExceptWithDuplicateField() {
     final RelBuilder builder = RelBuilder.create(config().build());
-    assertThrows(IllegalArgumentException.class, () -> {
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
       builder.scan("EMP")
           .projectExcept(
             builder.field("EMP", "MGR"),
             builder.field("EMP", "MGR"));
     }, "Project should fail since we are trying to remove the same field two times.");
+    assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
   }
 
   /** Test case for
@@ -2114,12 +2116,13 @@ public class RelBuilderTest {
     final RelBuilder builder = RelBuilder.create(config().build());
     builder.scan("EMP");
     RexNode deptnoField = builder.field("DEPTNO");
-    assertThrows(IllegalArgumentException.class, () -> {
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
       builder.project(
             builder.field("EMPNO"),
             builder.field("ENAME"))
           .projectExcept(deptnoField);
     }, "Project should fail since we are trying to remove a field that does not exist.");
+    assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
   @Test public void testMultiLevelAlias() {
