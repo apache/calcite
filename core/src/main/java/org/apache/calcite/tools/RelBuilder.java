@@ -1272,7 +1272,7 @@ public class RelBuilder {
     return projectExcept(ImmutableList.copyOf(expressions));
   }
 
-  /** Creates a {@link Project} of all original fields, except the given
+  /** Creates a {@link Project} of all original fields, except the given list of
    * expressions. */
   public RelBuilder projectExcept(Iterable<RexNode> expressions) {
     List<RexNode> allExpressions = new ArrayList<>(fields());
