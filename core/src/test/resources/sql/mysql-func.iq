@@ -18,7 +18,8 @@
 !use mysqlfunc
 !set outputformat mysql
 
-# XML
+# XML Functions
+
 SELECT ExtractValue('<a>c</a>', '//a');
 +--------+
 | EXPR$0 |
@@ -29,4 +30,4 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 !ok
 
-# End misc.iq
+# End mysql-func.iq
