@@ -1276,7 +1276,12 @@ public class RelBuilder {
    * expressions. */
   public RelBuilder projectExcept(Iterable<RexNode> expressions) {
     List<RexNode> allExpressions = new ArrayList<>(fields());
+    Set<RexNode> excludeExpressions = new HashSet<>();
     for (RexNode excludeExp : expressions) {
+      if (!excludeExpressions.add(excludeExp)) {
+        throw new IllegalArgumentException(
+          "Input list contains duplicates. Expression " + excludeExp + " exists multiple times.");
+      }
       if (!allExpressions.remove(excludeExp)) {
         throw new IllegalArgumentException("Expression " + excludeExp.toString() + " not found.");
       }
