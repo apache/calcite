@@ -1169,7 +1169,8 @@ public class RelBuilder {
     return this;
   }
 
-  /** Creates a {@link Filter} with the specified predicates.
+  /** Creates a {@link Filter} of an array of
+   * predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1178,7 +1179,8 @@ public class RelBuilder {
     return filter(ImmutableSet.of(), ImmutableList.copyOf(predicates));
   }
 
-  /** Creates a {@link Filter} with the specified predicates.
+  /** Creates a {@link Filter} of a list of
+   * predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1187,8 +1189,8 @@ public class RelBuilder {
     return filter(ImmutableSet.of(), predicates);
   }
 
-  /** Creates a {@link Filter} with the specified correlation variables
-   * and predicates.
+  /** Creates a {@link Filter} of a list of correlation variables
+   * and an array of predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1199,8 +1201,8 @@ public class RelBuilder {
   }
 
   /**
-   * Creates a {@link Filter} with the specified correlation variables
-   * and predicates.
+   * Creates a {@link Filter} of a list of correlation variables
+   * and a list of predicates.
    *
    * <p>The predicates are combined using AND,
    * and optimized in a similar way to the {@link #and} method.
@@ -1228,7 +1230,8 @@ public class RelBuilder {
     return project(ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Project} of the given expressions.
+  /** Creates a {@link Project} of the given list
+   * of expressions.
    *
    * <p>Infers names as would {@link #project(Iterable, Iterable)} if all
    * suggested names were null.
@@ -1239,7 +1242,8 @@ public class RelBuilder {
     return project(nodes, ImmutableList.of());
   }
 
-  /** Creates a {@link Project} of the given expressions and field names.
+  /** Creates a {@link Project} of the given list
+   * of expressions and field names.
    *
    * @param nodes Expressions
    * @param fieldNames field names for expressions
@@ -1255,7 +1259,7 @@ public class RelBuilder {
     return projectPlus(ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Project} of all original fields, plus the given
+  /** Creates a {@link Project} of all original fields, plus the given list of
    * expressions. */
   public RelBuilder projectPlus(Iterable<RexNode> nodes) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
@@ -1563,7 +1567,7 @@ public class RelBuilder {
     return aggregate(groupKey, ImmutableList.copyOf(aggCalls));
   }
 
-  /** Creates an {@link Aggregate} with the specified group keys and
+  /** Creates an {@link Aggregate} with a list of
    * calls. */
   public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
     final Registrar registrar =
@@ -2024,7 +2028,7 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Correlate}
-   * with a {@link CorrelationId} and the fields to be used in the correlation. */
+   * with a {@link CorrelationId} and an array of fields that are used by correlation. */
   public RelBuilder correlate(JoinRelType joinType,
       CorrelationId correlationId, Iterable<? extends RexNode> requiredFields) {
     Frame right = stack.pop();
@@ -2359,7 +2363,7 @@ public class RelBuilder {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
   }
 
-  /** Creates a {@link Sort} with the specified expressions, limit and offset.
+  /** Creates a {@link Sort} by a list of expressions, with limit and offset.
    *
    * @param offset Number of rows to skip; non-positive means don't skip any
    * @param fetch Maximum number of rows to fetch; negative means no limit
