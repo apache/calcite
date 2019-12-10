@@ -21,15 +21,10 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
 
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,28 +45,21 @@ public class SqlXmlFunctionsTest {
         + "A location path was expected, but the following token was encountered:  #' "
         + "EXTRACTVALUE: document: '" + input + "', xpath expression: '#'";
     CalciteException expected = new CalciteException(message, null);
-    assertExtractValueFailed(input, "#", errorMatches(expected));
+    assertExtractValueFailed(input, "#", Matchers.expectThrowable(expected));
   }
 
   private void assertExtractValue(String input, String xpath,
       Matcher<? super String> matcher) {
-    assertThat(invocationDesc(BuiltInMethod.EXTRACTVALUE.getMethodName(), input),
-        XmlFunctions.extractValue(input, xpath),
-        matcher);
-  }
-
-  private String invocationDesc(String methodName, Object... args) {
-    return methodName + "(" + String.join(", ",
-        Arrays.stream(args)
-            .map(Objects::toString)
-            .collect(Collectors.toList())) + ")";
+    String extractMethodDesc =
+        BuiltInMethod.EXTRACT_VALUE.getMethodName() + "(" + String.join(", ", input) + ")";
+    assertThat(extractMethodDesc, XmlFunctions.extractValue(input, xpath), matcher);
   }
 
   private void assertExtractValueFailed(String input, String xpath,
       Matcher<? super Throwable> matcher) {
-    assertFailed(invocationDesc(BuiltInMethod.EXTRACTVALUE.getMethodName(), input, xpath),
-        () -> XmlFunctions.extractValue(input, xpath),
-        matcher);
+    String extractMethodDesc =
+        BuiltInMethod.EXTRACT_VALUE.getMethodName() + "(" + String.join(", ", input, xpath) + ")";
+    assertFailed(extractMethodDesc, () -> XmlFunctions.extractValue(input, xpath), matcher);
   }
 
   private void assertFailed(String invocationDesc, Supplier<?> supplier,
@@ -82,24 +70,6 @@ public class SqlXmlFunctionsTest {
     } catch (Throwable t) {
       assertThat(invocationDesc, t, matcher);
     }
-  }
-
-  private Matcher<? super Throwable> errorMatches(Throwable expected) {
-    return new BaseMatcher<Throwable>() {
-      @Override public boolean matches(Object item) {
-        if (!(item instanceof Throwable)) {
-          return false;
-        }
-        Throwable error = (Throwable) item;
-        return expected != null
-            && Objects.equals(error.getClass(), expected.getClass())
-            && Objects.equals(error.getMessage(), expected.getMessage());
-      }
-
-      @Override public void describeTo(Description description) {
-        description.appendText("is ").appendText(expected.toString());
-      }
-    };
   }
 }
 

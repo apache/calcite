@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -35,7 +36,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class XmlFunctions {
 
-  private static final XPathFactory XPATH_FACTORY = XPathFactory.newInstance();
+  private static final ThreadLocal<XPathFactory> XPATH_FACTORY =
+      ThreadLocal.withInitial(XPathFactory::newInstance);
 
   private XmlFunctions() {
   }
@@ -45,7 +47,7 @@ public class XmlFunctions {
       return null;
     }
     try {
-      XPathExpression xpathExpression = XPATH_FACTORY.newXPath().compile(xpath);
+      XPathExpression xpathExpression = XPATH_FACTORY.get().newXPath().compile(xpath);
       try {
         NodeList nodes = (NodeList) xpathExpression
             .evaluate(new InputSource(new StringReader(input)), XPathConstants.NODESET);
@@ -54,10 +56,10 @@ public class XmlFunctions {
           result.add(nodes.item(i).getFirstChild().getTextContent());
         }
         return StringUtils.join(result, " ");
-      } catch (Exception e) {
+      } catch (XPathExpressionException e) {
         return xpathExpression.evaluate(new InputSource(new StringReader(input)));
       }
-    } catch (Exception ex) {
+    } catch (XPathExpressionException ex) {
       throw RESOURCE.illegalBehaviorInExtractValueFunc(ex.toString(), input, xpath).ex();
     }
   }

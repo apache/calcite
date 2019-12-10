@@ -7158,15 +7158,6 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
-  @Test
-  public void testExtractValue() {
-    CalciteAssert.that()
-        .query("SELECT ExtractValue(v,'//a') AS c1\n"
-            + "FROM (VALUES ('<a>c</a>')) as t(v)\n"
-            + "limit 10")
-        .returns("C1=c\n");
-  }
-
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

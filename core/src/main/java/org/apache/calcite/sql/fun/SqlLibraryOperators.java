@@ -173,7 +173,7 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction EXTRACTVALUE = new SqlExtractValueFunction();
+  public static final SqlFunction EXTRACT_VALUE = new SqlExtractValueFunction();
 
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,

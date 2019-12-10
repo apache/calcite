@@ -8553,13 +8553,6 @@ public class SqlParserTest {
         .ok("('100' IS NOT JSON SCALAR)");
   }
 
-  @Test public void testExtractValue() {
-    expr("ExtractValue('foo','bar')")
-        .ok("EXTRACTVALUE('foo', 'bar')");
-    expr("ExtractValue(null)")
-        .ok("EXTRACTVALUE(NULL)");
-  }
-
   @Test public void testParseWithReader() throws Exception {
     String query = "select * from dual";
     SqlParser sqlParserReader = getSqlParser(new StringReader(query), b -> b);
