@@ -1267,13 +1267,21 @@ public class RelBuilder {
   }
 
   /** Creates a {@link Project} of all original fields, except the given
-   * expressions. */
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
   public RelBuilder projectExcept(RexNode... expressions) {
     return projectExcept(ImmutableList.copyOf(expressions));
   }
 
   /** Creates a {@link Project} of all original fields, except the given list of
-   * expressions. */
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
   public RelBuilder projectExcept(Iterable<RexNode> expressions) {
     List<RexNode> allExpressions = new ArrayList<>(fields());
     Set<RexNode> excludeExpressions = new HashSet<>();
