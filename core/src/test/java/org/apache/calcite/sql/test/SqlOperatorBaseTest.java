@@ -5169,6 +5169,29 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'[]' is not json scalar", true);
   }
 
+  @Test public void testExtractValue() {
+    SqlTester mySqlTester = tester(SqlLibrary.MYSQL);
+    mySqlTester.checkNull("ExtractValue(NULL, '//b')");
+    mySqlTester.checkNull("ExtractValue('', NULL)");
+    mySqlTester.checkFails("ExtractValue('<a><b/></a>', '#/a/b')",
+        "Illegal behavior '.*", true);
+    mySqlTester.checkFails("ExtractValue('<a><b/></a></a>', '/b')",
+        "Illegal behavior '.*", true);
+
+    mySqlTester.checkString("ExtractValue('<a>c</a>', '//a')",
+        "c", "VARCHAR(2000)");
+    mySqlTester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/a')",
+        "ccc", "VARCHAR(2000)");
+    mySqlTester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/a/b')",
+        "ddd", "VARCHAR(2000)");
+    mySqlTester.checkString("ExtractValue('<a>ccc<b>ddd</b></a>', '/b')",
+        "", "VARCHAR(2000)");
+    mySqlTester.checkString("ExtractValue('<a>ccc<b>ddd</b><b>eee</b></a>', '//b')",
+        "ddd eee", "VARCHAR(2000)");
+    mySqlTester.checkString("ExtractValue('<a><b/></a>', 'count(/a/b)')",
+        "1", "VARCHAR(2000)");
+  }
+
   @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 

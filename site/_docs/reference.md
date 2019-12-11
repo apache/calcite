@@ -2280,6 +2280,7 @@ semantics.
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
