@@ -2395,11 +2395,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           flavor
               ? operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Project.class,
-                          operand(Aggregate.class, any())))
+                  operand(Project.class,
+                      operand(Aggregate.class, any())))
               : operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Aggregate.class, any())),
+                  operand(Aggregate.class, any())),
           relBuilderFactory, null);
       this.flavor = flavor;
     }
