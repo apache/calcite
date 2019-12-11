@@ -172,6 +172,13 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction EXTRACT_VALUE = new SqlFunction(
+      "EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+
+
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
