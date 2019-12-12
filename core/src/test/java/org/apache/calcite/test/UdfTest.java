@@ -46,8 +46,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -882,6 +884,20 @@ public class UdfTest {
         .returnsValue("86490000");
     with.query("values \"adhoc\".\"timestampFun\"(cast(null as timestamp))")
         .returnsValue("-1");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3597">[CALCITE-3597]
+   * User-defined function with Timestamp parameters and returns TIMESTAMP value</a>. */
+  @Test public void testTimestampReturnTimestamp() {
+    TimeZone tz = TimeZone.getDefault();
+    TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+
+    final CalciteAssert.AssertThat with = withUdf();
+    with.query("values \"adhoc\".\"timestampFunReturnsTimestamp\"(TIMESTAMP '1900-01-01 00:00:00')")
+      .returnsValue("1900-01-01 00:00:00");
+
+    TimeZone.setDefault(tz);
   }
 
   /** Test case for
