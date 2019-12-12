@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
@@ -37,6 +38,7 @@ import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
+import static org.apache.calcite.runtime.SqlFunctions.internalToTimestamp;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
@@ -47,6 +49,7 @@ import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toLong;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.within;
@@ -942,5 +945,20 @@ public class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  @Test public void testAsymmetricBetweenTimestampAndLong() {
+    TimeZone tz = TimeZone.getDefault();
+
+    TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"));
+    java.sql.Timestamp dst2018Begin = java.sql.Timestamp.valueOf("2018-03-11 03:00:00");
+    assertThat(dst2018Begin, is(internalToTimestamp(toLong(dst2018Begin))));
+
+
+    TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+    java.sql.Timestamp ts = java.sql.Timestamp.valueOf("1900-01-01 00:00:00");
+    assertThat(ts, is(internalToTimestamp(toLong(ts))));
+
+    TimeZone.setDefault(tz);
   }
 }
