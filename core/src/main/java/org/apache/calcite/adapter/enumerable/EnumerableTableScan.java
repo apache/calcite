@@ -213,7 +213,8 @@ public class EnumerableTableScan
     }
     if (fieldCount == 1 && (Object.class == elementType
           || Primitive.is(elementType)
-          || Number.class.isAssignableFrom(elementType))) {
+          || Number.class.isAssignableFrom(elementType)
+          || String.class == elementType)) {
       return JavaRowFormat.SCALAR;
     }
     return JavaRowFormat.CUSTOM;
