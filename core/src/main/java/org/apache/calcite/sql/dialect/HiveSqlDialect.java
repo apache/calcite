@@ -145,7 +145,8 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsNestedAggregations() {
     return false;
-    
+  }
+
   @Override public boolean supportsGroupByWithRollup() {
     return true;
   }
