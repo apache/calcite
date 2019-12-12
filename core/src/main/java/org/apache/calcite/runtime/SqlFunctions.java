@@ -77,7 +77,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
-import static org.apache.calcite.avatica.util.DateTimeUtils.MILLIS_PER_DAY;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -1755,7 +1754,7 @@ public class SqlFunctions {
   }
 
   public static int toInt(java.util.Date v, TimeZone timeZone) {
-    return (int) (toLong(v, timeZone)  / MILLIS_PER_DAY);
+    return (int) (toLong(v, timeZone)  / DateTimeUtils.MILLIS_PER_DAY);
   }
 
   public static Integer toIntOptional(java.util.Date v) {
@@ -1777,7 +1776,7 @@ public class SqlFunctions {
    *
    * <p>Converse of {@link #internalToTime(int)}. */
   public static int toInt(java.sql.Time v) {
-    return (int) (toLong(v) % MILLIS_PER_DAY);
+    return (int) (toLong(v) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
   public static Integer toIntOptional(java.sql.Time v) {
@@ -1813,7 +1812,7 @@ public class SqlFunctions {
     long epochDay = dateTime.toLocalDate().toEpochDay();
     long nanoOfDay = dateTime.toLocalTime().toNanoOfDay();
 
-    return epochDay * MILLIS_PER_DAY + nanoOfDay / 1_000_000;
+    return epochDay * DateTimeUtils.MILLIS_PER_DAY + nanoOfDay / 1_000_000;
   }
 
   // mainly intended for java.sql.Timestamp but works for other dates also
@@ -1908,7 +1907,7 @@ public class SqlFunctions {
   /** Converts the internal representation of a SQL DATE (int) to the Java
    * type used for UDF parameters ({@link java.sql.Date}). */
   public static java.sql.Date internalToDate(int v) {
-    final long t = v * MILLIS_PER_DAY;
+    final long t = v * DateTimeUtils.MILLIS_PER_DAY;
     return new java.sql.Date(t - LOCAL_TZ.getOffset(t));
   }
 
@@ -1974,11 +1973,11 @@ public class SqlFunctions {
   /** Converts the internal representation of a SQL TIMESTAMP (long) to the Java
    * type used for UDF parameters ({@link java.sql.Timestamp}). */
   public static java.sql.Timestamp internalToTimestamp(long v) {
-    int date = (int) (v / MILLIS_PER_DAY);
-    int time = (int) (v % MILLIS_PER_DAY);
+    int date = (int) (v / DateTimeUtils.MILLIS_PER_DAY);
+    int time = (int) (v % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
       --date;
-      time += MILLIS_PER_DAY;
+      time += DateTimeUtils.MILLIS_PER_DAY;
     }
     long nanoOfDay = time * 1_000_000L;
     LocalDate localDate = LocalDate.ofEpochDay(date);
@@ -2178,7 +2177,7 @@ public class SqlFunctions {
    * @return milliseconds of the last day of the month since epoch
    */
   public static int lastDay(long timestamp) {
-    int date = (int) (timestamp / MILLIS_PER_DAY);
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
     int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
     int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
     int last = lastDay(y0, m0);
@@ -2253,7 +2252,7 @@ public class SqlFunctions {
    * @return localDate
    */
   private static LocalDate timeStampToLocalDate(long timestamp) {
-    int date = (int) (timestamp / MILLIS_PER_DAY);
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
     return dateToLocalDate(date);
   }
 
@@ -2267,9 +2266,9 @@ public class SqlFunctions {
   /** SQL {@code CURRENT_TIME} function. */
   @NonDeterministic
   public static int currentTime(DataContext root) {
-    int time = (int) (currentTimestamp(root) % MILLIS_PER_DAY);
+    int time = (int) (currentTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
-      time += MILLIS_PER_DAY;
+      time += DateTimeUtils.MILLIS_PER_DAY;
     }
     return time;
   }
@@ -2278,8 +2277,8 @@ public class SqlFunctions {
   @NonDeterministic
   public static int currentDate(DataContext root) {
     final long timestamp = currentTimestamp(root);
-    int date = (int) (timestamp / MILLIS_PER_DAY);
-    final int time = (int) (timestamp % MILLIS_PER_DAY);
+    int date = (int) (timestamp / DateTimeUtils.MILLIS_PER_DAY);
+    final int time = (int) (timestamp % DateTimeUtils.MILLIS_PER_DAY);
     if (time < 0) {
       --date;
     }
@@ -2296,7 +2295,7 @@ public class SqlFunctions {
   /** SQL {@code LOCAL_TIME} function. */
   @NonDeterministic
   public static int localTime(DataContext root) {
-    return (int) (localTimestamp(root) % MILLIS_PER_DAY);
+    return (int) (localTimestamp(root) % DateTimeUtils.MILLIS_PER_DAY);
   }
 
   @NonDeterministic
@@ -2644,11 +2643,11 @@ public class SqlFunctions {
    * of milliseconds since the epoch. */
   public static long addMonths(long timestamp, int m) {
     final long millis =
-        DateTimeUtils.floorMod(timestamp, MILLIS_PER_DAY);
+        DateTimeUtils.floorMod(timestamp, DateTimeUtils.MILLIS_PER_DAY);
     timestamp -= millis;
     final long x =
-        addMonths((int) (timestamp / MILLIS_PER_DAY), m);
-    return x * MILLIS_PER_DAY + millis;
+        addMonths((int) (timestamp / DateTimeUtils.MILLIS_PER_DAY), m);
+    return x * DateTimeUtils.MILLIS_PER_DAY + millis;
   }
 
   /** Adds a given number of months to a date, represented as the number of
@@ -2708,13 +2707,13 @@ public class SqlFunctions {
 
   public static int subtractMonths(long t0, long t1) {
     final long millis0 =
-        DateTimeUtils.floorMod(t0, MILLIS_PER_DAY);
+        DateTimeUtils.floorMod(t0, DateTimeUtils.MILLIS_PER_DAY);
     final int d0 = (int) DateTimeUtils.floorDiv(t0 - millis0,
-        MILLIS_PER_DAY);
+      DateTimeUtils.MILLIS_PER_DAY);
     final long millis1 =
-        DateTimeUtils.floorMod(t1, MILLIS_PER_DAY);
+        DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
     final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
-        MILLIS_PER_DAY);
+      DateTimeUtils.MILLIS_PER_DAY);
     int x = subtractMonths(d0, d1);
     final long d2 = addMonths(d1, x);
     if (d2 == d0 && millis0 < millis1) {
