@@ -87,6 +87,10 @@ public class RexRangeRef extends RexNode {
   @Override public int hashCode() {
     return Objects.hash(type, offset);
   }
+
+  @Override public String toString() {
+    return "offset(" + offset + ")";
+  }
 }
 
 // End RexRangeRef.java
