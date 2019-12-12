@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -113,12 +114,16 @@ public class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+    final MockSqlOperatorTable operatorTable =
+        new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
         .defaultSchema(schema)
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
+        .operatorTable(operatorTable)
         .build();
     return Frameworks.getPlanner(config);
   }
@@ -223,6 +228,28 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectQueryWithHiveCube() {
+    String query = "select \"product_class_id\", \"product_id\", count(*) "
+            + "from \"product\" group by cube(\"product_class_id\", \"product_id\")";
+    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_class_id, product_id WITH CUBE";
+    sql(query).withHive().ok(expected);
+    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    assertTrue(sqlDialect.supportsGroupByWithCube());
+  }
+
+  @Test public void testSelectQueryWithHiveRollup() {
+    String query = "select \"product_class_id\", \"product_id\", count(*) "
+            + "from \"product\" group by rollup(\"product_class_id\", \"product_id\")";
+    String expected = "SELECT product_class_id, product_id, COUNT(*)\n"
+            + "FROM foodmart.product\n"
+            + "GROUP BY product_class_id, product_id WITH ROLLUP";
+    sql(query).withHive().ok(expected);
+    SqlDialect sqlDialect = sql(query).withHive().dialect;
+    assertTrue(sqlDialect.supportsGroupByWithRollup());
   }
 
   @Test public void testSelectQueryWithGroupByEmpty() {
@@ -2307,6 +2334,28 @@ public class RelToSqlConverterTest {
         .ok(expectedDateMinusNegate);
   }
 
+  @Test public void testUnparseSqlIntervalQualifierBigQuery() {
+    final String sql0 = "select  * from \"employee\" where  \"hire_date\" - "
+            + "INTERVAL '19800' SECOND(5) > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect0 = "SELECT *\n"
+            + "FROM foodmart.employee\n"
+            + "WHERE (hire_date - INTERVAL 19800 SECOND)"
+            + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql0).withBigQuery().ok(expect0);
+
+    final String sql1 = "select  * from \"employee\" where  \"hire_date\" + "
+            + "INTERVAL '10' HOUR > TIMESTAMP '2005-10-17 00:00:00' ";
+    final String expect1 = "SELECT *\n"
+            + "FROM foodmart.employee\n"
+            + "WHERE (hire_date + INTERVAL 10 HOUR)"
+            + " > TIMESTAMP '2005-10-17 00:00:00'";
+    sql(sql1).withBigQuery().ok(expect1);
+
+    final String sql2 = "select  * from \"employee\" where  \"hire_date\" + "
+            + "INTERVAL '1 2:34:56.78' DAY TO SECOND > TIMESTAMP '2005-10-17 00:00:00' ";
+    sql(sql2).withBigQuery().throws_("Only INT64 is supported as the interval value for BigQuery.");
+  }
+
   @Test public void testFloorMysqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT STR_TO_DATE(DATE_FORMAT(`hire_date` , '%x%v-1'), '%x%v-%w')\n"
@@ -4257,6 +4306,42 @@ public class RelToSqlConverterTest {
     sql(sql).withCalcite()
             .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
             .ok(expected5);
+  }
+
+  @Test public void testTableFunctionScan() {
+    final String query = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
+        + "from \"product\"), CURSOR(select  \"employee_id\", \"full_name\"\n"
+        + "from \"employee\"), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+        + "FROM \"foodmart\".\"employee\")), 'NAME'))";
+    sql(query).ok(expected);
+
+    final String query2 = "select * from table(ramp(3))";
+    sql(query2).ok("SELECT *\n"
+        + "FROM TABLE(RAMP(3))");
+  }
+
+  @Test public void testTableFunctionScanWithComplexQuery() {
+    final String query = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
+        + "from \"product\"\n"
+        + "where \"net_weight\" > 100 and \"product_name\" = 'Hello World')\n"
+        + ",CURSOR(select  \"employee_id\", \"full_name\"\n"
+        + "from \"employee\"\n"
+        + "group by \"employee_id\", \"full_name\"), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+        + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "WHERE \"net_weight\" > 100 AND \"product_name\" = 'Hello World')), "
+        + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
+    sql(query).ok(expected);
   }
 
   /** Fluid interface to run tests. */

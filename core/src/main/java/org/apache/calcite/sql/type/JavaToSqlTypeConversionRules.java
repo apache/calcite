@@ -77,6 +77,7 @@ public class JavaToSqlTypeConversionRules {
           .put(ColumnList.class, SqlTypeName.COLUMN_LIST)
           .put(ArrayImpl.class, SqlTypeName.ARRAY)
           .put(List.class, SqlTypeName.ARRAY)
+          .put(Map.class, SqlTypeName.MAP)
           .put(Void.class, SqlTypeName.NULL)
           .build();
 

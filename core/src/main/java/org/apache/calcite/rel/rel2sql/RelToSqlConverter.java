@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
@@ -54,6 +55,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
@@ -851,6 +853,28 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> operands = createAsFullOperands(e.getRowType(), unnestNode, x.neededAlias);
     final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
     return result(asNode, ImmutableList.of(Clause.FROM), e, null);
+  }
+
+  public Result visit(TableFunctionScan e) {
+    final List<SqlNode> inputSqlNodes = new ArrayList<>();
+    final int inputSize = e.getInputs().size();
+    for (int i = 0; i < inputSize; i++) {
+      Result child = visitChild(i, e.getInput(i));
+      inputSqlNodes.add(child.asStatement());
+    }
+    final Context context = tableFunctionScanContext(inputSqlNodes);
+    SqlNode callNode = context.toSql(null, e.getCall());
+    // Convert to table function call, "TABLE($function_name(xxx))"
+    SqlNode tableCall = new SqlBasicCall(
+        SqlStdOperatorTable.COLLECTION_TABLE,
+        new SqlNode[]{callNode},
+        SqlParserPos.ZERO);
+    SqlNode select = new SqlSelect(
+        SqlParserPos.ZERO, null, null, tableCall,
+        null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+    Result x = new Result(select,
+        ImmutableList.of(Clause.SELECT), null, e.getRowType(), null);
+    return x;
   }
 
   /**

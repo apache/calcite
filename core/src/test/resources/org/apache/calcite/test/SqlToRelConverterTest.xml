@@ -6369,4 +6369,21 @@ LogicalProject(JOB_NAME=[CASE(OR(=($1, '810000'), =($1, '820000')), $1, 'error':
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushDownJoinConditionWithProjectMerge">
+        <Resource name="sql">
+            <![CDATA[select * from
+ (select empno, deptno from emp) a
+ join dept b
+on a.deptno + 20 = b.deptno]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], DEPTNO=[$1], DEPTNO0=[$3], NAME=[$4])
+  LogicalJoin(condition=[=($2, $3)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], DEPTNO=[$7], $f2=[+($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

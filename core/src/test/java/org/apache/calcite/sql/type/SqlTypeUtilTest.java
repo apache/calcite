@@ -102,6 +102,28 @@ public class SqlTypeUtilTest {
         is(false));
   }
 
+  @Test
+  public void testModifyTypeCoercionMappings() {
+    SqlTypeMappingRules.Builder builder = SqlTypeMappingRules.builder();
+    final SqlTypeCoercionRule defaultRules = SqlTypeCoercionRule.instance();
+    builder.addAll(defaultRules.getTypeMapping());
+    // Do the tweak, for example, if we want to add a rule to allow
+    // coerce BOOLEAN to TIMESTAMP.
+    builder.add(SqlTypeName.TIMESTAMP,
+        builder.copyValues(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.BOOLEAN).build());
+
+    // Initialize a SqlTypeCoercionRules with the new builder mappings.
+    SqlTypeCoercionRule typeCoercionRules = SqlTypeCoercionRule.instance(builder.map);
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+        is(false));
+    SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
+    assertThat(SqlTypeUtil.canCastFrom(f.sqlTimestamp, f.sqlBoolean, true),
+        is(true));
+    // Recover the mappings to default.
+    SqlTypeCoercionRule.THREAD_PROVIDERS.set(defaultRules);
+  }
+
   private RelDataType struct(RelDataType...relDataTypes) {
     final RelDataTypeFactory.Builder builder = f.typeFactory.builder();
     for (int i = 0; i < relDataTypes.length; i++) {

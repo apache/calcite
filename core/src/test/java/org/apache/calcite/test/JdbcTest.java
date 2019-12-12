@@ -2703,12 +2703,11 @@ public class JdbcTest {
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
-            + "  EnumerableAggregate(group=[{1, 2}])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t3):INTEGER NOT NULL], expr#5=[=($t4, $t0)], expr#6=['SameName'], expr#7=[=($t1, $t6)], expr#8=[AND($t5, $t7)], proj#0..3=[{exprs}], $condition=[$t8])\n"
-            + "      EnumerableHashJoin(condition=[true], joinType=[inner])\n"
-            + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
-            + "        EnumerableTableScan(table=[[SALES, EMPS]])\n")
+        .explainContains("EnumerableAggregate(group=[{0, 3}])\n"
+            + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
+            + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 
@@ -4505,7 +4504,10 @@ public class JdbcTest {
             "value=T; value=null",
             "value=F; value=T",
             "value=F; value=F",
-            "value=F; value=null");
+            "value=F; value=null",
+            "value=null; value=T",
+            "value=null; value=F",
+            "value=null; value=null");
   }
 
   /** Tests the LIKE operator. */
@@ -4779,7 +4781,7 @@ public class JdbcTest {
         + "       )\n"
         + "from employee e\n"
         + "group by e.department_id\n";
-    final String explain = "EnumerableHashJoin(condition=[true], joinType=[left])\n"
+    final String explain = "EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
         + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
         + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
         + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
@@ -7013,6 +7015,22 @@ public class JdbcTest {
         .explainContains("EnumerableAggregate(group=[{}], "
             + "EXPR$0=[COLLECT($4) WITHIN GROUP ([4])])")
         .returns("EXPR$0=[250, 500, 1000]\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3565">[CALCITE-3565]
+   * Explicitly cast assignable operand types to decimal for udf</a>. */
+  @Test public void testAssignableTypeCast() {
+    final String sql = "SELECT ST_MakePoint(1, 2.1)";
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.GEO)
+        .query(sql)
+        .planContains("static final java.math.BigDecimal $L4J$C$new_java_math_BigDecimal_1_ = "
+            + "new java.math.BigDecimal(\n"
+            + "              1)")
+        .planContains("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
+            + "$L4J$C$new_java_math_BigDecimal_1_, v)")
+        .returns("EXPR$0={\"x\":1,\"y\":2.1}\n");
   }
 
   @Test public void testMatchSimple() {

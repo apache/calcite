@@ -17,16 +17,16 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
@@ -54,55 +54,43 @@ class EnumerableJoinRule extends ConverterRule {
       }
       newInputs.add(input);
     }
-    final RelOptCluster cluster = join.getCluster();
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final JoinInfo info = join.analyzeCondition();
-    if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
-      RelNode newRel;
-      /**
-       *  if it has equiKeys ,we can create an EnumerableHashJoin with
-       *  nonEquiConditions, EnumerableHashJoin now supports INNER/ANTI/SEMI
-       *  EnumerableHashJoin with equiKeys and nonEquiConditions
-       */
-      boolean hasEquiKeys = !info.leftKeys.isEmpty()
-          && !info.rightKeys.isEmpty();
 
-      if (hasEquiKeys) {
-        newRel = EnumerableHashJoin.create(
-            left,
-            right,
-            join.getCondition(),
-            join.getVariablesSet(),
-            join.getJoinType());
+    // If the join has equiKeys (i.e. complete or partial equi-join),
+    // create an EnumerableHashJoin, which supports all types of joins,
+    // even if the join condition contains partial non-equi sub-conditions;
+    // otherwise (complete non-equi-join), create an EnumerableNestedLoopJoin,
+    // since a hash join strategy in this case would not be beneficial.
+    final boolean hasEquiKeys = !info.leftKeys.isEmpty()
+        && !info.rightKeys.isEmpty();
+    if (hasEquiKeys) {
+      // Re-arrange condition: first the equi-join elements, then the non-equi-join ones (if any);
+      // this is not strictly necessary but it will be useful to avoid spurious errors in the
+      // unit tests when verifying the plan.
+      final RexNode equi = info.getEquiCondition(left, right, rexBuilder);
+      final RexNode condition;
+      if (info.isEqui()) {
+        condition = equi;
       } else {
-        newRel = EnumerableNestedLoopJoin.create(
-            left,
-            right,
-            join.getCondition(),
-            join.getVariablesSet(),
-            join.getJoinType());
+        final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
+        condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
       }
-      return newRel;
-
-    } else {
-      // TODO:EnumerableHashJoin + Filter should be supported with just a
-      // (new version of) EnumerableHashJoin, which can take the full condition.
-      RelNode newRel;
-      newRel = EnumerableHashJoin.create(
+      return EnumerableHashJoin.create(
           left,
           right,
-          info.getEquiCondition(left, right, cluster.getRexBuilder()),
+          condition,
           join.getVariablesSet(),
           join.getJoinType());
-      if (!info.isEqui()) {
-        RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
-            info.nonEquiConditions);
-        newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-            newRel, nonEqui);
-      }
-      return newRel;
     }
+    return EnumerableNestedLoopJoin.create(
+        left,
+        right,
+        join.getCondition(),
+        join.getVariablesSet(),
+        join.getJoinType());
   }
 }
 

@@ -26,8 +26,10 @@ import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -904,6 +906,7 @@ public class TpchTest {
   }
 
   // a bit slow
+  @Timeout(value = 10, unit = TimeUnit.MINUTES)
   @Test public void testQuery19() {
     checkQuery(19);
   }

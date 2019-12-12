@@ -133,6 +133,30 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
   }
 
+  @Test public void testHintsInSubQueryWithDecorrelation2() {
+    final String sql = "select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */\n"
+        + "  avg(e2.sal)\n"
+        + "  from emp e2\n"
+        + "  where e2.deptno = d1.deptno)";
+    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+  }
+
+  @Test public void testHintsInSubQueryWithDecorrelation3() {
+    final String sql = "select /*+ resource(parallelism='3'), index(ename), no_hash_join */\n"
+        + "sum(e1.empno) from emp e1, dept d1\n"
+        + "where e1.deptno = d1.deptno\n"
+        + "and e1.sal> (\n"
+        + "select /*+ resource(cpu='2'), index(ename), no_hash_join */\n"
+        + "  avg(e2.sal)\n"
+        + "  from emp e2\n"
+        + "  where e2.deptno = d1.deptno)";
+    sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
+  }
+
   @Test public void testHintsInSubQueryWithoutDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3') */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
