@@ -685,6 +685,16 @@ public abstract class SqlImplementor {
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
         switch (call.getKind()) {
         case CAST:
+          // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
+          // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
+          RelDataType dataType = rex.getType();
+          if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {
+            RexNode operand0 = ((RexCall) rex).operands.get(0);
+            assert operand0 instanceof RexInputRef;
+            int ordinal = ((RexInputRef) operand0).getIndex();
+            SqlNode fieldOperand = field(ordinal);
+            return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
+          }
           if (ignoreCast) {
             assert nodeList.size() == 1;
             return nodeList.get(0);
@@ -1068,6 +1078,10 @@ public abstract class SqlImplementor {
     return new MatchRecognizeContext(dialect, ((AliasContext) context).aliases);
   }
 
+  public Context tableFunctionScanContext(List<SqlNode> inputSqlNodes) {
+    return new TableFunctionScanContext(dialect, inputSqlNodes);
+  }
+
   /**
    * Context for translating MATCH_RECOGNIZE clause
    */
@@ -1144,6 +1158,20 @@ public abstract class SqlImplementor {
       } else {
         return rightContext.field(ordinal - leftContext.fieldCount);
       }
+    }
+  }
+  /** Context for translating call of a TableFunctionScan from {@link RexNode} to
+   * {@link SqlNode}. */
+  class TableFunctionScanContext extends BaseContext {
+    private final List<SqlNode> inputSqlNodes;
+
+    TableFunctionScanContext(SqlDialect dialect, List<SqlNode> inputSqlNodes) {
+      super(dialect, inputSqlNodes.size());
+      this.inputSqlNodes = inputSqlNodes;
+    }
+
+    @Override public SqlNode field(int ordinal) {
+      return inputSqlNodes.get(ordinal);
     }
   }
 

@@ -59,6 +59,72 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
+  @Test public void testGenerateNumbers2() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            //   WITH RECURSIVE aux(i) AS (
+            //     VALUES (0)
+            //     UNION -- (ALL would generate an infinite loop!)
+            //     SELECT (i+1)%10 FROM aux WHERE i < 10
+            //   )
+            //   SELECT * FROM aux
+            builder -> builder
+                .values(new String[] { "i" }, 0)
+                .transientScan("AUX")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(10)))
+                .project(
+                    builder.call(SqlStdOperatorTable.MOD,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field(0),
+                            builder.literal(1)),
+                        builder.literal(10)))
+                .repeatUnion("AUX", false)
+                .build())
+        .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
+  }
+
+  @Test public void testGenerateNumbers3() {
+    CalciteAssert.that()
+        .query("?")
+        .withRel(
+            //   WITH RECURSIVE aux(i, j) AS (
+            //     VALUES (0, 0)
+            //     UNION -- (ALL would generate an infinite loop!)
+            //     SELECT (i+1)%10, j FROM aux WHERE i < 10
+            //   )
+            //   SELECT * FROM aux
+            builder -> builder
+                .values(new String[] { "i", "j" }, 0, 0)
+                .transientScan("AUX")
+                .filter(
+                    builder.call(SqlStdOperatorTable.LESS_THAN,
+                        builder.field(0),
+                        builder.literal(10)))
+                .project(
+                    builder.call(SqlStdOperatorTable.MOD,
+                        builder.call(SqlStdOperatorTable.PLUS,
+                            builder.field(0),
+                            builder.literal(1)),
+                        builder.literal(10)),
+                    builder.field(1))
+                .repeatUnion("AUX", false)
+                .build())
+        .returnsOrdered("i=0; j=0",
+            "i=1; j=0",
+            "i=2; j=0",
+            "i=3; j=0",
+            "i=4; j=0",
+            "i=5; j=0",
+            "i=6; j=0",
+            "i=7; j=0",
+            "i=8; j=0",
+            "i=9; j=0");
+  }
+
   @Test public void testFactorial() {
     CalciteAssert.that()
         .query("?")

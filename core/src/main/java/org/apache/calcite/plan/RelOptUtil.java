@@ -28,6 +28,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
@@ -115,11 +116,15 @@ import com.google.common.collect.Multimap;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.AbstractList;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +133,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 /**
@@ -403,10 +409,34 @@ public abstract class RelOptUtil {
         && ((Hintable) originalRel).getHints().size() > 0) {
       HintStrategyTable hintStrategies = originalRel.getCluster().getHintStrategies();
       final List<RelHint> hints = ((Hintable) originalRel).getHints();
-      return ((Hintable) newRel)
-          .attachHints(hintStrategies.apply(hints, newRel));
+      // Keep all the hints of project node for 2 reasons:
+      // 1. Keep sync with the hints propagation logic,
+      // see RelHintPropagateShuttle for details.
+      // 2. We may re-propagate these hints when decorrelating a query.
+      if (originalRel instanceof Project
+          && newRel instanceof Project) {
+        return ((Hintable) newRel).attachHints(hints);
+      } else {
+        return ((Hintable) newRel)
+            .attachHints(hintStrategies.apply(hints, newRel));
+      }
     }
     return newRel;
+  }
+
+  /**
+   * Propagates the relational expression hints from root node to leaf node.
+   *
+   * @param rel   The relational expression
+   * @param reset Flag saying if to reset the existing hints before the propagation
+   * @return New relational expression with hints propagated
+   */
+  public static RelNode propagateRelHints(RelNode rel, boolean reset) {
+    if (reset) {
+      rel = rel.accept(new ResetHintsShuttle());
+    }
+    final RelShuttle shuttle = new RelHintPropagateShuttle(rel.getCluster().getHintStrategies());
+    return rel.accept(shuttle);
   }
 
   /**
@@ -3671,6 +3701,171 @@ public abstract class RelOptUtil {
   }
 
   //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * A {@code RelShuttle} which propagates all the hints of relational expression to
+   * their children nodes.
+   *
+   * <p>Given a plan:
+   *
+   * <blockquote><pre>
+   *            Filter (Hint1)
+   *                |
+   *               Join
+   *              /    \
+   *            Scan  Project (Hint2)
+   *                     |
+   *                    Scan2
+   * </pre></blockquote>
+   *
+   * <p>Every hint has a {@code inheritPath} (integers list) which records its propagate path,
+   * number `0` represents the hint is propagated from the first(left) child,
+   * number `1` represents the hint is propagated from the second(right) child,
+   * so the plan would have hints path as follows
+   * (assumes each hint can be propagated to all child nodes):
+   *
+   * <ul>
+   *   <li>Filter would have hints {Hint1[]}</li>
+   *   <li>Join would have hints {Hint1[0]}</li>
+   *   <li>Scan would have hints {Hint1[0, 0]}</li>
+   *   <li>Project would have hints {Hint1[0,1], Hint2[]}</li>
+   *   <li>Scan2 would have hints {[Hint1[0, 1, 0], Hint2[0]}</li>
+   * </ul>
+   */
+  private static class RelHintPropagateShuttle extends RelShuttleImpl {
+    /**
+     * Stack recording the hints and its current inheritPath.
+     */
+    private final Deque<Pair<List<RelHint>, Deque<Integer>>> inheritPaths =
+        new ArrayDeque<>();
+
+    /**
+     * The hint strategies to decide if a hint should be attached to
+     * a relational expression.
+     */
+    private final HintStrategyTable hintStrategies;
+
+    RelHintPropagateShuttle(HintStrategyTable hintStrategies) {
+      this.hintStrategies = hintStrategies;
+    }
+
+    /**
+     * Visits a particular child of a parent.
+     */
+    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+      inheritPaths.forEach(inheritPath -> inheritPath.right.push(i));
+      try {
+        RelNode child2 = child.accept(this);
+        if (child2 != child) {
+          final List<RelNode> newInputs = new ArrayList<>(parent.getInputs());
+          newInputs.set(i, child2);
+          return parent.copy(parent.getTraitSet(), newInputs);
+        }
+        return parent;
+      } finally {
+        inheritPaths.forEach(inheritPath -> inheritPath.right.pop());
+      }
+    }
+
+    public RelNode visit(LogicalJoin join) {
+      final LogicalJoin join1 = (LogicalJoin) super.visit(join);
+      return attachHints(join1);
+    }
+
+    public RelNode visit(LogicalProject project) {
+      final List<RelHint> topHints = project.getHints();
+      final boolean hasHints = topHints != null && topHints.size() > 0;
+      if (hasHints) {
+        inheritPaths.push(Pair.of(topHints, new ArrayDeque<>()));
+      }
+      final RelNode project1 = super.visit(project);
+      if (hasHints) {
+        inheritPaths.pop();
+      }
+      return attachHints(project1);
+    }
+
+    public RelNode visit(TableScan scan) {
+      TableScan scan1 = (TableScan) super.visit(scan);
+      return attachHints(scan1);
+    }
+
+    private RelNode attachHints(RelNode original) {
+      assert original instanceof Hintable;
+      if (inheritPaths.size() > 0) {
+        final List<RelHint> hints = inheritPaths.stream()
+            .sorted(Comparator.comparingInt(o -> o.right.size()))
+            .map(path -> copyWithInheritPath(path.left, path.right))
+            .reduce(new ArrayList<>(), (acc, hints1) -> {
+              acc.addAll(hints1);
+              return acc;
+            });
+        final List<RelHint> filteredHints = hintStrategies.apply(hints, original);
+        if (filteredHints.size() > 0) {
+          return ((Hintable) original).attachHints(filteredHints);
+        }
+      }
+      return original;
+    }
+
+    private static List<RelHint> copyWithInheritPath(List<RelHint> hints,
+        Deque<Integer> inheritPath) {
+      // Copy the Dequeue in reverse order.
+      final List<Integer> path = new ArrayList<>();
+      final Iterator<Integer> iterator = inheritPath.descendingIterator();
+      while (iterator.hasNext()) {
+        path.add(iterator.next());
+      }
+      return hints.stream()
+          .map(hint -> hint.copy(path))
+          .collect(Collectors.toList());
+    }
+  }
+
+  /**
+   * A {@code RelShuttle} which resets all the hints of a relational expression to
+   * what they are originally like.
+   *
+   * <p>This would trigger a reverse transformation of what
+   * {@link RelHintPropagateShuttle} does.
+   *
+   * <p>Transformation rules:
+   *
+   * <ul>
+   *   <li>Project: remove the hints that have non-empty inherit path
+   *   (which means the hint was not originally declared from it); </li>
+   *   <li>Join: remove all the hints;</li>
+   *   <li>TableScan: remove the hints that have non-empty inherit path.</li>
+   * </ul>
+   *
+   */
+  private static class ResetHintsShuttle extends RelShuttleImpl {
+    public RelNode visit(LogicalJoin join) {
+      final LogicalJoin join1 = (LogicalJoin) super.visit(join);
+      return resetHints(join1);
+    }
+
+    public RelNode visit(LogicalProject project) {
+      final LogicalProject project1 = (LogicalProject) super.visit(project);
+      return resetHints(project1);
+    }
+
+    public RelNode visit(TableScan scan) {
+      TableScan scan1 = (TableScan) super.visit(scan);
+      return resetHints(scan1);
+    }
+
+    private static RelNode resetHints(Hintable hintable) {
+      if (hintable.getHints().size() > 0) {
+        final List<RelHint> resetHints = hintable.getHints().stream()
+            .filter(hint -> hint.inheritPath.size() == 0)
+            .collect(Collectors.toList());
+        return hintable.withHints(resetHints);
+      } else {
+        return (RelNode) hintable;
+      }
+    }
+  }
 
   /** Visitor that finds all variables used but not stopped in an expression. */
   private static class VariableSetVisitor extends RelVisitor {

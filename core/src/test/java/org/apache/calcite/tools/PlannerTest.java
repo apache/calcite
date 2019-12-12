@@ -59,6 +59,7 @@ import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -82,6 +83,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.util.Optionality;
+import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Throwables;
@@ -244,6 +246,27 @@ public class PlannerTest {
       assertThat(e.getCause().getCause().getMessage(),
           containsString("Expression 'deptno' is not being grouped"));
     }
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3547">[CALCITE-3547]
+   * SqlValidatorException because Planner cannot find UDFs added to schema</a>. */
+  @Test public void testValidateUserDefinedFunctionInSchema() throws Exception {
+    SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    rootSchema.add("my_plus",
+        ScalarFunctionImpl.create(Smalls.MyPlusFunction.class, "eval"));
+    final FrameworkConfig config = Frameworks.newConfigBuilder()
+        .defaultSchema(
+            CalciteAssert.addSchema(rootSchema, CalciteAssert.SchemaSpec.HR))
+        .build();
+    final Planner planner = Frameworks.getPlanner(config);
+    final String sql = "select \"my_plus\"(\"deptno\", 100) as \"p\"\n"
+        + "from \"hr\".\"emps\"";
+    SqlNode parse = planner.parse(sql);
+    SqlNode validate = planner.validate(parse);
+    assertThat(Util.toLinux(validate.toString()),
+        equalTo("SELECT `my_plus`(`emps`.`deptno`, 100) AS `p`\n"
+            + "FROM `hr`.`emps` AS `emps`"));
   }
 
   private Planner getPlanner(List<RelTraitDef> traitDefs, Program... programs) {
@@ -923,15 +946,10 @@ public class PlannerTest {
     //      35 OOM           1,716
     //      60 OOM          12,230
     final StringBuilder buf = new StringBuilder();
-    buf.append("select *");
-    for (int i = 0; i < n; i++) {
-      buf.append(i == 0 ? "\nfrom " : ",\n ")
-          .append("\"depts\" as d").append(i);
-    }
+    buf.append("select * from \"depts\" as d0");
     for (int i = 1; i < n; i++) {
-      buf.append(i == 1 ? "\nwhere" : "\nand").append(" d")
-          .append(i).append(".\"deptno\" = d")
-          .append(i - 1).append(".\"deptno\"");
+      buf.append("\njoin \"depts\" as d").append(i);
+      buf.append("\non d").append(i).append(".\"deptno\" = d").append(i - 1).append(".\"deptno\"");
     }
     Planner planner = getPlanner(null,
         Programs.heuristicJoinOrder(Programs.RULE_SET, false, 6));
@@ -1121,7 +1139,7 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38])\n"
         + "  EnumerableProject(product_id=[$31], time_id=[$32], customer_id0=[$33], promotion_id=[$34], store_id=[$35], store_sales=[$36], store_cost=[$37], unit_sales=[$38], customer_id=[$2], account_num=[$3], lname=[$4], fname=[$5], mi=[$6], address1=[$7], address2=[$8], address3=[$9], address4=[$10], city=[$11], state_province=[$12], postal_code=[$13], country=[$14], customer_region_id=[$15], phone1=[$16], phone2=[$17], birthdate=[$18], marital_status=[$19], yearly_income=[$20], gender=[$21], total_children=[$22], num_children_at_home=[$23], education=[$24], date_accnt_opened=[$25], member_card=[$26], occupation=[$27], houseowner=[$28], num_cars_owned=[$29], fullname=[$30], department_id=[$0], department_description=[$1])\n"
-        + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
+        + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
         + "      EnumerableTableScan(table=[[foodmart2, department]])\n"
         + "      EnumerableHashJoin(condition=[=($0, $31)], joinType=[inner])\n"
         + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
@@ -1141,7 +1159,7 @@ public class PlannerTest {
     final String expected = ""
         + "EnumerableProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], customer_id0=[$8], account_num=[$9], lname=[$10], fname=[$11], mi=[$12], address1=[$13], address2=[$14], address3=[$15], address4=[$16], city=[$17], state_province=[$18], postal_code=[$19], country=[$20], customer_region_id=[$21], phone1=[$22], phone2=[$23], birthdate=[$24], marital_status=[$25], yearly_income=[$26], gender=[$27], total_children=[$28], num_children_at_home=[$29], education=[$30], date_accnt_opened=[$31], member_card=[$32], occupation=[$33], houseowner=[$34], num_cars_owned=[$35], fullname=[$36], department_id=[$37], department_description=[$38], employee_id=[$39], full_name=[$40], first_name=[$41], last_name=[$42], position_id=[$43], position_title=[$44], store_id0=[$45], department_id0=[$46], birth_date=[$47], hire_date=[$48], end_date=[$49], salary=[$50], supervisor_id=[$51], education_level=[$52], marital_status0=[$53], gender0=[$54], management_role=[$55])\n"
         + "  EnumerableProject(product_id=[$48], time_id=[$49], customer_id0=[$50], promotion_id=[$51], store_id0=[$52], store_sales=[$53], store_cost=[$54], unit_sales=[$55], customer_id=[$19], account_num=[$20], lname=[$21], fname=[$22], mi=[$23], address1=[$24], address2=[$25], address3=[$26], address4=[$27], city=[$28], state_province=[$29], postal_code=[$30], country=[$31], customer_region_id=[$32], phone1=[$33], phone2=[$34], birthdate=[$35], marital_status0=[$36], yearly_income=[$37], gender0=[$38], total_children=[$39], num_children_at_home=[$40], education=[$41], date_accnt_opened=[$42], member_card=[$43], occupation=[$44], houseowner=[$45], num_cars_owned=[$46], fullname=[$47], department_id=[$0], department_description=[$1], employee_id=[$2], full_name=[$3], first_name=[$4], last_name=[$5], position_id=[$6], position_title=[$7], store_id=[$8], department_id0=[$9], birth_date=[$10], hire_date=[$11], end_date=[$12], salary=[$13], supervisor_id=[$14], education_level=[$15], marital_status=[$16], gender=[$17], management_role=[$18])\n"
-        + "    EnumerableHashJoin(condition=[true], joinType=[inner])\n"
+        + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
         + "      EnumerableHashJoin(condition=[=($0, $9)], joinType=[inner])\n"
         + "        EnumerableTableScan(table=[[foodmart2, department]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, employee]])\n"

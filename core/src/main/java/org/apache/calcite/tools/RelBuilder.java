@@ -1266,6 +1266,37 @@ public class RelBuilder {
     return project(builder.addAll(fields()).addAll(nodes).build());
   }
 
+  /** Creates a {@link Project} of all original fields, except the given
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
+  public RelBuilder projectExcept(RexNode... expressions) {
+    return projectExcept(ImmutableList.copyOf(expressions));
+  }
+
+  /** Creates a {@link Project} of all original fields, except the given list of
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
+  public RelBuilder projectExcept(Iterable<RexNode> expressions) {
+    List<RexNode> allExpressions = new ArrayList<>(fields());
+    Set<RexNode> excludeExpressions = new HashSet<>();
+    for (RexNode excludeExp : expressions) {
+      if (!excludeExpressions.add(excludeExp)) {
+        throw new IllegalArgumentException(
+          "Input list contains duplicates. Expression " + excludeExp + " exists multiple times.");
+      }
+      if (!allExpressions.remove(excludeExp)) {
+        throw new IllegalArgumentException("Expression " + excludeExp.toString() + " not found.");
+      }
+    }
+    return this.project(allExpressions);
+  }
+
   /** Creates a {@link Project} of the given list
    * of expressions, using the given names.
    *

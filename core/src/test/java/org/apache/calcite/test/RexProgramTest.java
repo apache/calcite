@@ -40,7 +40,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeAssignmentRules;
+import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2148,8 +2148,8 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
     for (RelDataType fromType : types) {
       for (RelDataType toType : types) {
-        if (SqlTypeAssignmentRules.instance(false)
-            .canCastFrom(toType.getSqlTypeName(), fromType.getSqlTypeName())) {
+        if (SqlTypeAssignmentRule.instance()
+            .canApplyFrom(toType.getSqlTypeName(), fromType.getSqlTypeName())) {
           for (RexLiteral literal : map.get(fromType.getSqlTypeName())) {
             final RexNode cast = rexBuilder.makeCast(toType, literal);
             if (cast instanceof RexLiteral) {

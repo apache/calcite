@@ -400,8 +400,11 @@ public class EnumUtils {
       if (operand instanceof UnaryExpression) {
         UnaryExpression una = (UnaryExpression) operand;
         if (una.nodeType == ExpressionType.Convert
-            || Primitive.of(una.getType()) == toBox) {
-          return Expressions.box(una.expression, toBox);
+            && Primitive.of(una.getType()) == toBox) {
+          Primitive origin = Primitive.of(una.expression.type);
+          if (origin != null && toBox.assignableFrom(origin)) {
+            return Expressions.box(una.expression, toBox);
+          }
         }
       }
       if (fromType == toBox.primitiveClass) {
@@ -527,6 +530,57 @@ public class EnumUtils {
     return type == java.sql.Date.class
         || type == java.sql.Time.class
         || type == java.sql.Timestamp.class;
+  }
+
+  /**
+   * In {@link org.apache.calcite.sql.type.SqlTypeAssignmentRule},
+   * some rules decide whether one type can be assignable to another type.
+   * Based on these rules, a function can accept arguments with assignable types.
+   *
+   * <p>For example, a function with Long type operand can accept Integer as input.
+   * See {@code org.apache.calcite.sql.SqlUtil#filterRoutinesByParameterType()} for details.
+   *
+   * <p>During query execution, some of the assignable types need explicit conversion
+   * to the target types. i.e., Decimal expression should be converted to Integer
+   * before it is assigned to the Integer type Lvalue(In Java, Decimal can not be assigned to
+   * Integer directly).
+   *
+   * @param targetTypes Formal operand types declared for the function arguments
+   * @param arguments Input expressions to the function
+   * @return Input expressions with probable type conversion
+   */
+  static List<Expression> convertAssignableTypes(Class<?>[] targetTypes,
+      List<Expression> arguments) {
+    final List<Expression> list = new ArrayList<>();
+    if (targetTypes.length == arguments.size()) {
+      for (int i = 0; i < arguments.size(); i++) {
+        list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
+      }
+    } else {
+      int j = 0;
+      for (Expression argument: arguments) {
+        Class<?> type;
+        if (!targetTypes[j].isArray()) {
+          type = targetTypes[j];
+          j++;
+        } else {
+          type = targetTypes[j].getComponentType();
+        }
+        list.add(convertAssignableType(argument, type));
+      }
+    }
+    return list;
+  }
+
+  /**
+   * Handle decimal type specifically with explicit type conversion
+   */
+  private static Expression convertAssignableType(
+      Expression argument,  Type targetType) {
+    if (targetType != BigDecimal.class) {
+      return argument;
+    }
+    return convert(argument, targetType);
   }
 
   /** Transforms a JoinRelType to Linq4j JoinType. **/

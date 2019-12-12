@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.commons.io.input.ReaderInputStream;
+
+import com.google.common.io.CharSource;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -28,6 +32,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
@@ -45,6 +50,7 @@ public abstract class Sources {
     return new FileSource(url);
   }
 
+
   public static Source file(File baseDirectory, String fileName) {
     final File file = new File(fileName);
     if (baseDirectory != null && !file.isAbsolute()) {
@@ -52,6 +58,19 @@ public abstract class Sources {
     } else {
       return of(file);
     }
+  }
+
+  /**
+   * Create {@link Source} from a generic text source such as string, {@link java.nio.CharBuffer}
+   * or text file. Useful when data is already in memory or can't be directly read from
+   * a file or url.
+   *
+   * @param source generic "re-redable" source of characters
+   * @return {@code Source} delegate for {@code CharSource} (can't be null)
+   * @throws NullPointerException when {@code source} is null
+   */
+  public static Source fromCharSource(CharSource source) {
+    return new GuavaCharSource(source);
   }
 
   public static Source url(String url) {
@@ -75,7 +94,68 @@ public abstract class Sources {
     return source.protocol().equals("file");
   }
 
-  /** Implementation of {@link Source}. */
+  /**
+   * Adapter for {@link CharSource}
+   */
+  private static class GuavaCharSource implements Source {
+    private final CharSource charSource;
+
+    private GuavaCharSource(CharSource charSource) {
+      this.charSource = Objects.requireNonNull(charSource, "charSource");
+    }
+
+    private UnsupportedOperationException unsupported() {
+      return new UnsupportedOperationException(
+          String.format(Locale.ROOT, "Invalid operation for '%s' protocol", protocol()));
+    }
+
+    @Override public URL url() {
+      throw unsupported();
+    }
+
+    @Override public File file() {
+      throw unsupported();
+    }
+
+    @Override public String path() {
+      throw unsupported();
+    }
+
+    @Override public Reader reader() throws IOException {
+      return charSource.openStream();
+    }
+
+    @Override public InputStream openStream() throws IOException {
+      // use charSource.asByteSource() once calcite can use guava v21+
+      return new ReaderInputStream(reader(), StandardCharsets.UTF_8.name());
+    }
+
+    @Override public String protocol() {
+      return "memory";
+    }
+
+    @Override public Source trim(final String suffix) {
+      throw unsupported();
+    }
+
+    @Override public Source trimOrNull(final String suffix) {
+      throw unsupported();
+    }
+
+    @Override public Source append(final Source child) {
+      throw unsupported();
+    }
+
+    @Override public Source relative(final Source source) {
+      throw unsupported();
+    }
+
+    @Override public String toString() {
+      return getClass().getSimpleName() + "{" + protocol() + "}";
+    }
+  }
+
+  /** Implementation of {@link Source} on the top of a {@link File} or {@link URL} */
   private static class FileSource implements Source {
     private final File file;
     private final URL url;
@@ -90,7 +170,7 @@ public abstract class Sources {
       this.url = null;
     }
 
-    private File urlToFile(URL url) {
+    private static File urlToFile(URL url) {
       if (!"file".equals(url.getProtocol())) {
         return null;
       }
@@ -113,7 +193,7 @@ public abstract class Sources {
       return (url != null ? url : file).toString();
     }
 
-    public URL url() {
+    @Override public URL url() {
       if (url == null) {
         throw new UnsupportedOperationException();
       }
@@ -127,11 +207,11 @@ public abstract class Sources {
       return file;
     }
 
-    public String protocol() {
+    @Override public String protocol() {
       return file != null ? "file" : url.getProtocol();
     }
 
-    public String path() {
+    @Override public String path() {
       if (file != null) {
         return file.getPath();
       }
@@ -143,7 +223,7 @@ public abstract class Sources {
       }
     }
 
-    public Reader reader() throws IOException {
+    @Override public Reader reader() throws IOException {
       final InputStream is;
       if (path().endsWith(".gz")) {
         final InputStream fis = openStream();
@@ -154,7 +234,7 @@ public abstract class Sources {
       return new InputStreamReader(is, StandardCharsets.UTF_8);
     }
 
-    public InputStream openStream() throws IOException {
+    @Override public InputStream openStream() throws IOException {
       if (file != null) {
         return new FileInputStream(file);
       } else {
@@ -162,12 +242,12 @@ public abstract class Sources {
       }
     }
 
-    public Source trim(String suffix) {
+    @Override public Source trim(String suffix) {
       Source x = trimOrNull(suffix);
       return x == null ? this : x;
     }
 
-    public Source trimOrNull(String suffix) {
+    @Override public Source trimOrNull(String suffix) {
       if (url != null) {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);
@@ -177,7 +257,7 @@ public abstract class Sources {
       }
     }
 
-    public Source append(Source child) {
+    @Override public Source append(Source child) {
       if (isFile(child)) {
         if (child.file().isAbsolute()) {
           return child;
@@ -203,7 +283,7 @@ public abstract class Sources {
       }
     }
 
-    public Source relative(Source parent) {
+    @Override public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
             && file.getPath().startsWith(parent.file().getPath())) {

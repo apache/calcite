@@ -55,6 +55,56 @@ select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.dep
         </Resource>
         <Resource name="hints">
             <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHintsInSubQueryWithDecorrelation2">
+        <Resource name="sql">
+            <![CDATA[select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */
+sum(e1.empno) from emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.sal> (
+select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */
+  avg(e2.sal)
+  from emp e2
+  where e2.deptno = d1.deptno)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 0] options:[ENAME]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 1] options:[ENAME]]]
+Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+TableScan:[[PROPERTIES inheritPath:[0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0] options:[ENAME]], [PROPERTIES inheritPath:[0, 0, 1, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1, 0, 0] options:[ENAME]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testHintsInSubQueryWithDecorrelation3">
+        <Resource name="sql">
+            <![CDATA[select /*+ resource(parallelism='3'), index(ename), no_hash_join */
+sum(e1.empno) from emp e1, dept d1
+where e1.deptno = d1.deptno
+and e1.sal> (
+select /*+ resource(cpu='2'), index(ename), no_hash_join */
+  avg(e2.sal)
+  from emp e2
+  where e2.deptno = d1.deptno)]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0]]]
+TableScan:[[INDEX inheritPath:[0, 0, 0, 0] options:[ENAME]]]
+TableScan:[[INDEX inheritPath:[0, 0, 0, 1] options:[ENAME]]]
+Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
+TableScan:[[INDEX inheritPath:[0] options:[ENAME]], [INDEX inheritPath:[0, 0, 1, 0, 0] options:[ENAME]]]
 ]]>
         </Resource>
     </TestCase>

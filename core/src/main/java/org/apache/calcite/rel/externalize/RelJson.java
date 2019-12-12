@@ -454,13 +454,15 @@ public class RelJson {
       final Map<String, Object> opMap = (Map) map.get("op");
       final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
       if (opMap != null) {
-        final String op = (String) opMap.get("name");
+        if (map.containsKey("class")) {
+          opMap.put("class", map.get("class"));
+        }
         final List operands = (List) map.get("operands");
         final List<RexNode> rexOperands = toRexList(relInput, operands);
         final Object jsonType = map.get("type");
         final Map window = (Map) map.get("window");
         if (window != null) {
-          final SqlAggFunction operator = toAggregation(relInput, op, opMap);
+          final SqlAggFunction operator = toAggregation(opMap);
           final RelDataType type = toType(typeFactory, jsonType);
           List<RexNode> partitionKeys = new ArrayList<>();
           if (window.containsKey("partition")) {
@@ -492,7 +494,7 @@ public class RelJson {
               ImmutableList.copyOf(orderKeys), lowerBound, upperBound, physical,
               true, false, distinct, false);
         } else {
-          final SqlOperator operator = toOp(relInput, opMap);
+          final SqlOperator operator = toOp(opMap);
           final RelDataType type;
           if (jsonType != null) {
             type = toType(typeFactory, jsonType);
@@ -632,7 +634,7 @@ public class RelJson {
     return list;
   }
 
-  SqlOperator toOp(RelInput relInput, Map<String, Object> map) {
+  SqlOperator toOp(Map<String, Object> map) {
     // in case different operator has the same kind, check with both name and kind.
     String name = map.get("name").toString();
     String kind = map.get("kind").toString();
@@ -658,8 +660,8 @@ public class RelJson {
     return null;
   }
 
-  SqlAggFunction toAggregation(RelInput relInput, String agg, Map<String, Object> map) {
-    return (SqlAggFunction) toOp(relInput, map);
+  SqlAggFunction toAggregation(Map<String, Object> map) {
+    return (SqlAggFunction) toOp(map);
   }
 
   private Map toJson(SqlOperator operator) {
