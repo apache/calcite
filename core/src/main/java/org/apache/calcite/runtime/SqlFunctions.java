@@ -2709,11 +2709,11 @@ public class SqlFunctions {
     final long millis0 =
         DateTimeUtils.floorMod(t0, DateTimeUtils.MILLIS_PER_DAY);
     final int d0 = (int) DateTimeUtils.floorDiv(t0 - millis0,
-      DateTimeUtils.MILLIS_PER_DAY);
+        DateTimeUtils.MILLIS_PER_DAY);
     final long millis1 =
         DateTimeUtils.floorMod(t1, DateTimeUtils.MILLIS_PER_DAY);
     final int d1 = (int) DateTimeUtils.floorDiv(t1 - millis1,
-      DateTimeUtils.MILLIS_PER_DAY);
+        DateTimeUtils.MILLIS_PER_DAY);
     int x = subtractMonths(d0, d1);
     final long d2 = addMonths(d1, x);
     if (d2 == d0 && millis0 < millis1) {
