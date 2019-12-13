@@ -190,6 +190,10 @@ public class RelJson {
     return new RelFieldCollation(field, direction, nullDirection);
   }
 
+  /**
+   * When serialized to json string, a {@link RelDistribution} object will serialized to
+   * a map, see {@link #toJson(RelDistribution)}
+   */
   public RelDistribution toDistribution(Object o) {
     final Map map = (Map) o;
     final RelDistribution.Type type = RelEnumTypes.toEnum((String) map.get("type"));

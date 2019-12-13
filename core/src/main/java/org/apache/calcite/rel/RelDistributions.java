@@ -82,7 +82,7 @@ public class RelDistributions {
 
   /** Creates a distribution. */
   public static RelDistribution distribution(
-      RelDistribution.Type type, List<Number> keys) {
+      RelDistribution.Type type, Collection<? extends Number> keys) {
     ImmutableIntList list = ImmutableIntList.copyOf(keys);
     RelDistributionImpl trait =
         new RelDistributionImpl(type, list);

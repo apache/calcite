@@ -769,7 +769,7 @@ public class RelWriterTest {
         .scan("EMP")
         .exchange(RelDistributions.hash(ImmutableList.of(0, 1)))
         .build();
-    String relJson = RelOptUtil.dumpPlan("", rel,
+    final String relJson = RelOptUtil.dumpPlan("", rel,
         SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
