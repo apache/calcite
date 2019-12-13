@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -1517,6 +1518,11 @@ public class RexBuilder {
       if (o instanceof BigDecimal) {
         return o;
       }
+      assert !(o instanceof Float || o instanceof Double)
+          : String.format(Locale.ROOT,
+              "%s is not compatible with %s, try to use makeExactLiteral",
+              o.getClass().getCanonicalName(),
+              type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
     case FLOAT:
       if (o instanceof BigDecimal) {

@@ -414,6 +414,24 @@ public class RexBuilderTest {
     assertThat(literal.getValue3(), nullValue());
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3587">[CALCITE-3587]
+   * RexBuilder may lose decimal fraction for creating literal with DECIMAL type</a>.
+   */
+  @Test public void testDecimal() {
+    final RelDataTypeFactory typeFactory =
+        new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    final RelDataType type = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RexBuilder builder = new RexBuilder(typeFactory);
+    try {
+      builder.makeLiteral(12.3, type, false);
+      fail();
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(),
+          is("java.lang.Double is not compatible with DECIMAL, try to use makeExactLiteral"));
+    }
+  }
+
   /** Tests {@link DateString} year range. */
   @Test public void testDateStringYearError() {
     try {
