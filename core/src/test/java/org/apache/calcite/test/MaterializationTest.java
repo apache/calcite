@@ -127,6 +127,10 @@ public class MaterializationTest {
       new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
           .withParanoid(true);
 
+  @Test public void testCI() {
+    throw new AssertionError("test failed");
+  }
+
   @Test public void testScan() {
     CalciteAssert.that()
         .withMaterializations(
