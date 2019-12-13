@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -45,6 +46,7 @@ import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
@@ -58,11 +60,13 @@ import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOverOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlCaseOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -1130,6 +1134,25 @@ public abstract class SqlImplementor {
           && hasNestedAggregations((Aggregate) rel)) {
         needNew = true;
       }
+
+      if (rel instanceof Project && rel.getInput(0) instanceof Aggregate
+          && dialect.getConformance().isGroupByAlias()
+          && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Aggregate && rel.getInput(0) instanceof Project
+          && dialect.getConformance().isGroupByAlias()
+          && hasAnalyticalFunctionUsedInGroupBy((Aggregate) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Aggregate
+          && !dialect.supportsAnalyticalFunctionInAggregate()
+          && hasAnalyticalFunctionInAggregate((Aggregate) rel)) {
+        needNew = true;
+      }
+
       if (rel instanceof LogicalSort
           && dialect.getConformance().isSortByAlias()) {
         keepColumnAlias = true;
@@ -1211,6 +1234,77 @@ public abstract class SqlImplementor {
           needNew ? null : aliases);
     }
 
+    private boolean hasAnalyticalFunctionInAggregate(Aggregate rel) {
+      boolean present = false;
+      if (node instanceof SqlSelect) {
+        final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+        if (selectList != null) {
+          final Set<Integer> aggregatesArgs = new HashSet<>();
+          for (AggregateCall aggregateCall : rel.getAggCallList()) {
+            aggregatesArgs.addAll(aggregateCall.getArgList());
+          }
+          for (int aggregatesArg : aggregatesArgs) {
+            if (selectList.get(aggregatesArg) instanceof SqlBasicCall) {
+              final SqlBasicCall call =
+                  (SqlBasicCall) selectList.get(aggregatesArg);
+              present = hasAnalyticalFunction(call);
+              if (!present) {
+                present = hasAnalyticalFunctionInWhenClauseOfCase(call);
+              }
+            }
+          }
+        }
+      }
+      return present;
+    }
+
+    private boolean hasAnalyticalFunctionInWhenClauseOfCase(SqlBasicCall call) {
+      SqlNode sqlNode = call.operand(0);
+      if (sqlNode instanceof SqlCall) {
+        if (((SqlCall) sqlNode).getOperator() instanceof SqlCaseOperator) {
+          for (SqlNode whenOperand : ((SqlCase) sqlNode).getWhenOperands()) {
+            boolean present = hasAnalyticalFunction((SqlBasicCall) whenOperand);
+            if (present) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAnalyticalFunction(SqlBasicCall call) {
+      for (SqlNode operand : call.getOperands()) {
+        if (operand instanceof SqlCall) {
+          if (((SqlCall) operand).getOperator() instanceof SqlOverOperator) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private boolean hasAnalyticalFunctionUsedInGroupBy(Aggregate rel) {
+      if (node instanceof SqlSelect) {
+        List<String> groupByFieldNames = rel.getRowType().getFieldNames();
+        Project projectRel = (Project) rel.getInput(0);
+        for (String grp : groupByFieldNames) {
+          for (int i = 0; i < projectRel.getRowType().getFieldNames().size(); i++) {
+            if (grp.equals(projectRel.getRowType().getFieldNames().get(i))) {
+              if (isAnalyticalRex(projectRel.getChildExps().get(i))) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    boolean isAnalyticalRex(RexNode rexNode) {
+      return rexNode instanceof RexOver;
+    }
+
     private boolean hasNestedAggregations(Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
@@ -1231,6 +1325,43 @@ public abstract class SqlImplementor {
               }
             }
           }
+        }
+      }
+      return false;
+    }
+
+
+    boolean hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection(Project rel) {
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      final SqlNodeList grpList = ((SqlSelect) node).getGroup();
+      if (selectList != null && grpList != null) {
+        for (SqlNode grpNode : grpList) {
+          if (grpNode instanceof SqlIdentifier) {
+            String grpCall = ((SqlIdentifier) grpNode).names.get(0);
+            for (SqlNode selectNode : selectList.getList()) {
+              if (selectNode instanceof SqlBasicCall) {
+                if (grpCallIsAlias(grpCall, (SqlBasicCall) selectNode)
+                    && !grpCallPresentInFinalProjection(grpCall, rel)) {
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    boolean grpCallIsAlias(String grpCall, SqlBasicCall selectCall) {
+      return selectCall.getOperator() instanceof SqlAsOperator
+        && grpCall.equals(selectCall.operand(1).toString());
+    }
+
+    boolean grpCallPresentInFinalProjection(String grpCall, Project rel) {
+      List<String> projFieldList = rel.getRowType().getFieldNames();
+      for (String finalProj : projFieldList) {
+        if (grpCall.equals(finalProj)) {
+          return true;
         }
       }
       return false;

@@ -372,11 +372,11 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testSimpleSelectWithGroupByAliasAndAggregate() {
-    final String query = "select 'literal' as \"a\", sku + 1 as b, sum(\"product_id\") from"
+    final String query = "select 'literal' as \"a\", sku + 1 as \"b\", sum(\"product_id\") from"
         + " \"product\" group by sku + 1, 'literal'";
-    final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS B, SUM(product_id)\n"
+    final String bigQueryExpected = "SELECT 'literal' AS a, SKU + 1 AS b, SUM(product_id)\n"
         + "FROM foodmart.product\n"
-        + "GROUP BY B, 1";
+        + "GROUP BY b, 1";
     sql(query)
         .withBigQuery()
         .ok(bigQueryExpected);
@@ -737,6 +737,64 @@ public class RelToSqlConverterTest {
         .ok(expectedVertica)
         .withPostgresql()
         .ok(expectedPostgresql);
+  }
+
+  @Test public void testAnalyticalFunctionInAggregate() {
+    final String query = "select\n"
+        + "MAX(\"rnk\") AS \"rnk1\""
+        + "  from ("
+        + "    select\n"
+        + "    rank() over (order by \"hire_date\") AS \"rnk\""
+        + "    from \"foodmart\".\"employee\"\n)";
+    final String expectedSql = "SELECT MAX(RANK() OVER (ORDER BY \"hire_date\")) AS \"rnk1\"\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT MAX(rnk) rnk1\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) rnk\n"
+        + "FROM foodmart.employee) t";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) AS rnk\n"
+        + "FROM foodmart.employee) AS t";
+    sql(query)
+      .ok(expectedSql)
+      .withHive()
+      .ok(expectedHive)
+      .withSpark()
+      .ok(expectedSpark)
+      .withBigQuery()
+      .ok(expectedBigQuery);
+  }
+
+  @Test public void testAnalyticalFunctionInAggregate1() {
+    final String query = "select\n"
+        + "MAX(\"rnk\") AS \"rnk1\""
+        + "  from ("
+        + "    select\n"
+        + "    case when rank() over (order by \"hire_date\") = 1"
+        + "    then 100"
+        + "    else 200"
+        + "    end as \"rnk\""
+        + "    from \"foodmart\".\"employee\"\n)";
+    final String expectedSql = "SELECT MAX(CASE WHEN (RANK() OVER (ORDER BY \"hire_date\")) = 1 "
+        + "THEN 100 ELSE 200 END) AS \"rnk1\"\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT MAX(rnk) rnk1\n"
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1"
+        + " THEN 100 ELSE 200 END rnk\n"
+        + "FROM foodmart.employee) t";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1 "
+        + "THEN 100 ELSE 200 END AS rnk\n"
+        + "FROM foodmart.employee) AS t";
+    sql(query)
+      .ok(expectedSql)
+      .withHive()
+      .ok(expectedHive)
+      .withSpark()
+      .ok(expectedSpark)
+      .withBigQuery()
+      .ok(expectedBigQuery);
   }
 
   /** Test case for
@@ -4171,14 +4229,18 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
-  @Test public void testSelectQueryWithGroupByOrdinal() {
-    String query = "select '100', \"product_id\"  from \"product\" group by '100', \"product_id\"";
-    final String expected = "SELECT '100', product_id\n"
-        + "FROM foodmart.product\n"
-        + "GROUP BY 1, product_id";
-    sql(query)
-        .withBigQuery()
-        .ok(expected);
+
+  @Test public void testSelectWithGroupByOnColumnNotPresentInProjection() {
+    String query = "select \"t1\".\"department_id\" from\n"
+        + "\"foodmart\".\"employee\" as \"t1\" inner join \"foodmart\".\"department\" as \"t2\"\n"
+        + "on \"t1\".\"department_id\" = \"t2\".\"department_id\"\n"
+        + "group by \"t2\".\"department_id\", \"t1\".\"department_id\"";
+    final String expected = "SELECT t0.department_id\n"
+        + "FROM (SELECT department.department_id AS department_id0, employee.department_id\n"
+        + "FROM foodmart.employee\n"
+        + "INNER JOIN foodmart.department ON employee.department_id = department.department_id\n"
+        + "GROUP BY department_id0, employee.department_id) AS t0";
+    sql(query).withBigQuery().ok(expected);
   }
 
   @Test public void testSupportsDataType() {
