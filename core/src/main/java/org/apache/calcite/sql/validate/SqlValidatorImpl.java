@@ -449,7 +449,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // Expand the select item: fully-qualify columns, and convert
     // parentheses-free functions such as LOCALTIME into explicit function
     // calls.
-    SqlNode expanded = expand(selectItem, scope);
+    SqlNode expanded = expandSelectExpr(selectItem, scope, select);
     final String alias =
         deriveAlias(
             selectItem,
@@ -482,6 +482,67 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     setValidatedNodeType(expanded, type);
     fields.add(Pair.of(alias, type));
     return false;
+  }
+
+  private static SqlNode expandExprFromJoin(SqlJoin join, SqlIdentifier identifier,
+      SelectScope scope) {
+    if (join.getConditionType() != JoinConditionType.USING) {
+      return identifier;
+    }
+
+    for (SqlNode node : (SqlNodeList) join.getCondition()) {
+      final String name = ((SqlIdentifier) node).getSimple();
+      if (identifier.getSimple().equals(name)) {
+        final List<SqlNode> qualifiedNode = new ArrayList<>();
+        for (ScopeChild child : scope.children) {
+          if (child.namespace.getRowType()
+              .getFieldNames().indexOf(name) >= 0) {
+            final SqlIdentifier exp =
+                new SqlIdentifier(
+                    ImmutableList.of(child.name, name),
+                    identifier.getParserPosition());
+            qualifiedNode.add(exp);
+          }
+        }
+
+        assert qualifiedNode.size() == 2;
+        final SqlNode finalNode =
+            SqlStdOperatorTable.AS.createCall(SqlParserPos.ZERO,
+                SqlStdOperatorTable.COALESCE.createCall(SqlParserPos.ZERO,
+                    qualifiedNode.get(0),
+                    qualifiedNode.get(1)),
+                new SqlIdentifier(name, SqlParserPos.ZERO));
+        return finalNode;
+      }
+    }
+
+    // Only need to try to expand the expr from the left input of join
+    // since it is always left-deep join.
+    final SqlNode node = join.getLeft();
+    if (node instanceof SqlJoin) {
+      return expandExprFromJoin((SqlJoin) node, identifier, scope);
+    } else {
+      return identifier;
+    }
+  }
+
+  private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
+      SqlNode selectItem, SelectScope scope) {
+    if (!(selectItem instanceof SqlIdentifier)) {
+      return selectItem;
+    }
+
+    final SqlIdentifier identifier = (SqlIdentifier) selectItem;
+    if (!identifier.isSimple()) {
+      return selectItem;
+    }
+
+    final SqlNode from = sqlSelect.getFrom();
+    if (from == null || !(from instanceof SqlJoin)) {
+      return selectItem;
+    }
+
+    return expandExprFromJoin((SqlJoin) from, identifier, scope);
   }
 
   private boolean expandStar(List<SqlNode> selectItems, Set<String> aliases,
@@ -3494,7 +3555,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       checkRollUpInWindow(getWindowInOver(current), scope);
       current = stripOver(current);
 
-      List<SqlNode> children = ((SqlCall) stripDot(current)).getOperandList();
+      List<SqlNode> children = ((SqlCall) stripAs(stripDot(current))).getOperandList();
       for (SqlNode child : children) {
         checkRollUp(parent, current, child, scope, optionalClause);
       }
@@ -5389,6 +5450,16 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     assert feature.getProperties().get("FeatureDefinition") != null;
   }
 
+  public SqlNode expandSelectExpr(SqlNode expr,
+      SelectScope scope, SqlSelect select) {
+    final Expander expander = new SelectExpander(this, scope, select);
+    final SqlNode newExpr = expr.accept(expander);
+    if (expr != newExpr) {
+      setOriginal(newExpr, expr);
+    }
+    return newExpr;
+  }
+
   public SqlNode expand(SqlNode expr, SqlValidatorScope scope) {
     final Expander expander = new Expander(this, scope);
     SqlNode newExpr = expr.accept(expander);
@@ -5944,6 +6015,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   /**
+   * Converts an expression into canonical form by fully-qualifying any
+   * identifiers. For common columns in USING, it will be converted to
+   * COALESCE(A.col, B.col) AS col.
+   */
+  static class SelectExpander extends Expander {
+    final SqlSelect select;
+
+    SelectExpander(SqlValidatorImpl validator, SelectScope scope,
+        SqlSelect select) {
+      super(validator, scope);
+      this.select = select;
+    }
+
+    @Override public SqlNode visit(SqlIdentifier id) {
+      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope());
+      if (node != id) {
+        return node;
+      } else {
+        return super.visit(id);
+      }
+    }
+  }
+
+  /**
    * Shuttle which walks over an expression in the GROUP BY/HAVING clause, replacing
    * usages of aliases or ordinals with the underlying expression.
    */
@@ -5994,6 +6089,13 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           expr = expandDynamicStar(sid, fqId);
         }
         return expr;
+      }
+      if (id.isSimple()) {
+        final SelectScope scope = validator.getRawSelectScope(select);
+        SqlNode node = expandCommonColumn(select, id, scope);
+        if (node != id) {
+          return node;
+        }
       }
       return super.visit(id);
     }
