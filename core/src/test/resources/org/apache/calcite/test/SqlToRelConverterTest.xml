@@ -1835,6 +1835,94 @@ LogicalProject(GRADE=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testJoinUsingWithUnqualifiedCommonColumn">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, name
+FROM emp JOIN dept using (deptno)]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7], NAME=[$10])
+  LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinUsingWithUnqualifiedNestedCommonColumn">
+        <Resource name="sql">
+            <![CDATA[select (coord).x from
+customer.contact_peek t1
+join customer.contact_peek t2
+using (coord)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
+  LogicalJoin(condition=[AND(AND(=($4, $14), =($5, $15)), =($6, $16))], joinType=[inner])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+    LogicalProject(CONTACTNO=[$0], FNAME=[$1], LNAME=[$2], EMAIL=[$3], X=[$4.X], Y=[$4.Y], unit=[$4.unit], M=[$5.M], A=[$5.SUB.A], B=[$5.SUB.B])
+      LogicalTableScan(table=[[CATALOG, CUSTOMER, CONTACT_PEEK]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinUsingWithAggregate">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, name
+FROM emp JOIN dept using (deptno)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalAggregate(group=[{0}], EXPR$1=[COUNT()])
+    LogicalProject($f0=[COALESCE($7, $9)])
+      LogicalJoin(condition=[=($7, $9)], joinType=[full])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinUsingWithGroupingSets">
+        <Resource name="sql">
+            <![CDATA[select deptno, grouping(deptno),
+grouping(deptno, job), count(*)
+from emp
+join dept using (deptno)
+group by grouping sets ((deptno), (deptno, job))
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4])
+  LogicalAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], EXPR$1=[GROUPING($0)], EXPR$2=[GROUPING($0, $1)], EXPR$3=[COUNT()])
+    LogicalProject($f0=[$7], JOB=[$2])
+      LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+        LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinUsingWithMultipleJoin">
+        <Resource name="sql">
+            <![CDATA[SELECT deptno, ename
+FROM emp JOIN dept using (deptno)
+JOIN (values ('Calcite', 200)) as s(ename, salary) using (ename)
+]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(DEPTNO=[$7], ENAME=[$1])
+  LogicalJoin(condition=[=($1, $11)], joinType=[inner])
+    LogicalJoin(condition=[=($7, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+    LogicalValues(tuples=[[{ 'Calcite', 200 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinNatural">
         <Resource name="sql">
             <![CDATA[SELECT * FROM emp NATURAL JOIN dept]]>

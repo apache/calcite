@@ -4699,6 +4699,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from " + emps + " as e,\n"
         + " (select 1, ^e^.deptno from (values(true))) as d")
         .fails("Table 'E' not found");
+
+    // fail: deptno is ambiguous
+    sql("select ^deptno^, name from " + depts + "as d\n"
+        + "join " + emps +  "as e\n"
+        + "on d.deptno = e.deptno")
+        .fails("Column 'DEPTNO' is ambiguous");
   }
 
   @Test public void testNestedFrom() {
