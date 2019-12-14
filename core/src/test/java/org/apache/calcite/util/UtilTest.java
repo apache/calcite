@@ -35,6 +35,7 @@ import org.apache.calcite.sql.util.SqlBuilder;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.test.Matchers;
+import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
@@ -46,7 +47,6 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -110,6 +110,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link Util} and other classes in this package.
  */
+@LocaleEnUs
 public class UtilTest {
   //~ Constructors -----------------------------------------------------------
 
@@ -117,12 +118,6 @@ public class UtilTest {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @BeforeAll public static void setUSLocale() {
-    // This ensures numbers in exceptions are printed as in asserts.
-    // For example, 1,000 vs 1 000
-    Locale.setDefault(Locale.US);
-  }
 
   @Test public void testPrintEquals() {
     assertPrintEquals("\"x\"", "x", true);

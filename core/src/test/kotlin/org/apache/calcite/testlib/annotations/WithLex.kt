@@ -14,20 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.testlib.annotations
 
-import org.apache.calcite.config.Lex;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.apache.calcite.config.Lex
 
 /**
  * Annotation that indicates that test method should be run with given lex configuration.
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
-public @interface WithLex {
-  Lex value() default Lex.ORACLE;
-}
+@Target(AnnotationTarget.FUNCTION)
+annotation class WithLex(val value: Lex = Lex.ORACLE)

@@ -46,13 +46,13 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
+import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -91,6 +91,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * derived class whose {@link #getTester} returns a different implementation of
  * {@link org.apache.calcite.sql.test.SqlTester}.
  */
+@LocaleEnUs
 public class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -152,12 +153,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  @BeforeAll public static void setUSLocale() {
-    // This ensures numbers in exceptions are printed as in asserts.
-    // For example, 1,000 vs 1 000
-    Locale.setDefault(Locale.US);
-  }
 
   private static String cannotConvertToStream(String name) {
     return "Cannot convert table '" + name + "' to stream";

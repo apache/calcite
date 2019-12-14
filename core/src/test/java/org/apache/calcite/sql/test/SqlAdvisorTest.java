@@ -25,7 +25,7 @@ import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.validate.SqlMoniker;
 import org.apache.calcite.sql.validate.SqlMonikerType;
 import org.apache.calcite.test.SqlValidatorTestCase;
-import org.apache.calcite.test.WithLex;
+import org.apache.calcite.testlib.annotations.WithLex;
 
 import com.google.common.collect.ImmutableMap;
 

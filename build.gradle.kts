@@ -259,6 +259,15 @@ allprojects {
                 }
             }
         }
+        plugins.withId("org.jetbrains.kotlin.jvm") {
+            spotless {
+                kotlin {
+                    ktlint().userData(mapOf("disabled_rules" to "import-ordering"))
+                    trimTrailingWhitespace()
+                    endWithNewline()
+                }
+            }
+        }
     }
     if (!skipCheckstyle) {
         apply<CheckstylePlugin>()

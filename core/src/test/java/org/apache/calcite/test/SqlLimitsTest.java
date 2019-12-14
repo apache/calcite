@@ -26,10 +26,10 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.testlib.annotations.LocaleEnUs;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -43,6 +43,7 @@ import java.util.Locale;
 /**
  * Unit test for SQL limits.
  */
+@LocaleEnUs
 public class SqlLimitsTest {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -84,12 +85,6 @@ public class SqlLimitsTest {
         typeFactory.createSqlType(SqlTypeName.DATE),
         typeFactory.createSqlType(SqlTypeName.TIME, 0),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 0));
-  }
-
-  @BeforeAll public static void setUSLocale() {
-    // This ensures numbers in exceptions are printed as in asserts.
-    // For example, 1,000 vs 1 000
-    Locale.setDefault(Locale.US);
   }
 
   @Test public void testPrintLimits() {

@@ -33,6 +33,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.test.catalog.MockCatalogReaderExtended;
+import org.apache.calcite.testlib.annotations.WithLex;
 
 import com.google.common.base.Preconditions;
 
