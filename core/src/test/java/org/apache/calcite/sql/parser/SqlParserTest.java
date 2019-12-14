@@ -84,8 +84,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * implementation.
  */
 public class SqlParserTest {
-  //~ Static fields/initializers ---------------------------------------------
-
   /**
    * List of reserved keywords.
    *
@@ -572,15 +570,6 @@ public class SqlParserTest {
   Casing unquotedCasing = Casing.TO_UPPER;
   Casing quotedCasing = Casing.UNCHANGED;
   SqlConformance conformance = SqlConformanceEnum.DEFAULT;
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlParserTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  // Helper functions -------------------------------------------------------
 
   protected Tester getTester() {
     return new TesterImpl();

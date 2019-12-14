@@ -112,15 +112,9 @@ import java.util.Set;
  * and a view "EMP_20".
  */
 public abstract class MockCatalogReader extends CalciteCatalogReader {
-  //~ Static fields/initializers ---------------------------------------------
-
   static final String DEFAULT_CATALOG = "CATALOG";
   static final String DEFAULT_SCHEMA = "SALES";
   static final List<String> PREFIX = ImmutableList.of(DEFAULT_SCHEMA);
-
-  //~ Instance fields --------------------------------------------------------
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a MockCatalogReader.

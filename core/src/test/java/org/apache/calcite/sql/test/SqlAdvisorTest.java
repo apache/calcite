@@ -57,8 +57,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
       SqlAdvisorValidator::new);
 
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final List<String> STAR_KEYWORD =
       Arrays.asList(
           "KEYWORD(*)");
@@ -371,14 +369,6 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   private static final String EMPNO_EMP =
       "COLUMN(EMPNO)\n"
           + "TABLE(EMP)\n";
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlAdvisorTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
 
   protected List<String> getFromKeywords() {
     return FROM_KEYWORDS;

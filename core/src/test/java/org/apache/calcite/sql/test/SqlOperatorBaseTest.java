@@ -303,8 +303,6 @@ public abstract class SqlOperatorBaseTest {
   // same with tester but without implicit type coercion.
   protected final SqlTester strictTester;
 
-  //~ Constructors -----------------------------------------------------------
-
   /**
    * Creates a SqlOperatorBaseTest.
    *
@@ -317,8 +315,6 @@ public abstract class SqlOperatorBaseTest {
     assert tester != null;
     this.strictTester = tester.enableTypeCoercion(false);
   }
-
-  //~ Methods ----------------------------------------------------------------
 
   @BeforeEach
   public void setUp() throws Exception {

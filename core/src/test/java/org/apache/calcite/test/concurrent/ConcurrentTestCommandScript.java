@@ -81,7 +81,6 @@ import java.util.regex.Pattern;
  */
 public class ConcurrentTestCommandScript
     extends ConcurrentTestCommandGenerator {
-  //~ Static fields/initializers ---------------------------------------------
 
   private static final String PRE_SETUP_STATE = "pre-setup";
   private static final String SETUP_STATE = "setup";
@@ -260,8 +259,6 @@ public class ConcurrentTestCommandScript
   private final Map<Integer, StringWriter> threadStringWriters = new HashMap<>();
   private final Map<Integer, ResultsReader> threadResultsReaders =
       new HashMap<>();
-
-  //~ Constructors -----------------------------------------------------------
 
   public ConcurrentTestCommandScript() throws IOException {
     super();

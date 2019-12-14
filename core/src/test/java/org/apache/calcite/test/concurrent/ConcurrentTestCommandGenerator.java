@@ -60,14 +60,11 @@ import java.util.regex.Pattern;
  * <p>There are no restrictions on the order of command creation.</p>
  */
 public class ConcurrentTestCommandGenerator {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final char APOS = '\'';
   private static final char COMMA = ',';
   private static final char LEFT_BRACKET = '{';
   private static final char RIGHT_BRACKET = '}';
 
-  //~ Instance fields --------------------------------------------------------
   protected boolean debug = false;
   protected PrintStream debugStream = System.out;
   protected String jdbcURL;
@@ -106,9 +103,6 @@ public class ConcurrentTestCommandGenerator {
    * successful test the list is empty.
    */
   private List<FailedThread> failedThreads;
-
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Constructs a new ConcurrentTestCommandGenerator.
@@ -725,7 +719,6 @@ public class ConcurrentTestCommandGenerator {
    */
   static class AutoSynchronizationCommand extends SynchronizationCommand {
     private AutoSynchronizationCommand() {
-      super();
     }
   }
 

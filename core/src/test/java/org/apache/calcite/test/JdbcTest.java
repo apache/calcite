@@ -7590,7 +7590,6 @@ public class JdbcTest {
   public abstract static class AbstractModifiableTable
       extends AbstractTable implements ModifiableTable {
     protected AbstractModifiableTable(String tableName) {
-      super();
     }
 
     public TableModify toModificationRel(
@@ -7611,7 +7610,6 @@ public class JdbcTest {
   public abstract static class AbstractModifiableView
       extends AbstractTable implements ModifiableView {
     protected AbstractModifiableView() {
-      super();
     }
   }
 
@@ -7696,7 +7694,6 @@ public class JdbcTest {
     private final List<Object> results;
 
     AutoTempDriver(List<Object> results) {
-      super();
       this.results = results;
     }
 

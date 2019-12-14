@@ -31,13 +31,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * the resource-generation infrastructure).
  */
 public class CalciteResourceTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public CalciteResourceTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   /**
    * Verifies that resource properties such as SQLSTATE are available at
    * runtime.

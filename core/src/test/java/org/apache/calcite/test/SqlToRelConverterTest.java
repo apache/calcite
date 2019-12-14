@@ -69,12 +69,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
  */
 public class SqlToRelConverterTest extends SqlToRelTestBase {
-  //~ Methods ----------------------------------------------------------------
-
-  public SqlToRelConverterTest() {
-    super();
-  }
-
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlToRelConverterTest.class);
   }

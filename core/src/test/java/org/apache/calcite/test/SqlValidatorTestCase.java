@@ -61,8 +61,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * validator to use.</p>
  */
 public class SqlValidatorTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final SqlTestFactory EXTENDED_TEST_FACTORY =
       SqlTestFactory.INSTANCE.withCatalogReader(MockCatalogReaderExtended::new);
 
@@ -77,11 +75,7 @@ public class SqlValidatorTestCase {
       new SqlValidatorTester(EXTENDED_TEST_FACTORY)
           .withConformance(SqlConformanceEnum.LENIENT);
 
-  //~ Instance fields --------------------------------------------------------
-
   protected SqlTester tester;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a test case.
@@ -212,8 +206,6 @@ public class SqlValidatorTestCase {
       SqlCollation.Coercibility expectedCoercibility) {
     sql(sql).collation(expectedCollationName, expectedCoercibility);
   }
-
-  //~ Inner Interfaces -------------------------------------------------------
 
   /**
    * Encapsulates differences between test environments, for example, which

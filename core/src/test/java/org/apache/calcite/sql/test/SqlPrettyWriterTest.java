@@ -43,17 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>You must provide the system property "source.dir".
  */
 public class SqlPrettyWriterTest {
-  //~ Static fields/initializers ---------------------------------------------
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlPrettyWriterTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  // ~ Helper methods -------------------------------------------------------
-
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlPrettyWriterTest.class);
   }

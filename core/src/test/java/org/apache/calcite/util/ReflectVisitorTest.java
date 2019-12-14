@@ -30,13 +30,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  * them.
  */
 public class ReflectVisitorTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public ReflectVisitorTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   /**
    * Tests CarelessNumberNegater.
    */

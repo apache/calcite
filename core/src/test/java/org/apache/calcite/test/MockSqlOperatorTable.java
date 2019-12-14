@@ -42,18 +42,12 @@ import com.google.common.collect.ImmutableList;
  * table, plus a list of operators.
  */
 public class MockSqlOperatorTable extends ChainedSqlOperatorTable {
-  //~ Instance fields --------------------------------------------------------
-
   private final ListSqlOperatorTable listOpTab;
-
-  //~ Constructors -----------------------------------------------------------
 
   public MockSqlOperatorTable(SqlOperatorTable parentTable) {
     super(ImmutableList.of(parentTable, new ListSqlOperatorTable()));
     listOpTab = (ListSqlOperatorTable) tableList.get(1);
   }
-
-  //~ Methods ----------------------------------------------------------------
 
   /**
    * Adds an operator to this table.

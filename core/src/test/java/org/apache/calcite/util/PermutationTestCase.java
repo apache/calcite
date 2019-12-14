@@ -39,13 +39,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit test for {@link Permutation}.
  */
 public class PermutationTestCase {
-  //~ Constructors -----------------------------------------------------------
-
-  public PermutationTestCase() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   @Test public void testOne() {
     final Permutation perm = new Permutation(4);
     assertEquals(

@@ -77,8 +77,6 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   private RelDataType varcharType;
   private RelDataType varchar20Type;
 
-  //~ Constructors -----------------------------------------------------------
-
   public TypeCoercionTest() {
     // tool tester impl.
     SqlTester tester1 = new SqlValidatorTester(SqlTestFactory.INSTANCE);

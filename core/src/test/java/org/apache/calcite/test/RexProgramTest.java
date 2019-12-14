@@ -82,13 +82,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  * {@link org.apache.calcite.rex.RexProgramBuilder}.
  */
 public class RexProgramTest extends RexProgramBuilderBase {
-  /**
-   * Creates a RexProgramTest.
-   */
-  public RexProgramTest() {
-    super();
-  }
-
   @BeforeEach public void setUp() {
     super.setUp();
   }

@@ -83,8 +83,6 @@ public abstract class DiffTestCase {
    */
   private boolean verbose;
 
-  //~ Constructors -----------------------------------------------------------
-
   /**
    * Initializes a new DiffTestCase.
    *

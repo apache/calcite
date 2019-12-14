@@ -173,8 +173,6 @@ public class DiffRepository {
   private final File logFile;
   private final Filter filter;
 
-  //~ Constructors -----------------------------------------------------------
-
   /**
    * Creates a DiffRepository.
    *

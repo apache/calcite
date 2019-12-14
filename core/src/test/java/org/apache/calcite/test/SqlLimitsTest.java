@@ -45,15 +45,6 @@ import java.util.Locale;
  */
 @LocaleEnUs
 public class SqlLimitsTest {
-  //~ Static fields/initializers ---------------------------------------------
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlLimitsTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlLimitsTest.class);
   }

@@ -38,21 +38,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * or disabled.
  */
 public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final String FEATURE_DISABLED = "feature_disabled";
 
-  //~ Instance fields --------------------------------------------------------
-
   private Feature disabledFeature;
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlValidatorFeatureTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTester getTester() {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));

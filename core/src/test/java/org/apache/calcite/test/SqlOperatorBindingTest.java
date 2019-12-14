@@ -50,15 +50,6 @@ public class SqlOperatorBindingTest {
   private RelDataType integerDataType;
   private SqlDataTypeSpec integerType;
 
-  //~ Methods ----------------------------------------------------------------
-
-  /**
-   * Creates a SqlOperatorBindingTest.
-   */
-  public SqlOperatorBindingTest() {
-    super();
-  }
-
   @BeforeEach
   public void setUp() {
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);

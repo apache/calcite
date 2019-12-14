@@ -84,13 +84,6 @@ public class RelOptUtilTest {
 
   private List<RelDataTypeField> empDeptJoinRelFields;
 
-  //~ Constructors -----------------------------------------------------------
-
-  public RelOptUtilTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   @BeforeEach public void setUp() {
     relBuilder = RelBuilder.create(config().build());
 

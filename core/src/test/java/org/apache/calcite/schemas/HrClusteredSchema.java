@@ -49,7 +49,6 @@ public final class HrClusteredSchema extends AbstractSchema {
   private final ImmutableMap<String, Table> tables;
 
   public HrClusteredSchema() {
-    super();
     tables = ImmutableMap.<String, Table>builder()
         .put("emps",
             new PkClusteredTable(

@@ -146,14 +146,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   private static final String RANK_REQUIRES_ORDER_BY = "RANK or DENSE_RANK "
       + "functions require ORDER BY clause in window specification";
 
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlValidatorTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   private static String cannotConvertToStream(String name) {
     return "Cannot convert table '" + name + "' to stream";
   }

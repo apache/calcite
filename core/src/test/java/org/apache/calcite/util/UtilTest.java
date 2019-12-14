@@ -112,13 +112,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 @LocaleEnUs
 public class UtilTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public UtilTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   @Test public void testPrintEquals() {
     assertPrintEquals("\"x\"", "x", true);
   }

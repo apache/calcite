@@ -31,7 +31,6 @@ public class TpchSchema {
 
 
     public Part(int pPartkey) {
-      super();
       this.pPartkey = pPartkey;
     }
 
@@ -48,7 +47,6 @@ public class TpchSchema {
     public int psSupplyCost;
 
     public PartSupp(int psPartkey, int psSupplyCost) {
-      super();
       this.psPartkey = psPartkey;
       this.psSupplyCost = psSupplyCost;
     }
