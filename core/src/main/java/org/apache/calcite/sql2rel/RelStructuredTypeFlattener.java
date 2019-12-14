@@ -590,10 +590,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   private String extractName(List<String> fieldNames, String prefix, int i) {
     String fieldName = (fieldNames == null || fieldNames.get(i) == null)
-        ? ("$" + i)
+        ? ("_" + i)
         : fieldNames.get(i);
     if (!prefix.equals("")) {
-      fieldName = prefix + "$" + fieldName;
+      fieldName = prefix + "_" + fieldName;
     }
     return fieldName;
   }
@@ -696,7 +696,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     int nameIdx = 0;
     for (RelDataTypeField field : newExp.getType().getFieldList()) {
       RexNode fieldRef = rexBuilder.makeFieldAccess(newExp, field.getIndex());
-      String fieldRefName = fieldName + "$" + (nameIdx++);
+      String fieldRefName = fieldName + "_" + (nameIdx++);
       if (fieldRef.getType().isStruct()) {
         flattenResultTypeOfRexCall(fieldRef, fieldRefName, flattenedExps);
       } else {

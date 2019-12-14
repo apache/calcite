@@ -443,7 +443,7 @@ public class RexProgramBuilder {
       ++i;
       if (projectName == null) {
         while (true) {
-          final String candidateName = "$" + j++;
+          final String candidateName = "_" + j++;
           if (!projectNameList.contains(candidateName)) {
             projectNameList.set(i, candidateName);
             break;

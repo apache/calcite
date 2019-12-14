@@ -70,6 +70,7 @@ val enableGradleMetadata by props()
 val useGpgCmd by props()
 val slowSuiteLogThreshold by props(0L)
 val slowTestLogThreshold by props(2000L)
+val replaceDollar by props()
 
 ide {
     copyrightToAsf()
@@ -205,6 +206,16 @@ fun PatternFilterable.excludeJavaCcGenerated() {
     exclude(*javaccGeneratedPatterns)
 }
 
+fun com.diffplug.gradle.spotless.FormatExtension.replaceDollar() {
+    if (replaceDollar) {
+        replace("EXPR\$ -> EXPR_", "EXPR\$", "EXPR_")
+        replace("EXPR\\\$ -> EXPR_", "EXPR\\\$", "EXPR_")
+        // JdbcTest contains c0=$90K - $110K, and we do not want to replace that yet
+        replaceRegex("\$[ft]?[0-9] -> _t..", "(?<=^|\\W)\\\$([ft]?+[0-9](?![0-9]++K))", "_\$1")
+        replaceRegex("\$condition -> _condition", "(?<=^|\\W)\\\$(cor|condition)", "_\$1")
+    }
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
@@ -265,6 +276,11 @@ allprojects {
                     ktlint().userData(mapOf("disabled_rules" to "import-ordering"))
                     trimTrailingWhitespace()
                     endWithNewline()
+                }
+                format("quidem") {
+                    target("**/*.iq", "**/*.xml")
+                    targetExclude("**/checkstyle-checker.xml")
+                    replaceDollar()
                 }
             }
         }
@@ -407,6 +423,7 @@ allprojects {
                         replace("junit5: Assert.assertThat", "org.junit.Assert.assertThat", "org.hamcrest.MatcherAssert.assertThat")
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
+                    replaceDollar()
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",

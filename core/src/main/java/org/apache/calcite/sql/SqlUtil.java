@@ -737,9 +737,9 @@ public abstract class SqlUtil {
   }
 
   public static String deriveAliasFromOrdinal(int ordinal) {
-    // Use a '$' so that queries can't easily reference the
+    // Use a '_' so that queries can't easily reference the
     // generated name.
-    return "EXPR$" + ordinal;
+    return "EXPR_" + ordinal;
   }
 
   /**

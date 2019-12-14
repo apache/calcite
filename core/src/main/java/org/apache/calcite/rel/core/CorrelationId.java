@@ -28,7 +28,7 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
   /**
    * Prefix to the name of correlating variables.
    */
-  public static final String CORREL_PREFIX = "$cor";
+  public static final String CORREL_PREFIX = "_cor";
 
   private final int id;
   private final String name;

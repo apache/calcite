@@ -297,7 +297,7 @@ public class CassandraSchema extends AbstractSchema {
       query = stringWriter.toString();
 
       // Add the view for this query
-      String viewName = "$" + getTableNames().size();
+      String viewName = "_" + getTableNames().size();
       SchemaPlus schema = parentSchema.getSubSchema(name);
       CalciteSchema calciteSchema = CalciteSchema.from(schema);
 

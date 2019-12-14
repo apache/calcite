@@ -934,7 +934,7 @@ public class RexUtil {
     for (int i = 0; i < exprs.size(); i++) {
       String name;
       if (names == null || (name = names.get(i)) == null) {
-        name = "$f" + i;
+        name = "_f" + i;
       }
       builder.add(name, exprs.get(i).getType());
     }

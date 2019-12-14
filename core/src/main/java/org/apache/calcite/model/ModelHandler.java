@@ -366,7 +366,7 @@ public class ModelHandler {
       if (jsonMaterialization.view == null) {
         // If the user did not supply a view name, that means the materialized
         // view is pre-populated. Generate a synthetic view name.
-        viewName = "$" + schema.getTableNames().size();
+        viewName = "_" + schema.getTableNames().size();
         existing = true;
       } else {
         viewName = jsonMaterialization.view;

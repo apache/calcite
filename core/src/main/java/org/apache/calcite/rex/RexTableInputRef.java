@@ -46,7 +46,7 @@ public class RexTableInputRef extends RexInputRef {
   private RexTableInputRef(RelTableRef tableRef, int index, RelDataType type) {
     super(index, type);
     this.tableRef = tableRef;
-    this.digest = tableRef.toString() + ".$" + index;
+    this.digest = tableRef.toString() + "._" + index;
   }
 
   //~ Methods ----------------------------------------------------------------

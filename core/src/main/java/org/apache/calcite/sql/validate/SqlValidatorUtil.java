@@ -304,11 +304,11 @@ public class SqlValidatorUtil {
    * <ul>
    * <li>Alias: "1 + 2 as foo" yields "foo"
    * <li>Identifier: "foo.bar.baz" yields "baz"
-   * <li>Anything else yields "expr$<i>ordinal</i>"
+   * <li>Anything else yields "expr_<i>ordinal</i>"
    * </ul>
    *
    * @return An alias, if one can be derived; or a synthetic alias
-   * "expr$<i>ordinal</i>" if ordinal &lt; 0; otherwise null
+   * "expr_<i>ordinal</i>" if ordinal &lt; 0; otherwise null
    */
   public static String getAlias(SqlNode node, int ordinal) {
     switch (node.getKind()) {
@@ -1282,14 +1282,14 @@ public class SqlValidatorUtil {
   }
 
   public static final Suggester EXPR_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "EXPR$") + attempt;
+      (original, attempt, size) -> Util.first(original, "EXPR_") + attempt;
 
   public static final Suggester F_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "$f")
+      (original, attempt, size) -> Util.first(original, "_f")
           + Math.max(size, attempt);
 
   public static final Suggester ATTEMPT_SUGGESTER =
-      (original, attempt, size) -> Util.first(original, "$") + attempt;
+      (original, attempt, size) -> Util.first(original, "_") + attempt;
 
   /** Builds a list of GROUP BY expressions. */
   static class GroupAnalyzer {

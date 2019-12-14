@@ -281,7 +281,7 @@ public class LatticeSuggester {
       return derivedColRef.alias;
     }
     String alias = measure.name;
-    if (alias.contains("$")) {
+    if (alias.startsWith("EXPR_")) {
       // User did not specify an alias for the aggregate function, and it got a
       // system-generated name like 'EXPR$2'. Don't try to derive anything from
       // it.

@@ -4055,7 +4055,7 @@ public class SqlToRelConverter {
       final int ordinal) {
     String alias = validator.deriveAlias(node, ordinal);
     if ((alias == null) || aliases.contains(alias)) {
-      String aliasBase = (alias == null) ? "EXPR$" : alias;
+      String aliasBase = (alias == null) ? "EXPR_" : alias;
       for (int j = 0;; j++) {
         alias = aliasBase + j;
         if (!aliases.contains(alias)) {
