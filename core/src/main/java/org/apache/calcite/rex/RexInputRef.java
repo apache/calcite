@@ -52,7 +52,7 @@ public class RexInputRef extends RexSlot {
 
   // list of common names, to reduce memory allocations
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-  private static final List<String> NAMES = new SelfPopulatingList("$", 30);
+  private static final List<String> NAMES = new SelfPopulatingList("#", 30);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -117,7 +117,7 @@ public class RexInputRef extends RexSlot {
   }
 
   /**
-   * Creates a name for an input reference, of the form "$index". If the index
+   * Creates a name for an input reference, of the form "#index". If the index
    * is low, uses a cache of common names, to reduce gc.
    */
   public static String createName(int index) {

@@ -38,7 +38,7 @@ public class RexLocalRef extends RexSlot {
 
   // array of common names, to reduce memory allocations
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-  private static final List<String> NAMES = new SelfPopulatingList("$t", 30);
+  private static final List<String> NAMES = new SelfPopulatingList("#t", 30);
 
   //~ Constructors -----------------------------------------------------------
 

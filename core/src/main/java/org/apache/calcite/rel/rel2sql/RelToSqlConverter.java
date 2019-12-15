@@ -892,7 +892,7 @@ public class RelToSqlConverter extends SqlImplementor
     for (int i = 0; i < rowType.getFieldCount(); i++) {
       final String lowerName = rowType.getFieldNames().get(i).toLowerCase(Locale.ROOT);
       SqlIdentifier sqlColumn;
-      if (lowerName.startsWith("expr$")) {
+      if (lowerName.startsWith("expr#")) {
         sqlColumn = new SqlIdentifier("col_" + i, POS);
         ordinalMap.put(lowerName, sqlColumn);
       } else {
@@ -908,7 +908,7 @@ public class RelToSqlConverter extends SqlImplementor
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     final String lowerName = name.toLowerCase(Locale.ROOT);
-    if (lowerName.startsWith("expr$")) {
+    if (lowerName.startsWith("expr#")) {
       // Put it in ordinalMap
       ordinalMap.put(lowerName, node);
     } else if (alias == null || !alias.equals(name)) {

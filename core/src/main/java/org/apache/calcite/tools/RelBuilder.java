@@ -2196,7 +2196,7 @@ public class RelBuilder {
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     for (final Ord<String> fieldName : Ord.zip(fieldNames)) {
       final String name =
-          fieldName.e != null ? fieldName.e : "expr$" + fieldName.i;
+          fieldName.e != null ? fieldName.e : "expr#" + fieldName.i;
       final RelDataType type = typeFactory.leastRestrictive(
           new AbstractList<RelDataType>() {
             public RelDataType get(int index) {

@@ -612,11 +612,11 @@ public abstract class CalcRelSplitter {
           child.getRowType().getFieldList().get(inputIndex).getName();
       // Don't inherit field names like '$3' from child: that's
       // confusing.
-      if (!fieldName.startsWith("$") || fieldName.startsWith("$EXPR")) {
+      if (!fieldName.startsWith("#") || fieldName.startsWith("EXPR#")) {
         return fieldName;
       }
     }
-    return "$" + ordinal;
+    return "#" + ordinal;
   }
 
   /**

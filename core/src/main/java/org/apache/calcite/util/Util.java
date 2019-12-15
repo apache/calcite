@@ -690,14 +690,14 @@ public class Util {
     // underscores), return it unchanged.
     if (JAVA_ID_PATTERN.matcher(s).matches()) {
       // prepend "ID$" to string so it doesn't clash with java keywords
-      return "ID$" + ordinal + "$" + s;
+      return "ID_" + ordinal + "_" + s;
     }
 
     // Escape underscores and other undesirables.
     StringBuilder buf = new StringBuilder(s.length() + 10);
-    buf.append("ID$");
+    buf.append("ID_");
     buf.append(ordinal);
-    buf.append("$");
+    buf.append("_");
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       if (c == '_') {

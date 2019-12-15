@@ -198,8 +198,8 @@ public final class LogicalWindow extends Window {
         // Add the k-th over expression of
         // the i-th window to the output of the program.
         String name = fieldNames.get(over.i);
-        if (name == null || name.startsWith("$")) {
-          name = "w" + window.i + "$o" + over.i;
+        if (name == null || name.startsWith("#")) {
+          name = "w" + window.i + "_o" + over.i;
         }
         fieldList.add(Pair.of(name, over.e.getType()));
         flattenedAggCallList.add(over.e);

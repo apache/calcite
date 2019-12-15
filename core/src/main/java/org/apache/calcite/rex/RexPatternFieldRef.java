@@ -28,7 +28,7 @@ public class RexPatternFieldRef extends RexInputRef {
   public RexPatternFieldRef(String alpha, int index, RelDataType type) {
     super(index, type);
     this.alpha = alpha;
-    digest = alpha + ".$" + index;
+    digest = alpha + ".#" + index;
   }
 
   public String getAlpha() {

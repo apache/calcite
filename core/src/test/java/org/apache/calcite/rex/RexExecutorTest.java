@@ -334,7 +334,7 @@ public class RexExecutorTest {
   @Test public void testSelfPopulatingList() {
     final List<Thread> threads = new ArrayList<>();
     //noinspection MismatchedQueryAndUpdateOfCollection
-    final List<String> list = new RexSlot.SelfPopulatingList("$", 1);
+    final List<String> list = new RexSlot.SelfPopulatingList("#", 1);
     final Random random = new Random();
     for (int i = 0; i < 10; i++) {
       threads.add(
@@ -361,13 +361,13 @@ public class RexExecutorTest {
     }
     final int size = list.size();
     for (int i = 0; i < size; i++) {
-      assertThat(list.get(i), is("$" + i));
+      assertThat(list.get(i), is("#" + i));
     }
   }
 
   @Test public void testSelfPopulatingList30() {
     //noinspection MismatchedQueryAndUpdateOfCollection
-    final List<String> list = new RexSlot.SelfPopulatingList("$", 30);
+    final List<String> list = new RexSlot.SelfPopulatingList("#", 30);
     final String s = list.get(30);
     assertThat(s, is("$30"));
   }

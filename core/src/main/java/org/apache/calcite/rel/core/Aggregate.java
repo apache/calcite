@@ -387,7 +387,7 @@ public abstract class Aggregate extends SingleRel {
       if (aggCall.e.name != null) {
         base = aggCall.e.name;
       } else {
-        base = "$f" + (groupList.size() + aggCall.i);
+        base = "#f" + (groupList.size() + aggCall.i);
       }
       String name = base;
       int i = 0;

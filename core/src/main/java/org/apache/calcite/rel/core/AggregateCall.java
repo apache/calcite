@@ -302,7 +302,7 @@ public class AggregateCall {
       if (++i > 0) {
         buf.append(", ");
       }
-      buf.append("$");
+      buf.append("#");
       buf.append(arg);
     }
     buf.append(")");
@@ -312,7 +312,7 @@ public class AggregateCall {
       buf.append(")");
     }
     if (hasFilter()) {
-      buf.append(" FILTER $");
+      buf.append(" FILTER #");
       buf.append(filterArg);
     }
     return buf.toString();

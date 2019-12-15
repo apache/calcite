@@ -2345,7 +2345,7 @@ public class RelBuilderTest {
         "LogicalValues(tuples=[[{ null, 1, 'abc' }, { false, null, 'longer string' }]])\n";
     assertThat(root, hasTree(expected));
     final String expectedType =
-        "RecordType(BOOLEAN a, INTEGER expr$1, CHAR(13) NOT NULL c) NOT NULL";
+        "RecordType(BOOLEAN a, INTEGER expr#1, CHAR(13) NOT NULL c) NOT NULL";
     assertThat(root.getRowType().getFullTypeString(), is(expectedType));
   }
 
