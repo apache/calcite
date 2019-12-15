@@ -167,11 +167,11 @@ public class ToLogicalConverterTest {
             .build();
     String expectedPhysial =
         ""
-            + "EnumerableProject(DEPTNO=[$7])\n"
+            + "EnumerableProject(DEPTNO=[_7])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
-            + "LogicalProject(DEPTNO=[$7])\n"
+            + "LogicalProject(DEPTNO=[_7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -191,11 +191,11 @@ public class ToLogicalConverterTest {
             .build();
     String expectedPhysial =
         ""
-            + "EnumerableFilter(condition=[=($7, 10)])\n"
+            + "EnumerableFilter(condition=[=(_7, 10)])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
-            + "LogicalFilter(condition=[=($7, 10)])\n"
+            + "LogicalFilter(condition=[=(_7, 10)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -212,11 +212,11 @@ public class ToLogicalConverterTest {
             .build();
     String expectedPhysial =
         ""
-            + "EnumerableSort(sort0=[$2], dir0=[ASC])\n"
+            + "EnumerableSort(sort0=[_2], dir0=[ASC])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
-            + "LogicalSort(sort0=[$2], dir0=[ASC])\n"
+            + "LogicalSort(sort0=[_2], dir0=[ASC])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -255,11 +255,11 @@ public class ToLogicalConverterTest {
     String expectedPhysial =
         ""
             + "EnumerableLimit(fetch=[10])\n"
-            + "  EnumerableSort(sort0=[$7], dir0=[DESC])\n"
+            + "  EnumerableSort(sort0=[_7], dir0=[DESC])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
-            + "LogicalSort(sort0=[$7], dir0=[DESC], fetch=[10])\n"
+            + "LogicalSort(sort0=[_7], dir0=[DESC], fetch=[10])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -277,11 +277,11 @@ public class ToLogicalConverterTest {
             .build();
     String expectedPhysial =
         ""
-            + "EnumerableAggregate(group=[{7}], C=[COUNT($0)])\n"
+            + "EnumerableAggregate(group=[{7}], C=[COUNT(_0)])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
-            + "LogicalAggregate(group=[{7}], C=[COUNT($0)])\n"
+            + "LogicalAggregate(group=[{7}], C=[COUNT(_0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -302,12 +302,12 @@ public class ToLogicalConverterTest {
             .build();
     String expectedPhysial =
         ""
-            + "EnumerableHashJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "EnumerableHashJoin(condition=[=(_7, _8)], joinType=[inner])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n"
             + "  EnumerableTableScan(table=[[scott, DEPT]])\n";
     String expectedLogical =
         ""
-            + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "LogicalJoin(condition=[=(_7, _8)], joinType=[inner])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n";
     verify(rel, expectedPhysial, expectedLogical);
@@ -326,15 +326,15 @@ public class ToLogicalConverterTest {
                        .build();
     String expectedPhysial =
         ""
-            + "EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{}])\n"
+            + "EnumerableCorrelate(correlation=[_cor0], joinType=[left], requiredColumns=[{}])\n"
             + "  EnumerableTableScan(table=[[scott, EMP]])\n"
-            + "  EnumerableFilter(condition=[=($cor0.SAL, 1000)])\n"
+            + "  EnumerableFilter(condition=[=(_cor0.SAL, 1000)])\n"
             + "    EnumerableTableScan(table=[[scott, DEPT]])\n";
     String expectedLogical =
         ""
-            + "LogicalCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{5}])\n"
+            + "LogicalCorrelate(correlation=[_cor0], joinType=[left], requiredColumns=[{5}])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalFilter(condition=[=($cor0.SAL, 1000)])\n"
+            + "  LogicalFilter(condition=[=(_cor0.SAL, 1000)])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -355,16 +355,16 @@ public class ToLogicalConverterTest {
     String expectedPhysial =
         ""
             + "EnumerableUnion(all=[true])\n"
-            + "  EnumerableProject(DEPTNO=[$0])\n"
+            + "  EnumerableProject(DEPTNO=[_0])\n"
             + "    EnumerableTableScan(table=[[scott, DEPT]])\n"
-            + "  EnumerableProject(DEPTNO=[$7])\n"
+            + "  EnumerableProject(DEPTNO=[_7])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
             + "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "  LogicalProject(DEPTNO=[_0])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "  LogicalProject(DEPTNO=[_7])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -385,16 +385,16 @@ public class ToLogicalConverterTest {
     String expectedPhysial =
         ""
             + "EnumerableIntersect(all=[true])\n"
-            + "  EnumerableProject(DEPTNO=[$0])\n"
+            + "  EnumerableProject(DEPTNO=[_0])\n"
             + "    EnumerableTableScan(table=[[scott, DEPT]])\n"
-            + "  EnumerableProject(DEPTNO=[$7])\n"
+            + "  EnumerableProject(DEPTNO=[_7])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
             + "LogicalIntersect(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "  LogicalProject(DEPTNO=[_0])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "  LogicalProject(DEPTNO=[_7])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -415,16 +415,16 @@ public class ToLogicalConverterTest {
     String expectedPhysial =
         ""
             + "EnumerableMinus(all=[true])\n"
-            + "  EnumerableProject(DEPTNO=[$0])\n"
+            + "  EnumerableProject(DEPTNO=[_0])\n"
             + "    EnumerableTableScan(table=[[scott, DEPT]])\n"
-            + "  EnumerableProject(DEPTNO=[$7])\n"
+            + "  EnumerableProject(DEPTNO=[_7])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n";
     String expectedLogical =
         ""
             + "LogicalMinus(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$0])\n"
+            + "  LogicalProject(DEPTNO=[_0])\n"
             + "    LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "  LogicalProject(DEPTNO=[$7])\n"
+            + "  LogicalProject(DEPTNO=[_7])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verify(rel, expectedPhysial, expectedLogical);
   }
@@ -438,15 +438,15 @@ public class ToLogicalConverterTest {
     String expectedPhysial =
         ""
             + "EnumerableUncollect\n"
-            + "  EnumerableAggregate(group=[{}], DEPTID=[COLLECT($0)])\n"
+            + "  EnumerableAggregate(group=[{}], DEPTID=[COLLECT(_0)])\n"
             + "    JdbcToEnumerableConverter\n"
-            + "      JdbcProject(department_id=[$0])\n"
+            + "      JdbcProject(department_id=[_0])\n"
             + "        JdbcTableScan(table=[[foodmart, department]])\n";
     String expectedLogical =
         ""
             + "Uncollect\n"
-            + "  LogicalAggregate(group=[{}], DEPTID=[COLLECT($0)])\n"
-            + "    LogicalProject(department_id=[$0])\n"
+            + "  LogicalAggregate(group=[{}], DEPTID=[COLLECT(_0)])\n"
+            + "    LogicalProject(department_id=[_0])\n"
             + "      LogicalTableScan(table=[[foodmart, department]])\n";
     verify(rel(sql), expectedPhysial, expectedLogical);
   }
@@ -455,14 +455,14 @@ public class ToLogicalConverterTest {
     String sql = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expectedPhysial =
         ""
-            + "EnumerableProject($0=[$17])\n"
+            + "EnumerableProject(_0=[_17])\n"
             + "  EnumerableWindow(window#0=[window(partition {} order by [9] range between "
             + "UNBOUNDED PRECEDING and CURRENT ROW aggs [RANK()])])\n"
             + "    JdbcToEnumerableConverter\n"
             + "      JdbcTableScan(table=[[foodmart, employee]])\n";
     String expectedLogical =
         ""
-            + "LogicalProject($0=[$17])\n"
+            + "LogicalProject(_0=[_17])\n"
             + "  LogicalWindow(window#0=[window(partition {} order by [9] range between UNBOUNDED"
             + " PRECEDING and CURRENT ROW aggs [RANK()])])\n"
             + "    LogicalTableScan(table=[[foodmart, employee]])\n";

@@ -50,35 +50,35 @@ public class DateRangeRulesTest {
     assertThat(DateRangeRules.extractTimeUnits(f.literal(1)), is(set()));
 
     // extract YEAR from a DATE column
-    checkDateRange(f, e, is("AND(>=($8, 2014-01-01), <($8, 2015-01-01))"));
+    checkDateRange(f, e, is("AND(>=(_8, 2014-01-01), <(_8, 2015-01-01))"));
     checkDateRange(f, f.eq(f.exYearD, f.literal(2014)),
-        is("AND(>=($8, 2014-01-01), <($8, 2015-01-01))"));
+        is("AND(>=(_8, 2014-01-01), <(_8, 2015-01-01))"));
     checkDateRange(f, f.ge(f.exYearD, f.literal(2014)),
-        is(">=($8, 2014-01-01)"));
+        is(">=(_8, 2014-01-01)"));
     checkDateRange(f, f.gt(f.exYearD, f.literal(2014)),
-        is(">=($8, 2015-01-01)"));
+        is(">=(_8, 2015-01-01)"));
     checkDateRange(f, f.lt(f.exYearD, f.literal(2014)),
-        is("<($8, 2014-01-01)"));
+        is("<(_8, 2014-01-01)"));
     checkDateRange(f, f.le(f.exYearD, f.literal(2014)),
-        is("<($8, 2015-01-01)"));
+        is("<(_8, 2015-01-01)"));
     checkDateRange(f, f.ne(f.exYearD, f.literal(2014)),
-        is("<>(EXTRACT(FLAG(YEAR), $8), 2014)"));
+        is("<>(EXTRACT(FLAG(YEAR), _8), 2014)"));
   }
 
   @Test public void testExtractYearFromTimestampColumn() {
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.eq(f.exYearTs, f.literal(2014)),
-        is("AND(>=($9, 2014-01-01 00:00:00), <($9, 2015-01-01 00:00:00))"));
+        is("AND(>=(_9, 2014-01-01 00:00:00), <(_9, 2015-01-01 00:00:00))"));
     checkDateRange(f, f.ge(f.exYearTs, f.literal(2014)),
-        is(">=($9, 2014-01-01 00:00:00)"));
+        is(">=(_9, 2014-01-01 00:00:00)"));
     checkDateRange(f, f.gt(f.exYearTs, f.literal(2014)),
-        is(">=($9, 2015-01-01 00:00:00)"));
+        is(">=(_9, 2015-01-01 00:00:00)"));
     checkDateRange(f, f.lt(f.exYearTs, f.literal(2014)),
-        is("<($9, 2014-01-01 00:00:00)"));
+        is("<(_9, 2014-01-01 00:00:00)"));
     checkDateRange(f, f.le(f.exYearTs, f.literal(2014)),
-        is("<($9, 2015-01-01 00:00:00)"));
+        is("<(_9, 2015-01-01 00:00:00)"));
     checkDateRange(f, f.ne(f.exYearTs, f.literal(2014)),
-        is("<>(EXTRACT(FLAG(YEAR), $9), 2014)"));
+        is("<>(EXTRACT(FLAG(YEAR), _9), 2014)"));
   }
 
   @Test public void testExtractYearAndMonthFromDateColumn() {
@@ -86,10 +86,10 @@ public class DateRangeRulesTest {
     checkDateRange(f,
         f.and(f.eq(f.exYearD, f.literal(2014)), f.eq(f.exMonthD, f.literal(6))),
         "UTC",
-        is("AND(AND(>=($8, 2014-01-01), <($8, 2015-01-01)),"
-            + " AND(>=($8, 2014-06-01), <($8, 2014-07-01)))"),
-        is("AND(>=($8, 2014-01-01), <($8, 2015-01-01),"
-            + " >=($8, 2014-06-01), <($8, 2014-07-01))"));
+        is("AND(AND(>=(_8, 2014-01-01), <(_8, 2015-01-01)),"
+            + " AND(>=(_8, 2014-06-01), <(_8, 2014-07-01)))"),
+        is("AND(>=(_8, 2014-01-01), <(_8, 2015-01-01),"
+            + " >=(_8, 2014-06-01), <(_8, 2014-07-01))"));
   }
 
   /** Test case for
@@ -98,16 +98,16 @@ public class DateRangeRulesTest {
   @Test public void testExtractYearAndMonthFromDateColumn2() {
     final Fixture2 f = new Fixture2();
     final String s1 = "AND("
-        + "AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
+        + "AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
         + " OR("
-        + "AND(>=($8, 2000-02-01), <($8, 2000-03-01)), "
-        + "AND(>=($8, 2000-03-01), <($8, 2000-04-01)), "
-        + "AND(>=($8, 2000-05-01), <($8, 2000-06-01))))";
-    final String s2 = "AND(>=($8, 2000-01-01), <($8, 2001-01-01),"
+        + "AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)), "
+        + "AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)), "
+        + "AND(>=(_8, 2000-05-01), <(_8, 2000-06-01))))";
+    final String s2 = "AND(>=(_8, 2000-01-01), <(_8, 2001-01-01),"
         + " OR("
-        + "AND(>=($8, 2000-02-01), <($8, 2000-03-01)), "
-        + "AND(>=($8, 2000-03-01), <($8, 2000-04-01)), "
-        + "AND(>=($8, 2000-05-01), <($8, 2000-06-01))))";
+        + "AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)), "
+        + "AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)), "
+        + "AND(>=(_8, 2000-05-01), <(_8, 2000-06-01))))";
     final RexNode e =
         f.and(f.eq(f.exYearD, f.literal(2000)),
             f.or(f.eq(f.exMonthD, f.literal(2)),
@@ -120,14 +120,14 @@ public class DateRangeRulesTest {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,
         f.and(f.eq(f.exYearD, f.literal(2010)), f.eq(f.exDayD, f.literal(31))),
-        is("AND(AND(>=($8, 2010-01-01), <($8, 2011-01-01)),"
-            + " OR(AND(>=($8, 2010-01-31), <($8, 2010-02-01)),"
-            + " AND(>=($8, 2010-03-31), <($8, 2010-04-01)),"
-            + " AND(>=($8, 2010-05-31), <($8, 2010-06-01)),"
-            + " AND(>=($8, 2010-07-31), <($8, 2010-08-01)),"
-            + " AND(>=($8, 2010-08-31), <($8, 2010-09-01)),"
-            + " AND(>=($8, 2010-10-31), <($8, 2010-11-01)),"
-            + " AND(>=($8, 2010-12-31), <($8, 2011-01-01))))"));
+        is("AND(AND(>=(_8, 2010-01-01), <(_8, 2011-01-01)),"
+            + " OR(AND(>=(_8, 2010-01-31), <(_8, 2010-02-01)),"
+            + " AND(>=(_8, 2010-03-31), <(_8, 2010-04-01)),"
+            + " AND(>=(_8, 2010-05-31), <(_8, 2010-06-01)),"
+            + " AND(>=(_8, 2010-07-31), <(_8, 2010-08-01)),"
+            + " AND(>=(_8, 2010-08-31), <(_8, 2010-09-01)),"
+            + " AND(>=(_8, 2010-10-31), <(_8, 2010-11-01)),"
+            + " AND(>=(_8, 2010-12-31), <(_8, 2011-01-01))))"));
 
   }
 
@@ -137,25 +137,25 @@ public class DateRangeRulesTest {
     // namely 29th February 2012 and 2016.
     //
     // Currently there are redundant conditions, e.g.
-    // "AND(>=($8, 2011-01-01), <($8, 2020-01-01))". We should remove them by
+    // "AND(>=(_8, 2011-01-01), <(_8, 2020-01-01))". We should remove them by
     // folding intervals.
     checkDateRange(f,
         f.and(f.gt(f.exYearD, f.literal(2010)),
             f.lt(f.exYearD, f.literal(2020)),
             f.eq(f.exMonthD, f.literal(2)), f.eq(f.exDayD, f.literal(29))),
-        is("AND(>=($8, 2011-01-01),"
-            + " AND(>=($8, 2011-01-01), <($8, 2020-01-01)),"
-            + " OR(AND(>=($8, 2011-02-01), <($8, 2011-03-01)),"
-            + " AND(>=($8, 2012-02-01), <($8, 2012-03-01)),"
-            + " AND(>=($8, 2013-02-01), <($8, 2013-03-01)),"
-            + " AND(>=($8, 2014-02-01), <($8, 2014-03-01)),"
-            + " AND(>=($8, 2015-02-01), <($8, 2015-03-01)),"
-            + " AND(>=($8, 2016-02-01), <($8, 2016-03-01)),"
-            + " AND(>=($8, 2017-02-01), <($8, 2017-03-01)),"
-            + " AND(>=($8, 2018-02-01), <($8, 2018-03-01)),"
-            + " AND(>=($8, 2019-02-01), <($8, 2019-03-01))),"
-            + " OR(AND(>=($8, 2012-02-29), <($8, 2012-03-01)),"
-            + " AND(>=($8, 2016-02-29), <($8, 2016-03-01))))"));
+        is("AND(>=(_8, 2011-01-01),"
+            + " AND(>=(_8, 2011-01-01), <(_8, 2020-01-01)),"
+            + " OR(AND(>=(_8, 2011-02-01), <(_8, 2011-03-01)),"
+            + " AND(>=(_8, 2012-02-01), <(_8, 2012-03-01)),"
+            + " AND(>=(_8, 2013-02-01), <(_8, 2013-03-01)),"
+            + " AND(>=(_8, 2014-02-01), <(_8, 2014-03-01)),"
+            + " AND(>=(_8, 2015-02-01), <(_8, 2015-03-01)),"
+            + " AND(>=(_8, 2016-02-01), <(_8, 2016-03-01)),"
+            + " AND(>=(_8, 2017-02-01), <(_8, 2017-03-01)),"
+            + " AND(>=(_8, 2018-02-01), <(_8, 2018-03-01)),"
+            + " AND(>=(_8, 2019-02-01), <(_8, 2019-03-01))),"
+            + " OR(AND(>=(_8, 2012-02-29), <(_8, 2012-03-01)),"
+            + " AND(>=(_8, 2016-02-29), <(_8, 2016-03-01))))"));
   }
 
   @Test public void testExtractYearMonthDayFromTimestampColumn() {
@@ -164,19 +164,19 @@ public class DateRangeRulesTest {
         f.and(f.gt(f.exYearD, f.literal(2010)),
             f.lt(f.exYearD, f.literal(2020)),
             f.eq(f.exMonthD, f.literal(2)), f.eq(f.exDayD, f.literal(29))),
-        is("AND(>=($8, 2011-01-01),"
-            + " AND(>=($8, 2011-01-01), <($8, 2020-01-01)),"
-            + " OR(AND(>=($8, 2011-02-01), <($8, 2011-03-01)),"
-            + " AND(>=($8, 2012-02-01), <($8, 2012-03-01)),"
-            + " AND(>=($8, 2013-02-01), <($8, 2013-03-01)),"
-            + " AND(>=($8, 2014-02-01), <($8, 2014-03-01)),"
-            + " AND(>=($8, 2015-02-01), <($8, 2015-03-01)),"
-            + " AND(>=($8, 2016-02-01), <($8, 2016-03-01)),"
-            + " AND(>=($8, 2017-02-01), <($8, 2017-03-01)),"
-            + " AND(>=($8, 2018-02-01), <($8, 2018-03-01)),"
-            + " AND(>=($8, 2019-02-01), <($8, 2019-03-01))),"
-            + " OR(AND(>=($8, 2012-02-29), <($8, 2012-03-01)),"
-            + " AND(>=($8, 2016-02-29), <($8, 2016-03-01))))"));
+        is("AND(>=(_8, 2011-01-01),"
+            + " AND(>=(_8, 2011-01-01), <(_8, 2020-01-01)),"
+            + " OR(AND(>=(_8, 2011-02-01), <(_8, 2011-03-01)),"
+            + " AND(>=(_8, 2012-02-01), <(_8, 2012-03-01)),"
+            + " AND(>=(_8, 2013-02-01), <(_8, 2013-03-01)),"
+            + " AND(>=(_8, 2014-02-01), <(_8, 2014-03-01)),"
+            + " AND(>=(_8, 2015-02-01), <(_8, 2015-03-01)),"
+            + " AND(>=(_8, 2016-02-01), <(_8, 2016-03-01)),"
+            + " AND(>=(_8, 2017-02-01), <(_8, 2017-03-01)),"
+            + " AND(>=(_8, 2018-02-01), <(_8, 2018-03-01)),"
+            + " AND(>=(_8, 2019-02-01), <(_8, 2019-03-01))),"
+            + " OR(AND(>=(_8, 2012-02-29), <(_8, 2012-03-01)),"
+            + " AND(>=(_8, 2016-02-29), <(_8, 2016-03-01))))"));
   }
 
   /** Test case #1 for
@@ -196,12 +196,12 @@ public class DateRangeRulesTest {
                     f.eq(f.exMonthD, f.literal(5)))),
             f.and(f.eq(f.exYearD, f.literal(2001)),
                 f.eq(f.exMonthD, f.literal(1)))),
-        is("OR(AND(AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
-            + " OR(AND(>=($8, 2000-02-01), <($8, 2000-03-01)),"
-            + " AND(>=($8, 2000-03-01), <($8, 2000-04-01)),"
-            + " AND(>=($8, 2000-05-01), <($8, 2000-06-01)))),"
-            + " AND(AND(>=($8, 2001-01-01), <($8, 2002-01-01)),"
-            + " AND(>=($8, 2001-01-01), <($8, 2001-02-01))))"));
+        is("OR(AND(AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
+            + " OR(AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)),"
+            + " AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)),"
+            + " AND(>=(_8, 2000-05-01), <(_8, 2000-06-01)))),"
+            + " AND(AND(>=(_8, 2001-01-01), <(_8, 2002-01-01)),"
+            + " AND(>=(_8, 2001-01-01), <(_8, 2001-02-01))))"));
   }
 
   /** Test case #2 for
@@ -225,14 +225,14 @@ public class DateRangeRulesTest {
                         f.eq(f.exMonthD, f.literal(5)))),
                 f.and(f.eq(f.exYearD, f.literal(2001)),
                     f.eq(f.exMonthD, f.literal(1))))),
-        is("AND(OR(AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
-            + " AND(>=($8, 2001-01-01), <($8, 2002-01-01))),"
-            + " OR(AND(AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
-            + " OR(AND(>=($8, 2000-02-01), <($8, 2000-03-01)),"
-            + " AND(>=($8, 2000-03-01), <($8, 2000-04-01)),"
-            + " AND(>=($8, 2000-05-01), <($8, 2000-06-01)))),"
-            + " AND(AND(>=($8, 2001-01-01), <($8, 2002-01-01)),"
-            + " AND(>=($8, 2001-01-01), <($8, 2001-02-01)))))"));
+        is("AND(OR(AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
+            + " AND(>=(_8, 2001-01-01), <(_8, 2002-01-01))),"
+            + " OR(AND(AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
+            + " OR(AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)),"
+            + " AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)),"
+            + " AND(>=(_8, 2000-05-01), <(_8, 2000-06-01)))),"
+            + " AND(AND(>=(_8, 2001-01-01), <(_8, 2002-01-01)),"
+            + " AND(>=(_8, 2001-01-01), <(_8, 2001-02-01)))))"));
   }
 
   /** Test case #3 for
@@ -255,13 +255,13 @@ public class DateRangeRulesTest {
                         f.eq(f.exMonthD, f.literal(5)))),
                 f.and(f.eq(f.exYearD, f.literal(2001)),
                     f.eq(f.exMonthD, f.literal(1))))),
-        is("AND(<>(EXTRACT(FLAG(YEAR), $8), 2000),"
-            + " OR(AND(AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
-            + " OR(AND(>=($8, 2000-02-01), <($8, 2000-03-01)),"
-            + " AND(>=($8, 2000-03-01), <($8, 2000-04-01)),"
-            + " AND(>=($8, 2000-05-01), <($8, 2000-06-01)))),"
-            + " AND(AND(>=($8, 2001-01-01), <($8, 2002-01-01)),"
-            + " AND(>=($8, 2001-01-01), <($8, 2001-02-01)))))"));
+        is("AND(<>(EXTRACT(FLAG(YEAR), _8), 2000),"
+            + " OR(AND(AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
+            + " OR(AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)),"
+            + " AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)),"
+            + " AND(>=(_8, 2000-05-01), <(_8, 2000-06-01)))),"
+            + " AND(AND(>=(_8, 2001-01-01), <(_8, 2002-01-01)),"
+            + " AND(>=(_8, 2001-01-01), <(_8, 2001-02-01)))))"));
   }
 
   /** Test case #4 for
@@ -288,17 +288,17 @@ public class DateRangeRulesTest {
                         f.eq(f.exMonthD, f.literal(5)))),
                 f.and(f.eq(f.exYearD, f.literal(2001)),
                     f.eq(f.exMonthD, f.literal(1))))),
-        is("AND(OR(=(EXTRACT(FLAG(MONTH), $8), 1),"
-            + " =(EXTRACT(FLAG(MONTH), $8), 2),"
-            + " =(EXTRACT(FLAG(MONTH), $8), 3),"
-            + " =(EXTRACT(FLAG(MONTH), $8), 4),"
-            + " =(EXTRACT(FLAG(MONTH), $8), 5)),"
-            + " OR(AND(AND(>=($8, 2000-01-01), <($8, 2001-01-01)),"
-            + " OR(AND(>=($8, 2000-02-01), <($8, 2000-03-01)),"
-            + " AND(>=($8, 2000-03-01), <($8, 2000-04-01)),"
-            + " AND(>=($8, 2000-05-01), <($8, 2000-06-01)))),"
-            + " AND(AND(>=($8, 2001-01-01), <($8, 2002-01-01)),"
-            + " AND(>=($8, 2001-01-01), <($8, 2001-02-01)))))"));
+        is("AND(OR(=(EXTRACT(FLAG(MONTH), _8), 1),"
+            + " =(EXTRACT(FLAG(MONTH), _8), 2),"
+            + " =(EXTRACT(FLAG(MONTH), _8), 3),"
+            + " =(EXTRACT(FLAG(MONTH), _8), 4),"
+            + " =(EXTRACT(FLAG(MONTH), _8), 5)),"
+            + " OR(AND(AND(>=(_8, 2000-01-01), <(_8, 2001-01-01)),"
+            + " OR(AND(>=(_8, 2000-02-01), <(_8, 2000-03-01)),"
+            + " AND(>=(_8, 2000-03-01), <(_8, 2000-04-01)),"
+            + " AND(>=(_8, 2000-05-01), <(_8, 2000-06-01)))),"
+            + " AND(AND(>=(_8, 2001-01-01), <(_8, 2002-01-01)),"
+            + " AND(>=(_8, 2001-01-01), <(_8, 2001-02-01)))))"));
   }
 
   @Test public void testExtractRewriteForInvalidMonthComparison() {
@@ -307,21 +307,21 @@ public class DateRangeRulesTest {
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(14))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
             + " false)"));
 
     // "EXTRACT(MONTH FROM ts) = 0" will never be TRUE
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(0))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
             + " false)"));
 
     // "EXTRACT(MONTH FROM ts) = 13" will never be TRUE
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(13))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
             + " false)"));
 
     // "EXTRACT(MONTH FROM ts) = 12" might be TRUE
@@ -329,16 +329,16 @@ public class DateRangeRulesTest {
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(12))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-12-01 00:00:00), <($9, 2011-01-01 00:00:00)))"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-12-01 00:00:00), <(_9, 2011-01-01 00:00:00)))"));
 
     // "EXTRACT(MONTH FROM ts) = 1" can happen
     // Careful with boundaries, because Calendar.JANUARY = 0
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(1))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-01-01 00:00:00), <($9, 2010-02-01 00:00:00)))"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2010-02-01 00:00:00)))"));
   }
 
   @Test public void testExtractRewriteForInvalidDayComparison() {
@@ -347,15 +347,15 @@ public class DateRangeRulesTest {
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(11)),
             f.eq(f.exDayTs, f.literal(32))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-11-01 00:00:00), <($9, 2010-12-01 00:00:00)), false)"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-11-01 00:00:00), <(_9, 2010-12-01 00:00:00)), false)"));
     // Feb 31 is an invalid date
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(2)),
             f.eq(f.exDayTs, f.literal(31))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00)), false)"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-02-01 00:00:00), <(_9, 2010-03-01 00:00:00)), false)"));
   }
 
   @Test public void testUnboundYearExtractRewrite() {
@@ -365,8 +365,8 @@ public class DateRangeRulesTest {
         f.and(f.le(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(11)),
             f.eq(f.exDayTs, f.literal(2))),
-        is("AND(<($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 11),"
-            + " =(EXTRACT(FLAG(DAY), $9), 2))"));
+        is("AND(<(_9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), _9), 11),"
+            + " =(EXTRACT(FLAG(DAY), _9), 2))"));
 
     // No upper bound on YEAR
     checkDateRange(f,
@@ -374,17 +374,17 @@ public class DateRangeRulesTest {
             f.eq(f.exMonthTs, f.literal(11)),
             f.eq(f.exDayTs, f.literal(2))),
         // Since the year does not have a upper bound, MONTH and DAY cannot be replaced
-        is("AND(>=($9, 2010-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 11),"
-            + " =(EXTRACT(FLAG(DAY), $9), 2))"));
+        is("AND(>=(_9, 2010-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), _9), 11),"
+            + " =(EXTRACT(FLAG(DAY), _9), 2))"));
 
     // No lower/upper bound on YEAR for individual rexNodes.
     checkDateRange(f,
         f.and(f.le(f.exYearTs, f.literal(2010)),
             f.ge(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(5))),
-        is("AND(<($9, 2011-01-01 00:00:00), AND(>=($9, 2010-01-01 00:00:00),"
-            + " <($9, 2011-01-01 00:00:00)), AND(>=($9, 2010-05-01 00:00:00),"
-            + " <($9, 2010-06-01 00:00:00)))"));
+        is("AND(<(_9, 2011-01-01 00:00:00), AND(>=(_9, 2010-01-01 00:00:00),"
+            + " <(_9, 2011-01-01 00:00:00)), AND(>=(_9, 2010-05-01 00:00:00),"
+            + " <(_9, 2010-06-01 00:00:00)))"));
   }
 
   // Test reWrite with multiple operands
@@ -394,19 +394,19 @@ public class DateRangeRulesTest {
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(10)),
             f.eq(f.exMonthD, f.literal(5))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-10-01 00:00:00), <($9, 2010-11-01 00:00:00)),"
-            + " =(EXTRACT(FLAG(MONTH), $8), 5))"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-10-01 00:00:00), <(_9, 2010-11-01 00:00:00)),"
+            + " =(EXTRACT(FLAG(MONTH), _8), 5))"));
 
     checkDateRange(f,
         f.and(f.eq(f.exYearTs, f.literal(2010)),
             f.eq(f.exMonthTs, f.literal(10)),
             f.eq(f.exYearD, f.literal(2011)),
             f.eq(f.exMonthD, f.literal(5))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-10-01 00:00:00), <($9, 2010-11-01 00:00:00)),"
-            + " AND(>=($8, 2011-01-01), <($8, 2012-01-01)), AND(>=($8, 2011-05-01),"
-            + " <($8, 2011-06-01)))"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-10-01 00:00:00), <(_9, 2010-11-01 00:00:00)),"
+            + " AND(>=(_8, 2011-01-01), <(_8, 2012-01-01)), AND(>=(_8, 2011-05-01),"
+            + " <(_8, 2011-06-01)))"));
   }
 
   @Test public void testFloorEqRewrite() {
@@ -423,41 +423,41 @@ public class DateRangeRulesTest {
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00))"));
+        is("AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.floorMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-03-01 00:00:00))"));
+        is("AND(>=(_9, 2010-02-01 00:00:00), <(_9, 2010-03-01 00:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.floorMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-12-01 00:00:00), <($9, 2011-01-01 00:00:00))"));
+        is("AND(>=(_9, 2010-12-01 00:00:00), <(_9, 2011-01-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 0, 0, 0);
     checkDateRange(f, f.eq(f.floorDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-02-04 00:00:00), <($9, 2010-02-05 00:00:00))"));
+        is("AND(>=(_9, 2010-02-04 00:00:00), <(_9, 2010-02-05 00:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 31, 0, 0, 0);
     checkDateRange(f, f.eq(f.floorDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-12-31 00:00:00), <($9, 2011-01-01 00:00:00))"));
+        is("AND(>=(_9, 2010-12-31 00:00:00), <(_9, 2011-01-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 4, 0, 0);
     checkDateRange(f, f.eq(f.floorHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-02-04 04:00:00), <($9, 2010-02-04 05:00:00))"));
+        is("AND(>=(_9, 2010-02-04 04:00:00), <(_9, 2010-02-04 05:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 31, 23, 0, 0);
     checkDateRange(f, f.eq(f.floorHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-12-31 23:00:00), <($9, 2011-01-01 00:00:00))"));
+        is("AND(>=(_9, 2010-12-31 23:00:00), <(_9, 2011-01-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 2, 32, 0);
     checkDateRange(f,
         f.eq(f.floorMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-02-04 02:32:00), <($9, 2010-02-04 02:33:00))"));
+        is("AND(>=(_9, 2010-02-04 02:32:00), <(_9, 2010-02-04 02:33:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 2, 59, 0);
     checkDateRange(f,
         f.eq(f.floorMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>=($9, 2010-02-04 02:59:00), <($9, 2010-02-04 03:00:00))"));
+        is("AND(>=(_9, 2010-02-04 02:59:00), <(_9, 2010-02-04 03:00:00))"));
   }
 
   @Test public void testFloorLtRewrite() {
@@ -467,12 +467,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.lt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<($9, 2011-01-01 00:00:00)"));
+        is("<(_9, 2011-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.lt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<($9, 2010-01-01 00:00:00)"));
+        is("<(_9, 2010-01-01 00:00:00)"));
   }
 
   @Test public void testFloorLeRewrite() {
@@ -481,12 +481,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<($9, 2011-01-01 00:00:00)"));
+        is("<(_9, 2011-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<($9, 2011-01-01 00:00:00)"));
+        is("<(_9, 2011-01-01 00:00:00)"));
   }
 
   @Test public void testFloorGtRewrite() {
@@ -495,12 +495,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">=($9, 2011-01-01 00:00:00)"));
+        is(">=(_9, 2011-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">=($9, 2011-01-01 00:00:00)"));
+        is(">=(_9, 2011-01-01 00:00:00)"));
   }
 
   @Test public void testFloorGeRewrite() {
@@ -509,12 +509,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">=($9, 2011-01-01 00:00:00)"));
+        is(">=(_9, 2011-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">=($9, 2010-01-01 00:00:00)"));
+        is(">=(_9, 2010-01-01 00:00:00)"));
   }
 
   @Test public void testFloorExtractBothRewrite() {
@@ -526,28 +526,28 @@ public class DateRangeRulesTest {
     checkDateRange(f,
         f.and(f.eq(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
             f.eq(f.exMonthTs, f.literal(5))),
-        is("AND(AND(>=($9, 2010-01-01 00:00:00), <($9, 2011-01-01 00:00:00)),"
-            + " AND(>=($9, 2010-05-01 00:00:00), <($9, 2010-06-01 00:00:00)))"));
+        is("AND(AND(>=(_9, 2010-01-01 00:00:00), <(_9, 2011-01-01 00:00:00)),"
+            + " AND(>=(_9, 2010-05-01 00:00:00), <(_9, 2010-06-01 00:00:00)))"));
 
     // No lower range for floor
     checkDateRange(f,
         f.and(f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
             f.eq(f.exMonthTs, f.literal(5))),
-        is("AND(<($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 5))"));
+        is("AND(<(_9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), _9), 5))"));
 
     // No lower range for floor
     checkDateRange(f,
         f.and(f.gt(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
             f.eq(f.exMonthTs, f.literal(5))),
-        is("AND(>=($9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), $9), 5))"));
+        is("AND(>=(_9, 2011-01-01 00:00:00), =(EXTRACT(FLAG(MONTH), _9), 5))"));
 
     // No upper range for individual floor rexNodes, but combined results in bounded interval
     checkDateRange(f,
         f.and(f.le(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
             f.eq(f.exMonthTs, f.literal(5)),
             f.ge(f.floorYear, f.timestampLiteral(TimestampString.fromCalendarFields(c)))),
-        is("AND(<($9, 2011-01-01 00:00:00), AND(>=($9, 2010-05-01 00:00:00),"
-            + " <($9, 2010-06-01 00:00:00)), >=($9, 2010-01-01 00:00:00))"));
+        is("AND(<(_9, 2011-01-01 00:00:00), AND(>=(_9, 2010-05-01 00:00:00),"
+            + " <(_9, 2010-06-01 00:00:00)), >=(_9, 2010-01-01 00:00:00))"));
 
   }
 
@@ -565,41 +565,41 @@ public class DateRangeRulesTest {
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2009-01-01 00:00:00), <=($9, 2010-01-01 00:00:00))"));
+        is("AND(>(_9, 2009-01-01 00:00:00), <=(_9, 2010-01-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.ceilMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-01-01 00:00:00), <=($9, 2010-02-01 00:00:00))"));
+        is("AND(>(_9, 2010-01-01 00:00:00), <=(_9, 2010-02-01 00:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 1, 0, 0, 0);
     checkDateRange(f, f.eq(f.ceilMonth, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-11-01 00:00:00), <=($9, 2010-12-01 00:00:00))"));
+        is("AND(>(_9, 2010-11-01 00:00:00), <=(_9, 2010-12-01 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 0, 0, 0);
     checkDateRange(f, f.eq(f.ceilDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-02-03 00:00:00), <=($9, 2010-02-04 00:00:00))"));
+        is("AND(>(_9, 2010-02-03 00:00:00), <=(_9, 2010-02-04 00:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 31, 0, 0, 0);
     checkDateRange(f, f.eq(f.ceilDay, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-12-30 00:00:00), <=($9, 2010-12-31 00:00:00))"));
+        is("AND(>(_9, 2010-12-30 00:00:00), <=(_9, 2010-12-31 00:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 4, 0, 0);
     checkDateRange(f, f.eq(f.ceilHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-02-04 03:00:00), <=($9, 2010-02-04 04:00:00))"));
+        is("AND(>(_9, 2010-02-04 03:00:00), <=(_9, 2010-02-04 04:00:00))"));
 
     c.set(2010, Calendar.DECEMBER, 31, 23, 0, 0);
     checkDateRange(f, f.eq(f.ceilHour, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-12-31 22:00:00), <=($9, 2010-12-31 23:00:00))"));
+        is("AND(>(_9, 2010-12-31 22:00:00), <=(_9, 2010-12-31 23:00:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 2, 32, 0);
     checkDateRange(f,
         f.eq(f.ceilMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-02-04 02:31:00), <=($9, 2010-02-04 02:32:00))"));
+        is("AND(>(_9, 2010-02-04 02:31:00), <=(_9, 2010-02-04 02:32:00))"));
 
     c.set(2010, Calendar.FEBRUARY, 4, 2, 59, 0);
     checkDateRange(f,
         f.eq(f.ceilMinute, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("AND(>($9, 2010-02-04 02:58:00), <=($9, 2010-02-04 02:59:00))"));
+        is("AND(>(_9, 2010-02-04 02:58:00), <=(_9, 2010-02-04 02:59:00))"));
   }
 
   @Test public void testCeilLtRewrite() {
@@ -609,12 +609,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.lt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<=($9, 2010-01-01 00:00:00)"));
+        is("<=(_9, 2010-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.lt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<=($9, 2009-01-01 00:00:00)"));
+        is("<=(_9, 2009-01-01 00:00:00)"));
   }
 
   @Test public void testCeilLeRewrite() {
@@ -623,12 +623,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.le(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<=($9, 2010-01-01 00:00:00)"));
+        is("<=(_9, 2010-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.le(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is("<=($9, 2010-01-01 00:00:00)"));
+        is("<=(_9, 2010-01-01 00:00:00)"));
   }
 
   @Test public void testCeilGtRewrite() {
@@ -637,12 +637,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.gt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">($9, 2010-01-01 00:00:00)"));
+        is(">(_9, 2010-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.gt(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">($9, 2010-01-01 00:00:00)"));
+        is(">(_9, 2010-01-01 00:00:00)"));
   }
 
   @Test public void testCeilGeRewrite() {
@@ -651,12 +651,12 @@ public class DateRangeRulesTest {
     c.set(2010, Calendar.FEBRUARY, 10, 11, 12, 05);
     final Fixture2 f = new Fixture2();
     checkDateRange(f, f.ge(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">($9, 2010-01-01 00:00:00)"));
+        is(">(_9, 2010-01-01 00:00:00)"));
 
     c.clear();
     c.set(2010, Calendar.JANUARY, 1, 0, 0, 0);
     checkDateRange(f, f.ge(f.ceilYear, f.timestampLiteral(TimestampString.fromCalendarFields(c))),
-        is(">($9, 2009-01-01 00:00:00)"));
+        is(">(_9, 2009-01-01 00:00:00)"));
   }
 
   @Test public void testFloorRewriteWithTimezone() {
@@ -668,7 +668,7 @@ public class DateRangeRulesTest {
         f.eq(f.floorHour,
             f.timestampLocalTzLiteral(TimestampString.fromCalendarFields(c))),
         "IST",
-        is("AND(>=($9, 2010-02-01 17:00:00), <($9, 2010-02-01 18:00:00))"),
+        is("AND(>=(_9, 2010-02-01 17:00:00), <(_9, 2010-02-01 18:00:00))"),
         CoreMatchers.any(String.class));
 
     c.clear();
@@ -677,7 +677,7 @@ public class DateRangeRulesTest {
         f.eq(f.floorHour,
             f.timestampLiteral(TimestampString.fromCalendarFields(c))),
         "IST",
-        is("AND(>=($9, 2010-02-01 11:00:00), <($9, 2010-02-01 12:00:00))"),
+        is("AND(>=(_9, 2010-02-01 11:00:00), <(_9, 2010-02-01 12:00:00))"),
         CoreMatchers.any(String.class));
 
     c.clear();
@@ -685,7 +685,7 @@ public class DateRangeRulesTest {
     checkDateRange(f,
         f.eq(f.floorHour, f.dateLiteral(DateString.fromCalendarFields(c))),
         "IST",
-        is("AND(>=($9, 2010-02-01 00:00:00), <($9, 2010-02-01 01:00:00))"),
+        is("AND(>=(_9, 2010-02-01 00:00:00), <(_9, 2010-02-01 01:00:00))"),
         CoreMatchers.any(String.class));
   }
 

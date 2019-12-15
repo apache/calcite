@@ -179,7 +179,7 @@ FROM ticker
      ) MR
      ORDER BY MR.symbol, MR.start_tstamp;
 +--------+--------+---+
-| GENDER | EXPR$1 | C |
+| GENDER | EXPR_1 | C |
 +--------+--------+---+
 | M      |     21 | 1 |
 | F      |     11 | 1 |

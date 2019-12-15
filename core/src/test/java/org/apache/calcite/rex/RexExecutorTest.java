@@ -369,7 +369,7 @@ public class RexExecutorTest {
     //noinspection MismatchedQueryAndUpdateOfCollection
     final List<String> list = new RexSlot.SelfPopulatingList("_", 30);
     final String s = list.get(30);
-    assertThat(s, is("$30"));
+    assertThat(s, is("_30"));
   }
 
   /** Callback for {@link #check}. Test code will typically use {@code builder}

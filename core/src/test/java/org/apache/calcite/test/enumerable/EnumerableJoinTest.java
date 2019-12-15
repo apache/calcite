@@ -176,12 +176,12 @@ public class EnumerableJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
-            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2], name=[$t4], dept=[$t1], deptno=[$t3], deptno0=[$t0])\n"
-            + "  EnumerableMergeJoin(condition=[=($3, $0)], joinType=[inner])\n"
-            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[_t2], name=[_t4], dept=[_t1], deptno=[_t3], deptno0=[_t0])\n"
+            + "  EnumerableMergeJoin(condition=[=(_3, _0)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[_0], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+            + "    EnumerableSort(sort0=[_1], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, emps]])")
         .returns(""
@@ -203,12 +203,12 @@ public class EnumerableJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
-            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2], name=[$t4], dept=[$t1], deptno=[$t3], deptno0=[$t0])\n"
-            + "  EnumerableMergeJoin(condition=[AND(=($3, $0), >($2, *($0, 10)))], joinType=[inner])\n"
-            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[_t2], name=[_t4], dept=[_t1], deptno=[_t3], deptno0=[_t0])\n"
+            + "  EnumerableMergeJoin(condition=[AND(=(_3, _0), >(_2, *(_0, 10)))], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[_0], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+            + "    EnumerableSort(sort0=[_1], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, emps]])")
         .returns(""

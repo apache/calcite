@@ -17,7 +17,7 @@
 #
 !use post
 values 1;
-EXPR$0
+EXPR_0
 1
 !ok
 # End dummy.iq

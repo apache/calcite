@@ -103,7 +103,7 @@ public class RelWriterTest {
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
-      + "            \"name\": \"$1\"\n"
+      + "            \"name\": \"_1\"\n"
       + "          },\n"
       + "          {\n"
       + "            \"literal\": 10,\n"
@@ -180,7 +180,7 @@ public class RelWriterTest {
       + "        \"operands\": [\n"
       + "          {\n"
       + "            \"input\": 1,\n"
-      + "            \"name\": \"$1\"\n"
+      + "            \"name\": \"_1\"\n"
       + "          },\n"
       + "          {\n"
       + "            \"literal\": null,\n"
@@ -251,7 +251,7 @@ public class RelWriterTest {
       + "      \"exprs\": [\n"
       + "        {\n"
       + "          \"input\": 0,\n"
-      + "          \"name\": \"$0\"\n"
+      + "          \"name\": \"_0\"\n"
       + "        },\n"
       + "        {\n"
       + "          \"op\": {\n"
@@ -262,7 +262,7 @@ public class RelWriterTest {
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
-      + "              \"name\": \"$0\"\n"
+      + "              \"name\": \"_0\"\n"
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
@@ -274,14 +274,14 @@ public class RelWriterTest {
       + "            \"partition\": [\n"
       + "              {\n"
       + "                \"input\": 2,\n"
-      + "                \"name\": \"$2\"\n"
+      + "                \"name\": \"_2\"\n"
       + "              }\n"
       + "            ],\n"
       + "            \"order\": [\n"
       + "              {\n"
       + "                \"expr\": {\n"
       + "                  \"input\": 1,\n"
-      + "                  \"name\": \"$1\"\n"
+      + "                  \"name\": \"_1\"\n"
       + "                },\n"
       + "                \"direction\": \"ASCENDING\",\n"
       + "                \"null-direction\": \"LAST\"\n"
@@ -304,7 +304,7 @@ public class RelWriterTest {
       + "          \"operands\": [\n"
       + "            {\n"
       + "              \"input\": 0,\n"
-      + "              \"name\": \"$0\"\n"
+      + "              \"name\": \"_0\"\n"
       + "            }\n"
       + "          ],\n"
       + "          \"distinct\": false,\n"
@@ -316,14 +316,14 @@ public class RelWriterTest {
       + "            \"partition\": [\n"
       + "              {\n"
       + "                \"input\": 2,\n"
-      + "                \"name\": \"$2\"\n"
+      + "                \"name\": \"_2\"\n"
       + "              }\n"
       + "            ],\n"
       + "            \"order\": [\n"
       + "              {\n"
       + "                \"expr\": {\n"
       + "                  \"input\": 1,\n"
-      + "                  \"name\": \"$1\"\n"
+      + "                  \"name\": \"_1\"\n"
       + "                },\n"
       + "                \"direction\": \"ASCENDING\",\n"
       + "                \"null-direction\": \"LAST\"\n"
@@ -467,8 +467,8 @@ public class RelWriterTest {
         });
 
     assertThat(s,
-        isLinux("LogicalAggregate(group=[{0}], c=[COUNT(DISTINCT $1)], d=[COUNT()])\n"
-            + "  LogicalFilter(condition=[=($1, 10)])\n"
+        isLinux("LogicalAggregate(group=[{0}], c=[COUNT(DISTINCT _1)], d=[COUNT()])\n"
+            + "  LogicalFilter(condition=[=(_1, 10)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -494,10 +494,10 @@ public class RelWriterTest {
         });
 
     assertThat(s,
-        isLinux("LogicalProject(field0=[$0],"
-            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST ROWS BETWEEN"
+        isLinux("LogicalProject(field0=[_0],"
+            + " field1=[COUNT(_0) OVER (PARTITION BY _2 ORDER BY _1 NULLS LAST ROWS BETWEEN"
             + " UNBOUNDED PRECEDING AND CURRENT ROW)],"
-            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST RANGE BETWEEN"
+            + " field2=[SUM(_0) OVER (PARTITION BY _2 ORDER BY _1 NULLS LAST RANGE BETWEEN"
             + " CURRENT ROW AND 1 FOLLOWING)])\n"
             + "  LogicalTableScan(table=[[hr, emps]])\n"));
   }
@@ -524,8 +524,8 @@ public class RelWriterTest {
         });
 
     assertThat(s,
-        isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT $1)], agg#1=[COUNT()])\n"
-            + "  LogicalFilter(condition=[=($1, null:INTEGER)])\n"
+        isLinux("LogicalAggregate(group=[{0}], agg#0=[COUNT(DISTINCT _1)], agg#1=[COUNT()])\n"
+            + "  LogicalFilter(condition=[=(_1, null:INTEGER)])\n"
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -549,7 +549,7 @@ public class RelWriterTest {
     final RelOptSchema schema = getSchema(rel);
     final String s = deserializeAndDumpToTextFormat(schema, relJson);
     final String expected = ""
-        + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', $1)])\n"
+        + "LogicalProject(trimmed_ename=[TRIM(FLAG(BOTH), ' ', _1)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -569,7 +569,7 @@ public class RelWriterTest {
     String relJson = jsonWriter.asString();
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[+($5, 10)])\n"
+        + "LogicalProject(_f0=[+(_5, 10)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -594,9 +594,9 @@ public class RelWriterTest {
     final String relJson = jsonWriter.asString();
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject(max_sal=[$1])\n"
-        + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
-        + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+        + "LogicalProject(max_sal=[_1])\n"
+        + "  LogicalAggregate(group=[{0}], max_sal=[MAX(_1)])\n"
+        + "    LogicalProject(JOB=[_2], SAL=[_5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
     assertThat(s, isLinux(expected));
@@ -622,9 +622,9 @@ public class RelWriterTest {
     final String relJson = jsonWriter.asString();
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f1=[$1])\n"
-        + "  LogicalAggregate(group=[{0}], agg#0=[MAX($1)])\n"
-        + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+        + "LogicalProject(_f1=[_1])\n"
+        + "  LogicalAggregate(group=[{0}], agg#0=[MAX(_1)])\n"
+        + "    LogicalProject(JOB=[_2], SAL=[_5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
     assertThat(s, isLinux(expected));
@@ -660,8 +660,8 @@ public class RelWriterTest {
               SqlExplainLevel.EXPPLAN_ATTRIBUTES);
         });
     final String expected =
-        "LogicalCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[>($t5, $t8)],"
-            + " proj#0..7=[{exprs}], $condition=[$t9])\n"
+        "LogicalCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[>(_t5, _t8)],"
+            + " proj#0..7=[{exprs}], _condition=[_t9])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -683,9 +683,9 @@ public class RelWriterTest {
     final String relJson = jsonWriter.asString();
     String s = deserializeAndDumpToTextFormat(getSchema(relNode), relJson);
     final String expected = ""
-        + "LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{7}])\n"
+        + "LogicalCorrelate(correlation=[_cor0], joinType=[inner], requiredColumns=[{7}])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "  LogicalFilter(condition=[=(_0, _cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
 
     assertThat(s, isLinux(expected));
@@ -698,7 +698,7 @@ public class RelWriterTest {
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST ROWS"
+        + "LogicalProject(_f0=[COUNT() OVER (ORDER BY _7 NULLS LAST ROWS"
         + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
@@ -711,8 +711,8 @@ public class RelWriterTest {
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER"
-        + " (PARTITION BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+        + "LogicalProject(_f0=[COUNT() OVER"
+        + " (PARTITION BY _7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -738,7 +738,7 @@ public class RelWriterTest {
     String relJson = jsonWriter.asString();
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[TUMBLE_END($4, 86400000:INTERVAL DAY)])\n"
+        + "LogicalProject(_f0=[TUMBLE_END(_4, 86400000:INTERVAL DAY)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -756,7 +756,7 @@ public class RelWriterTest {
         SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[MYFUN($0)])\n"
+        + "LogicalProject(_f0=[MYFUN(_0)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }

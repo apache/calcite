@@ -31,10 +31,10 @@ public interface AuxiliaryConverter {
   /** Converts an expression.
    *
    * @param rexBuilder Rex  builder
-   * @param groupCall Call to the group function, e.g. "TUMBLE($2, 36000)"
-   * @param e Expression holding result of the group function, e.g. "$0"
+   * @param groupCall Call to the group function, e.g. "TUMBLE(_2, 36000)"
+   * @param e Expression holding result of the group function, e.g. "_0"
    *
-   * @return Expression for auxiliary function, e.g. "$0 + 36000" converts
+   * @return Expression for auxiliary function, e.g. "_0 + 36000" converts
    * the result of TUMBLE to the result of TUMBLE_END
    */
   RexNode convert(RexBuilder rexBuilder, RexNode groupCall, RexNode e);

@@ -187,7 +187,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     // "MULTISET [<expr>, ...]" needs to be wrapped in a record if
     // <expr> has a scalar type.
     // For example, "MULTISET [8, 9]" has type
-    // "RECORD(INTEGER EXPR$0 NOT NULL) NOT NULL MULTISET NOT NULL".
+    // "RECORD(INTEGER EXPR_0 NOT NULL) NOT NULL MULTISET NOT NULL".
     final RelDataType componentType = type.getComponentType();
     if (componentType == null || componentType.isStruct()) {
       return type;

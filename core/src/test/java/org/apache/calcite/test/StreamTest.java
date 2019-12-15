@@ -117,7 +117,7 @@ public class StreamTest {
         .withDefaultSchema("STREAMS")
         .query("select stream * from orders")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3])\n"
+            + "  LogicalProject(ROWTIME=[_0], ID=[_1], PRODUCT=[_2], UNITS=[_3])\n"
             + "    LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains("EnumerableInterpreter\n"
             + "  BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
@@ -133,11 +133,11 @@ public class StreamTest {
         .query("select stream product from orders where units > 6")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalProject(PRODUCT=[$2])\n"
-                + "    LogicalFilter(condition=[>($3, 6)])\n"
+                + "  LogicalProject(PRODUCT=[_2])\n"
+                + "    LogicalFilter(condition=[>(_3, 6)])\n"
                 + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>($t3, $t4)], PRODUCT=[$t2], $condition=[$t5])\n"
+            "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[6], expr#5=[>(_t3, _t4)], PRODUCT=[_t2], _condition=[_t5])\n"
                 + "  EnumerableInterpreter\n"
                 + "    BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
@@ -155,14 +155,14 @@ public class StreamTest {
             + "having count(*) > 1")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalFilter(condition=[>($2, 1)])\n"
+                + "  LogicalFilter(condition=[>(_2, 1)])\n"
                 + "    LogicalAggregate(group=[{0, 1}], C=[COUNT()])\n"
-                + "      LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2])\n"
+                + "      LogicalProject(ROWTIME=[FLOOR(_0, FLAG(HOUR))], PRODUCT=[_2])\n"
                 + "        LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[>($t2, $t3)], proj#0..2=[{exprs}], $condition=[$t4])\n"
+            "EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[>(_t2, _t3)], proj#0..2=[{exprs}], _condition=[_t4])\n"
                 + "  EnumerableAggregate(group=[{0, 1}], C=[COUNT()])\n"
-                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2])\n"
+                + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR(_t0, _t4)], ROWTIME=[_t5], PRODUCT=[_t2])\n"
                 + "      EnumerableInterpreter\n"
                 + "        BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
@@ -178,12 +178,12 @@ public class StreamTest {
             + "order by floor(orders.rowtime to hour), product desc")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
-                + "    LogicalProject(ROWTIME=[FLOOR($0, FLAG(HOUR))], PRODUCT=[$2], UNITS=[$3])\n"
+                + "  LogicalSort(sort0=[_0], sort1=[_1], dir0=[ASC], dir1=[DESC])\n"
+                + "    LogicalProject(ROWTIME=[FLOOR(_0, FLAG(HOUR))], PRODUCT=[_2], UNITS=[_3])\n"
                 + "      LogicalTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2], UNITS=[$t3])\n"
+            "EnumerableSort(sort0=[_0], sort1=[_1], dir0=[ASC], dir1=[DESC])\n"
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR(_t0, _t4)], ROWTIME=[_t5], PRODUCT=[_t2], UNITS=[_t3])\n"
                 + "    EnumerableInterpreter\n"
                 + "      BindableTableScan(table=[[STREAMS, ORDERS, (STREAM)]])")
         .returns(
@@ -206,16 +206,16 @@ public class StreamTest {
             + "order by rowtime\n")
         .convertContains(
             "LogicalDelta\n"
-                + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-                + "    LogicalProject(ROWTIME=[$0], PRODUCT=[$1])\n"
+                + "  LogicalSort(sort0=[_0], dir0=[ASC])\n"
+                + "    LogicalProject(ROWTIME=[_0], PRODUCT=[_1])\n"
                 + "      LogicalUnion(all=[true])\n"
-                + "        LogicalProject(ROWTIME=[$0], PRODUCT=[$2])\n"
+                + "        LogicalProject(ROWTIME=[_0], PRODUCT=[_2])\n"
                 + "          EnumerableTableScan(table=[[STREAMS, ORDERS]])\n"
-                + "        LogicalProject(ROWTIME=[$0], PRODUCT=[$2])\n"
+                + "        LogicalProject(ROWTIME=[_0], PRODUCT=[_2])\n"
                 + "          EnumerableTableScan(table=[[STREAMS, ORDERS]])\n")
         .explainContains(
-            "EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[DESC])\n"
-                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR($t0, $t4)], ROWTIME=[$t5], PRODUCT=[$t2], UNITS=[$t3])\n"
+            "EnumerableSort(sort0=[_0], sort1=[_1], dir0=[ASC], dir1=[DESC])\n"
+                + "  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[FLAG(HOUR)], expr#5=[FLOOR(_t0, _t4)], ROWTIME=[_t5], PRODUCT=[_t2], UNITS=[_t3])\n"
                 + "    EnumerableInterpreter\n"
                 + "      BindableTableScan(table=[[]])")
         .returns(
@@ -279,15 +279,15 @@ public class StreamTest {
             + "orders.rowtime as rowtime, orders.id as orderId, products.supplier as supplierId "
             + "from orders join products on orders.product = products.id")
         .convertContains("LogicalDelta\n"
-            + "  LogicalProject(ROWTIME=[$0], ORDERID=[$1], SUPPLIERID=[$6])\n"
-            + "    LogicalJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "      LogicalProject(ROWTIME=[$0], ID=[$1], PRODUCT=[$2], UNITS=[$3], PRODUCT0=[CAST($2):VARCHAR(32) NOT NULL])\n"
+            + "  LogicalProject(ROWTIME=[_0], ORDERID=[_1], SUPPLIERID=[_6])\n"
+            + "    LogicalJoin(condition=[=(_4, _5)], joinType=[inner])\n"
+            + "      LogicalProject(ROWTIME=[_0], ID=[_1], PRODUCT=[_2], UNITS=[_3], PRODUCT0=[CAST(_2):VARCHAR(32) NOT NULL])\n"
             + "        LogicalTableScan(table=[[STREAM_JOINS, ORDERS]])\n"
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
-            + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableHashJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
+            + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[_t6])\n"
+            + "  EnumerableHashJoin(condition=[=(_4, _5)], joinType=[inner])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST(_t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
             + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
             + "    EnumerableInterpreter\n"

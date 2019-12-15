@@ -333,7 +333,7 @@ public class LatticeTest {
           .query("select count(*) from \"adhoc\".\"star\"")
           .convertMatches(
               CalciteAssert.checkRel(""
-                  + "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+                  + "LogicalAggregate(group=[{}], EXPR_0=[COUNT()])\n"
                   + "  LogicalProject(DUMMY=[0])\n"
                   + "    StarTableScan(table=[[adhoc, star]])\n",
                   counter));
@@ -354,8 +354,8 @@ public class LatticeTest {
         .enableMaterializations(true)
         .substitutionMatches(
             CalciteAssert.checkRel(
-                "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
-                    + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
+                "LogicalProject(unit_sales=[_7], brand_name=[_10])\n"
+                    + "  LogicalProject(product_id=[_0], time_id=[_1], customer_id=[_2], promotion_id=[_3], store_id=[_4], store_sales=[_5], store_cost=[_6], unit_sales=[_7], product_class_id=[_8], product_id0=[_9], brand_name=[_10], product_name=[_11], SKU=[_12], SRP=[_13], gross_weight=[_14], net_weight=[_15], recyclable_package=[_16], low_fat=[_17], units_per_case=[_18], cases_per_pallet=[_19], shelf_width=[_20], shelf_height=[_21], shelf_depth=[_22])\n"
                     + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
     assertThat(counter.intValue(), equalTo(1));
@@ -375,7 +375,7 @@ public class LatticeTest {
           assertThat(s,
               anyOf(
                   containsStringLinux(
-                      "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
+                      "LogicalProject(brand_name=[_1], customer_id=[_0])\n"
                       + "  LogicalAggregate(group=[{2, 10}])\n"
                       + "    LogicalTableScan(table=[[adhoc, star]])\n"),
                   containsStringLinux(
@@ -385,7 +385,7 @@ public class LatticeTest {
         });
     assertThat(counter.intValue(), equalTo(2));
     that.explainContains(""
-        + "EnumerableCalc(expr#0..1=[{inputs}], brand_name=[$t1], customer_id=[$t0])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], brand_name=[_t1], customer_id=[_t0])\n"
         + "  EnumerableTableScan(table=[[adhoc, m{2, 10}]])")
         .returnsCount(69203);
 
@@ -455,8 +455,8 @@ public class LatticeTest {
             + "group by t.\"the_year\"")
         .enableMaterializations(true)
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*($t3, $t4)], proj#0..2=[{exprs}], US=[$t5])\n"
-            + "  EnumerableAggregate(group=[{0}], C=[$SUM0($2)], Q=[MIN($1)], agg#2=[$SUM0($4)])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[10], expr#5=[*(_t3, _t4)], proj#0..2=[{exprs}], US=[_t5])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[$SUM0(_2)], Q=[MIN(_1)], agg#2=[$SUM0(_4)])\n"
             + "    EnumerableTableScan(table=[[adhoc, m{32, 36}")
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .returnsUnordered("the_year=1997; C=86837; Q=Q1; US=2667730.0000")
@@ -571,17 +571,17 @@ public class LatticeTest {
         + "JOIN \"foodmart\".\"product_class\" AS \"pc\" ON \"p\".\"product_class_id\" = \"pc\".\"product_class_id\"\n"
         + "GROUP BY \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\"";
     final String explain = "JdbcToEnumerableConverter\n"
-        + "  JdbcAggregate(group=[{3, 6, 8, 9, 10, 12}], m0=[COUNT()], m1=[$SUM0($2)], m2=[$SUM0($3)])\n"
-        + "    JdbcJoin(condition=[=($4, $11)], joinType=[inner])\n"
-        + "      JdbcJoin(condition=[=($1, $7)], joinType=[inner])\n"
-        + "        JdbcJoin(condition=[=($0, $5)], joinType=[inner])\n"
-        + "          JdbcProject(product_id=[$0], time_id=[$1], store_sales=[$5], unit_sales=[$7])\n"
+        + "  JdbcAggregate(group=[{3, 6, 8, 9, 10, 12}], m0=[COUNT()], m1=[$SUM0(_2)], m2=[$SUM0(_3)])\n"
+        + "    JdbcJoin(condition=[=(_4, _11)], joinType=[inner])\n"
+        + "      JdbcJoin(condition=[=(_1, _7)], joinType=[inner])\n"
+        + "        JdbcJoin(condition=[=(_0, _5)], joinType=[inner])\n"
+        + "          JdbcProject(product_id=[_0], time_id=[_1], store_sales=[_5], unit_sales=[_7])\n"
         + "            JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
-        + "          JdbcProject(product_class_id=[$0], product_id=[$1], recyclable_package=[$8])\n"
+        + "          JdbcProject(product_class_id=[_0], product_id=[_1], recyclable_package=[_8])\n"
         + "            JdbcTableScan(table=[[foodmart, product]])\n"
-        + "        JdbcProject(time_id=[$0], the_day=[$2], the_year=[$4], quarter=[$8])\n"
+        + "        JdbcProject(time_id=[_0], the_day=[_2], the_year=[_4], quarter=[_8])\n"
         + "          JdbcTableScan(table=[[foodmart, time_by_day]])\n"
-        + "      JdbcProject(product_class_id=[$0], product_family=[$4])\n"
+        + "      JdbcProject(product_class_id=[_0], product_family=[_4])\n"
         + "        JdbcTableScan(table=[[foodmart, product_class]])";
     CalciteAssert.that().with(CalciteAssert.Config.JDBC_FOODMART)
         .query(sql)
@@ -660,8 +660,8 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
-            + "  EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[_t1])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[COUNT(_1)])\n"
             + "    EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=4");
   }
@@ -673,8 +673,8 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
-            + "  EnumerableAggregate(group=[{0}], C=[COUNT($0)])\n"
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[_t1])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[COUNT(_0)])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=1");
@@ -730,7 +730,7 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
-        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0, $1)])\n"
+        .explainContains("EnumerableAggregate(group=[{}], EXPR_0=[COUNT(_0, _1)])\n"
             + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
         .returnsCount(1);
   }
@@ -747,7 +747,7 @@ public class LatticeTest {
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
         .enableMaterializations(true)
-        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+        .explainContains("EnumerableAggregate(group=[{}], EXPR_0=[COUNT()])\n"
             + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
         .returnsCount(1);
   }
@@ -817,8 +817,8 @@ public class LatticeTest {
         .enable(enabled)
         .substitutionMatches(
             CalciteAssert.checkRel(
-                "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
-                    + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
+                "LogicalProject(unit_sales=[_7], brand_name=[_10])\n"
+                    + "  LogicalProject(product_id=[_0], time_id=[_1], customer_id=[_2], promotion_id=[_3], store_id=[_4], store_sales=[_5], store_cost=[_6], unit_sales=[_7], product_class_id=[_8], product_id0=[_9], brand_name=[_10], product_name=[_11], SKU=[_12], SRP=[_13], gross_weight=[_14], net_weight=[_15], recyclable_package=[_16], low_fat=[_17], units_per_case=[_18], cases_per_pallet=[_19], shelf_width=[_20], shelf_height=[_21], shelf_depth=[_22])\n"
                     + "    LogicalTableScan(table=[[adhoc, star]])\n",
                 counter));
     if (enabled) {
@@ -893,7 +893,7 @@ public class LatticeTest {
     assertFalse(lattice.equals(INVENTORY_LATTICE));
     modelWithLattices(lattice)
         .query("values 1\n")
-        .returns("EXPR$0=1\n");
+        .returns("EXPR_0=1\n");
   }
 
   @Test public void testSuggester() {
@@ -923,16 +923,16 @@ public class LatticeTest {
         + "from \"sales_fact_1997\"\n"
         + "join \"time_by_day\" using (\"time_id\")\n";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
-        + "  JdbcAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-        + "    JdbcJoin(condition=[=($1, $0)], joinType=[inner])\n"
-        + "      JdbcProject(time_id=[$0])\n"
+        + "  JdbcAggregate(group=[{}], EXPR_0=[COUNT()])\n"
+        + "    JdbcJoin(condition=[=(_1, _0)], joinType=[inner])\n"
+        + "      JdbcProject(time_id=[_0])\n"
         + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
-        + "      JdbcProject(time_id=[$1])\n"
+        + "      JdbcProject(time_id=[_1])\n"
         + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n";
     CalciteAssert.model(model)
         .withDefaultSchema("foodmart")
         .query(sql)
-        .returns("EXPR$0=86837\n")
+        .returns("EXPR_0=86837\n")
         .explainContains(explain);
   }
 

@@ -318,7 +318,7 @@ select deptno, count(*) as c from emps group by grouping sets ((), (deptno));
 # GROUPING SETS on expression
 select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno + 1));
 +--------+---+
-| EXPR$0 | C |
+| EXPR_0 | C |
 +--------+---+
 |     11 | 1 |
 |     21 | 2 |
@@ -332,7 +332,7 @@ select deptno + 1, count(*) as c from emps group by grouping sets ((), (deptno +
 # CUBE
 select deptno + 1, count(*) as c from emp group by cube(deptno, gender);
 +--------+---+
-| EXPR$0 | C |
+| EXPR_0 | C |
 +--------+---+
 |     11 | 1 |
 |     11 | 1 |
@@ -361,7 +361,7 @@ select deptno + 1, count(*) as c
 from emp
 group by rollup(deptno);
 +--------+---+
-| EXPR$0 | C |
+| EXPR_0 | C |
 +--------+---+
 |     11 | 2 |
 |     21 | 1 |
@@ -380,7 +380,7 @@ select gender, deptno + 1, count(*) as c
 from emp
 group by rollup(deptno, gender);
 +--------+--------+---+
-| GENDER | EXPR$1 | C |
+| GENDER | EXPR_1 | C |
 +--------+--------+---+
 | M      |     21 | 1 |
 | F      |     11 | 1 |
@@ -532,7 +532,7 @@ having count(*) > 3;
 # CUBE and DISTINCT
 select distinct count(*) from emp group by cube(deptno, gender);
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      1 |
 |      2 |
@@ -705,7 +705,7 @@ from emp
 where deptno = 10
 group by rollup(gender, deptno);
 +--------+--------+--------+---+
-| DEPTNO | GENDER | EXPR$2 | C |
+| DEPTNO | GENDER | EXPR_2 | C |
 +--------+--------+--------+---+
 |     10 | F      |      0 | 1 |
 |     10 | M      |      0 | 1 |
@@ -1447,12 +1447,12 @@ group by deptno;
 (2 rows)
 
 !ok
-EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
-  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=($t0, $t2)], expr#4=[IS TRUE($t3)], DEPTNO=[$t1], $f1=[$t4])
+EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER _1], C=[COUNT()])
+  EnumerableCalc(expr#0..1=[{inputs}], expr#2=['CLERK':VARCHAR(9)], expr#3=[=(_t0, _t2)], expr#4=[IS TRUE(_t3)], DEPTNO=[_t1], _f1=[_t4])
     EnumerableUnion(all=[true])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[<(_t7, _t8)], JOB=[_t2], DEPTNO=[_t7], _condition=[_t9])
         EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[>($t7, $t8)], JOB=[$t2], DEPTNO=[$t7], $condition=[$t9])
+      EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[>(_t7, _t8)], JOB=[_t2], DEPTNO=[_t7], _condition=[_t9])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1460,18 +1460,18 @@ EnumerableAggregate(group=[{0}], CF=[COUNT() FILTER $1], C=[COUNT()])
 select count(*)
 from "scott".emp join "scott".dept using (deptno);
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |     14 |
 +--------+
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])
-  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableAggregate(group=[{}], EXPR_0=[COUNT()])
+  EnumerableHashJoin(condition=[=(_0, _2)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], DEPTNO=[_t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1479,18 +1479,18 @@ EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])
 select sum(sal)
 from "scott".emp join "scott".dept using (deptno);
 +----------+
-| EXPR$0   |
+| EXPR_0   |
 +----------+
 | 29025.00 |
 +----------+
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], EXPR$0=[SUM($2)])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableAggregate(group=[{}], EXPR_0=[SUM(_2)])
+  EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1499,7 +1499,7 @@ select sum(sal)
 from "scott".emp join "scott".dept using (deptno)
 group by emp.deptno, dept.deptno;
 +----------+
-| EXPR$0   |
+| EXPR_0   |
 +----------+
 | 10875.00 |
 |  8750.00 |
@@ -1508,12 +1508,12 @@ group by emp.deptno, dept.deptno;
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], EXPR$0=[$t2])
-  EnumerableAggregate(group=[{0, 3}], EXPR$0=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..2=[{inputs}], EXPR_0=[_t2])
+  EnumerableAggregate(group=[{0, 3}], EXPR_0=[SUM(_2)])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1522,7 +1522,7 @@ select sum(sal)
 from "scott".emp join "scott".dept using (deptno)
 group by emp.deptno;
 +----------+
-| EXPR$0   |
+| EXPR_0   |
 +----------+
 | 10875.00 |
 |  8750.00 |
@@ -1531,12 +1531,12 @@ group by emp.deptno;
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
-  EnumerableAggregate(group=[{3}], EXPR$0=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..1=[{inputs}], EXPR_0=[_t1])
+  EnumerableAggregate(group=[{3}], EXPR_0=[SUM(_2)])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1545,7 +1545,7 @@ select min(sal)
 from "scott".emp join "scott".dept using (deptno)
 group by emp.deptno;
 +---------+
-| EXPR$0  |
+| EXPR_0  |
 +---------+
 | 1300.00 |
 |  800.00 |
@@ -1554,12 +1554,12 @@ group by emp.deptno;
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])
-  EnumerableAggregate(group=[{3}], EXPR$0=[MIN($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..1=[{inputs}], EXPR_0=[_t1])
+  EnumerableAggregate(group=[{3}], EXPR_0=[MIN(_2)])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1574,11 +1574,11 @@ from "scott".emp join "scott".dept using (deptno);
 (1 row)
 
 !ok
-EnumerableAggregate(group=[{}], C=[COUNT()], S=[SUM($2)])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableAggregate(group=[{}], C=[COUNT()], S=[SUM(_2)])
+  EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1596,12 +1596,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.deptno;
 
 !ok
 # No aggregate on top, because output of join is unique
-EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{3}], C=[COUNT()], S=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..2=[{inputs}], C=[_t1], S=[_t2])
+  EnumerableAggregate(group=[{3}], C=[COUNT()], S=[SUM(_2)])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1624,12 +1624,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job, dept.deptno;
 (9 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], C=[$t2], S=[$t3])
-  EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..3=[{inputs}], C=[_t2], S=[_t3])
+  EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM(_3)])
+    EnumerableHashJoin(condition=[=(_0, _4)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], JOB=[_t2], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1648,12 +1648,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job;
 (5 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..2=[{inputs}], C=[_t1], S=[_t2])
+  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM(_3)])
+    EnumerableHashJoin(condition=[=(_0, _4)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], JOB=[_t2], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1676,12 +1676,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.job, dept.deptno;
 (9 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], C=[$t2], S=[$t3])
-  EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM($3)])
-    EnumerableHashJoin(condition=[=($0, $4)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..3=[{inputs}], C=[_t2], S=[_t3])
+  EnumerableAggregate(group=[{0, 2}], C=[COUNT()], S=[SUM(_3)])
+    EnumerableHashJoin(condition=[=(_0, _4)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], JOB=[_t2], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1707,12 +1707,12 @@ from "scott".emp join "scott".dept using (deptno) group by emp.sal;
 (12 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], C=[$t1], S=[$t2])
-  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM($2)])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..2=[{inputs}], C=[_t1], S=[_t2])
+  EnumerableAggregate(group=[{2}], C=[COUNT()], S=[SUM(_2)])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1847,11 +1847,11 @@ using (deptno);
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t0])
-  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[_t1], DEPTNO=[_t0])
+  EnumerableHashJoin(condition=[=(_0, _2)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
       EnumerableTableScan(table=[[scott, DEPT]])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
+    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], DEPTNO=[_t7])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -1859,7 +1859,7 @@ EnumerableCalc(expr#0..2=[{inputs}], EMPNO=[$t1], DEPTNO=[$t0])
 # Should return 0 rows
 select '1' from "scott".emp where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1869,7 +1869,7 @@ select '1' from "scott".emp where false group by 1;
 # Should return 0 rows
 select count('1') from "scott".emp where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1879,7 +1879,7 @@ select count('1') from "scott".emp where false group by 1;
 # Should return 1 row
 select count('1') from "scott".emp where false group by ();
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -1890,7 +1890,7 @@ select count('1') from "scott".emp where false group by ();
 # Should return 1 row
 select count('1') from "scott".emp where false;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -1902,7 +1902,7 @@ select count('1') from "scott".emp where false;
 # Should return 0 rows
 select '1' from (values (1, 2), (3, 4)) where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1912,7 +1912,7 @@ select '1' from (values (1, 2), (3, 4)) where false group by 1;
 # Should return 0 rows
 select count('1') from (values (1, 2), (3, 4)) where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1922,7 +1922,7 @@ select count('1') from (values (1, 2), (3, 4)) where false group by 1;
 # Should return 1 row
 select count('1') from (values (1, 2), (3, 4)) where false group by ();
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -1933,7 +1933,7 @@ select count('1') from (values (1, 2), (3, 4)) where false group by ();
 # Should return 1 row
 select count('1') from (values (1, 2), (3, 4)) where false;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -1945,7 +1945,7 @@ select count('1') from (values (1, 2), (3, 4)) where false;
 # Should return 0 rows
 select '1' from "scott".emp join "scott".dept using (deptno) where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1955,7 +1955,7 @@ select '1' from "scott".emp join "scott".dept using (deptno) where false group b
 # Should return 0 rows
 select count('1') from "scott".emp join "scott".dept using (deptno) where false group by 1;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 +--------+
 (0 rows)
@@ -1965,7 +1965,7 @@ select count('1') from "scott".emp join "scott".dept using (deptno) where false 
 # Should return 1 row
 select count('1') from "scott".emp join "scott".dept using (deptno) where false group by ();
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -1976,7 +1976,7 @@ select count('1') from "scott".emp join "scott".dept using (deptno) where false 
 # Should return 1 row
 select count('1') from "scott".emp join "scott".dept using (deptno) where false;
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      0 |
 +--------+
@@ -2004,9 +2004,9 @@ select job, sum(sal) as sum_sal, deptno
 from "scott".emp
 where deptno = 10
 group by deptno, job;
-EnumerableCalc(expr#0..2=[{inputs}], JOB=[$t0], SUM_SAL=[$t2], DEPTNO=[$t1])
-  EnumerableAggregate(group=[{2, 7}], SUM_SAL=[SUM($5)])
-    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST($t7):INTEGER], expr#9=[10], expr#10=[=($t8, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+EnumerableCalc(expr#0..2=[{inputs}], JOB=[_t0], SUM_SAL=[_t2], DEPTNO=[_t1])
+  EnumerableAggregate(group=[{2, 7}], SUM_SAL=[SUM(_5)])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[CAST(_t7):INTEGER], expr#9=[10], expr#10=[=(_t8, _t9)], proj#0..7=[{exprs}], _condition=[_t10])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 !}
@@ -2141,17 +2141,17 @@ group by grouping sets(CURRENT_USER);
 select nullif(count(distinct '1'),0)
 from (values (1,2),(3,4));
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 |      1 |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#3=[null:BIGINT], expr#4=[CASE($t2, $t3, $t0)], EXPR$0=[$t4])
-  EnumerableAggregate(group=[{}], agg#0=[COUNT($0)])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=(_t0, _t1)], expr#3=[null:BIGINT], expr#4=[CASE(_t2, _t3, _t0)], EXPR_0=[_t4])
+  EnumerableAggregate(group=[{}], agg#0=[COUNT(_0)])
     EnumerableAggregate(group=[{0}])
-      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], $f0=[$t2])
+      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['1'], _f0=[_t2])
         EnumerableValues(tuples=[[{ 1, 2 }, { 3, 4 }]])
 !plan
 
@@ -2160,7 +2160,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[0:BIGINT], expr#2=[=($t0, $t1)], expr#
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 +--------+--------+--------+---------+
-| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  |
+| EXPR_0 | EXPR_1 | EXPR_2 | EXPR_3  |
 +--------+--------+--------+---------+
 |     14 |     14 | 800.00 | 5000.00 |
 +--------+--------+--------+---------+
@@ -2168,17 +2168,17 @@ select count(distinct EMPNO), COUNT(SAL), MIN(SAL), MAX(SAL) from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
-      EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], EXPR$1=[COUNT($5)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($0)])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST(_t1):BIGINT NOT NULL], EXPR_0=[_t0], EXPR_1=[_t4], EXPR_2=[_t2], EXPR_3=[_t3])
+  EnumerableAggregate(group=[{}], EXPR_0=[COUNT(_0) FILTER _4], EXPR_1=[MIN(_1) FILTER _5], EXPR_2=[MIN(_2) FILTER _5], EXPR_3=[MIN(_3) FILTER _5])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=(_t4, _t5)], expr#7=[1], expr#8=[=(_t4, _t7)], proj#0..3=[{exprs}], $g_0=[_t6], $g_1=[_t8])
+      EnumerableAggregate(group=[{0}], groups=[[{0}, {}]], EXPR_1=[COUNT(_5)], EXPR_2=[MIN(_5)], EXPR_3=[MAX(_5)], $g=[GROUPING(_0)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
 +--------+--------+--------+---------+
-| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3  |
+| EXPR_0 | EXPR_1 | EXPR_2 | EXPR_3  |
 +--------+--------+--------+---------+
 |      3 |     14 | 800.00 | 5000.00 |
 +--------+--------+--------+---------+
@@ -2186,17 +2186,17 @@ select count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp;
 
 !ok
 
-EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):BIGINT NOT NULL], EXPR$0=[$t0], EXPR$1=[$t4], EXPR$2=[$t2], EXPR$3=[$t3])
-  EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0) FILTER $4], EXPR$1=[MIN($1) FILTER $5], EXPR$2=[MIN($2) FILTER $5], EXPR$3=[MIN($3) FILTER $5])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t4, $t5)], expr#7=[1], expr#8=[=($t4, $t7)], proj#0..3=[{exprs}], $g_0=[$t6], $g_1=[$t8])
-      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], EXPR$1=[COUNT($2)], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($7)])
+EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST(_t1):BIGINT NOT NULL], EXPR_0=[_t0], EXPR_1=[_t4], EXPR_2=[_t2], EXPR_3=[_t3])
+  EnumerableAggregate(group=[{}], EXPR_0=[COUNT(_0) FILTER _4], EXPR_1=[MIN(_1) FILTER _5], EXPR_2=[MIN(_2) FILTER _5], EXPR_3=[MIN(_3) FILTER _5])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=(_t4, _t5)], expr#7=[1], expr#8=[=(_t4, _t7)], proj#0..3=[{exprs}], $g_0=[_t6], $g_1=[_t8])
+      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], EXPR_1=[COUNT(_2)], EXPR_2=[MIN(_5)], EXPR_3=[MAX(_5)], $g=[GROUPING(_7)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".emp group by MGR;
 +------+--------+--------+---------+---------+
-| MGR  | EXPR$1 | EXPR$2 | EXPR$3  | EXPR$4  |
+| MGR  | EXPR_1 | EXPR_2 | EXPR_3  | EXPR_4  |
 +------+--------+--------+---------+---------+
 | 7566 |      1 |      2 | 3000.00 | 3000.00 |
 | 7698 |      1 |      5 |  950.00 | 1600.00 |
@@ -2210,17 +2210,17 @@ select MGR, count(distinct DEPTNO), COUNT(JOB), MIN(SAL), MAX(SAL) from "scott".
 
 !ok
 
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR$2=[$t5], EXPR$3=[$t3], EXPR$4=[$t4])
-  EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1) FILTER $5], EXPR$2=[MIN($2) FILTER $6], EXPR$3=[MIN($3) FILTER $6], EXPR$4=[MIN($4) FILTER $6])
-    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])
-      EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], EXPR$2=[COUNT($2)], EXPR$3=[MIN($5)], EXPR$4=[MAX($5)], $g=[GROUPING($3, $7)])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST(_t2):BIGINT NOT NULL], proj#0..1=[{exprs}], EXPR_2=[_t5], EXPR_3=[_t3], EXPR_4=[_t4])
+  EnumerableAggregate(group=[{0}], EXPR_1=[COUNT(_1) FILTER _5], EXPR_2=[MIN(_2) FILTER _6], EXPR_3=[MIN(_3) FILTER _6], EXPR_4=[MIN(_4) FILTER _6])
+    EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=(_t5, _t6)], expr#8=[1], expr#9=[=(_t5, _t8)], proj#0..4=[{exprs}], $g_0=[_t7], $g_1=[_t9])
+      EnumerableAggregate(group=[{3, 7}], groups=[[{3, 7}, {3}]], EXPR_2=[COUNT(_2)], EXPR_3=[MIN(_5)], EXPR_4=[MAX(_5)], $g=[GROUPING(_3, _7)])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # [CALCITE-1930] AggregateExpandDistinctAggregateRules should handle multiple aggregate calls with same input ref
 select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp group by MGR;
 +------+--------+---------+---------+
-| MGR  | EXPR$1 | EXPR$2  | EXPR$3  |
+| MGR  | EXPR_1 | EXPR_2  | EXPR_3  |
 +------+--------+---------+---------+
 | 7566 |      1 | 3000.00 | 3000.00 |
 | 7698 |      2 |  950.00 | 1600.00 |
@@ -2234,9 +2234,9 @@ select MGR, count(distinct DEPTNO, JOB), MIN(SAL), MAX(SAL) from "scott".emp gro
 
 !ok
 
-EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1, $2) FILTER $5], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
-  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[3], expr#9=[=($t5, $t8)], MGR=[$t1], DEPTNO=[$t2], JOB=[$t0], EXPR$2=[$t3], EXPR$3=[$t4], $g_0=[$t7], $g_3=[$t9])
-    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($3, $7, $2)])
+EnumerableAggregate(group=[{0}], EXPR_1=[COUNT(_1, _2) FILTER _5], EXPR_2=[MIN(_3) FILTER _6], EXPR_3=[MIN(_4) FILTER _6])
+  EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=(_t5, _t6)], expr#8=[3], expr#9=[=(_t5, _t8)], MGR=[_t1], DEPTNO=[_t2], JOB=[_t0], EXPR_2=[_t3], EXPR_3=[_t4], $g_0=[_t7], $g_3=[_t9])
+    EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR_2=[MIN(_5)], EXPR_3=[MAX(_5)], $g=[GROUPING(_3, _7, _2)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2252,7 +2252,7 @@ SELECT any_value(empno) as anyempno from "scott".emp;
 
 !ok
 
-EnumerableAggregate(group=[{}], ANYEMPNO=[ANY_VALUE($0)])
+EnumerableAggregate(group=[{}], ANYEMPNO=[ANY_VALUE(_0)])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2279,8 +2279,8 @@ SELECT any_value(empno) as anyempno from "scott".emp group by sal;
 
 !ok
 
-EnumerableCalc(expr#0..1=[{inputs}], ANYEMPNO=[$t1])
-  EnumerableAggregate(group=[{5}], ANYEMPNO=[ANY_VALUE($0)])
+EnumerableCalc(expr#0..1=[{inputs}], ANYEMPNO=[_t1])
+  EnumerableAggregate(group=[{5}], ANYEMPNO=[ANY_VALUE(_0)])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2297,7 +2297,7 @@ from "scott".emp;
 
 !ok
 
-EnumerableAggregate(group=[{}], REGR_COUNT(COMM, SAL)=[REGR_COUNT($6, $5)], REGR_COUNT(EMPNO, SAL)=[REGR_COUNT($5)])
+EnumerableAggregate(group=[{}], REGR_COUNT(COMM, SAL)=[REGR_COUNT(_6, _5)], REGR_COUNT(EMPNO, SAL)=[REGR_COUNT(_5)])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2396,7 +2396,7 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0])])
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT(_0) WITHIN GROUP ([0])])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2414,7 +2414,7 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT($0) WITHIN GROUP ([0 DESC])])
+EnumerableAggregate(group=[{7}], EMPNOS=[COLLECT(_0) WITHIN GROUP ([0 DESC])])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2435,7 +2435,7 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{7}], EMPNOS_1=[COLLECT($0)], EMPNOS_2=[COLLECT($0) WITHIN GROUP ([0 DESC])])
+EnumerableAggregate(group=[{7}], EMPNOS_1=[COLLECT(_0)], EMPNOS_2=[COLLECT(_0) WITHIN GROUP ([0 DESC])])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2454,8 +2454,8 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([1 DESC]) FILTER $2])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>($t0, $t8)], DEPTNO=[$t7], EMPNO=[$t0], $f2=[$t9])
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT(_1) WITHIN GROUP ([1 DESC]) FILTER _2])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[7500], expr#9=[>(_t0, _t8)], DEPTNO=[_t7], EMPNO=[_t0], _f2=[_t9])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2474,7 +2474,7 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{7}], EMPNOS1=[COLLECT($0) WITHIN GROUP ([0 DESC])], EMPNOS2=[COLLECT($0) WITHIN GROUP ([0])])
+EnumerableAggregate(group=[{7}], EMPNOS1=[COLLECT(_0) WITHIN GROUP ([0 DESC])], EMPNOS2=[COLLECT(_0) WITHIN GROUP ([0])])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2497,12 +2497,12 @@ group by dept.deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{0}], S=[COLLECT($1) WITHIN GROUP ([1 DESC])], S1=[COLLECT($1) WITHIN GROUP ([2])], S2=[COLLECT($1) WITHIN GROUP ([1]) FILTER $3])
-  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>($t2, $t5)], expr#7=[IS TRUE($t6)], DEPTNO=[$t0], SAL=[$t2], $f2=[$t4], $f3=[$t7])
-    EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableAggregate(group=[{0}], S=[COLLECT(_1) WITHIN GROUP ([1 DESC])], S1=[COLLECT(_1) WITHIN GROUP ([2])], S2=[COLLECT(_1) WITHIN GROUP ([1]) FILTER _3])
+  EnumerableCalc(expr#0..3=[{inputs}], expr#4=[1], expr#5=[2000], expr#6=[>(_t2, _t5)], expr#7=[IS TRUE(_t6)], DEPTNO=[_t0], SAL=[_t2], _f2=[_t4], _f3=[_t7])
+    EnumerableHashJoin(condition=[=(_0, _3)], joinType=[inner])
+      EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[_t0])
         EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
+      EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[_t0], SAL=[_t5], DEPTNO=[_t7])
         EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
@@ -2520,15 +2520,15 @@ group by deptno;
 (3 rows)
 
 !ok
-EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
-  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+($t0, $t8)], DEPTNO=[$t7], $f1=[$t9], $f2=[$t8])
+EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT(_1) WITHIN GROUP ([2])])
+  EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1], expr#9=[+(_t0, _t8)], DEPTNO=[_t7], _f1=[_t9], _f2=[_t8])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 # BIT_AND, BIT_OR aggregate functions
 select bit_and(deptno), bit_or(deptno) from "scott".emp;
 +--------+--------+
-| EXPR$0 | EXPR$1 |
+| EXPR_0 | EXPR_1 |
 +--------+--------+
 |      0 |     30 |
 +--------+--------+
@@ -2538,7 +2538,7 @@ select bit_and(deptno), bit_or(deptno) from "scott".emp;
 
 select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
 +--------+--------+--------+
-| DEPTNO | EXPR$1 | EXPR$2 |
+| DEPTNO | EXPR_1 | EXPR_2 |
 +--------+--------+--------+
 |     10 |   7686 |   7935 |
 |     20 |   7168 |   8191 |
@@ -2585,7 +2585,7 @@ LIMIT 500;
 
 select gender, json_objectagg(ename: deptno absent on null) from emp group by gender;
 +--------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                |
+| GENDER | EXPR_1                                                |
 +--------+-------------------------------------------------------+
 | F      | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
 | M      | {"Adam":50,"Bob":10,"Eric":20}                        |
@@ -2596,7 +2596,7 @@ select gender, json_objectagg(ename: deptno absent on null) from emp group by ge
 
 select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) format json) from emp group by gender;
 +--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| GENDER | EXPR$1                                                                                                                                                                               |
+| GENDER | EXPR_1                                                                                                                                                                               |
 +--------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | F      | [{"ename":"Jane","deptno":10},{"ename":"Susan","deptno":30},{"ename":"Alice","deptno":30},{"ename":"Eve","deptno":50},{"ename":"Grace","deptno":60},{"ename":"Wilma","deptno":null}] |
 | M      | [{"ename":"Bob","deptno":10},{"ename":"Eric","deptno":20},{"ename":"Adam","deptno":50}]                                                                                              |
@@ -2607,7 +2607,7 @@ select gender, json_arrayagg(json_object('ename': ename, 'deptno': deptno) forma
 
 select json_object('deptno': deptno, 'employees': json_arrayagg(json_object('ename': ename, 'gender': gender) format json) format json) from emp group by deptno;
 +-------------------------------------------------------------------------------------------+
-| EXPR$0                                                                                    |
+| EXPR_0                                                                                    |
 +-------------------------------------------------------------------------------------------+
 | {"employees":[{"ename":"Adam","gender":"M"},{"ename":"Eve","gender":"F"}],"deptno":50}    |
 | {"employees":[{"ename":"Eric","gender":"M"}],"deptno":20}                                 |
@@ -2626,7 +2626,7 @@ json_arrayagg(deptno order by deptno),
 json_arrayagg(deptno order by deptno desc)
 from emp group by gender;
 +--------+------------------+------------------+
-| GENDER | EXPR$1           | EXPR$2           |
+| GENDER | EXPR_1           | EXPR_2           |
 +--------+------------------+------------------+
 | F      | [10,30,30,50,60] | [60,50,30,30,10] |
 | M      | [10,20,50]       | [50,20,10]       |
@@ -2634,25 +2634,25 @@ from emp group by gender;
 (2 rows)
 
 !ok
-EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0])], EXPR$2=[JSON_ARRAYAGG_ABSENT_ON_NULL($0) WITHIN GROUP ([0 DESC])])
+EnumerableAggregate(group=[{1}], EXPR_1=[JSON_ARRAYAGG_ABSENT_ON_NULL(_0) WITHIN GROUP ([0])], EXPR_2=[JSON_ARRAYAGG_ABSENT_ON_NULL(_0) WITHIN GROUP ([0 DESC])])
   EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -2663,7 +2663,7 @@ json_arrayagg(deptno),
 json_arrayagg(deptno null on null)
 from emp group by gender;
 +--------+------------------+-----------------------+
-| GENDER | EXPR$1           | EXPR$2                |
+| GENDER | EXPR_1           | EXPR_2                |
 +--------+------------------+-----------------------+
 | F      | [10,30,30,50,60] | [10,30,30,50,60,null] |
 | M      | [10,20,50]       | [10,20,50]            |
@@ -2671,25 +2671,25 @@ from emp group by gender;
 (2 rows)
 
 !ok
-EnumerableAggregate(group=[{1}], EXPR$1=[JSON_ARRAYAGG_ABSENT_ON_NULL($0)], EXPR$2=[JSON_ARRAYAGG_NULL_ON_NULL($0)])
+EnumerableAggregate(group=[{1}], EXPR_1=[JSON_ARRAYAGG_ABSENT_ON_NULL(_0)], EXPR_2=[JSON_ARRAYAGG_NULL_ON_NULL(_0)])
   EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[20], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['M'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[50], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[60], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR$1=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[null:INTEGER], expr#2=['F'], EXPR_1=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -2698,7 +2698,7 @@ json_objectagg(ename: deptno),
 json_objectagg(ename: deptno absent on null)
 from emp group by gender;
 +--------+--------------------------------------------------------------------+-------------------------------------------------------+
-| GENDER | EXPR$1                                                             | EXPR$2                                                |
+| GENDER | EXPR_1                                                             | EXPR_2                                                |
 +--------+--------------------------------------------------------------------+-------------------------------------------------------+
 | F      | {"Eve":50,"Grace":60,"Wilma":null,"Susan":30,"Alice":30,"Jane":10} | {"Eve":50,"Grace":60,"Susan":30,"Alice":30,"Jane":10} |
 | M      | {"Adam":50,"Bob":10,"Eric":20}                                     | {"Adam":50,"Bob":10,"Eric":20}                        |
@@ -2706,25 +2706,25 @@ from emp group by gender;
 (2 rows)
 
 !ok
-EnumerableAggregate(group=[{2}], EXPR$1=[JSON_OBJECTAGG_NULL_ON_NULL($0, $1)], EXPR$2=[JSON_OBJECTAGG_ABSENT_ON_NULL($0, $1)])
+EnumerableAggregate(group=[{2}], EXPR_1=[JSON_OBJECTAGG_NULL_ON_NULL(_0, _1)], EXPR_2=[JSON_OBJECTAGG_ABSENT_ON_NULL(_0, _1)])
   EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=[10], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=[10], expr#3=['M'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=[20], expr#3=['M'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=[30], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=[30], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=[50], expr#3=['M'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=[50], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=[60], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t3])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=[null:INTEGER], expr#3=['F'], EXPR_0=[_t1], EXPR_1=[_t2], EXPR_2=[_t3])
       EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -2748,25 +2748,25 @@ select listagg(ename) within group(order by gender, ename) as combined_name from
 
 !ok
 
-EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG($0) WITHIN GROUP ([1, 0])])
+EnumerableAggregate(group=[{}], COMBINED_NAME=[LISTAGG(_0) WITHIN GROUP ([1, 0])])
   EnumerableUnion(all=[true])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Jane'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Bob'], expr#2=['M'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eric'], expr#2=['M'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Susan'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Alice'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Adam'], expr#2=['M'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Eve'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Grace'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR$0=[$t1], EXPR$2=[$t2])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=['Wilma'], expr#2=['F'], EXPR_0=[_t1], EXPR_2=[_t2])
       EnumerableValues(tuples=[[{ 0 }]])
 !plan
 

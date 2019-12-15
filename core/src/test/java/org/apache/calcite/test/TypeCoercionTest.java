@@ -445,21 +445,21 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   @Test public void testSetOperations() {
     // union
     sql("select 1 from (values(true)) union select '2' from (values(true))")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     sql("select 1 from (values(true)) union select '2' from (values(true))"
         + "union select '3' from (values(true))")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     sql("select 1, '2' from (values(true, false)) union select '3', 4 from (values(true, false))")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0, VARCHAR NOT NULL EXPR$1) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0, VARCHAR NOT NULL EXPR_1) NOT NULL");
     sql("select '1' from (values(true)) union values 2")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     sql("select (select 1+2 from (values true)) tt from (values(true)) union values '2'")
         .type("RecordType(VARCHAR NOT NULL TT) NOT NULL");
     // union with star
     sql("select * from (values(1, '3')) union select * from (values('2', 4))")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0, VARCHAR NOT NULL EXPR$1) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0, VARCHAR NOT NULL EXPR_1) NOT NULL");
     sql("select 1 from (values(true)) union values (select '1' from (values (true)) as tt)")
-        .type("RecordType(VARCHAR EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR EXPR_0) NOT NULL");
     // union with func
     sql("select LOCALTIME from (values(true)) union values '1'")
         .type("RecordType(VARCHAR NOT NULL LOCALTIME) NOT NULL");
@@ -510,12 +510,12 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
 
     sql("select 1+'2', 2-'3', 2*'3', 2/'3', MOD(4,'3') "
         + "from (values (true, true, true, true, true))")
-        .type("RecordType(INTEGER NOT NULL EXPR$0, "
-            + "INTEGER NOT NULL EXPR$1, "
-            + "INTEGER NOT NULL EXPR$2, "
-            + "INTEGER NOT NULL EXPR$3, "
+        .type("RecordType(INTEGER NOT NULL EXPR_0, "
+            + "INTEGER NOT NULL EXPR_1, "
+            + "INTEGER NOT NULL EXPR_2, "
+            + "INTEGER NOT NULL EXPR_3, "
             + "DECIMAL(19, 19) "
-            + "NOT NULL EXPR$4) NOT NULL");
+            + "NOT NULL EXPR_4) NOT NULL");
     expr("select abs(t1_varchar20) from t1").ok();
     expr("select sum(t1_varchar20) from t1").ok();
     expr("select avg(t1_varchar20) from t1").ok();
@@ -588,28 +588,28 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     // coalesce
     // double int float
     sql("select COALESCE(t1_double, t1_int, t1_float) from t1")
-        .type("RecordType(DOUBLE NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(DOUBLE NOT NULL EXPR_0) NOT NULL");
     // bigint int decimal
     sql("select COALESCE(t1_bigint, t1_int, t1_decimal) from t1")
-        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR_0) NOT NULL");
     // null int
     sql("select COALESCE(null, t1_int) from t1")
-        .type("RecordType(INTEGER EXPR$0) NOT NULL");
+        .type("RecordType(INTEGER EXPR_0) NOT NULL");
     // timestamp varchar
     sql("select COALESCE(t1_varchar20, t1_timestamp) from t1")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     // null float int
     sql("select COALESCE(null, t1_float, t1_int) from t1")
-        .type("RecordType(FLOAT EXPR$0) NOT NULL");
+        .type("RecordType(FLOAT EXPR_0) NOT NULL");
     // null int decimal double
     sql("select COALESCE(null, t1_int, t1_decimal, t1_double) from t1")
-        .type("RecordType(DOUBLE EXPR$0) NOT NULL");
+        .type("RecordType(DOUBLE EXPR_0) NOT NULL");
     // null float double varchar
     sql("select COALESCE(null, t1_float, t1_double, t1_varchar20) from t1")
-        .type("RecordType(VARCHAR EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR EXPR_0) NOT NULL");
     // timestamp int varchar
     sql("select COALESCE(t1_timestamp, t1_int, t1_varchar20) from t1")
-        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR_0) NOT NULL");
 
     // case when
     // smallint int char
@@ -617,19 +617,19 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
         + "when 1 > 0 then t2_smallint "
         + "when 2 > 3 then t2_int "
         + "else t2_varchar20 end from t2")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     // boolean int char
     sql("select case "
         + "when 1 > 0 then t2_boolean "
         + "when 2 > 3 then t2_int "
         + "else t2_varchar20 end from t2")
-        .type("RecordType(VARCHAR NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(VARCHAR NOT NULL EXPR_0) NOT NULL");
     // float decimal
     sql("select case when 1 > 0 then t2_float else t2_decimal end from t2")
-        .type("RecordType(DOUBLE NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(DOUBLE NOT NULL EXPR_0) NOT NULL");
     // bigint decimal
     sql("select case when 1 > 0 then t2_bigint else t2_decimal end from t2")
-        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR_0) NOT NULL");
   }
 
   /** Test case for {@link AbstractTypeCoercion#implicitCast} */

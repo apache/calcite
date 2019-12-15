@@ -96,7 +96,7 @@ public class EnumerableBatchNestedLoopJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
-        .returnsUnordered("EXPR$0=46");
+        .returnsUnordered("EXPR_0=46");
   }
 
   @Test public void innerBatchJoinTestSQL2() {
@@ -107,7 +107,7 @@ public class EnumerableBatchNestedLoopJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
-        .returnsUnordered("EXPR$0=4");
+        .returnsUnordered("EXPR_0=4");
   }
 
   @Test public void leftBatchJoinTestSQL() {
@@ -119,7 +119,7 @@ public class EnumerableBatchNestedLoopJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
-        .returnsUnordered("EXPR$0=8");
+        .returnsUnordered("EXPR_0=8");
   }
 
   @Test public void testJoinSubQuery() {
@@ -133,7 +133,7 @@ public class EnumerableBatchNestedLoopJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
-        .returnsUnordered("EXPR$0=23");
+        .returnsUnordered("EXPR_0=23");
   }
 
   @Test public void testInnerJoinOnString() {
@@ -214,7 +214,7 @@ public class EnumerableBatchNestedLoopJoinTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_CORRELATE_RULE);
           planner.addRule(EnumerableRules.ENUMERABLE_BATCH_NESTED_LOOP_JOIN_RULE);
         })
-        .returnsUnordered("EXPR$0=1");
+        .returnsUnordered("EXPR_0=1");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,

@@ -2192,7 +2192,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         //         rightInput
         //
 
-        // In the case where agg is count(*) or count($corVar), it is
+        // In the case where agg is count(*) or count(_corVar), it is
         // changed to count(nullIndicator).
         // Note:  any non-nullable field from the RHS can be used as
         // the indicator however a "true" field is added to the
@@ -2259,7 +2259,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         //         rightInput
         //
 
-        // In the case where agg is count($corVar), it is changed to
+        // In the case where agg is count(_corVar), it is changed to
         // count(nullIndicator).
         // Note:  any non-nullable field from the RHS can be used as
         // the indicator however a "true" field is added to the

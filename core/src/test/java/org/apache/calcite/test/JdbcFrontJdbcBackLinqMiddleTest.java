@@ -122,14 +122,14 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "  join \"foodmart\".\"customer\" as c\n"
             + "  on s.\"customer_id\" - c.\"customer_id\" = 0)")
-        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-($t0, $t1)], expr#4=[=($t3, $t2)], DUMMY=[$t2], $condition=[$t4])\n"
+        .explainContains("EnumerableAggregate(group=[{}], EXPR_0=[COUNT()])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[-(_t0, _t1)], expr#4=[=(_t3, _t2)], DUMMY=[_t2], _condition=[_t4])\n"
             + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
             + "      JdbcToEnumerableConverter\n"
-            + "        JdbcProject(customer_id=[$2])\n"
+            + "        JdbcProject(customer_id=[_2])\n"
             + "          JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
             + "      JdbcToEnumerableConverter\n"
-            + "        JdbcProject(customer_id=[$0])\n"
+            + "        JdbcProject(customer_id=[_0])\n"
             + "          JdbcTableScan(table=[[foodmart, customer]])");
   }
 
@@ -145,7 +145,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "  join \"foodmart\".\"customer\" as c\n"
             + "  on s.\"customer_id\" = c.\"customer_id\")")
-        .returns("EXPR$0=86837\n");
+        .returns("EXPR_0=86837\n");
   }
 
   @Test public void testJoinGroupByOrderBy() {
@@ -162,9 +162,9 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "  on s.\"customer_id\" = c.\"customer_id\"\n"
             + "group by c.\"state_province\"\n"
             + "order by c.\"state_province\"")
-        .returns2("EXPR$0=24442; state_province=CA; S=74748\n"
-            + "EXPR$0=21611; state_province=OR; S=67659\n"
-            + "EXPR$0=40784; state_province=WA; S=124366\n");
+        .returns2("EXPR_0=24442; state_province=CA; S=74748\n"
+            + "EXPR_0=21611; state_province=OR; S=67659\n"
+            + "EXPR_0=40784; state_province=WA; S=124366\n");
   }
 
   @Test public void testCompositeGroupBy() {

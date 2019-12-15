@@ -36,9 +36,9 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts "
                 + "d on e.deptno=d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
-            + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], "
+            + "name=[_t2], dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[=(_1, _3)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -54,11 +54,11 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts d"
                 + " on e.deptno=d.deptno and e.empid<150 and e.empid>d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], "
-            + "dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[AND(=($1, $3), >($0, $3))], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], "
-            + "proj#0..2=[{exprs}], $condition=[$t6])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], name=[_t2], "
+            + "dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[AND(=(_1, _3), >(_0, _3))], joinType=[inner])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<(_t0, _t5)], "
+            + "proj#0..2=[{exprs}], _condition=[_t6])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n")
@@ -72,9 +72,9 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e  left outer "
                 + "join depts d on e.deptno=d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
-            + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[left])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], "
+            + "name=[_t2], dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[=(_1, _3)], joinType=[left])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -91,9 +91,9 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e  right outer "
                 + "join depts d on e.deptno=d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
-            + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[right])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], "
+            + "name=[_t2], dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[=(_1, _3)], joinType=[right])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -112,10 +112,10 @@ public class EnumerableHashJoinTest {
             "select e.empid, e.name, d.name as dept from emps e left outer "
                 + "join depts d on e.deptno=d.deptno and e.empid<150 and e"
                 + ".empid>d.deptno")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
-            + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[AND(=($1, $3), <($0, 150), >"
-            + "($0, $3))], joinType=[left])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], "
+            + "name=[_t2], dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[AND(=(_1, _3), <(_0, 150), >"
+            + "(_0, _3))], joinType=[left])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -132,11 +132,11 @@ public class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e right outer "
                 + "join depts d on e.deptno=d.deptno and e.empid<150")
-        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
-            + "name=[$t2], dept=[$t4])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[right])\n"
+        .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[_t0], "
+            + "name=[_t2], dept=[_t4])\n"
+            + "  EnumerableHashJoin(condition=[=(_1, _3)], joinType=[right])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], "
-            + "expr#6=[<($t0, $t5)], proj#0..2=[{exprs}], $condition=[$t6])\n"
+            + "expr#6=[<(_t0, _t5)], proj#0..2=[{exprs}], _condition=[_t6])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n")
@@ -152,7 +152,7 @@ public class EnumerableHashJoinTest {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "SELECT d.deptno, d.name FROM depts d WHERE d.deptno in (SELECT e.deptno FROM emps e)")
-        .explainContains("EnumerableHashJoin(condition=[=($0, $3)], "
+        .explainContains("EnumerableHashJoin(condition=[=(_0, _3)], "
             + "joinType=[semi])\n"
             + "  EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "    EnumerableTableScan(table=[[s, depts]])\n"

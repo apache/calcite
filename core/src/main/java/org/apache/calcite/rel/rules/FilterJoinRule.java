@@ -198,11 +198,11 @@ public abstract class FilterJoinRule extends RelOptRule {
 
     // Anti-join on conditions can not be pushed into left or right, e.g. for plan:
     //
-    //     Join(condition=[AND(cond1, $2)], joinType=[anti])
-    //     :  - prj(f0=[$0], f1=[$1], f2=[$2])
-    //     :  - prj(f0=[$0])
+    //     Join(condition=[AND(cond1, _2)], joinType=[anti])
+    //     :  - prj(f0=[_0], f1=[_1], f2=[_2])
+    //     :  - prj(f0=[_0])
     //
-    // The semantic would change if join condition $2 is pushed into left,
+    // The semantic would change if join condition _2 is pushed into left,
     // that is, the result set may be smaller. The right can not be pushed
     // into for the same reason.
     if (joinType != JoinRelType.ANTI

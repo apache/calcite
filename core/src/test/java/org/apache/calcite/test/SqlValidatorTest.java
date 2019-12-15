@@ -1575,12 +1575,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testRowtype() {
     sql("values (1),(2),(1)").ok();
     sql("values (1),(2),(1)")
-        .type("RecordType(INTEGER NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL EXPR_0) NOT NULL");
     sql("values (1,'1'),(2,'2')").ok();
     sql("values (1,'1'),(2,'2')")
-        .type("RecordType(INTEGER NOT NULL EXPR$0, CHAR(1) NOT NULL EXPR$1) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL EXPR_0, CHAR(1) NOT NULL EXPR_1) NOT NULL");
     sql("values true")
-        .type("RecordType(BOOLEAN NOT NULL EXPR$0) NOT NULL");
+        .type("RecordType(BOOLEAN NOT NULL EXPR_0) NOT NULL");
     sql("^values ('1'),(2)^")
         .fails("Values passed to VALUES operator must have compatible types");
     if (TODO) {
@@ -1591,28 +1591,28 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testRow() {
     // double-nested rows can confuse validator namespace resolution
-    sql("select t.r.\"EXPR$1\".\"EXPR$2\"\n"
+    sql("select t.r.\"EXPR_1\".\"EXPR_2\"\n"
         + "from (select ((1,2),(3,4,5)) r from dept) t")
         .columnType("INTEGER NOT NULL");
   }
 
   @Test public void testRowWithValidDot() {
-    sql("select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\"\n from dept")
+    sql("select ((1,2),(3,4,5)).\"EXPR_1\".\"EXPR_2\"\n from dept")
         .columnType("INTEGER NOT NULL");
-    sql("select row(1,2).\"EXPR$1\" from dept")
+    sql("select row(1,2).\"EXPR_1\" from dept")
         .columnType("INTEGER NOT NULL");
-    sql("select t.a.\"EXPR$1\" from (select row(1,2) as a from (values (1))) as t")
+    sql("select t.a.\"EXPR_1\" from (select row(1,2) as a from (values (1))) as t")
         .columnType("INTEGER NOT NULL");
   }
 
   @Test public void testRowWithInvalidDotOperation() {
-    final String sql = "select t.^s.\"EXPR$1\"^ from (\n"
+    final String sql = "select t.^s.\"EXPR_1\"^ from (\n"
         + "  select 1 AS s from (values (1))) as t";
     expr(sql)
-        .fails("(?s).*Column 'S\\.EXPR\\$1' not found in table 'T'.*");
-    expr("select ^array[1, 2, 3]^.\"EXPR$1\" from dept")
+        .fails("(?s).*Column 'S\\.EXPR\\_1' not found in table 'T'.*");
+    expr("select ^array[1, 2, 3]^.\"EXPR_1\" from dept")
         .fails("(?s).*Incompatible types.*");
-    expr("select ^'mystr'^.\"EXPR$1\" from dept")
+    expr("select ^'mystr'^.\"EXPR_1\" from dept")
         .fails("(?s).*Incompatible types.*");
   }
 
@@ -1630,14 +1630,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("^multiset[1, '2']^")
         .fails("Parameters must be of the same type");
     expr("multiset[ROW(1,2)]")
-        .columnType("RecordType(INTEGER NOT NULL EXPR$0,"
-            + " INTEGER NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
+        .columnType("RecordType(INTEGER NOT NULL EXPR_0,"
+            + " INTEGER NOT NULL EXPR_1) NOT NULL MULTISET NOT NULL");
     expr("multiset[ROW(1,2),ROW(2,5)]")
-        .columnType("RecordType(INTEGER NOT NULL EXPR$0,"
-            + " INTEGER NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
+        .columnType("RecordType(INTEGER NOT NULL EXPR_0,"
+            + " INTEGER NOT NULL EXPR_1) NOT NULL MULTISET NOT NULL");
     expr("multiset[ROW(1,2),ROW(3.4,5.4)]")
-        .columnType("RecordType(DECIMAL(11, 1) NOT NULL EXPR$0,"
-            + " DECIMAL(11, 1) NOT NULL EXPR$1) NOT NULL MULTISET NOT NULL");
+        .columnType("RecordType(DECIMAL(11, 1) NOT NULL EXPR_0,"
+            + " DECIMAL(11, 1) NOT NULL EXPR_1) NOT NULL MULTISET NOT NULL");
     expr("multiset(select*from emp)")
         .columnType("RecordType(INTEGER NOT NULL EMPNO,"
             + " VARCHAR(20) NOT NULL ENAME,"
@@ -4825,7 +4825,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testStarDotIdFails() {
     // Fails in parser
-    sql("select emp.^*^.\"EXPR$1\" from emp")
+    sql("select emp.^*^.\"EXPR_1\" from emp")
         .fails("(?s).*Unknown field '\\*'");
     sql("select emp.^*^.foo from emp")
         .fails("(?s).*Unknown field '\\*'");
@@ -5403,7 +5403,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'SUM' to arguments of type 'SUM\\(<VARCHAR\\(20\\)>\\)'\\. .*");
     sql("select sum(ename), deptno from emp group by deptno")
-        .type("RecordType(DECIMAL(19, 19) NOT NULL EXPR$0, INTEGER NOT NULL DEPTNO) NOT NULL");
+        .type("RecordType(DECIMAL(19, 19) NOT NULL EXPR_0, INTEGER NOT NULL DEPTNO) NOT NULL");
   }
 
   @Test public void testSumTooManyArgs() {
@@ -5810,8 +5810,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql = "select * from emp as e join dept d\n"
         + "on d.deptno = (^select 1, 2 from emp where deptno < e.deptno^)";
     final String expected = "(?s)Cannot apply '\\$SCALAR_QUERY' to arguments "
-        + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\$0, INTEGER "
-        + "EXPR\\$1\\)>\\)'\\. Supported form\\(s\\).*";
+        + "of type '\\$SCALAR_QUERY\\(<RECORDTYPE\\(INTEGER EXPR\\_0, INTEGER "
+        + "EXPR\\_1\\)>\\)'\\. Supported form\\(s\\).*";
     sql(sql).fails(expected);
   }
 
@@ -7643,9 +7643,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testUnnestWithOrdinality() {
     sql("select*from unnest(array[1, 2]) with ordinality")
-        .type("RecordType(INTEGER NOT NULL EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
+        .type("RecordType(INTEGER NOT NULL EXPR_0, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from unnest(array[43.2e1, cast(null as decimal(4,2))]) with ordinality")
-        .type("RecordType(DOUBLE EXPR$0, INTEGER NOT NULL ORDINALITY) NOT NULL");
+        .type("RecordType(DOUBLE EXPR_0, INTEGER NOT NULL ORDINALITY) NOT NULL");
     sql("select*from ^unnest(1) with ordinality^")
         .fails("(?s).*Cannot apply 'UNNEST' to arguments of type 'UNNEST.<INTEGER>.'.*");
     sql("select deptno\n"
@@ -8011,7 +8011,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     // Note that X is a field (not a record) and is nullable even though
     // EMP.NAME is NOT NULL.
     sql("SELECT  ename,(select name from dept where deptno=1) FROM emp")
-        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) EXPR$1) NOT NULL");
+        .type("RecordType(VARCHAR(20) NOT NULL ENAME, VARCHAR(10) EXPR_1) NOT NULL");
 
     // scalar subqery inside AS operator
     sql("SELECT  ename,(select name from dept where deptno=1) as X FROM emp")
@@ -8412,7 +8412,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     s.sql("values (CURRENT_TIMESTAMP, FLOOR(2.5), CEIL (3.5))").ok();
     s.sql("values (CURRENT_TIMESTAMP, CEIL (3.5))")
         .type("RecordType(TIMESTAMP(0) NOT NULL CURRENT_TIMESTAMP, "
-            + "DECIMAL(2, 0) NOT NULL EXPR$1) NOT NULL");
+            + "DECIMAL(2, 0) NOT NULL EXPR_1) NOT NULL");
   }
 
   @Test public void testLexAndQuoting() {
@@ -9313,7 +9313,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql4 = "insert into VIRTUALCOLUMNS.VC_T1\n"
         + "^values(1, '2', 'abc')^";
     final String error4 = "(?s).*Cannot assign to target field 'B' of type BIGINT "
-        + "from source field 'EXPR\\$1' of type CHAR\\(1\\).*";
+        + "from source field 'EXPR\\_1' of type CHAR\\(1\\).*";
     s.sql(sql4).fails(error4);
   }
 
@@ -10269,16 +10269,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("insert into empnullables ^values ('5', 'bob')^")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
-            + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+            + " from source field 'EXPR\\_0' of type CHAR\\(1\\)");
     sql("insert into empnullables (^empno^, ename) values ('5', 'bob')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
-            + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+            + " from source field 'EXPR\\_0' of type CHAR\\(1\\)");
     sql("insert into empnullables(extra BOOLEAN)"
         + " (empno, ename, ^extra^) values (5, 'bob', 'true')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
         .fails("Cannot assign to target field 'EXTRA' of type BOOLEAN"
-            + " from source field 'EXPR\\$2' of type CHAR\\(4\\)");
+            + " from source field 'EXPR\\_2' of type CHAR\\(4\\)");
   }
 
   @Disabled("CALCITE-1727")
@@ -10287,12 +10287,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " set ^empNo^ = '5', deptno = 1, ename = 'Bob'"
         + " where deptno = 10")
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
-            + " from source field 'EXPR$0' of type CHAR(1)");
+            + " from source field 'EXPR_0' of type CHAR(1)");
     sql("update emp(extra boolean)"
         + " set ^extra^ = '5', deptno = 1, ename = 'Bob'"
         + " where deptno = 10")
         .fails("Cannot assign to target field 'EXTRA' of type BOOLEAN"
-            + " from source field 'EXPR$0' of type CHAR(1)");
+            + " from source field 'EXPR_0' of type CHAR(1)");
   }
 
   @Disabled("CALCITE-1727")
@@ -10480,12 +10480,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^comm^)\n"
         + "values (1, 'Arthur', 'clown', true)")
         .fails("Cannot assign to target field 'COMM' of type INTEGER"
-            + " from source field 'EXPR\\$3' of type BOOLEAN");
+            + " from source field 'EXPR\\_3' of type BOOLEAN");
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^)\n"
         + "values (1, 'Arthur', 'clown', 1)")
         .fails("Cannot assign to target field 'comm' of type BOOLEAN"
-            + " from source field 'EXPR\\$3' of type INTEGER");
+            + " from source field 'EXPR\\_3' of type INTEGER");
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailCollision() {
@@ -10499,14 +10499,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^slacker^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'SLACKER' of type"
-        + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
+        + " BOOLEAN from source field 'EXPR\\_3' of type INTEGER";
     s.sql(sql1).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^\"slacker\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error2 = "Cannot assign to target field 'slacker' of type"
-        + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
+        + " INTEGER from source field 'EXPR\\_3' of type BOOLEAN";
     s.sql(sql2).fails(error2);
   }
 
@@ -10521,14 +10521,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql1 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^extra^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'EXTRA' of type"
-        + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
+        + " BOOLEAN from source field 'EXPR\\_3' of type INTEGER";
     s.sql(sql1).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^\"extra\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error2 = "Cannot assign to target field 'extra' of type"
-        + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
+        + " INTEGER from source field 'EXPR\\_3' of type BOOLEAN";
     s.sql(sql2).fails(error2);
   }
 
@@ -10549,7 +10549,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     final String sql2 = "insert into EMP_MODIFIABLEVIEW3(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^) values (1, 'Arthur', 'clown', 1)";
     final String error2 = "Cannot assign to target field 'comm' of type"
-        + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
+        + " BOOLEAN from source field 'EXPR\\_3' of type INTEGER";
     s.sql(sql2).fails(error2);
   }
 

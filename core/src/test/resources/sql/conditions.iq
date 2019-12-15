@@ -275,7 +275,7 @@ with ax(s) as (values (1),(0))
 select case when s=0 then false else 100/s > 0 end from ax;
 
 +--------+
-| EXPR$0 |
+| EXPR_0 |
 +--------+
 | false  |
 | true   |
@@ -289,7 +289,7 @@ with ax(s) as (values (true),(false),(cast(null as boolean)))
 select s, (s or s is null), (s and s is not null) from ax;
 
 +-------+--------+--------+
-| S     | EXPR$1 | EXPR$2 |
+| S     | EXPR_1 | EXPR_2 |
 +-------+--------+--------+
 | false | false  | false  |
 | true  | true   | true   |

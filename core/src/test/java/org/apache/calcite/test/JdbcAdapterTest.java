@@ -96,12 +96,12 @@ public class JdbcAdapterTest {
             + "select ename from SCOTT.emp where empno > 10")
         .explainContains("PLAN=EnumerableUnion(all=[true])\n"
                     + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(store_name=[$3])\n"
-                    + "      JdbcFilter(condition=[<($0, 10)])\n"
+                    + "    JdbcProject(store_name=[_3])\n"
+                    + "      JdbcFilter(condition=[<(_0, 10)])\n"
                     + "        JdbcTableScan(table=[[foodmart, store]])\n"
                     + "  JdbcToEnumerableConverter\n"
-                    + "    JdbcProject(ENAME=[$1])\n"
-                    + "      JdbcFilter(condition=[>($0, 10)])\n"
+                    + "    JdbcProject(ENAME=[_1])\n"
+                    + "      JdbcFilter(condition=[>(_0, 10)])\n"
                     + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -160,11 +160,11 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.dept d \n"
             + "on e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DEPTNO=[$4], DNAME=[$1])\n"
-            + "    JdbcJoin(condition=[=($4, $0)], joinType=[inner])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "  JdbcProject(EMPNO=[_2], ENAME=[_3], DEPTNO=[_4], DNAME=[_1])\n"
+            + "    JdbcJoin(condition=[=(_4, _0)], joinType=[inner])\n"
+            + "      JdbcProject(DEPTNO=[_0], DNAME=[_1])\n"
             + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], DEPTNO=[_7])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -186,10 +186,10 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.salgrade s \n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
+            + "  JdbcProject(EMPNO=[_3], ENAME=[_4], GRADE=[_0])\n"
+            + "    JdbcJoin(condition=[AND(>(_5, _1), <(_5, _2))], joinType=[inner])\n"
             + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -207,10 +207,10 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.salgrade s \n"
             + "on s.losal <= e.sal and s.hisal >= e.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(<=($1, $5), >=($2, $5))], joinType=[inner])\n"
+            + "  JdbcProject(EMPNO=[_3], ENAME=[_4], GRADE=[_0])\n"
+            + "    JdbcJoin(condition=[AND(<=(_1, _5), >=(_2, _5))], joinType=[inner])\n"
             + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -227,11 +227,11 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.emp m on  \n"
             + "e.mgr = m.empno and e.sal > m.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], EMPNO0=[$2], ENAME0=[$3])\n"
-            + "    JdbcJoin(condition=[AND(=($4, $0), >($5, $1))], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], SAL=[$5])\n"
+            + "  JdbcProject(EMPNO=[_2], ENAME=[_3], EMPNO0=[_2], ENAME0=[_3])\n"
+            + "    JdbcJoin(condition=[AND(=(_4, _0), >(_5, _1))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[_0], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], MGR=[$3], SAL=[$5])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], MGR=[_3], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -250,11 +250,11 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.emp m on  \n"
             + "e.mgr = m.empno and (e.sal > m.sal or m.hiredate > e.hiredate)")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], EMPNO0=[$3], ENAME0=[$4])\n"
-            + "    JdbcJoin(condition=[AND(=($5, $0), OR(>($7, $2), >($1, $6)))], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], HIREDATE=[$4], SAL=[$5])\n"
+            + "  JdbcProject(EMPNO=[_3], ENAME=[_4], EMPNO0=[_3], ENAME0=[_4])\n"
+            + "    JdbcJoin(condition=[AND(=(_5, _0), OR(>(_7, _2), >(_1, _6)))], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[_0], HIREDATE=[_4], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], MGR=[$3], HIREDATE=[$4], SAL=[$5])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], MGR=[_3], HIREDATE=[_4], SAL=[_5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -276,13 +276,13 @@ public class JdbcAdapterTest {
             + "inner join scott.salgrade s \n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], DNAME=[$8], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
+            + "  JdbcProject(EMPNO=[_3], ENAME=[_4], DNAME=[_8], GRADE=[_0])\n"
+            + "    JdbcJoin(condition=[AND(>(_5, _1), <(_5, _2))], joinType=[inner])\n"
             + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
-            + "      JdbcJoin(condition=[=($3, $4)], joinType=[inner])\n"
-            + "        JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
+            + "      JdbcJoin(condition=[=(_3, _4)], joinType=[inner])\n"
+            + "        JdbcProject(EMPNO=[_0], ENAME=[_1], SAL=[_5], DEPTNO=[_7])\n"
             + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "        JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcProject(DEPTNO=[_0], DNAME=[_1])\n"
             + "          JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -302,11 +302,11 @@ public class JdbcAdapterTest {
             + "from scott.emp e,scott.dept d \n"
             + "where e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"
-            + "    JdbcJoin(condition=[=($2, $3)], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+            + "  JdbcProject(EMPNO=[_0], ENAME=[_1], DEPTNO=[_3], DNAME=[_4])\n"
+            + "    JdbcJoin(condition=[=(_2, _3)], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], DEPTNO=[_7])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "      JdbcProject(DEPTNO=[_0], DNAME=[_1])\n"
             + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -325,10 +325,10 @@ public class JdbcAdapterTest {
         .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], "
             + "joinType=[inner])\n"
             + "  JdbcToEnumerableConverter\n"
-            + "    JdbcProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "    JdbcProject(EMPNO=[_0], ENAME=[_1])\n"
             + "      JdbcTableScan(table=[[SCOTT, EMP]])\n"
             + "  JdbcToEnumerableConverter\n"
-            + "    JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "    JdbcProject(DEPTNO=[_0], DNAME=[_1])\n"
             + "      JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB);
@@ -341,12 +341,12 @@ public class JdbcAdapterTest {
             + "where e.deptno = d.deptno \n"
             + "and e.deptno=20")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"
-            + "    JdbcJoin(condition=[=($2, $3)], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
-            + "        JdbcFilter(condition=[=(CAST($7):INTEGER, 20)])\n"
+            + "  JdbcProject(EMPNO=[_0], ENAME=[_1], DEPTNO=[_3], DNAME=[_4])\n"
+            + "    JdbcJoin(condition=[=(_2, _3)], joinType=[inner])\n"
+            + "      JdbcProject(EMPNO=[_0], ENAME=[_1], DEPTNO=[_7])\n"
+            + "        JdbcFilter(condition=[=(CAST(_7):INTEGER, 20)])\n"
             + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "      JdbcProject(DEPTNO=[_0], DNAME=[_1])\n"
             + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
@@ -457,7 +457,7 @@ public class JdbcAdapterTest {
     final String explain = "PLAN="
         + "EnumerableWindow(window#0=[window(partition {} "
         + "order by [] range between UNBOUNDED PRECEDING and "
-        + "UNBOUNDED FOLLOWING aggs [LAST_VALUE($3)])])\n"
+        + "UNBOUNDED FOLLOWING aggs [LAST_VALUE(_3)])])\n"
         + "  JdbcToEnumerableConverter\n"
         + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n";
     CalciteAssert
@@ -513,9 +513,9 @@ public class JdbcAdapterTest {
             + " last_value(\"time_id\") over ()"
             + " as \"last_version\" from \"expense_fact\"")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
-            + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
-            + " last_version=[LAST_VALUE($3) OVER (RANGE BETWEEN UNBOUNDED"
+            + "  JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2], "
+            + "time_id=[_3], category_id=[_4], currency_id=[_5], amount=[_6],"
+            + " last_version=[LAST_VALUE(_3) OVER (RANGE BETWEEN UNBOUNDED"
             + " PRECEDING AND UNBOUNDED FOLLOWING)])\n"
             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
@@ -553,10 +553,10 @@ public class JdbcAdapterTest {
             + " order by \"time_id\" rows between 1 following and 10 following)"
             + " as \"last_version\" from \"expense_fact\"")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
-            + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
-            + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
-            + " ORDER BY $3 ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING)])\n"
+            + "  JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2], "
+            + "time_id=[_3], category_id=[_4], currency_id=[_5], amount=[_6],"
+            + " last_version=[LAST_VALUE(_3) OVER (PARTITION BY _1"
+            + " ORDER BY _3 ROWS BETWEEN 1 FOLLOWING AND 10 FOLLOWING)])\n"
             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
         .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
@@ -577,10 +577,10 @@ public class JdbcAdapterTest {
             + " order by \"time_id\" rows between 3 preceding and current row)"
             + " as \"last_version\" from \"expense_fact\"")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], "
-            + "time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
-            + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1"
-            + " ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)])\n"
+            + "  JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2], "
+            + "time_id=[_3], category_id=[_4], currency_id=[_5], amount=[_6],"
+            + " last_version=[LAST_VALUE(_3) OVER (PARTITION BY _1"
+            + " ORDER BY _3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW)])\n"
             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
         .planHasSql("SELECT \"store_id\", \"account_id\", \"exp_date\","
@@ -601,12 +601,12 @@ public class JdbcAdapterTest {
             + " order by \"time_id\" rows 3 preceding disallow partial)"
             + " as \"last_version\" from \"expense_fact\"")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
-            + " time_id=[$3], category_id=[$4], currency_id=[$5],"
-            + " amount=[$6], last_version=[CASE(>=(COUNT() OVER"
-            + " (PARTITION BY $1 ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND"
-            + " CURRENT ROW), 2), LAST_VALUE($3) OVER (PARTITION BY $1"
-            + " ORDER BY $3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW),"
+            + "  JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2],"
+            + " time_id=[_3], category_id=[_4], currency_id=[_5],"
+            + " amount=[_6], last_version=[CASE(>=(COUNT() OVER"
+            + " (PARTITION BY _1 ORDER BY _3 ROWS BETWEEN 3 PRECEDING AND"
+            + " CURRENT ROW), 2), LAST_VALUE(_3) OVER (PARTITION BY _1"
+            + " ORDER BY _3 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW),"
             + " null)])\n    JdbcTableScan(table=[[foodmart,"
             + " expense_fact]])\n")
         .runs()
@@ -631,9 +631,9 @@ public class JdbcAdapterTest {
             + " order by \"time_id\") as \"last_version\""
             + " from \"expense_fact\"")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2],"
-            + " time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6],"
-            + " last_version=[LAST_VALUE($3) OVER (PARTITION BY $1 ORDER BY $3"
+            + "  JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2],"
+            + " time_id=[_3], category_id=[_4], currency_id=[_5], amount=[_6],"
+            + " last_version=[LAST_VALUE(_3) OVER (PARTITION BY _1 ORDER BY _3"
             + " RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
             + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n")
         .runs()
@@ -832,8 +832,8 @@ public class JdbcAdapterTest {
             + "WHERE \"store_id\" = 666";
         final String explain = "PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-            + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[+($3, 1)], category_id=[$4], currency_id=[$5], amount=[$6])\n"
-            + "      JdbcFilter(condition=[=($0, 666)])\n"
+            + "    JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2], time_id=[+(_3, 1)], category_id=[_4], currency_id=[_5], amount=[_6])\n"
+            + "      JdbcFilter(condition=[=(_0, 666)])\n"
             + "        JdbcTableScan(table=[[foodmart, expense_fact]])\n";
         final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
             + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
@@ -864,8 +864,8 @@ public class JdbcAdapterTest {
             + " WHERE \"store_id\"=666\n";
         final String explain = "PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[UPDATE], updateColumnList=[[account_id]], sourceExpressionList=[[888]], flattened=[false])\n"
-            + "    JdbcProject(store_id=[$0], account_id=[$1], exp_date=[$2], time_id=[$3], category_id=[$4], currency_id=[$5], amount=[$6], EXPR$0=[888])\n"
-            + "      JdbcFilter(condition=[=($0, 666)])\n"
+            + "    JdbcProject(store_id=[_0], account_id=[_1], exp_date=[_2], time_id=[_3], category_id=[_4], currency_id=[_5], amount=[_6], EXPR_0=[888])\n"
+            + "      JdbcFilter(condition=[=(_0, 666)])\n"
             + "        JdbcTableScan(table=[[foodmart, expense_fact]])";
         final String jdbcSql = "UPDATE \"foodmart\".\"expense_fact\""
             + " SET \"account_id\" = 888\n"
@@ -891,7 +891,7 @@ public class JdbcAdapterTest {
             + "WHERE \"store_id\"=666\n";
         final String explain = "PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[DELETE], flattened=[false])\n"
-            + "    JdbcFilter(condition=[=($0, 666)])\n"
+            + "    JdbcFilter(condition=[=(_0, 666)])\n"
             + "      JdbcTableScan(table=[[foodmart, expense_fact]]";
         final String jdbcSql = "DELETE FROM \"foodmart\".\"expense_fact\"\n"
             + "WHERE \"store_id\" = 666";

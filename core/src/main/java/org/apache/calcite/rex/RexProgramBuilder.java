@@ -709,28 +709,28 @@ public class RexProgramBuilder {
    *
    * <blockquote><pre>
    *   Calc:
-   *       Projects={$2, $3},
+   *       Projects={_2, _3},
    *       Condition=null,
-   *       Exprs={$0, $1, $0 + 1, $0 + $1})
+   *       Exprs={_0, _1, _0 + 1, _0 + _1})
    *   Calc(
-   *       Projects={$3, $2},
-   *       Condition={$4}
-   *       Exprs={$0, $1, $2, $0 + $1, $2 = 6}
+   *       Projects={_3, _2},
+   *       Condition={_4}
+   *       Exprs={_0, _1, _2, _0 + _1, _2 = 6}
    * </pre></blockquote>
    *
    * <p>The merged program is
    *
    * <blockquote><pre>
    *   Calc(
-   *      Projects={$4, $5}
-   *      Condition=$6
-   *      Exprs={0: $0       // a
-   *             1: $1        // b
-   *             2: $2        // c
-   *             3: ($0 + $1) // x = a + b
-   *             4: ($3 + 1)  // p = x + 1
-   *             5: ($3 + $2) // q = x + y
-   *             6: ($2 = 6)  // c = 6
+   *      Projects={_4, _5}
+   *      Condition=_6
+   *      Exprs={0: _0       // a
+   *             1: _1        // b
+   *             2: _2        // c
+   *             3: (_0 + _1) // x = a + b
+   *             4: (_3 + 1)  // p = x + 1
+   *             5: (_3 + _2) // q = x + y
+   *             6: (_2 = 6)  // c = 6
    * </pre></blockquote>
    *
    * <p>Another example:</p>

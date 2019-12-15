@@ -828,7 +828,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         sql,
         getSelectKeywords(),
         EXPR_KEYWORDS,
-        Arrays.asList("TABLE(EXPR$0)", "COLUMN(EXPR$0)"));
+        Arrays.asList("TABLE(EXPR_0)", "COLUMN(EXPR_0)"));
 
     sql = "select ^ from (values (1)) as t(c)";
     assertComplete(

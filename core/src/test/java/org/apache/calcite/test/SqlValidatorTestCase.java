@@ -258,7 +258,7 @@ public class SqlValidatorTestCase {
      * Returns the data type of the row returned by a SQL query.
      *
      * <p>For example, <code>getResultType("VALUES (1, 'foo')")</code>
-     * returns <code>RecordType(INTEGER EXPR$0, CHAR(3) EXPR#1)</code>.
+     * returns <code>RecordType(INTEGER EXPR_0, CHAR(3) EXPR#1)</code>.
      */
     RelDataType getResultType(String sql);
 

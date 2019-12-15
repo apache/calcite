@@ -1278,7 +1278,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(rel, instanceOf(LogicalFilter.class));
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
-    assertThat(colType(mq, rel, 1), equalTo("EXPR$1-rel"));
+    assertThat(colType(mq, rel, 1), equalTo("EXPR_1-rel"));
 
     // Next node is an aggregate. Its metadata uses
     // getColType(LogicalAggregate, int).
@@ -1287,7 +1287,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
 
     // There is no caching. Another request causes another call to the provider.
-    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR_1-rel, DEPTNO-agg]"));
     assertThat(buf.size(), equalTo(3));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(4));
@@ -1302,9 +1302,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(buf.size(), equalTo(5));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(5));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+    assertThat(colType(mq, input, 1), equalTo("EXPR_1-agg"));
     assertThat(buf.size(), equalTo(6));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+    assertThat(colType(mq, input, 1), equalTo("EXPR_1-agg"));
     assertThat(buf.size(), equalTo(6));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(6));
@@ -1345,7 +1345,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
     final MyRelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
-    assertThat(colType(mq, rel, 1), equalTo("EXPR$1-rel"));
+    assertThat(colType(mq, rel, 1), equalTo("EXPR_1-rel"));
 
     // Next node is an aggregate. Its metadata uses
     // getColType(LogicalAggregate, int).
@@ -1355,15 +1355,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     // The metadata query is caching, only the first request for each piece of metadata
     // generates a new call to the provider.
-    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR$1-rel, DEPTNO-agg]"));
+    assertThat(buf.toString(), equalTo("[DEPTNO-rel, EXPR_1-rel, DEPTNO-agg]"));
     assertThat(buf.size(), equalTo(3));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(3));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(3));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+    assertThat(colType(mq, input, 1), equalTo("EXPR_1-agg"));
     assertThat(buf.size(), equalTo(4));
-    assertThat(colType(mq, input, 1), equalTo("EXPR$1-agg"));
+    assertThat(colType(mq, input, 1), equalTo("EXPR_1-agg"));
     assertThat(buf.size(), equalTo(4));
     assertThat(colType(mq, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(4));
@@ -1733,7 +1733,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     final RelNode filter = relBuilder.peek();
     predicates = mq.getPulledUpPredicates(filter);
-    assertThat(predicates.pulledUpPredicates.toString(), is("[=($0, 1)]"));
+    assertThat(predicates.pulledUpPredicates.toString(), is("[=(_0, 1)]"));
 
     final LogicalTableScan deptScan =
         LogicalTableScan.create(cluster, deptTable);
@@ -1745,7 +1745,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final LogicalJoin semiJoin = (LogicalJoin) relBuilder.build();
 
     predicates = mq.getPulledUpPredicates(semiJoin);
-    assertThat(predicates.pulledUpPredicates, sortsAs("[=($0, 1)]"));
+    assertThat(predicates.pulledUpPredicates, sortsAs("[=(_0, 1)]"));
     assertThat(predicates.leftInferredPredicates, sortsAs("[]"));
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
 
@@ -1768,7 +1768,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     // Create a Join similar to the previous Join, but joining on MGR, which
     // is nullable. From the join condition "e.MGR = d.DEPTNO" we can deduce
-    // the projected predicate "IS NOT NULL($0)".
+    // the projected predicate "IS NOT NULL(_0)".
     relBuilder.push(filter);
     relBuilder.push(deptScan);
     relBuilder.join(JoinRelType.INNER,
@@ -1778,7 +1778,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     relBuilder.project(relBuilder.field("MGR"));
     final RelNode project2 = relBuilder.peek();
     predicates = mq.getPulledUpPredicates(project2);
-    assertThat(predicates.pulledUpPredicates, sortsAs("[IS NOT NULL($0)]"));
+    assertThat(predicates.pulledUpPredicates, sortsAs("[IS NOT NULL(_0)]"));
     assertThat(predicates.leftInferredPredicates.isEmpty(), is(true));
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
 
@@ -1813,7 +1813,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode project3 = relBuilder.peek();
     predicates = mq.getPulledUpPredicates(project3);
     assertThat(predicates.pulledUpPredicates,
-        sortsAs("[OR(IS NOT NULL($0), IS NOT NULL($2))]"));
+        sortsAs("[OR(IS NOT NULL(_0), IS NOT NULL(_2))]"));
     assertThat(predicates.leftInferredPredicates.isEmpty(), is(true));
     assertThat(predicates.rightInferredPredicates.isEmpty(), is(true));
   }
@@ -1830,7 +1830,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel);
     ImmutableList<RexNode> pulledUpPredicates = inputSet.pulledUpPredicates;
-    assertThat(pulledUpPredicates, sortsAs("[=($0, 1)]"));
+    assertThat(pulledUpPredicates, sortsAs("[=(_0, 1)]"));
   }
 
   /** Test case for
@@ -1876,7 +1876,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     assertThat(list.pulledUpPredicates,
-        sortsAs("[<($0, 10), =($3, 'y'), =($4, 1), IS NULL($1), IS NULL($2)]"));
+        sortsAs("[<(_0, 10), =(_3, 'y'), =(_4, 1), IS NULL(_1), IS NULL(_2)]"));
   }
 
   @Test public void testPullUpPredicatesOnNullableConstant() {
@@ -1888,7 +1888,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelOptPredicateList list = mq.getPulledUpPredicates(rel);
     // Uses "IS NOT DISTINCT FROM" rather than "=" because cannot guarantee not null.
     assertThat(list.pulledUpPredicates,
-        sortsAs("[IS NULL($0)]"));
+        sortsAs("[IS NULL(_0)]"));
   }
 
   @Test public void testPullUpPredicatesFromUnion0() {
@@ -1898,7 +1898,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "union all\n"
         + "select empno from emp where empno=1");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1)]"));
+        sortsAs("[=(_0, 1)]"));
   }
 
   @Test public void testPullUpPredicatesFromUnion1() {
@@ -1908,7 +1908,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "union all\n"
         + "select empno, deptno from emp where empno=3 or deptno=4");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[OR(=($0, 1), =($1, 2), =($0, 3), =($1, 4))]"));
+        sortsAs("[OR(=(_0, 1), =(_1, 2), =(_0, 3), =(_1, 4))]"));
   }
 
   @Test public void testPullUpPredicatesFromUnion2() {
@@ -1918,7 +1918,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "union all\n"
         + "select empno, comm, deptno from emp where empno=1 and comm=4");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"));
+        sortsAs("[=(_0, 1), OR(AND(=(_1, 2), =(_2, 3)), =(_1, 4))]"));
 
   }
 
@@ -1929,7 +1929,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "intersect all\n"
         + "select empno from emp where empno=1");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1)]"));
+        sortsAs("[=(_0, 1)]"));
 
   }
 
@@ -1940,7 +1940,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "intersect all\n"
         + "select empno, deptno, comm from emp where empno=1 and comm=3");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), =($1, 2), =($2, 3)]"));
+        sortsAs("[=(_0, 1), =(_1, 2), =(_2, 3)]"));
 
   }
 
@@ -1951,7 +1951,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "intersect all\n"
         + "select empno, deptno, comm from emp where 1=empno and (deptno=2 or comm=3)");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), =($1, 2)]"));
+        sortsAs("[=(_0, 1), =(_1, 2)]"));
 
   }
 
@@ -1962,7 +1962,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "intersect all\n"
         + "select empno, deptno, comm from emp where deptno=2 or empno=1 or comm=3");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[OR(=($0, 1), =($1, 2))]"));
+        sortsAs("[OR(=(_0, 1), =(_1, 2))]"));
   }
 
   @Test public void testPullUpPredicatesFromMinus() {
@@ -1972,7 +1972,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "except all\n"
         + "select empno, deptno, comm from emp where comm=3");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), =($1, 2)]"));
+        sortsAs("[=(_0, 1), =(_1, 2)]"));
   }
 
   @Test public void testDistributionSimple() {
@@ -2439,10 +2439,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates.toString(),
         equalTo("[true, "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+            + "=([CATALOG, SALES, EMP].#0._7, [CATALOG, SALES, EMP].#1._7), "
             + "true, "
-            + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7), "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#2.$7)]"));
+            + "=([CATALOG, SALES, EMP].#2._7, [CATALOG, SALES, EMP].#3._7), "
+            + "=([CATALOG, SALES, EMP].#0._7, [CATALOG, SALES, EMP].#2._7)]"));
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences.toString(),
         equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
@@ -2465,9 +2465,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates.toString(),
         equalTo("[true, "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+            + "=([CATALOG, SALES, EMP].#0._7, [CATALOG, SALES, EMP].#1._7), "
             + "true, "
-            + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7)]"));
+            + "=([CATALOG, SALES, EMP].#2._7, [CATALOG, SALES, EMP].#3._7)]"));
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences.toString(),
         equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
@@ -2518,7 +2518,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     // Note that we reference [CATALOG, SALES, EMP].#1 rather than [CATALOG, SALES, EMP].#0
     assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[true, =([CATALOG, SALES, EMP].#1.$0, 5), true]"));
+        equalTo("[true, =([CATALOG, SALES, EMP].#1._0, 5), true]"));
   }
 
   @Test public void testTableReferencesJoinUnknownNode() {
@@ -2552,7 +2552,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // [CATALOG, SALES, EMP].#0 or [CATALOG, SALES, EMP].#1
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
+        equalTo("[=([CATALOG, SALES, EMP].#2._0, 5)]"));
   }
 
   @Test public void testTableReferencesUnionUnknownNode() {
@@ -2905,7 +2905,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         .pulledUpPredicates
         .get(0)
         .toString(),
-        is("=($0, $8)"));
+        is("=(_0, _8)"));
   }
 
   @Test public void testGetPredicatesForFilter() throws Exception {
@@ -2929,7 +2929,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
             .pulledUpPredicates
             .get(0)
             .toString(),
-        is("=($0, $1)"));
+        is("=(_0, _1)"));
   }
 
   /**

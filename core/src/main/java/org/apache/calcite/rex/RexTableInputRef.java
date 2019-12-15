@@ -33,7 +33,7 @@ import java.util.List;
  * the provenance of a given expression. For that, it uses a unique table reference
  * (contained in a {@link RelTableRef}) and an column index within the table.
  *
- * <p>For example, {@code A.#0.$3 + 2} column {@code $3} in the {@code 0}
+ * <p>For example, {@code A.#0._3 + 2} column {@code _3} in the {@code 0}
  * occurrence of table {@code A} in the plan.
  *
  * <p>Note that this kind of {@link RexNode} is an auxiliary data structure with

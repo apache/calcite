@@ -1228,7 +1228,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           int openParen = title.indexOf('(');
           if (openParen != -1) {
             // Title is like rel#12:LogicalJoin(left=RelSubset#4,right=RelSubset#3,
-            // condition==($2, $0),joinType=inner)
+            // condition==(_2, _0),joinType=inner)
             // so we remove the parenthesis, and wrap parameters to the second line
             // This avoids "too wide" Graphiz boxes, and makes the graph easier to follow
             title = title.substring(0, openParen) + '\n'
@@ -1858,12 +1858,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <blockquote>
    * FennelAggRel.FENNEL_EXEC(child=Subset#17.FENNEL_EXEC,groupCount=1,
-   * EXPR$1=COUNT())<br>
+   * EXPR_1=COUNT())<br>
    * &nbsp;&nbsp;FennelSortRel.FENNEL_EXEC(child=Subset#2.FENNEL_EXEC,
    * key=[0], discardDuplicates=false)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;FennelCalcRel.FENNEL_EXEC(
    * child=Subset#4.FENNEL_EXEC, expr#0..8={inputs}, expr#9=3456,
-   * DEPTNO=$t7, $f0=$t9)<br>
+   * DEPTNO=_t7, _f0=_t9)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *
@@ -1871,12 +1871,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * <blockquote>
    * FennelAggRel.FENNEL_EXEC(child=Subset#{0}.FENNEL_EXEC, groupCount=1,
-   * EXPR$1=COUNT())<br>
+   * EXPR_1=COUNT())<br>
    * &nbsp;&nbsp;FennelSortRel.FENNEL_EXEC(child=Subset#{1}.FENNEL_EXEC,
    * key=[0], discardDuplicates=false)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;FennelCalcRel.FENNEL_EXEC(
-   * child=Subset#{2}.FENNEL_EXEC,expr#0..8={inputs},expr#9=3456,DEPTNO=$t7,
-   * $f0=$t9)<br>
+   * child=Subset#{2}.FENNEL_EXEC,expr#0..8={inputs},expr#9=3456,DEPTNO=_t7,
+   * _f0=_t9)<br>
    * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MockTableImplRel.FENNEL_EXEC(
    * table=[CATALOG, SALES, EMP])</blockquote>
    *

@@ -44,7 +44,7 @@ from t1]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(F0=[true], F1=[true], F2=[false], F3=[NOT($10)], F4=[=($1, CASE($10, 1:SMALLINT, 0:SMALLINT))], F5=[false])
+LogicalProject(F0=[true], F1=[true], F2=[false], F3=[NOT(_10)], F4=[=(_1, CASE(_10, 1:SMALLINT, 0:SMALLINT))], F5=[false])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
         </Resource>
@@ -65,7 +65,7 @@ from t1]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CAST($8):TIMESTAMP(0) NOT NULL, $7)], F6=[true], F7=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))], F8=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))])
+LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CAST(_8):TIMESTAMP(0) NOT NULL, _7)], F6=[true], F7=[AND(>=(2019-09-23 00:00:00, CAST(_8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, _7))], F8=[AND(>=(2019-09-23 00:00:00, CAST(_8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, _7))])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
         </Resource>
@@ -76,7 +76,7 @@ LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CA
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[||('1':VARCHAR, 'a')])
+LogicalProject(EXPR_0=[||('1':VARCHAR, 'a')])
   LogicalValues(tuples=[[{ true }]])
 ]]>
         </Resource>
@@ -88,9 +88,9 @@ LogicalProject(EXPR$0=[||('1':VARCHAR, 'a')])
         <Resource name="plan">
             <![CDATA[
 LogicalUnion(all=[false])
-  LogicalProject(EXPR$0=[CAST($0):VARCHAR NOT NULL], EXPR$1=[$1])
+  LogicalProject(EXPR_0=[CAST(_0):VARCHAR NOT NULL], EXPR_1=[_1])
     LogicalValues(tuples=[[{ 1, '3' }]])
-  LogicalProject(EXPR$0=[$0], EXPR$1=[CAST($1):VARCHAR NOT NULL])
+  LogicalProject(EXPR_0=[_0], EXPR_1=[CAST(_1):VARCHAR NOT NULL])
     LogicalValues(tuples=[[{ '2', 4 }]])
 ]]>
         </Resource>
@@ -107,13 +107,13 @@ union select t2_varchar20, t2_decimal, t2_smallint, t2_double from t2]]>
 LogicalUnion(all=[false])
   LogicalUnion(all=[false])
     LogicalUnion(all=[false])
-      LogicalProject(T1_INT=[CAST($2):VARCHAR NOT NULL], T1_DECIMAL=[$6], T1_SMALLINT=[$1], T1_DOUBLE=[$5])
+      LogicalProject(T1_INT=[CAST(_2):VARCHAR NOT NULL], T1_DECIMAL=[_6], T1_SMALLINT=[_1], T1_DOUBLE=[_5])
         LogicalTableScan(table=[[CATALOG, SALES, T1]])
-      LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_FLOAT=[$4], T2_BIGINT=[$3])
+      LogicalProject(T2_VARCHAR20=[_0], T2_DECIMAL=[_6], T2_FLOAT=[_4], T2_BIGINT=[_3])
         LogicalTableScan(table=[[CATALOG, SALES, T2]])
-    LogicalProject(T1_VARCHAR20=[$0], T1_DECIMAL=[$6], T1_FLOAT=[$4], T1_DOUBLE=[$5])
+    LogicalProject(T1_VARCHAR20=[_0], T1_DECIMAL=[_6], T1_FLOAT=[_4], T1_DOUBLE=[_5])
       LogicalTableScan(table=[[CATALOG, SALES, T1]])
-  LogicalProject(T2_VARCHAR20=[$0], T2_DECIMAL=[$6], T2_SMALLINT=[$1], T2_DOUBLE=[$5])
+  LogicalProject(T2_VARCHAR20=[_0], T2_DECIMAL=[_6], T2_SMALLINT=[_1], T2_DOUBLE=[_5])
     LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
         </Resource>
@@ -124,7 +124,7 @@ LogicalUnion(all=[false])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
+LogicalProject(EXPR_0=[CAST(_3):DECIMAL(19, 0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, T2]])
 ]]>
         </Resource>

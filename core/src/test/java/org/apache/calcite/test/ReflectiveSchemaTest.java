@@ -276,7 +276,7 @@ public class ReflectiveSchemaTest {
     final CalciteAssert.AssertThat with =
         CalciteAssert.that().withSchema("s", CATCHALL);
     with.query("select 1 from \"s\".\"allPrivates\"")
-        .returns("EXPR$0=1\n");
+        .returns("EXPR_0=1\n");
     with.query("select \"x\" from \"s\".\"allPrivates\"")
         .throws_("Column 'x' not found in any table");
   }
@@ -1070,6 +1070,6 @@ public class ReflectiveSchemaTest {
         .withSchema("s", CATCHALL)
         .query("select (\"value\" = 3 and unknown) or ( \"value\"  = 3 ) "
             + "from \"s\".\"primesCustomBoxed\"")
-        .returnsUnordered("EXPR$0=false\nEXPR$0=false\nEXPR$0=true");
+        .returnsUnordered("EXPR_0=false\nEXPR_0=false\nEXPR_0=true");
   }
 }

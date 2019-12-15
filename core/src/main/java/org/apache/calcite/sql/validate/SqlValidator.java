@@ -406,7 +406,7 @@ public interface SqlValidator {
   /**
    * Derives an alias for an expression. If no alias can be derived, returns
    * null if <code>ordinal</code> is less than zero, otherwise generates an
-   * alias <code>EXPR$<i>ordinal</i></code>.
+   * alias <code>EXPR_<i>ordinal</i></code>.
    *
    * @param node    Expression
    * @param ordinal Ordinal of expression
