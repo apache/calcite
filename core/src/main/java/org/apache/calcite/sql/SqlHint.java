@@ -128,6 +128,21 @@ public class SqlHint extends SqlCall {
     }
   }
 
+  public Map<Object, Object> getOptionLiteralKVPairs() {
+    if (optionFormat == HintOptionFormat.LITERAL_KV_LIST) {
+      final Map<Object, Object> attrs = new HashMap<>();
+      for (int i = 0; i < options.size() - 1; i += 2) {
+        final SqlNode k = options.get(i);
+        final SqlNode v = options.get(i + 1);
+        ((SqlLiteral) k).getValue();
+        attrs.put(((SqlLiteral) k).getValue(), ((SqlLiteral) k).getValue());
+      }
+      return ImmutableMap.copyOf(attrs);
+    } else {
+      return ImmutableMap.of();
+    }
+  }
+
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     name.unparse(writer, leftPrec, rightPrec);
     if (this.options.size() > 0) {
@@ -161,7 +176,9 @@ public class SqlHint extends SqlCall {
      * The hint options are list of key-value pairs. For each pair,
      * the key is a simple identifier, the value is a string literal.
      */
-    KV_LIST
+    KV_LIST,
+
+    LITERAL_KV_LIST,
   }
 
   //~ Tools ------------------------------------------------------------------
@@ -177,9 +194,13 @@ public class SqlHint extends SqlCall {
     if (isOptionsAsKVPairs(options)) {
       return HintOptionFormat.KV_LIST;
     }
+    if (isOptionsAsLiteralKVPairs(options)) {
+      return HintOptionFormat.LITERAL_KV_LIST;
+    }
     throw new AssertionError("The hint options should either be empty, "
         + "or simple identifier list, "
-        + "or key-value pairs whose pair key is simple identifier and value is string literal.");
+        + "or key-value pairs whose pair key is simple identifier and value is string literal, "
+        + "or key-value pairs whose key and value are both literals.");
   }
 
   /** Decides if the hint options is as key-value pair format. */
@@ -189,6 +210,20 @@ public class SqlHint extends SqlCall {
         boolean isKVPair = options.get(i) instanceof SqlIdentifier
             && options.get(i + 1) instanceof SqlLiteral
             && ((SqlLiteral) options.get(i + 1)).getTypeName() == SqlTypeName.CHAR;
+        if (!isKVPair) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private static boolean isOptionsAsLiteralKVPairs(SqlNodeList options) {
+    if (options.size() > 0 && options.size() % 2 == 0) {
+      for (int i = 0; i < options.size() - 1; i += 2) {
+        boolean isKVPair = options.get(i) instanceof SqlLiteral
+            && options.get(i + 1) instanceof SqlLiteral;
         if (!isKVPair) {
           return false;
         }

@@ -97,44 +97,7 @@ import org.apache.calcite.schema.ModifiableView;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.Wrapper;
-import org.apache.calcite.sql.JoinConditionType;
-import org.apache.calcite.sql.JoinType;
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDelete;
-import org.apache.calcite.sql.SqlDynamicParam;
-import org.apache.calcite.sql.SqlExplainFormat;
-import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.sql.SqlFunction;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlInsert;
-import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlMatchRecognize;
-import org.apache.calcite.sql.SqlMerge;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlNumericLiteral;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlOrderBy;
-import org.apache.calcite.sql.SqlSampleSpec;
-import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlSelectKeyword;
-import org.apache.calcite.sql.SqlSetOperator;
-import org.apache.calcite.sql.SqlSnapshot;
-import org.apache.calcite.sql.SqlUnnestOperator;
-import org.apache.calcite.sql.SqlUpdate;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.SqlValuesOperator;
-import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWith;
-import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlInOperator;
@@ -2902,6 +2865,15 @@ public class SqlToRelConverter {
 
     final AggregatingSelectScope scope = aggConverter.aggregatingSelectScope;
     final AggregatingSelectScope.Resolved r = scope.resolved.get();
+    List<Pair<Object, List<RelHint>>> hints = new ArrayList<>();
+    for (int i = 0; i < r.groupExprList.size(); i++) {
+      SqlNode node = r.groupExprList.get(i);
+      if (node instanceof SqlHintableNode && ((SqlHintableNode) node).hasHints()) {
+        List<RelHint> relHint =
+            SqlUtil.getRelHint(hintStrategies, ((SqlHintableNode) node).getHints());
+        hints.add(new Pair<>(r.groupSet.asList().get(i), relHint));
+      }
+    }
     for (SqlNode groupExpr : r.groupExprList) {
       aggConverter.addGroupExpr(groupExpr);
     }
@@ -2961,10 +2933,17 @@ public class SqlToRelConverter {
       }
 
       // Add the aggregator
-      bb.setRoot(
-          createAggregate(bb, r.groupSet, r.groupSets,
-              aggConverter.getAggCalls()),
-          false);
+      if (hints.size() == 0) {
+        bb.setRoot(
+            createAggregate(bb, r.groupSet, r.groupSets,
+                aggConverter.getAggCalls()),
+            false);
+      } else {
+        bb.setRoot(
+            createAggregate(bb, r.groupSet, r.groupSets,
+                aggConverter.getAggCalls(), hints),
+            false);
+      }
 
       bb.mapRootRelToFieldProjection.put(bb.root, r.groupExprProjection);
 
@@ -3060,6 +3039,12 @@ public class SqlToRelConverter {
   protected RelNode createAggregate(Blackboard bb, ImmutableBitSet groupSet,
       ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     return LogicalAggregate.create(bb.root, groupSet, groupSets, aggCalls);
+  }
+
+  protected RelNode createAggregate(Blackboard bb, ImmutableBitSet groupSet,
+      ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls,
+      List<Pair<Object, List<RelHint>>> hints) {
+    return LogicalAggregate.create(bb.root, groupSet, groupSets, aggCalls).withHints(hints);
   }
 
   public RexDynamicParam convertDynamicParam(

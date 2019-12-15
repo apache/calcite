@@ -27,6 +27,16 @@ Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testHintInGroupByKey">
+        <Resource name="sql">
+            <![CDATA[select empno, count(*) from emp group by /*+ hot_key(12=10) */ empno]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Aggregate:[<0, [[HOT_KEY inheritPath:[]]]&gt;]
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testQueryHint">
         <Resource name="sql">
             <![CDATA[select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */ *

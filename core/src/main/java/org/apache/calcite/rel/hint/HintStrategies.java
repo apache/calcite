@@ -40,6 +40,9 @@ public abstract class HintStrategies {
   public static final HintStrategy PROJECT =
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.PROJECT);
 
+  public static final HintStrategy AGGREGATE =
+      new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.AGGREGATE);
+
   /**
    * Create a hint strategy from a specific matcher whose rules are totally customized.
    *

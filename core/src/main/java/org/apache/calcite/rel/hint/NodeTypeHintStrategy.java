@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.hint;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
@@ -51,7 +52,10 @@ public class NodeTypeHintStrategy implements HintStrategy {
     /**
      * The hint would be propagated to the Project nodes.
      */
-    PROJECT(Project.class);
+    PROJECT(Project.class),
+
+
+    AGGREGATE(Aggregate.class);
 
     /** Relational expression clazz that the hint can apply to. */
     private Class<?> relClazz;

@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategies;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -94,6 +95,12 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "from emp e1\n"
         + "inner join dept d1 on e1.deptno = d1.deptno\n"
         + "inner join emp e2 on e1.ename = e2.job");
+    sql(sql).ok();
+  }
+
+  @Test public void testHintInGroupByKey() {
+    final String sql = "select empno, count(*) from emp "
+        + "group by /*+ hot_key(12=10) */ empno";
     sql(sql).ok();
   }
 
@@ -553,6 +560,16 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         }
         return super.visit(project);
       }
+
+      @Override public RelNode visit(LogicalAggregate aggregate) {
+        if (aggregate.getHints().size() > 0) {
+          // ">" is xml reserved character so it has to be escaped to "&gt;"
+          String hintString = aggregate.getHints().toString().replace(">", "&gt;");
+          aggregate.getHints().toString();
+          this.hintsCollect.add("Aggregate:" + hintString);
+        }
+        return super.visit(aggregate);
+      }
     }
   }
 
@@ -587,6 +604,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .addHintStrategy("index", HintStrategies.TABLE_SCAN)
         .addHintStrategy("properties", HintStrategies.TABLE_SCAN)
         .addHintStrategy("resource", HintStrategies.PROJECT)
+        .addHintStrategy("hot_key", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
           HintStrategies.cascade(HintStrategies.JOIN,
             HintStrategies.explicit((hint, rel) -> {

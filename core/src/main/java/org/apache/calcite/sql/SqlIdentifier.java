@@ -35,7 +35,7 @@ import java.util.List;
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
  */
-public class SqlIdentifier extends SqlNode {
+public class SqlIdentifier extends SqlNode implements SqlHintableNode {
 
   //~ Instance fields --------------------------------------------------------
 
@@ -57,6 +57,8 @@ public class SqlIdentifier extends SqlNode {
    * This identifier's collation (if any).
    */
   final SqlCollation collation;
+
+  SqlNodeList hints;
 
   /**
    * A list of the positions of the components of compound identifiers.
@@ -278,7 +280,22 @@ public class SqlIdentifier extends SqlNode {
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
+    if (hasHints()) {
+      writer.sep("/*+");
+      this.hints.unparse(writer, 0, 0);
+      writer.print("*/");
+      writer.setNeedWhitespace(true);
+    }
+
     SqlUtil.unparseSqlIdentifierSyntax(writer, this, false);
+  }
+
+  @Override public SqlNodeList getHints() {
+    return this.hints;
+  }
+
+  @Override public boolean hasHints() {
+    return this.hints != null;
   }
 
   public void validate(SqlValidator validator, SqlValidatorScope scope) {
@@ -369,6 +386,10 @@ public class SqlIdentifier extends SqlNode {
     final SqlQualified qualified = scope.fullyQualify(this);
     final SqlIdentifier fqId = qualified.identifier;
     return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
+  }
+
+  @Override public void addHints(SqlNodeList hints) {
+    this.hints = hints;
   }
 }
 

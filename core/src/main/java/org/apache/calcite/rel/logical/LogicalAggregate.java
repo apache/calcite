@@ -24,7 +24,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Pair;
 
 import java.util.List;
 
@@ -63,6 +65,17 @@ public final class LogicalAggregate extends Aggregate {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+  }
+
+  public LogicalAggregate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls,
+      List<Pair<Object, List<RelHint>>> hints) {
+    super(cluster, traitSet, input, groupSet, groupSets, aggCalls, hints);
   }
 
   @Deprecated // to be removed before 2.0
@@ -128,6 +141,11 @@ public final class LogicalAggregate extends Aggregate {
 
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
+  }
+
+  @Override public RelNode withHints(List<Pair<Object, List<RelHint>>> hintList) {
+    return new LogicalAggregate(
+        getCluster(), traitSet, input, groupSet, groupSets, aggCalls, hintList);
   }
 }
 

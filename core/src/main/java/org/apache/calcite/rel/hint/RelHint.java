@@ -66,6 +66,7 @@ public class RelHint {
   public final String hintName;
   public final List<String> listOptions;
   public final Map<String, String> kvOptions;
+  public final Map<Object, Object> literalKVOptions;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -81,13 +82,16 @@ public class RelHint {
       Iterable<Integer> inheritPath,
       String hintName,
       @Nullable List<String> listOption,
-      @Nullable Map<String, String> kvOptions) {
+      @Nullable Map<String, String> kvOptions,
+      @Nullable Map<Object, Object> literalKVOptions) {
     Objects.requireNonNull(inheritPath);
     Objects.requireNonNull(hintName);
     this.inheritPath = ImmutableList.copyOf(inheritPath);
     this.hintName = hintName;
     this.listOptions = listOption == null ? ImmutableList.of() : ImmutableList.copyOf(listOption);
     this.kvOptions = kvOptions == null ? ImmutableMap.of() : ImmutableMap.copyOf(kvOptions);
+    this.literalKVOptions =
+        literalKVOptions == null ? ImmutableMap.of() : ImmutableMap.copyOf(literalKVOptions);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -100,7 +104,7 @@ public class RelHint {
    * @return The {@link RelHint} instance with empty options
    */
   public static RelHint of(Iterable<Integer> inheritPath, String hintName) {
-    return new RelHint(inheritPath, hintName, null, null);
+    return new RelHint(inheritPath, hintName, null, null, null);
   }
 
   /**
@@ -113,7 +117,7 @@ public class RelHint {
    */
   public static RelHint of(Iterable<Integer> inheritPath, String hintName,
       List<String> listOption) {
-    return new RelHint(inheritPath, hintName, Objects.requireNonNull(listOption), null);
+    return new RelHint(inheritPath, hintName, Objects.requireNonNull(listOption), null, null);
   }
 
   /**
@@ -127,7 +131,12 @@ public class RelHint {
    */
   public static RelHint of(Iterable<Integer> inheritPath, String hintName,
       Map<String, String> kvOptions) {
-    return new RelHint(inheritPath, hintName, null, Objects.requireNonNull(kvOptions));
+    return new RelHint(inheritPath, hintName, null, Objects.requireNonNull(kvOptions), null);
+  }
+
+  public static RelHint of(Iterable<Integer> inheritPath, Map<Object, Object> kvOptions,
+                           String hintName) {
+    return new RelHint(inheritPath, hintName, null, null, Objects.requireNonNull(kvOptions));
   }
 
   /**
@@ -138,7 +147,7 @@ public class RelHint {
    */
   public RelHint copy(List<Integer> inheritPath) {
     Objects.requireNonNull(inheritPath);
-    return new RelHint(inheritPath, hintName, listOptions, kvOptions);
+    return new RelHint(inheritPath, hintName, listOptions, kvOptions, literalKVOptions);
   }
 
   @Override public boolean equals(Object obj) {

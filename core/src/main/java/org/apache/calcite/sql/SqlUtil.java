@@ -1009,6 +1009,9 @@ public abstract class SqlUtil {
       case KV_LIST:
         relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionKVPairs());
         break;
+      case LITERAL_KV_LIST:
+        relHint = RelHint.of(inheritPath, sqlHint.getOptionLiteralKVPairs(), hintName);
+        break;
       default:
         throw new AssertionError("Unexpected hint option format");
       }

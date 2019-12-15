@@ -8618,6 +8618,16 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testHintInGroupByKey() {
+    final String sql = "select empno, count(*) from emp "
+        + "group by /*+ hot_key(12=10) */ empno";
+    final String expected =
+        "SELECT `EMPNO`, COUNT(*)\n"
+            + "FROM `EMP`\n"
+            + "GROUP BY /*+ `HOT_KEY`(12 =10) */ `EMPNO`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testTableHintsInQuery() {
     final String hint = "/*+ PROPERTIES(K1 ='v1', K2 ='v2'), INDEX(IDX0, IDX1) */";
     final String sql1 = String.format(Locale.ROOT, "select * from t %s", hint);

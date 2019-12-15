@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.KVHintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -48,6 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,7 +73,7 @@ import java.util.Set;
  * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public abstract class Aggregate extends SingleRel {
+public abstract class Aggregate extends SingleRel implements KVHintable {
 
   public static boolean isSimple(Aggregate aggregate) {
     return aggregate.getGroupType() == Group.SIMPLE;
@@ -104,6 +107,7 @@ public abstract class Aggregate extends SingleRel {
   @Deprecated // unused field, to be removed before 2.0
   public final boolean indicator = false;
 
+  protected final ImmutableList<Pair<Object, List<RelHint>>> hints;
   protected final List<AggregateCall> aggCalls;
   protected final ImmutableBitSet groupSet;
   public final ImmutableList<ImmutableBitSet> groupSets;
@@ -134,6 +138,7 @@ public abstract class Aggregate extends SingleRel {
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
+   * @param hints            Hints
    */
   protected Aggregate(
       RelOptCluster cluster,
@@ -141,10 +146,12 @@ public abstract class Aggregate extends SingleRel {
       RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
-      List<AggregateCall> aggCalls) {
+      List<AggregateCall> aggCalls,
+      List<Pair<Object, List<RelHint>>> hints) {
     super(cluster, traitSet, input);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Objects.requireNonNull(groupSet);
+    this.hints = ImmutableList.copyOf(hints);
     if (groupSets == null) {
       this.groupSets = ImmutableList.of(groupSet);
     } else {
@@ -161,6 +168,16 @@ public abstract class Aggregate extends SingleRel {
           || isPredicate(input, aggCall.filterArg),
           "filter must be BOOLEAN NOT NULL");
     }
+  }
+
+  protected Aggregate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, traitSet, input, groupSet, groupSets, aggCalls, Collections.emptyList());
   }
 
   /**
@@ -351,6 +368,10 @@ public abstract class Aggregate extends SingleRel {
   protected RelDataType deriveRowType() {
     return deriveRowType(getCluster().getTypeFactory(), getInput().getRowType(),
         false, groupSet, groupSets, aggCalls);
+  }
+
+  @Override public ImmutableList<Pair<Object, List<RelHint>>> getHints() {
+    return this.hints;
   }
 
   /**
