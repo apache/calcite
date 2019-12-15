@@ -135,7 +135,7 @@
 
 # ASCII
 select ascii('xyz');
-EXPR$0
+EXPR#0
 120
 !ok
 
@@ -183,7 +183,7 @@ select approximate percentile_disc(0.5) within group (order by sal) from emp gro
 
 # AVG
 select avg(sal) from emp;
-EXPR$0
+EXPR#0
 2073.214285714286
 !ok
 
@@ -194,42 +194,42 @@ select approximate count(distinct sal) from emp;
 !}
 
 select count(*) from emp;
-EXPR$0
+EXPR#0
 14
 !ok
 
 select count(sal) from emp;
-EXPR$0
+EXPR#0
 14
 !ok
 
 select count(all sal) from emp;
-EXPR$0
+EXPR#0
 14
 !ok
 
 select count(distinct sal) from emp;
-EXPR$0
+EXPR#0
 12
 !ok
 
 # LISTAGG
 select listagg(empno) from emp group by deptno;
-EXPR$0
+EXPR#0
 7369,7566,7788,7876,7902
 7499,7521,7654,7698,7844,7900
 7782,7839,7934
 !ok
 
 select listagg(empno) within group (order by sal) from emp group by deptno;
-EXPR$0
+EXPR#0
 7369,7876,7566,7788,7902
 7900,7521,7654,7844,7499,7698
 7934,7782,7839
 !ok
 
 select listagg(empno, ',') from emp group by deptno;
-EXPR$0
+EXPR#0
 7369,7566,7788,7876,7902
 7499,7521,7654,7698,7844,7900
 7782,7839,7934
@@ -237,17 +237,17 @@ EXPR$0
 
 # MAX
 select max(distinct sal) from emp;
-EXPR$0
+EXPR#0
 5000.00
 !ok
 
 select max(all sal) from emp;
-EXPR$0
+EXPR#0
 5000.00
 !ok
 
 select max(sal) from emp;
-EXPR$0
+EXPR#0
 5000.00
 !ok
 
@@ -259,17 +259,17 @@ select median(sal) from emp;
 
 # MIN
 select min(distinct sal) from emp;
-EXPR$0
+EXPR#0
 800.00
 !ok
 
 select min(all sal) from emp;
-EXPR$0
+EXPR#0
 800.00
 !ok
 
 select min(sal) from emp;
-EXPR$0
+EXPR#0
 800.00
 !ok
 
@@ -287,44 +287,44 @@ select percentile_disc(0.6) within group (order by sal) from emp group by deptno
 
 # STDDEV_SAMP and STDDEV_POP
 select stddev_samp(sal) from emp;
-EXPR$0
+EXPR#0
 1182.503223516271873450023122131824493408203125
 !ok
 
 select stddev_pop(sal) from emp;
-EXPR$0
+EXPR#0
 1139.488618295281639802851714193820953369140625
 !ok
 
 # SUM
 select sum(sal) from emp;
-EXPR$0
+EXPR#0
 29025.00
 !ok
 
 select sum(distinct sal) from emp;
-EXPR$0
+EXPR#0
 24775.00
 !ok
 
 # VAR_SAMP and VAR_POP
 select var_samp(sal) from emp;
-EXPR$0
+EXPR#0
 1398313.873626374
 !ok
 
 select var_samp(distinct sal) from emp;
-EXPR$0
+EXPR#0
 1512779.356060606
 !ok
 
 select var_samp(all sal) from emp;
-EXPR$0
+EXPR#0
 1398313.873626374
 !ok
 
 select var_pop(sal) from emp;
-EXPR$0
+EXPR#0
 1298434.31122449
 !ok
 
@@ -332,13 +332,13 @@ EXPR$0
 
 # BIT_AND
 select bit_and(deptno) from emp;
-EXPR$0
+EXPR#0
 0
 !ok
 
 # BIT_OR
 select bit_or(deptno) from emp;
-EXPR$0
+EXPR#0
 30
 !ok
 
@@ -375,7 +375,7 @@ select bool_or(deptno) from emp;
 
 # AVG
 select empno, avg(sal) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 1600.00
 7521, 1425.00
 7654, 1366.666666666667
@@ -386,7 +386,7 @@ EMPNO, EXPR$1
 
 # COUNT
 select empno, count(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 1
 7521, 2
 7654, 3
@@ -403,7 +403,7 @@ select empno, cume_dist() over (order by sal rows unbounded preceding) from emp 
 
 # FIRST_VALUE
 select empno, first_value(sal) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 1600.00
 7521, 1600.00
 7654, 1600.00
@@ -419,7 +419,7 @@ select empno, first_value(sal respect nulls) over (order by empno rows unbounded
 
 # LAG
 select empno, lag(sal) respect nulls over (order by empno) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, 1600.00
 7654, 1250.00
@@ -429,7 +429,7 @@ EMPNO, EXPR$1
 !ok
 
 select empno, lag(sal, 2) respect nulls over (order by empno) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, null
 7654, 1600.00
@@ -457,7 +457,7 @@ select empno, lead(sal, 2) ignore nulls over (order by empno) from emp order by 
 
 # MAX
 select empno, max(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 300.00
 7521, 500.00
 7654, 1400.00
@@ -474,7 +474,7 @@ select empno, median(comm) over (order by empno rows unbounded preceding) from e
 
 # MIN
 select empno, min(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 300.00
 7521, 300.00
 7654, 300.00
@@ -524,7 +524,7 @@ select deptno, ratio_to_report(sal) over (partition by deptno) from emp;
 
 # STDDEV_POP
 select empno, stddev_pop(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 0
 7521, 100
 7654, 478.42333648024424519462627358734607696533203125
@@ -535,7 +535,7 @@ EMPNO, EXPR$1
 
 # STDDEV_SAMP (synonym for STDDEV)
 select empno, stddev_samp(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, 141.421356237309510106570087373256683349609375
 7654, 585.9465277082316561063635163009166717529296875
@@ -545,7 +545,7 @@ EMPNO, EXPR$1
 !ok
 
 select empno, stddev(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, 141.421356237309510106570087373256683349609375
 7654, 585.9465277082316561063635163009166717529296875
@@ -556,7 +556,7 @@ EMPNO, EXPR$1
 
 # SUM
 select empno, sum(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 300.00
 7521, 800.00
 7654, 2200.00
@@ -567,7 +567,7 @@ EMPNO, EXPR$1
 
 # VAR_POP
 select empno, var_pop(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, 0.0000
 7521, 10000.0000
 7654, 228888.888888889
@@ -578,7 +578,7 @@ EMPNO, EXPR$1
 
 # VAR_SAMP (synonym for VARIANCE)
 select empno, var_samp(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, 20000.0000
 7654, 343333.3333333335
@@ -588,7 +588,7 @@ EMPNO, EXPR$1
 !ok
 
 select empno, variance(comm) over (order by empno rows unbounded preceding) from emp where deptno = 30 order by 1;
-EMPNO, EXPR$1
+EMPNO, EXPR#1
 7499, null
 7521, 20000.0000
 7654, 343333.3333333335
@@ -601,7 +601,7 @@ EMPNO, EXPR$1
 
 # DENSE_RANK
 select dense_rank() over () from emp where deptno = 30;
-EXPR$0
+EXPR#0
 6
 6
 6
@@ -611,7 +611,7 @@ EXPR$0
 !ok
 
 select dense_rank() over (partition by deptno) from emp;
-EXPR$0
+EXPR#0
 3
 3
 3
@@ -629,7 +629,7 @@ EXPR$0
 !ok
 
 select dense_rank() over (partition by deptno order by sal) from emp;
-EXPR$0
+EXPR#0
 1
 1
 1
@@ -648,7 +648,7 @@ EXPR$0
 
 # NTILE
 select ntile(4) over (order by sal desc) from emp;
-EXPR$0
+EXPR#0
 1
 1
 1
@@ -683,7 +683,7 @@ select percent_rank() over (partition by deptno order by sal) from emp;
 
 # RANK
 select rank() over () from emp;
-EXPR$0
+EXPR#0
 14
 14
 14
@@ -701,7 +701,7 @@ EXPR$0
 !ok
 
 select rank() over (partition by deptno) from emp;
-EXPR$0
+EXPR#0
 3
 3
 3
@@ -719,7 +719,7 @@ EXPR$0
 !ok
 
 select rank() over (partition by deptno order by sal) from emp;
-EXPR$0
+EXPR#0
 1
 1
 1
@@ -738,7 +738,7 @@ EXPR$0
 
 # ROW_NUMBER
 select row_number() over () from emp;
-EXPR$0
+EXPR#0
 1
 10
 11
@@ -759,7 +759,7 @@ EXPR$0
 
 # CASE
 select case when deptno < 20 then 'x' else 'y' end from emp;
-EXPR$0
+EXPR#0
 y
 y
 y
@@ -777,7 +777,7 @@ x
 !ok
 
 select case when deptno < 20 then 'x' end from emp;
-EXPR$0
+EXPR#0
 null
 null
 null
@@ -795,7 +795,7 @@ x
 !ok
 
 select case deptno when 10 then 'x' when 20 then 'y' end from emp;
-EXPR$0
+EXPR#0
 null
 null
 null
@@ -813,7 +813,7 @@ y
 !ok
 
 select case deptno when 10 then 'x' when 20 then 'y' else 'z' end from emp;
-EXPR$0
+EXPR#0
 x
 x
 x
@@ -832,13 +832,13 @@ z
 
 # COALESCE is a synonym for NVL
 select coalesce(1, 2, 3);
-EXPR$0
+EXPR#0
 1
 !ok
 
 # DECODE
 select decode(deptno, 10, 'x', 20, 'y', 'z') from emp;
-EXPR$0
+EXPR#0
 x
 x
 x
@@ -857,7 +857,7 @@ z
 
 # GREATEST and LEAST
 select greatest(deptno) from emp where deptno = 30;
-EXPR$0
+EXPR#0
 30
 30
 30
@@ -867,7 +867,7 @@ EXPR$0
 !ok
 
 select greatest(deptno, empno) from emp where deptno = 30;
-EXPR$0
+EXPR#0
 7499
 7521
 7654
@@ -877,7 +877,7 @@ EXPR$0
 !ok
 
 select greatest(deptno, empno, sal) from emp where deptno = 30;
-EXPR$0
+EXPR#0
 7499
 7521
 7654
@@ -887,7 +887,7 @@ EXPR$0
 !ok
 
 select least(deptno, empno) from emp where deptno = 30;
-EXPR$0
+EXPR#0
 30
 30
 30
@@ -898,7 +898,7 @@ EXPR$0
 
 # NVL
 select nvl(1, 2);
-EXPR$0
+EXPR#0
 1
 !ok
 
@@ -908,7 +908,7 @@ select nvl(1, 2, 3);
 !}
 
 select nvl(comm, sal) from emp where deptno = 30;
-EXPR$0
+EXPR#0
 0.00
 1400.00
 2850.00
@@ -926,7 +926,7 @@ WHERE "EMP"."DEPTNO" = 30
 
 # NULLIF
 select nullif(comm, sal) from emp;
-EXPR$0
+EXPR#0
 0.00
 1400.00
 300.00
@@ -1265,7 +1265,7 @@ SELECT "DATE_TRUNC"('week', DATE '2008-09-09')
 # Extracts a date part from a timestamp or literal.
 -- returns 8
 select extract(minute from timestamp '2009-09-09 12:08:43');
-EXPR$0
+EXPR#0
 8
 !ok
 
@@ -1316,13 +1316,13 @@ SELECT "INTERVAL_CMP"('30 days', '1 month')
 # Always returns DATE, even if argument is TIMESTAMP.
 -- returns '2004-01-31'
 select last_day(date '2004-01-25');
-EXPR$0
+EXPR#0
 2004-01-31
 !ok
 
 -- returns '2004-01-31'
 select last_day(timestamp '2004-01-25 12:23:45');
-EXPR$0
+EXPR#0
 2004-01-31
 !ok
 
@@ -1444,30 +1444,30 @@ SELECT "TRUNC"(TIMESTAMP '2011-07-21 10:32:38.248109')
 
 # ABS
 select abs(2);
-EXPR$0
+EXPR#0
 2
 !ok
 
 select -abs(-pi);
-EXPR$0
+EXPR#0
 -3.141592653589793
 !ok
 
 # ACOS
 select acos(0);
-EXPR$0
+EXPR#0
 1.5707963267948966
 !ok
 
 # ASIN
 select asin(0);
-EXPR$0
+EXPR#0
 0.0
 !ok
 
 # ATAN
 select atan(0);
-EXPR$0
+EXPR#0
 0.0
 !ok
 
@@ -1484,17 +1484,17 @@ SELECT "CBRT"(-8)
 
 # CEILING (or CEIL)
 select ceiling(10.5);
-EXPR$0
+EXPR#0
 11
 !ok
 
 select ceiling(-10.5);
-EXPR$0
+EXPR#0
 -10
 !ok
 
 select ceil(pi);
-EXPR$0
+EXPR#0
 4.0
 !ok
 
@@ -1506,19 +1506,19 @@ FROM "scott"."EMP" AS "EMP"
 
 # COS
 select cos(180);
-EXPR$0
+EXPR#0
 -0.5984600690578581
 !ok
 
 # COT
 select cot(45);
-EXPR$0
+EXPR#0
 0.6173696237835551
 !ok
 
 # DEGREES
 select degrees(pi);
-EXPR$0
+EXPR#0
 180.0
 !ok
 
@@ -1539,24 +1539,24 @@ SELECT "DLOG10"(100)
 
 # EXP
 select exp(0);
-EXPR$0
+EXPR#0
 1.0
 !ok
 
 # FLOOR
 select floor(10.5);
-EXPR$0
+EXPR#0
 10
 !ok
 
 select floor(-10.5);
-EXPR$0
+EXPR#0
 -11
 !ok
 
 # LN
 select ln(1);
-EXPR$0
+EXPR#0
 0.0
 !ok
 
@@ -1567,7 +1567,7 @@ SELECT "LOG"(1000)
 
 # MOD
 select mod(-50, 17);
-EXPR$0
+EXPR#0
 -16
 !ok
 
@@ -1580,7 +1580,7 @@ select pi();
 
 # POWER
 select power(2, 3);
-EXPR$0
+EXPR#0
 8.0
 !ok
 
@@ -1590,7 +1590,7 @@ SELECT "POW"(-2, 3)
 
 # RADIANS
 select radians(180);
-EXPR$0
+EXPR#0
 3.141592653589793
 !ok
 
@@ -1601,41 +1601,41 @@ SELECT "RANDOM"()
 
 # ROUND
 select round(pi);
-EXPR$0
+EXPR#0
 3.0
 !ok
 
 select round(pi, 2);
-EXPR$0
+EXPR#0
 3.14
 !ok
 
 select round(-pi, 2);
-EXPR$0
+EXPR#0
 -3.14
 !ok
 
 # SIN
 select sin(-90);
-EXPR$0
+EXPR#0
 -0.8939966636005579
 !ok
 
 # SIGN
 select sign(23);
-EXPR$0
+EXPR#0
 1
 !ok
 
 # SQRT
 select sqrt(225);
-EXPR$0
+EXPR#0
 15.0
 !ok
 
 # TAN
 select tan(45);
-EXPR$0
+EXPR#0
 1.6197751905438615
 !ok
 
@@ -1657,7 +1657,7 @@ SELECT "TRUNC"(-111.86, 1)
 
 # || (Concatenation) Operator
 select 'a' || 'b';
-EXPR$0
+EXPR#0
 ab
 !ok
 
@@ -1686,13 +1686,13 @@ FROM "scott"."EMP" AS "EMP"
 
 # CHAR_LENGTH is a synonym for LEN
 select char_length('abc');
-EXPR$0
+EXPR#0
 3
 !ok
 
 # CHARACTER_LENGTH is a synonym for LEN
 select character_length('abc');
-EXPR$0
+EXPR#0
 3
 !ok
 
@@ -1707,7 +1707,7 @@ SELECT "CHARINDEX"('fish', 'dogfish')
 
 # CHR
 select chr(65);
-EXPR$0
+EXPR#0
 A
 !ok
 
@@ -1730,20 +1730,20 @@ SELECT "FUNC_SHA1"('Amazon Redshift')
 # INITCAP
 -- returns 'Nibh.Enim@Egestas.Ca'
 select initcap('nibh.enim@egestas.ca');
-EXPR$0
+EXPR#0
 Nibh.Enim@Egestas.Ca
 !ok
 
 # LEFT and RIGHT
 -- returns 'Chica'
 select left('Chicago', 5);
-EXPR$0
+EXPR#0
 Chica
 !ok
 
 -- returns 'icago'
 select right('Chicago', 5);
-EXPR$0
+EXPR#0
 icago
 !ok
 
@@ -1764,7 +1764,7 @@ SELECT "LENGTH"(u&'fran\00e7ais')
 
 # LOWER
 select lower('Manhattan');
-EXPR$0
+EXPR#0
 manhattan
 !ok
 
@@ -1791,7 +1791,7 @@ SELECT "LTRIM"('bakery', 'abc')
 # MD5
 -- returns 'f7415e33f972c03abd4f3fed36748f7a'
 select md5('Amazon Redshift');
-EXPR$0
+EXPR#0
 f7415e33f972c03abd4f3fed36748f7a
 !ok
 
@@ -1849,13 +1849,13 @@ SELECT "REGEXP_SUBSTR"('Suspendisse.tristique@nonnisiAenean.edu', '@[^.]*')
 
 # REPEAT
 select repeat('ba', 3);
-EXPR$0
+EXPR#0
 bababa
 !ok
 
 # REPLACE
 select replace('catching catfish', 'cat', 'dog');
-EXPR$0
+EXPR#0
 dogching dogfish
 !ok
 
@@ -1900,19 +1900,19 @@ SELECT "STRTOL"('110101', 2)
 # SUBSTRING
 -- returns 'pill'
 select substring('caterpillar',6,4);
-EXPR$0
+EXPR#0
 pill
 !ok
 
 -- returns 'pillar'
 select substring('caterpillar',6,8);
-EXPR$0
+EXPR#0
 pillar
 !ok
 
 -- returns 'pill'
 select substring('caterpillar' from 6 for 4);
-EXPR$0
+EXPR#0
 pill
 !ok
 
@@ -1924,20 +1924,20 @@ SELECT "TEXTLEN"('abc')
 # TRANSLATE ( expression, characters_to_replace, characters_to_substitute )
 -- returns 'most tin'
 select translate('mint tea', 'inea', 'osin');
-EXPR$0
+EXPR#0
 most tin
 !ok
 
 # TRIM( [ BOTH ] ['characters' FROM ] string ] )
 -- returns 'dog'
 select trim('"' FROM '"dog"');
-EXPR$0
+EXPR#0
 dog
 !ok
 
 # UPPER
 select upper('Pop');
-EXPR$0
+EXPR#0
 POP
 !ok
 
@@ -1986,12 +1986,12 @@ SELECT "JSON_EXTRACT_PATH_TEXT"('{"f2":{"f3":1},"f4":{"f5":99,"f6":"star"}}', 'f
 
 # CAST and CONVERT
 select cast(stddev_samp(sal) as dec(14, 2)) from emp;
-EXPR$0
+EXPR#0
 1182.503223516271873450023122131824493408203125
 !ok
 
 select 123.456::decimal(8,4);
-EXPR$0
+EXPR#0
 123.456
 !ok
 
@@ -2001,7 +2001,7 @@ select convert(integer, comm) from emp;
 !}
 
 select cast(comm as integer) from emp where deptno = 30 order by empno;
-EXPR$0
+EXPR#0
 300
 500
 1400
@@ -2011,7 +2011,7 @@ null
 !ok
 
 select comm::integer from emp where deptno = 30 order by empno;
-EXPR$0
+EXPR#0
 300
 500
 1400
