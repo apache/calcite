@@ -87,12 +87,12 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testDotLiteralAfterNestedRow() {
-    final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
+    final String sql = "select ((1,2),(3,4,5)).\"EXPR#1\".\"EXPR#2\" from emp";
     sql(sql).ok();
   }
 
   @Test public void testDotLiteralAfterRow() {
-    final String sql = "select row(1,2).\"EXPR$1\" from emp";
+    final String sql = "select row(1,2).\"EXPR#1\" from emp";
     sql(sql).ok();
   }
 
@@ -172,7 +172,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    */
   @Test public void testConditionOffByOne() {
     // Bug causes the plan to contain
-    //   LogicalJoin(condition=[=($9, $9)], joinType=[inner])
+    //   LogicalJoin(condition=[=(#9, #9)], joinType=[inner])
     final String sql = "SELECT * FROM emp\n"
         + "JOIN dept on emp.deptno + 0 = dept.deptno";
     sql(sql).ok();
@@ -497,7 +497,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testGroupBug281() {
     // Dtbug 281 gives:
     //   Internal error:
-    //   Type 'RecordType(VARCHAR(128) $f0)' has no field 'NAME'
+    //   Type 'RecordType(VARCHAR(128) #f0)' has no field 'NAME'
     final String sql =
         "select name from (select name from dept group by name)";
     sql(sql).ok();
@@ -796,9 +796,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * SqlValidatorUtil.uniquify() may not terminate under some
    * conditions</a>. */
   @Test public void testGroupAlias() {
-    final String sql = "select \"$f2\", max(x), max(x + 1)\n"
-        + "from (values (1, 2)) as t(\"$f2\", x)\n"
-        + "group by \"$f2\"";
+    final String sql = "select \"#f2\", max(x), max(x + 1)\n"
+        + "from (values (1, 2)) as t(\"#f2\", x)\n"
+        + "group by \"#f2\"";
     sql(sql).ok();
   }
 
@@ -1909,10 +1909,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     pw.flush();
     TestUtil.assertEqualsVerbose(
         "<RelNode type=\"LogicalProject\">\n"
-            + "\t<Property name=\"EXPR$0\">\n"
+            + "\t<Property name=\"EXPR#0\">\n"
             + "\t\t+(1, 2)\n"
             + "\t</Property>\n"
-            + "\t<Property name=\"EXPR$1\">\n"
+            + "\t<Property name=\"EXPR#1\">\n"
             + "\t\t3\n"
             + "\t</Property>\n"
             + "\t<Inputs>\n"
@@ -2016,10 +2016,10 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    * Test aggregate operators do not derive row types with duplicate column
    * names</a>. */
   @Test public void testAggNoDuplicateColumnNames() {
-    final String sql = "SELECT  empno, EXPR$2, COUNT(empno) FROM (\n"
-        + "    SELECT empno, deptno AS EXPR$2\n"
+    final String sql = "SELECT  empno, EXPR#2, COUNT(empno) FROM (\n"
+        + "    SELECT empno, deptno AS EXPR#2\n"
         + "    FROM emp)\n"
-        + "GROUP BY empno, EXPR$2";
+        + "GROUP BY empno, EXPR#2";
     sql(sql).ok();
   }
 

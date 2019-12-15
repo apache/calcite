@@ -390,7 +390,7 @@ public class RexUtil {
     } else { // is null
       left = operands.get(0);
       if (!left.getType().isNullable()) {
-        // There's no sense in inferring $0=null when $0 is not nullable
+        // There's no sense in inferring #0=null when #0 is not nullable
         return;
       }
       right = rexBuilder.makeNullLiteral(left.getType());

@@ -1468,7 +1468,7 @@ public class RelBuilder {
    *
    * <p>If {@code force} is false,
    * and the input is a {@code Project},
-   * and the expressions  make the trivial projection ($0, $1, ...),
+   * and the expressions  make the trivial projection (#0, #1, ...),
    * modifies the input.
    *
    * @param nodes       Expressions

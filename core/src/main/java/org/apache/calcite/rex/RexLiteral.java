@@ -246,8 +246,8 @@ public class RexLiteral extends RexNode {
    * <li>Hide types for literals in simple binary operations (e.g. +, -, *, /,
    * comparison) when type of the other argument is clear.
    * See {@link RexCall#computeDigest(boolean)}
-   * For instance: =(true. null) means null is BOOL. =($0, null) means the type
-   * of null matches the type of $0.
+   * For instance: =(true. null) means null is BOOL. =(#0, null) means the type
+   * of null matches the type of #0.
    * </ul>
    *
    * @param includeType whether the digest should include type or not

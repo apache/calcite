@@ -50,9 +50,9 @@ public class EnumerableCalcTest {
         )
         .planContains("inp4_ != null ? inp4_.intValue() : 0;")
         .returnsUnordered(
-            "$f0=0",
-            "$f0=250",
-            "$f0=500",
-            "$f0=1000");
+            "#f0=0",
+            "#f0=250",
+            "#f0=500",
+            "#f0=1000");
   }
 }

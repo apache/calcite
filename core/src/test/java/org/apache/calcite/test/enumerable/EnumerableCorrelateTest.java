@@ -52,11 +52,11 @@ public class EnumerableCorrelateTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
-            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept=[$t4])\n"
-            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[#t0], name=[#t2], dept=[#t4])\n"
+            + "  EnumerableCorrelate(correlation=[#cor0], joinType=[left], requiredColumns=[{1}])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[$cor0], expr#5=[$t4.deptno], expr#6=[=($t5, $t0)], proj#0..1=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[#cor0], expr#5=[#t4.deptno], expr#6=[=(#t5, #t0)], proj#0..1=[{exprs}], #condition=[#t6])\n"
             + "      EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill; dept=Sales",
@@ -70,8 +70,8 @@ public class EnumerableCorrelateTest {
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
         .explainContains(""
-            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[semi])\n"
+            + "EnumerableCalc(expr#0..2=[{inputs}], empid=[#t0], name=[#t2])\n"
+            + "  EnumerableHashJoin(condition=[=(#1, #3)], joinType=[semi])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableTableScan(table=[[s, depts]])")
@@ -95,11 +95,11 @@ public class EnumerableCorrelateTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
-            + "  EnumerableCorrelate(correlation=[$cor2], joinType=[inner], requiredColumns=[{0}])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[#t1], name=[#t3])\n"
+            + "  EnumerableCorrelate(correlation=[#cor2], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[$cor2], expr#6=[$t5.deptno], expr#7=[=($t1, $t6)], proj#0..2=[{exprs}], $condition=[$t7])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[#cor2], expr#6=[#t5.deptno], expr#7=[=(#t1, #t6)], proj#0..2=[{exprs}], #condition=[#t7])\n"
             + "      EnumerableTableScan(table=[[s, emps]])")
         .returnsUnordered(
             "empid=100; name=Bill",
@@ -124,11 +124,11 @@ public class EnumerableCorrelateTest {
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
         })
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
-            + "  EnumerableCorrelate(correlation=[$cor5], joinType=[inner], requiredColumns=[{0}])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[#t1], name=[#t3])\n"
+            + "  EnumerableCorrelate(correlation=[#cor5], joinType=[inner], requiredColumns=[{0}])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
             + "      EnumerableTableScan(table=[[s, depts]])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[100], expr#6=[>($t0, $t5)], expr#7=[$cor5], expr#8=[$t7.deptno], expr#9=[=($t1, $t8)], expr#10=[AND($t6, $t9)], proj#0..2=[{exprs}], $condition=[$t10])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[100], expr#6=[>(#t0, #t5)], expr#7=[#cor5], expr#8=[#t7.deptno], expr#9=[=(#t1, #t8)], expr#10=[AND(#t6, #t9)], proj#0..2=[{exprs}], #condition=[#t10])\n"
             + "      EnumerableTableScan(table=[[s, emps]])")
         .returnsUnordered(
             "empid=110; name=Theodore",
@@ -140,12 +140,12 @@ public class EnumerableCorrelateTest {
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "  EnumerableCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{1}])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[#t0], name=[#t2])\n"
+            + "  EnumerableCorrelate(correlation=[#cor0], joinType=[inner], requiredColumns=[{1}])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "    EnumerableAggregate(group=[{0}])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t0, $t6)], i=[$t4], $condition=[$t7])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[#cor0], expr#6=[#t5.deptno], expr#7=[=(#t0, #t6)], i=[#t4], #condition=[#t7])\n"
             + "        EnumerableTableScan(table=[[s, depts]])")
         .returnsUnordered(
             "empid=100; name=Bill",

@@ -232,15 +232,15 @@ public class RelMdPredicates
    * possible predicate.
    *
    * <p>Examples:<ol>
-   * <li>The predicate {@code $7 = $9} on columns [7]
-   *     becomes {@code $7 is not null}
-   * <li>The predicate {@code $7 = $9 + $11} on columns [7, 9]
-   *     becomes {@code $7 is not null or $9 is not null}
-   * <li>The predicate {@code $7 = $9 and $9 = 5} on columns [7] becomes
-   *   {@code $7 = 5}
+   * <li>The predicate {@code #7 = #9} on columns [7]
+   *     becomes {@code #7 is not null}
+   * <li>The predicate {@code #7 = #9 + #11} on columns [7, 9]
+   *     becomes {@code #7 is not null or #9 is not null}
+   * <li>The predicate {@code #7 = #9 and #9 = 5} on columns [7] becomes
+   *   {@code #7 = 5}
    * <li>The predicate
-   *   {@code $7 = $9 and ($9 = $1 or $9 = $2) and $1 > 3 and $2 > 10}
-   *   on columns [7] becomes {@code $7 > 3}
+   *   {@code #7 = #9 and (#9 = #1 or #9 = #2) and #1 > 3 and #2 > 10}
+   *   on columns [7] becomes {@code #7 > 3}
    * </ol>
    *
    * <p>We currently only handle examples 1 and 2.

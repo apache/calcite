@@ -426,7 +426,7 @@ public abstract class RexProgramBuilderBase {
    * <p>Prefer {@link #vBool()}, {@link #vInt()} and so on.
    *
    * <p>The problem with "input refs" is {@code input(tInt(), 0).toString()}
-   * yields {@code $0}, so the type of the expression is not printed, and it
+   * yields {@code #0}, so the type of the expression is not printed, and it
    * makes it hard to analyze the expressions.
    *
    * @param type desired type of the node

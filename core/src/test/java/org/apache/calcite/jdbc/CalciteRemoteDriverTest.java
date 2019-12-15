@@ -284,7 +284,7 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemoteExecuteQuery() throws Exception {
     CalciteAssert.hr().with(REMOTE_CONNECTION_FACTORY)
         .query("values (1, 'a'), (cast(null as integer), 'b')")
-        .returnsUnordered("EXPR$0=1; EXPR$1=a", "EXPR$0=null; EXPR$1=b");
+        .returnsUnordered("EXPR#0=1; EXPR#1=a", "EXPR#0=null; EXPR#1=b");
   }
 
   /** Same query as {@link #testRemoteExecuteQuery()}, run without the test

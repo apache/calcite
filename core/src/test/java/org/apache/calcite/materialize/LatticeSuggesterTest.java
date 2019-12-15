@@ -495,7 +495,7 @@ public class LatticeSuggesterTest {
         + "  avg(\"total_children\" - \"num_children_at_home\")\n"
         + "from \"customer\"\n"
         + "group by \"fname\", \"lname\"";
-    final String l0 = "customer:[COUNT(), AVG($f2)]";
+    final String l0 = "customer:[COUNT(), AVG(#f2)]";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
@@ -507,7 +507,7 @@ public class LatticeSuggesterTest {
         .collect(Collectors.toList());
     assertThat(derivedColumns.size(), is(2));
     final List<String> tables = ImmutableList.of("customer");
-    checkDerivedColumn(lattice, tables, derivedColumns, 0, "$f2", true);
+    checkDerivedColumn(lattice, tables, derivedColumns, 0, "#f2", true);
     checkDerivedColumn(lattice, tables, derivedColumns, 1, "full_name", false);
   }
 
@@ -579,7 +579,7 @@ public class LatticeSuggesterTest {
         + "from \"customer\" join \"sales_fact_1997\" using (\"customer_id\")\n"
         + "group by \"fname\", \"lname\"";
     final String l0 = "sales_fact_1997 (customer:customer_id)"
-        + ":[COUNT(), AVG($f2)]";
+        + ":[COUNT(), AVG(#f2)]";
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(Iterables.getOnlyElement(t.s.latticeMap.keySet()),
@@ -668,12 +668,12 @@ public class LatticeSuggesterTest {
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(t.s.latticeMap.keySet().iterator().next(),
-        is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
+        is("sales_fact_1997 (customer:+(#2, 2)):[MIN(customer.fname)]"));
     assertThat(t.s.space.g.toString(),
         is("graph(vertices: [[foodmart, customer],"
             + " [foodmart, sales_fact_1997]], "
             + "edges: [Step([foodmart, sales_fact_1997],"
-            + " [foodmart, customer], +($2, 2):+($0, 1))])"));
+            + " [foodmart, customer], +(#2, 2):+(#0, 1))])"));
   }
 
   /** Tests that we can run the suggester against non-JDBC schemas.

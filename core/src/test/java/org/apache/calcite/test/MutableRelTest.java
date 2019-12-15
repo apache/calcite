@@ -191,11 +191,11 @@ public class MutableRelTest {
     String actual = RelOptUtil.toString(MutableRels.fromMutable(mutableRel));
     String expected = ""
         + "LogicalUnion(all=[false])\n"
-        + "  LogicalProject(SAL=[$5])\n"
-        + "    LogicalFilter(condition=[=($7, 12)])\n"
+        + "  LogicalProject(SAL=[#5])\n"
+        + "    LogicalFilter(condition=[=(#7, 12)])\n"
         + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n"
-        + "  LogicalProject(SAL=[$5])\n"
-        + "    LogicalFilter(condition=[LIKE($1, 'John%')])\n"
+        + "  LogicalProject(SAL=[#5])\n"
+        + "    LogicalFilter(condition=[LIKE(#1, 'John%')])\n"
         + "      LogicalTableScan(table=[[CATALOG, SALES, EMP]])\n";
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
   }
@@ -215,7 +215,7 @@ public class MutableRelTest {
     final MutableRel mutableRel2 = createMutableRel(sql);
     final String actual = RelOptUtil.toString(MutableRels.fromMutable(mutableRel1));
     final String expected = ""
-        + "LogicalProject(I=[$0])\n"
+        + "LogicalProject(I=[#0])\n"
         + "  LogicalTableFunctionScan(invocation=[RAMP(3)], rowType=[RecordType(INTEGER I)])\n";
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
     assertEquals(mutableRel1, mutableRel2);

@@ -2038,30 +2038,30 @@ public abstract class SqlOperatorBaseTest {
         || (getClass() != SqlOperatorTest.class) && Bug.TODO_FIXED) {
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(1))) FROM (VALUES(2))",
-          "RecordType(INTEGER NOT NULL EXPR$0, INTEGER EXPR$1) NOT NULL");
+          "RecordType(INTEGER NOT NULL EXPR#0, INTEGER EXPR#1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(CAST(10 as BIGINT)))) "
               + "FROM (VALUES(CAST(10 as bigint)))",
-          "RecordType(BIGINT NOT NULL EXPR$0, BIGINT EXPR$1) NOT NULL");
+          "RecordType(BIGINT NOT NULL EXPR#0, BIGINT EXPR#1) NOT NULL");
       tester.checkType(
           " SELECT *,(SELECT * FROM (VALUES(10.5))) FROM (VALUES(10.5))",
-          "RecordType(DECIMAL(3, 1) NOT NULL EXPR$0, DECIMAL(3, 1) EXPR$1) NOT NULL");
+          "RecordType(DECIMAL(3, 1) NOT NULL EXPR#0, DECIMAL(3, 1) EXPR#1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES('this is a char'))) "
               + "FROM (VALUES('this is a char too'))",
-          "RecordType(CHAR(18) NOT NULL EXPR$0, CHAR(14) EXPR$1) NOT NULL");
+          "RecordType(CHAR(18) NOT NULL EXPR#0, CHAR(14) EXPR#1) NOT NULL");
       tester.checkType(
           "SELECT *,(SELECT * FROM (VALUES(true))) FROM (values(false))",
-          "RecordType(BOOLEAN NOT NULL EXPR$0, BOOLEAN EXPR$1) NOT NULL");
+          "RecordType(BOOLEAN NOT NULL EXPR#0, BOOLEAN EXPR#1) NOT NULL");
       tester.checkType(
           " SELECT *,(SELECT * FROM (VALUES(cast('abcd' as varchar(10))))) "
               + "FROM (VALUES(CAST('abcd' as varchar(10))))",
-          "RecordType(VARCHAR(10) NOT NULL EXPR$0, VARCHAR(10) EXPR$1) NOT NULL");
+          "RecordType(VARCHAR(10) NOT NULL EXPR#0, VARCHAR(10) EXPR#1) NOT NULL");
       tester.checkType(
           "SELECT *,"
               + "  (SELECT * FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))) "
               + "FROM (VALUES(TIMESTAMP '2006-01-01 12:00:05'))",
-          "RecordType(TIMESTAMP(0) NOT NULL EXPR$0, TIMESTAMP(0) EXPR$1) NOT NULL");
+          "RecordType(TIMESTAMP(0) NOT NULL EXPR#0, TIMESTAMP(0) EXPR#1) NOT NULL");
     }
   }
 
@@ -2708,127 +2708,127 @@ public abstract class SqlOperatorBaseTest {
   }
 
   private void checkOverlaps(OverlapChecker c) {
-    c.isTrue("($0,$0) OVERLAPS ($0,$0)");
-    c.isFalse("($0,$1) OVERLAPS ($2,$3)");
-    c.isTrue("($0,$1) OVERLAPS ($1,$2)");
-    c.isTrue("($0,$2) OVERLAPS ($1,$3)");
-    c.isTrue("($0,$2) OVERLAPS ($3,$1)");
-    c.isTrue("($2,$0) OVERLAPS ($3,$1)");
-    c.isFalse("($3,$2) OVERLAPS ($1,$0)");
-    c.isTrue("($2,$3) OVERLAPS ($0,$2)");
-    c.isTrue("($2,$3) OVERLAPS ($2,$0)");
-    c.isTrue("($3,$2) OVERLAPS ($2,$0)");
-    c.isTrue("($0,$2) OVERLAPS ($2,$0)");
-    c.isTrue("($0,$3) OVERLAPS ($1,$3)");
-    c.isTrue("($0,$3) OVERLAPS ($3,$3)");
+    c.isTrue("(#0,#0) OVERLAPS (#0,#0)");
+    c.isFalse("(#0,#1) OVERLAPS (#2,#3)");
+    c.isTrue("(#0,#1) OVERLAPS (#1,#2)");
+    c.isTrue("(#0,#2) OVERLAPS (#1,#3)");
+    c.isTrue("(#0,#2) OVERLAPS (#3,#1)");
+    c.isTrue("(#2,#0) OVERLAPS (#3,#1)");
+    c.isFalse("(#3,#2) OVERLAPS (#1,#0)");
+    c.isTrue("(#2,#3) OVERLAPS (#0,#2)");
+    c.isTrue("(#2,#3) OVERLAPS (#2,#0)");
+    c.isTrue("(#3,#2) OVERLAPS (#2,#0)");
+    c.isTrue("(#0,#2) OVERLAPS (#2,#0)");
+    c.isTrue("(#0,#3) OVERLAPS (#1,#3)");
+    c.isTrue("(#0,#3) OVERLAPS (#3,#3)");
 
-    c.isTrue("($0,$0) CONTAINS ($0,$0)");
-    c.isFalse("($0,$1) CONTAINS ($2,$3)");
-    c.isFalse("($0,$1) CONTAINS ($1,$2)");
-    c.isFalse("($0,$2) CONTAINS ($1,$3)");
-    c.isFalse("($0,$2) CONTAINS ($3,$1)");
-    c.isFalse("($2,$0) CONTAINS ($3,$1)");
-    c.isFalse("($3,$2) CONTAINS ($1,$0)");
-    c.isFalse("($2,$3) CONTAINS ($0,$2)");
-    c.isFalse("($2,$3) CONTAINS ($2,$0)");
-    c.isFalse("($3,$2) CONTAINS ($2,$0)");
-    c.isTrue("($0,$2) CONTAINS ($2,$0)");
-    c.isTrue("($0,$3) CONTAINS ($1,$3)");
-    c.isTrue("($0,$3) CONTAINS ($3,$3)");
-    c.isTrue("($3,$0) CONTAINS ($3,$3)");
-    c.isTrue("($3,$0) CONTAINS ($0,$0)");
+    c.isTrue("(#0,#0) CONTAINS (#0,#0)");
+    c.isFalse("(#0,#1) CONTAINS (#2,#3)");
+    c.isFalse("(#0,#1) CONTAINS (#1,#2)");
+    c.isFalse("(#0,#2) CONTAINS (#1,#3)");
+    c.isFalse("(#0,#2) CONTAINS (#3,#1)");
+    c.isFalse("(#2,#0) CONTAINS (#3,#1)");
+    c.isFalse("(#3,#2) CONTAINS (#1,#0)");
+    c.isFalse("(#2,#3) CONTAINS (#0,#2)");
+    c.isFalse("(#2,#3) CONTAINS (#2,#0)");
+    c.isFalse("(#3,#2) CONTAINS (#2,#0)");
+    c.isTrue("(#0,#2) CONTAINS (#2,#0)");
+    c.isTrue("(#0,#3) CONTAINS (#1,#3)");
+    c.isTrue("(#0,#3) CONTAINS (#3,#3)");
+    c.isTrue("(#3,#0) CONTAINS (#3,#3)");
+    c.isTrue("(#3,#0) CONTAINS (#0,#0)");
 
-    c.isTrue("($0,$0) CONTAINS $0");
-    c.isTrue("($3,$0) CONTAINS $0");
-    c.isTrue("($3,$0) CONTAINS $1");
-    c.isTrue("($3,$0) CONTAINS $2");
-    c.isTrue("($3,$0) CONTAINS $3");
-    c.isTrue("($0,$3) CONTAINS $0");
-    c.isTrue("($0,$3) CONTAINS $1");
-    c.isTrue("($0,$3) CONTAINS $2");
-    c.isTrue("($0,$3) CONTAINS $3");
-    c.isFalse("($1,$3) CONTAINS $0");
-    c.isFalse("($1,$2) CONTAINS $3");
+    c.isTrue("(#0,#0) CONTAINS #0");
+    c.isTrue("(#3,#0) CONTAINS #0");
+    c.isTrue("(#3,#0) CONTAINS #1");
+    c.isTrue("(#3,#0) CONTAINS #2");
+    c.isTrue("(#3,#0) CONTAINS #3");
+    c.isTrue("(#0,#3) CONTAINS #0");
+    c.isTrue("(#0,#3) CONTAINS #1");
+    c.isTrue("(#0,#3) CONTAINS #2");
+    c.isTrue("(#0,#3) CONTAINS #3");
+    c.isFalse("(#1,#3) CONTAINS #0");
+    c.isFalse("(#1,#2) CONTAINS #3");
 
-    c.isTrue("($0,$0) EQUALS ($0,$0)");
-    c.isFalse("($0,$1) EQUALS ($2,$3)");
-    c.isFalse("($0,$1) EQUALS ($1,$2)");
-    c.isFalse("($0,$2) EQUALS ($1,$3)");
-    c.isFalse("($0,$2) EQUALS ($3,$1)");
-    c.isFalse("($2,$0) EQUALS ($3,$1)");
-    c.isFalse("($3,$2) EQUALS ($1,$0)");
-    c.isFalse("($2,$3) EQUALS ($0,$2)");
-    c.isFalse("($2,$3) EQUALS ($2,$0)");
-    c.isFalse("($3,$2) EQUALS ($2,$0)");
-    c.isTrue("($0,$2) EQUALS ($2,$0)");
-    c.isFalse("($0,$3) EQUALS ($1,$3)");
-    c.isFalse("($0,$3) EQUALS ($3,$3)");
-    c.isFalse("($3,$0) EQUALS ($3,$3)");
-    c.isFalse("($3,$0) EQUALS ($0,$0)");
+    c.isTrue("(#0,#0) EQUALS (#0,#0)");
+    c.isFalse("(#0,#1) EQUALS (#2,#3)");
+    c.isFalse("(#0,#1) EQUALS (#1,#2)");
+    c.isFalse("(#0,#2) EQUALS (#1,#3)");
+    c.isFalse("(#0,#2) EQUALS (#3,#1)");
+    c.isFalse("(#2,#0) EQUALS (#3,#1)");
+    c.isFalse("(#3,#2) EQUALS (#1,#0)");
+    c.isFalse("(#2,#3) EQUALS (#0,#2)");
+    c.isFalse("(#2,#3) EQUALS (#2,#0)");
+    c.isFalse("(#3,#2) EQUALS (#2,#0)");
+    c.isTrue("(#0,#2) EQUALS (#2,#0)");
+    c.isFalse("(#0,#3) EQUALS (#1,#3)");
+    c.isFalse("(#0,#3) EQUALS (#3,#3)");
+    c.isFalse("(#3,#0) EQUALS (#3,#3)");
+    c.isFalse("(#3,#0) EQUALS (#0,#0)");
 
-    c.isTrue("($0,$0) PRECEDES ($0,$0)");
-    c.isTrue("($0,$1) PRECEDES ($2,$3)");
-    c.isTrue("($0,$1) PRECEDES ($1,$2)");
-    c.isFalse("($0,$2) PRECEDES ($1,$3)");
-    c.isFalse("($0,$2) PRECEDES ($3,$1)");
-    c.isFalse("($2,$0) PRECEDES ($3,$1)");
-    c.isFalse("($3,$2) PRECEDES ($1,$0)");
-    c.isFalse("($2,$3) PRECEDES ($0,$2)");
-    c.isFalse("($2,$3) PRECEDES ($2,$0)");
-    c.isFalse("($3,$2) PRECEDES ($2,$0)");
-    c.isFalse("($0,$2) PRECEDES ($2,$0)");
-    c.isFalse("($0,$3) PRECEDES ($1,$3)");
-    c.isTrue("($0,$3) PRECEDES ($3,$3)");
-    c.isTrue("($3,$0) PRECEDES ($3,$3)");
-    c.isFalse("($3,$0) PRECEDES ($0,$0)");
+    c.isTrue("(#0,#0) PRECEDES (#0,#0)");
+    c.isTrue("(#0,#1) PRECEDES (#2,#3)");
+    c.isTrue("(#0,#1) PRECEDES (#1,#2)");
+    c.isFalse("(#0,#2) PRECEDES (#1,#3)");
+    c.isFalse("(#0,#2) PRECEDES (#3,#1)");
+    c.isFalse("(#2,#0) PRECEDES (#3,#1)");
+    c.isFalse("(#3,#2) PRECEDES (#1,#0)");
+    c.isFalse("(#2,#3) PRECEDES (#0,#2)");
+    c.isFalse("(#2,#3) PRECEDES (#2,#0)");
+    c.isFalse("(#3,#2) PRECEDES (#2,#0)");
+    c.isFalse("(#0,#2) PRECEDES (#2,#0)");
+    c.isFalse("(#0,#3) PRECEDES (#1,#3)");
+    c.isTrue("(#0,#3) PRECEDES (#3,#3)");
+    c.isTrue("(#3,#0) PRECEDES (#3,#3)");
+    c.isFalse("(#3,#0) PRECEDES (#0,#0)");
 
-    c.isTrue("($0,$0) SUCCEEDS ($0,$0)");
-    c.isFalse("($0,$1) SUCCEEDS ($2,$3)");
-    c.isFalse("($0,$1) SUCCEEDS ($1,$2)");
-    c.isFalse("($0,$2) SUCCEEDS ($1,$3)");
-    c.isFalse("($0,$2) SUCCEEDS ($3,$1)");
-    c.isFalse("($2,$0) SUCCEEDS ($3,$1)");
-    c.isTrue("($3,$2) SUCCEEDS ($1,$0)");
-    c.isTrue("($2,$3) SUCCEEDS ($0,$2)");
-    c.isTrue("($2,$3) SUCCEEDS ($2,$0)");
-    c.isTrue("($3,$2) SUCCEEDS ($2,$0)");
-    c.isFalse("($0,$2) SUCCEEDS ($2,$0)");
-    c.isFalse("($0,$3) SUCCEEDS ($1,$3)");
-    c.isFalse("($0,$3) SUCCEEDS ($3,$3)");
-    c.isFalse("($3,$0) SUCCEEDS ($3,$3)");
-    c.isTrue("($3,$0) SUCCEEDS ($0,$0)");
+    c.isTrue("(#0,#0) SUCCEEDS (#0,#0)");
+    c.isFalse("(#0,#1) SUCCEEDS (#2,#3)");
+    c.isFalse("(#0,#1) SUCCEEDS (#1,#2)");
+    c.isFalse("(#0,#2) SUCCEEDS (#1,#3)");
+    c.isFalse("(#0,#2) SUCCEEDS (#3,#1)");
+    c.isFalse("(#2,#0) SUCCEEDS (#3,#1)");
+    c.isTrue("(#3,#2) SUCCEEDS (#1,#0)");
+    c.isTrue("(#2,#3) SUCCEEDS (#0,#2)");
+    c.isTrue("(#2,#3) SUCCEEDS (#2,#0)");
+    c.isTrue("(#3,#2) SUCCEEDS (#2,#0)");
+    c.isFalse("(#0,#2) SUCCEEDS (#2,#0)");
+    c.isFalse("(#0,#3) SUCCEEDS (#1,#3)");
+    c.isFalse("(#0,#3) SUCCEEDS (#3,#3)");
+    c.isFalse("(#3,#0) SUCCEEDS (#3,#3)");
+    c.isTrue("(#3,#0) SUCCEEDS (#0,#0)");
 
-    c.isTrue("($0,$0) IMMEDIATELY PRECEDES ($0,$0)");
-    c.isFalse("($0,$1) IMMEDIATELY PRECEDES ($2,$3)");
-    c.isTrue("($0,$1) IMMEDIATELY PRECEDES ($1,$2)");
-    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($1,$3)");
-    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($3,$1)");
-    c.isFalse("($2,$0) IMMEDIATELY PRECEDES ($3,$1)");
-    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($1,$0)");
-    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($0,$2)");
-    c.isFalse("($2,$3) IMMEDIATELY PRECEDES ($2,$0)");
-    c.isFalse("($3,$2) IMMEDIATELY PRECEDES ($2,$0)");
-    c.isFalse("($0,$2) IMMEDIATELY PRECEDES ($2,$0)");
-    c.isFalse("($0,$3) IMMEDIATELY PRECEDES ($1,$3)");
-    c.isTrue("($0,$3) IMMEDIATELY PRECEDES ($3,$3)");
-    c.isTrue("($3,$0) IMMEDIATELY PRECEDES ($3,$3)");
-    c.isFalse("($3,$0) IMMEDIATELY PRECEDES ($0,$0)");
+    c.isTrue("(#0,#0) IMMEDIATELY PRECEDES (#0,#0)");
+    c.isFalse("(#0,#1) IMMEDIATELY PRECEDES (#2,#3)");
+    c.isTrue("(#0,#1) IMMEDIATELY PRECEDES (#1,#2)");
+    c.isFalse("(#0,#2) IMMEDIATELY PRECEDES (#1,#3)");
+    c.isFalse("(#0,#2) IMMEDIATELY PRECEDES (#3,#1)");
+    c.isFalse("(#2,#0) IMMEDIATELY PRECEDES (#3,#1)");
+    c.isFalse("(#3,#2) IMMEDIATELY PRECEDES (#1,#0)");
+    c.isFalse("(#2,#3) IMMEDIATELY PRECEDES (#0,#2)");
+    c.isFalse("(#2,#3) IMMEDIATELY PRECEDES (#2,#0)");
+    c.isFalse("(#3,#2) IMMEDIATELY PRECEDES (#2,#0)");
+    c.isFalse("(#0,#2) IMMEDIATELY PRECEDES (#2,#0)");
+    c.isFalse("(#0,#3) IMMEDIATELY PRECEDES (#1,#3)");
+    c.isTrue("(#0,#3) IMMEDIATELY PRECEDES (#3,#3)");
+    c.isTrue("(#3,#0) IMMEDIATELY PRECEDES (#3,#3)");
+    c.isFalse("(#3,#0) IMMEDIATELY PRECEDES (#0,#0)");
 
-    c.isTrue("($0,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
-    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($2,$3)");
-    c.isFalse("($0,$1) IMMEDIATELY SUCCEEDS ($1,$2)");
-    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($1,$3)");
-    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($3,$1)");
-    c.isFalse("($2,$0) IMMEDIATELY SUCCEEDS ($3,$1)");
-    c.isFalse("($3,$2) IMMEDIATELY SUCCEEDS ($1,$0)");
-    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($0,$2)");
-    c.isTrue("($2,$3) IMMEDIATELY SUCCEEDS ($2,$0)");
-    c.isTrue("($3,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
-    c.isFalse("($0,$2) IMMEDIATELY SUCCEEDS ($2,$0)");
-    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($1,$3)");
-    c.isFalse("($0,$3) IMMEDIATELY SUCCEEDS ($3,$3)");
-    c.isFalse("($3,$0) IMMEDIATELY SUCCEEDS ($3,$3)");
-    c.isTrue("($3,$0) IMMEDIATELY SUCCEEDS ($0,$0)");
+    c.isTrue("(#0,#0) IMMEDIATELY SUCCEEDS (#0,#0)");
+    c.isFalse("(#0,#1) IMMEDIATELY SUCCEEDS (#2,#3)");
+    c.isFalse("(#0,#1) IMMEDIATELY SUCCEEDS (#1,#2)");
+    c.isFalse("(#0,#2) IMMEDIATELY SUCCEEDS (#1,#3)");
+    c.isFalse("(#0,#2) IMMEDIATELY SUCCEEDS (#3,#1)");
+    c.isFalse("(#2,#0) IMMEDIATELY SUCCEEDS (#3,#1)");
+    c.isFalse("(#3,#2) IMMEDIATELY SUCCEEDS (#1,#0)");
+    c.isTrue("(#2,#3) IMMEDIATELY SUCCEEDS (#0,#2)");
+    c.isTrue("(#2,#3) IMMEDIATELY SUCCEEDS (#2,#0)");
+    c.isTrue("(#3,#2) IMMEDIATELY SUCCEEDS (#2,#0)");
+    c.isFalse("(#0,#2) IMMEDIATELY SUCCEEDS (#2,#0)");
+    c.isFalse("(#0,#3) IMMEDIATELY SUCCEEDS (#1,#3)");
+    c.isFalse("(#0,#3) IMMEDIATELY SUCCEEDS (#3,#3)");
+    c.isFalse("(#3,#0) IMMEDIATELY SUCCEEDS (#3,#3)");
+    c.isTrue("(#3,#0) IMMEDIATELY SUCCEEDS (#0,#0)");
   }
 
   @Test public void testLessThanOperator() {
@@ -9184,10 +9184,10 @@ public abstract class SqlOperatorBaseTest {
     }
 
     private String sub(String s) {
-      return s.replace("$0", values[0])
-          .replace("$1", values[1])
-          .replace("$2", values[2])
-          .replace("$3", values[3]);
+      return s.replace("#0", values[0])
+          .replace("#1", values[1])
+          .replace("#2", values[2])
+          .replace("#3", values[3]);
     }
   }
 }

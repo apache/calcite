@@ -610,7 +610,7 @@ public abstract class CalcRelSplitter {
       int inputIndex = ((RexInputRef) expr).getIndex();
       String fieldName =
           child.getRowType().getFieldList().get(inputIndex).getName();
-      // Don't inherit field names like '$3' from child: that's
+      // Don't inherit field names like '#3' from child: that's
       // confusing.
       if (!fieldName.startsWith("#") || fieldName.startsWith("EXPR#")) {
         return fieldName;

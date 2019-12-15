@@ -1076,20 +1076,20 @@ public class SqlParserTest {
   }
 
   @Test public void testRow() {
-    sql("select t.r.\"EXPR$1\", t.r.\"EXPR$0\" from (select (1,2) r from sales.depts) t")
-        .ok("SELECT `T`.`R`.`EXPR$1`, `T`.`R`.`EXPR$0`\n"
+    sql("select t.r.\"EXPR#1\", t.r.\"EXPR#0\" from (select (1,2) r from sales.depts) t")
+        .ok("SELECT `T`.`R`.`EXPR#1`, `T`.`R`.`EXPR#0`\n"
             + "FROM (SELECT (ROW(1, 2)) AS `R`\n"
             + "FROM `SALES`.`DEPTS`) AS `T`");
 
-    sql("select t.r.\"EXPR$1\".\"EXPR$2\" "
+    sql("select t.r.\"EXPR#1\".\"EXPR#2\" "
         + "from (select ((1,2),(3,4,5)) r from sales.depts) t")
-        .ok("SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
+        .ok("SELECT `T`.`R`.`EXPR#1`.`EXPR#2`\n"
             + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5)))) AS `R`\n"
             + "FROM `SALES`.`DEPTS`) AS `T`");
 
-    sql("select t.r.\"EXPR$1\".\"EXPR$2\" "
+    sql("select t.r.\"EXPR#1\".\"EXPR#2\" "
         + "from (select ((1,2),(3,4,5,6)) r from sales.depts) t")
-        .ok("SELECT `T`.`R`.`EXPR$1`.`EXPR$2`\n"
+        .ok("SELECT `T`.`R`.`EXPR#1`.`EXPR#2`\n"
             + "FROM (SELECT (ROW((ROW(1, 2)), (ROW(3, 4, 5, 6)))) AS `R`\n"
             + "FROM `SALES`.`DEPTS`) AS `T`");
 

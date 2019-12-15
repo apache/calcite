@@ -49,7 +49,7 @@ import java.util.Objects;
  * <p>Instead we represent this as
  *
  * <blockquote><code>RelRoot: {
- *   rel: Sort($1 DESC)
+ *   rel: Sort(#1 DESC)
  *          Project(name, empno)
  *            TableScan(EMP)
  *   fields: [0]

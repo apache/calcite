@@ -408,7 +408,7 @@ public class UdfTest {
     with.query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(0),\n"
         + " \"adhoc\".count_args(0, 0))")
-        .returns("EXPR$0=0; EXPR$1=1; EXPR$2=2\n");
+        .returns("EXPR#0=0; EXPR#1=1; EXPR#2=2\n");
     with.query("select max(\"adhoc\".count_args()) as p0,\n"
         + " min(\"adhoc\".count_args(0)) as p1,\n"
         + " max(\"adhoc\".count_args(0, 0)) as p2\n"
@@ -421,7 +421,7 @@ public class UdfTest {
     with.query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(cast(null as smallint)),\n"
         + " \"adhoc\".count_args(0, 0))")
-        .returns("EXPR$0=0; EXPR$1=-1; EXPR$2=2\n");
+        .returns("EXPR#0=0; EXPR#1=-1; EXPR#2=2\n");
   }
 
   /** Tests passing parameters to user-defined function by name. */
@@ -429,12 +429,12 @@ public class UdfTest {
     final CalciteAssert.AssertThat with = withUdf();
     // arguments in physical order
     with.query("values (\"adhoc\".my_left(\"s\" => 'hello', \"n\" => 3))")
-        .returns("EXPR$0=hel\n");
+        .returns("EXPR#0=hel\n");
     // arguments in reverse order
     with.query("values (\"adhoc\".my_left(\"n\" => 3, \"s\" => 'hello'))")
-        .returns("EXPR$0=hel\n");
+        .returns("EXPR#0=hel\n");
     with.query("values (\"adhoc\".my_left(\"n\" => 1 + 2, \"s\" => 'hello'))")
-        .returns("EXPR$0=hel\n");
+        .returns("EXPR#0=hel\n");
     // duplicate argument names
     with.query("values (\"adhoc\".my_left(\"n\" => 3, \"n\" => 2, \"s\" => 'hello'))")
         .throws_("Duplicate argument name 'n'");
@@ -451,9 +451,9 @@ public class UdfTest {
     with.query("values (\"adhoc\".my_left(\"n\" => 'hello', \"s\" => 'x'))")
         .throws_("java.lang.NumberFormatException: For input string: \"hello\"");
     with.query("values (\"adhoc\".my_left(\"n\" => '1', \"s\" => 'x'))")
-        .returns("EXPR$0=x\n");
+        .returns("EXPR#0=x\n");
     with.query("values (\"adhoc\".my_left(\"n\" => 1, \"s\" => 0))")
-        .returns("EXPR$0=0\n");
+        .returns("EXPR#0=0\n");
   }
 
   /** Tests calling a user-defined function some of whose parameters are
@@ -461,42 +461,42 @@ public class UdfTest {
   @Test public void testUdfArgumentOptional() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4,e=>5))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
     with.query("values (\"adhoc\".abcde(1,2,3,4,CAST(NULL AS INTEGER)))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
     with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
     with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: null, e: null}\n");
     with.query("values (\"adhoc\".abcde(a=>1,e=>5,c=>3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: 5}\n");
+        .returns("EXPR#0={a: 1, b: null, c: 3, d: null, e: 5}\n");
     with.query("values (\"adhoc\".abcde(1,2,3))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: null, e: null}\n");
     with.query("values (\"adhoc\".abcde(1,2,3,4))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: 4, e: null}\n");
     with.query("values (\"adhoc\".abcde(1,2,3,4,5))")
-        .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
+        .returns("EXPR#0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
     with.query("values (\"adhoc\".abcde(1,2))")
         .throws_("No match found for function signature ABCDE(<NUMERIC>, <NUMERIC>)");
     with.query("values (\"adhoc\".abcde(1,DEFAULT,3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: null, c: 3, d: null, e: null}\n");
     // implicit type coercion.
     with.query("values (\"adhoc\".abcde(1,DEFAULT,'abcde'))")
         .throws_("java.lang.NumberFormatException: For input string: \"abcde\"");
     with.query("values (\"adhoc\".abcde(1,DEFAULT,'123'))")
-        .returns("EXPR$0={a: 1, b: null, c: 123, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: null, c: 123, d: null, e: null}\n");
     with.query("values (\"adhoc\".abcde(true))")
         .throws_("No match found for function signature ABCDE(<BOOLEAN>)");
     with.query("values (\"adhoc\".abcde(true,DEFAULT))")
         .throws_("No match found for function signature ABCDE(<BOOLEAN>, <ANY>)");
     with.query("values (\"adhoc\".abcde(1,DEFAULT,3,DEFAULT))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: null, c: 3, d: null, e: null}\n");
     with.query("values (\"adhoc\".abcde(1,2,DEFAULT))")
         .throws_("DEFAULT is only allowed for optional parameters");
     with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>DEFAULT))")
         .throws_("DEFAULT is only allowed for optional parameters");
     with.query("values (\"adhoc\".abcde(a=>1,b=>DEFAULT,c=>3))")
-        .returns("EXPR$0={a: 1, b: null, c: 3, d: null, e: null}\n");
+        .returns("EXPR#0={a: 1, b: null, c: 3, d: null, e: null}\n");
   }
 
   /** Test for
@@ -834,7 +834,7 @@ public class UdfTest {
         + "}");
 
     final String err = "No match found for function signature";
-    final String res = "EXPR$0=2\n";
+    final String res = "EXPR#0=2\n";
 
     // adhoc can see own function MY_PLUS but not adhoc2.MY_PLUS2 unless
     // qualified
@@ -916,23 +916,23 @@ public class UdfTest {
   @Test public void testDateAndTimestamp() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toLong\"(DATE '1970-01-15')")
-        .returns("EXPR$0=1209600000\n");
+        .returns("EXPR#0=1209600000\n");
     with.query("values \"adhoc\".\"toLong\"(DATE '2002-08-11')")
-        .returns("EXPR$0=1029024000000\n");
+        .returns("EXPR#0=1029024000000\n");
     with.query("values \"adhoc\".\"toLong\"(DATE '2003-04-11')")
-        .returns("EXPR$0=1050019200000\n");
+        .returns("EXPR#0=1050019200000\n");
     with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-11 00:00:00')")
-        .returns("EXPR$0=1050019200000\n");
+        .returns("EXPR#0=1050019200000\n");
     with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-11 00:00:06')")
-        .returns("EXPR$0=1050019206000\n");
+        .returns("EXPR#0=1050019206000\n");
     with.query("values \"adhoc\".\"toLong\"(TIMESTAMP '2003-04-18 01:20:00')")
-        .returns("EXPR$0=1050628800000\n");
+        .returns("EXPR#0=1050628800000\n");
     with.query("values \"adhoc\".\"toLong\"(TIME '00:20:00')")
-        .returns("EXPR$0=1200000\n");
+        .returns("EXPR#0=1200000\n");
     with.query("values \"adhoc\".\"toLong\"(TIME '00:20:10')")
-        .returns("EXPR$0=1210000\n");
+        .returns("EXPR#0=1210000\n");
     with.query("values \"adhoc\".\"toLong\"(TIME '01:20:00')")
-        .returns("EXPR$0=4800000\n");
+        .returns("EXPR#0=4800000\n");
   }
 
   /** Test case for
@@ -942,17 +942,17 @@ public class UdfTest {
   @Test public void testBigDecimalAndLong() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as decimal))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as double))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as decimal))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as float))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as float))")
-            .returns("EXPR$0=1.0\n");
+            .returns("EXPR#0=1.0\n");
   }
 
   /** Test case for

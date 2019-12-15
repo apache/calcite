@@ -443,8 +443,8 @@ public class VolcanoPlannerTest {
     RelNode bestExp = planner.findBestExp();
 
     final String plan = ""
-        + "EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "EnumerableMergeJoin(condition=[=(#0, #2)], joinType=[inner])\n"
+        + "  EnumerableSort(sort0=[#0], dir0=[ASC])\n"
         + "    EnumerableValues(tuples=[[{ '2', 'a' }, { '1', 'b' }]])\n"
         + "  EnumerableValues(tuples=[[{ '1', 'x' }, { '2', 'y' }]])\n";
     assertThat("Merge join + sort is expected", plan,

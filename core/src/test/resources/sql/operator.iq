@@ -69,7 +69,7 @@ select * from "scott".emp where not sal > 1300 and not sal < 1200;
 # MULTISET EXCEPT
 values multiset ['a', 'c', 'a'] multiset except multiset ['a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [c, a] |
 +--------+
@@ -80,7 +80,7 @@ values multiset ['a', 'c', 'a'] multiset except multiset ['a'];
 # MULTISET EXCEPT ALL
 values multiset ['a', 'c', 'a'] multiset except all multiset ['a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [c, a] |
 +--------+
@@ -91,7 +91,7 @@ values multiset ['a', 'c', 'a'] multiset except all multiset ['a'];
 # MULTISET EXCEPT DISTINCT
 values multiset ['a', 'c', 'a'] multiset except distinct multiset ['a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [c]    |
 +--------+
@@ -102,7 +102,7 @@ values multiset ['a', 'c', 'a'] multiset except distinct multiset ['a'];
 # MULTISET UNION
 values multiset ['a', 'c', 'b'] multiset union multiset ['a'];
 +--------------+
-| EXPR$0       |
+| EXPR#0       |
 +--------------+
 | [a, c, b, a] |
 +--------------+
@@ -113,7 +113,7 @@ values multiset ['a', 'c', 'b'] multiset union multiset ['a'];
 # MULTISET UNION ALL
 values multiset ['a', 'c', 'b'] multiset union all multiset ['a'];
 +--------------+
-| EXPR$0       |
+| EXPR#0       |
 +--------------+
 | [a, c, b, a] |
 +--------------+
@@ -124,7 +124,7 @@ values multiset ['a', 'c', 'b'] multiset union all multiset ['a'];
 # MULTISET UNION DISTINCT
 values multiset ['a', 'c', 'b'] multiset union distinct multiset ['a'];
 +-----------+
-| EXPR$0    |
+| EXPR#0    |
 +-----------+
 | [a, b, c] |
 +-----------+
@@ -135,7 +135,7 @@ values multiset ['a', 'c', 'b'] multiset union distinct multiset ['a'];
 # MULTISET INTERSECT
 values multiset ['a', 'c', 'a', 'a'] multiset intersect multiset ['a', 'a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [a, a] |
 +--------+
@@ -146,7 +146,7 @@ values multiset ['a', 'c', 'a', 'a'] multiset intersect multiset ['a', 'a'];
 # MULTISET INTERSECT ALL
 values multiset ['a', 'c', 'a', 'a'] multiset intersect all multiset ['a', 'a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [a, a] |
 +--------+
@@ -157,7 +157,7 @@ values multiset ['a', 'c', 'a', 'a'] multiset intersect all multiset ['a', 'a'];
 # MULTISET INTERSECT DISTINCT
 values multiset ['a', 'c', 'a', 'a'] multiset intersect distinct multiset ['a', 'a'];
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | [a]    |
 +--------+

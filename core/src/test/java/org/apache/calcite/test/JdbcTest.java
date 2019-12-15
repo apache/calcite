@@ -279,7 +279,7 @@ public class JdbcTest {
           assertThat(resultSet.getString(1),
               isLinux(
                   "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], flattened=[false])\n"
-                  + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST($t0):JavaType(class java.lang.String)], expr#6=[CAST($t2):JavaType(float) NOT NULL], expr#7=[null:JavaType(class java.lang.Integer)], empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], commission=[$t7])\n"
+                  + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST(#t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST(#t0):JavaType(class java.lang.String)], expr#6=[CAST(#t2):JavaType(float) NOT NULL], expr#7=[null:JavaType(class java.lang.Integer)], empid=[#t3], deptno=[#t4], name=[#t5], salary=[#t6], commission=[#t7])\n"
                   + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4 }]])\n"));
 
           // With named columns
@@ -957,7 +957,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("SELECT 1")
-        .returns("EXPR$0=1\n");
+        .returns("EXPR#0=1\n");
   }
 
   /** Tests accessing columns by name. */
@@ -1077,13 +1077,13 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(
             "explain plan for select \"time_by_day\".\"the_year\" as \"c0\", \"time_by_day\".\"quarter\" as \"c1\", \"product_class\".\"product_family\" as \"c2\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"product_class\" as \"product_class\", \"product\" as \"product\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\" and \"product\".\"product_class_id\" = \"product_class\".\"product_class_id\" group by \"time_by_day\".\"the_year\", \"time_by_day\".\"quarter\", \"product_class\".\"product_family\"")
-        .returns("PLAN=EnumerableAggregate(group=[{0, 1, 2}], m0=[SUM($3)])\n"
-            + "  EnumerableCalc(expr#0..37=[{inputs}], c0=[$t9], c1=[$t13], c2=[$t4], unit_sales=[$t22])\n"
-            + "    EnumerableHashJoin(condition=[=($23, $0)], joinType=[inner])\n"
+        .returns("PLAN=EnumerableAggregate(group=[{0, 1, 2}], m0=[SUM(#3)])\n"
+            + "  EnumerableCalc(expr#0..37=[{inputs}], c0=[#t9], c1=[#t13], c2=[#t4], unit_sales=[#t22])\n"
+            + "    EnumerableHashJoin(condition=[=(#23, #0)], joinType=[inner])\n"
             + "      EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "      EnumerableHashJoin(condition=[=($10, $19)], joinType=[inner])\n"
-            + "        EnumerableHashJoin(condition=[=($11, $0)], joinType=[inner])\n"
-            + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
+            + "      EnumerableHashJoin(condition=[=(#10, #19)], joinType=[inner])\n"
+            + "        EnumerableHashJoin(condition=[=(#11, #0)], joinType=[inner])\n"
+            + "          EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST(#t4):INTEGER], expr#11=[1997], expr#12=[=(#t10, #t11)], proj#0..9=[{exprs}], #condition=[#t12])\n"
             + "            EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
             + "        EnumerableTableScan(table=[[foodmart2, product]])\n"
@@ -1113,12 +1113,12 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
-                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
+                + "EnumerableHashJoin(condition=[=(#0, #38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
+                + "  EnumerableHashJoin(condition=[=(#2, #8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
-                + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
+                + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=(#t9, #t29)], proj#0..28=[{exprs}], #condition=[#t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
                 + "      EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
-                + "  EnumerableCalc(expr#0..14=[{inputs}], expr#15=['Washington':VARCHAR(60)], expr#16=[=($t2, $t15)], proj#0..14=[{exprs}], $condition=[$t16]): rowcount = 234.0, cumulative cost = {1794.0 rows, 53041.0 cpu, 0.0 io}\n"
+                + "  EnumerableCalc(expr#0..14=[{inputs}], expr#15=['Washington':VARCHAR(60)], expr#16=[=(#t2, #t15)], proj#0..14=[{exprs}], #condition=[#t16]): rowcount = 234.0, cumulative cost = {1794.0 rows, 53041.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"));
   }
 
@@ -1139,57 +1139,57 @@ public class JdbcTest {
             + "and pc.\"product_department\" = 'Snacks'\n")
           .explainMatches("including all attributes ",
               CalciteAssert.checkMaskedResultContains(""
-                  + "EnumerableCalcRel(expr#0..56=[{inputs}], expr#57=['San Francisco'], expr#58=[=($t9, $t57)], expr#59=['Snacks'], expr#60=[=($t32, $t59)], expr#61=[AND($t58, $t60)], product_id=[$t49], time_id=[$t50], customer_id=[$t51], promotion_id=[$t52], store_id=[$t53], store_sales=[$t54], store_cost=[$t55], unit_sales=[$t56], customer_id0=[$t0], account_num=[$t1], lname=[$t2], fname=[$t3], mi=[$t4], address1=[$t5], address2=[$t6], address3=[$t7], address4=[$t8], city=[$t9], state_province=[$t10], postal_code=[$t11], country=[$t12], customer_region_id=[$t13], phone1=[$t14], phone2=[$t15], birthdate=[$t16], marital_status=[$t17], yearly_income=[$t18], gender=[$t19], total_children=[$t20], num_children_at_home=[$t21], education=[$t22], date_accnt_opened=[$t23], member_card=[$t24], occupation=[$t25], houseowner=[$t26], num_cars_owned=[$t27], fullname=[$t28], product_class_id=[$t34], product_id0=[$t35], brand_name=[$t36], product_name=[$t37], SKU=[$t38], SRP=[$t39], gross_weight=[$t40], net_weight=[$t41], recyclable_package=[$t42], low_fat=[$t43], units_per_case=[$t44], cases_per_pallet=[$t45], shelf_width=[$t46], shelf_height=[$t47], shelf_depth=[$t48], product_class_id0=[$t29], product_subcategory=[$t30], product_category=[$t31], product_department=[$t32], product_family=[$t33], $condition=[$t61]): rowcount = 1953.8325, cumulative cost = {728728.1144018068 rows, 1.0519232E7 cpu, 0.0 io}\n"
-                  + "  EnumerableJoinRel(condition=[=($51, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {726774.2819018068 rows, 98792.0 cpu, 0.0 io}\n"
+                  + "EnumerableCalcRel(expr#0..56=[{inputs}], expr#57=['San Francisco'], expr#58=[=(#t9, #t57)], expr#59=['Snacks'], expr#60=[=(#t32, #t59)], expr#61=[AND(#t58, #t60)], product_id=[#t49], time_id=[#t50], customer_id=[#t51], promotion_id=[#t52], store_id=[#t53], store_sales=[#t54], store_cost=[#t55], unit_sales=[#t56], customer_id0=[#t0], account_num=[#t1], lname=[#t2], fname=[#t3], mi=[#t4], address1=[#t5], address2=[#t6], address3=[#t7], address4=[#t8], city=[#t9], state_province=[#t10], postal_code=[#t11], country=[#t12], customer_region_id=[#t13], phone1=[#t14], phone2=[#t15], birthdate=[#t16], marital_status=[#t17], yearly_income=[#t18], gender=[#t19], total_children=[#t20], num_children_at_home=[#t21], education=[#t22], date_accnt_opened=[#t23], member_card=[#t24], occupation=[#t25], houseowner=[#t26], num_cars_owned=[#t27], fullname=[#t28], product_class_id=[#t34], product_id0=[#t35], brand_name=[#t36], product_name=[#t37], SKU=[#t38], SRP=[#t39], gross_weight=[#t40], net_weight=[#t41], recyclable_package=[#t42], low_fat=[#t43], units_per_case=[#t44], cases_per_pallet=[#t45], shelf_width=[#t46], shelf_height=[#t47], shelf_depth=[#t48], product_class_id0=[#t29], product_subcategory=[#t30], product_category=[#t31], product_department=[#t32], product_family=[#t33], #condition=[#t61]): rowcount = 1953.8325, cumulative cost = {728728.1144018068 rows, 1.0519232E7 cpu, 0.0 io}\n"
+                  + "  EnumerableJoinRel(condition=[=(#51, #0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {726774.2819018068 rows, 98792.0 cpu, 0.0 io}\n"
                   + "    EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
-                  + "    EnumerableJoinRel(condition=[=($5, $0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {447842.86095661717 rows, 88510.0 cpu, 0.0 io}\n"
+                  + "    EnumerableJoinRel(condition=[=(#5, #0)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {447842.86095661717 rows, 88510.0 cpu, 0.0 io}\n"
                   + "      EnumerableTableScan(table=[[foodmart2, product_class]]): rowcount = 110.0, cumulative cost = {110.0 rows, 111.0 cpu, 0.0 io}\n"
-                  + "      EnumerableJoinRel(condition=[=($15, $1)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {273541.80811638 rows, 88399.0 cpu, 0.0 io}\n"
+                  + "      EnumerableJoinRel(condition=[=(#15, #1)], joinType=[inner]): rowcount = 86837.0, cumulative cost = {273541.80811638 rows, 88399.0 cpu, 0.0 io}\n"
                   + "        EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"
                   + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"));
   }
 
   private static final String[] QUERIES = {
       "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary\") as \"init\"",
-      "EXPR$0=21252\n",
+      "EXPR#0=21252\n",
       "select count(*) from (select 1 as \"c0\" from \"salary\" as \"salary2\") as \"init\"",
-      "EXPR$0=21252\n",
+      "EXPR#0=21252\n",
       "select count(*) from (select 1 as \"c0\" from \"department\" as \"department\") as \"init\"",
-      "EXPR$0=12\n",
+      "EXPR#0=12\n",
       "select count(*) from (select 1 as \"c0\" from \"employee\" as \"employee\") as \"init\"",
-      "EXPR$0=1155\n",
+      "EXPR#0=1155\n",
       "select count(*) from (select 1 as \"c0\" from \"employee_closure\" as \"employee_closure\") as \"init\"",
-      "EXPR$0=7179\n",
+      "EXPR#0=7179\n",
       "select count(*) from (select 1 as \"c0\" from \"position\" as \"position\") as \"init\"",
-      "EXPR$0=18\n",
+      "EXPR#0=18\n",
       "select count(*) from (select 1 as \"c0\" from \"promotion\" as \"promotion\") as \"init\"",
-      "EXPR$0=1864\n",
+      "EXPR#0=1864\n",
       "select count(*) from (select 1 as \"c0\" from \"store\" as \"store\") as \"init\"",
-      "EXPR$0=25\n",
+      "EXPR#0=25\n",
       "select count(*) from (select 1 as \"c0\" from \"product\" as \"product\") as \"init\"",
-      "EXPR$0=1560\n",
+      "EXPR#0=1560\n",
       "select count(*) from (select 1 as \"c0\" from \"product_class\" as \"product_class\") as \"init\"",
-      "EXPR$0=110\n",
+      "EXPR#0=110\n",
       "select count(*) from (select 1 as \"c0\" from \"time_by_day\" as \"time_by_day\") as \"init\"",
-      "EXPR$0=730\n",
+      "EXPR#0=730\n",
       "select count(*) from (select 1 as \"c0\" from \"customer\" as \"customer\") as \"init\"",
-      "EXPR$0=10281\n",
+      "EXPR#0=10281\n",
       "select count(*) from (select 1 as \"c0\" from \"sales_fact_1997\" as \"sales_fact_1997\") as \"init\"",
-      "EXPR$0=86837\n",
+      "EXPR#0=86837\n",
       "select count(*) from (select 1 as \"c0\" from \"inventory_fact_1997\" as \"inventory_fact_1997\") as \"init\"",
-      "EXPR$0=4070\n",
+      "EXPR#0=4070\n",
       "select count(*) from (select 1 as \"c0\" from \"warehouse\" as \"warehouse\") as \"init\"",
-      "EXPR$0=24\n",
+      "EXPR#0=24\n",
       "select count(*) from (select 1 as \"c0\" from \"agg_c_special_sales_fact_1997\" as \"agg_c_special_sales_fact_1997\") as \"init\"",
-      "EXPR$0=86805\n",
+      "EXPR#0=86805\n",
       "select count(*) from (select 1 as \"c0\" from \"agg_pl_01_sales_fact_1997\" as \"agg_pl_01_sales_fact_1997\") as \"init\"",
-      "EXPR$0=86829\n",
+      "EXPR#0=86829\n",
       "select count(*) from (select 1 as \"c0\" from \"agg_l_05_sales_fact_1997\" as \"agg_l_05_sales_fact_1997\") as \"init\"",
-      "EXPR$0=86154\n",
+      "EXPR#0=86154\n",
       "select count(*) from (select 1 as \"c0\" from \"agg_g_ms_pcat_sales_fact_1997\" as \"agg_g_ms_pcat_sales_fact_1997\") as \"init\"",
-      "EXPR$0=2637\n",
+      "EXPR#0=2637\n",
       "select count(*) from (select 1 as \"c0\" from \"agg_c_14_sales_fact_1997\" as \"agg_c_14_sales_fact_1997\") as \"init\"",
-      "EXPR$0=86805\n",
+      "EXPR#0=86805\n",
       "select \"time_by_day\".\"the_year\" as \"c0\" from \"time_by_day\" as \"time_by_day\" group by \"time_by_day\".\"the_year\" order by \"time_by_day\".\"the_year\" ASC",
       "c0=1997\n"
           + "c0=1998\n",
@@ -1233,7 +1233,7 @@ public class JdbcTest {
         + "c0=Sunday Paper, Radio, TV\n"
         + "c0=TV\n",
       "select count(distinct \"the_year\") from \"time_by_day\"",
-      "EXPR$0=2\n",
+      "EXPR#0=2\n",
       "select \"time_by_day\".\"the_year\" as \"c0\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 group by \"time_by_day\".\"the_year\"",
       "c0=1997; m0=266773.0000\n",
       "select \"time_by_day\".\"the_year\" as \"c0\", \"promotion\".\"media_type\" as \"c1\", sum(\"sales_fact_1997\".\"unit_sales\") as \"m0\" from \"time_by_day\" as \"time_by_day\", \"sales_fact_1997\" as \"sales_fact_1997\", \"promotion\" as \"promotion\" where \"sales_fact_1997\".\"time_id\" = \"time_by_day\".\"time_id\" and \"time_by_day\".\"the_year\" = 1997 and \"sales_fact_1997\".\"promotion_id\" = \"promotion\".\"promotion_id\" group by \"time_by_day\".\"the_year\", \"promotion\".\"media_type\"",
@@ -1276,7 +1276,7 @@ public class JdbcTest {
         + "group by \"store\".\"store_state\", \"time_by_day\".\"the_year\"",
       "c0=WA; c1=1997; m0=124366.0000; m1=263793.2200\n",
       "select count(distinct \"product_id\") from \"product\"",
-      "EXPR$0=1560\n",
+      "EXPR#0=1560\n",
       "select \"store\".\"store_name\" as \"c0\",\n"
         + " \"time_by_day\".\"the_year\" as \"c1\",\n"
         + " sum(\"sales_fact_1997\".\"store_sales\") as \"m0\"\n"
@@ -1782,19 +1782,19 @@ public class JdbcTest {
             + " \"time_by_day\".\"the_year\",\n"
             + " \"product_class\".\"product_family\"")
         .explainContains(""
-            + "EnumerableAggregateRel(group=[{0, 1, 2}], m0=[COUNT($3)])\n"
-            + "  EnumerableCalcRel(expr#0..61=[{inputs}], c0=[$t19], c1=[$t4], c2=[$t46], product_id=[$t34])\n"
-            + "    EnumerableJoinRel(condition=[=($35, $0)], joinType=[inner])\n"
-            + "      EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
+            + "EnumerableAggregateRel(group=[{0, 1, 2}], m0=[COUNT(#3)])\n"
+            + "  EnumerableCalcRel(expr#0..61=[{inputs}], c0=[#t19], c1=[#t4], c2=[#t46], product_id=[#t34])\n"
+            + "    EnumerableJoinRel(condition=[=(#35, #0)], joinType=[inner])\n"
+            + "      EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST(#t4):INTEGER], expr#11=[1997], expr#12=[=(#t10, #t11)], proj#0..9=[{exprs}], #condition=[#t12])\n"
             + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "      EnumerableCalcRel(expr#0..51=[{inputs}], proj#0..23=[{exprs}], product_id=[$t44], time_id=[$t45], customer_id=[$t46], promotion_id=[$t47], store_id0=[$t48], store_sales=[$t49], store_cost=[$t50], unit_sales=[$t51], product_class_id=[$t24], product_subcategory=[$t25], product_category=[$t26], product_department=[$t27], product_family=[$t28], product_class_id0=[$t29], product_id0=[$t30], brand_name=[$t31], product_name=[$t32], SKU=[$t33], SRP=[$t34], gross_weight=[$t35], net_weight=[$t36], recyclable_package=[$t37], low_fat=[$t38], units_per_case=[$t39], cases_per_pallet=[$t40], shelf_width=[$t41], shelf_height=[$t42], shelf_depth=[$t43])\n"
-            + "        EnumerableJoinRel(condition=[=($48, $0)], joinType=[inner])\n"
-            + "          EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=['USA'], expr#25=[=($t9, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
+            + "      EnumerableCalcRel(expr#0..51=[{inputs}], proj#0..23=[{exprs}], product_id=[#t44], time_id=[#t45], customer_id=[#t46], promotion_id=[#t47], store_id0=[#t48], store_sales=[#t49], store_cost=[#t50], unit_sales=[#t51], product_class_id=[#t24], product_subcategory=[#t25], product_category=[#t26], product_department=[#t27], product_family=[#t28], product_class_id0=[#t29], product_id0=[#t30], brand_name=[#t31], product_name=[#t32], SKU=[#t33], SRP=[#t34], gross_weight=[#t35], net_weight=[#t36], recyclable_package=[#t37], low_fat=[#t38], units_per_case=[#t39], cases_per_pallet=[#t40], shelf_width=[#t41], shelf_height=[#t42], shelf_depth=[#t43])\n"
+            + "        EnumerableJoinRel(condition=[=(#48, #0)], joinType=[inner])\n"
+            + "          EnumerableCalcRel(expr#0..23=[{inputs}], expr#24=['USA'], expr#25=[=(#t9, #t24)], proj#0..23=[{exprs}], #condition=[#t25])\n"
             + "            EnumerableTableScan(table=[[foodmart2, store]])\n"
-            + "          EnumerableCalcRel(expr#0..27=[{inputs}], proj#0..4=[{exprs}], product_class_id0=[$t13], product_id=[$t14], brand_name=[$t15], product_name=[$t16], SKU=[$t17], SRP=[$t18], gross_weight=[$t19], net_weight=[$t20], recyclable_package=[$t21], low_fat=[$t22], units_per_case=[$t23], cases_per_pallet=[$t24], shelf_width=[$t25], shelf_height=[$t26], shelf_depth=[$t27], product_id0=[$t5], time_id=[$t6], customer_id=[$t7], promotion_id=[$t8], store_id=[$t9], store_sales=[$t10], store_cost=[$t11], unit_sales=[$t12])\n"
-            + "            EnumerableJoinRel(condition=[=($13, $0)], joinType=[inner])\n"
+            + "          EnumerableCalcRel(expr#0..27=[{inputs}], proj#0..4=[{exprs}], product_class_id0=[#t13], product_id=[#t14], brand_name=[#t15], product_name=[#t16], SKU=[#t17], SRP=[#t18], gross_weight=[#t19], net_weight=[#t20], recyclable_package=[#t21], low_fat=[#t22], units_per_case=[#t23], cases_per_pallet=[#t24], shelf_width=[#t25], shelf_height=[#t26], shelf_depth=[#t27], product_id0=[#t5], time_id=[#t6], customer_id=[#t7], promotion_id=[#t8], store_id=[#t9], store_sales=[#t10], store_cost=[#t11], unit_sales=[#t12])\n"
+            + "            EnumerableJoinRel(condition=[=(#13, #0)], joinType=[inner])\n"
             + "              EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "              EnumerableJoinRel(condition=[=($0, $9)], joinType=[inner])\n"
+            + "              EnumerableJoinRel(condition=[=(#0, #9)], joinType=[inner])\n"
             + "                EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
             + "                EnumerableTableScan(table=[[foodmart2, product]])\n"
             + "\n"
@@ -1838,7 +1838,7 @@ public class JdbcTest {
     }
     CalciteAssert.hr()
         .query(buf.toString())
-        .returns("EXPR$0=3\n");
+        .returns("EXPR#0=3\n");
   }
 
   /** Returns a list of (query, expected) pairs. The expected result is
@@ -2056,8 +2056,8 @@ public class JdbcTest {
   @Test public void testUnnestArray() {
     CalciteAssert.that()
         .query("select*from unnest(array[1,2])")
-        .returnsUnordered("EXPR$0=1",
-            "EXPR$0=2");
+        .returnsUnordered("EXPR#0=1",
+            "EXPR#0=2");
   }
 
   @Test public void testUnnestArrayWithOrdinality() {
@@ -2128,8 +2128,8 @@ public class JdbcTest {
         .with(CalciteAssert.Config.REGULAR)
         .query("select element(\"employees\") from \"hr\".\"depts\"\n"
             + "where cardinality(\"employees\") < 2")
-        .returnsUnordered("EXPR$0={200, 20, Eric, 8000.0, 500}",
-            "EXPR$0=null");
+        .returnsUnordered("EXPR#0={200, 20, Eric, 8000.0, 500}",
+            "EXPR#0=null");
   }
 
   @Test public void testLateral() {
@@ -2189,12 +2189,12 @@ public class JdbcTest {
             + "from \"hr\".\"depts\" as d,\n"
             + " UNNEST(d.\"employees\", array[1, 2]) as e")
         .returnsUnordered(
-            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=1",
-            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR$1=2",
-            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=1",
-            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR$1=2",
-            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=1",
-            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR$1=2");
+            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR#1=1",
+            "name=HR; empid=200; deptno=20; name0=Eric; salary=8000.0; commission=500; EXPR#1=2",
+            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR#1=1",
+            "name=Sales; empid=100; deptno=10; name0=Bill; salary=10000.0; commission=1000; EXPR#1=2",
+            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR#1=1",
+            "name=Sales; empid=150; deptno=10; name0=Sebastian; salary=7000.0; commission=null; EXPR#1=2");
   }
 
   @Test public void testUnnestArrayScalarArrayAliased() {
@@ -2275,7 +2275,7 @@ public class JdbcTest {
     ResultSet resultSet = connection.createStatement().executeQuery(sql);
 
     List<String> map = FlatLists.of("KEY=a; VALUE=1", "KEY=b; VALUE=2");
-    List<String> array = FlatLists.of(" EXPR$1=5", " EXPR$1=6", " EXPR$1=7");
+    List<String> array = FlatLists.of(" EXPR#1=5", " EXPR#1=6", " EXPR#1=7");
 
     final StringBuilder b = new StringBuilder();
     for (List<String> row : Linq4j.product(FlatLists.of(map, array))) {
@@ -2312,15 +2312,15 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(set.queries.get(16).sql)
         .explainContains(""
-            + "EnumerableSortRel(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$4], sort4=[$10], sort5=[$11], sort6=[$12], sort7=[$13], sort8=[$22], sort9=[$23], sort10=[$24], sort11=[$25], sort12=[$26], sort13=[$27], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last], dir2=[Ascending-nulls-last], dir3=[Ascending-nulls-last], dir4=[Ascending-nulls-last], dir5=[Ascending-nulls-last], dir6=[Ascending-nulls-last], dir7=[Ascending-nulls-last], dir8=[Ascending-nulls-last], dir9=[Ascending-nulls-last], dir10=[Ascending-nulls-last], dir11=[Ascending-nulls-last], dir12=[Ascending-nulls-last], dir13=[Ascending-nulls-last])\n"
-            + "  EnumerableCalcRel(expr#0..26=[{inputs}], proj#0..4=[{exprs}], c5=[$t4], c6=[$t5], c7=[$t6], c8=[$t7], c9=[$t8], c10=[$t9], c11=[$t10], c12=[$t11], c13=[$t12], c14=[$t13], c15=[$t14], c16=[$t15], c17=[$t16], c18=[$t17], c19=[$t18], c20=[$t19], c21=[$t20], c22=[$t21], c23=[$t22], c24=[$t23], c25=[$t24], c26=[$t25], c27=[$t26])\n"
+            + "EnumerableSortRel(sort0=[#0], sort1=[#1], sort2=[#2], sort3=[#4], sort4=[#10], sort5=[#11], sort6=[#12], sort7=[#13], sort8=[#22], sort9=[#23], sort10=[#24], sort11=[#25], sort12=[#26], sort13=[#27], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last], dir2=[Ascending-nulls-last], dir3=[Ascending-nulls-last], dir4=[Ascending-nulls-last], dir5=[Ascending-nulls-last], dir6=[Ascending-nulls-last], dir7=[Ascending-nulls-last], dir8=[Ascending-nulls-last], dir9=[Ascending-nulls-last], dir10=[Ascending-nulls-last], dir11=[Ascending-nulls-last], dir12=[Ascending-nulls-last], dir13=[Ascending-nulls-last])\n"
+            + "  EnumerableCalcRel(expr#0..26=[{inputs}], proj#0..4=[{exprs}], c5=[#t4], c6=[#t5], c7=[#t6], c8=[#t7], c9=[#t8], c10=[#t9], c11=[#t10], c12=[#t11], c13=[#t12], c14=[#t13], c15=[#t14], c16=[#t15], c17=[#t16], c18=[#t17], c19=[#t18], c20=[#t19], c21=[#t20], c22=[#t21], c23=[#t22], c24=[#t23], c25=[#t24], c26=[#t25], c27=[#t26])\n"
             + "    EnumerableAggregateRel(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}])\n"
-            + "      EnumerableCalcRel(expr#0..80=[{inputs}], c0=[$t12], c1=[$t10], c2=[$t9], c3=[$t0], fullname=[$t28], c6=[$t19], c7=[$t17], c8=[$t22], c9=[$t18], c10=[$t46], c11=[$t44], c12=[$t43], c13=[$t40], c14=[$t38], c15=[$t47], c16=[$t52], c17=[$t53], c18=[$t54], c19=[$t55], c20=[$t56], c21=[$t42], c22=[$t80], c23=[$t79], c24=[$t78], c25=[$t77], c26=[$t63], c27=[$t64])\n"
-            + "        EnumerableJoinRel(condition=[=($61, $76)], joinType=[inner])\n"
-            + "          EnumerableJoinRel(condition=[=($29, $62)], joinType=[inner])\n"
-            + "            EnumerableJoinRel(condition=[=($33, $37)], joinType=[inner])\n"
-            + "              EnumerableCalcRel(expr#0..36=[{inputs}], customer_id=[$t8], account_num=[$t9], lname=[$t10], fname=[$t11], mi=[$t12], address1=[$t13], address2=[$t14], address3=[$t15], address4=[$t16], city=[$t17], state_province=[$t18], postal_code=[$t19], country=[$t20], customer_region_id=[$t21], phone1=[$t22], phone2=[$t23], birthdate=[$t24], marital_status=[$t25], yearly_income=[$t26], gender=[$t27], total_children=[$t28], num_children_at_home=[$t29], education=[$t30], date_accnt_opened=[$t31], member_card=[$t32], occupation=[$t33], houseowner=[$t34], num_cars_owned=[$t35], fullname=[$t36], product_id=[$t0], time_id=[$t1], customer_id0=[$t2], promotion_id=[$t3], store_id=[$t4], store_sales=[$t5], store_cost=[$t6], unit_sales=[$t7])\n"
-            + "                EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])\n"
+            + "      EnumerableCalcRel(expr#0..80=[{inputs}], c0=[#t12], c1=[#t10], c2=[#t9], c3=[#t0], fullname=[#t28], c6=[#t19], c7=[#t17], c8=[#t22], c9=[#t18], c10=[#t46], c11=[#t44], c12=[#t43], c13=[#t40], c14=[#t38], c15=[#t47], c16=[#t52], c17=[#t53], c18=[#t54], c19=[#t55], c20=[#t56], c21=[#t42], c22=[#t80], c23=[#t79], c24=[#t78], c25=[#t77], c26=[#t63], c27=[#t64])\n"
+            + "        EnumerableJoinRel(condition=[=(#61, #76)], joinType=[inner])\n"
+            + "          EnumerableJoinRel(condition=[=(#29, #62)], joinType=[inner])\n"
+            + "            EnumerableJoinRel(condition=[=(#33, #37)], joinType=[inner])\n"
+            + "              EnumerableCalcRel(expr#0..36=[{inputs}], customer_id=[#t8], account_num=[#t9], lname=[#t10], fname=[#t11], mi=[#t12], address1=[#t13], address2=[#t14], address3=[#t15], address4=[#t16], city=[#t17], state_province=[#t18], postal_code=[#t19], country=[#t20], customer_region_id=[#t21], phone1=[#t22], phone2=[#t23], birthdate=[#t24], marital_status=[#t25], yearly_income=[#t26], gender=[#t27], total_children=[#t28], num_children_at_home=[#t29], education=[#t30], date_accnt_opened=[#t31], member_card=[#t32], occupation=[#t33], houseowner=[#t34], num_cars_owned=[#t35], fullname=[#t36], product_id=[#t0], time_id=[#t1], customer_id0=[#t2], promotion_id=[#t3], store_id=[#t4], store_sales=[#t5], store_cost=[#t6], unit_sales=[#t7])\n"
+            + "                EnumerableJoinRel(condition=[=(#2, #8)], joinType=[inner])\n"
             + "                  EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
             + "                  EnumerableTableScan(table=[[foodmart2, customer]])\n"
             + "              EnumerableTableScan(table=[[foodmart2, store]])\n"
@@ -2338,14 +2338,14 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(FOODMART_QUERIES.get(48).left)
         .explainContains(""
-            + "EnumerableAggregateRel(group=[{}], m0=[COUNT($0)])\n"
+            + "EnumerableAggregateRel(group=[{}], m0=[COUNT(#0)])\n"
             + "  EnumerableAggregateRel(group=[{0}])\n"
-            + "    EnumerableCalcRel(expr#0..27=[{inputs}], customer_id=[$t7])\n"
-            + "      EnumerableJoinRel(condition=[=($13, $0)], joinType=[inner])\n"
+            + "    EnumerableCalcRel(expr#0..27=[{inputs}], customer_id=[#t7])\n"
+            + "      EnumerableJoinRel(condition=[=(#13, #0)], joinType=[inner])\n"
             + "        EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-            + "        EnumerableJoinRel(condition=[=($0, $9)], joinType=[inner])\n"
+            + "        EnumerableJoinRel(condition=[=(#0, #9)], joinType=[inner])\n"
             + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
-            + "          EnumerableCalcRel(expr#0..14=[{inputs}], expr#15=['Cormorant'], expr#16=[=($t2, $t15)], proj#0..14=[{exprs}], $condition=[$t16])\n"
+            + "          EnumerableCalcRel(expr#0..14=[{inputs}], expr#15=['Cormorant'], expr#16=[=(#t2, #t15)], proj#0..14=[{exprs}], #condition=[#t16])\n"
             + "            EnumerableTableScan(table=[[foodmart2, product]]");
   }
 
@@ -2357,17 +2357,17 @@ public class JdbcTest {
   @Test public void testExplainJoin2() throws IOException {
     withFoodMartQuery(2482)
         .explainContains(""
-            + "EnumerableSortRel(sort0=[$0], sort1=[$1], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last])\n"
+            + "EnumerableSortRel(sort0=[#0], sort1=[#1], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last])\n"
             + "  EnumerableAggregateRel(group=[{0, 1}])\n"
-            + "    EnumerableCalcRel(expr#0..5=[{inputs}], c0=[$t4], c1=[$t1])\n"
-            + "      EnumerableJoinRel(condition=[=($3, $5)], joinType=[inner])\n"
-            + "        EnumerableCalcRel(expr#0..3=[{inputs}], store_id=[$t2], store_country=[$t3], store_id0=[$t0], month_of_year=[$t1])\n"
-            + "          EnumerableJoinRel(condition=[=($0, $2)], joinType=[inner])\n"
-            + "            EnumerableCalcRel(expr#0..10=[{inputs}], store_id=[$t2], month_of_year=[$t4])\n"
+            + "    EnumerableCalcRel(expr#0..5=[{inputs}], c0=[#t4], c1=[#t1])\n"
+            + "      EnumerableJoinRel(condition=[=(#3, #5)], joinType=[inner])\n"
+            + "        EnumerableCalcRel(expr#0..3=[{inputs}], store_id=[#t2], store_country=[#t3], store_id0=[#t0], month_of_year=[#t1])\n"
+            + "          EnumerableJoinRel(condition=[=(#0, #2)], joinType=[inner])\n"
+            + "            EnumerableCalcRel(expr#0..10=[{inputs}], store_id=[#t2], month_of_year=[#t4])\n"
             + "              EnumerableTableScan(table=[[foodmart2, agg_c_14_sales_fact_1997]])\n"
-            + "            EnumerableCalcRel(expr#0..23=[{inputs}], store_id=[$t0], store_country=[$t9])\n"
+            + "            EnumerableCalcRel(expr#0..23=[{inputs}], store_id=[#t0], store_country=[#t9])\n"
             + "              EnumerableTableScan(table=[[foodmart2, store]])\n"
-            + "        EnumerableCalcRel(expr#0..9=[{inputs}], the_year=[$t4], month_of_year=[$t7])\n"
+            + "        EnumerableCalcRel(expr#0..9=[{inputs}], the_year=[#t4], month_of_year=[#t7])\n"
             + "          EnumerableTableScan(table=[[foodmart2, time_by_day]])\n")
         .runs();
   }
@@ -2377,16 +2377,16 @@ public class JdbcTest {
   @Test public void testExplainJoin3() throws IOException {
     withFoodMartQuery(8)
         .explainContains(""
-            + "EnumerableSortRel(sort0=[$0], sort1=[$1], sort2=[$2], sort3=[$4], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last], dir2=[Ascending-nulls-last], dir3=[Ascending-nulls-last])\n"
-            + "  EnumerableCalcRel(expr#0..8=[{inputs}], expr#9=['%Jeanne%'], expr#10=[LIKE($t4, $t9)], proj#0..4=[{exprs}], c5=[$t4], c6=[$t5], c7=[$t6], c8=[$t7], c9=[$t8], $condition=[$t10])\n"
+            + "EnumerableSortRel(sort0=[#0], sort1=[#1], sort2=[#2], sort3=[#4], dir0=[Ascending-nulls-last], dir1=[Ascending-nulls-last], dir2=[Ascending-nulls-last], dir3=[Ascending-nulls-last])\n"
+            + "  EnumerableCalcRel(expr#0..8=[{inputs}], expr#9=['%Jeanne%'], expr#10=[LIKE(#t4, #t9)], proj#0..4=[{exprs}], c5=[#t4], c6=[#t5], c7=[#t6], c8=[#t7], c9=[#t8], #condition=[#t10])\n"
             + "    EnumerableAggregateRel(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}])\n"
-            + "      EnumerableCalcRel(expr#0..46=[{inputs}], c0=[$t12], c1=[$t10], c2=[$t9], c3=[$t0], fullname=[$t28], c6=[$t19], c7=[$t17], c8=[$t22], c9=[$t18])\n"
-            + "        EnumerableJoinRel(condition=[=($30, $37)], joinType=[inner])\n"
-            + "          EnumerableCalcRel(expr#0..36=[{inputs}], customer_id=[$t8], account_num=[$t9], lname=[$t10], fname=[$t11], mi=[$t12], address1=[$t13], address2=[$t14], address3=[$t15], address4=[$t16], city=[$t17], state_province=[$t18], postal_code=[$t19], country=[$t20], customer_region_id=[$t21], phone1=[$t22], phone2=[$t23], birthdate=[$t24], marital_status=[$t25], yearly_income=[$t26], gender=[$t27], total_children=[$t28], num_children_at_home=[$t29], education=[$t30], date_accnt_opened=[$t31], member_card=[$t32], occupation=[$t33], houseowner=[$t34], num_cars_owned=[$t35], fullname=[$t36], product_id=[$t0], time_id=[$t1], customer_id0=[$t2], promotion_id=[$t3], store_id=[$t4], store_sales=[$t5], store_cost=[$t6], unit_sales=[$t7])\n"
-            + "            EnumerableJoinRel(condition=[=($2, $8)], joinType=[inner])\n"
+            + "      EnumerableCalcRel(expr#0..46=[{inputs}], c0=[#t12], c1=[#t10], c2=[#t9], c3=[#t0], fullname=[#t28], c6=[#t19], c7=[#t17], c8=[#t22], c9=[#t18])\n"
+            + "        EnumerableJoinRel(condition=[=(#30, #37)], joinType=[inner])\n"
+            + "          EnumerableCalcRel(expr#0..36=[{inputs}], customer_id=[#t8], account_num=[#t9], lname=[#t10], fname=[#t11], mi=[#t12], address1=[#t13], address2=[#t14], address3=[#t15], address4=[#t16], city=[#t17], state_province=[#t18], postal_code=[#t19], country=[#t20], customer_region_id=[#t21], phone1=[#t22], phone2=[#t23], birthdate=[#t24], marital_status=[#t25], yearly_income=[#t26], gender=[#t27], total_children=[#t28], num_children_at_home=[#t29], education=[#t30], date_accnt_opened=[#t31], member_card=[#t32], occupation=[#t33], houseowner=[#t34], num_cars_owned=[#t35], fullname=[#t36], product_id=[#t0], time_id=[#t1], customer_id0=[#t2], promotion_id=[#t3], store_id=[#t4], store_sales=[#t5], store_cost=[#t6], unit_sales=[#t7])\n"
+            + "            EnumerableJoinRel(condition=[=(#2, #8)], joinType=[inner])\n"
             + "              EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
             + "              EnumerableTableScan(table=[[foodmart2, customer]])\n"
-            + "          EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], proj#0..9=[{exprs}], $condition=[$t12])\n"
+            + "          EnumerableCalcRel(expr#0..9=[{inputs}], expr#10=[CAST(#t4):INTEGER], expr#11=[1997], expr#12=[=(#t10, #t11)], proj#0..9=[{exprs}], #condition=[#t12])\n"
             + "            EnumerableTableScan(table=[[foodmart2, time_by_day]])")
         .runs();
   }
@@ -2405,10 +2405,10 @@ public class JdbcTest {
         .query(query.sql)
         .enableMaterializations(true)
         .explainContains(""
-            + "EnumerableCalc(expr#0..8=[{inputs}], c0=[$t3], c1=[$t2], c2=[$t1], c3=[$t0], c4=[$t8], c5=[$t8], c6=[$t6], c7=[$t4], c8=[$t7], c9=[$t5])\n"
-            + "  EnumerableSort(sort0=[$3], sort1=[$2], sort2=[$1], sort3=[$8], dir0=[ASC-nulls-last], dir1=[ASC-nulls-last], dir2=[ASC-nulls-last], dir3=[ASC-nulls-last])\n"
+            + "EnumerableCalc(expr#0..8=[{inputs}], c0=[#t3], c1=[#t2], c2=[#t1], c3=[#t0], c4=[#t8], c5=[#t8], c6=[#t6], c7=[#t4], c8=[#t7], c9=[#t5])\n"
+            + "  EnumerableSort(sort0=[#3], sort1=[#2], sort2=[#1], sort3=[#8], dir0=[ASC-nulls-last], dir1=[ASC-nulls-last], dir2=[ASC-nulls-last], dir3=[ASC-nulls-last])\n"
             + "    EnumerableAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8}])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t0):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], expr#13=['%Jeanne%'], expr#14=[LIKE($t9, $t13)], expr#15=[AND($t12, $t14)], $f0=[$t1], $f1=[$t2], $f2=[$t3], $f3=[$t4], $f4=[$t5], $f5=[$t6], $f6=[$t7], $f7=[$t8], $f8=[$t9], $f9=[$t0], $condition=[$t15])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST(#t0):INTEGER], expr#11=[1997], expr#12=[=(#t10, #t11)], expr#13=['%Jeanne%'], expr#14=[LIKE(#t9, #t13)], expr#15=[AND(#t12, #t14)], #f0=[#t1], #f1=[#t2], #f2=[#t3], #f3=[#t4], #f4=[#t5], #f5=[#t6], #f6=[#t7], #f7=[#t8], #f8=[#t9], #f9=[#t0], #condition=[#t15])\n"
             + "        EnumerableTableScan(table=[[foodmart, m{12, 18, 27, 28, 30, 35, 36, 37, 40, 46}]])")
         .runs();
   }
@@ -2420,17 +2420,17 @@ public class JdbcTest {
   @Test public void testExplainJoin4() throws IOException {
     withFoodMartQuery(5217)
         .explainContains(""
-            + "EnumerableAggregateRel(group=[{0, 1, 2, 3}], m0=[COUNT($4)])\n"
-            + "  EnumerableCalcRel(expr#0..69=[{inputs}], c0=[$t4], c1=[$t27], c2=[$t61], c3=[$t66], $f11=[$t11])\n"
-            + "    EnumerableJoinRel(condition=[=($68, $69)], joinType=[inner])\n"
-            + "      EnumerableCalcRel(expr#0..67=[{inputs}], proj#0..67=[{exprs}], $f68=[$t66])\n"
-            + "        EnumerableJoinRel(condition=[=($11, $65)], joinType=[inner])\n"
-            + "          EnumerableJoinRel(condition=[=($46, $59)], joinType=[inner])\n"
-            + "            EnumerableCalcRel(expr#0..58=[{inputs}], $f0=[$t49], $f1=[$t50], $f2=[$t51], $f3=[$t52], $f4=[$t53], $f5=[$t54], $f6=[$t55], $f7=[$t56], $f8=[$t57], $f9=[$t58], $f10=[$t41], $f11=[$t42], $f12=[$t43], $f13=[$t44], $f14=[$t45], $f15=[$t46], $f16=[$t47], $f17=[$t48], $f18=[$t0], $f19=[$t1], $f20=[$t2], $f21=[$t3], $f22=[$t4], $f23=[$t5], $f24=[$t6], $f25=[$t7], $f26=[$t8], $f27=[$t9], $f28=[$t10], $f29=[$t11], $f30=[$t12], $f31=[$t13], $f32=[$t14], $f33=[$t15], $f34=[$t16], $f35=[$t17], $f36=[$t18], $f37=[$t19], $f38=[$t20], $f39=[$t21], $f40=[$t22], $f41=[$t23], $f42=[$t24], $f43=[$t25], $f44=[$t26], $f45=[$t27], $f46=[$t28], $f47=[$t29], $f48=[$t30], $f49=[$t31], $f50=[$t32], $f51=[$t33], $f52=[$t34], $f53=[$t35], $f54=[$t36], $f55=[$t37], $f56=[$t38], $f57=[$t39], $f58=[$t40])\n"
-            + "              EnumerableJoinRel(condition=[=($41, $50)], joinType=[inner])\n"
-            + "                EnumerableCalcRel(expr#0..48=[{inputs}], $f0=[$t25], $f1=[$t26], $f2=[$t27], $f3=[$t28], $f4=[$t29], $f5=[$t30], $f6=[$t31], $f7=[$t32], $f8=[$t33], $f9=[$t34], $f10=[$t35], $f11=[$t36], $f12=[$t37], $f13=[$t38], $f14=[$t39], $f15=[$t40], $f16=[$t41], $f17=[$t42], $f18=[$t43], $f19=[$t44], $f20=[$t45], $f21=[$t46], $f22=[$t47], $f23=[$t48], $f24=[$t8], $f25=[$t9], $f26=[$t10], $f27=[$t11], $f28=[$t12], $f29=[$t13], $f30=[$t14], $f31=[$t15], $f32=[$t16], $f33=[$t17], $f34=[$t18], $f35=[$t19], $f36=[$t20], $f37=[$t21], $f38=[$t22], $f39=[$t23], $f40=[$t24], $f41=[$t0], $f42=[$t1], $f43=[$t2], $f44=[$t3], $f45=[$t4], $f46=[$t5], $f47=[$t6], $f48=[$t7])\n"
-            + "                  EnumerableJoinRel(condition=[=($14, $25)], joinType=[inner])\n"
-            + "                    EnumerableJoinRel(condition=[=($1, $8)], joinType=[inner])\n"
+            + "EnumerableAggregateRel(group=[{0, 1, 2, 3}], m0=[COUNT(#4)])\n"
+            + "  EnumerableCalcRel(expr#0..69=[{inputs}], c0=[#t4], c1=[#t27], c2=[#t61], c3=[#t66], #f11=[#t11])\n"
+            + "    EnumerableJoinRel(condition=[=(#68, #69)], joinType=[inner])\n"
+            + "      EnumerableCalcRel(expr#0..67=[{inputs}], proj#0..67=[{exprs}], #f68=[#t66])\n"
+            + "        EnumerableJoinRel(condition=[=(#11, #65)], joinType=[inner])\n"
+            + "          EnumerableJoinRel(condition=[=(#46, #59)], joinType=[inner])\n"
+            + "            EnumerableCalcRel(expr#0..58=[{inputs}], #f0=[#t49], #f1=[#t50], #f2=[#t51], #f3=[#t52], #f4=[#t53], #f5=[#t54], #f6=[#t55], #f7=[#t56], #f8=[#t57], #f9=[#t58], #f10=[#t41], #f11=[#t42], #f12=[#t43], #f13=[#t44], #f14=[#t45], #f15=[#t46], #f16=[#t47], #f17=[#t48], #f18=[#t0], #f19=[#t1], #f20=[#t2], #f21=[#t3], #f22=[#t4], #f23=[#t5], #f24=[#t6], #f25=[#t7], #f26=[#t8], #f27=[#t9], #f28=[#t10], #f29=[#t11], #f30=[#t12], #f31=[#t13], #f32=[#t14], #f33=[#t15], #f34=[#t16], #f35=[#t17], #f36=[#t18], #f37=[#t19], #f38=[#t20], #f39=[#t21], #f40=[#t22], #f41=[#t23], #f42=[#t24], #f43=[#t25], #f44=[#t26], #f45=[#t27], #f46=[#t28], #f47=[#t29], #f48=[#t30], #f49=[#t31], #f50=[#t32], #f51=[#t33], #f52=[#t34], #f53=[#t35], #f54=[#t36], #f55=[#t37], #f56=[#t38], #f57=[#t39], #f58=[#t40])\n"
+            + "              EnumerableJoinRel(condition=[=(#41, #50)], joinType=[inner])\n"
+            + "                EnumerableCalcRel(expr#0..48=[{inputs}], #f0=[#t25], #f1=[#t26], #f2=[#t27], #f3=[#t28], #f4=[#t29], #f5=[#t30], #f6=[#t31], #f7=[#t32], #f8=[#t33], #f9=[#t34], #f10=[#t35], #f11=[#t36], #f12=[#t37], #f13=[#t38], #f14=[#t39], #f15=[#t40], #f16=[#t41], #f17=[#t42], #f18=[#t43], #f19=[#t44], #f20=[#t45], #f21=[#t46], #f22=[#t47], #f23=[#t48], #f24=[#t8], #f25=[#t9], #f26=[#t10], #f27=[#t11], #f28=[#t12], #f29=[#t13], #f30=[#t14], #f31=[#t15], #f32=[#t16], #f33=[#t17], #f34=[#t18], #f35=[#t19], #f36=[#t20], #f37=[#t21], #f38=[#t22], #f39=[#t23], #f40=[#t24], #f41=[#t0], #f42=[#t1], #f43=[#t2], #f44=[#t3], #f45=[#t4], #f46=[#t5], #f47=[#t6], #f48=[#t7])\n"
+            + "                  EnumerableJoinRel(condition=[=(#14, #25)], joinType=[inner])\n"
+            + "                    EnumerableJoinRel(condition=[=(#1, #8)], joinType=[inner])\n"
             + "                      EnumerableTableScan(table=[[foodmart2, salary]])\n"
             + "                      EnumerableTableScan(table=[[foodmart2, employee]])\n"
             + "                    EnumerableTableScan(table=[[foodmart2, store]])\n"
@@ -2603,8 +2603,8 @@ public class JdbcTest {
   @Test public void testValues() {
     CalciteAssert.that()
         .query("values (1), (2)")
-        .returns("EXPR$0=1\n"
-            + "EXPR$0=2\n");
+        .returns("EXPR#0=1\n"
+            + "EXPR#0=2\n");
   }
 
   @Test public void testValuesAlias() {
@@ -2617,7 +2617,7 @@ public class JdbcTest {
   @Test public void testValuesMinus() {
     CalciteAssert.that()
         .query("values (-2-1)")
-        .returns("EXPR$0=-3\n");
+        .returns("EXPR#0=-3\n");
   }
 
   /** Test case for
@@ -2626,7 +2626,7 @@ public class JdbcTest {
   @Test public void testSelectWithoutFrom() {
     CalciteAssert.that()
         .query("select 2+2")
-        .returns("EXPR$0=4\n");
+        .returns("EXPR#0=4\n");
   }
 
   /** Tests a table constructor that has multiple rows and multiple columns.
@@ -2641,8 +2641,8 @@ public class JdbcTest {
   @Test public void testValuesComposite() {
     CalciteAssert.that()
         .query("values (1, 'a'), (2, 'abc')")
-        .returns("EXPR$0=1; EXPR$1=a  \n"
-            + "EXPR$0=2; EXPR$1=abc\n");
+        .returns("EXPR#0=1; EXPR#1=a  \n"
+            + "EXPR#0=2; EXPR#1=abc\n");
   }
 
   /**
@@ -2651,7 +2651,7 @@ public class JdbcTest {
    */
   @Test public void testValuesCompositeRenamed() {
     CalciteAssert.that()
-        .query("select EXPR$0 q, EXPR$1 w from (values (1, 'a'), (2, 'abc'))")
+        .query("select EXPR#0 q, EXPR#1 w from (values (1, 'a'), (2, 'abc'))")
         .explainContains(
             "PLAN=EnumerableValues(tuples=[[{ 1, 'a  ' }, { 2, 'abc' }]])\n")
         .returns("Q=1; W=a  \n"
@@ -2664,7 +2664,7 @@ public class JdbcTest {
    */
   @Test public void testValuesCompositeRenamedSameNames() {
     CalciteAssert.that()
-        .query("select EXPR$0 q, EXPR$1 q from (values (1, 'a'), (2, 'abc'))")
+        .query("select EXPR#0 q, EXPR#1 q from (values (1, 'a'), (2, 'abc'))")
         .explainContains(
             "PLAN=EnumerableValues(tuples=[[{ 1, 'a  ' }, { 2, 'abc' }]])\n")
         .returnsUnordered(
@@ -2682,9 +2682,9 @@ public class JdbcTest {
             "select \"deptno\", \"deptno\" from \"hr\".\"depts\" union select \"deptno\", \"empid\" from \"hr\".\"emps\"")
         .explainContains(""
             + "PLAN=EnumerableUnion(all=[false])\n"
-            + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0], deptno0=[$t0])\n"
+            + "  EnumerableCalc(expr#0..3=[{inputs}], deptno=[#t0], deptno0=[#t0])\n"
             + "    EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], empid=[$t0])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], deptno=[#t1], empid=[#t0])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered(
             "deptno=10; deptno=110",
@@ -2704,9 +2704,9 @@ public class JdbcTest {
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
         .explainContains("EnumerableAggregate(group=[{0, 3}])\n"
-            + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
+            + "  EnumerableNestedLoopJoin(condition=[=(CAST(#1):INTEGER NOT NULL, #2)], joinType=[inner])\n"
             + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
-            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=(#t1, #t2)], proj#0..1=[{exprs}], #condition=[#t3])\n"
             + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
@@ -2720,8 +2720,8 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t2], deptno=[$t0], name=[$t1])\n"
-            + "  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[#t2], deptno=[#t0], name=[#t1])\n"
+            + "  EnumerableHashJoin(condition=[=(#0, #3)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
             + "      EnumerableTableScan(table=[[hr, depts]])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
@@ -2750,7 +2750,7 @@ public class JdbcTest {
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(s)
-        .explainContains("EnumerableAggregate(group=[{}], m0=[COUNT($0)])\n"
+        .explainContains("EnumerableAggregate(group=[{}], m0=[COUNT(#0)])\n"
             + "  EnumerableAggregate(group=[{7}])\n"
             + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returns("m0=6\n");
@@ -2765,8 +2765,8 @@ public class JdbcTest {
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query(s)
         .explainContains(""
-            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t0):INTEGER NOT NULL], u=[$t2], m0=[$t1])\n"
-            + "  EnumerableAggregate(group=[{1}], m0=[COUNT($0)])\n"
+            + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST(#t0):INTEGER NOT NULL], u=[#t2], m0=[#t1])\n"
+            + "  EnumerableAggregate(group=[{1}], m0=[COUNT(#0)])\n"
             + "    EnumerableAggregate(group=[{2, 7}])\n"
             + "      EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returnsUnordered(
@@ -2791,12 +2791,12 @@ public class JdbcTest {
         .query(s)
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .explainContains(""
-            + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
+            + "EnumerableAggregate(group=[{0}], m0=[COUNT(#1)])\n"
             + "  EnumerableAggregate(group=[{1, 3}])\n"
-            + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "    EnumerableHashJoin(condition=[=(#0, #2)], joinType=[inner])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST(#t4):INTEGER], expr#11=[1997], expr#12=[=(#t10, #t11)], time_id=[#t0], the_year=[#t4], #condition=[#t12])\n"
             + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
-            + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
+            + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[#t1], unit_sales=[#t7])\n"
             + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
         .returns("c0=1997; m0=6\n");
   }
@@ -2848,17 +2848,17 @@ public class JdbcTest {
             + "  select \"deptno\" from \"hr\".\"emps\"\n"
             + "  where \"empid\" < 150)")
         .convertContains(""
-            + "LogicalProject(deptno=[$0], name=[$1], employees=[$2], location=[$3])\n"
-            + "  LogicalFilter(condition=[IN($0, {\n"
-            + "LogicalProject(deptno=[$1])\n"
-            + "  LogicalFilter(condition=[<($0, 150)])\n"
+            + "LogicalProject(deptno=[#0], name=[#1], employees=[#2], location=[#3])\n"
+            + "  LogicalFilter(condition=[IN(#0, {\n"
+            + "LogicalProject(deptno=[#1])\n"
+            + "  LogicalFilter(condition=[<(#0, 150)])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])\n"
             + "})])\n"
             + "    EnumerableTableScan(table=[[hr, depts]])")
         .explainContains(""
-            + "EnumerableHashJoin(condition=[=($0, $5)], joinType=[semi])\n"
+            + "EnumerableHashJoin(condition=[=(#0, #5)], joinType=[semi])\n"
             + "  EnumerableTableScan(table=[[hr, depts]])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<($t0, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[150], expr#6=[<(#t0, #t5)], proj#0..4=[{exprs}], #condition=[#t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
         .returnsUnordered(
             "deptno=10; name=Sales; employees=[{100, 10, Bill, 10000.0, 1000}, {150, 10, Sebastian, 7000.0, null}]; location={-122, 38}");
@@ -2989,8 +2989,8 @@ public class JdbcTest {
     CalciteAssert.hr()
         .query("select * from \"hr\".\"emps\"\n"
             + "order by - \"empid\"")
-        .explainContains("EnumerableSort(sort0=[$5], dir0=[ASC])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[-($t0)], proj#0..5=[{exprs}])\n"
+        .explainContains("EnumerableSort(sort0=[#5], dir0=[ASC])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[-(#t0)], proj#0..5=[{exprs}])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
         .returns(""
             + "empid=200; deptno=20; name=Eric; salary=8000.0; commission=500\n"
@@ -3140,9 +3140,9 @@ public class JdbcTest {
             + "where \"store_id\" < 10\n"
             + "order by 1 fetch first 5 rows only")
         .explainContains("PLAN="
-            + "EnumerableCalc(expr#0..23=[{inputs}], store_id=[$t0], grocery_sqft=[$t16])\n"
+            + "EnumerableCalc(expr#0..23=[{inputs}], store_id=[#t0], grocery_sqft=[#t16])\n"
             + "  EnumerableLimit(fetch=[5])\n"
-            + "    EnumerableCalc(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<($t0, $t24)], proj#0..23=[{exprs}], $condition=[$t25])\n"
+            + "    EnumerableCalc(expr#0..23=[{inputs}], expr#24=[10], expr#25=[<(#t0, #t24)], proj#0..23=[{exprs}], #condition=[#t25])\n"
             + "      EnumerableTableScan(table=[[foodmart2, store]])\n")
         .returns("store_id=0; grocery_sqft=null\n"
             + "store_id=1; grocery_sqft=17475\n"
@@ -3228,10 +3228,10 @@ public class JdbcTest {
         .returns("C=25\n")
         .explainContains("JdbcToEnumerableConverter\n"
             + "  JdbcAggregate(group=[{}], C=[COUNT()])\n"
-            + "    JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
-            + "      JdbcProject(store_id=[$0])\n"
+            + "    JdbcJoin(condition=[=(#0, #1)], joinType=[inner])\n"
+            + "      JdbcProject(store_id=[#0])\n"
             + "        JdbcTableScan(table=[[foodmart, store]])\n"
-            + "      JdbcProject(store_id=[$0])\n"
+            + "      JdbcProject(store_id=[#0])\n"
             + "        JdbcTableScan(table=[[foodmart, store]])\n");
   }
 
@@ -3501,9 +3501,9 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "where \"deptno\" < 0")
         .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=($t0, $t2)], expr#4=[null:JavaType(class java.lang.Integer)], expr#5=[CASE($t3, $t4, $t1)], expr#6=[/($t5, $t0)], expr#7=[CAST($t6):JavaType(class java.lang.Integer)], CS=[$t0], C=[$t0], S=[$t5], A=[$t7])\n"
-            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], S=[$SUM0($1)])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "PLAN=EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0], expr#3=[=(#t0, #t2)], expr#4=[null:JavaType(class java.lang.Integer)], expr#5=[CASE(#t3, #t4, #t1)], expr#6=[/(#t5, #t0)], expr#7=[CAST(#t6):JavaType(class java.lang.Integer)], CS=[#t0], C=[#t0], S=[#t5], A=[#t7])\n"
+            + "  EnumerableAggregate(group=[{}], CS=[COUNT()], S=[$SUM0(#1)])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<(#t1, #t5)], proj#0..4=[{exprs}], #condition=[#t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; C=0; S=null; A=null\n");
   }
@@ -3517,9 +3517,9 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + "where \"deptno\" < 0")
         .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0=[{inputs}], CS=[$t0], CS2=[$t0])\n"
+            + "PLAN=EnumerableCalc(expr#0=[{inputs}], CS=[#t0], CS2=[#t0])\n"
             + "  EnumerableAggregate(group=[{}], CS=[COUNT()])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<($t1, $t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[<(#t1, #t5)], proj#0..4=[{exprs}], #condition=[#t6])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returns("CS=0; CS2=0\n");
   }
@@ -3532,8 +3532,8 @@ public class JdbcTest {
             + " count(\"deptno\", \"commission\", \"commission\" + 1) as cs\n"
             + "from \"hr\".\"emps\"")
         .explainContains(""
-            + "EnumerableAggregate(group=[{}], CS=[COUNT($0, $1)])\n"
-            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[+($t4, $t5)], commission=[$t4], $f2=[$t6])\n"
+            + "EnumerableAggregate(group=[{}], CS=[COUNT(#0, #1)])\n"
+            + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], expr#6=[+(#t4, #t5)], commission=[#t4], #f2=[#t6])\n"
             + "    EnumerableTableScan(table=[[hr, emps]])")
         .returns("CS=3\n");
   }
@@ -3559,7 +3559,7 @@ public class JdbcTest {
             + "time_id=368; the_date=1997-01-02 00:00:00\n"
             + "time_id=369; the_date=1997-01-03 00:00:00\n")
         .explainContains(""
-            + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<($t0, $t10)], proj#0..1=[{exprs}], $condition=[$t11])\n"
+            + "PLAN=EnumerableCalc(expr#0..9=[{inputs}], expr#10=[370], expr#11=[<(#t0, #t10)], proj#0..1=[{exprs}], #condition=[#t11])\n"
             + "  EnumerableTableScan(table=[[foodmart2, time_by_day]])\n\n");
   }
 
@@ -3601,9 +3601,9 @@ public class JdbcTest {
         .typeIs(
             "[deptno INTEGER NOT NULL, empid INTEGER NOT NULL, S REAL, FIVE INTEGER NOT NULL, M REAL, C BIGINT NOT NULL]")
         .explainContains(""
-            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0:BIGINT], expr#9=[>($t4, $t8)], expr#10=[null:JavaType(class java.lang.Float)], expr#11=[CASE($t9, $t5, $t10)], expr#12=[5], deptno=[$t1], empid=[$t0], S=[$t11], FIVE=[$t12], M=[$t6], C=[$t7])\n"
-            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between $4 PRECEDING and CURRENT ROW aggs [COUNT($3), $SUM0($3), MIN($2), COUNT()])])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[+($t3, $t0)], proj#0..1=[{exprs}], salary=[$t3], $3=[$t5])\n"
+            + "EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0:BIGINT], expr#9=[>(#t4, #t8)], expr#10=[null:JavaType(class java.lang.Float)], expr#11=[CASE(#t9, #t5, #t10)], expr#12=[5], deptno=[#t1], empid=[#t0], S=[#t11], FIVE=[#t12], M=[#t6], C=[#t7])\n"
+            + "  EnumerableWindow(window#0=[window(partition {1} order by [0] rows between #4 PRECEDING and CURRENT ROW aggs [COUNT(#3), $SUM0(#3), MIN(#2), COUNT()])])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[+(#t3, #t0)], proj#0..1=[{exprs}], salary=[#t3], #3=[#t5])\n"
             + "      EnumerableTableScan(table=[[hr, emps]])\n")
         .returnsUnordered(
             "deptno=10; empid=100; S=10100.0; FIVE=5; M=10000.0; C=1",
@@ -4332,9 +4332,9 @@ public class JdbcTest {
           .query("select \"name\", count(\"commission\") + 1\n"
               + "from \"hr\".\"emps\"\n"
               + "group by \"deptno\", \"name\"")
-          .convertContains("LogicalProject(name=[$1], EXPR$1=[+($2, 1)])\n"
-              + "  LogicalAggregate(group=[{0, 1}], agg#0=[COUNT($2)])\n"
-              + "    LogicalProject(deptno=[$1], name=[$2], commission=[$4])\n"
+          .convertContains("LogicalProject(name=[#1], EXPR#1=[+(#2, 1)])\n"
+              + "  LogicalAggregate(group=[{0, 1}], agg#0=[COUNT(#2)])\n"
+              + "    LogicalProject(deptno=[#1], name=[#2], commission=[#4])\n"
               + "      EnumerableTableScan(table=[[hr, emps]])\n");
     }
   }
@@ -4350,9 +4350,9 @@ public class JdbcTest {
               + "from \"hr\".\"emps\"\n"
               + "where \"empid\" > 10")
           .convertContains(""
-              + "LogicalProject(name=[$2], EXPR$1=[+(COUNT($3) OVER (PARTITION BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1)])\n"
-              + "  LogicalFilter(condition=[>($0, 10)])\n"
-              + "    LogicalProject(empid=[$0], deptno=[$1], name=[$2], commission=[$4])\n"
+              + "LogicalProject(name=[#2], EXPR#1=[+(COUNT(#3) OVER (PARTITION BY #1 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), 1)])\n"
+              + "  LogicalFilter(condition=[>(#0, 10)])\n"
+              + "    LogicalProject(empid=[#0], deptno=[#1], name=[#2], commission=[#4])\n"
               + "      EnumerableTableScan(table=[[hr, emps]])\n");
     }
   }
@@ -4601,10 +4601,10 @@ public class JdbcTest {
         + "select deptno from dept where deptno = -1)";
     withEmpDept(sql)
 //        .explainContains("EnumerableCalc(expr#0..2=[{inputs}], "
-//            + "expr#3=[IS NOT NULL($t2)], expr#4=[true], "
-//            + "expr#5=[IS NULL($t0)], expr#6=[null], expr#7=[false], "
-//            + "expr#8=[CASE($t3, $t4, $t5, $t6, $t7)], expr#9=[NOT($t8)], "
-//            + "EXPR$1=[$t0], $condition=[$t9])")
+//            + "expr#3=[IS NOT NULL(#t2)], expr#4=[true], "
+//            + "expr#5=[IS NULL(#t0)], expr#6=[null], expr#7=[false], "
+//            + "expr#8=[CASE(#t3, #t4, #t5, #t6, #t7)], expr#9=[NOT(#t8)], "
+//            + "EXPR#1=[#t0], #condition=[#t9])")
         .returnsUnordered("DEPTNO=null",
             "DEPTNO=10",
             "DEPTNO=10",
@@ -4660,11 +4660,11 @@ public class JdbcTest {
         + " select 1 from \"hr\".\"depts\"\n"
         + " where \"emps\".\"deptno\"=\"depts\".\"deptno\")";
     final String plan = ""
-        + "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
+        + "LogicalProject(empid=[#0], deptno=[#1], name=[#2], salary=[#3], commission=[#4])\n"
         + "  LogicalFilter(condition=[EXISTS({\n"
-        + "LogicalFilter(condition=[=($cor0.deptno, $0)])\n"
+        + "LogicalFilter(condition=[=(#cor0.deptno, #0)])\n"
         + "  EnumerableTableScan(table=[[hr, depts]])\n"
-        + "})], variablesSet=[[$cor0]])\n"
+        + "})], variablesSet=[[#cor0]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
     CalciteAssert.hr().query(sql).convertContains(plan)
         .returnsUnordered(
@@ -4675,11 +4675,11 @@ public class JdbcTest {
 
   @Test public void testNotExistsCorrelated() {
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL($t5)], proj#0..4=[{exprs}], $condition=[$t6])\n"
-        + "  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])\n"
+        + "EnumerableCalc(expr#0..5=[{inputs}], expr#6=[IS NULL(#t5)], proj#0..4=[{exprs}], #condition=[#t6])\n"
+        + "  EnumerableCorrelate(correlation=[#cor0], joinType=[left], requiredColumns=[{1}])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableAggregate(group=[{0}])\n"
-        + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[$cor0], expr#6=[$t5.deptno], expr#7=[=($t6, $t0)], i=[$t4], $condition=[$t7])\n"
+        + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], expr#5=[#cor0], expr#6=[#t5.deptno], expr#7=[=(#t6, #t0)], i=[#t4], #condition=[#t7])\n"
         + "        EnumerableTableScan(table=[[hr, depts]])\n";
     final String sql = "select * from \"hr\".\"emps\" where not exists (\n"
         + " select 1 from \"hr\".\"depts\"\n"
@@ -4699,8 +4699,8 @@ public class JdbcTest {
         + " from \"hr\".\"depts\"\n"
         + " where e.\"deptno\"=\"depts\".\"deptno\") on true";
     final String explain = ""
-        + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[$t6])\n"
-        + "  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
+        + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], I=[#t6])\n"
+        + "  EnumerableHashJoin(condition=[=(#1, #5)], joinType=[left])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n"
         + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[true], proj#0..1=[{exprs}])\n"
         + "      EnumerableAggregate(group=[{0}])\n"
@@ -4782,10 +4782,10 @@ public class JdbcTest {
         + "from employee e\n"
         + "group by e.department_id\n";
     final String explain = "EnumerableNestedLoopJoin(condition=[true], joinType=[left])\n"
-        + "  EnumerableAggregate(group=[{7}], EXPR$1=[$SUM0($0)])\n"
+        + "  EnumerableAggregate(group=[{7}], EXPR#1=[$SUM0(#0)])\n"
         + "    EnumerableTableScan(table=[[foodmart2, employee]])\n"
-        + "  EnumerableAggregate(group=[{}], EXPR$0=[SUM($0)])\n"
-        + "    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[$cor0], expr#18=[$t17.department_id], expr#19=[=($t18, $t7)], employee_id=[$t0], department_id=[$t7], $condition=[$t19])\n"
+        + "  EnumerableAggregate(group=[{}], EXPR#0=[SUM(#0)])\n"
+        + "    EnumerableCalc(expr#0..16=[{inputs}], expr#17=[#cor0], expr#18=[#t17.department_id], expr#19=[=(#t18, #t7)], employee_id=[#t0], department_id=[#t7], #condition=[#t19])\n"
         + "      EnumerableTableScan(table=[[foodmart2, employee]])\n";
     CalciteAssert.that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
@@ -5375,7 +5375,7 @@ public class JdbcTest {
     final String url = "jdbc:calcite:" + s;
     Connection connection = DriverManager.getConnection(url);
     assertThat(connection.getSchema(), is("adhoc"));
-    String expected = "EXPR$0=1\n";
+    String expected = "EXPR#0=1\n";
     final String sql = "values 1";
     try (Statement statement = connection.createStatement();
          ResultSet resultSet = statement.executeQuery(sql)) {
@@ -5691,26 +5691,26 @@ public class JdbcTest {
         + "        {\n"
         + "          \"type\": \"INTEGER\",\n"
         + "          \"nullable\": false,\n"
-        + "          \"name\": \"EXPR$0\"\n"
+        + "          \"name\": \"EXPR#0\"\n"
         + "        },\n"
         + "        {\n"
         + "          \"type\": \"CHAR\",\n"
         + "          \"nullable\": false,\n"
         + "          \"precision\": 2,\n"
-        + "          \"name\": \"EXPR$1\"\n"
+        + "          \"name\": \"EXPR#1\"\n"
         + "        },\n"
         + "        {\n"
         + "          \"type\": \"TIMESTAMP\",\n"
         + "          \"nullable\": false,\n"
         + "          \"precision\": 0,\n"
-        + "          \"name\": \"EXPR$2\"\n"
+        + "          \"name\": \"EXPR#2\"\n"
         + "        },\n"
         + "        {\n"
         + "          \"type\": \"DECIMAL\",\n"
         + "          \"nullable\": false,\n"
         + "          \"precision\": 3,\n"
         + "          \"scale\": 2,\n"
-        + "          \"name\": \"EXPR$3\"\n"
+        + "          \"name\": \"EXPR#3\"\n"
         + "        }\n"
         + "      ],\n"
         + "      \"tuples\": [\n"
@@ -5760,8 +5760,8 @@ public class JdbcTest {
     with.query("explain plan without implementation for values (1, 'ab')")
         .returns("PLAN=LogicalValues(tuples=[[{ 1, 'ab' }]])\n\n");
     with.query("explain plan with type for values (1, 'ab')")
-        .returns("PLAN=EXPR$0 INTEGER NOT NULL,\n"
-            + "EXPR$1 CHAR(2) NOT NULL\n");
+        .returns("PLAN=EXPR#0 INTEGER NOT NULL,\n"
+            + "EXPR#1 CHAR(2) NOT NULL\n");
   }
 
   /** Test case for bug where if two tables have different element classes
@@ -6066,8 +6066,8 @@ public class JdbcTest {
             + ") calcs")
         .planContains("org.apache.calcite.runtime.SqlFunctions.eq(inp0_, inp1_)")
         .planContains("org.apache.calcite.runtime.SqlFunctions.ne(inp0_, inp1_)")
-        .returns("EXPR$0=true; EXPR$1=false\n"
-            + "EXPR$0=null; EXPR$1=null\n");
+        .returns("EXPR#0=true; EXPR#1=false\n"
+            + "EXPR#0=null; EXPR#1=null\n");
   }
 
   @Test public void testUnicode() throws Exception {
@@ -6078,11 +6078,11 @@ public class JdbcTest {
     // But \\82f1 in a SQL string is a SQL unicode escape.
     // various ways to create a unicode string literal
     with.query("values _UTF16'\u82f1\u56fd'")
-        .returns("EXPR$0=\u82f1\u56fd\n");
+        .returns("EXPR#0=\u82f1\u56fd\n");
     with.query("values U&'\\82F1\\56FD'")
-        .returns("EXPR$0=\u82f1\u56fd\n");
+        .returns("EXPR#0=\u82f1\u56fd\n");
     with.query("values u&'\\82f1\\56fd'")
-        .returns("EXPR$0=\u82f1\u56fd\n");
+        .returns("EXPR#0=\u82f1\u56fd\n");
     with.query("values '\u82f1\u56fd'")
         .throws_(
             "Failed to encode '\u82f1\u56fd' in character set 'ISO-8859-1'");
@@ -6935,8 +6935,8 @@ public class JdbcTest {
           .query(
               "select min(div) as _min from ("
                   + "select \"empid\", \"deptno\", CAST(\"empid\" AS DOUBLE)/\"deptno\" as div from \"hr\".\"emps\")")
-          .explainContains("BindableAggregate(group=[{}], _MIN=[MIN($0)])\n"
-              + "  BindableProject(DIV=[/(CAST($0):DOUBLE NOT NULL, $1)])\n"
+          .explainContains("BindableAggregate(group=[{}], _MIN=[MIN(#0)])\n"
+              + "  BindableProject(DIV=[/(CAST(#0):DOUBLE NOT NULL, #1)])\n"
               + "    BindableTableScan(table=[[hr, emps]])")
           .returns("_MIN=10.0\n");
     }
@@ -7012,8 +7012,8 @@ public class JdbcTest {
         .with(CalciteAssert.Config.REGULAR)
         .query(sql)
         .explainContains("EnumerableAggregate(group=[{}], "
-            + "EXPR$0=[COLLECT($4) WITHIN GROUP ([4])])")
-        .returns("EXPR$0=[250, 500, 1000]\n");
+            + "EXPR#0=[COLLECT(#4) WITHIN GROUP ([4])])")
+        .returns("EXPR#0=[250, 500, 1000]\n");
   }
 
   /** Test case for
@@ -7029,7 +7029,7 @@ public class JdbcTest {
             + "              1)")
         .planContains("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
             + "$L4J$C$new_java_math_BigDecimal_1_, v)")
-        .returns("EXPR$0={\"x\":1,\"y\":2.1}\n");
+        .returns("EXPR#0={\"x\":1,\"y\":2.1}\n");
   }
 
   @Test public void testMatchSimple() {
@@ -7042,12 +7042,12 @@ public class JdbcTest {
         + "  pattern (up s)\n"
         + "  define up as up.\"empid\" = 100)";
     final String convert = ""
-        + "LogicalProject(C=[$0], EMPID=[$1], TWO=[$2])\n"
+        + "LogicalProject(C=[#0], EMPID=[#1], TWO=[#2])\n"
         + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
         + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
-        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.#0, 0)):INTEGER NOT NULL, 100)]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
@@ -7055,7 +7055,7 @@ public class JdbcTest {
         + "outputFields=[[C, EMPID, TWO]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('UP', 'S')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
-        + "patternDefinitions=[[=(CAST(PREV(UP.$0, 0)):INTEGER NOT NULL, 100)]], "
+        + "patternDefinitions=[[=(CAST(PREV(UP.#0, 0)):INTEGER NOT NULL, 100)]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "  EnumerableTableScan(table=[[hr, emps]])";
     CalciteAssert.that()
@@ -7075,12 +7075,12 @@ public class JdbcTest {
         + "  pattern (s up)\n"
         + "  define up as up.\"commission\" < prev(up.\"commission\"))";
     final String convert = ""
-        + "LogicalProject(C=[$0], EMPID=[$1])\n"
+        + "LogicalProject(C=[#0], EMPID=[#1])\n"
         + "  LogicalMatch(partition=[[]], order=[[0 DESC]], "
         + "outputFields=[[C, EMPID]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
-        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "patternDefinitions=[[<(PREV(UP.#4, 0), PREV(UP.#4, 1))]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "    EnumerableTableScan(table=[[hr, emps]])\n";
     final String plan = "PLAN="
@@ -7088,7 +7088,7 @@ public class JdbcTest {
         + "outputFields=[[C, EMPID]], allRows=[false], "
         + "after=[FLAG(SKIP TO NEXT ROW)], pattern=[('S', 'UP')], "
         + "isStrictStarts=[false], isStrictEnds=[false], subsets=[[]], "
-        + "patternDefinitions=[[<(PREV(UP.$4, 0), PREV(UP.$4, 1))]], "
+        + "patternDefinitions=[[<(PREV(UP.#4, 0), PREV(UP.#4, 1))]], "
         + "inputFields=[[empid, deptno, name, salary, commission]])\n"
         + "  EnumerableTableScan(table=[[hr, emps]])";
     CalciteAssert.that()

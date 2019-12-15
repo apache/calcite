@@ -334,7 +334,7 @@ public class RexProgram {
       pw.item(prefix + outFields.get(i).getName(), projects.get(i));
     }
     if (condition != null) {
-      pw.item(prefix + "$condition", condition);
+      pw.item(prefix + "#condition", condition);
     }
     return pw;
   }

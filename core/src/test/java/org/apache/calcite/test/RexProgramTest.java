@@ -225,20 +225,20 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexProgram program = builder.getProgram(false);
     final String programString = program.toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-            + "expr#4=[+($0, $1)], expr#5=[+($0, $0)], expr#6=[+($t4, $t2)], "
-            + "a=[$t6], b=[$t5])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#0, 1)], expr#3=[77], "
+            + "expr#4=[+(#0, #1)], expr#5=[+(#0, #0)], expr#6=[+(#t4, #t2)], "
+            + "a=[#t6], b=[#t5])",
         programString);
 
     // Normalize the program using the RexProgramBuilder.normalize API.
-    // Note that unused expression '77' is eliminated, input refs (e.g. $0)
-    // become local refs (e.g. $t0), and constants are assigned to locals.
+    // Note that unused expression '77' is eliminated, input refs (e.g. #0)
+    // become local refs (e.g. #t0), and constants are assigned to locals.
     final RexProgram normalizedProgram = program.normalize(rexBuilder, null);
     final String normalizedProgramString = normalizedProgram.toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t0)], a=[$t5], b=[$t6])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t0)], a=[#t5], b=[#t6])",
         normalizedProgramString);
   }
 
@@ -249,9 +249,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexProgramBuilder builder = createProg(0);
     final String program = builder.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t0)], a=[$t5], b=[$t6])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t0)], a=[#t5], b=[#t6])",
         program);
   }
 
@@ -262,18 +262,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexProgramBuilder builder = createProg(1);
     final String unnormalizedProgram = builder.getProgram(false).toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-            + "expr#4=[+($0, $1)], expr#5=[+($0, 1)], expr#6=[+($0, $t5)], "
-            + "expr#7=[+($t4, $t2)], a=[$t7], b=[$t6])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#0, 1)], expr#3=[77], "
+            + "expr#4=[+(#0, #1)], expr#5=[+(#0, 1)], expr#6=[+(#0, #t5)], "
+            + "expr#7=[+(#t4, #t2)], a=[#t7], b=[#t6])",
         unnormalizedProgram);
 
-    // normalize eliminates duplicates (specifically "+($0, $1)")
+    // normalize eliminates duplicates (specifically "+(#0, #1)")
     final RexProgramBuilder builder2 = createProg(1);
     final String program2 = builder2.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t4)], a=[$t5], b=[$t6])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t4)], a=[#t5], b=[#t6])",
         program2);
   }
 
@@ -283,18 +283,18 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void testSimplifyCondition() {
     final RexProgram program = createProg(3).getProgram(false);
     assertThat(program.toString(),
-        is("(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-            + "expr#4=[+($0, $1)], expr#5=[+($0, 1)], expr#6=[+($0, $t5)], "
-            + "expr#7=[+($t4, $t2)], expr#8=[5], expr#9=[>($t2, $t8)], "
-            + "expr#10=[true], expr#11=[IS NOT NULL($t5)], expr#12=[false], "
-            + "expr#13=[null:BOOLEAN], expr#14=[CASE($t9, $t10, $t11, $t12, $t13)], "
-            + "expr#15=[NOT($t14)], a=[$t7], b=[$t6], $condition=[$t15])"));
+        is("(expr#0..1=[{inputs}], expr#2=[+(#0, 1)], expr#3=[77], "
+            + "expr#4=[+(#0, #1)], expr#5=[+(#0, 1)], expr#6=[+(#0, #t5)], "
+            + "expr#7=[+(#t4, #t2)], expr#8=[5], expr#9=[>(#t2, #t8)], "
+            + "expr#10=[true], expr#11=[IS NOT NULL(#t5)], expr#12=[false], "
+            + "expr#13=[null:BOOLEAN], expr#14=[CASE(#t9, #t10, #t11, #t12, #t13)], "
+            + "expr#15=[NOT(#t14)], a=[#t7], b=[#t6], #condition=[#t15])"));
 
     assertThat(program.normalize(rexBuilder, simplify).toString(),
-        is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[<=($t4, $t7)], "
-            + "a=[$t5], b=[$t6], $condition=[$t8])"));
+        is("(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t4)], expr#7=[5], expr#8=[<=(#t4, #t7)], "
+            + "a=[#t5], b=[#t6], #condition=[#t8])"));
   }
 
   /**
@@ -303,19 +303,19 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void testSimplifyCondition2() {
     final RexProgram program = createProg(4).getProgram(false);
     assertThat(program.toString(),
-        is("(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
-            + "expr#4=[+($0, $1)], expr#5=[+($0, 1)], expr#6=[+($0, $t5)], "
-            + "expr#7=[+($t4, $t2)], expr#8=[5], expr#9=[>($t2, $t8)], "
-            + "expr#10=[true], expr#11=[IS NOT NULL($t5)], expr#12=[false], "
-            + "expr#13=[null:BOOLEAN], expr#14=[CASE($t9, $t10, $t11, $t12, $t13)], "
-            + "expr#15=[NOT($t14)], expr#16=[IS TRUE($t15)], a=[$t7], b=[$t6], "
-            + "$condition=[$t16])"));
+        is("(expr#0..1=[{inputs}], expr#2=[+(#0, 1)], expr#3=[77], "
+            + "expr#4=[+(#0, #1)], expr#5=[+(#0, 1)], expr#6=[+(#0, #t5)], "
+            + "expr#7=[+(#t4, #t2)], expr#8=[5], expr#9=[>(#t2, #t8)], "
+            + "expr#10=[true], expr#11=[IS NOT NULL(#t5)], expr#12=[false], "
+            + "expr#13=[null:BOOLEAN], expr#14=[CASE(#t9, #t10, #t11, #t12, #t13)], "
+            + "expr#15=[NOT(#t14)], expr#16=[IS TRUE(#t15)], a=[#t7], b=[#t6], "
+            + "#condition=[#t16])"));
 
     assertThat(program.normalize(rexBuilder, simplify).toString(),
-        is("(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t4)], expr#7=[5], expr#8=[<=($t4, $t7)], "
-            + "a=[$t5], b=[$t6], $condition=[$t8])"));
+        is("(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t4)], expr#7=[5], expr#8=[<=(#t4, #t7)], "
+            + "a=[#t5], b=[#t6], #condition=[#t8])"));
   }
 
   /**
@@ -328,10 +328,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexProgramBuilder builder = createProg(2);
     final String program = builder.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
-        "(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[1], "
-            + "expr#4=[+($t0, $t3)], expr#5=[+($t2, $t4)], "
-            + "expr#6=[+($t0, $t0)], expr#7=[>($t2, $t0)], "
-            + "a=[$t5], b=[$t6], $condition=[$t7])",
+        "(expr#0..1=[{inputs}], expr#2=[+(#t0, #t1)], expr#3=[1], "
+            + "expr#4=[+(#t0, #t3)], expr#5=[+(#t2, #t4)], "
+            + "expr#6=[+(#t0, #t0)], expr#7=[>(#t2, #t0)], "
+            + "a=[#t5], b=[#t6], #condition=[#t7])",
         program);
   }
 
@@ -362,9 +362,9 @@ public class RexProgramTest extends RexProgramBuilderBase {
     RelDataType inputRowType = typeFactory.createStructType(types, names);
     final RexProgramBuilder builder =
         new RexProgramBuilder(inputRowType, rexBuilder);
-    // $t0 = x
-    // $t1 = y
-    // $t2 = $t0 + 1 (i.e. x + 1)
+    // #t0 = x
+    // #t1 = y
+    // #t2 = #t0 + 1 (i.e. x + 1)
     final RexNode i0 = rexBuilder.makeInputRef(
         types.get(0), 0);
     final RexLiteral c1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
@@ -375,7 +375,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
                 SqlStdOperatorTable.PLUS,
                 i0,
                 c1));
-    // $t3 = 77 (not used)
+    // #t3 = 77 (not used)
     final RexLiteral c77 =
         rexBuilder.makeExactLiteral(
             BigDecimal.valueOf(77));
@@ -383,7 +383,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
         builder.addExpr(
             c77);
     Util.discard(t3);
-    // $t4 = $t0 + $t1 (i.e. x + y)
+    // #t4 = #t0 + #t1 (i.e. x + y)
     final RexNode i1 = rexBuilder.makeInputRef(
         types.get(1), 1);
     RexLocalRef t4 =
@@ -397,7 +397,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     switch (variant) {
     case 0:
     case 2:
-      // $t5 = $t0 + $t0 (i.e. x + x)
+      // #t5 = #t0 + #t0 (i.e. x + x)
       t5 = builder.addExpr(
           rexBuilder.makeCall(
               SqlStdOperatorTable.PLUS,
@@ -408,14 +408,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     case 1:
     case 3:
     case 4:
-      // $tx = $t0 + 1
+      // $tx = #t0 + 1
       t1 =
           builder.addExpr(
               rexBuilder.makeCall(
                   SqlStdOperatorTable.PLUS,
                   i0,
                   c1));
-      // $t5 = $t0 + $tx (i.e. x + (x + 1))
+      // #t5 = #t0 + $tx (i.e. x + (x + 1))
       t5 =
           builder.addExpr(
               rexBuilder.makeCall(
@@ -426,7 +426,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
     default:
       throw new AssertionError("unexpected variant " + variant);
     }
-    // $t6 = $t4 + $t2 (i.e. (x + y) + (x + 1))
+    // #t6 = #t4 + #t2 (i.e. (x + y) + (x + 1))
     RexLocalRef t6 =
         builder.addExpr(
             rexBuilder.makeCall(
@@ -440,14 +440,14 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexLocalRef t8;
     switch (variant) {
     case 2:
-      // $t7 = $t4 > $i0 (i.e. (x + y) > 0)
+      // #t7 = #t4 > $i0 (i.e. (x + y) > 0)
       t7 =
           builder.addExpr(
               rexBuilder.makeCall(
                   SqlStdOperatorTable.GREATER_THAN,
                   t4,
                   i0));
-      // $t8 = $t7 AND $t7
+      // #t8 = #t7 AND #t7
       t8 =
           builder.addExpr(
               and(t7, t7));
@@ -456,35 +456,35 @@ public class RexProgramTest extends RexProgramBuilderBase {
       break;
     case 3:
     case 4:
-      // $t7 = 5
+      // #t7 = 5
       t7 = builder.addExpr(c5);
-      // $t8 = $t2 > $t7 (i.e. (x + 1) > 5)
+      // #t8 = #t2 > #t7 (i.e. (x + 1) > 5)
       t8 = builder.addExpr(gt(t2, t7));
-      // $t9 = true
+      // #t9 = true
       final RexLocalRef t9 =
           builder.addExpr(trueLiteral);
-      // $t10 = $t1 is not null (i.e. y is not null)
+      // #t10 = #t1 is not null (i.e. y is not null)
       assert t1 != null;
       final RexLocalRef t10 =
           builder.addExpr(
               rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, t1));
-      // $t11 = false
+      // #t11 = false
       final RexLocalRef t11 =
           builder.addExpr(falseLiteral);
-      // $t12 = unknown
+      // #t12 = unknown
       final RexLocalRef t12 =
           builder.addExpr(nullBool);
-      // $t13 = case when $t8 then $t9 when $t10 then $t11 else $t12 end
+      // #t13 = case when #t8 then #t9 when #t10 then #t11 else #t12 end
       final RexLocalRef t13 =
           builder.addExpr(case_(t8, t9, t10, t11, t12));
-      // $t14 = not $t13 (i.e. not case ... end)
+      // #t14 = not #t13 (i.e. not case ... end)
       final RexLocalRef t14 =
           builder.addExpr(not(t13));
       // don't add 't14 is true' - that is implicit
       if (variant == 3) {
         builder.addCondition(t14);
       } else {
-        // $t15 = $14 is true
+        // #t15 = #14 is true
         final RexLocalRef t15 =
             builder.addExpr(
                 isTrue(t14));
@@ -2025,10 +2025,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexLiteral one = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral null_ = rexBuilder.makeNullLiteral(intType);
     checkSimplify(isNotNull(lt(i0, i1)),
-        "AND(IS NOT NULL($0), IS NOT NULL($1))");
-    checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL($0)");
+        "AND(IS NOT NULL(#0), IS NOT NULL(#1))");
+    checkSimplify(isNotNull(lt(i0, i2)), "IS NOT NULL(#0)");
     checkSimplify(isNotNull(lt(i2, i3)), "true");
-    checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL($0)");
+    checkSimplify(isNotNull(lt(i0, one)), "IS NOT NULL(#0)");
     checkSimplify(isNotNull(lt(i0, null_)), "false");
     // test simplify operand of case when expression
     checkSimplify(
@@ -2036,13 +2036,13 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "false");
     checkSimplify(
         isNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
-        "IS NULL($0)");
+        "IS NULL(#0)");
     checkSimplify(
         isNotNull(case_(falseLiteral, unaryPlus(i0), literal(-1))),
         "true");
     checkSimplify(
         isNotNull(case_(trueLiteral, unaryPlus(i0), literal(-1))),
-        "IS NOT NULL($0)");
+        "IS NOT NULL(#0)");
     // test simplify operand of redundant cast
     checkSimplify(isNull(cast(i2, intType)), "false");
     checkSimplify(isNotNull(cast(i2, intType)), "true");

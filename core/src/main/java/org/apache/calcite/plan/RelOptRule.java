@@ -477,7 +477,7 @@ public abstract class RelOptRule {
    *
    * <blockquote>
    * <pre><code>awk '
-   * /Apply rule/ {rule=$4; ruleCount[rule]++;}
+   * /Apply rule/ {rule=#4; ruleCount[rule]++;}
    * /generated 0 successors/ {ruleMiss[rule]++;}
    * END {
    *   printf "%-30s %s %s\n", "Rule", "Fire", "Miss";

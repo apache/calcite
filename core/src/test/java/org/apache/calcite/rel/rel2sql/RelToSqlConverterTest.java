@@ -2048,7 +2048,7 @@ public class RelToSqlConverterTest {
     sql("VALUES " + expression)
         .withHsqldb()
         .ok("SELECT *\n"
-            + "FROM (VALUES  (" + expected + ")) AS t (EXPR$0)");
+            + "FROM (VALUES  (" + expected + ")) AS t (EXPR#0)");
   }
 
   /** Test case for
@@ -2067,11 +2067,11 @@ public class RelToSqlConverterTest {
    * Support Window in RelToSqlConverter</a>. */
   @Test public void testConvertWinodwToSql() {
     String query0 = "SELECT row_number() over (order by \"hire_date\") FROM \"employee\"";
-    String expected0 = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+    String expected0 = "SELECT ROW_NUMBER() OVER (ORDER BY \"hire_date\") AS \"#0\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query1 = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
-    String expected1 = "SELECT RANK() OVER (ORDER BY \"hire_date\") AS \"$0\"\n"
+    String expected1 = "SELECT RANK() OVER (ORDER BY \"hire_date\") AS \"#0\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query2 = "SELECT lead(\"employee_id\",1,'NA') over "
@@ -2079,14 +2079,14 @@ public class RelToSqlConverterTest {
             + "FROM \"employee\"";
     String expected2 = "SELECT LEAD(\"employee_id\", 1, 'NA') OVER "
             + "(PARTITION BY \"hire_date\" "
-            + "ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "ORDER BY \"employee_id\") AS \"#0\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query3 = "SELECT lag(\"employee_id\",1,'NA') over "
             + "(partition by \"hire_date\" order by \"employee_id\")\n"
             + "FROM \"employee\"";
     String expected3 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\"\n"
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"#0\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query4 = "SELECT lag(\"employee_id\",1,'NA') "
@@ -2097,13 +2097,13 @@ public class RelToSqlConverterTest {
             + "count(*) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
             + "FROM \"employee\"";
     String expected4 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"#0\", "
             + "LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"#1\", "
             + "COUNT(*) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"#2\", "
             + "COUNT(*) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"#3\"\n"
             + "FROM \"foodmart\".\"employee\"";
 
     String query5 = "SELECT lag(\"employee_id\",1,'NA') "
@@ -2114,13 +2114,13 @@ public class RelToSqlConverterTest {
             + "max(sum(\"employee_id\")) over (partition by \"birth_date\" order by \"employee_id\") as count2\n"
             + "FROM \"employee\" group by \"employee_id\", \"hire_date\", \"birth_date\"";
     String expected5 = "SELECT LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"$0\", "
+            + "(PARTITION BY \"hire_date\" ORDER BY \"employee_id\") AS \"#0\", "
             + "LAG(\"employee_id\", 1, 'NA') OVER "
-            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"$1\", "
+            + "(PARTITION BY \"birth_date\" ORDER BY \"employee_id\") AS \"#1\", "
             + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"hire_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$2\", "
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"#2\", "
             + "MAX(SUM(\"employee_id\")) OVER (PARTITION BY \"birth_date\" ORDER BY \"employee_id\" "
-            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"$3\"\n"
+            + "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS \"#3\"\n"
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"employee_id\", \"hire_date\", \"birth_date\"";
 
@@ -3712,10 +3712,10 @@ public class RelToSqlConverterTest {
         + "       lateral (select d.\"department_id\" + 1 as d_plusOne"
         + "                from (values(true)))";
 
-    final String expected = "SELECT \"$cor0\".\"department_id\", \"$cor0\".\"D_PLUSONE\"\n"
-        + "FROM \"foodmart\".\"department\" AS \"$cor0\",\n"
-        + "LATERAL (SELECT \"$cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
-        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR$0\")) AS \"t0\"";
+    final String expected = "SELECT \"#cor0\".\"department_id\", \"#cor0\".\"D_PLUSONE\"\n"
+        + "FROM \"foodmart\".\"department\" AS \"#cor0\",\n"
+        + "LATERAL (SELECT \"#cor0\".\"department_id\" + 1 AS \"D_PLUSONE\"\n"
+        + "FROM (VALUES  (TRUE)) AS \"t\" (\"EXPR#0\")) AS \"t0\"";
     sql(sql).ok(expected);
   }
 
@@ -4131,7 +4131,7 @@ public class RelToSqlConverterTest {
     String query = "SELECT COUNT(CAST(NULL AS INT)) FROM (VALUES  (0))\n"
             + "AS \"t\" GROUP BY CAST(NULL AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     final String expected = "SELECT COUNT(CAST(NULL AS INTEGER))\n"
-            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR$0\")\nGROUP BY CAST(NULL "
+            + "FROM (VALUES  (0)) AS \"t\" (\"EXPR#0\")\nGROUP BY CAST(NULL "
             + "AS VARCHAR CHARACTER SET \"ISO-8859-1\")";
     sql(query).ok(expected);
     // validate

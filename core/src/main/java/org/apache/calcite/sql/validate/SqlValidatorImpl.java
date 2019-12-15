@@ -2087,7 +2087,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           // Since we're expanding identifiers, we should make the
           // aliases explicit too, otherwise the expanded query
           // will not be consistent if we convert back to SQL, e.g.
-          // "select EXPR$1.EXPR$2 from values (1)".
+          // "select EXPR#1.EXPR#2 from values (1)".
           newNode = SqlValidatorUtil.addAlias(node, alias);
         }
         break;

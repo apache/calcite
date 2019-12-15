@@ -73,16 +73,16 @@ insert into table2 values (NULL, 1), (2, 1);
 # Checked on Oracle
 !set lateDecorrelate true
 select i, j from table1 where table1.j NOT IN (select i from table2 where table1.i=table2.j);
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=($t3, $t8)], expr#10=[IS NULL($t1)], expr#11=[IS NOT NULL($t7)], expr#12=[<($t4, $t3)], expr#13=[OR($t10, $t11, $t12)], expr#14=[IS NOT TRUE($t13)], expr#15=[OR($t9, $t14)], proj#0..1=[{exprs}], $condition=[$t15])
-  EnumerableHashJoin(condition=[AND(=($0, $6), =($1, $5))], joinType=[left])
-    EnumerableHashJoin(condition=[=($0, $2)], joinType=[left])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[0], expr#9=[=(#t3, #t8)], expr#10=[IS NULL(#t1)], expr#11=[IS NOT NULL(#t7)], expr#12=[<(#t4, #t3)], expr#13=[OR(#t10, #t11, #t12)], expr#14=[IS NOT TRUE(#t13)], expr#15=[OR(#t9, #t14)], proj#0..1=[{exprs}], #condition=[#t15])
+  EnumerableHashJoin(condition=[AND(=(#0, #6), =(#1, #5))], joinType=[left])
+    EnumerableHashJoin(condition=[=(#0, #2)], joinType=[left])
       EnumerableTableScan(table=[[BLANK, TABLE1]])
-      EnumerableAggregate(group=[{1}], c=[COUNT()], ck=[COUNT($0)])
-        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], proj#0..1=[{exprs}], $condition=[$t2])
+      EnumerableAggregate(group=[{1}], c=[COUNT()], ck=[COUNT(#0)])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL(#t1)], proj#0..1=[{exprs}], #condition=[#t2])
           EnumerableTableScan(table=[[BLANK, TABLE2]])
     EnumerableCalc(expr#0..1=[{inputs}], expr#2=[true], proj#0..2=[{exprs}])
       EnumerableAggregate(group=[{0, 1}])
-        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], expr#3=[IS NOT NULL($t0)], expr#4=[AND($t2, $t3)], proj#0..1=[{exprs}], $condition=[$t4])
+        EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL(#t1)], expr#3=[IS NOT NULL(#t0)], expr#4=[AND(#t2, #t3)], proj#0..1=[{exprs}], #condition=[#t4])
           EnumerableTableScan(table=[[BLANK, TABLE2]])
 !plan
 +---+---+

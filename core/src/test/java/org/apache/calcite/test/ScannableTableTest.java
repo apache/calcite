@@ -106,7 +106,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesFilterableTable(buf, true);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles]], filters=[[=($0, 4)]])";
+        + "  BindableTableScan(table=[[s, beatles]], filters=[[=(#0, 4)]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query("select * from \"s\".\"beatles\" where \"i\" = 4")
@@ -124,7 +124,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=($0, 4)]])";
+        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=(#0, 4)]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles2", table)))
         .query("select * from \"s\".\"beatles2\" where \"i\" = 4")
@@ -141,7 +141,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles]], filters=[[=($0, 4)]], projects=[[1]])";
+        + "  BindableTableScan(table=[[s, beatles]], filters=[[=(#0, 4)]], projects=[[1]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query("select \"j\" from \"s\".\"beatles\" where \"i\" = 4")
@@ -158,7 +158,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=($0, 4)]], projects=[[1]]";
+        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=(#0, 4)]], projects=[[1]]";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles2", table)))
         .query("select \"j\" from \"s\".\"beatles2\" where \"i\" = 4")
@@ -175,7 +175,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles]], filters=[[=($0, 4)]], projects=[[2, 1]]";
+        + "  BindableTableScan(table=[[s, beatles]], filters=[[=(#0, 4)]], projects=[[2, 1]]";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query("select \"k\",\"j\" from \"s\".\"beatles\" where \"i\" = 4")
@@ -194,7 +194,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles]], filters=[[>($2, 1941)]], "
+        + "  BindableTableScan(table=[[s, beatles]], filters=[[>(#2, 1941)]], "
         + "projects=[[0, 2]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
@@ -214,7 +214,7 @@ public class ScannableTableTest {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN=EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=($0, 4)]], projects=[[2]])";
+        + "  BindableTableScan(table=[[s, beatles2]], filters=[[=(#0, 4)]], projects=[[2]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles2", table)))
         .query("select \"k\" from \"s\".\"beatles2\" where \"i\" = 4")
@@ -228,9 +228,9 @@ public class ScannableTableTest {
   @Test public void testPFPushDownProjectFilterInAggregateNoGroup() {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
-    final String explain = "PLAN=EnumerableAggregate(group=[{}], M=[MAX($0)])\n"
+    final String explain = "PLAN=EnumerableAggregate(group=[{}], M=[MAX(#0)])\n"
         + "  EnumerableInterpreter\n"
-        + "    BindableTableScan(table=[[s, beatles]], filters=[[>($0, 1)]], projects=[[2]])";
+        + "    BindableTableScan(table=[[s, beatles]], filters=[[>(#0, 1)]], projects=[[2]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query("select max(\"k\") as m from \"s\".\"beatles\" where \"i\" > 1")
@@ -248,7 +248,7 @@ public class ScannableTableTest {
     final String explain = "PLAN="
         + "EnumerableAggregate(group=[{0}], C=[COUNT()])\n"
         + "  EnumerableInterpreter\n"
-        + "    BindableTableScan(table=[[s, beatles]], filters=[[>($2, 1900)]], "
+        + "    BindableTableScan(table=[[s, beatles]], filters=[[>(#2, 1900)]], "
         + "projects=[[0]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
@@ -272,7 +272,7 @@ public class ScannableTableTest {
         + "  EnumerableAggregate(group=[{0, 1}])\n"
         + "    EnumerableInterpreter\n"
         + "      BindableTableScan(table=[[s, beatles]], "
-        + "filters=[[=($2, 1940)]], projects=[[2, 0]])";
+        + "filters=[[=(#2, 1940)]], projects=[[2, 0]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles", table)))
         .query(sql)
@@ -308,7 +308,7 @@ public class ScannableTableTest {
     final Table table = new BeatlesProjectableFilterableTable(buf, false);
     final String explain = "PLAN="
         + "EnumerableInterpreter\n"
-        + "  BindableTableScan(table=[[s, beatles2]], filters=[[>($2, 1941)]], projects=[[2]])";
+        + "  BindableTableScan(table=[[s, beatles2]], filters=[[>(#2, 1941)]], projects=[[2]])";
     CalciteAssert.that()
         .with(newSchema("s", Pair.of("beatles2", table)))
         .query("select \"k\" from \"s\".\"beatles2\" where \"k\" > 1941")
@@ -325,8 +325,8 @@ public class ScannableTableTest {
     final StringBuilder buf = new StringBuilder();
     final Table table = new BeatlesProjectableFilterableTable(buf, true);
     final String explain = "PLAN="
-        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[+($t1, $t1)], expr#3=[3],"
-        + " proj#0..1=[{exprs}], k0=[$t0], $f3=[$t2], $f4=[$t3])\n"
+        + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[+(#t1, #t1)], expr#3=[3],"
+        + " proj#0..1=[{exprs}], k0=[#t0], #f3=[#t2], #f4=[#t3])\n"
         + "  EnumerableInterpreter\n"
         + "    BindableTableScan(table=[[s, beatles]], projects=[[2, 0]])";
     CalciteAssert.that()
@@ -334,10 +334,10 @@ public class ScannableTableTest {
         .query("select \"k\", \"i\", \"k\", \"i\"+\"i\" \"ii\", 3 from \"s\".\"beatles\"")
         .explainContains(explain)
         .returnsUnordered(
-            "k=1940; i=4; k=1940; ii=8; EXPR$3=3",
-            "k=1940; i=5; k=1940; ii=10; EXPR$3=3",
-            "k=1942; i=4; k=1942; ii=8; EXPR$3=3",
-            "k=1943; i=6; k=1943; ii=12; EXPR$3=3");
+            "k=1940; i=4; k=1940; ii=8; EXPR#3=3",
+            "k=1940; i=5; k=1940; ii=10; EXPR#3=3",
+            "k=1942; i=4; k=1942; ii=8; EXPR#3=3",
+            "k=1943; i=6; k=1943; ii=12; EXPR#3=3");
     assertThat(buf.toString(), is("returnCount=4, projects=[2, 0]"));
   }
 
@@ -371,11 +371,11 @@ public class ScannableTableTest {
   @Test public void testProjectableFilterableTableJoin() throws Exception {
     final StringBuilder buf = new StringBuilder();
     final String explain = "PLAN="
-        + "EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
+        + "EnumerableHashJoin(condition=[=(#0, #3)], joinType=[inner])\n"
         + "  EnumerableInterpreter\n"
-        + "    BindableTableScan(table=[[s, b1]], filters=[[=($0, 10)]])\n"
+        + "    BindableTableScan(table=[[s, b1]], filters=[[=(#0, 10)]])\n"
         + "  EnumerableInterpreter\n"
-        + "    BindableTableScan(table=[[s, b2]], filters=[[=($0, 10)]])";
+        + "    BindableTableScan(table=[[s, b2]], filters=[[=(#0, 10)]])";
     CalciteAssert.that()
             .with(
               newSchema("s",

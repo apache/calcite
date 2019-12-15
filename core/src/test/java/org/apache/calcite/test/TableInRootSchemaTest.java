@@ -68,8 +68,8 @@ public class TableInRootSchemaTest {
 
     assertThat(
         ImmutableMultiset.of(
-            "A=foo; EXPR$1=8",
-            "A=bar; EXPR$1=4"),
+            "A=foo; EXPR#1=8",
+            "A=bar; EXPR#1=4"),
         equalTo(CalciteAssert.toSet(resultSet)));
 
     final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
@@ -80,7 +80,7 @@ public class TableInRootSchemaTest {
         equalTo("java.lang.String"));
     // Per JDBC, column name should be null. But DBUnit requires every column
     // to have a name, so the driver uses the label.
-    assertThat(resultSetMetaData.getColumnName(2), equalTo("EXPR$1"));
+    assertThat(resultSetMetaData.getColumnName(2), equalTo("EXPR#1"));
     assertThat(resultSetMetaData.getTableName(2), nullValue());
     assertThat(resultSetMetaData.getSchemaName(2), nullValue());
     assertThat(resultSetMetaData.getColumnClassName(2),

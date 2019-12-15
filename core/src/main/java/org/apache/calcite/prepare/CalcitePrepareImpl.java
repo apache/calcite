@@ -882,7 +882,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (type.isStruct()) {
       return type;
     }
-    return typeFactory.builder().add("$0", type).build();
+    return typeFactory.builder().add("#0", type).build();
   }
 
   @Deprecated // to be removed before 2.0

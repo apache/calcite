@@ -685,7 +685,7 @@ public abstract class SqlImplementor {
         final List<SqlNode> nodeList = toSql(program, call.getOperands());
         switch (call.getKind()) {
         case CAST:
-          // CURSOR is used inside CAST, like 'CAST ($0): CURSOR NOT NULL',
+          // CURSOR is used inside CAST, like 'CAST (#0): CURSOR NOT NULL',
           // convert it to sql call of {@link SqlStdOperatorTable#CURSOR}.
           RelDataType dataType = rex.getType();
           if (dataType.getSqlTypeName() == SqlTypeName.CURSOR) {

@@ -1615,14 +1615,14 @@ public class RexSimplify {
   /** Weakens a term so that it checks only what is not implied by predicates.
    *
    * <p>The term is broken into "ref comparison constant",
-   * for example "$0 &lt; 5".
+   * for example "#0 &lt; 5".
    *
    * <p>Examples:
    * <ul>
    *
-   * <li>{@code residue($0 < 10, [$0 < 5])} returns {@code true}
+   * <li>{@code residue(#0 < 10, [#0 < 5])} returns {@code true}
    *
-   * <li>{@code residue($0 < 10, [$0 < 20, $0 > 0])} returns {@code $0 < 10}
+   * <li>{@code residue(#0 < 10, [#0 < 20, #0 > 0])} returns {@code #0 < 10}
    * </ul>
    */
   private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
@@ -1643,7 +1643,7 @@ public class RexSimplify {
           final Range<C> r1 = range(predicate.getKind(), c1);
           if (result.encloses(r1)) {
             // Given these predicates, term is always satisfied.
-            // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
+            // e.g. r0 is "#0 < 10", r1 is "#0 < 5"
             result = Range.all();
             continue;
           }
@@ -1875,11 +1875,11 @@ public class RexSimplify {
    * <p>Examples:
    * <ul>
    *
-   * <li>{@code floor(floor($0, flag(hour)), flag(day))} returns {@code floor($0, flag(day))}
+   * <li>{@code floor(floor(#0, flag(hour)), flag(day))} returns {@code floor(#0, flag(day))}
    *
-   * <li>{@code ceil(ceil($0, flag(second)), flag(day))} returns {@code ceil($0, flag(day))}
+   * <li>{@code ceil(ceil(#0, flag(second)), flag(day))} returns {@code ceil(#0, flag(day))}
    *
-   * <li>{@code floor(floor($0, flag(day)), flag(second))} does not change
+   * <li>{@code floor(floor(#0, flag(day)), flag(second))} does not change
    *
    * </ul>
    */

@@ -133,10 +133,10 @@ from "scott".emp;
 (14 rows)
 
 !ok
-EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=($t9, $t11)], expr#13=[>($t9, $t10)], expr#14=[null:BOOLEAN], expr#15=[<>($t9, $t11)], expr#16=[<=($t5, $t8)], expr#17=[IS NOT TRUE($t16)], expr#18=[AND($t13, $t14, $t15, $t17)], expr#19=[>($t5, $t8)], expr#20=[<=($t9, $t10)], expr#21=[AND($t19, $t15, $t17, $t20)], expr#22=[OR($t12, $t18, $t21)], proj#0..7=[{exprs}], X=[$t22])
+EnumerableCalc(expr#0..10=[{inputs}], expr#11=[0], expr#12=[=(#t9, #t11)], expr#13=[>(#t9, #t10)], expr#14=[null:BOOLEAN], expr#15=[<>(#t9, #t11)], expr#16=[<=(#t5, #t8)], expr#17=[IS NOT TRUE(#t16)], expr#18=[AND(#t13, #t14, #t15, #t17)], expr#19=[>(#t5, #t8)], expr#20=[<=(#t9, #t10)], expr#21=[AND(#t19, #t15, #t17, #t20)], expr#22=[OR(#t12, #t18, #t21)], proj#0..7=[{exprs}], X=[#t22])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
     EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableAggregate(group=[{}], m=[MAX($6)], c=[COUNT()], d=[COUNT($6)])
+    EnumerableAggregate(group=[{}], m=[MAX(#6)], c=[COUNT()], d=[COUNT(#6)])
       EnumerableTableScan(table=[[scott, EMP]])
 !plan
 

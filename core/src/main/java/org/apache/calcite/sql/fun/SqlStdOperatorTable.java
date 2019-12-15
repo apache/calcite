@@ -2052,7 +2052,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>It is introduced when multisets of scalar types are created, in order
    * to keep types consistent. For example, <code>MULTISET [5]</code> has type
    * <code>INTEGER MULTISET</code> but is translated to an expression of type
-   * <code>RECORD(INTEGER EXPR$0) MULTISET</code> because in our internal
+   * <code>RECORD(INTEGER EXPR#0) MULTISET</code> because in our internal
    * representation of multisets, every element must be a record. Applying the
    * "$SLICE" operator to this result converts the type back to an <code>
    * INTEGER MULTISET</code> multiset value.
@@ -2078,7 +2078,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <p>It is introduced when multisets of scalar types are created, in order
    * to keep types consistent. For example, <code>ELEMENT(MULTISET [5])</code>
    * is translated to <code>$ELEMENT_SLICE(MULTISET (VALUES ROW (5
-   * EXPR$0))</code> It is translated away when the multiset type is converted
+   * EXPR#0))</code> It is translated away when the multiset type is converted
    * back to scalar values.</p>
    *
    * <p>NOTE: jhyde, 2006/1/9: Usages of this operator are commented out, but

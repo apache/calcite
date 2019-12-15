@@ -41,7 +41,7 @@ public class RelOptQuery {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Maps name of correlating variable (e.g. "$cor3") to the {@link RelNode}
+   * Maps name of correlating variable (e.g. "#cor3") to the {@link RelNode}
    * which implements it.
    */
   final Map<String, RelNode> mapCorrelToRel;

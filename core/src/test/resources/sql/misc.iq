@@ -157,7 +157,7 @@ with data(c_row, c_timestamp) as (select * from (values
 select cast(c_timestamp as varchar(20)), cast(c_timestamp as date) from data where c_row <> 12;
 
 +---------------------+------------+
-| EXPR$0              | EXPR$1     |
+| EXPR#0              | EXPR#1     |
 +---------------------+------------+
 | 1997-01-02 03:04:05 | 1997-01-02 |
 | 1997-01-02 00:00:00 | 1997-01-02 |
@@ -190,7 +190,7 @@ select cast(c_timestamp as varchar(20)), cast(c_timestamp as date) from data whe
 select *, upper("name")
 from "hr"."emps";
 +-------+--------+-----------+---------+------------+-----------+
-| empid | deptno | name      | salary  | commission | EXPR$5    |
+| empid | deptno | name      | salary  | commission | EXPR#5    |
 +-------+--------+-----------+---------+------------+-----------+
 |   100 |     10 | Bill      | 10000.0 |       1000 | BILL      |
 |   110 |     10 | Theodore  | 11500.0 |        250 | THEODORE  |
@@ -290,8 +290,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
-  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[#t0], name=[#t4], name0=[#t2])
+  EnumerableHashJoin(condition=[AND(=(#1, #3), <>(CAST(#2):VARCHAR, CAST(#4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
@@ -314,8 +314,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
-  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[#t0], name=[#t4], name0=[#t2])
+  EnumerableHashJoin(condition=[AND(=(#1, #3), <>(CAST(#2):VARCHAR, CAST(#4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
@@ -335,13 +335,13 @@ where exists (select 1 from "hr"."emps");
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
+EnumerableCalc(expr#0..1=[{inputs}], deptno=[#t0])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[#t0])
       EnumerableTableScan(table=[[hr, depts]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
-      EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL(#t0)], #f0=[#t0], #condition=[#t1])
+      EnumerableAggregate(group=[{}], agg#0=[MIN(#0)])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], #f0=[#t5])
           EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -355,12 +355,12 @@ where not exists (select 1 from "hr"."emps");
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL(#t1)], deptno=[#t0], #condition=[#t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[#t0])
       EnumerableTableScan(table=[[hr, depts]])
-    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5])
+    EnumerableAggregate(group=[{}], agg#0=[MIN(#0)])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], #f0=[#t5])
         EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -374,13 +374,13 @@ where exists (select 1 from "hr"."emps" where "empid" < 0);
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
+EnumerableCalc(expr#0..1=[{inputs}], deptno=[#t0])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[#t0])
       EnumerableTableScan(table=[[hr, depts]])
-    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
-      EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], $f0=[$t5], $condition=[$t7])
+    EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL(#t0)], #f0=[#t0], #condition=[#t1])
+      EnumerableAggregate(group=[{}], agg#0=[MIN(#0)])
+        EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<(#t0, #t6)], #f0=[#t5], #condition=[#t7])
           EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -397,12 +397,12 @@ where not exists (select 1 from "hr"."emps" where "empid" < 0);
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL(#t1)], deptno=[#t0], #condition=[#t2])
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[#t0])
       EnumerableTableScan(table=[[hr, depts]])
-    EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], $f0=[$t5], $condition=[$t7])
+    EnumerableAggregate(group=[{}], agg#0=[MIN(#0)])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<(#t0, #t6)], #f0=[#t5], #condition=[#t7])
         EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -420,7 +420,7 @@ where exists (
 (3 rows)
 
 !ok
-EnumerableHashJoin(condition=[=($1, $5)], joinType=[semi])
+EnumerableHashJoin(condition=[=(#1, #5)], joinType=[semi])
   EnumerableTableScan(table=[[hr, emps]])
   EnumerableTableScan(table=[[hr, depts]])
 !plan
@@ -438,11 +438,11 @@ where not exists (
 (1 row)
 
 !ok
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL($t6)], proj#0..4=[{exprs}], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])
+EnumerableCalc(expr#0..6=[{inputs}], expr#7=[IS NULL(#t6)], proj#0..4=[{exprs}], #condition=[#t7])
+  EnumerableHashJoin(condition=[=(#1, #5)], joinType=[left])
     EnumerableTableScan(table=[[hr, emps]])
-    EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
+    EnumerableAggregate(group=[{0}], agg#0=[MIN(#1)])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[#t0], #f0=[#t4])
         EnumerableTableScan(table=[[hr, depts]])
 !plan
 
@@ -464,16 +464,16 @@ or not exists (
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL($t5)], expr#9=[IS NULL($t7)], expr#10=[OR($t8, $t9)], proj#0..4=[{exprs}], $condition=[$t10])
-  EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
-    EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], $f0=[$t6])
-      EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NULL(#t5)], expr#9=[IS NULL(#t7)], expr#10=[OR(#t8, #t9)], proj#0..4=[{exprs}], #condition=[#t10])
+  EnumerableHashJoin(condition=[=(#0, #6)], joinType=[left])
+    EnumerableCalc(expr#0..6=[{inputs}], proj#0..4=[{exprs}], #f0=[#t6])
+      EnumerableHashJoin(condition=[=(#1, #5)], joinType=[left])
         EnumerableTableScan(table=[[hr, emps]])
-        EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[$t0], $f0=[$t4])
+        EnumerableAggregate(group=[{0}], agg#0=[MIN(#1)])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], deptno=[#t0], #f0=[#t4])
             EnumerableTableScan(table=[[hr, depts]])
-    EnumerableAggregate(group=[{0}], agg#0=[MIN($1)])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+($t0, $t4)], expr#6=[true], $f4=[$t5], $f0=[$t6])
+    EnumerableAggregate(group=[{0}], agg#0=[MIN(#1)])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[90], expr#5=[+(#t0, #t4)], expr#6=[true], #f4=[#t5], #f0=[#t6])
         EnumerableTableScan(table=[[hr, depts]])
 !plan
 
@@ -493,7 +493,7 @@ left join (select count(*) from "hr"."depts") on true;
 (4 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1])
+EnumerableCalc(expr#0..4=[{inputs}], deptno=[#t1])
   EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -531,7 +531,7 @@ where e."deptno" >= 10 and e."name" = 'Sebastian';
 # project a dummy expression
 select 1 from "hr"."emps";
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |      1 |
 |      1 |
@@ -541,7 +541,7 @@ select 1 from "hr"."emps";
 (4 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR$0=[$t5])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[1], EXPR#0=[#t5])
   EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -557,9 +557,9 @@ select count(*) as c from "hr"."emps", "hr"."depts";
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], DUMMY=[$t4])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], DUMMY=[#t4])
       EnumerableTableScan(table=[[hr, depts]])
-    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], DUMMY=[$t5])
+    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], DUMMY=[#t5])
       EnumerableTableScan(table=[[hr, emps]])
 !plan
 
@@ -639,7 +639,7 @@ select count(*) as c
 from "customer"
 where period ("birthdate", DATE '1970-02-05') contains DATE '1964-01-01';
 EnumerableAggregate(group=[{}], C=[COUNT()])
-  EnumerableCalc(expr#0..28=[{inputs}], expr#29=[1970-02-05], expr#30=[<=($t16, $t29)], expr#31=[CASE($t30, $t16, $t29)], expr#32=[1964-01-01], expr#33=[<=($t31, $t32)], expr#34=[CASE($t30, $t29, $t16)], expr#35=[>=($t34, $t32)], expr#36=[AND($t33, $t35)], proj#0..28=[{exprs}], $condition=[$t36])
+  EnumerableCalc(expr#0..28=[{inputs}], expr#29=[1970-02-05], expr#30=[<=(#t16, #t29)], expr#31=[CASE(#t30, #t16, #t29)], expr#32=[1964-01-01], expr#33=[<=(#t31, #t32)], expr#34=[CASE(#t30, #t29, #t16)], expr#35=[>=(#t34, #t32)], expr#36=[AND(#t33, #t35)], proj#0..28=[{exprs}], #condition=[#t36])
     EnumerableTableScan(table=[[foodmart2, customer]])
 !plan
 +------+
@@ -660,10 +660,10 @@ from "sales_fact_1997" as s
   join "customer" as c on s."customer_id" = c."customer_id"
   join "product" as p on s."product_id" = p."product_id"
 where c."city" = 'San Francisco';
-EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner])
-  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner])
+EnumerableHashJoin(condition=[=(#0, #38)], joinType=[inner])
+  EnumerableHashJoin(condition=[=(#2, #8)], joinType=[inner])
     EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=(#t9, #t29)], proj#0..28=[{exprs}], #condition=[#t30])
       EnumerableTableScan(table=[[foodmart2, customer]])
   EnumerableTableScan(table=[[foodmart2, product]])
 !plan
@@ -683,15 +683,15 @@ from "sales_fact_1997" as s
   join "product_class" as pc on p."product_class_id" = pc."product_class_id"
 where c."city" = 'San Francisco'
  and pc."product_department" = 'Snacks';
-EnumerableCalc(expr#0..56=[{inputs}], product_id=[$t20], time_id=[$t21], customer_id=[$t22], promotion_id=[$t23], store_id=[$t24], store_sales=[$t25], store_cost=[$t26], unit_sales=[$t27], customer_id0=[$t28], account_num=[$t29], lname=[$t30], fname=[$t31], mi=[$t32], address1=[$t33], address2=[$t34], address3=[$t35], address4=[$t36], city=[$t37], state_province=[$t38], postal_code=[$t39], country=[$t40], customer_region_id=[$t41], phone1=[$t42], phone2=[$t43], birthdate=[$t44], marital_status=[$t45], yearly_income=[$t46], gender=[$t47], total_children=[$t48], num_children_at_home=[$t49], education=[$t50], date_accnt_opened=[$t51], member_card=[$t52], occupation=[$t53], houseowner=[$t54], num_cars_owned=[$t55], fullname=[$t56], product_class_id=[$t5], product_id0=[$t6], brand_name=[$t7], product_name=[$t8], SKU=[$t9], SRP=[$t10], gross_weight=[$t11], net_weight=[$t12], recyclable_package=[$t13], low_fat=[$t14], units_per_case=[$t15], cases_per_pallet=[$t16], shelf_width=[$t17], shelf_height=[$t18], shelf_depth=[$t19], product_class_id0=[$t0], product_subcategory=[$t1], product_category=[$t2], product_department=[$t3], product_family=[$t4])
-  EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])
-    EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])
-      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks':VARCHAR(30)], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
+EnumerableCalc(expr#0..56=[{inputs}], product_id=[#t20], time_id=[#t21], customer_id=[#t22], promotion_id=[#t23], store_id=[#t24], store_sales=[#t25], store_cost=[#t26], unit_sales=[#t27], customer_id0=[#t28], account_num=[#t29], lname=[#t30], fname=[#t31], mi=[#t32], address1=[#t33], address2=[#t34], address3=[#t35], address4=[#t36], city=[#t37], state_province=[#t38], postal_code=[#t39], country=[#t40], customer_region_id=[#t41], phone1=[#t42], phone2=[#t43], birthdate=[#t44], marital_status=[#t45], yearly_income=[#t46], gender=[#t47], total_children=[#t48], num_children_at_home=[#t49], education=[#t50], date_accnt_opened=[#t51], member_card=[#t52], occupation=[#t53], houseowner=[#t54], num_cars_owned=[#t55], fullname=[#t56], product_class_id=[#t5], product_id0=[#t6], brand_name=[#t7], product_name=[#t8], SKU=[#t9], SRP=[#t10], gross_weight=[#t11], net_weight=[#t12], recyclable_package=[#t13], low_fat=[#t14], units_per_case=[#t15], cases_per_pallet=[#t16], shelf_width=[#t17], shelf_height=[#t18], shelf_depth=[#t19], product_class_id0=[#t0], product_subcategory=[#t1], product_category=[#t2], product_department=[#t3], product_family=[#t4])
+  EnumerableHashJoin(condition=[=(#6, #20)], joinType=[inner])
+    EnumerableHashJoin(condition=[=(#0, #5)], joinType=[inner])
+      EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks':VARCHAR(30)], expr#6=[=(#t3, #t5)], proj#0..4=[{exprs}], #condition=[#t6])
         EnumerableTableScan(table=[[foodmart2, product_class]])
       EnumerableTableScan(table=[[foodmart2, product]])
-    EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner])
+    EnumerableHashJoin(condition=[=(#2, #8)], joinType=[inner])
       EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=(#t9, #t29)], proj#0..28=[{exprs}], #condition=[#t30])
         EnumerableTableScan(table=[[foodmart2, customer]])
 !plan
 
@@ -700,7 +700,7 @@ select * from (
   select * from "days"
   where "day" = 1)
 where "day" = 1;
-EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[=($t0, $t2)], proj#0..1=[{exprs}], $condition=[$t3])
+EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[=(#t0, #t2)], proj#0..1=[{exprs}], #condition=[#t3])
   EnumerableTableScan(table=[[foodmart2, days]])
 !plan
 
@@ -772,7 +772,7 @@ select case when a=1 then 1 else 2 end
 from "days" t1(a,x) join "days" t2(b,x) on a=b
 group by case when a=1 then 1 else 2 end;
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |      1 |
 |      2 |
@@ -786,7 +786,7 @@ group by case when a=1 then 1 else 2 end;
 select sum("day") from "days" group by "week_day" having "week_day" in (
   select "week_day" from "days" group by "week_day", "day");
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |      1 |
 |      2 |
@@ -1123,7 +1123,7 @@ select * from "scott".emp where hiredate < '1981-01-02';
 (1 row)
 
 !ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=['1981-01-02'], expr#9=[CAST($t8):DATE NOT NULL], expr#10=[<($t4, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=['1981-01-02'], expr#9=[CAST(#t8):DATE NOT NULL], expr#10=[<(#t4, #t9)], proj#0..7=[{exprs}], #condition=[#t10])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 select * from "scott".emp where '1981-01-02' > hiredate;
@@ -1390,7 +1390,7 @@ from "scott".dept;
 # [CALCITE-1486] Invalid "Invalid literal" error for complex expression
 select 8388608/(60+27.39);
 +-------------------+
-| EXPR$0            |
+| EXPR#0            |
 +-------------------+
 | 95990.47945989244 |
 +-------------------+
@@ -1401,7 +1401,7 @@ select 8388608/(60+27.39);
 # [CALCITE-1120] Support SELECT without FROM
 select 2 + 2;
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |      4 |
 +--------+
@@ -1589,55 +1589,55 @@ where ename in ('MARTINGALE', 'WARD');
 # [DRILL-4906]
 select (case when (true) then 1 end) from (values(1));
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |      1 |
 +--------+
 (1 row)
 
 !ok
-EXPR$0 INTEGER(10)
+EXPR#0 INTEGER(10)
 !type
 
 # Cast a character literal to a timestamp; note: the plan does not contain CAST
 values cast('1969-07-21 12:34:56' as timestamp);
 +---------------------+
-| EXPR$0              |
+| EXPR#0              |
 +---------------------+
 | 1969-07-21 12:34:56 |
 +---------------------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 12:34:56], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 12:34:56], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast a character literal without time to a timestamp; note: the plan does not contain CAST
 values cast('1969-07-21' as timestamp);
 +---------------------+
-| EXPR$0              |
+| EXPR#0              |
 +---------------------+
 | 1969-07-21 00:00:00 |
 +---------------------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 00:00:00], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21 00:00:00], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast a character literal to a date; note: the plan does not contain CAST
 values cast('1969-07-21' as date);
 +------------+
-| EXPR$0     |
+| EXPR#0     |
 +------------+
 | 1969-07-21 |
 +------------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1645,7 +1645,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=[1969-07-21], EXPR$0=[$t1])
 # (Incidentally, this format is not allowed in date literals, per the standard)
 values cast('1989-7-4' as date);
 +------------+
-| EXPR$0     |
+| EXPR#0     |
 +------------+
 | 1989-07-04 |
 +------------+
@@ -1656,109 +1656,109 @@ values cast('1989-7-4' as date);
 # Cast a character literal to an integer; note: the plan does not contain CAST
 values cast('196907' as integer);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | 196907 |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[196907], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[196907], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast an integer literal to a bigint; note: the plan does not contain CAST
 values cast(123 as bigint);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |    123 |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123:BIGINT], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123:BIGINT], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast an integer literal to a decimal; note: the plan does not contain CAST
 values cast('123.45' as decimal(4, 2));
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | 123.45 |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast a character literal to a decimal; note: the plan does not contain CAST
 values cast('123.45' as decimal(4, 2));
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | 123.45 |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[123.45:DECIMAL(4, 2)], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 # Cast a character literal to a double; note: the plan does not contain CAST
 values cast('-123.45' as double);
 +---------+
-| EXPR$0  |
+| EXPR#0  |
 +---------+
 | -123.45 |
 +---------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2:DOUBLE], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[-1.2345E2:DOUBLE], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 values cast('false' as boolean);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | false  |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[false], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[false], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 values cast('TRUE' as boolean);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | true   |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR$0=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[true], EXPR#0=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
 values cast('TR' || 'UE' as boolean);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 | true   |
 +--------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, $t2)], expr#4=[CAST($t3):BOOLEAN NOT NULL], EXPR$0=[$t4])
+EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||(#t1, #t2)], expr#4=[CAST(#t3):BOOLEAN NOT NULL], EXPR#0=[#t4])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1769,7 +1769,7 @@ EnumerableCalc(expr#0=[{inputs}], expr#1=['TR'], expr#2=['UE'], expr#3=[||($t1, 
 values cast('null' as boolean);
 Invalid character for cast
 !error
-EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST($t1):BOOLEAN NOT NULL], EXPR$0=[$t2])
+EnumerableCalc(expr#0=[{inputs}], expr#1=['null'], expr#2=[CAST(#t1):BOOLEAN NOT NULL], EXPR#0=[#t2])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -1832,7 +1832,7 @@ Caused by: java.lang.NumberFormatException: For input string: "12345678901234567
 # (Should give an error, not infinity.)
 values cast('12.34e56' as real);
 +----------+
-| EXPR$0   |
+| EXPR#0   |
 +----------+
 | Infinity |
 +----------+
@@ -1844,7 +1844,7 @@ values cast('12.34e56' as real);
 # (Should give an error, not infinity.)
 values cast('12.34e5678' as float);
 +----------+
-| EXPR$0   |
+| EXPR#0   |
 +----------+
 | Infinity |
 +----------+
@@ -1856,7 +1856,7 @@ values cast('12.34e5678' as float);
 # (Should give an error, not infinity.)
 values cast('12.34e5678' as double);
 +----------+
-| EXPR$0   |
+| EXPR#0   |
 +----------+
 | Infinity |
 +----------+
@@ -1867,7 +1867,7 @@ values cast('12.34e5678' as double);
 # Postgres succeeds
 values cast(' -5 ' as double);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |   -5.0 |
 +--------+
@@ -1969,7 +1969,7 @@ values pi;
 # DEGREES function
 values (degrees(pi), degrees(-pi / 2));
 +--------+--------+
-| EXPR$0 | EXPR$1 |
+| EXPR#0 | EXPR#1 |
 +--------+--------+
 |  180.0 |  -90.0 |
 +--------+--------+
@@ -2022,14 +2022,14 @@ select TIMESTAMP '2016-02-26 19:06:00.123456789',
   CAST('2016-02-26 19:06:00.123' as TIMESTAMP(6)),
   CAST('2016-02-26 19:06:00.123' as TIMESTAMP(9));
 +---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
-| EXPR$0              | EXPR$1              | EXPR$2              | EXPR$3              | EXPR$4              | EXPR$5              | EXPR$6              | EXPR$7              |
+| EXPR#0              | EXPR#1              | EXPR#2              | EXPR#3              | EXPR#4              | EXPR#5              | EXPR#6              | EXPR#7              |
 +---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 |
 +---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+---------------------+
 (1 row)
 
 !ok
-EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123:TIMESTAMP(3)], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1:TIMESTAMP(1)], expr#4=[2016-02-26 19:06:00.12:TIMESTAMP(2)], EXPR$0=[$t1], EXPR$1=[$t2], EXPR$2=[$t2], EXPR$3=[$t3], EXPR$4=[$t4], EXPR$5=[$t1], EXPR$6=[$t1], EXPR$7=[$t1])
+EnumerableCalc(expr#0=[{inputs}], expr#1=[2016-02-26 19:06:00.123:TIMESTAMP(3)], expr#2=[2016-02-26 19:06:00], expr#3=[2016-02-26 19:06:00.1:TIMESTAMP(1)], expr#4=[2016-02-26 19:06:00.12:TIMESTAMP(2)], EXPR#0=[#t1], EXPR#1=[#t2], EXPR#2=[#t2], EXPR#3=[#t3], EXPR#4=[#t4], EXPR#5=[#t1], EXPR#6=[#t1], EXPR#7=[#t1])
   EnumerableValues(tuples=[[{ 0 }]])
 !plan
 
@@ -2041,7 +2041,7 @@ select
     TIMESTAMP '2016-02-26 19:06:00.123456789',
     CAST('2016-02-26 19:06:00.123456789' as TIMESTAMP));
 +---------------------+---------------------+--------+
-| EXPR$0              | EXPR$1              | EXPR$2 |
+| EXPR#0              | EXPR#1              | EXPR#2 |
 +---------------------+---------------------+--------+
 | 2016-02-26 19:06:00 | 2016-02-26 19:06:00 |      0 |
 +---------------------+---------------------+--------+
@@ -2073,7 +2073,7 @@ select array[1,null,2] as a from (values (1));
 values array['a',null,'bcd'],
   array['efgh'];
 +----------------+
-| EXPR$0         |
+| EXPR#0         |
 +----------------+
 | [a, null, bcd] |
 | [efgh]         |
@@ -2164,7 +2164,7 @@ where false;
 # [CALCITE-2447] POWER, ATAN2 functions fail with NoSuchMethodException
 values power(0.5, 2);
 +--------+
-| EXPR$0 |
+| EXPR#0 |
 +--------+
 |   0.25 |
 +--------+
@@ -2175,7 +2175,7 @@ values power(0.5, 2);
 # [CALCITE-2447] POWER, ATAN2 functions fail with NoSuchMethodException
 values atan2(0.5, 2);
 +---------------------+
-| EXPR$0              |
+| EXPR#0              |
 +---------------------+
 | 0.24497866312686414 |
 +---------------------+
@@ -2187,22 +2187,22 @@ values atan2(0.5, 2);
 
 # [CALCITE-1167] OVERLAPS should match even if operands are in (high, low) order
 values ((date '1999-12-01', date '2001-12-31') overlaps (date '2001-01-01' , date '2002-11-11'));
-EXPR$0
+EXPR#0
 true
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2001-01-01' , date '2002-11-11'));
-EXPR$0
+EXPR#0
 true
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-11-11', date '2001-01-01'));
-EXPR$0
+EXPR#0
 true
 !ok
 
 values ((date '2001-12-31', date '1999-12-01') overlaps (date '2002-01-01', date '2002-11-11'));
-EXPR$0
+EXPR#0
 false
 !ok
 
@@ -2215,7 +2215,7 @@ true
 
 # JSON
 values json_exists('{"foo":"bar"}', 'strict $.foo' false on error);
-EXPR$0
+EXPR#0
 true
 !ok
 
@@ -2230,7 +2230,7 @@ with data(c_date, c_timestamp) as (select * from (values
     (DATE'2019-12-12', TIMESTAMP '2019-12-12 12:12:01')))
 select last_day(c_date), last_day(c_timestamp) from data;
 
-EXPR$0, EXPR$1
+EXPR#0, EXPR#1
 1965-01-31, 1965-01-31
 2019-01-31, 2019-01-31
 2019-02-28, 2019-02-28

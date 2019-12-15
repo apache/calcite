@@ -35,7 +35,7 @@ import org.apache.calcite.util.ImmutableIntList;
  *     SELECT empno, deptno FROM emps WHERE gender = 'F';
  * </pre></blockquote>
  *
- * <p>constraint is {@code $1 = 'F'}
+ * <p>constraint is {@code #1 = 'F'}
  * and column mapping is {@code [0, 2]}.
  *
  * <p>NOTE: The current API is inefficient and experimental. It will change

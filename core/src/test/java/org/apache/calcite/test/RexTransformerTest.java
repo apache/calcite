@@ -222,7 +222,7 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), AND($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), AND(#0, #1))");
   }
 
   @Test public void testSimpleEquals() {
@@ -230,7 +230,7 @@ public class RexTransformerTest {
     check(
         Boolean.TRUE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), =(#0, #1))");
   }
 
   @Test public void testSimpleNotEquals() {
@@ -238,7 +238,7 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <>($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), <>(#0, #1))");
   }
 
   @Test public void testSimpleGreaterThan() {
@@ -246,7 +246,7 @@ public class RexTransformerTest {
     check(
         Boolean.TRUE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), >(#0, #1))");
   }
 
   @Test public void testSimpleGreaterEquals() {
@@ -254,7 +254,7 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), >=($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), >=(#0, #1))");
   }
 
   @Test public void testSimpleLessThan() {
@@ -262,7 +262,7 @@ public class RexTransformerTest {
     check(
         Boolean.TRUE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), <(#0, #1))");
   }
 
   @Test public void testSimpleLessEqual() {
@@ -270,19 +270,19 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         node,
-        "AND(AND(IS NOT NULL($0), IS NOT NULL($1)), <=($0, $1))");
+        "AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), <=(#0, #1))");
   }
 
   @Test public void testOptimizeNonNullLiterals() {
     RexNode node = lessThanOrEqual(x, trueRex);
-    check(Boolean.TRUE, node, "AND(IS NOT NULL($0), <=($0, true))");
+    check(Boolean.TRUE, node, "AND(IS NOT NULL(#0), <=(#0, true))");
     node = lessThanOrEqual(trueRex, x);
-    check(Boolean.FALSE, node, "AND(IS NOT NULL($0), <=(true, $0))");
+    check(Boolean.FALSE, node, "AND(IS NOT NULL(#0), <=(true, #0))");
   }
 
   @Test public void testSimpleIdentifier() {
     RexNode node = rexBuilder.makeInputRef(boolRelDataType, 0);
-    check(Boolean.TRUE, node, "=(IS TRUE($0), true)");
+    check(Boolean.TRUE, node, "=(IS TRUE(#0), true)");
   }
 
   @Test public void testMixed1() {
@@ -292,7 +292,7 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         and,
-        "AND(IS NOT NULL($1), AND(AND(IS NOT NULL($0), =($0, true)), $1))");
+        "AND(IS NOT NULL(#1), AND(AND(IS NOT NULL(#0), =(#0, true)), #1))");
   }
 
   @Test public void testMixed2() {
@@ -303,7 +303,7 @@ public class RexTransformerTest {
     check(
         Boolean.FALSE,
         and,
-        "AND(AND(IS NOT NULL($0), <>($0, true)), AND(AND(IS NOT NULL($1), IS NOT NULL($2)), >($1, $2)))");
+        "AND(AND(IS NOT NULL(#0), <>(#0, true)), AND(AND(IS NOT NULL(#1), IS NOT NULL(#2)), >(#1, #2)))");
   }
 
   @Test public void testMixed3() {
@@ -314,7 +314,7 @@ public class RexTransformerTest {
     check(
         Boolean.TRUE,
         and,
-        "AND(AND(AND(IS NOT NULL($0), IS NOT NULL($1)), =($0, $1)), AND(IS NOT NULL($2), >(false, $2)))");
+        "AND(AND(AND(IS NOT NULL(#0), IS NOT NULL(#1)), =(#0, #1)), AND(IS NOT NULL(#2), >(false, #2)))");
   }
 
   /** Test case for
@@ -374,7 +374,7 @@ public class RexTransformerTest {
         null,
         null);
 
-    assertThat(remaining.toString(), is("<>(CAST($0):INTEGER NOT NULL, $9)"));
+    assertThat(remaining.toString(), is("<>(CAST(#0):INTEGER NOT NULL, #9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));
     assertThat(rightJoinKeys.isEmpty(), is(true));
   }
