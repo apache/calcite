@@ -35,8 +35,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class SqlXmlFunctionsTest {
 
-  @Test
-  public void testExtractValue() {
+  @Test public void testExtractValue() {
     assertExtractValue("<a>ccc<b>ddd</b></a>", "/a", is("ccc"));
 
     String input = "<a>ccc<b>ddd</b></a>";
