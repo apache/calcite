@@ -901,6 +901,12 @@ public interface CalciteResource {
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
 
+  @BaseMessage("Illegal xslt specified : ''{0}''")
+  ExInst<CalciteException> illegalXslt(String xslt);
+
+  @BaseMessage("Invalid input for XMLTRANSFORM xml: ''{0}''")
+  ExInst<CalciteException> invalidInputForXmlTransform(String xml);
+
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
 }

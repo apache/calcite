@@ -5188,6 +5188,45 @@ public abstract class SqlOperatorBaseTest {
         "1", "VARCHAR(2000)");
   }
 
+  @Test public void testXmlTransform() {
+    SqlTester sqlTester = tester(SqlLibrary.ORACLE);
+    sqlTester.checkNull("XMLTRANSFORM('', NULL)");
+    sqlTester.checkNull("XMLTRANSFORM(NULL,'')");
+
+    sqlTester.checkFails("XMLTRANSFORM('', '<')",
+        "Illegal xslt specified : '.*", true);
+    sqlTester.checkFails("XMLTRANSFORM('<', '<?xml version=\"1.0\"?>\n"
+            + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
+            + "</xsl:stylesheet>')",
+        "Invalid input for XMLTRANSFORM xml: '.*", true);
+
+    sqlTester.checkString("XMLTRANSFORM("
+            + "'<?xml version=\"1.0\"?>\n"
+            + "<Article>\n"
+            + "  <Title>My Article</Title>\n"
+            + "  <Authors>\n"
+            + "    <Author>Mr. Foo</Author>\n"
+            + "    <Author>Mr. Bar</Author>\n"
+            + "  </Authors>\n"
+            + "  <Body>This is my article text.</Body>\n"
+            + "</Article>'"
+            + ","
+            + "'<?xml version=\"1.0\"?>\n"
+            + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3"
+            + ".org/1999/XSL/Transform\">"
+            + "  <xsl:output method=\"text\"/>"
+            + "  <xsl:template match=\"/\">"
+            + "    Article - <xsl:value-of select=\"/Article/Title\"/>"
+            + "    Authors: <xsl:apply-templates select=\"/Article/Authors/Author\"/>"
+            + "  </xsl:template>"
+            + "  <xsl:template match=\"Author\">"
+            + "    - <xsl:value-of select=\".\" />"
+            + "  </xsl:template>"
+            + "</xsl:stylesheet>')",
+        "    Article - My Article    Authors:     - Mr. Foo    - Mr. Bar",
+        "VARCHAR(2000)");
+  }
+
   @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 

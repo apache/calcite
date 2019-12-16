@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -42,6 +43,31 @@ public class SqlXmlFunctionsTest {
     String message = "Invalid input for EXTRACTVALUE: xml: '" + input + "', xpath expression: '#'";
     CalciteException expected = new CalciteException(message, null);
     assertExtractValueFailed(input, "#", Matchers.expectThrowable(expected));
+  }
+
+
+  @Test public void testXmlTransform() {
+    assertXmlTransform(null, "", nullValue());
+    assertXmlTransform("", null, nullValue());
+
+    String xslt = "<";
+    String message = "Illegal xslt specified : '" + xslt + "'";
+    CalciteException expected = new CalciteException(message, null);
+    assertXmlTransformFailed("", xslt, Matchers.expectThrowable(expected));
+  }
+
+  private void assertXmlTransform(String xml, String xslt,
+      Matcher<? super String> matcher) {
+    String methodDesc =
+        BuiltInMethod.XML_TRANSFORM.getMethodName() + "(" + String.join(", ", xml, xslt) + ")";
+    assertThat(methodDesc, XmlFunctions.xmlTransform(xml, xslt), matcher);
+  }
+
+  private void assertXmlTransformFailed(String xml, String xslt,
+      Matcher<? super Throwable> matcher) {
+    String methodDesc =
+        BuiltInMethod.XML_TRANSFORM.getMethodName() + "(" + String.join(", ", xml, xslt) + ")";
+    assertFailed(methodDesc, () -> XmlFunctions.xmlTransform(xml, xslt), matcher);
   }
 
   private void assertExtractValue(String input, String xpath,
