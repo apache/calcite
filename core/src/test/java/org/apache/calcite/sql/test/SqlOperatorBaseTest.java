@@ -5213,21 +5213,17 @@ public abstract class SqlOperatorBaseTest {
             + ","
             + "'<?xml version=\"1.0\"?>\n"
             + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3"
-            + ".org/1999/XSL/Transform\">\n"
-            + "  <xsl:output method=\"text\"/>\n"
-            + "  <xsl:template match=\"/\">\n"
-            + "    Article - <xsl:value-of select=\"/Article/Title\"/>\n"
-            + "    Authors: <xsl:apply-templates select=\"/Article/Authors/Author\"/>\n"
-            + "  </xsl:template>\n"
-            + "  <xsl:template match=\"Author\">\n"
-            + "    - <xsl:value-of select=\".\" />\n"
-            + "  </xsl:template>\n"
+            + ".org/1999/XSL/Transform\">"
+            + "  <xsl:output method=\"text\"/>"
+            + "  <xsl:template match=\"/\">"
+            + "    Article - <xsl:value-of select=\"/Article/Title\"/>"
+            + "    Authors: <xsl:apply-templates select=\"/Article/Authors/Author\"/>"
+            + "  </xsl:template>"
+            + "  <xsl:template match=\"Author\">"
+            + "    - <xsl:value-of select=\".\" />"
+            + "  </xsl:template>"
             + "</xsl:stylesheet>')",
-        "\n"
-            + "    Article - My Article\n"
-            + "    Authors: \n"
-            + "    - Mr. Foo\n"
-            + "    - Mr. Bar",
+        "    Article - My Article    Authors:     - Mr. Foo    - Mr. Bar",
         "VARCHAR(2000)");
   }
 
