@@ -111,7 +111,11 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     if (Double.isInfinite(rightRowCount)) {
       rowCount = rightRowCount;
     }
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+
+    RelOptCost cost = planner.getCostFactory().makeCost(rowCount, 0, 0);
+    // Give it some penalty
+    cost = cost.multiplyBy(10);
+    return cost;
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
