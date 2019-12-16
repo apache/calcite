@@ -64,5 +64,3 @@ public class XmlFunctions {
     }
   }
 }
-
-// End XmlFunctions.java

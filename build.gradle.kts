@@ -433,7 +433,7 @@ allprojects {
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
                     replaceRegex("Newline in string should be at end of line", """\\n" *\+""", "\\n\"\n  +")
                     // (?-m) disables multiline, so $ matches the very end of the file rather than end of line
-                    replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]++.\\w++\\s*+$", "")
+                    replaceRegex("Remove '// End file.java' trailer", "(?-m)\n// End [^\n]+\\.\\w+\\s*$", "")
                     replaceRegex("<p> should not be placed a the end of the line", "(?-m)\\s*+<p> *+\n \\* ", "\n *\n * <p>")
                     // Assume developer copy-pasted the link, and updated text only, so the url is old, and we replace it with the proper one
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
