@@ -22,8 +22,16 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
@@ -38,6 +46,8 @@ public class XmlFunctions {
 
   private static final ThreadLocal<XPathFactory> XPATH_FACTORY =
       ThreadLocal.withInitial(XPathFactory::newInstance);
+  private static final ThreadLocal<TransformerFactory> TRANSFORMER_FACTORY =
+      ThreadLocal.withInitial(TransformerFactory::newInstance);
 
   private XmlFunctions() {
   }
@@ -61,6 +71,25 @@ public class XmlFunctions {
       }
     } catch (XPathExpressionException ex) {
       throw RESOURCE.invalidInputForExtractValue(input, xpath).ex();
+    }
+  }
+
+  public static String xmlTransform(String xml, String xslt) {
+    if (xml == null || xslt == null) {
+      return null;
+    }
+    try {
+      final Source xsltSource = new StreamSource(new StringReader(xslt));
+      final Source xmlSource = new StreamSource(new StringReader(xml));
+      final Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer(xsltSource);
+      final StringWriter writer = new StringWriter();
+      final StreamResult result = new StreamResult(writer);
+      transformer.transform(xmlSource, result);
+      return writer.toString();
+    } catch (TransformerConfigurationException e) {
+      throw RESOURCE.illegalXslt(e.toString(), xslt).ex();
+    } catch (TransformerException e) {
+      throw RESOURCE.illegalBehaviorInXmlTransformFunc(e.toString(), xml).ex();
     }
   }
 }
