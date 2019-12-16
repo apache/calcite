@@ -5170,9 +5170,9 @@ public abstract class SqlOperatorBaseTest {
     mySqlTester.checkNull("ExtractValue(NULL, '//b')");
     mySqlTester.checkNull("ExtractValue('', NULL)");
     mySqlTester.checkFails("ExtractValue('<a><b/></a>', '#/a/b')",
-        "Illegal behavior '.*", true);
+        "Invalid input for EXTRACTVALUE: xml: '.*", true);
     mySqlTester.checkFails("ExtractValue('<a><b/></a></a>', '/b')",
-        "Illegal behavior '.*", true);
+        "Invalid input for EXTRACTVALUE: xml: '.*", true);
 
     mySqlTester.checkString("ExtractValue('<a>c</a>', '//a')",
         "c", "VARCHAR(2000)");
