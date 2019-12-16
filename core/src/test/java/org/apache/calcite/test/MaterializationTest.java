@@ -2090,10 +2090,9 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{4}], S=[$SUM0($6)])\n"
-                + "  EnumerableCalc(expr#0..6=[{inputs}], expr#7=[=($t5, $t0)], proj#0..6=[{exprs}], $condition=[$t7])\n"
-                + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-                + "      EnumerableTableScan(table=[[hr, depts]])\n"
-                + "      EnumerableTableScan(table=[[hr, m0]])"));
+                + "  EnumerableNestedLoopJoin(condition=[=($5, $0)], joinType=[inner])\n"
+                + "    EnumerableTableScan(table=[[hr, depts]])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testJoinAggregateMaterializationAggregateFuncs8() {
@@ -2110,10 +2109,9 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableAggregate(group=[{1}], S=[$SUM0($6)])\n"
-                + "  EnumerableCalc(expr#0..6=[{inputs}], expr#7=[=($t5, $t0)], proj#0..6=[{exprs}], $condition=[$t7])\n"
-                + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-                + "      EnumerableTableScan(table=[[hr, depts]])\n"
-                + "      EnumerableTableScan(table=[[hr, m0]])"));
+                + "  EnumerableNestedLoopJoin(condition=[=($5, $0)], joinType=[inner])\n"
+                + "    EnumerableTableScan(table=[[hr, depts]])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testJoinAggregateMaterializationAggregateFuncs9() {
