@@ -1170,8 +1170,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1256,8 +1256,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1347,8 +1347,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
