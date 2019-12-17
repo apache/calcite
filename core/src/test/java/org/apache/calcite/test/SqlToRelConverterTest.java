@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -63,6 +64,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.Is.isA;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -1985,6 +1987,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     RelTrait sortCollation = rels.get(1).getTraitSet()
         .getTrait(RelCollationTraitDef.INSTANCE);
     assertTrue(filterCollation.satisfies(sortCollation));
+  }
+
+  @Test public void testRelShuttleForLogicalTableModify() {
+    final String sql = "insert into emp select * from emp";
+    final LogicalTableModify rel = (LogicalTableModify) tester.convertSqlToRel(sql).rel;
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalTableModify modify) {
+        RelNode visitedRel = super.visit(modify);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    visitor.visit(rel);
+    assertThat(rels.size(), is(1));
+    assertThat(rels.get(0), isA(LogicalTableModify.class));
   }
 
   @Test public void testOffset0() {
