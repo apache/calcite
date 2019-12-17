@@ -85,7 +85,7 @@ public class RexExecutable {
         reducedValues.add(
             rexBuilder.makeLiteral(value.right, value.left.getType(), true));
       }
-    } catch (RuntimeException | AssertionError e) {
+    } catch (RuntimeException e) {
       // One or more of the expressions failed.
       // Don't reduce any of the expressions.
       reducedValues.addAll(constExps);

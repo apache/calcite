@@ -284,22 +284,15 @@ public class MongoAdapterTest implements SchemaFactory {
         .runs();
   }
 
-  /** Tests that we don't generate multiple constraints on the same column.
-   * MongoDB doesn't like it. If there is an '=', it supersedes all other
-   * operators. */
+  /**
+   * Tests that mongo query is empty when filter simplified to false.
+   */
   @Test public void testFilterRedundant() {
     assertModel(MODEL)
         .query(
-            "select * from zips where state > 'CA' and state < 'PZ' and state = 'OK'")
+            "select * from zips where state > 'CA' and state < 'AZ' and state = 'OK'")
         .runs()
-        .queryContains(
-            mongoChecker(
-                "{\n"
-                    + "  \"$match\": {\n"
-                    + "    \"state\": \"OK\"\n"
-                    + "  }\n"
-                    + "}",
-                "{$project: {CITY: '$city', LONGITUDE: '$loc[0]', LATITUDE: '$loc[1]', POP: '$pop', STATE: '$state', ID: '$_id'}}"));
+        .queryContains(mongoChecker());
   }
 
   @Test public void testSelectWhere() {

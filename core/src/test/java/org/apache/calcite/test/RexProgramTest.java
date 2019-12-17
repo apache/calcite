@@ -1726,6 +1726,7 @@ public class RexProgramTest extends RexProgramBuilderBase {
 
   @Test public void testSimplifyItemRangeTerms() {
     RexNode item = item(input(tArray(tInt()), 3), literal(1));
+    // paranoid validation doesn't support array types, disable it for a moment
     simplify = this.simplify.withParanoid(false);
     // (a=1 or a=2 or (arr[1]>4 and arr[1]<3 and a=3)) => a=1 or a=2
     checkSimplifyFilter(
