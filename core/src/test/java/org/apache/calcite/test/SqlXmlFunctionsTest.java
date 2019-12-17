@@ -51,10 +51,7 @@ public class SqlXmlFunctionsTest {
     assertXmlTransform("", null, nullValue());
 
     String xslt = "<";
-    String message = "Illegal xslt specified "
-        + "'javax.xml.transform.TransformerConfigurationException: "
-        + "XML document structures must start and end within the same entity.' , xslt : '"
-        + xslt + "'";
+    String message = "Illegal xslt specified : '" + xslt + "'";
     CalciteException expected = new CalciteException(message, null);
     assertXmlTransformFailed("", xslt, Matchers.expectThrowable(expected));
   }

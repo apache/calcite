@@ -87,9 +87,9 @@ public class XmlFunctions {
       transformer.transform(xmlSource, result);
       return writer.toString();
     } catch (TransformerConfigurationException e) {
-      throw RESOURCE.illegalXslt(e.toString(), xslt).ex();
+      throw RESOURCE.illegalXslt(xslt).ex();
     } catch (TransformerException e) {
-      throw RESOURCE.illegalBehaviorInXmlTransformFunc(e.toString(), xml).ex();
+      throw RESOURCE.illegalBehaviorInXmlTransformFunc(xml).ex();
     }
   }
 }

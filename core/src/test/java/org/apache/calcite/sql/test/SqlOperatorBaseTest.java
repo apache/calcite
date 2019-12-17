@@ -5194,11 +5194,11 @@ public abstract class SqlOperatorBaseTest {
     sqlTester.checkNull("XMLTRANSFORM(NULL,'')");
 
     sqlTester.checkFails("XMLTRANSFORM('', '<')",
-        "Illegal xslt specified '.*", true);
+        "Illegal xslt specified : '.*", true);
     sqlTester.checkFails("XMLTRANSFORM('<', '<?xml version=\"1.0\"?>\n"
             + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
             + "</xsl:stylesheet>')",
-        "Illegal behavior '.*", true);
+        "Illegal behavior in XMLTRANSFORM xml: '.*", true);
 
     sqlTester.checkString("XMLTRANSFORM("
             + "'<?xml version=\"1.0\"?>\n"
