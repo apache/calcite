@@ -40,6 +40,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategies;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.FilterMergeRule;
@@ -124,8 +125,16 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testAggregateHints() {
+    final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE), RESOURCE(mem='1024') */\n"
+        + "count(deptno), avg_sal from (\n"
+        + "select /*+ AGG_STRATEGY(ONE_PHASE) */ avg(sal) as avg_sal, deptno\n"
+        + "from emp group by deptno) group by avg_sal";
+    sql(sql).ok();
+  }
+
   @Test public void testHintsInSubQueryWithDecorrelation() {
-    final String sql = "select /*+ resource(parallelism='3') */\n"
+    final String sql = "select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
         + "where e1.deptno = d1.deptno\n"
         + "and e1.sal> (\n"
@@ -553,6 +562,13 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         }
         return super.visit(project);
       }
+
+      @Override public RelNode visit(LogicalAggregate aggregate) {
+        if (aggregate.getHints().size() > 0) {
+          this.hintsCollect.add("Aggregate:" + aggregate.getHints().toString());
+        }
+        return super.visit(aggregate);
+      }
     }
   }
 
@@ -586,7 +602,10 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .addHintStrategy("time_zone", HintStrategies.SET_VAR)
         .addHintStrategy("index", HintStrategies.TABLE_SCAN)
         .addHintStrategy("properties", HintStrategies.TABLE_SCAN)
-        .addHintStrategy("resource", HintStrategies.PROJECT)
+        .addHintStrategy(
+            "resource", HintStrategies.or(
+            HintStrategies.PROJECT, HintStrategies.AGGREGATE))
+        .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
           HintStrategies.cascade(HintStrategies.JOIN,
             HintStrategies.explicit((hint, rel) -> {

@@ -40,6 +40,11 @@ public abstract class HintStrategies {
   public static final HintStrategy PROJECT =
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.PROJECT);
 
+  /** A hint strategy that indicates a hint can only be used to
+   * {@link org.apache.calcite.rel.core.Aggregate} nodes. */
+  public static final HintStrategy AGGREGATE =
+      new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.AGGREGATE);
+
   /**
    * Create a hint strategy from a specific matcher whose rules are totally customized.
    *
@@ -56,5 +61,13 @@ public abstract class HintStrategies {
    */
   public static HintStrategy cascade(HintStrategy... hintStrategies) {
     return new HintStrategyCascade(hintStrategies);
+  }
+
+  /**
+   * Creates a HintStrategyOr instance whose strategy rules are satisfied if
+   * there exists one hintStrategy satisfied.
+   */
+  public static HintStrategy or(HintStrategy... hintStrategies) {
+    return new HintStrategyOr(hintStrategies);
   }
 }
