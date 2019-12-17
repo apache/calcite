@@ -167,7 +167,10 @@ public class RelRoot {
     for (Pair<Integer, String> field : fields) {
       projects.add(rexBuilder.makeInputRef(rel, field.left));
     }
-    return RelOptUtil.copyRelHints(rel, LogicalProject.create(rel, projects, Pair.right(fields)));
+    return RelOptUtil.copyRelHints(
+        rel,
+        LogicalProject.create(rel, projects, Pair.right(fields)),
+        false);
   }
 
   public boolean isNameTrivial() {

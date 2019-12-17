@@ -699,17 +699,17 @@ public class SqlToRelConverter {
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
-      // Attach the hints to the first project we found from the root node.
+      // Attach the hints to the first Hintable node we found from the root node.
       bb.setRoot(bb.root
           .accept(
               new RelShuttleImpl() {
                 boolean attached = false;
-                @Override public RelNode visit(LogicalProject project) {
-                  if (!attached) {
+                @Override public RelNode visitChild(RelNode parent, int i, RelNode child) {
+                  if (parent instanceof Hintable && !attached) {
                     attached = true;
-                    return project.attachHints(hints);
+                    return ((Hintable) parent).attachHints(hints);
                   } else {
-                    return project;
+                    return super.visitChild(parent, i, child);
                   }
                 }
               }), true);

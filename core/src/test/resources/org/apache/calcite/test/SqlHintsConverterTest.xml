@@ -45,9 +45,26 @@ TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], [INDEX inh
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateHints">
+        <Resource name="sql">
+            <![CDATA[select /*+ AGG_STRATEGY(TWO_PHASE), RESOURCE(mem='1024') */
+count(deptno), avg_sal from (
+select /*+ AGG_STRATEGY(ONE_PHASE) */ avg(sal) as avg_sal, deptno
+from emp group by deptno) group by avg_sal]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[AGG_STRATEGY inheritPath:[] options:[TWO_PHASE]], [RESOURCE inheritPath:[] options:{MEM=1024}]]
+Aggregate:[[AGG_STRATEGY inheritPath:[0] options:[TWO_PHASE]], [RESOURCE inheritPath:[0] options:{MEM=1024}]]
+Project:[[AGG_STRATEGY inheritPath:[] options:[ONE_PHASE]], [RESOURCE inheritPath:[0, 0] options:{MEM=1024}]]
+Aggregate:[[AGG_STRATEGY inheritPath:[0] options:[ONE_PHASE]], [AGG_STRATEGY inheritPath:[0, 0, 0] options:[TWO_PHASE]], [RESOURCE inheritPath:[0, 0, 0] options:{MEM=1024}]]
+Project:[[RESOURCE inheritPath:[0, 0, 0, 0] options:{MEM=1024}]]
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testHintsInSubQueryWithDecorrelation">
         <Resource name="sql">
-            <![CDATA[select /*+ resource(parallelism='3') */
+            <![CDATA[select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */
 sum(e1.empno) from emp e1, dept d1
 where e1.deptno = d1.deptno
 and e1.sal> (
@@ -55,9 +72,11 @@ select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.dep
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Aggregate:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [AGG_STRATEGY inheritPath:[] options:[TWO_PHASE]]]
 Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
-Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0, 0] options:{PARALLELISM=3}]]
+Aggregate:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1] options:{PARALLELISM=3}], [AGG_STRATEGY inheritPath:[0, 0, 0, 1] options:[TWO_PHASE]]]
+Project:[[RESOURCE inheritPath:[0] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1, 0] options:{PARALLELISM=3}]]
 ]]>
         </Resource>
     </TestCase>
@@ -74,13 +93,13 @@ select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
-LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+Aggregate:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
 LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0]]]
-TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 0] options:[ENAME]]]
-TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 1] options:[ENAME]]]
-Project:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
-TableScan:[[PROPERTIES inheritPath:[0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0] options:[ENAME]], [PROPERTIES inheritPath:[0, 0, 1, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1, 0, 0] options:[ENAME]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0, 0]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 0, 0] options:[ENAME]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0, 0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 0, 1] options:[ENAME]]]
+Aggregate:[[PROPERTIES inheritPath:[] options:{K1=v1, K2=v2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+TableScan:[[PROPERTIES inheritPath:[0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0] options:[ENAME]], [PROPERTIES inheritPath:[0, 0, 0, 1, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0, 1, 0, 0] options:[ENAME]]]
 ]]>
         </Resource>
     </TestCase>
@@ -97,14 +116,16 @@ select /*+ resource(cpu='2'), index(ename), no_hash_join */
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
+Aggregate:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]]]
 Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
-LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
+Project:[[RESOURCE inheritPath:[0, 0] options:{PARALLELISM=3}]]
 LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0]]]
-TableScan:[[INDEX inheritPath:[0, 0, 0, 0] options:[ENAME]]]
-TableScan:[[INDEX inheritPath:[0, 0, 0, 1] options:[ENAME]]]
-Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
-TableScan:[[INDEX inheritPath:[0] options:[ENAME]], [INDEX inheritPath:[0, 0, 1, 0, 0] options:[ENAME]]]
+LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0, 0, 0]]]
+TableScan:[[INDEX inheritPath:[0, 0, 0, 0, 0] options:[ENAME]]]
+TableScan:[[INDEX inheritPath:[0, 0, 0, 0, 1] options:[ENAME]]]
+Aggregate:[[RESOURCE inheritPath:[] options:{CPU=2}], [INDEX inheritPath:[] options:[ENAME]], [NO_HASH_JOIN inheritPath:[]], [RESOURCE inheritPath:[0, 0, 0, 1] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1, 0] options:{PARALLELISM=3}]]
+TableScan:[[INDEX inheritPath:[0, 0] options:[ENAME]], [INDEX inheritPath:[0, 0, 0, 1, 0, 0] options:[ENAME]]]
 ]]>
         </Resource>
     </TestCase>
@@ -118,8 +139,10 @@ select /*+ resource(cpu='2') */ avg(e2.sal) from emp e2 where e2.deptno = d1.dep
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
-Project:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 1, 0] options:{PARALLELISM=3}]]
+Aggregate:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0] options:{PARALLELISM=3}]]
+Aggregate:[[RESOURCE inheritPath:[] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[0] options:{CPU=2}], [RESOURCE inheritPath:[0, 0, 0, 1, 0] options:{PARALLELISM=3}]]
 ]]>
         </Resource>
     </TestCase>

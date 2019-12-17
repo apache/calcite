@@ -92,7 +92,7 @@ public class SqlSelect extends SqlCall {
 
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywordList, selectList, from, where,
-        groupBy, having, windowDecls, orderBy, offset, fetch);
+        groupBy, having, windowDecls, orderBy, offset, fetch, hints);
   }
 
   @Override public void setOperand(int i, SqlNode operand) {

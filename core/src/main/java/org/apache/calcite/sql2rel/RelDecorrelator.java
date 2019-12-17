@@ -534,7 +534,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
 
-    newProject = RelOptUtil.copyRelHints(newInput, newProject);
+    newProject = RelOptUtil.copyRelHints(newInput, newProject, false);
 
     // update mappings:
     // oldInput ----> newInput
@@ -622,9 +622,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
       relBuilder.project(postProjects);
     }
 
+    RelNode newRel = RelOptUtil.copyRelHints(rel, relBuilder.build(), false);
+
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
-    return register(rel, relBuilder.build(), outputMap, corDefOutputs);
+    return register(rel, newRel, outputMap, corDefOutputs);
   }
 
   /**
@@ -722,7 +724,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
 
-    newProject = RelOptUtil.copyRelHints(rel, newProject);
+    newProject = RelOptUtil.copyRelHints(rel, newProject, false);
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1217,7 +1219,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
             ImmutableSet.of())
         .build();
 
-    newJoin = RelOptUtil.copyRelHints(rel, newJoin);
+    newJoin = RelOptUtil.copyRelHints(rel, newJoin, false);
 
     // Create the mapping between the output of the old correlation rel
     // and the new join rel
