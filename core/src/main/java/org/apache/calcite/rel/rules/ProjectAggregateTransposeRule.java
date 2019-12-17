@@ -98,4 +98,3 @@ public class ProjectAggregateTransposeRule extends RelOptRule {
   }
 
 }
-// End ProjectAggregateTransposeRule.java

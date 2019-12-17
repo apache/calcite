@@ -3031,16 +3031,14 @@ class MaterializationTest {
     sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
-  @Test
-  public void testMvPredicate1() {
+  @Test public void testMvPredicate1() {
     checkMaterialize(
         "select \"deptno\", \"name\", \"empid\","
             + "count(*) from \"emps\" group by  \"name\", \"deptno\", \"empid\" ",
         "select \"name\", count(*) from \"emps\" where \"deptno\"= 10  group by \"name\" ", true);
   }
 
-  @Test
-  public void testMvPredicate2() {
+  @Test public void testMvPredicate2() {
     checkMaterialize(
         "select \"deptno\", \"name\", \"empid\", count(*) from "
             + "\"emps\" group by  \"name\", \"deptno\", \"empid\" ",
@@ -3048,8 +3046,7 @@ class MaterializationTest {
             + "\"name\"= 'Sebastian' OR \"name\"= 'Peter'  group by \"name\" ", true);
   }
 
-  @Test
-  public void testMvPredicate3() {
+  @Test public void testMvPredicate3() {
     checkMaterialize(
         "select \"deptno\", \"name\", \"empid\", count(*) from "
             + "\"emps\" group by  \"name\", \"deptno\", \"empid\" ",
@@ -3057,8 +3054,7 @@ class MaterializationTest {
             + "\"name\" = 'Sebastian' group by \"name\" ", true);
   }
 
-  @Test
-  public void testMvPredicate4() {
+  @Test public void testMvPredicate4() {
     checkMaterialize(
         "select \"name\", \"deptno\", \"empid\", "
             + "count(*) from \"emps\" group by \"name\", \"deptno\", \"empid\" ",
