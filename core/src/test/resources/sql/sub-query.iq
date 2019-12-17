@@ -2048,30 +2048,30 @@ where sal + 100 not in (
 
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()])
-  EnumerableCalc(expr#0..9=[{inputs}], expr#10=[0], expr#11=[=($t4, $t10)], expr#12=[IS NULL($t2)], expr#13=[IS NOT NULL($t7)], expr#14=[<($t5, $t4)], expr#15=[OR($t12, $t13, $t14)], expr#16=[IS NOT TRUE($t15)], expr#17=[OR($t11, $t16)], proj#0..9=[{exprs}], $condition=[$t17])
-    EnumerableHashJoin(condition=[AND(=($1, $8), =($2, $9))], joinType=[left])
-      EnumerableHashJoin(condition=[=($1, $3)], joinType=[left])
+  EnumerableCalc(expr#0..6=[{inputs}], expr#7=[0], expr#8=[=($t3, $t7)], expr#9=[IS NULL($t2)], expr#10=[IS NOT NULL($t6)], expr#11=[<($t4, $t3)], expr#12=[OR($t9, $t10, $t11)], expr#13=[IS NOT TRUE($t12)], expr#14=[OR($t8, $t13)], proj#0..6=[{exprs}], $condition=[$t14])
+    EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
+      EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
         EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}], SAL=[$t5])
           EnumerableTableScan(table=[[scott, EMP]])
-        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[IS NOT NULL($t1)], DNAME=[$t1], $f1=[$t3], $f2=[$t3], $condition=[$t4])
-          EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableNestedLoopJoin(condition=[=(+($3, 100), $0)], joinType=[inner])
-        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $condition=[$t4])
-          EnumerableTableScan(table=[[scott, DEPT]])
-        EnumerableAggregate(group=[{5}])
-          EnumerableTableScan(table=[[scott, EMP]])
+        EnumerableAggregate(group=[{}], c=[COUNT()], ck=[COUNT($0)])
+          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[$cor0], expr#4=[$t3.ENAME], expr#5=[CAST($t4):VARCHAR(14)], expr#6=[=($t1, $t5)], proj#0..2=[{exprs}], $condition=[$t6])
+            EnumerableTableScan(table=[[scott, DEPT]])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[$cor0], expr#5=[$t4.ENAME], expr#6=[CAST($t5):VARCHAR(14)], expr#7=[=($t1, $t6)], expr#8=[$cor0], expr#9=[$t8.SAL], expr#10=[100], expr#11=[+($t9, $t10)], expr#12=[=($t11, $t0)], expr#13=[AND($t7, $t12)], DEPTNO=[$t0], i=[$t3], $condition=[$t13])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Correlated ANY sub-query
 select empno from "scott".emp as e
 where e.empno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.deptno) ;
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t0, $t2)], expr#8=[IS NULL($t5)], expr#9=[0], expr#10=[=($t3, $t9)], expr#11=[OR($t8, $t10)], expr#12=[IS NOT TRUE($t11)], expr#13=[AND($t7, $t12)], expr#14=[IS NOT TRUE($t7)], expr#15=[>($t3, $t4)], expr#16=[IS NOT TRUE($t15)], expr#17=[AND($t7, $t12, $t14, $t16)], expr#18=[OR($t13, $t17)], EMPNO=[$t0], $condition=[$t18])
-  EnumerableHashJoin(condition=[=($1, $6)], joinType=[left])
+EnumerableCalc(expr#0..5=[{inputs}], expr#6=[>($t0, $t2)], expr#7=[IS NULL($t5)], expr#8=[0], expr#9=[=($t3, $t8)], expr#10=[OR($t7, $t9)], expr#11=[IS NOT TRUE($t10)], expr#12=[AND($t6, $t11)], expr#13=[IS NOT TRUE($t6)], expr#14=[>($t3, $t4)], expr#15=[IS NOT TRUE($t14)], expr#16=[AND($t6, $t11, $t13, $t15)], expr#17=[OR($t12, $t16)], EMPNO=[$t0], $condition=[$t17])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{1}])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[1:BIGINT], expr#5=[true], m=[$t3], c=[$t4], d=[$t4], trueLiteral=[$t5], DEPTNO=[$t0])
-      EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], proj#0..3=[{exprs}])
+      EnumerableAggregate(group=[{}], m=[MIN($0)], c=[COUNT()], d=[COUNT($0)])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[$cor0], expr#5=[$t4.DEPTNO], expr#6=[=($t0, $t5)], EXPR$0=[$t3], $condition=[$t6])
+          EnumerableTableScan(table=[[scott, DEPT]])
 !plan
  EMPNO
 -------
@@ -2098,13 +2098,12 @@ select empno,
 e.deptno > ANY(
   select 2 from "scott".dept e2 where e2.deptno = e.empno) from "scott".emp as e;
 
-EnumerableCalc(expr#0..6=[{inputs}], expr#7=[>($t1, $t2)], expr#8=[IS TRUE($t7)], expr#9=[IS NULL($t5)], expr#10=[0], expr#11=[=($t3, $t10)], expr#12=[OR($t9, $t11)], expr#13=[IS NOT TRUE($t12)], expr#14=[AND($t8, $t13)], expr#15=[>($t3, $t4)], expr#16=[IS TRUE($t15)], expr#17=[null:BOOLEAN], expr#18=[IS NOT TRUE($t7)], expr#19=[AND($t16, $t17, $t13, $t18)], expr#20=[IS NOT TRUE($t15)], expr#21=[AND($t7, $t13, $t18, $t20)], expr#22=[OR($t14, $t19, $t21)], EMPNO=[$t0], EXPR$1=[$t22])
-  EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
-      EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[true], m=[$t1], c=[$t2], d=[$t3], trueLiteral=[$t4], DEPTNO0=[$t0])
-      EnumerableAggregate(group=[{0}], m=[MIN($1)], c=[COUNT()], d=[COUNT($1)])
-        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t0):SMALLINT NOT NULL], expr#4=[2], DEPTNO0=[$t3], EXPR$0=[$t4])
+EnumerableCalc(expr#0..11=[{inputs}], expr#12=[>($t7, $t8)], expr#13=[IS TRUE($t12)], expr#14=[IS NULL($t11)], expr#15=[0], expr#16=[=($t9, $t15)], expr#17=[OR($t14, $t16)], expr#18=[IS NOT TRUE($t17)], expr#19=[AND($t13, $t18)], expr#20=[>($t9, $t10)], expr#21=[IS TRUE($t20)], expr#22=[null:BOOLEAN], expr#23=[IS NOT TRUE($t12)], expr#24=[AND($t21, $t22, $t18, $t23)], expr#25=[IS NOT TRUE($t20)], expr#26=[AND($t12, $t18, $t23, $t25)], expr#27=[OR($t19, $t24, $t26)], EMPNO=[$t0], EXPR$1=[$t27])
+  EnumerableCorrelate(correlation=[$cor0], joinType=[left], requiredColumns=[{0}])
+    EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], proj#0..3=[{exprs}])
+      EnumerableAggregate(group=[{}], m=[MIN($0)], c=[COUNT()], d=[COUNT($0)])
+        EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[CAST($t0):SMALLINT NOT NULL], expr#5=[$cor0], expr#6=[$t5.EMPNO], expr#7=[=($t4, $t6)], EXPR$0=[$t3], $condition=[$t7])
           EnumerableTableScan(table=[[scott, DEPT]])
 !plan
  EMPNO | EXPR$1

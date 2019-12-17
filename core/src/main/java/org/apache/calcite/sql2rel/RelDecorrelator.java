@@ -67,6 +67,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlFunction;
@@ -75,6 +76,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Holder;
@@ -444,6 +446,17 @@ public class RelDecorrelator implements ReflectiveVisitor {
     return decorrelateRel((Aggregate) rel);
   }
 
+  /**
+   * Some aggregate functions may not fit to be decorrelated,
+   * See <a href="https://issues.apache.org/jira/browse/CALCITE-3495">[CALCITE-3495]
+   *  RelDecorrelator generate plan with different semantics when handle Aggregate</a>.
+   */
+  private boolean aggFunctionNotFitToDecorrelate(SqlAggFunction aggFunction) {
+    assert aggFunction != null;
+    return aggFunction == SqlStdOperatorTable.COUNT
+        || aggFunction instanceof SqlUserDefinedAggFunction;
+  }
+
   public Frame decorrelateRel(Aggregate rel) {
     //
     // Rewrite logic:
@@ -456,6 +469,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
     // Aggregate itself should not reference corVars.
     assert !cm.mapRefRelToCorRef.containsKey(rel);
+
+    if (rel.getGroupCount() == 0) {
+      for (AggregateCall call : rel.getAggCallList()) {
+        if (aggFunctionNotFitToDecorrelate(call.getAggregation())) {
+          return null;
+        }
+      }
+    }
 
     final RelNode oldInput = rel.getInput();
     final Frame frame = getInvoke(oldInput, rel);

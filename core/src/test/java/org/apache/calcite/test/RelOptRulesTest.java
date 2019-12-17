@@ -5662,6 +5662,22 @@ public class RelOptRulesTest extends RelOptTestBase {
     checkSubQuery(sql).withLateDecorrelation(true).check();
   }
 
+  @Test public void testDecorrelateIn() throws Exception {
+    final String sql = "select deptno from (select deptno, empno from emp) p\n"
+        + "where empno in\n"
+        + "(select n from (select deptno, count(*) n from dept\n"
+        + " where p.deptno = dept.deptno group by deptno) t)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
+  @Test public void testDecorrelateIn2() throws Exception {
+    final String sql = "select deptno from (select deptno, empno from emp) p\n"
+        + "where empno in\n"
+        + "(select count(*) from dept\n"
+        + " where p.deptno = dept.deptno)";
+    checkSubQuery(sql).withLateDecorrelation(true).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1511">[CALCITE-1511]
    * AssertionError while decorrelating query with two EXISTS
