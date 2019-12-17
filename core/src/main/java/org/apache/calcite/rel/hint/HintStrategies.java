@@ -59,8 +59,10 @@ public abstract class HintStrategies {
    * Creates a HintStrategyCascade instance whose strategy rules are satisfied only if
    * all the {@code hintStrategies} are satisfied.
    */
-  public static HintStrategy cascade(HintStrategy... hintStrategies) {
-    return new HintStrategyCascade(hintStrategies);
+  public static HintStrategy and(HintStrategy... hintStrategies) {
+    return new CompositeHintStrategy(
+        CompositeHintStrategy.Composition.AND,
+        hintStrategies);
   }
 
   /**
@@ -68,6 +70,8 @@ public abstract class HintStrategies {
    * there exists one hintStrategy satisfied.
    */
   public static HintStrategy or(HintStrategy... hintStrategies) {
-    return new HintStrategyOr(hintStrategies);
+    return new CompositeHintStrategy(
+        CompositeHintStrategy.Composition.OR,
+        hintStrategies);
   }
 }

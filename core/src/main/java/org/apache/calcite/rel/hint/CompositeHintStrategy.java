@@ -21,38 +21,60 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Strategy to decide if a hint should apply to a relational expression
- * by using a series of {@link HintStrategy} rules in a given order.
- * Returns true if any rule satisfies, otherwise returns false.
+ * This class allows multiple {@link HintStrategy} rules to be combined into one rule.
+ * The composition can be {@code AND} or {@code OR} currently.
  */
-public class HintStrategyOr implements HintStrategy {
+public class CompositeHintStrategy implements HintStrategy {
+  //~ Enums ------------------------------------------------------------------
+  public enum Composition {
+    AND, OR
+  }
+
   //~ Instance fields --------------------------------------------------------
 
   private ImmutableList<HintStrategy> strategies;
+  private Composition composition;
 
   /**
-   * Creates a {@code HintStrategyOr} from an array of hint strategies.
+   * Creates a HintStrategyCascade with a {@link Composition} and an array of hint strategies.
    *
    * <p>Make this constructor package-protected intentionally.
-   * Use {@link HintStrategies#or}.</p>
+   * Use utilization methods in {@link HintStrategies}
+   * to create a {@link CompositeHintStrategy}.</p>
    */
-  HintStrategyOr(HintStrategy... strategies) {
+  CompositeHintStrategy(Composition composition, HintStrategy... strategies) {
     assert strategies != null;
     assert strategies.length > 1;
-    for (HintStrategy strategy: strategies) {
+    for (HintStrategy strategy : strategies) {
       assert strategy != null;
     }
     this.strategies = ImmutableList.copyOf(strategies);
+    this.composition = composition;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean supportsRel(RelHint hint, RelNode rel) {
-    for (HintStrategy strategy: strategies) {
-      if (strategy.supportsRel(hint, rel)) {
-        return true;
+    return supportRel(composition, hint, rel);
+  }
+
+  public boolean supportRel(Composition composition, RelHint hint, RelNode rel) {
+    switch (composition) {
+    case AND:
+      for (HintStrategy hintStrategy: strategies) {
+        if (!hintStrategy.supportsRel(hint, rel)) {
+          return false;
+        }
       }
+      return true;
+    case OR:
+    default:
+      for (HintStrategy hintStrategy: strategies) {
+        if (hintStrategy.supportsRel(hint, rel)) {
+          return true;
+        }
+      }
+      return false;
     }
-    return false;
   }
 }

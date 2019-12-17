@@ -607,7 +607,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
             HintStrategies.PROJECT, HintStrategies.AGGREGATE))
         .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
-          HintStrategies.cascade(HintStrategies.JOIN,
+          HintStrategies.and(HintStrategies.JOIN,
             HintStrategies.explicit((hint, rel) -> {
               if (!(rel instanceof LogicalJoin)) {
                 return false;

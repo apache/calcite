@@ -699,7 +699,7 @@ public class SqlToRelConverter {
 
     if (select.hasHints()) {
       final List<RelHint> hints = SqlUtil.getRelHint(hintStrategies, select.getHints());
-      // Attach the hints to the first project we found from the root node.
+      // Attach the hints to the first Hintable node we found from the root node.
       bb.setRoot(bb.root
           .accept(
               new RelShuttleImpl() {

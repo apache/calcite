@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
  * relational expressions.
  *
  * <p>A {@code HintStrategy} can be used independently or cascaded with other strategies
- * with method {@link HintStrategies#cascade}.
+ * with method {@link HintStrategies#and}.
  *
  * <p>The matching for hint name is case in-sensitive.
  *
