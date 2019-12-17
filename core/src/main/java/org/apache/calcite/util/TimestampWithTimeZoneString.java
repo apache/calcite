@@ -189,4 +189,7 @@ public class TimestampWithTimeZoneString
     return localDateTime;
   }
 
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
 }

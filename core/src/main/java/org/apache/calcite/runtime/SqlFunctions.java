@@ -35,7 +35,9 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
+import org.apache.calcite.util.TimeWithTimeZone;
 import org.apache.calcite.util.TimeWithTimeZoneString;
+import org.apache.calcite.util.TimestampWithTimeZone;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Unsafe;
 import org.apache.calcite.util.Util;
@@ -2034,6 +2036,137 @@ public class SqlFunctions {
         .withTimeZone(DateTimeUtils.UTC_ZONE)
         .getLocalTimestampString()
         .getMillisSinceEpoch();
+  }
+
+  public static int timeWithTimeZoneToTime(TimeWithTimeZone ttz) {
+    return ttz.getMilliOfDay();
+  }
+
+  public static TimestampWithTimeZone timeWithTimeZoneToTimestampWithTimeZone(int date,
+      TimeWithTimeZone ttz) {
+    long millisecond = date * DateTimeUtils.MILLIS_PER_DAY + ttz.getMilliOfDay();
+    return new TimestampWithTimeZone(millisecond, ttz.getTimeZone());
+  }
+
+  public static String timeWithTimeZoneToString(TimeWithTimeZone ttz) {
+    String localTime = DateTimeUtils.unixTimeToString(ttz.getMilliOfDay());
+    return localTime + " " + ttz.getTimeZone().getID();
+  }
+
+  public static TimeWithTimeZone toTimeWithTimeZone(String v, TimeZone sesstionTimeZone) {
+    if (v == null) {
+      return null;
+    }
+
+    final int colon1 = v.indexOf(':', 0);
+    int hour;
+    int minute;
+    int second;
+    int milli;
+    TimeZone tz = sesstionTimeZone;
+    if (colon1 < 0) {
+      hour = Integer.parseInt(v.trim());
+      minute = 1;
+      second = 1;
+      milli = 0;
+    } else {
+      hour = Integer.parseInt(v.substring(0, colon1).trim());
+      final int colon2 = v.indexOf(':', colon1 + 1);
+      if (colon2 < 0) {
+        minute = Integer.parseInt(v.substring(colon1 + 1).trim());
+        second = 1;
+        milli = 0;
+      } else {
+        minute = Integer.parseInt(v.substring(colon1 + 1, colon2).trim());
+        int dot = v.indexOf('.', colon2);
+        int space = v.indexOf(' ', colon2);
+        if (dot < 0) {
+          if (space < 0) {
+            second = Integer.parseInt(v.substring(colon2 + 1).trim());
+            milli = 0;
+          } else {
+            second = Integer.parseInt(v.substring(colon2 + 1, space).trim());
+            milli = 0;
+            tz = TimeZone.getTimeZone(v.substring(space + 1).trim());
+          }
+        } else {
+          if (space < 0) {
+            second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
+            milli = parseFraction(v.substring(dot + 1).trim(), 100);
+          } else {
+            second = Integer.parseInt(v.substring(colon2 + 1, dot).trim());
+            milli = parseFraction(v.substring(dot + 1, space).trim(), 100);
+            tz = TimeZone.getTimeZone(v.substring(space + 1).trim());
+          }
+        }
+      }
+    }
+    int milliOfDay = hour * (int) DateTimeUtils.MILLIS_PER_HOUR
+            + minute * (int) DateTimeUtils.MILLIS_PER_MINUTE
+            + second * (int) DateTimeUtils.MILLIS_PER_SECOND
+            + milli;
+    return new TimeWithTimeZone(milliOfDay, tz);
+  }
+
+  /** Parses a fraction, multiplying the first character by {@code multiplier},
+   * the second character by {@code multiplier / 10},
+   * the third character by {@code multiplier / 100}, and so forth.
+   *
+   * <p>For example, {@code parseFraction("1234", 100)} yields {@code 123}. */
+  private static int parseFraction(String v, int multiplier) {
+    int r = 0;
+    for (int i = 0; i < v.length(); i++) {
+      char c = v.charAt(i);
+      int x = c < '0' || c > '9' ? 0 : (c - '0');
+      r += multiplier * x;
+      if (multiplier < 10) {
+        // We're at the last digit. Check for rounding.
+        if (i + 1 < v.length()
+                && v.charAt(i + 1) >= '5') {
+          ++r;
+        }
+        break;
+      }
+      multiplier /= 10;
+    }
+    return r;
+  }
+
+
+  public static long timestampWithTimeZoneToTimestamp(TimestampWithTimeZone tstz) {
+    return tstz.getMillisecond();
+  }
+
+  public static String timestampWithTimeZoneToString(TimestampWithTimeZone tstz) {
+    String localTimestamp = DateTimeUtils.unixTimestampToString(tstz.getMillisecond());
+    return localTimestamp + " " + tstz.getTimeZone().getID();
+  }
+
+  public static TimeWithTimeZone timestampWithTimeZoneToTimeWithTimeZone(
+      TimestampWithTimeZone tstz) {
+    int milliOfDay = (int) (tstz.getMillisecond() % DateTimeUtils.MILLIS_PER_DAY);
+    return new TimeWithTimeZone(milliOfDay, tstz.getTimeZone());
+  }
+
+  public static TimestampWithTimeZone toTimestampWithTimeZone(String v, TimeZone sessionTimeZone) {
+    if (v == null) {
+      return null;
+    }
+
+    final long d;
+    final TimeWithTimeZone t;
+    v = v.trim();
+    int space = v.indexOf(' ');
+    if (space >= 0) {
+      d = DateTimeUtils.dateStringToUnixDate(v.substring(0, space));
+      t = toTimeWithTimeZone(v.substring(space + 1), sessionTimeZone);
+    } else {
+      d = DateTimeUtils.dateStringToUnixDate(v);
+      t = new TimeWithTimeZone(0, sessionTimeZone);
+    }
+
+    final long millisecond = d * DateTimeUtils.MILLIS_PER_DAY + t.getMilliOfDay();
+    return new TimestampWithTimeZone(millisecond, t.getTimeZone());
   }
 
   // Don't need shortValueOf etc. - Short.valueOf is sufficient.

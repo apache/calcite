@@ -34,7 +34,11 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZone;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZone;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -318,10 +322,14 @@ public class RexLiteral extends RexNode {
       return value instanceof TimeString;
     case TIME_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimeString;
+    case TIME_WITH_TIME_ZONE:
+      return value instanceof TimeWithTimeZoneString;
     case TIMESTAMP:
       return value instanceof TimestampString;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return value instanceof TimestampString;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return value instanceof TimestampWithTimeZoneString;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -644,12 +652,20 @@ public class RexLiteral extends RexNode {
         assert value instanceof TimeString;
         destination.append(value.toString());
         break;
+      case TIME_WITH_TIME_ZONE:
+        assert value instanceof TimeWithTimeZoneString;
+        destination.append(value.toString());
+        break;
       case TIMESTAMP:
         assert value instanceof TimestampString;
         destination.append(value.toString());
         break;
       case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         assert value instanceof TimestampString;
+        destination.append(value.toString());
+        break;
+      case TIMESTAMP_WITH_TIME_ZONE:
+        assert value instanceof TimestampWithTimeZoneString;
         destination.append(value.toString());
         break;
       case INTERVAL_YEAR:
@@ -876,10 +892,14 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Long.class);
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return getValueAs(TimestampWithTimeZone.class);
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Integer.class);
+    case TIME_WITH_TIME_ZONE:
+      return getValueAs(TimeWithTimeZone.class);
     default:
       return value;
     }
@@ -914,10 +934,14 @@ public class RexLiteral extends RexNode {
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Long.class);
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return getValueAs(TimestampWithTimeZone.class);
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
       return getValueAs(Integer.class);
+    case TIME_WITH_TIME_ZONE:
+      return getValueAs(TimeWithTimeZone.class);
     default:
       return value;
     }
@@ -1017,6 +1041,15 @@ public class RexLiteral extends RexNode {
         return clazz.cast(((TimeString) value).getMillisOfDay());
       }
       break;
+    case TIME_WITH_TIME_ZONE:
+      if (clazz == TimeWithTimeZone.class) {
+        TimeWithTimeZoneString time = (TimeWithTimeZoneString) value;
+        return clazz.cast(
+                new TimeWithTimeZone(
+                        time.getLocalTimeString().getMillisOfDay(),
+                        time.getTimeZone()));
+      }
+      break;
     case TIMESTAMP:
       if (clazz == Long.class) {
         // Milliseconds since 1970-01-01 00:00:00
@@ -1033,6 +1066,15 @@ public class RexLiteral extends RexNode {
       } else if (clazz == Calendar.class) {
         // Note: Nanos are ignored
         return clazz.cast(((TimestampString) value).toCalendar());
+      }
+      break;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      if (clazz == TimestampWithTimeZone.class) {
+        TimestampWithTimeZoneString timestamp = (TimestampWithTimeZoneString) value;
+        return clazz.cast(
+                new TimestampWithTimeZone(
+                        timestamp.getLocalTimestampString().getMillisSinceEpoch(),
+                        timestamp.getTimeZone()));
       }
       break;
     case INTERVAL_YEAR:

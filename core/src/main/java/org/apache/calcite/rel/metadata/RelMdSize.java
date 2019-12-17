@@ -286,6 +286,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
       return 4d;
+    case TIME_WITH_TIME_ZONE:
+      return 6d;
     case BIGINT:
     case DOUBLE:
     case FLOAT: // sic
@@ -302,6 +304,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       return 8d;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return 10d;
     case BINARY:
       return (double) type.getPrecision();
     case VARBINARY:
@@ -346,6 +350,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
       return 4d;
+    case TIME_WITH_TIME_ZONE:
+      return 6d;
     case BIGINT:
     case DOUBLE:
     case TIMESTAMP:
@@ -361,6 +367,8 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       return 8d;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return 10d;
     case BINARY:
     case VARBINARY:
       return ((ByteString) value).length();

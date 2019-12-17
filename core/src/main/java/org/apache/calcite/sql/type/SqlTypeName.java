@@ -65,9 +65,13 @@ public enum SqlTypeName {
       SqlTypeFamily.TIME),
   TIME_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
       SqlTypeFamily.TIME),
+  TIME_WITH_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
+      SqlTypeFamily.TIME),
   TIMESTAMP(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.TIMESTAMP,
       SqlTypeFamily.TIMESTAMP),
   TIMESTAMP_WITH_LOCAL_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
+      SqlTypeFamily.TIMESTAMP),
+  TIMESTAMP_WITH_TIME_ZONE(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.OTHER,
       SqlTypeFamily.TIMESTAMP),
   INTERVAL_YEAR(PrecScale.NO_NO, false, Types.OTHER,
       SqlTypeFamily.INTERVAL_YEAR_MONTH),
@@ -152,6 +156,7 @@ public enum SqlTypeName {
           INTERVAL_DAY_SECOND, INTERVAL_HOUR, INTERVAL_HOUR_MINUTE,
           INTERVAL_HOUR_SECOND, INTERVAL_MINUTE, INTERVAL_MINUTE_SECOND,
           INTERVAL_SECOND, TIME_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+          TIME_WITH_TIME_ZONE, TIMESTAMP_WITH_TIME_ZONE,
           FLOAT, MULTISET, DISTINCT, STRUCTURED, ROW, CURSOR, COLUMN_LIST);
 
   public static final List<SqlTypeName> BOOLEAN_TYPES =
@@ -182,8 +187,8 @@ public enum SqlTypeName {
       combine(CHAR_TYPES, BINARY_TYPES);
 
   public static final List<SqlTypeName> DATETIME_TYPES =
-      ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIME_ZONE,
-          TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+      ImmutableList.of(DATE, TIME, TIME_WITH_LOCAL_TIME_ZONE, TIME_WITH_TIME_ZONE,
+          TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_WITH_TIME_ZONE);
 
   public static final Set<SqlTypeName> YEAR_INTERVAL_TYPES =
       Sets.immutableEnumSet(SqlTypeName.INTERVAL_YEAR,
@@ -746,8 +751,10 @@ public enum SqlTypeName {
     case BINARY:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_WITH_TIME_ZONE:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
       return 1;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:

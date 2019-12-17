@@ -46,7 +46,11 @@ import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZone;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.TimestampWithTimeZone;
+import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
@@ -934,6 +938,14 @@ public class RexBuilder {
       }
       o = ((TimeString) o).round(p);
       break;
+    case TIME_WITH_TIME_ZONE:
+      assert o instanceof TimeWithTimeZoneString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimeWithTimeZoneString) o).round(p);
+      break;
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert o instanceof TimestampString;
@@ -942,6 +954,14 @@ public class RexBuilder {
         p = 0;
       }
       o = ((TimestampString) o).round(p);
+      break;
+    case TIMESTAMP_WITH_TIME_ZONE:
+      assert o instanceof TimestampWithTimeZoneString;
+      p = type.getPrecision();
+      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
+        p = 0;
+      }
+      o = ((TimestampWithTimeZoneString) o).round(p);
       break;
     }
     return new RexLiteral(o, type, typeName);
@@ -1170,6 +1190,14 @@ public class RexBuilder {
         SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
   }
 
+  public RexLiteral makeTimeWithTimeZoneLiteral(
+      TimeWithTimeZoneString time,
+      int precision) {
+    return makeLiteral(Objects.requireNonNull(time),
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_TIME_ZONE, precision),
+        SqlTypeName.TIME_WITH_TIME_ZONE);
+  }
+
   /** @deprecated Use {@link #makeTimestampLiteral(TimestampString, int)}. */
   @Deprecated // to be removed before 2.0
   public RexLiteral makeTimestampLiteral(Calendar calendar, int precision) {
@@ -1196,6 +1224,17 @@ public class RexBuilder {
     return makeLiteral(Objects.requireNonNull(timestamp),
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE, precision),
         SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+  }
+
+  /**
+   * Creates a Timestamp with time-zone literal.
+   */
+  public RexLiteral makeTimestampWithTimeZoneLiteral(
+      TimestampWithTimeZoneString timestamp,
+      int precision) {
+    return makeLiteral(Objects.requireNonNull(timestamp),
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE, precision),
+        SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
   }
 
   /**
@@ -1326,6 +1365,10 @@ public class RexBuilder {
       return new TimeString(0, 0, 0);
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return new TimestampString(0, 0, 0, 0, 0, 0);
+    case TIME_WITH_TIME_ZONE:
+      return new TimeWithTimeZoneString(0, 0, 0, "UTC");
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return new TimestampWithTimeZoneString(0, 0, 0, 0, 0, 0, "UTC");
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
@@ -1392,12 +1435,18 @@ public class RexBuilder {
       return makeTimeLiteral((TimeString) value, type.getPrecision());
     case TIME_WITH_LOCAL_TIME_ZONE:
       return makeTimeWithLocalTimeZoneLiteral((TimeString) value, type.getPrecision());
+    case TIME_WITH_TIME_ZONE:
+      return makeTimeWithTimeZoneLiteral((TimeWithTimeZoneString) value, type.getPrecision());
     case DATE:
       return makeDateLiteral((DateString) value);
     case TIMESTAMP:
       return makeTimestampLiteral((TimestampString) value, type.getPrecision());
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      return makeTimestampWithLocalTimeZoneLiteral((TimestampString) value, type.getPrecision());
+      return makeTimestampWithLocalTimeZoneLiteral((TimestampString) value,
+          type.getPrecision());
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return makeTimestampWithTimeZoneLiteral((TimestampWithTimeZoneString) value,
+          type.getPrecision());
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_MONTH:
@@ -1543,6 +1592,15 @@ public class RexBuilder {
       } else {
         return TimeString.fromMillisOfDay((Integer) o);
       }
+    case TIME_WITH_TIME_ZONE:
+      if (o instanceof TimeWithTimeZoneString) {
+        return o;
+      } else {
+        TimeWithTimeZone time = (TimeWithTimeZone) o;
+        return new TimeWithTimeZoneString(
+                TimeString.fromMillisOfDay(time.getMilliOfDay()),
+                time.getTimeZone());
+      }
     case DATE:
       if (o instanceof DateString) {
         return o;
@@ -1570,6 +1628,15 @@ public class RexBuilder {
         return o;
       } else {
         return TimestampString.fromMillisSinceEpoch((Long) o);
+      }
+    case TIMESTAMP_WITH_TIME_ZONE:
+      if (o instanceof TimestampWithTimeZoneString) {
+        return o;
+      } else {
+        TimestampWithTimeZone timestamp = (TimestampWithTimeZone) o;
+        return new TimestampWithTimeZoneString(
+                TimestampString.fromMillisSinceEpoch(timestamp.getMillisecond()),
+                timestamp.getTimeZone());
       }
     default:
       return o;
