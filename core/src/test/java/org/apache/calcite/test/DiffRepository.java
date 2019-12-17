@@ -762,10 +762,10 @@ public class DiffRepository {
     DiffRepository diffRepository = MAP_CLASS_TO_REPOSITORY.get(clazz);
     if (diffRepository == null) {
       final URL refFile = findFile(clazz, ".xml");
+      final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
       final File logFile =
-          new File(
-              Sources.of(refFile).file().getAbsolutePath()
-                  .replace("test-classes", "surefire"));
+          new File(refFilePath.replace(".xml", "_actual.xml"));
+      assert !refFilePath.equals(logFile.getAbsolutePath());
       diffRepository =
           new DiffRepository(refFile, logFile, baseRepository, filter);
       MAP_CLASS_TO_REPOSITORY.put(clazz, diffRepository);
