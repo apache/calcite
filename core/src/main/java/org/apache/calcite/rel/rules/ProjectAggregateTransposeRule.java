@@ -18,13 +18,13 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
-import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
@@ -90,25 +90,12 @@ public class ProjectAggregateTransposeRule extends RelOptRule {
     RelNode newAgg = relBuilder.push(project).aggregate(relBuilder.groupKey(aggRel.getGroupSet()),
         aggRel.getAggCallList()).build();
 
-    if (!rowTypesAreEquivalent(proRel, newAgg)) {
+    if (!RelOptUtil.areRowTypesEqual(proRel.getRowType(), newAgg.getRowType(), false)) {
       return;
     }
 
     call.transformTo(newAgg);
   }
 
-  private boolean rowTypesAreEquivalent(
-      RelNode rel0, RelNode rel1) {
-    if (rel0.getRowType().getFieldCount() != rel1.getRowType().getFieldCount()) {
-      return false;
-    }
-    for (Pair<RelDataTypeField, RelDataTypeField> pair
-        : Pair.zip(rel0.getRowType().getFieldList(), rel1.getRowType().getFieldList())) {
-      if (!pair.left.getType().equals(pair.right.getType())) {
-        return false;
-      }
-    }
-    return true;
-  }
 }
 // End ProjectAggregateTransposeRule.java
