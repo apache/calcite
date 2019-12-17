@@ -60,7 +60,7 @@ public class XmlFunctions {
         return xpathExpression.evaluate(new InputSource(new StringReader(input)));
       }
     } catch (XPathExpressionException ex) {
-      throw RESOURCE.illegalBehaviorInExtractValueFunc(ex.toString(), input, xpath).ex();
+      throw RESOURCE.illegalBehaviorInExtractValueFunc(input, xpath).ex();
     }
   }
 }

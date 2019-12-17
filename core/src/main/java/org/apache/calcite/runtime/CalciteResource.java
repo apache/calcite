@@ -901,8 +901,6 @@ public interface CalciteResource {
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
 
-  @BaseMessage("Illegal behavior ''{0}'' EXTRACTVALUE: document: ''{1}'', xpath expression:"
-      + " ''{2}''")
-  ExInst<CalciteException> illegalBehaviorInExtractValueFunc(String errorBehavior, String value,
-      String xpath);
+  @BaseMessage("Illegal behavior in EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
+  ExInst<CalciteException> illegalBehaviorInExtractValueFunc(String xml, String xpath);
 }

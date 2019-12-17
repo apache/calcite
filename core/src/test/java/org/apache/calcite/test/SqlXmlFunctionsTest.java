@@ -22,10 +22,8 @@ import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
 
 import org.hamcrest.Matcher;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -37,18 +35,12 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class SqlXmlFunctionsTest {
 
-  @BeforeAll public static void setUp() {
-    Locale.setDefault(Locale.US);
-  }
-
   @Test public void testExtractValue() {
     assertExtractValue("<a>ccc<b>ddd</b></a>", "/a", is("ccc"));
 
     String input = "<a>ccc<b>ddd</b></a>";
-    String message = "Illegal behavior "
-        + "'javax.xml.xpath.XPathExpressionException: javax.xml.transform.TransformerException: "
-        + "A location path was expected, but the following token was encountered:  #' "
-        + "EXTRACTVALUE: document: '" + input + "', xpath expression: '#'";
+    String message = "Illegal behavior in EXTRACTVALUE: xml: '"
+        + input + "', xpath expression: '#'";
     CalciteException expected = new CalciteException(message, null);
     assertExtractValueFailed(input, "#", Matchers.expectThrowable(expected));
   }
