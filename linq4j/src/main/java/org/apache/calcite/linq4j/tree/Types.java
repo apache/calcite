@@ -156,7 +156,7 @@ public abstract class Types {
     return classes.toArray(new Class[0]);
   }
 
-  static Class[] toClassArray(Iterable<? extends Expression> arguments) {
+  public static Class[] toClassArray(Iterable<? extends Expression> arguments) {
     List<Class> classes = new ArrayList<>();
     for (Expression argument : arguments) {
       classes.add(toClass(argument.getType()));
@@ -255,7 +255,7 @@ public abstract class Types {
     return field(toClass(clazz).getFields()[ordinal]);
   }
 
-  static boolean allAssignable(boolean varArgs, Class[] parameterTypes,
+  public static boolean allAssignable(boolean varArgs, Class[] parameterTypes,
       Class[] argumentTypes) {
     if (varArgs) {
       if (argumentTypes.length < parameterTypes.length - 1) {

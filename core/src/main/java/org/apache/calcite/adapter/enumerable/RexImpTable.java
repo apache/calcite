@@ -2222,11 +2222,12 @@ public class RexImpTable {
         RexCall call,
         List<Expression> translatedOperands) {
       final Expression expression;
+      Class clazz = method.getDeclaringClass();
       if (Modifier.isStatic(method.getModifiers())) {
-        expression = Expressions.call(method, translatedOperands);
+        expression = EnumUtils.call(clazz, method.getName(), translatedOperands);
       } else {
-        expression = Expressions.call(translatedOperands.get(0), method,
-            Util.skip(translatedOperands, 1));
+        expression = EnumUtils.call(clazz, method.getName(),
+            Util.skip(translatedOperands, 1), translatedOperands.get(0));
       }
 
       final Type returnType =
@@ -2250,7 +2251,7 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
-      return Expressions.call(
+      return EnumUtils.call(
           SqlFunctions.class,
           methodName,
           translatedOperands);

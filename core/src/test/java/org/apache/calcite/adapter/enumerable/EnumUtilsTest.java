@@ -16,11 +16,20 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.runtime.GeoFunctions;
+import org.apache.calcite.runtime.SqlFunctions;
+import org.apache.calcite.runtime.XmlFunctions;
+import org.apache.calcite.util.BuiltInMethod;
 
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -149,5 +158,54 @@ public final class EnumUtilsTest {
         EnumUtils.convert(intVariable, Double.class);
     assertThat(Expressions.toString(doubleConverted),
         is("Double.valueOf((double) intV)"));
+  }
+
+  @Test public void testTypeConvertToString() {
+    // Constant Expression: "null"
+    final ConstantExpression nullLiteral1 = Expressions.constant(null);
+    // Constant Expression: "(Object) null"
+    final ConstantExpression nullLiteral2 = Expressions.constant(null, Object.class);
+    final Expression e1 = EnumUtils.convert(nullLiteral1, String.class);
+    final Expression e2 = EnumUtils.convert(nullLiteral2, String.class);
+    assertThat(Expressions.toString(e1), is("(String) null"));
+    assertThat(Expressions.toString(e2), is("(String) (Object) null"));
+  }
+
+  @Test public void testMethodCallExpression() {
+    // test for Object.class method parameter type
+    final ConstantExpression arg0 = Expressions.constant(1, int.class);
+    final ConstantExpression arg1 = Expressions.constant("x", String.class);
+    final MethodCallExpression arrayMethodCall = EnumUtils.call(SqlFunctions.class,
+        BuiltInMethod.ARRAY.getMethodName(), Arrays.asList(arg0, arg1));
+    assertThat(Expressions.toString(arrayMethodCall),
+        is("org.apache.calcite.runtime.SqlFunctions.array(1, \"x\")"));
+
+    // test for Object.class argument type
+    final ConstantExpression nullLiteral = Expressions.constant(null);
+    final MethodCallExpression xmlExtractMethodCall = EnumUtils.call(
+        XmlFunctions.class, BuiltInMethod.EXTRACT_VALUE.getMethodName(),
+        Arrays.asList(arg1, nullLiteral));
+    assertThat(Expressions.toString(xmlExtractMethodCall),
+        is("org.apache.calcite.runtime.XmlFunctions.extractValue(\"x\", (String) null)"));
+
+    // test "mod(decimal, long)" match to "mod(decimal, decimal)"
+    final ConstantExpression arg2 = Expressions.constant(12.5, BigDecimal.class);
+    final ConstantExpression arg3 = Expressions.constant(3, long.class);
+    final MethodCallExpression modMethodCall = EnumUtils.call(
+        SqlFunctions.class, "mod", Arrays.asList(arg2, arg3));
+    assertThat(Expressions.toString(modMethodCall),
+        is("org.apache.calcite.runtime.SqlFunctions.mod("
+            + "java.math.BigDecimal.valueOf(125L, 1), "
+            + "new java.math.BigDecimal(\n  3L))"));
+
+    // test "ST_MakePoint(int, int)" match to "ST_MakePoint(decimal, decimal)"
+    final ConstantExpression arg4 = Expressions.constant(1, int.class);
+    final ConstantExpression arg5 = Expressions.constant(2, int.class);
+    final MethodCallExpression geoMethodCall = EnumUtils.call(
+        GeoFunctions.class, "ST_MakePoint", Arrays.asList(arg4, arg5));
+    assertThat(Expressions.toString(geoMethodCall),
+        is("org.apache.calcite.runtime.GeoFunctions.ST_MakePoint("
+            + "new java.math.BigDecimal(\n  1), "
+            + "new java.math.BigDecimal(\n  2))"));
   }
 }
