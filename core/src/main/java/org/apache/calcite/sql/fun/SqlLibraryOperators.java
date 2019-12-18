@@ -413,7 +413,7 @@ public abstract class SqlLibraryOperators {
       new SqlFunction(
           "FORMAT",
           SqlKind.FORMAT,
-          ReturnTypes.VARCHAR_2000, null,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC),
           SqlFunctionCategory.STRING);
 
