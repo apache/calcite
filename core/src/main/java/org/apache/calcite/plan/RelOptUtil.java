@@ -780,6 +780,10 @@ public abstract class RelOptUtil {
   /**
    * Creates a projection which casts a rel's output to a desired row type.
    *
+   * <p>No need to create new projection if {@code rel} is already a project,
+   * instead, create a projection with the input of {@code rel} and the new
+   * cast expressions.
+   *
    * @param rel         producer of rows to be converted
    * @param castRowType row type after cast
    * @param rename      if true, use field names from castRowType; if false,
@@ -796,6 +800,10 @@ public abstract class RelOptUtil {
 
   /**
    * Creates a projection which casts a rel's output to a desired row type.
+   *
+   * <p>No need to create new projection if {@code rel} is already a project,
+   * instead, create a projection with the input of {@code rel} and the new
+   * cast expressions.
    *
    * @param rel         producer of rows to be converted
    * @param castRowType row type after cast
@@ -816,15 +824,30 @@ public abstract class RelOptUtil {
       return rel;
     }
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
-    final List<RexNode> castExps =
-        RexUtil.generateCastExpressions(rexBuilder, castRowType, rowType);
+    List<RexNode> castExps;
+    RelNode input;
+    if (rel instanceof Project) {
+      // No need to create another project node if the rel
+      // is already a project.
+      castExps = RexUtil.generateCastExpressions(
+          rexBuilder,
+          castRowType,
+          ((Project) rel).getProjects());
+      input = rel.getInput(0);
+    } else {
+      castExps = RexUtil.generateCastExpressions(
+          rexBuilder,
+          castRowType,
+          rowType);
+      input = rel;
+    }
     if (rename) {
       // Use names and types from castRowType.
-      return projectFactory.createProject(rel, castExps,
+      return projectFactory.createProject(input, castExps,
           castRowType.getFieldNames());
     } else {
       // Use names from rowType, types from castRowType.
-      return projectFactory.createProject(rel, castExps,
+      return projectFactory.createProject(input, castExps,
           rowType.getFieldNames());
     }
   }
