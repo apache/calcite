@@ -67,7 +67,7 @@
   apacheId: francischuang
   githubId: F21
   org: Boostport
-  role: PMC Chair
+  role: PMC
 - name: Gian Merlino
   apacheId: gian
   githubId: gianm
@@ -206,7 +206,7 @@
   apacheId: zabetak
   githubId: zabetak
   org: TIBCO
-  role: PMC
+  role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
   apacheId: stevenn
