@@ -4269,6 +4269,20 @@ public class JdbcTest {
             "empid=110; commission=250; M=2");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3563">[CALCITE-3563]
+   * When resolving method call in calcite runtime, add type check and match
+   * mechanism for input arguments</a>. */
+  @Test public void testMethodParameterTypeMatch() {
+    CalciteAssert.that()
+        .query("SELECT mod(12.5, cast(3 as bigint))")
+        .planContains("final java.math.BigDecimal v = "
+            + "$L4J$C$new_java_math_BigDecimal_12_5_")
+        .planContains("org.apache.calcite.runtime.SqlFunctions.mod(v, "
+            + "$L4J$C$new_java_math_BigDecimal_3L_)")
+        .returns("EXPR$0=0.5\n");
+  }
+
   /** Tests UNBOUNDED PRECEDING clause. */
   @Test public void testSumOverUnboundedPreceding() {
     CalciteAssert.that()
