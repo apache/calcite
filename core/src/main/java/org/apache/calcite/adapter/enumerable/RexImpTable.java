@@ -129,6 +129,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -608,6 +609,7 @@ public class RexImpTable {
     final Supplier<BitOpImplementor> bitop = constructorSupplier(BitOpImplementor.class);
     aggMap.put(BIT_AND, bitop);
     aggMap.put(BIT_OR, bitop);
+    aggMap.put(BIT_XOR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
@@ -1535,7 +1537,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code BIT_AND} and {@code BIT_OR} aggregate function. */
+  /** Implementor for the {@code BIT_AND}, {@code BIT_OR} and {@code BIT_XOR} aggregate function. */
   static class BitOpImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
@@ -1552,9 +1554,23 @@ public class RexImpTable {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
       SqlAggFunction aggregation = info.aggregation();
-      final Method method = (aggregation == BIT_AND
-          ? BuiltInMethod.BIT_AND
-          : BuiltInMethod.BIT_OR).method;
+
+      final BuiltInMethod builtInMethod;
+      switch (aggregation.kind) {
+      case BIT_AND:
+        builtInMethod = BuiltInMethod.BIT_AND;
+        break;
+      case BIT_OR:
+        builtInMethod = BuiltInMethod.BIT_OR;
+        break;
+      case BIT_XOR:
+        builtInMethod = BuiltInMethod.BIT_XOR;
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown " + aggregation.getName()
+            + ". Only support bit_and, bit_or and bit_xor for bit aggregation function");
+      }
+      final Method method = builtInMethod.method;
       Expression next = Expressions.call(
           method.getDeclaringClass(),
           method.getName(),

@@ -1067,17 +1067,21 @@ public class SqlFunctions {
   }
 
   // &
-
   /** Helper function for implementing <code>BIT_AND</code> */
   public static long bitAnd(long b0, long b1) {
     return b0 & b1;
   }
 
   // |
-
   /** Helper function for implementing <code>BIT_OR</code> */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
+  }
+
+  // ^
+  /** Helper function for implementing <code>BIT_XOR</code> */
+  public static long bitXor(long b0, long b1) {
+    return b0 ^ b1;
   }
 
   // EXP

@@ -239,6 +239,7 @@ public abstract class Match extends SingleRel {
         break;
       case BIT_AND:
       case BIT_OR:
+      case BIT_XOR:
         aggFunction = new SqlBitOpAggFunction(call.getKind());
         break;
       default:

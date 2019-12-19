@@ -1071,6 +1071,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlAggFunction BIT_OR =
       new SqlBitOpAggFunction(SqlKind.BIT_OR);
 
+  /**
+   * <code>BIT_XOR</code> aggregate function.
+   */
+  public static final SqlAggFunction BIT_XOR =
+      new SqlBitOpAggFunction(SqlKind.BIT_XOR);
+
   //-------------------------------------------------------------
   // WINDOW Aggregate Functions
   //-------------------------------------------------------------
