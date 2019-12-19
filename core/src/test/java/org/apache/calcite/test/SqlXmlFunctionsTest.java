@@ -39,8 +39,7 @@ public class SqlXmlFunctionsTest {
     assertExtractValue("<a>ccc<b>ddd</b></a>", "/a", is("ccc"));
 
     String input = "<a>ccc<b>ddd</b></a>";
-    String message = "Illegal behavior in EXTRACTVALUE: xml: '"
-        + input + "', xpath expression: '#'";
+    String message = "Invalid input for EXTRACTVALUE: xml: '" + input + "', xpath expression: '#'";
     CalciteException expected = new CalciteException(message, null);
     assertExtractValueFailed(input, "#", Matchers.expectThrowable(expected));
   }
