@@ -1080,6 +1080,13 @@ public class SqlFunctions {
     return b0 | b1;
   }
 
+  // ^
+
+  /** Helper function for implementing <code>BIT_XOR</code> */
+  public static long bitXor(long b0, long b1) {
+    return b0 ^ b1;
+  }
+
   // EXP
 
   /** SQL <code>EXP</code> operator applied to double values. */

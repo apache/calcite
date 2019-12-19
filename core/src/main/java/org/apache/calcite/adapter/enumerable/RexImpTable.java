@@ -129,6 +129,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
@@ -608,6 +609,7 @@ public class RexImpTable {
     final Supplier<BitOpImplementor> bitop = constructorSupplier(BitOpImplementor.class);
     aggMap.put(BIT_AND, bitop);
     aggMap.put(BIT_OR, bitop);
+    aggMap.put(BIT_XOR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
@@ -1554,7 +1556,9 @@ public class RexImpTable {
       SqlAggFunction aggregation = info.aggregation();
       final Method method = (aggregation == BIT_AND
           ? BuiltInMethod.BIT_AND
-          : BuiltInMethod.BIT_OR).method;
+          : (aggregation == BIT_OR
+              ? BuiltInMethod.BIT_OR
+              : BuiltInMethod.BIT_XOR)).method;
       Expression next = Expressions.call(
           method.getDeclaringClass(),
           method.getName(),

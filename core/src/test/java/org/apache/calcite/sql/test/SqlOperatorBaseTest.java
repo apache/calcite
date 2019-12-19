@@ -8729,6 +8729,28 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("bit_or(x)", values, 3, 0);
   }
 
+  @Test public void testBitXorFunc() {
+    tester.setFor(SqlStdOperatorTable.BIT_XOR, VM_FENNEL, VM_JAVA);
+    tester.checkFails("bit_xor(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bit_xor(1)", "INTEGER");
+    tester.checkType("bit_xor(CAST(2 AS TINYINT))", "TINYINT");
+    tester.checkType("bit_xor(CAST(2 AS SMALLINT))", "SMALLINT");
+    tester.checkType("bit_xor(distinct CAST(2 AS BIGINT))", "BIGINT");
+    tester.checkFails("^bit_xor(1.2)^",
+        "Cannot apply 'BIT_XOR' to arguments of type 'BIT_XOR\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): 'BIT_XOR\\(<INTEGER>\\)'",
+        false);
+    tester.checkFails(
+        "^bit_xor()^",
+        "Invalid number of arguments to function 'BIT_XOR'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bit_xor(1, 2)^",
+        "Invalid number of arguments to function 'BIT_XOR'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"1", "2", "1"};
+    tester.checkAgg("bit_xor(x)", values, 2, 0);
+  }
+
   /**
    * Tests that CAST fails when given a value just outside the valid range for
    * that type. For example,
