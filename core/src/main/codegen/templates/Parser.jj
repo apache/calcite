@@ -1090,7 +1090,12 @@ void KeyValueOption(List<SqlNode> list) :
 {
     id = SimpleIdentifier()
     <EQ>
-    value = StringLiteral() {
+    (
+        value = StringLiteral()
+    |
+        value = SimpleIdentifier()
+    )
+    {
         list.add(id);
         list.add(value);
     }

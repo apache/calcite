@@ -133,6 +133,12 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testHotGroupByKeyHint() {
+    final String sql = "select /*+ agg_hot_key(empno=\"12:10, 1240:2\") */ "
+        + "empno, count(*) from emp group by empno";
+    sql(sql).ok();
+  }
+
   @Test public void testHintsInSubQueryWithDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
@@ -606,6 +612,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
             "resource", HintStrategies.or(
             HintStrategies.PROJECT, HintStrategies.AGGREGATE))
         .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
+        .addHintStrategy("AGG_HOT_KEY", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
           HintStrategies.and(HintStrategies.JOIN,
             HintStrategies.explicit((hint, rel) -> {

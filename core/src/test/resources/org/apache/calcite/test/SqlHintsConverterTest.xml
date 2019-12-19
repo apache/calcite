@@ -62,6 +62,16 @@ Project:[[RESOURCE inheritPath:[0, 0, 0, 0] options:{MEM=1024}]]
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testHotGroupByKeyHint">
+    <Resource name="sql">
+      <![CDATA[select /*+ agg_hot_key(empno="12:10, 1240:2") */ empno, count(*) from emp group by empno]]>
+    </Resource>
+    <Resource name="hints">
+      <![CDATA[
+Aggregate:[[AGG_HOT_KEY inheritPath:[] options:[EMPNO, 12:10, 1240:2]]]
+]]>
+    </Resource>
+  </TestCase>
     <TestCase name="testHintsInSubQueryWithDecorrelation">
         <Resource name="sql">
             <![CDATA[select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */

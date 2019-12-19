@@ -8644,6 +8644,17 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
+  @Test public void testHintInAggregate() {
+    final String sql = "select /*+ agg_hot_key(empno=\"12:10\") */ "
+        + "empno, count(*) from emp group by empno";
+    final String expected = "SELECT\n"
+        + "/*+ `AGG_HOT_KEY`(`EMPNO`, `12:10`) */\n"
+        + "`EMPNO`, COUNT(*)\n"
+        + "FROM `EMP`\n"
+        + "GROUP BY `EMPNO`";
+    sql(sql).ok(expected);
+  }
+
   @Test public void testTableHintsInQuery() {
     final String hint = "/*+ PROPERTIES(K1 ='v1', K2 ='v2'), INDEX(IDX0, IDX1) */";
     final String sql1 = String.format(Locale.ROOT, "select * from t %s", hint);
