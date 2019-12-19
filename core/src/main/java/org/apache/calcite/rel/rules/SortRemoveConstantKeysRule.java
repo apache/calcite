@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexBuilder;
 
@@ -40,11 +41,14 @@ import java.util.stream.Collectors;
  */
 public class SortRemoveConstantKeysRule extends RelOptRule {
   public static final SortRemoveConstantKeysRule INSTANCE =
-      new SortRemoveConstantKeysRule();
+      new SortRemoveConstantKeysRule(Sort.class);
 
-  private SortRemoveConstantKeysRule() {
+  public static final SortRemoveConstantKeysRule LOGICAL_INSTANCE =
+      new SortRemoveConstantKeysRule(LogicalSort.class);
+
+  private SortRemoveConstantKeysRule(Class<? extends Sort> sortClass) {
     super(
-        operand(Sort.class, any()),
+        operand(sortClass, any()),
         RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");
   }
 

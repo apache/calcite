@@ -28,6 +28,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexNode;
@@ -61,6 +63,15 @@ public class FilterProjectTransposeRule extends RelOptRule {
    */
   public static final FilterProjectTransposeRule INSTANCE =
       new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
+          RelFactories.LOGICAL_BUILDER);
+
+  /** The logical instance of
+   * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
+   *
+   * <p>It matches LogicalFilter and LogicalProject only.</p>
+   */
+  public static final FilterProjectTransposeRule LOGICAL_INSTANCE =
+      new FilterProjectTransposeRule(LogicalFilter.class, LogicalProject.class, true, true,
           RelFactories.LOGICAL_BUILDER);
 
   private final boolean copyFilter;

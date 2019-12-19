@@ -341,9 +341,9 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     // Validate Volcano planner.
     RuleSet ruleSet = RuleSets.ofList(
         new MockEnumerableJoinRule(hint), // Rule to validate the hint.
-        FilterProjectTransposeRule.INSTANCE,
+        FilterProjectTransposeRule.LOGICAL_INSTANCE,
         FilterMergeRule.INSTANCE,
-        ProjectMergeRule.INSTANCE,
+        ProjectMergeRule.LOGICAL_INSTANCE,
         EnumerableRules.ENUMERABLE_JOIN_RULE,
         EnumerableRules.ENUMERABLE_PROJECT_RULE,
         EnumerableRules.ENUMERABLE_FILTER_RULE,

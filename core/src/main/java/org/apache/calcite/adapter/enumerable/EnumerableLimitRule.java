@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Sort} that has
@@ -28,10 +29,16 @@ import org.apache.calcite.rel.core.Sort;
  * on top of a "pure" {@code Sort} that has no offset or fetch.
  */
 class EnumerableLimitRule extends RelOptRule {
-  EnumerableLimitRule() {
+  public static final EnumerableLimitRule INSTANCE =
+      new EnumerableLimitRule(Sort.class);
+
+  public static final EnumerableLimitRule LOGICAL_INSTANCE =
+      new EnumerableLimitRule(LogicalSort.class);
+
+  EnumerableLimitRule(Class<? extends Sort> sortClass) {
     super(
-        operand(Sort.class, any()),
-        "EnumerableLimitRule");
+      operand(sortClass, any()),
+      "EnumerableLimitRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
