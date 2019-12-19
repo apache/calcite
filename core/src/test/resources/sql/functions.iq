@@ -1,4 +1,4 @@
-# oracle-func.iq - Queries involving Oracle Functions
+# functions.iq - Queries involving Functions
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -15,10 +15,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-!use oraclefunc
+!use mysqlfunc
 !set outputformat mysql
 
 # XML Functions
+
+SELECT ExtractValue('<a>c</a>', '//a');
++--------+
+| EXPR$0 |
++--------+
+| c      |
++--------+
+(1 row)
+
+!ok
+
+!use oraclefunc
 
 SELECT XMLTRANSFORM(
                    '<?xml version="1.0"?>
@@ -46,4 +58,5 @@ SELECT XMLTRANSFORM(
 
 !ok
 
-# End oracle-func.iq
+
+# End functions.iq
