@@ -5198,7 +5198,7 @@ public abstract class SqlOperatorBaseTest {
     sqlTester.checkFails("XMLTRANSFORM('<', '<?xml version=\"1.0\"?>\n"
             + "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">"
             + "</xsl:stylesheet>')",
-        "Illegal behavior in XMLTRANSFORM xml: '.*", true);
+        "Invalid input for XMLTRANSFORM xml: '.*", true);
 
     sqlTester.checkString("XMLTRANSFORM("
             + "'<?xml version=\"1.0\"?>\n"

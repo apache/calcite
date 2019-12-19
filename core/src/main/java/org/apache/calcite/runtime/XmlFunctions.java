@@ -89,7 +89,7 @@ public class XmlFunctions {
     } catch (TransformerConfigurationException e) {
       throw RESOURCE.illegalXslt(xslt).ex();
     } catch (TransformerException e) {
-      throw RESOURCE.illegalBehaviorInXmlTransformFunc(xml).ex();
+      throw RESOURCE.invalidInputForXmlTransform(xml).ex();
     }
   }
 }
