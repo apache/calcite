@@ -177,6 +177,22 @@ public class JdbcAdapterTest {
             + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
+  @Test public void testPushDownSort() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select ename \n"
+            + "from scott.emp \n"
+            + "order by empno")
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcSort(sort0=[$1], dir0=[ASC])\n"
+            + "    JdbcProject(ENAME=[$1], EMPNO=[$0])\n"
+            + "      JdbcTableScan(table=[[SCOTT, EMP]])")
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql("SELECT \"ENAME\", \"EMPNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "ORDER BY \"EMPNO\" NULLS LAST");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-631">[CALCITE-631]
    * Push theta joins down to JDBC adapter</a>. */

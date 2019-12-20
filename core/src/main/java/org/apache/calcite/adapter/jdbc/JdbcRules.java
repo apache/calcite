@@ -768,7 +768,8 @@ public class JdbcRules {
 
       final RelNode input;
       if (convertInputTraits) {
-        input = convert(sort.getInput(), traitSet);
+        final RelTraitSet inputTraitSet = sort.getInput().getTraitSet().replace(out);
+        input = convert(sort.getInput(), inputTraitSet);
       } else {
         input = sort.getInput();
       }
