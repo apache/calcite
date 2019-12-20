@@ -981,21 +981,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         ns.getTable(),
         SqlAccessEnum.SELECT);
 
-    if (node.getKind() == SqlKind.SNAPSHOT) {
-      SqlSnapshot snapshot = (SqlSnapshot) node;
-      SqlNode period = snapshot.getPeriod();
-      RelDataType dataType = deriveType(scope, period);
-      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
-        throw newValidationError(period,
-            Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
-      }
-      if (!ns.getTable().isTemporal()) {
-        List<String> qualifiedName = ns.getTable().getQualifiedName();
-        String tableName = qualifiedName.get(qualifiedName.size() - 1);
-        throw newValidationError(snapshot.getTableRef(),
-            Static.RESOURCE.notTemporalTable(tableName));
-      }
-    }
+    validateSnapshot(node, scope, ns);
   }
 
   /**
@@ -2359,7 +2345,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       call = (SqlCall) node;
       operand = call.operand(0);
       newOperand = registerFrom(
-          tableScope == null ? parentScope : tableScope,
+          parentScope,
           usingScope,
           register,
           operand,
@@ -2367,11 +2353,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           alias,
           extendList,
           forceNullable,
-          true);
+          lateral);
       if (newOperand != operand) {
         call.setOperand(0, newOperand);
       }
-      scopes.put(node, parentScope);
+      // Put the usingScope which can be a JoinScope
+      // or a SelectScope, in order to see the left items
+      // of the JOIN tree.
+      scopes.put(node, usingScope);
       return newNode;
 
     default:
@@ -4759,6 +4748,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         throw newValidationError(node,
             RESOURCE.accessNotAllowed(requiredAccess.name(),
                 table.getQualifiedName().toString()));
+      }
+    }
+  }
+
+  /**
+   * Validates snapshot to a table.
+   *
+   * @param node  The node to validate
+   * @param scope Validator scope to derive type
+   * @param ns    The namespace to lookup table
+   */
+  private void validateSnapshot(
+      SqlNode node,
+      SqlValidatorScope scope,
+      SqlValidatorNamespace ns) {
+    if (node.getKind() == SqlKind.SNAPSHOT) {
+      SqlSnapshot snapshot = (SqlSnapshot) node;
+      SqlNode period = snapshot.getPeriod();
+      RelDataType dataType = deriveType(scope, period);
+      if (dataType.getSqlTypeName() != SqlTypeName.TIMESTAMP) {
+        throw newValidationError(period,
+            Static.RESOURCE.illegalExpressionForTemporal(dataType.getSqlTypeName().getName()));
+      }
+      if (!ns.getTable().isTemporal()) {
+        List<String> qualifiedName = ns.getTable().getQualifiedName();
+        String tableName = qualifiedName.get(qualifiedName.size() - 1);
+        throw newValidationError(snapshot.getTableRef(),
+            Static.RESOURCE.notTemporalTable(tableName));
       }
     }
   }
