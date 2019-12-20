@@ -3820,6 +3820,29 @@ public class JdbcTest {
             "deptno=20; empid=200; hire_date=2014-06-12; R=1");
   }
 
+  @Test public void testNestedWin() {
+    CalciteAssert.hr()
+        .query("select \n"
+            + " lag(a2, 1, 0) over (partition by \"deptno\" order by a1) as lagx \n"
+            + "from \n"
+            + " (\n"
+            + "  select \n"
+            + "   \"deptno\", \n"
+            + "   \"salary\" / \"commission\" as a1, \n"
+            + "   sum(\"commission\") over ( partition by \"deptno\" order by \"salary\" / "
+            + "\"commission\") / sum(\"commission\") over (partition by \"deptno\") as a2 \n"
+            + "  from \n"
+            + "   \"hr\".\"emps\"\n"
+            + " )\n")
+        .typeIs(
+            "[LAGX INTEGER NOT NULL]")
+        .returnsUnordered(
+            "LAGX=0",
+            "LAGX=0",
+            "LAGX=0",
+            "LAGX=1");
+  }
+
   private void startOfGroupStep1(String startOfGroup) {
     CalciteAssert.that()
         .query("select t.*\n"

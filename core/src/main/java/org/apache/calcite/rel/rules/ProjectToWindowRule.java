@@ -336,7 +336,7 @@ public abstract class ProjectToWindowRule extends RelOptRule {
         visited.add(source);
         for (DefaultEdge e : graph.getOutwardEdges(source)) {
           int target = (int) e.target;
-          if (rank.get(target) < rank.get(ordinal1)) {
+          if (rank.get(target) <= rank.get(ordinal1)) {
             dfs.push(target);
           }
         }
