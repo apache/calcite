@@ -2023,10 +2023,7 @@ SqlNode TableRef2(boolean lateral) :
             }
         }
         [
-            snapshot = Snapshot(tableRef) {
-                tableRef = SqlStdOperatorTable.LATERAL.createCall(
-                    getPos(), snapshot);
-            }
+            tableRef = Snapshot(tableRef)
         ]
         [
             tableRef = MatchRecognize(tableRef)
@@ -2695,7 +2692,16 @@ SqlSnapshot Snapshot(SqlNode tableRef) :
     final SqlNode e;
 }
 {
-    <FOR> { s = span(); } <SYSTEM_TIME> <AS> <OF>
+    { s = span(); } <FOR> <SYSTEM_TIME> <AS> <OF>
+    // Syntax for temporal table in
+    // standard SQL 2011 IWD 9075-2:201?(E) 7.6 <table reference>
+    // supports grammar as following:
+    // 1. datetime literal
+    // 2. datetime value function, i.e. CURRENT_TIMESTAMP
+    // 3. datetime term in 1 or 2 +(or -) interval term
+
+    // We extend to support column reference, use Expression
+    // to simplify the parsing code.
     e = Expression(ExprContext.ACCEPT_NON_QUERY) {
         return new SqlSnapshot(s.end(this), tableRef, e);
     }

@@ -2103,7 +2103,7 @@ public class SqlToRelConverter {
       return;
 
     case SNAPSHOT:
-      snapshotTemporalTable(bb, (SqlCall) from);
+      convertTemporalTable(bb, (SqlCall) from);
       return;
 
     case JOIN:
@@ -2474,7 +2474,7 @@ public class SqlToRelConverter {
       LogicalTableFunctionScan callRel) {
   }
 
-  private void snapshotTemporalTable(Blackboard bb, SqlCall call) {
+  private void convertTemporalTable(Blackboard bb, SqlCall call) {
     final SqlSnapshot snapshot = (SqlSnapshot) call;
     final RexNode period = bb.convertExpression(snapshot.getPeriod());
 
