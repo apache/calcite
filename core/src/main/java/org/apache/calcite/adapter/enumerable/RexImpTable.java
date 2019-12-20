@@ -1554,11 +1554,15 @@ public class RexImpTable {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
       SqlAggFunction aggregation = info.aggregation();
-      final Method method = (aggregation == BIT_AND
-          ? BuiltInMethod.BIT_AND
-          : (aggregation == BIT_OR
-              ? BuiltInMethod.BIT_OR
-              : BuiltInMethod.BIT_XOR)).method;
+
+      BuiltInMethod builtInMethod = BuiltInMethod.BIT_AND;
+      if (aggregation == BIT_OR) {
+        builtInMethod = BuiltInMethod.BIT_OR;
+      } else if (aggregation == BIT_XOR) {
+        builtInMethod = BuiltInMethod.BIT_XOR;
+      }
+
+      final Method method = builtInMethod.method;
       Expression next = Expressions.call(
           method.getDeclaringClass(),
           method.getName(),
