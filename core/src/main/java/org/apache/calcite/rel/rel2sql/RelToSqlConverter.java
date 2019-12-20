@@ -634,6 +634,13 @@ public class RelToSqlConverter extends SqlImplementor
     }
     Result x = visitChild(0, e.getInput());
     Builder builder = x.builder(e, Clause.ORDER_BY);
+    if (builder.select.getSelectList() == null) {
+      final List<SqlNode> selectList = Expressions.list();
+      for (RelDataTypeField field : e.getRowType().getFieldList()) {
+        addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
+      }
+      builder.select.setSelectList(new SqlNodeList(selectList, POS));
+    }
     List<SqlNode> orderByList = Expressions.list();
     for (RelFieldCollation field : e.getCollation().getFieldCollations()) {
       builder.addOrderItem(orderByList, field);

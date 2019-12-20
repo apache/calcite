@@ -30,6 +30,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
@@ -765,10 +766,11 @@ public class JdbcRules {
      */
     public RelNode convert(Sort sort, boolean convertInputTraits) {
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
+      RelTraitSet inputTraitSet = traitSet.replace(RelCollations.EMPTY);
 
       final RelNode input;
       if (convertInputTraits) {
-        input = convert(sort.getInput(), traitSet);
+        input = convert(sort.getInput(), inputTraitSet);
       } else {
         input = sort.getInput();
       }
