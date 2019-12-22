@@ -44,9 +44,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -63,13 +63,14 @@ import java.util.Map;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 /**
  * Testing Elasticsearch match query.
  */
 public class MatchTest {
 
-  @ClassRule //init once for all tests
+  @RegisterExtension //init once for all tests
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   /** Default index/type name */
@@ -80,7 +81,7 @@ public class MatchTest {
    * Used to create {@code zips} index and insert zip data in bulk.
    * @throws Exception when instance setup failed
    */
-  @BeforeClass
+  @BeforeAll
   public static void setup() throws Exception {
     final Map<String, String> mapping = ImmutableMap.of("city", "text", "state",
         "keyword", "pop", "long");

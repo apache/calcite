@@ -29,7 +29,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,9 +62,8 @@ import java.util.Objects;
  *    }
  *  }
  *  </pre>
- * @see ExternalResource
  */
-class EmbeddedElasticsearchPolicy extends ExternalResource {
+class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback {
 
   private final EmbeddedElasticsearchNode node;
   private final ObjectMapper mapper;
@@ -76,11 +77,11 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     closer.add(node);
   }
 
-  @Override protected void before() throws Throwable {
+  @Override public void beforeAll(ExtensionContext context) {
     node.start();
   }
 
-  @Override protected void after() {
+  @Override public void afterAll(ExtensionContext context) throws Exception {
     closer.close();
   }
 
@@ -215,5 +216,4 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
   private TransportAddress httpAddress() {
     return node.httpAddress();
   }
-
 }

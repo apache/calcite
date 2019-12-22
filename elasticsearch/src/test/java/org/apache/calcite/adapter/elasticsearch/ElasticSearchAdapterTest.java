@@ -30,9 +30,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.LineProcessor;
 import com.google.common.io.Resources;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +55,7 @@ import java.util.function.Consumer;
  */
 public class ElasticSearchAdapterTest {
 
-  @ClassRule //init once for all tests
+  @RegisterExtension //init once for all tests
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   /** Default index/type name */
@@ -66,7 +66,7 @@ public class ElasticSearchAdapterTest {
    * Used to create {@code zips} index and insert zip data in bulk.
    * @throws Exception when instance setup failed
    */
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
     final Map<String, String> mapping = ImmutableMap.of("city", "keyword", "state",
         "keyword", "pop", "long");
