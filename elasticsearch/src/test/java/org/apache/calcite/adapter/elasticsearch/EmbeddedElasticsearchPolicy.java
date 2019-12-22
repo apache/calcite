@@ -79,7 +79,6 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
 
   /**
    * Factory method to create this rule.
-   *
    * @return managed resource to be used in unit tests
    */
   public static EmbeddedElasticsearchPolicy create() {
@@ -98,7 +97,7 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
    *  }
    * </pre>
    *
-   * @param index   index of the index
+   * @param index index of the index
    * @param mapping field and field type mapping
    * @throws IOException if there is an error
    */
@@ -109,7 +108,7 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
     ObjectNode mappings = mapper().createObjectNode();
 
     ObjectNode properties = mappings.with("mappings").with("properties");
-    for (Map.Entry<String, String> entry : mapping.entrySet()) {
+    for (Map.Entry<String, String> entry: mapping.entrySet()) {
       applyMapping(properties, entry.getKey(), entry.getValue());
     }
 
@@ -125,13 +124,13 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
    * Creates nested mappings for an index. This function is called recursively for each level.
    *
    * @param parent current parent
-   * @param key    field name
-   * @param type   ES mapping type ({@code keyword}, {@code long} etc.)
+   * @param key field name
+   * @param type ES mapping type ({@code keyword}, {@code long} etc.)
    */
   private static void applyMapping(ObjectNode parent, String key, String type) {
     final int index = key.indexOf('.');
     if (index > -1) {
-      String prefix = key.substring(0, index);
+      String prefix  = key.substring(0, index);
       String suffix = key.substring(index + 1, key.length());
       applyMapping(parent.with(prefix).with("properties"), suffix, type);
     } else {
@@ -143,7 +142,7 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
     Objects.requireNonNull(index, "index");
     Objects.requireNonNull(document, "document");
     String uri = String.format(Locale.ROOT,
-        "/%s/_doc?refresh", index);
+          "/%s/_doc?refresh", index);
     StringEntity entity = new StringEntity(mapper().writeValueAsString(document),
         ContentType.APPLICATION_JSON);
     final Request r = new Request("POST", uri);
@@ -161,7 +160,7 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
     }
 
     List<String> bulk = new ArrayList<>(documents.size() * 2);
-    for (ObjectNode doc : documents) {
+    for (ObjectNode doc: documents) {
       bulk.add(String.format(Locale.ROOT, "{\"index\": {\"_index\":\"%s\"}}", index));
       bulk.add(mapper().writeValueAsString(doc));
     }
@@ -176,7 +175,6 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
 
   /**
    * Exposes Jackson API to be used to parse search results.
-   *
    * @return existing instance of ObjectMapper
    */
   ObjectMapper mapper() {
@@ -185,7 +183,6 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
 
   /**
    * Low-level http rest client connected to current embedded elastic search instance.
-   *
    * @return http client connected to ES cluster
    */
   RestClient restClient() {
@@ -206,7 +203,6 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
 
   /**
    * HTTP address for rest clients (can be ES native or any other).
-   *
    * @return http address to connect to
    */
   private TransportAddress httpAddress() {
