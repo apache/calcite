@@ -29,7 +29,6 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
-    signing
     id("com.github.vlsi.stage-vote-release")
 }
 
