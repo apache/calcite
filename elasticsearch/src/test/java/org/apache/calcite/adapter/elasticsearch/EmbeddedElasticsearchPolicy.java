@@ -77,6 +77,10 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
     closer.add(node);
   }
 
+  @Override public void beforeAll(ExtensionContext context) {
+    node.start();
+  }
+
   /**
    * Factory method to create this rule.
    * @return managed resource to be used in unit tests
@@ -211,9 +215,5 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
 
   @Override public void afterAll(ExtensionContext context) throws Exception {
     node.close();
-  }
-
-  @Override public void beforeAll(ExtensionContext context) {
-    node.start();
   }
 }
