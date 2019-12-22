@@ -25,9 +25,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,13 +47,13 @@ import java.util.stream.IntStream;
  */
 public class ScrollingTest {
 
-  @ClassRule
+  @RegisterExtension
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "scroll";
   private static final int SIZE = 10;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
     NODE.createIndex(NAME, Collections.singletonMap("value", "long"));
     final List<ObjectNode> docs = new ArrayList<>();

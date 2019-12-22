@@ -29,7 +29,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,9 +62,8 @@ import java.util.Objects;
  *    }
  *  }
  *  </pre>
- * @see ExternalResource
  */
-class EmbeddedElasticsearchPolicy extends ExternalResource {
+class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback {
 
   private final EmbeddedElasticsearchNode node;
   private final ObjectMapper mapper;
@@ -76,16 +77,9 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     closer.add(node);
   }
 
-  @Override protected void before() throws Throwable {
-    node.start();
-  }
-
-  @Override protected void after() {
-    closer.close();
-  }
-
   /**
    * Factory method to create this rule.
+   *
    * @return managed resource to be used in unit tests
    */
   public static EmbeddedElasticsearchPolicy create() {
@@ -104,7 +98,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
    *  }
    * </pre>
    *
-   * @param index index of the index
+   * @param index   index of the index
    * @param mapping field and field type mapping
    * @throws IOException if there is an error
    */
@@ -115,7 +109,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     ObjectNode mappings = mapper().createObjectNode();
 
     ObjectNode properties = mappings.with("mappings").with("properties");
-    for (Map.Entry<String, String> entry: mapping.entrySet()) {
+    for (Map.Entry<String, String> entry : mapping.entrySet()) {
       applyMapping(properties, entry.getKey(), entry.getValue());
     }
 
@@ -131,13 +125,13 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
    * Creates nested mappings for an index. This function is called recursively for each level.
    *
    * @param parent current parent
-   * @param key field name
-   * @param type ES mapping type ({@code keyword}, {@code long} etc.)
+   * @param key    field name
+   * @param type   ES mapping type ({@code keyword}, {@code long} etc.)
    */
   private static void applyMapping(ObjectNode parent, String key, String type) {
     final int index = key.indexOf('.');
     if (index > -1) {
-      String prefix  = key.substring(0, index);
+      String prefix = key.substring(0, index);
       String suffix = key.substring(index + 1, key.length());
       applyMapping(parent.with(prefix).with("properties"), suffix, type);
     } else {
@@ -149,7 +143,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     Objects.requireNonNull(index, "index");
     Objects.requireNonNull(document, "document");
     String uri = String.format(Locale.ROOT,
-          "/%s/_doc?refresh", index);
+        "/%s/_doc?refresh", index);
     StringEntity entity = new StringEntity(mapper().writeValueAsString(document),
         ContentType.APPLICATION_JSON);
     final Request r = new Request("POST", uri);
@@ -167,7 +161,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
     }
 
     List<String> bulk = new ArrayList<>(documents.size() * 2);
-    for (ObjectNode doc: documents) {
+    for (ObjectNode doc : documents) {
       bulk.add(String.format(Locale.ROOT, "{\"index\": {\"_index\":\"%s\"}}", index));
       bulk.add(mapper().writeValueAsString(doc));
     }
@@ -182,6 +176,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
 
   /**
    * Exposes Jackson API to be used to parse search results.
+   *
    * @return existing instance of ObjectMapper
    */
   ObjectMapper mapper() {
@@ -190,6 +185,7 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
 
   /**
    * Low-level http rest client connected to current embedded elastic search instance.
+   *
    * @return http client connected to ES cluster
    */
   RestClient restClient() {
@@ -210,10 +206,18 @@ class EmbeddedElasticsearchPolicy extends ExternalResource {
 
   /**
    * HTTP address for rest clients (can be ES native or any other).
+   *
    * @return http address to connect to
    */
   private TransportAddress httpAddress() {
     return node.httpAddress();
   }
 
+  @Override public void afterAll(ExtensionContext context) throws Exception {
+    node.close();
+  }
+
+  @Override public void beforeAll(ExtensionContext context) {
+    node.start();
+  }
 }

@@ -27,9 +27,9 @@ import org.apache.calcite.util.TestUtil;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,20 +42,21 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 
 /**
  * Checks renaming of fields (also upper, lower cases) during projections
  */
 public class Projection2Test {
 
-  @ClassRule
+  @RegisterExtension
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "nested";
 
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
 
     final Map<String, String> mappings = ImmutableMap.of("a", "long",
