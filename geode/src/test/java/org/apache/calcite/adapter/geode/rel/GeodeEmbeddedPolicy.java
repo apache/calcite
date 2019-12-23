@@ -23,7 +23,9 @@ import org.apache.geode.distributed.ServerLauncher;
 
 import com.google.common.base.Preconditions;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Manages embedded Geode instance using native {@link ServerLauncher}.
  */
-public class GeodeEmbeddedPolicy extends ExternalResource {
+public class GeodeEmbeddedPolicy implements BeforeAllCallback, AfterAllCallback {
 
   private final ServerLauncher launcher;
 
@@ -46,12 +48,12 @@ public class GeodeEmbeddedPolicy extends ExternalResource {
     this.launcher = launcher;
   }
 
-  @Override protected void before() {
+  protected void before() {
     requireStatus(AbstractLauncher.Status.NOT_RESPONDING);
     launcher.start();
   }
 
-  @Override protected void after() {
+  protected void after() {
     if (launcher.status().getStatus() == AbstractLauncher.Status.ONLINE) {
       CacheFactory.getAnyInstance().close();
     }
@@ -108,6 +110,14 @@ public class GeodeEmbeddedPolicy extends ExternalResource {
     return new GeodeEmbeddedPolicy(launcher);
   }
 
+  @Override public void afterAll(ExtensionContext context) {
+
+  }
+
+  @Override public void beforeAll(ExtensionContext context) {
+
+  }
+
   /**
    * Calls {@code before()} and {@code after()} methods only once (for first and last subscriber
    * respectively). The implementation counts number of times {@link #before()} was called
@@ -126,23 +136,23 @@ public class GeodeEmbeddedPolicy extends ExternalResource {
       this.refCount = new AtomicInteger();
     }
 
-    @Override GeodeEmbeddedPolicy share() {
-      // for cases like share().share()
-      return this;
-    }
-
-    @Override public synchronized void before() {
+    @Override public void beforeAll(ExtensionContext context) {
       if (refCount.getAndIncrement() == 0) {
         // initialize only once
         policy.before();
       }
     }
 
-    @Override protected void after() {
+    @Override public void afterAll(ExtensionContext context) {
       if (refCount.decrementAndGet() == 0) {
         // destroy only once
         policy.after();
       }
+    }
+
+    @Override GeodeEmbeddedPolicy share() {
+      // for cases like share().share()
+      return this;
     }
   }
 }

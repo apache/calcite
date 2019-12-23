@@ -26,8 +26,8 @@ import org.apache.geode.cache.Region;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -44,7 +44,7 @@ import java.util.Map;
  */
 public class GeodeAllDataTypesTest extends AbstractGeodeTest {
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     final Cache cache = POLICY.cache();
     final Region<?, ?> region =

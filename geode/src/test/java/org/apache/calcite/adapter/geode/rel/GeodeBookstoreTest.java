@@ -23,8 +23,8 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.geode.cache.Cache;
 import org.apache.geode.cache.Region;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -36,7 +36,7 @@ import java.util.Arrays;
  */
 public class GeodeBookstoreTest extends AbstractGeodeTest {
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() throws Exception {
     Cache cache = POLICY.cache();
     Region<?, ?> bookMaster =  cache.<String, Object>createRegionFactory().create("BookMaster");

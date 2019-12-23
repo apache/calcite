@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.junit.ClassRule;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 /**
  * Base class that allows sharing same geode instance across all tests.
@@ -26,7 +26,7 @@ import org.junit.ClassRule;
  */
 public abstract class AbstractGeodeTest {
 
-  @ClassRule
+  @RegisterExtension
   public static final GeodeEmbeddedPolicy POLICY = GeodeEmbeddedPolicy.create().share();
 
 }
