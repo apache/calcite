@@ -18,7 +18,9 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -30,8 +32,11 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ToNumberUtils;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -187,11 +192,21 @@ public class HiveSqlDialect extends SqlDialect {
    * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
-      int rightPrec) {
+                           int rightPrec) {
     assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    SqlLiteral flag = call.operand(0);
+    SqlLiteral trimFlag = call.operand(0);
+    SqlLiteral valueToTrim = call.operand(1);
+    if (valueToTrim.toValue().matches("\\s+")) {
+      handleTrimWithSpace(writer, call, leftPrec, rightPrec, trimFlag);
+    } else {
+      handleTrimWithChar(writer, call, leftPrec, rightPrec, trimFlag);
+    }
+  }
+
+  private void handleTrimWithSpace(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
     final String operatorName;
-    switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
       break;
@@ -202,9 +217,50 @@ public class HiveSqlDialect extends SqlDialect {
       operatorName = call.getOperator().getName();
       break;
     }
-    final SqlWriter.Frame frame = writer.startFunCall(operatorName);
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(frame);
+    writer.endFunCall(trimFrame);
+  }
+
+  private void handleTrimWithChar(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
+    SqlCharStringLiteral regexNode = makeRegexNodeFromCall(call.operand(1), trimFlag);
+    SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
+        call.getParserPosition());
+    SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
+    SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
+    REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
+  }
+
+  private SqlCharStringLiteral makeRegexNodeFromCall(SqlNode call, SqlLiteral trimFlag) {
+    String regexPattern = ((SqlCharStringLiteral) call).toValue();
+    regexPattern = escapeSpecialChar(regexPattern);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      regexPattern = "^(".concat(regexPattern).concat(")*");
+      break;
+    case TRAILING:
+      regexPattern = "(".concat(regexPattern).concat(")*$");
+      break;
+    default:
+      regexPattern = "^(".concat(regexPattern).concat(")*|(")
+          .concat(regexPattern).concat(")*$");
+      break;
+    }
+    return SqlLiteral.createCharString(regexPattern,
+        call.getParserPosition());
+  }
+
+  private String escapeSpecialChar(String inputString) {
+    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+
+    for (int i = 0; i < specialCharacters.length; i++) {
+      if (inputString.contains(specialCharacters[i])) {
+        inputString = inputString.replace(specialCharacters[i], "\\" + specialCharacters[i]);
+      }
+    }
+    return inputString;
   }
 
   @Override public boolean supportsCharSet() {
