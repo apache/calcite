@@ -991,17 +991,21 @@ public enum SqlKind {
   /** The {@code ROW_NUMBER} window function. */
   CUME_DIST,
 
-  // Group functions
+  /** The {@code DESCRIPTOR(column_name, ...)}. */
+  DESCRIPTOR,
 
   /** The {@code TUMBLE} group function. */
   TUMBLE,
 
+  // Group functions
   /** The {@code TUMBLE_START} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_START.
   TUMBLE_START,
 
   /** The {@code TUMBLE_END} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_END.
   TUMBLE_END,
 
   /** The {@code HOP} group function. */

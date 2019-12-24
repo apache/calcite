@@ -167,6 +167,19 @@ public class RexToLixTranslator {
         .translateList(program.getProjectList(), storageTypes);
   }
 
+  public static List<Expression> translateWindowTableFunctionParams(JavaTypeFactory typeFactory,
+      SqlConformance conformance,
+      BlockBuilder blockBuilder,
+      Expression root,
+      RexCall rexCall,
+      PhysType inputPhysType,
+      PhysType outputPhysType) {
+    return new RexToLixTranslator(null, typeFactory, root, null,
+            blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+            null, null)
+            .translateWindowTableFunctionParams(rexCall, inputPhysType, outputPhysType);
+  }
+
   /** Creates a translator for translating aggregate functions. */
   public static RexToLixTranslator forAggregation(JavaTypeFactory typeFactory,
       BlockBuilder list, InputGetter inputGetter, SqlConformance conformance) {
@@ -933,6 +946,36 @@ public class RexToLixTranslator {
       }
     }
     return list;
+  }
+
+  private List<Expression> translateWindowTableFunctionParams(
+      RexCall rexCall,
+      PhysType inputPhysType,
+      PhysType outputPhysType) {
+    if (rexCall.operands.size() < 3) {
+      throw new AssertionError("TUMBLE should have at least 3 arguments.");
+    }
+    if (rexCall.getOperands().get(1) instanceof RexCall
+        && ((RexCall) rexCall.getOperands().get(1)).getOperator().getKind()
+        != SqlKind.DESCRIPTOR) {
+      throw new AssertionError("The second argument of TUMBLE should be a descriptor.");
+    }
+    if (!(rexCall.getOperands().get(2) instanceof RexLiteral)) {
+      throw new AssertionError("The third argument of TUMBLE should be a literal.");
+    }
+
+    Expression intervalExpression = translate(rexCall.getOperands().get(2));
+    RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
+    List<Expression> translatedOperands = new ArrayList<>();
+    final ParameterExpression parameter =
+        Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
+    Expression wmColExpr = inputPhysType.fieldReference(
+        parameter, ((RexInputRef) descriptor.getOperands().get(0)).getIndex(),
+        outputPhysType.getJavaFieldType(inputPhysType.getRowType().getFieldCount()));
+    translatedOperands.add(wmColExpr);
+    translatedOperands.add(intervalExpression);
+
+    return translatedOperands;
   }
 
   public static Expression translateCondition(RexProgram program,

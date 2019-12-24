@@ -1264,6 +1264,12 @@ public class SqlToRelConverter {
           subQuery.logic, true, null);
       assert !converted.indicator;
       subQuery.expr = bb.register(converted.r, JoinRelType.LEFT);
+
+      // This is used when converting window table functions:
+      //
+      // select * from table(table emps, descriptor(deptno), interval '3' DAY)
+      //
+      bb.cursors.add(converted.r);
       return;
 
     default:

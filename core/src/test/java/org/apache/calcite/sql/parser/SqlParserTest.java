@@ -3426,6 +3426,18 @@ public class SqlParserTest {
             + "FROM TABLE(`RAMP`(3, 4))");
   }
 
+  @Test public void testDescriptor() {
+    sql("select * from table(ramp(descriptor(column_name)))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME`)))");
+    sql("select * from table(ramp(descriptor(\"COLUMN_NAME\")))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME`)))");
+    sql("select * from table(ramp(descriptor(column_name1, column_name2, column_name3)))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME1`, `COLUMN_NAME2`, `COLUMN_NAME3`)))");
+  }
+
   @Test public void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emps),'name'))")
         .ok("SELECT *\n"

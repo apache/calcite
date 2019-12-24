@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
@@ -636,5 +637,58 @@ public class EnumUtils {
                 implementor.allCorrelateVariables,
                 implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
+  }
+
+  /** Generates a window selector which appends attribute of the window bases on
+   * the parameters. */
+  static Expression windowSelector(
+      PhysType inputPhysType,
+      PhysType outputPhysType,
+      Expression wmColExpr,
+      Expression intervalExpr) {
+    // Generate all fields.
+    final List<Expression> expressions = new ArrayList<>();
+    // If input item is just a primitive, we do not generate specialized
+    // primitive apply override since it won't be called anyway
+    // Function<T> always operates on boxed arguments
+    final ParameterExpression parameter =
+        Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
+    final int fieldCount = inputPhysType.getRowType().getFieldCount();
+    for (int i = 0; i < fieldCount; i++) {
+      Expression expression =
+          inputPhysType.fieldReference(parameter, i,
+              outputPhysType.getJavaFieldType(expressions.size()));
+      expressions.add(expression);
+    }
+    final Expression wmColExprToLong = EnumUtils.convert(wmColExpr, long.class);
+    final Expression shiftExpr = Expressions.constant(1, long.class);
+
+    // Find the fixed window for a timestamp given a window size and return the window start.
+    // Fixed windows counts from timestamp 0.
+    // wmMillis / intervalMillis * intervalMillis
+    expressions.add(
+        Expressions.multiply(
+            Expressions.divide(
+                wmColExprToLong,
+                intervalExpr),
+            intervalExpr));
+
+    // Find the fixed window for a timestamp given a window size and return the window end.
+    // Fixed windows counts from timestamp 0.
+
+    // (wmMillis / sizeMillis + 1L) * sizeMillis;
+    expressions.add(
+        Expressions.multiply(
+            Expressions.add(
+                Expressions.divide(
+                    wmColExprToLong,
+                    intervalExpr),
+                shiftExpr),
+            intervalExpr));
+
+    return Expressions.lambda(
+        Function1.class,
+        outputPhysType.record(expressions),
+        parameter);
   }
 }
