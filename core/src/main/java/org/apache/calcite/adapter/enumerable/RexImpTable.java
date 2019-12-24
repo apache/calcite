@@ -1537,7 +1537,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code BIT_AND} and {@code BIT_OR} aggregate function. */
+  /** Implementor for the {@code BIT_AND}, {@code BIT_OR} and {@code BIT_XOR} aggregate function. */
   static class BitOpImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
@@ -1555,13 +1555,17 @@ public class RexImpTable {
       Expression arg = add.arguments().get(0);
       SqlAggFunction aggregation = info.aggregation();
 
-      BuiltInMethod builtInMethod = BuiltInMethod.BIT_AND;
-      if (aggregation == BIT_OR) {
+      final BuiltInMethod builtInMethod;
+      if (BIT_AND == aggregation) {
+        builtInMethod = BuiltInMethod.BIT_AND;
+      } else if (BIT_OR == aggregation) {
         builtInMethod = BuiltInMethod.BIT_OR;
-      } else if (aggregation == BIT_XOR) {
+      } else if (BIT_XOR == aggregation) {
         builtInMethod = BuiltInMethod.BIT_XOR;
+      } else {
+        throw new IllegalArgumentException("Unknown " + aggregation.getName()
+            + ". Only support bit_and, bit_or and bit_xor for bit aggregation function");
       }
-
       final Method method = builtInMethod.method;
       Expression next = Expressions.call(
           method.getDeclaringClass(),
