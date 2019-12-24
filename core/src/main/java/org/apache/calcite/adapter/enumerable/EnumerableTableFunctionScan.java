@@ -69,7 +69,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     if (isImplementorDefined((RexCall) getCall())) {
       return tvfImplementorBasedImplement(implementor, pref);
     } else {
-      return defaultTableValuedFunctionImplement(implementor, pref);
+      return defaultTableFunctionImplement(implementor, pref);
     }
   }
 
@@ -100,7 +100,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     return QueryableTable.class.isAssignableFrom(method.getReturnType());
   }
 
-  private Result defaultTableValuedFunctionImplement(
+  private Result defaultTableFunctionImplement(
       EnumerableRelImplementor implementor, Prefer pref) {
     BlockBuilder bb = new BlockBuilder();
     // Non-array user-specified types are not supported yet
@@ -142,7 +142,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
             SqlConformanceEnum.DEFAULT);
 
     builder.add(
-        RexToLixTranslator.translateTableValuedFunction(
+        RexToLixTranslator.translateTableFunction(
             typeFactory,
             conformance,
             builder,

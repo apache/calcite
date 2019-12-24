@@ -17,6 +17,9 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function1;
@@ -56,6 +59,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -746,7 +750,7 @@ public class EnumUtils {
 
   /** Generates a window selector which appends attribute of the window based on
    * the parameters. */
-  static Expression windowSelector(
+  static Expression tumblingWindowSelector(
       PhysType inputPhysType,
       PhysType outputPhysType,
       Expression wmColExpr,
@@ -795,5 +799,84 @@ public class EnumUtils {
         Function1.class,
         outputPhysType.record(expressions),
         parameter);
+  }
+
+  /**
+   * Create enumerable implementation that applies hopping on each element from the input
+   * enumerator and produces at least one element for each input element.
+   */
+  public static Enumerable<Object[]> hopping(Enumerator<Object[]> inputEnumerator,
+      int indexOfWatermarkedColumn, long emitFrequency, long intervalSize) {
+    return new AbstractEnumerable<Object[]>() {
+      @Override public Enumerator<Object[]> enumerator() {
+        return new HopEnumerator(inputEnumerator,
+            indexOfWatermarkedColumn, emitFrequency, intervalSize);
+      }
+    };
+  }
+
+  private static class HopEnumerator implements Enumerator<Object[]> {
+    private final Enumerator<Object[]> inputEnumerator;
+    private final int indexOfWatermarkedColumn;
+    private final long emitFrequency;
+    private final long intervalSize;
+    private LinkedList<Object[]> list;
+
+    HopEnumerator(Enumerator<Object[]> inputEnumerator,
+        int indexOfWatermarkedColumn, long emitFrequency, long intervalSize) {
+      this.inputEnumerator = inputEnumerator;
+      this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
+      this.emitFrequency = emitFrequency;
+      this.intervalSize = intervalSize;
+      list = new LinkedList<>();
+    }
+
+    public Object[] current() {
+      if (list.size() > 0) {
+        return takeOne();
+      } else {
+        Object[] current = inputEnumerator.current();
+        List<Pair> windows = hopWindows(SqlFunctions.toLong(current[indexOfWatermarkedColumn]),
+            emitFrequency, intervalSize);
+        for (Pair window : windows) {
+          Object[] curWithWindow = new Object[current.length + 2];
+          System.arraycopy(current, 0, curWithWindow, 0, current.length);
+          curWithWindow[current.length] = window.left;
+          curWithWindow[current.length + 1] = window.right;
+          list.offer(curWithWindow);
+        }
+        return takeOne();
+      }
+    }
+
+    public boolean moveNext() {
+      if (list.size() > 0) {
+        return true;
+      }
+      return inputEnumerator.moveNext();
+    }
+
+    public void reset() {
+      inputEnumerator.reset();
+      list.clear();
+    }
+
+    public void close() {
+    }
+
+    private Object[] takeOne() {
+      return list.pollFirst();
+    }
+  }
+
+  private static List<Pair> hopWindows(long tsMillis, long periodMillis, long sizeMillis) {
+    ArrayList<Pair> ret = new ArrayList<>(Math.toIntExact(sizeMillis / periodMillis));
+    long lastStart = tsMillis - ((tsMillis + periodMillis) % periodMillis);
+    for (long start = lastStart;
+         start > tsMillis - sizeMillis;
+         start -= periodMillis) {
+      ret.add(new Pair(start, start + sizeMillis));
+    }
+    return ret;
   }
 }

@@ -20,6 +20,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
@@ -591,7 +592,9 @@ public enum BuiltInMethod {
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "singleGroupResultSelector", Function1.class),
-  TUMBLING(EnumerableDefaults.class, "tumbling", Enumerable.class, Function1.class);
+  TUMBLING(EnumerableDefaults.class, "tumbling", Enumerable.class, Function1.class),
+  HOPPING(EnumUtils.class, "hopping", Enumerator.class, int.class, long.class,
+      long.class);
 
   public final Method method;
   public final Constructor constructor;

@@ -168,14 +168,14 @@ public class RexToLixTranslator {
         .translateList(program.getProjectList(), storageTypes);
   }
 
-  public static Expression translateTableValuedFunction(JavaTypeFactory typeFactory,
+  public static Expression translateTableFunction(JavaTypeFactory typeFactory,
       SqlConformance conformance, BlockBuilder blockBuilder,
       Expression root, RexCall rexCall, Expression inputEnumerable,
       PhysType inputPhysType, PhysType outputPhysType) {
     return new RexToLixTranslator(null, typeFactory, root, null,
         blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
         null, null)
-        .translateTableValuedFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
+        .translateTableFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
   }
 
   /** Creates a translator for translating aggregate functions. */
@@ -946,10 +946,10 @@ public class RexToLixTranslator {
     return list;
   }
 
-  private Expression translateTableValuedFunction(RexCall rexCall, Expression inputEnumerable,
+  private Expression translateTableFunction(RexCall rexCall, Expression inputEnumerable,
       PhysType inputPhysType, PhysType outputPhysType) {
     assert rexCall.getOperator() instanceof SqlWindowTableFunction;
-    TableValuedFunctionCallImplementor implementor =
+    TableFunctionCallImplementor implementor =
         RexImpTable.INSTANCE.get((SqlWindowTableFunction) rexCall.getOperator());
     if (implementor == null) {
       throw Util.needToImplement("implementor of " + rexCall.getOperator().getName());
