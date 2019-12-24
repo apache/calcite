@@ -3537,7 +3537,7 @@ group by hop(rowtime, interval '1' hour, interval '3' hour)]]>
 LogicalDelta
   LogicalProject(ROWTIME=[$0], C=[$1])
     LogicalAggregate(group=[{0}], C=[COUNT()])
-      LogicalProject($f0=[HOP($0, 3600000:INTERVAL HOUR, 10800000:INTERVAL HOUR)])
+      LogicalProject($f0=[$HOP($0, 3600000:INTERVAL HOUR, 10800000:INTERVAL HOUR)])
         LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -4917,7 +4917,7 @@ LogicalDelta
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testTableValuedFunctionTumble">
+    <TestCase name="testTableFunctionTumble">
         <Resource name="sql">
             <![CDATA[select *
 from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE))]]>
@@ -4931,7 +4931,7 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testTableValuedFunctionTumbleWithSubQueryParam">
+    <TestCase name="testTableFunctionTumbleWithSubQueryParam">
         <Resource name="sql">
             <![CDATA[select *
 from table(tumble((select * from Shipments), descriptor(rowtime), INTERVAL '1' MINUTE))]]>

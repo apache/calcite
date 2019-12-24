@@ -182,6 +182,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.HOP_TVF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INTERSECTION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
@@ -310,7 +311,7 @@ public class RexImpTable {
       new HashMap<>();
   private final Map<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap =
       new HashMap<>();
-  private final Map<SqlOperator, Supplier<? extends TableValuedFunctionCallImplementor>>
+  private final Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>
       tvfImplementorMap = new HashMap<>();
 
   RexImpTable() {
@@ -670,6 +671,7 @@ public class RexImpTable {
     matchMap.put(LAST, LastImplementor::new);
     map.put(PREV, new PrevImplementor());
     tvfImplementorMap.put(TUMBLE_TVF, TumbleImplementor::new);
+    tvfImplementorMap.put(HOP_TVF, HopImplementor::new);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -966,8 +968,8 @@ public class RexImpTable {
     }
   }
 
-  public TableValuedFunctionCallImplementor get(final SqlWindowTableFunction operator) {
-    final Supplier<? extends TableValuedFunctionCallImplementor> supplier =
+  public TableFunctionCallImplementor get(final SqlWindowTableFunction operator) {
+    final Supplier<? extends TableFunctionCallImplementor> supplier =
         tvfImplementorMap.get(operator);
     if (supplier != null) {
       return supplier.get();
@@ -3125,7 +3127,7 @@ public class RexImpTable {
   }
 
   /** Implements tumbling. */
-  private static class TumbleImplementor implements TableValuedFunctionCallImplementor {
+  private static class TumbleImplementor implements TableFunctionCallImplementor {
     @Override public Expression implement(RexToLixTranslator translator,
         Expression inputEnumerable,
         RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
@@ -3145,11 +3147,35 @@ public class RexImpTable {
       return Expressions.call(
           BuiltInMethod.TUMBLING.method,
           inputEnumerable,
-          EnumUtils.windowSelector(
+          EnumUtils.tumblingWindowSelector(
               inputPhysType,
               outputPhysType,
               translatedOperands.get(0),
               translatedOperands.get(1)));
+    }
+  }
+
+  /** Implements hopping. */
+  private static class HopImplementor implements TableFunctionCallImplementor {
+    @Override public Expression implement(RexToLixTranslator translator,
+        Expression inputEnumerable, RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
+      Expression intervalExpression = translator.translate(call.getOperands().get(2));
+      Expression intervalExpression2 = translator.translate(call.getOperands().get(3));
+      RexCall descriptor = (RexCall) call.getOperands().get(1);
+      List<Expression> translatedOperands = new ArrayList<>();
+      Expression wmColIndexExpr =
+          Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex());
+      translatedOperands.add(wmColIndexExpr);
+      translatedOperands.add(intervalExpression);
+      translatedOperands.add(intervalExpression2);
+
+      return Expressions.call(
+          BuiltInMethod.HOPPING.method,
+          Expressions.list(
+              Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+              wmColIndexExpr,
+              intervalExpression,
+              intervalExpression2));
     }
   }
 }

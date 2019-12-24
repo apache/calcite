@@ -10177,7 +10177,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
   }
 
-  @Test void testTumbleTableValuedFunction() {
+  @Test public void testTumbleTableFunction() {
     sql("select * from table(\n"
         + "^tumble(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
         .fails("Invalid number of arguments to function 'TUMBLE'. Was expecting 3 arguments");
@@ -10200,7 +10200,36 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 
-  @Test void testStreamTumble() {
+  @Test public void testHopTableFunction() {
+    sql("select * from table(\n"
+        + "hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour))").ok();
+    sql("select * from table(\n"
+        + "^hop(table orders, descriptor(rowtime), interval '2' hour)^)")
+        .fails("Invalid number of arguments to function 'HOP'. Was expecting 4 arguments");
+    sql("select * from table(\n"
+        + "^hop(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+            + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
+            + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
+            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+    sql("select * from table(\n"
+        + "^hop(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+            + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
+            + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
+            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+    sql("select * from table(\n"
+        + "^hop(table orders, 'test', interval '2' hour, interval '2' hour)^)")
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+            + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <INTERVAL HOUR>, "
+            + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
+            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+    sql("select * from table(\n"
+        + "hop(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour, interval '1' hour))")
+        .fails("Object 'TABLER_NOT_EXIST' not found");
+  }
+
+  @Test public void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
         + "from orders\n"
@@ -10260,7 +10289,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by hop(rowtime, interval '1' hour, interval '3' hour)")
         .fails("Call to auxiliary group function 'HOP_START' must have "
-            + "matching call to group function 'HOP' in GROUP BY clause");
+            + "matching call to group function '\\$HOP' in GROUP BY clause");
     // HOP with align
     sql("select stream\n"
         + "  hop_start(rowtime, interval '1' hour, interval '3' hour,\n"

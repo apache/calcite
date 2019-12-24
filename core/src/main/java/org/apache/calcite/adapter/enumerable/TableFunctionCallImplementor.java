@@ -24,7 +24,7 @@ import org.apache.calcite.rex.RexCall;
  * Implements a table-valued function call.
  */
 @Experimental
-public interface TableValuedFunctionCallImplementor {
+public interface TableFunctionCallImplementor {
   /**
    * Implements a table-valued function call.
    *

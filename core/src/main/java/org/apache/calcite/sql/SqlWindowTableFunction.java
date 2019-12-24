@@ -20,10 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.ArrayList;
@@ -44,28 +42,21 @@ public class SqlWindowTableFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(3);
+  protected boolean throwValidationSignatureErrorOrReturnFalse(SqlCallBinding callBinding,
+      boolean throwOnFailure) {
+    if (throwOnFailure) {
+      throw callBinding.newValidationSignatureError();
+    } else {
+      return false;
+    }
   }
 
-  @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-    // There should only be three operands, and number of operands are checked before
-    // this call.
-    final SqlNode operand0 = callBinding.operand(0);
-    final SqlValidator validator = callBinding.getValidator();
-    final RelDataType type = validator.getValidatedNodeType(operand0);
-    if (type.getSqlTypeName() != SqlTypeName.ROW) {
-      return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
-    }
-    final SqlNode operand1 = callBinding.operand(1);
-    if (operand1.getKind() != SqlKind.DESCRIPTOR) {
-      return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
-    }
-    for (SqlNode descOperand: ((SqlCall) operand1).getOperandList()) {
+  protected void validateColumnNames(SqlValidator validator,
+      List<String> fieldNames, List<SqlNode> unvalidatedColumnNames) {
+    for (SqlNode descOperand: unvalidatedColumnNames) {
       final String colName = ((SqlIdentifier) descOperand).getSimple();
       boolean matches = false;
-      for (String field : type.getFieldNames()) {
+      for (String field : fieldNames) {
         if (validator.getCatalogReader().nameMatcher().matches(field, colName)) {
           matches = true;
           break;
@@ -76,24 +67,6 @@ public class SqlWindowTableFunction extends SqlFunction {
             RESOURCE.unknownIdentifier(colName));
       }
     }
-    final RelDataType type2 = validator.getValidatedNodeType(callBinding.operand(2));
-    if (!SqlTypeUtil.isInterval(type2)) {
-      return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
-    }
-    return true;
-  }
-
-  private boolean throwValidationSignatureErrorOrReturnFalse(SqlCallBinding callBinding,
-      boolean throwOnFailure) {
-    if (throwOnFailure) {
-      throw callBinding.newValidationSignatureError();
-    } else {
-      return false;
-    }
-  }
-
-  @Override public String getAllowedSignatures(String opNameToUse) {
-    return getName() + "(TABLE table_name, DESCRIPTOR(col1, col2 ...), datetime interval)";
   }
 
   /**

@@ -27,6 +27,7 @@ import org.apache.calcite.sql.SqlFilterOperator;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlGroupedWindowFunction;
+import org.apache.calcite.sql.SqlHopTableFunction;
 import org.apache.calcite.sql.SqlInternalOperator;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlKind;
@@ -47,11 +48,11 @@ import org.apache.calcite.sql.SqlSampleSpec;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
+import org.apache.calcite.sql.SqlTumbleTableFunction;
 import org.apache.calcite.sql.SqlUnnestOperator;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlValuesOperator;
 import org.apache.calcite.sql.SqlWindow;
-import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.SqlWithinGroupOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -2297,7 +2298,10 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DESCRIPTOR = new SqlDescriptorOperator();
 
   /** TUMBLE as a table-value function. */
-  public static final SqlFunction TUMBLE_TVF = new SqlWindowTableFunction(SqlKind.TUMBLE.name());
+  public static final SqlFunction TUMBLE_TVF = new SqlTumbleTableFunction();
+
+  /** HOP as a table-value function. */
+  public static final SqlFunction HOP_TVF = new SqlHopTableFunction();
 
   /** The {@code TUMBLE} group function.
    *
@@ -2335,7 +2339,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** The {@code HOP} group function. */
   public static final SqlGroupedWindowFunction HOP =
-      new SqlGroupedWindowFunction(SqlKind.HOP.name(), SqlKind.HOP, null,
+      new SqlGroupedWindowFunction("$HOP", SqlKind.HOP, null,
           ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_INTERVAL_TIME),
