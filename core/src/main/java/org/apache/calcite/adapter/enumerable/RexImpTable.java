@@ -1556,13 +1556,17 @@ public class RexImpTable {
       SqlAggFunction aggregation = info.aggregation();
 
       final BuiltInMethod builtInMethod;
-      if (BIT_AND == aggregation) {
+      switch (aggregation.kind) {
+      case BIT_AND:
         builtInMethod = BuiltInMethod.BIT_AND;
-      } else if (BIT_OR == aggregation) {
+        break;
+      case BIT_OR:
         builtInMethod = BuiltInMethod.BIT_OR;
-      } else if (BIT_XOR == aggregation) {
+        break;
+      case BIT_XOR:
         builtInMethod = BuiltInMethod.BIT_XOR;
-      } else {
+        break;
+      default:
         throw new IllegalArgumentException("Unknown " + aggregation.getName()
             + ". Only support bit_and, bit_or and bit_xor for bit aggregation function");
       }
