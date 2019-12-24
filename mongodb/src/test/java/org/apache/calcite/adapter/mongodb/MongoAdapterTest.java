@@ -38,10 +38,10 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -81,12 +81,12 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Number of records in local file */
   protected static final int ZIPS_SIZE = 149;
 
-  @ClassRule
+  @RegisterExtension
   public static final MongoDatabasePolicy POLICY = MongoDatabasePolicy.create();
 
   private static MongoSchema schema;
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() throws Exception {
     MongoDatabase database = POLICY.database();
 
@@ -207,7 +207,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of CALCITE-194.
     Util.discard(Bug.CALCITE_194_FIXED);
@@ -253,7 +253,7 @@ public class MongoAdapterTest implements SchemaFactory {
             "CITY=LAWTON; LONGITUDE=null; LATITUDE=null; POP=45542; STATE=OK; ID=73505");
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testUnionPlan() {
     assertModel(MODEL)
         .query("select * from \"sales_fact_1997\"\n"
@@ -272,7 +272,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "product_id=337", "product_id=1512"));
   }
 
-  @Ignore(
+  @Disabled(
       "java.lang.ClassCastException: java.lang.Integer cannot be cast to java.lang.Double")
   @Test public void testFilterUnionPlan() {
     assertModel(MODEL)
@@ -494,7 +494,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Ignore("https://issues.apache.org/jira/browse/CALCITE-270")
+  @Disabled("https://issues.apache.org/jira/browse/CALCITE-270")
   @Test public void testGroupByHaving2() {
     assertModel(MODEL)
         .query("select state, count(*) as c from zips\n"
@@ -553,7 +553,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testDistinctCount() {
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc from zips\n"
@@ -605,7 +605,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 5}"));
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testProject() {
     assertModel(MODEL)
         .query("select state, city, 0 as zero from zips order by state, city")

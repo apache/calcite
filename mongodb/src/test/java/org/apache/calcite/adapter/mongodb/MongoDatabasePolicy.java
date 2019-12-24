@@ -22,7 +22,8 @@ import org.apache.calcite.util.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
@@ -42,7 +43,7 @@ import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
  * {@code $ mvn -Pit install}) this rule will connect to an existing (external)
  * Mongo instance ({@code localhost}).
  */
-class MongoDatabasePolicy extends ExternalResource {
+class MongoDatabasePolicy implements AfterAllCallback {
 
   private static final String DB_NAME = "test";
 
@@ -55,6 +56,10 @@ class MongoDatabasePolicy extends ExternalResource {
     this.database = client.getDatabase(DB_NAME);
     this.closer = Objects.requireNonNull(closer, "closer");
     closer.add(client::close);
+  }
+
+  @Override public void afterAll(ExtensionContext context) {
+    closer.close();
   }
 
   /**
@@ -81,13 +86,7 @@ class MongoDatabasePolicy extends ExternalResource {
     return new MongoDatabasePolicy(client, closer);
   }
 
-
   MongoDatabase database() {
     return database;
   }
-
-  @Override protected void after() {
-    closer.close();
-  }
-
 }

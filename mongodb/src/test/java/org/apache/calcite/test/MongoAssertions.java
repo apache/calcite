@@ -31,7 +31,8 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 
 /**
  * Util class which needs to be in the same package as {@link CalciteAssert}
@@ -102,6 +103,6 @@ public class MongoAssertions {
    * @see <a href="https://github.com/fakemongo/fongo/issues/152">Aggregation with $cond (172)</a>
    */
   public static void assumeRealMongoInstance() {
-    assumeTrue("Expect mongo instance", useMongo());
+    assumeTrue(useMongo(), "Expect mongo instance");
   }
 }
