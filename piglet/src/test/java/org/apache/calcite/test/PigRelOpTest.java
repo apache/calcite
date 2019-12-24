@@ -1078,7 +1078,7 @@ public class PigRelOpTest extends PigRelTestBase {
     final String plan0 = "LogicalSort(sort0=[$1], dir0=[ASC])\n"
         + scanPlan;
     final String script0 = scan + "B = ORDER A BY DNAME;\n";
-    final String sql0 = "SELECT DEPTNO, DNAME, LOC\n"
+    final String sql0 = "SELECT *\n"
         + "FROM scott.DEPT\n"
         + "ORDER BY DNAME";
     final String result0 = ""
@@ -1093,7 +1093,7 @@ public class PigRelOpTest extends PigRelTestBase {
     final String plan1 = "LogicalSort(sort0=[$1], dir0=[DESC])\n"
         + scanPlan;
     final String script1 = scan + "B = ORDER A BY DNAME DESC;\n";
-    final String sql1 = "SELECT DEPTNO, DNAME, LOC\n"
+    final String sql1 = "SELECT *\n"
         + "FROM scott.DEPT\n"
         + "ORDER BY DNAME DESC";
     pig(script1).assertRel(hasTree(plan1))
@@ -1103,7 +1103,7 @@ public class PigRelOpTest extends PigRelTestBase {
         + "LogicalSort(sort0=[$2], sort1=[$0], dir0=[DESC], dir1=[ASC])\n"
         + scanPlan;
     final String script2 = scan + "B = ORDER A BY LOC DESC, DEPTNO;\n";
-    final String sql2 = "SELECT DEPTNO, DNAME, LOC\n"
+    final String sql2 = "SELECT *\n"
         + "FROM scott.DEPT\n"
         + "ORDER BY LOC DESC, DEPTNO";
     pig(script2).assertRel(hasTree(plan2))
@@ -1113,7 +1113,7 @@ public class PigRelOpTest extends PigRelTestBase {
         + "LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])\n"
         + scanPlan;
     final String script3 = scan + "B = ORDER A BY *;\n";
-    final String sql3 = "SELECT DEPTNO, DNAME, LOC\n"
+    final String sql3 = "SELECT *\n"
         + "FROM scott.DEPT\n"
         + "ORDER BY DEPTNO, DNAME, LOC";
     pig(script3).assertRel(hasTree(plan3))
@@ -1229,7 +1229,7 @@ public class PigRelOpTest extends PigRelTestBase {
     final String script1 = scan
         + "B = ORDER A BY DNAME;\n"
         + "C = LIMIT B 2;\n";
-    final String sql1 = "SELECT DEPTNO, DNAME, LOC\n"
+    final String sql1 = "SELECT *\n"
         + "FROM scott.DEPT\n"
         + "ORDER BY DNAME\n"
         + "FETCH NEXT 2 ROWS ONLY";
