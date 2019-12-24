@@ -31,6 +31,8 @@ public enum NullPolicy {
   SEMI_STRICT,
   /** If any of the arguments are null, return null. */
   ANY,
+  /** If all of the arguments are null, return null. */
+  ALL,
   /** If the first argument is null, return null. */
   ARG0,
   /** If any of the arguments are false, result is false; else if any

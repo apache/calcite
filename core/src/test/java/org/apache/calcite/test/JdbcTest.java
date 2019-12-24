@@ -4886,6 +4886,27 @@ public class JdbcTest {
             "deptno=10; deptno=10");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3627">[CALCITE-3627]
+   * Incorrect null semantic for ROW function</a>. */
+  @Test public void testRowIsNotNull() {
+    CalciteAssert.hr()
+        .query("select a, b\n"
+            + " from (\n"
+            + "  select \"commission\" as a, nullif(1,1) as b\n"
+            + "  from \"hr\".\"emps\")\n"
+            + " where row(a, b) is not null")
+        .explainContains(
+            "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[null:INTEGER],"
+                + " expr#6=[ROW($t4, $t5)], expr#7=[IS NOT NULL($t6)],"
+                + " A=[$t4], B=[$t5], $condition=[$t7])\n"
+                + "  EnumerableTableScan(table=[[hr, emps]])")
+        .returnsUnordered(
+            "A=1000; B=null",
+            "A=250; B=null",
+            "A=500; B=null");
+  }
+
   /** Various queries against EMP and DEPT, in particular involving composite
    * join conditions in various flavors of outer join. Results are verified
    * against MySQL (except full join, which MySQL does not support). */
