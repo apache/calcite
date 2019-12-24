@@ -7072,6 +7072,42 @@ public class JdbcTest {
     }
   }
 
+  @Test public void testBindableIntersect() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      final String sql0 = "select \"empid\", \"deptno\" from \"hr\".\"emps\"";
+      final String sql = sql0 + " intersect all " + sql0;
+      CalciteAssert.hr()
+          .query(sql)
+          .explainContains(""
+              + "PLAN=BindableIntersect(all=[true])\n"
+              + "  BindableProject(empid=[$0], deptno=[$1])\n"
+              + "    BindableTableScan(table=[[hr, emps]])\n"
+              + "  BindableProject(empid=[$0], deptno=[$1])\n"
+              + "    BindableTableScan(table=[[hr, emps]])")
+          .returns(""
+              + "empid=150; deptno=10\n"
+              + "empid=100; deptno=10\n"
+              + "empid=200; deptno=20\n"
+              + "empid=110; deptno=10\n");
+    }
+  }
+
+  @Test public void testBindableMinus() {
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      final String sql0 = "select \"empid\", \"deptno\" from \"hr\".\"emps\"";
+      final String sql = sql0 + " except all " + sql0;
+      CalciteAssert.hr()
+          .query(sql)
+          .explainContains(""
+              + "PLAN=BindableMinus(all=[true])\n"
+              + "  BindableProject(empid=[$0], deptno=[$1])\n"
+              + "    BindableTableScan(table=[[hr, emps]])\n"
+              + "  BindableProject(empid=[$0], deptno=[$1])\n"
+              + "    BindableTableScan(table=[[hr, emps]])")
+          .returns("");
+    }
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2224">[CALCITE-2224]
    * WITHIN GROUP clause for aggregate functions</a>. */

@@ -39,11 +39,14 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Match;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
@@ -51,6 +54,7 @@ import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalIntersect;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalProject;
@@ -104,8 +108,8 @@ public class Bindables {
   public static final RelOptRule BINDABLE_JOIN_RULE =
       new BindableJoinRule(RelFactories.LOGICAL_BUILDER);
 
-  public static final RelOptRule BINDABLE_UNION_RULE =
-      new BindableUnionRule(RelFactories.LOGICAL_BUILDER);
+  public static final RelOptRule BINDABLE_SETOP_RULE =
+      new BindableSetOpRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_VALUES_RULE =
       new BindableValuesRule(RelFactories.LOGICAL_BUILDER);
@@ -128,7 +132,7 @@ public class Bindables {
           BINDABLE_PROJECT_RULE,
           BINDABLE_SORT_RULE,
           BINDABLE_JOIN_RULE,
-          BINDABLE_UNION_RULE,
+          BINDABLE_SETOP_RULE,
           BINDABLE_VALUES_RULE,
           BINDABLE_AGGREGATE_RULE,
           BINDABLE_WINDOW_RULE,
@@ -517,11 +521,8 @@ public class Bindables {
     }
   }
 
-  /**
-   * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion}
-   * to a {@link BindableUnion}.
-   */
-  public static class BindableUnionRule extends ConverterRule {
+  @Deprecated // use BindableSetOpRule instead
+  public static class BindableUnionRule extends BindableSetOpRule {
 
     /**
      * Creates a BindableUnionRule.
@@ -529,17 +530,41 @@ public class Bindables {
      * @param relBuilderFactory Builder for relational expressions
      */
     public BindableUnionRule(RelBuilderFactory relBuilderFactory) {
-      super(LogicalUnion.class, (Predicate<RelNode>) r -> true,
+      super(relBuilderFactory);
+    }
+  }
+
+  /**
+   * Rule to convert an {@link SetOp} to a {@link BindableUnion}
+   * or {@link BindableIntersect} or {@link BindableMinus}.
+   */
+  public static class BindableSetOpRule extends ConverterRule {
+
+    /**
+     * Creates a BindableSetOpRule.
+     *
+     * @param relBuilderFactory Builder for relational expressions
+     */
+    public BindableSetOpRule(RelBuilderFactory relBuilderFactory) {
+      super(SetOp.class, (Predicate<RelNode>) r -> true,
           Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
-          "BindableUnionRule");
+          "BindableSetOpRule");
     }
 
     public RelNode convert(RelNode rel) {
-      final LogicalUnion union = (LogicalUnion) rel;
+      final SetOp setOp = (SetOp) rel;
       final BindableConvention out = BindableConvention.INSTANCE;
-      final RelTraitSet traitSet = union.getTraitSet().replace(out);
-      return new BindableUnion(rel.getCluster(), traitSet,
-          convertList(union.getInputs(), out), union.all);
+      final RelTraitSet traitSet = setOp.getTraitSet().replace(out);
+      if (setOp instanceof LogicalUnion) {
+        return new BindableUnion(rel.getCluster(), traitSet,
+            convertList(setOp.getInputs(), out), setOp.all);
+      } else if (setOp instanceof LogicalIntersect) {
+        return new BindableIntersect(rel.getCluster(), traitSet,
+            convertList(setOp.getInputs(), out), setOp.all);
+      } else {
+        return new BindableMinus(rel.getCluster(), traitSet,
+            convertList(setOp.getInputs(), out), setOp.all);
+      }
     }
   }
 
@@ -554,6 +579,56 @@ public class Bindables {
     public BindableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,
         boolean all) {
       return new BindableUnion(getCluster(), traitSet, inputs, all);
+    }
+
+    public Class<Object[]> getElementType() {
+      return Object[].class;
+    }
+
+    public Enumerable<Object[]> bind(DataContext dataContext) {
+      return help(dataContext, this);
+    }
+
+    public Node implement(InterpreterImplementor implementor) {
+      return new SetOpNode(implementor.compiler, this);
+    }
+  }
+
+  /** Implementation of {@link org.apache.calcite.rel.core.Intersect} in
+   * bindable calling convention. */
+  public static class BindableIntersect extends Intersect implements BindableRel {
+    public BindableIntersect(RelOptCluster cluster, RelTraitSet traitSet,
+        List<RelNode> inputs, boolean all) {
+      super(cluster, traitSet, inputs, all);
+    }
+
+    public BindableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+      return new BindableIntersect(getCluster(), traitSet, inputs, all);
+    }
+
+    public Class<Object[]> getElementType() {
+      return Object[].class;
+    }
+
+    public Enumerable<Object[]> bind(DataContext dataContext) {
+      return help(dataContext, this);
+    }
+
+    public Node implement(InterpreterImplementor implementor) {
+      return new SetOpNode(implementor.compiler, this);
+    }
+  }
+
+  /** Implementation of {@link org.apache.calcite.rel.core.Minus} in
+   * bindable calling convention. */
+  public static class BindableMinus extends Minus implements BindableRel {
+    public BindableMinus(RelOptCluster cluster, RelTraitSet traitSet,
+        List<RelNode> inputs, boolean all) {
+      super(cluster, traitSet, inputs, all);
+    }
+
+    public BindableMinus copy(RelTraitSet traitSet, List<RelNode> inputs, boolean all) {
+      return new BindableMinus(getCluster(), traitSet, inputs, all);
     }
 
     public Class<Object[]> getElementType() {
