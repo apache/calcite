@@ -77,6 +77,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -90,6 +91,7 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -689,14 +691,241 @@ public class RelBuilder {
     return call(operator, ImmutableList.copyOf(operands));
   }
 
-  /** Creates an IN. */
+  /** Creates an IN predicate with a list of values.
+   *
+   * <p>For example,
+   * <pre>{@code
+   * b.scan("Emp")
+   *     .filter(b.in(b.field("deptno"), b.literal(10), b.literal(20)))
+   * }</pre>
+   * is equivalent to SQL
+   * <pre>{@code
+   * SELECT *
+   * FROM Emp
+   * WHERE deptno IN (10, 20)
+   * }</pre> */
   public RexNode in(RexNode arg, RexNode... ranges) {
     return in(arg, ImmutableList.copyOf(ranges));
   }
 
-  /** Creates an IN. */
+  /** Creates an IN predicate with a list of values.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Emps")
+   *     .filter(
+   *         b.in(b.field("deptno"),
+   *             Arrays.asList(b.literal(10), b.literal(20))))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE deptno IN (10, 20)
+   * }</pre> */
   public RexNode in(RexNode arg, Iterable<? extends RexNode> ranges) {
     return getRexBuilder().makeIn(arg, ImmutableList.copyOf(ranges));
+  }
+
+  /** Creates an IN predicate with a sub-query. */
+  @Experimental
+  public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes) {
+    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates an IN predicate with a sub-query.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Emps")
+   *     .filter(
+   *         b.in(b.field("deptno"),
+   *             b2 -> b2.scan("Depts")
+   *                 .filter(
+   *                     b2.eq(b2.field("location"), b2.literal("Boston")))
+   *                 .project(b.field("deptno"))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE deptno IN (SELECT deptno FROM Dept WHERE location = 'Boston')
+   * }</pre> */
+  @Experimental
+  public RexNode in(RexNode arg, Function<RelBuilder, RelNode> f) {
+    final RelNode rel = f.apply(this);
+    return RexSubQuery.in(rel, ImmutableList.of(arg));
+  }
+
+  /** Creates a SOME (or ANY) predicate.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Emps")
+   *     .filter(
+   *         b.some(b.field("commission"),
+   *             SqlStdOperatorTable.GREATER_THAN,
+   *             b2 -> b2.scan("Emps")
+   *                 .filter(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .project(b2.field("sal"))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE commission > SOME (SELECT sal FROM Emps WHERE job = 'Manager')
+   * }</pre>
+   *
+   * <p>or (since {@code SOME} and {@code ANY} are synonyms) the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE commission > ANY (SELECT sal FROM Emps WHERE job = 'Manager')
+   * }</pre> */
+  @Experimental
+  public RexSubQuery some(RexNode node, SqlOperator op,
+      Function<RelBuilder, RelNode> f) {
+    return some_(node, op.kind, f);
+  }
+
+  private RexSubQuery some_(RexNode node, SqlKind kind,
+      Function<RelBuilder, RelNode> f) {
+    final RelNode rel = f.apply(this);
+    final SqlQuantifyOperator quantifyOperator =
+        SqlStdOperatorTable.some(kind);
+    return RexSubQuery.some(rel, ImmutableList.of(node), quantifyOperator);
+  }
+
+  /** Creates an ALL predicate.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Emps")
+   *     .filter(
+   *         b.all(b.field("commission"),
+   *             SqlStdOperatorTable.GREATER_THAN,
+   *             b2 -> b2.scan("Emps")
+   *                 .filter(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .project(b2.field("sal"))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE commission > ALL (SELECT sal FROM Emps WHERE job = 'Manager')
+   * }</pre>
+   *
+   * <p>Calcite translates {@code ALL} predicates to {@code NOT SOME}. The
+   * following SQL is equivalent to the previous:
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Emps
+   * WHERE NOT (commission <= SOME (SELECT sal FROM Emps WHERE job = 'Manager'))
+   * }</pre> */
+  @Experimental
+  public RexNode all(RexNode node, SqlOperator op,
+      Function<RelBuilder, RelNode> f) {
+    return not(some_(node, op.kind.negateNullSafe(), f));
+  }
+
+  /** Creates an EXISTS predicate.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .filter(
+   *         b.exists(b2 ->
+   *             b2.scan("Emps")
+   *                 .filter(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Depts
+   * WHERE EXISTS (SELECT 1 FROM Emps WHERE job = 'Manager')
+   * }</pre> */
+  @Experimental
+  public RexSubQuery exists(Function<RelBuilder, RelNode> f) {
+    final RelNode rel = f.apply(this);
+    return RexSubQuery.exists(rel);
+  }
+
+  /** Creates a UNIQUE predicate.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .filter(
+   *         b.exists(b2 ->
+   *             b2.scan("Emps")
+   *                 .filter(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .project(b2.field("deptno")
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT *
+   * FROM Depts
+   * WHERE UNIQUE (SELECT deptno FROM Emps WHERE job = 'Manager')
+   * }</pre> */
+  @Experimental
+  public RexSubQuery unique(Function<RelBuilder, RelNode> f) {
+    final RelNode rel = f.apply(this);
+    return RexSubQuery.unique(rel);
+  }
+
+  /** Creates a scalar sub-query.
+   *
+   * <p>For example,
+   *
+   * <pre>{@code
+   * b.scan("Depts")
+   *     .project(
+   *         b.field("deptno")
+   *         b.scalarQuery(b2 ->
+   *             b2.scan("Emps")
+   *                 .aggregate(
+   *                     b2.eq(b2.field("job"), b2.literal("Manager")))
+   *                 .build()))
+   * }</pre>
+   *
+   * <p>is equivalent to the SQL
+   *
+   * <pre>{@code
+   * SELECT deptno, (SELECT MAX(sal) FROM Emps)
+   * FROM Depts
+   * }</pre> */
+  @Experimental
+  public RexSubQuery scalarQuery(Function<RelBuilder, RelNode> f) {
+    return RexSubQuery.scalar(f.apply(this));
   }
 
   /** Creates an AND. */
