@@ -81,6 +81,17 @@ dependencies {
     testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }
 
+// There are users that reuse/extend test code (e.g. Apache Felix)
+// So publish test jar to Nexus repository
+// TODO: remove when calcite-test-framework is extracted to a standalone artifact
+publishing {
+    publications {
+        named<MavenPublication>(project.name) {
+            artifact(tasks.testJar.get())
+        }
+    }
+}
+
 tasks.jar {
     CrLfSpec(LineEndings.LF).run {
         into("codegen") {
