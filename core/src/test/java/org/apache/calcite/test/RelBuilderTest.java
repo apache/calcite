@@ -2431,6 +2431,184 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testInQuery() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno IN (
+    //     SELECT deptno
+    //     FROM dept
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.in(b.field("DEPTNO"),
+                    b2 ->
+                        b2.scan("DEPT")
+                            .filter(
+                                b2.equals(b2.field("DNAME"),
+                                    b2.literal("Accounting")))
+                            .project(b2.field("DEPTNO"))
+                            .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[IN($7, {\n"
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testExists() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT null
+    //     FROM dept
+    //     WHERE dname = 'Accounting')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.exists(b2 ->
+                    b2.scan("DEPT")
+                        .filter(
+                            b2.equals(b2.field("DNAME"),
+                                b2.literal("Accounting")))
+                        .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testExistsCorrelated() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT null
+    //     FROM dept
+    //     WHERE deptno = emp.deptno)
+    final Function<RelBuilder, RelNode> f = b -> {
+      final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+      return b.scan("EMP")
+          .variable(v)
+          .filter(ImmutableList.of(v.get().id),
+              b.exists(b2 ->
+                  b2.scan("DEPT")
+                      .filter(
+                          b2.equals(b2.field("DEPTNO"),
+                              b2.field(v.get(), "DEPTNO")))
+                      .build()))
+          .build();
+    };
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})], variablesSet=[[$cor0]])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testSomeAll() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > SOME (SELECT comm FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.some(b.field("SAL"),
+                    SqlStdOperatorTable.GREATER_THAN,
+                    b2 ->
+                        b2.scan("EMP")
+                            .project(b2.field("COMM"))
+                        .build()))
+            .build();
+
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE NOT (sal <= ALL (SELECT comm FROM emp))
+    final Function<RelBuilder, RelNode> f2 = b ->
+        b.scan("EMP")
+            .filter(
+                b.not(
+                    b.all(b.field("SAL"),
+                        SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
+                        b2 ->
+                            b2.scan("EMP")
+                                .project(b2.field("COMM"))
+                                .build())))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[> SOME($5, {\n"
+        + "LogicalProject(COMM=[$6])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f2.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testUnique() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM dept
+    //   WHERE UNIQUE (SELECT deptno FROM emp WHERE job = 'MANAGER')
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("DEPT")
+            .filter(
+                b.unique(b2 ->
+                    b2.scan("EMP")
+                        .filter(
+                            b2.equals(b2.field("JOB"),
+                                b2.literal("MANAGER")))
+                        .build()))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[UNIQUE({\n"
+        + "LogicalFilter(condition=[=($2, 'MANAGER')])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  @Test void testScalarQuery() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > (
+    //     SELECT AVG(sal)
+    //     FROM emp)
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .filter(
+                b.greaterThan(b.field("SAL"),
+                    b.scalarQuery(b2 ->
+                        b2.scan("EMP")
+                            .aggregate(b2.groupKey(),
+                                b2.avg(b2.field("SAL")))
+                            .build())))
+            .build();
+
+    final String expected = "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], agg#0=[AVG($5)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "}))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
   @Test void testAlias() {
     // Equivalent SQL:
     //   SELECT *
