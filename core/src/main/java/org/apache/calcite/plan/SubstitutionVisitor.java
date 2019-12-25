@@ -17,6 +17,8 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -35,6 +37,7 @@ import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.mutable.MutableSetOp;
+import org.apache.calcite.rel.mutable.MutableSort;
 import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -138,6 +141,7 @@ public class SubstitutionVisitor {
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
           AggregateOnCalcToAggregateUnifyRule.INSTANCE,
+          SortOnCalcToSortUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE,
           IntersectToIntersectUnifyRule.INSTANCE,
@@ -1429,6 +1433,48 @@ public class SubstitutionVisitor {
         return tryMergeParentCalcAndGenResult(call, compensatingCalc);
       }
       return null;
+    }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableSort}
+   * which has {@link MutableCalc} as child to a {@link MutableSort}.
+   * We try to pull up the {@link MutableCalc} to top of {@link MutableSort},
+   * then match the {@link MutableSort} in query to {@link MutableSort} in target.
+   */
+  private static class SortOnCalcToSortUnifyRule extends AbstractUnifyRule {
+
+    public static final SortOnCalcToSortUnifyRule INSTANCE =
+        new SortOnCalcToSortUnifyRule();
+
+    private SortOnCalcToSortUnifyRule() {
+      super(operand(MutableSort.class, operand(MutableCalc.class, query(0))),
+          operand(MutableSort.class, target(0)), 1);
+    }
+
+    @Override protected UnifyResult apply(UnifyRuleCall call) {
+      final MutableSort query = (MutableSort) call.query;
+      final MutableCalc qInput = (MutableCalc) query.getInput();
+      final Pair<RexNode, List<RexNode>> qInputExplained = explainCalc(qInput);
+      final List<RexNode> qInputProjs = qInputExplained.right;
+
+      final MutableSort target = (MutableSort) call.target;
+      if (!Objects.equals(query.fetch, target.fetch)
+          || !Objects.equals(query.offset, target.offset)) {
+        return null;
+      }
+      final Mappings.TargetMapping mapping =
+          Project.getMapping(fieldCnt(qInput.getInput()), qInputProjs);
+      if (mapping == null) {
+        return null;
+      }
+      RelCollation collation = RelCollations.permute(query.collation, mapping.inverse());
+      if (!target.collation.satisfies(collation)) {
+        return null;
+      }
+      MutableCalc calc = MutableCalc.of(target, qInput.program);
+
+      return tryMergeParentCalcAndGenResult(call, calc);
     }
   }
 

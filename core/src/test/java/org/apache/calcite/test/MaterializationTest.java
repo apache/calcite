@@ -540,6 +540,98 @@ class MaterializationTest {
         .ok();
   }
 
+  @Test public void testSort1() {
+    final String mv = "select \"deptno\", \"commission\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query = "select \"commission\", \"deptno\"  "
+        + "from \"emps\" order by \"commission\"";
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+  }
+
+  @Test public void testSort2() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\"";
+    final String query = "select \"deptno\" "
+        + "from \"emps\" order by \"empid\"";
+    checkMaterialize(mv, query, true);
+  }
+
+  @Test public void testSort3() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\", \"deptno\"";
+    final String query = "select \"deptno\" "
+        + "from \"emps\" order by \"empid\"";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testSort4() {
+    final String mv  = "select \"deptno\", \"empid\", "
+        + "\"salary\" from \"emps\" order by \"empid\"";
+    final String query = "select \"empid\", \"salary\", "
+        + "\"deptno\" from \"emps\" order by \"empid\"";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testSort5() {
+    final String mv = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"empid\", \"deptno\"";
+
+    final String query0 = "select \"empid\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query1 = "select \"deptno\" "
+        + "from \"emps\" order by \"deptno\" desc";
+    checkNoMaterialize(mv, query0, HR_FKUK_MODEL);
+    checkNoMaterialize(mv, query1, HR_FKUK_MODEL);
+  }
+
+  @Test public void testSort6() {
+    final String mv0 = "select \"deptno\", \"empid\" "
+        + "from \"emps\" order by \"deptno\"";
+    final String query0 = "select \"empid\", \"deptno\", \"salary\" "
+        + "from \"emps\" order by \"deptno\"";
+    checkNoMaterialize(mv0, query0, HR_FKUK_MODEL);
+  }
+
+  @Test public void testSort7() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testSort8() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "offset 5";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "offset 5";
+    checkMaterialize(mv, query);
+  }
+
+  @Test public void testSort9() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 3 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 4 offset 1";
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+  }
+
+  @Test public void testSort10() {
+    final String mv = "select \"deptno\", \"empid\", \"salary\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5 offset 1";
+    final String query = "select \"empid\", \"deptno\" "
+        + "from \"emps\" order by \"empid\" "
+        + "limit 5";
+    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+  }
+
   /** Aggregation query at same level of aggregation as aggregation
    * materialization. */
   @Test void testAggregate0() {
