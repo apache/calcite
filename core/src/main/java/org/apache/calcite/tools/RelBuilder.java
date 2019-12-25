@@ -77,6 +77,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSimplify;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.rex.RexWindowBounds;
@@ -89,6 +90,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -2641,6 +2643,26 @@ public class RelBuilder {
    * @see #antiJoin(Iterable) */
   public RelBuilder antiJoin(RexNode... conditions) {
     return antiJoin(ImmutableList.copyOf(conditions));
+  }
+
+  /** Creates an IN sub-query. */
+  public RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes) {
+    return RexSubQuery.in(rel, nodes);
+  }
+
+  /** Creates an SOME sub-query. */
+  public RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes, SqlQuantifyOperator op) {
+    return RexSubQuery.some(rel, nodes, op);
+  }
+
+  /** Creates an EXISTS sub-query. */
+  public RexSubQuery exists(RelNode rel) {
+    return RexSubQuery.exists(rel);
+  }
+
+  /** Creates a scalar sub-query. */
+  public RexSubQuery scalar(RelNode rel) {
+    return RexSubQuery.scalar(rel);
   }
 
   /** Assigns a table alias to the top entry on the stack. */
