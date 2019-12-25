@@ -3048,4 +3048,30 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
+
+  @Test public void testRexSubQueryIn() {
+
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder.scan("EMP")
+        .filter(
+            builder.in(
+                builder.scan("DEPT")
+                    .filter(
+                        builder.call(SqlStdOperatorTable.EQUALS,
+                            builder.field("DNAME"),
+                            builder.literal("AAA")))
+                    .project(builder.field("DEPTNO"))
+                    .build(),
+                ImmutableList.of(builder.field("DEPTNO"))))
+        .build();
+
+    final String expected = "LogicalFilter(condition=[IN($7, {\n"
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalFilter(condition=[=($1, 'AAA')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(root, hasTree(expected));
+  }
 }

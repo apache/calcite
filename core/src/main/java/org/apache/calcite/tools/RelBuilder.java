@@ -61,22 +61,14 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexSimplify;
-import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rex.*;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.TransientTable;
 import org.apache.calcite.schema.impl.ListTransientTable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlQuantifyOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1051,6 +1043,29 @@ public class RelBuilder {
     final RelDataType t = getTypeFactory().createSqlType(SqlTypeName.NULL);
     return getRexBuilder().makeCall(t, SqlStdOperatorTable.PATTERN_EXCLUDE,
         ImmutableList.of(node));
+  }
+
+  // Methods that create RexSubQuery
+
+
+  /** Creates an IN sub-query. */
+  public RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes) {
+    return RexSubQuery.in(rel, nodes);
+  }
+
+  /** Creates an SOME sub-query. */
+  public RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes, SqlQuantifyOperator op) {
+    return RexSubQuery.some(rel, nodes, op);
+  }
+
+  /** Creates an EXISTS sub-query. */
+  public RexSubQuery exists(RelNode rel) {
+    return RexSubQuery.exists(rel);
+  }
+
+  /** Creates a scalar sub-query. */
+  public RexSubQuery scalar(RelNode rel) {
+    return RexSubQuery.scalar(rel);
   }
 
   // Methods that create relational expressions
