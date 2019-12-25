@@ -48,7 +48,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
-import org.apache.calcite.util.*;
+import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimeWithTimeZone;
+import org.apache.calcite.util.TimestampWithTimeZone;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

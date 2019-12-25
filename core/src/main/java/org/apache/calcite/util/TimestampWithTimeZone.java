@@ -41,6 +41,13 @@ public class TimestampWithTimeZone implements Comparable<TimestampWithTimeZone>,
     this.timeZone = timeZone;
   }
 
+  /**
+   * Constructor. Obtains an instance of {@link TimestampWithTimeZone} from a millisecond of
+   * zoneless timestmap and a valid time-zone id.
+   *
+   * @param millisecond the number of milliseconds of a zoneless timestamp.
+   * @param tz the time-zone id to use.
+   */
   public TimestampWithTimeZone(long millisecond, String tz) {
     this.millisecond = millisecond;
     this.timeZone = TimeZone.getTimeZone(tz);
@@ -86,7 +93,7 @@ public class TimestampWithTimeZone implements Comparable<TimestampWithTimeZone>,
       return false;
     }
     TimestampWithTimeZone that = (TimestampWithTimeZone) obj;
-    return this.millisecond == that.millisecond && this.timeZone == that.timeZone;
+    return this.millisecond == that.millisecond && this.timeZone.equals(that.timeZone);
   }
 
   @Override public String toString() {

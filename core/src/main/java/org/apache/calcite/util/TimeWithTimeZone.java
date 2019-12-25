@@ -41,6 +41,12 @@ public class TimeWithTimeZone implements Comparable<TimeWithTimeZone>, Serializa
     this.timeZone = timeZone;
   }
 
+  /**
+   * Constructor. Obtains an instance of {@link TimeWithTimeZone} from a millisecond of day
+   * and a valid time-zone id.
+   * @param milliOfDay the number of milliseconds of the day.
+   * @param tz the time-zone id to use.
+   */
   public TimeWithTimeZone(int milliOfDay, String tz) {
     this.milliOfDay = milliOfDay;
     this.timeZone = TimeZone.getTimeZone(tz);
@@ -86,7 +92,7 @@ public class TimeWithTimeZone implements Comparable<TimeWithTimeZone>, Serializa
       return false;
     }
     TimeWithTimeZone that = (TimeWithTimeZone) obj;
-    return milliOfDay == that.milliOfDay && timeZone == that.timeZone;
+    return milliOfDay == that.milliOfDay && timeZone.equals(that.timeZone);
   }
 
   @Override public String toString() {

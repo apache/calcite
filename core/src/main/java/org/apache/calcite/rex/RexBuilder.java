@@ -1368,7 +1368,7 @@ public class RexBuilder {
     case TIME_WITH_TIME_ZONE:
       return new TimeWithTimeZoneString(0, 0, 0, "UTC");
     case TIMESTAMP_WITH_TIME_ZONE:
-      return new TimestampWithTimeZoneString(0, 0, 0, 0, 0, 0, "UTC");
+      return new TimestampWithTimeZoneString(1970, 1, 1, 0, 0, 0, "UTC");
     default:
       throw Util.unexpected(type.getSqlTypeName());
     }
