@@ -29,9 +29,9 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -57,7 +57,7 @@ import static org.junit.Assume.assumeTrue;
 @NotThreadSafe
 public class CassandraAdapterTest {
 
-  @ClassRule
+  @RegisterExtension
   public static final ExternalResource RULE = initCassandraIfEnabled();
 
   /** Connection factory based on the "mongo-zips" model. */
@@ -119,7 +119,7 @@ public class CassandraAdapterTest {
     return rule;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     // run tests only if explicitly enabled
     assumeTrue("test explicitly disabled", enabled());
