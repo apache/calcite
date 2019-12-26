@@ -18,6 +18,7 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,10 +34,16 @@ import java.util.stream.Collectors;
  *
  * <p>Basic hint grammar is: hint_name[(option1, option2 ...)].
  * The hint_name should be a simple identifier, the options part is optional.
- * For every option, it can be a simple identifier or a key value pair whose key
- * is a simple identifier and value is a string literal. The identifier option and key
- * value pair can not be mixed in, they should be either all simple identifiers
- * or all key value pairs.
+ * Every option can be of three formats:
+ *
+ * <ul>
+ *   <li>a simple identifier</li>
+ *   <li>a literal</li>
+ *   <li>a key value pair whose key is a simple identifier and value is a string literal</li>
+ * </ul>
+ *
+ * <p>The option format can not be mixed in, they should either be all simple identifiers
+ * or all literals or all key value pairs.
  *
  * <p>We support 2 kinds of hints in the parser:
  * <ul>
@@ -95,12 +102,24 @@ public class SqlHint extends SqlCall {
 
   /**
    * Returns a string list if the hint option is a list of
-   * simple SQL identifier, else an empty list.
+   * simple SQL identifier, or a list of literals,
+   * else returns an empty list.
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
       final List<String> attrs = options.getList().stream()
           .map(node -> ((SqlIdentifier) node).getSimple())
+          .collect(Collectors.toList());
+      return ImmutableList.copyOf(attrs);
+    } else if (optionFormat == HintOptionFormat.LITERAL_LIST) {
+      final List<String> attrs = options.getList().stream()
+          .map(node -> {
+            SqlLiteral literal = (SqlLiteral) node;
+            Comparable<?> comparable = SqlLiteral.value(literal);
+            return comparable instanceof NlsString
+                ? ((NlsString) comparable).getValue()
+                : comparable.toString();
+          })
           .collect(Collectors.toList());
       return ImmutableList.copyOf(attrs);
     } else {
@@ -137,7 +156,7 @@ public class SqlHint extends SqlCall {
         SqlNode nextOption = i < options.size() - 1 ? options.get(i + 1) : null;
         writer.sep(",", false);
         option.unparse(writer, leftPrec, rightPrec);
-        if (nextOption instanceof SqlLiteral) {
+        if (optionFormat == HintOptionFormat.KV_LIST && nextOption != null) {
           writer.print("=");
           nextOption.unparse(writer, leftPrec, rightPrec);
           i += 1;
@@ -153,6 +172,10 @@ public class SqlHint extends SqlCall {
      * The hint has no options.
      */
     EMPTY,
+    /**
+     * The hint options are as literal list.
+     */
+    LITERAL_LIST,
     /**
      * The hint options are as simple identifier list.
      */
@@ -171,6 +194,9 @@ public class SqlHint extends SqlCall {
     if (options.size() == 0) {
       return HintOptionFormat.EMPTY;
     }
+    if (options.getList().stream().allMatch(opt -> opt instanceof SqlLiteral)) {
+      return HintOptionFormat.LITERAL_LIST;
+    }
     if (options.getList().stream().allMatch(opt -> opt instanceof SqlIdentifier)) {
       return HintOptionFormat.ID_LIST;
     }
@@ -178,6 +204,7 @@ public class SqlHint extends SqlCall {
       return HintOptionFormat.KV_LIST;
     }
     throw new AssertionError("The hint options should either be empty, "
+        + "or literal list, "
         + "or simple identifier list, "
         + "or key-value pairs whose pair key is simple identifier and value is string literal.");
   }

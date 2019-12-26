@@ -1066,13 +1066,11 @@ SqlNodeList ParenthesizedKeyValueOptionCommaList() :
 {
     { s = span(); }
     <LPAREN>
-    [
+    KeyValueOption(list)
+    (
+        <COMMA>
         KeyValueOption(list)
-        (
-            <COMMA>
-            KeyValueOption(list)
-        )*
-    ]
+    )*
     <RPAREN> {
         return new SqlNodeList(list, s.end(this));
     }
@@ -1096,45 +1094,100 @@ void KeyValueOption(List<SqlNode> list) :
     }
 }
 
+/**
+* Parses an option value, it's either a string or a numeric.
+*/
+SqlNode OptionValue() :
+{
+    final SqlNode value;
+}
+{
+    (
+        value = NumericLiteral()
+    |
+        value = StringLiteral()
+    )
+    {
+        return value;
+    }
+}
+
+/**
+ * Parses a literal list separated by comma. The literal is either a string or a numeric.
+ */
+SqlNodeList ParenthesizedLiteralOptionCommaList() :
+{
+    final Span s;
+    final List<SqlNode> list = new ArrayList<SqlNode>();
+    SqlNode optionVal;
+}
+{
+    { s = span(); }
+    <LPAREN>
+    optionVal = OptionValue()
+    {
+        list.add(optionVal);
+    }
+    (
+        <COMMA>
+        optionVal = OptionValue()
+        {
+            list.add(optionVal);
+        }
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
 void CommaSepatatedSqlHints(List<SqlNode> hints) :
 {
     SqlIdentifier hintName;
     SqlNodeList hintOptions;
+    SqlNode optionVal;
 }
 {
     hintName = SimpleIdentifier()
     (   LOOKAHEAD(5)
-        hintOptions = ParenthesizedKeyValueOptionCommaList() {
-            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
-        }
+        hintOptions = ParenthesizedKeyValueOptionCommaList()
     |
-        hintOptions = ParenthesizedSimpleIdentifierList() {
-            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
-        }
+        LOOKAHEAD(3)
+        hintOptions = ParenthesizedSimpleIdentifierList()
     |
+        LOOKAHEAD(3)
+        hintOptions = ParenthesizedLiteralOptionCommaList()
+    |
+        LOOKAHEAD(2)
+        [<LPAREN> <RPAREN>]
         {
             hintOptions = SqlNodeList.EMPTY;
-            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
         }
     )
+    {
+        hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+    }
     (
         <COMMA>
         hintName = SimpleIdentifier()
         (
             LOOKAHEAD(5)
-            hintOptions = ParenthesizedKeyValueOptionCommaList() {
-                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
-            }
+            hintOptions = ParenthesizedKeyValueOptionCommaList()
         |
-            hintOptions = ParenthesizedSimpleIdentifierList() {
-                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
-            }
+            LOOKAHEAD(3)
+            hintOptions = ParenthesizedSimpleIdentifierList()
         |
+            LOOKAHEAD(3)
+            hintOptions = ParenthesizedLiteralOptionCommaList()
+        |
+            LOOKAHEAD(2)
+            [<LPAREN> <RPAREN>]
             {
                 hintOptions = SqlNodeList.EMPTY;
-                hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
             }
         )
+        {
+            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+        }
     )*
 }
 
