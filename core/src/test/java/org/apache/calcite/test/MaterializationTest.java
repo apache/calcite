@@ -2837,6 +2837,7 @@ public class MaterializationTest {
     checkNoMaterialize(sql0 + " union " + sql1, sql0 + " union all " + sql1,
         HR_FKUK_MODEL);
   }
+
   @Test public void testUnionOnCalcsToUnion() {
     String mv = ""
         + "select \"deptno\", \"salary\"\n"
@@ -2855,6 +2856,26 @@ public class MaterializationTest {
         + "from \"emps\"\n"
         + "where \"empid\" < 100 and \"salary\" > 100";
     checkMaterialize(mv, query);
+  }
+
+  @Test public void testIntersectToIntersect0() {
+    final String mv = ""
+        + "select \"deptno\" from\n"
+        + "\"emps\" intersect select \"deptno\"  from \"depts\"";
+    final String query = ""
+        + "select \"deptno\" from\n"
+        + "\"depts\" intersect select \"deptno\" from \"emps\"";
+    checkMaterialize(mv, query, true);
+  }
+
+  @Test public void testIntersectToIntersect1() {
+    final String mv = ""
+        + "select \"deptno\" from\n"
+        + "\"emps\" intersect all select \"deptno\"  from \"depts\"";
+    final String query = ""
+        + "select \"deptno\" from\n"
+        + "\"depts\" intersect all select \"deptno\" from \"emps\"";
+    checkMaterialize(mv, query, true);
   }
 
   private static <E> List<List<List<E>>> list3(E[][][] as) {
