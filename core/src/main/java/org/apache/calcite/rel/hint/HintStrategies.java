@@ -45,6 +45,11 @@ public abstract class HintStrategies {
   public static final HintStrategy AGGREGATE =
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.AGGREGATE);
 
+  /** A hint strategy that indicates a hint can only be used to
+   * {@link org.apache.calcite.rel.core.Calc} nodes. */
+  public static final HintStrategy CALC =
+      new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.CALC);
+
   /**
    * Create a hint strategy from a specific matcher whose rules are totally customized.
    *

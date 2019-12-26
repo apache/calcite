@@ -38,7 +38,8 @@ public class CompositeHintStrategy implements HintStrategy {
   private Composition composition;
 
   /**
-   * Creates a HintStrategyCascade with a {@link Composition} and an array of hint strategies.
+   * Creates a {@link CompositeHintStrategy} with a {@link Composition}
+   * and an array of hint strategies.
    *
    * <p>Make this constructor package-protected intentionally.
    * Use utility methods in {@link HintStrategies}

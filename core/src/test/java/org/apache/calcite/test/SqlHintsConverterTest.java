@@ -34,11 +34,13 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategies;
 import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -46,6 +48,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlMerge;
@@ -68,6 +71,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
@@ -311,6 +315,23 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testHintsForCalc() {
+    final String sql = "select /*+ resource(mem='1024MB')*/ ename, sal, deptno from emp";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelHint hint = RelHint.of(
+        Collections.emptyList(),
+        "RESOURCE",
+        new HashMap<String, String>() {{ put("MEM", "1024MB"); }});
+    // planner rule to convert Project to Calc.
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    RelNode newRel = planner.findBestExp();
+    new ValidateHintVisitor(hint, Calc.class).go(newRel);
+  }
+
   @Test public void testHintsPropagationInHepPlannerRules() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
@@ -461,7 +482,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     }
   }
 
-  /** A visitor to validate the join node has specific hint. **/
+  /** A visitor to validate a hintable node has specific hint. **/
   private static class ValidateHintVisitor extends RelVisitor {
     private RelHint expectedHint;
     private Class<?> clazz;
@@ -482,9 +503,9 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         int ordinal,
         RelNode parent) {
       if (clazz.isInstance(node)) {
-        Join join = (Join) node;
-        assertThat(join.getHints().size(), is(1));
-        assertThat(join.getHints().get(0), is(expectedHint));
+        Hintable rel = (Hintable) node;
+        assertThat(rel.getHints().size(), is(1));
+        assertThat(rel.getHints().get(0), is(expectedHint));
       }
       super.visit(node, ordinal, parent);
     }
@@ -611,7 +632,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .addHintStrategy("properties", HintStrategies.TABLE_SCAN)
         .addHintStrategy(
             "resource", HintStrategies.or(
-            HintStrategies.PROJECT, HintStrategies.AGGREGATE))
+            HintStrategies.PROJECT, HintStrategies.AGGREGATE, HintStrategies.CALC))
         .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
           HintStrategies.and(HintStrategies.JOIN,
