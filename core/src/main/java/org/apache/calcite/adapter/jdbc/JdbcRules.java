@@ -765,10 +765,10 @@ public class JdbcRules {
      */
     public RelNode convert(Sort sort, boolean convertInputTraits) {
       final RelTraitSet traitSet = sort.getTraitSet().replace(out);
-      final RelTraitSet inputTraitSet = sort.getInput().getTraitSet().replace(out);
 
       final RelNode input;
       if (convertInputTraits) {
+        final RelTraitSet inputTraitSet = sort.getInput().getTraitSet().replace(out);
         input = convert(sort.getInput(), inputTraitSet);
       } else {
         input = sort.getInput();
