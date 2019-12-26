@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -38,18 +40,44 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
+import java.util.Collections;
 import java.util.List;
 
 /**
  * <code>Calc</code> is an abstract base class for implementations of
  * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  */
-public abstract class Calc extends SingleRel {
+public abstract class Calc extends SingleRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
+
+  protected final ImmutableList<RelHint> hints;
 
   protected final RexProgram program;
 
   //~ Constructors -----------------------------------------------------------
+  /**
+   * Creates a Calc.
+   *
+   * @param cluster Cluster
+   * @param traits Traits
+   * @param hints Hints of this relational expression
+   * @param child Input relation
+   * @param program Calc program
+   */
+  protected Calc(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelHint> hints,
+      RelNode child,
+      RexProgram program) {
+    super(cluster, traits, child);
+    this.rowType = program.getOutputRowType();
+    this.program = program;
+    this.hints = ImmutableList.copyOf(hints);
+    assert isValid(Litmus.THROW, null);
+  }
 
   /**
    * Creates a Calc.
@@ -64,10 +92,7 @@ public abstract class Calc extends SingleRel {
       RelTraitSet traits,
       RelNode child,
       RexProgram program) {
-    super(cluster, traits, child);
-    this.rowType = program.getOutputRowType();
-    this.program = program;
-    assert isValid(Litmus.THROW, null);
+    this(cluster, traits, Collections.emptyList(), child, program);
   }
 
   @Deprecated // to be removed before 2.0
@@ -132,6 +157,10 @@ public abstract class Calc extends SingleRel {
 
   public RexProgram getProgram() {
     return program;
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 
   @Override public double estimateRowCount(RelMetadataQuery mq) {
