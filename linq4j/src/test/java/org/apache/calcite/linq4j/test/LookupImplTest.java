@@ -25,13 +25,13 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for LookupImpl.java
  *
  */
-public class LookupImplTest extends TestCase {
+public class LookupImplTest {
 
   private Lookup<Integer, String> impl;
 
