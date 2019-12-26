@@ -98,6 +98,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -3630,6 +3631,17 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testPushCountFilterThroughUnion() {
     basePushAggThroughUnion();
+  }
+
+  @Test void testPushBoolAndBoolOrThroughUnion() {
+    sql("${sql}")
+        .withContext(c ->
+            Contexts.of(
+                SqlValidatorTest.operatorTableFor(SqlLibrary.POSTGRESQL), c))
+        .withRule(CoreRules.PROJECT_SET_OP_TRANSPOSE,
+            CoreRules.PROJECT_MERGE,
+            CoreRules.AGGREGATE_UNION_TRANSPOSE)
+        .check();
   }
 
   @Test void testPullFilterThroughAggregate() {

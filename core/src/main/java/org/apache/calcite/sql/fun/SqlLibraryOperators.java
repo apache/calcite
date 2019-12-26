@@ -18,6 +18,7 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -242,6 +243,30 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.INTEGER_NULLABLE
               .andThen(SqlTypeTransforms.FORCE_NULLABLE), null,
           OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+
+  /** The "BOOL_AND(condition)" aggregate function, PostgreSQL and Redshift's
+   * equivalent to {@link SqlStdOperatorTable#EVERY}. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlAggFunction BOOL_AND =
+      new SqlMinMaxAggFunction("BOOL_AND", SqlKind.MIN, OperandTypes.BOOLEAN);
+
+  /** The "BOOL_OR(condition)" aggregate function, PostgreSQL and Redshift's
+   * equivalent to {@link SqlStdOperatorTable#SOME}. */
+  @LibraryOperator(libraries = {POSTGRESQL})
+  public static final SqlAggFunction BOOL_OR =
+      new SqlMinMaxAggFunction("BOOL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
+
+  /** The "LOGICAL_AND(condition)" aggregate function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#EVERY}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction LOGICAL_AND =
+      new SqlMinMaxAggFunction("LOGICAL_AND", SqlKind.MIN, OperandTypes.BOOLEAN);
+
+  /** The "LOGICAL_OR(condition)" aggregate function, BigQuery's
+   * equivalent to {@link SqlStdOperatorTable#SOME}. */
+  @LibraryOperator(libraries = {BIG_QUERY})
+  public static final SqlAggFunction LOGICAL_OR =
+      new SqlMinMaxAggFunction("LOGICAL_OR", SqlKind.MAX, OperandTypes.BOOLEAN);
 
   /** The "DATE(string)" function, equivalent to "CAST(string AS DATE). */
   @LibraryOperator(libraries = {BIG_QUERY})

@@ -101,6 +101,8 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_AND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BOOL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
@@ -122,6 +124,8 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_AND;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.LOGICAL_OR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
@@ -628,6 +632,10 @@ public class RexImpTable {
     aggMap.put(ANY_VALUE, minMax);
     aggMap.put(SOME, minMax);
     aggMap.put(EVERY, minMax);
+    aggMap.put(BOOL_AND, minMax);
+    aggMap.put(BOOL_OR, minMax);
+    aggMap.put(LOGICAL_AND, minMax);
+    aggMap.put(LOGICAL_OR, minMax);
     final Supplier<BitOpImplementor> bitop =
         constructorSupplier(BitOpImplementor.class);
     aggMap.put(BIT_AND, bitop);
@@ -1062,7 +1070,7 @@ public class RexImpTable {
         AggResetContext reset) {
       Expression acc = reset.accumulator().get(0);
       Primitive p = Primitive.of(acc.getType());
-      boolean isMin = MIN == info.aggregation();
+      final boolean isMin = info.aggregation().kind == SqlKind.MIN;
       Object inf = p == null ? null : (isMin ? p.max : p.min);
       reset.currentBlock().add(
           Expressions.statement(
@@ -1074,8 +1082,8 @@ public class RexImpTable {
         AggAddContext add) {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
-      SqlAggFunction aggregation = info.aggregation();
-      final Method method = (aggregation == MIN
+      final boolean isMin = info.aggregation().kind == SqlKind.MIN;
+      final Method method = (isMin
           ? BuiltInMethod.LESSER
           : BuiltInMethod.GREATER).method;
       Expression next = Expressions.call(

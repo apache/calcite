@@ -9153,6 +9153,146 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test void testBoolAndFunc() {
+    // not in standard dialect
+    final String[] values = {"true", "true", "null"};
+    tester.checkAggFails("^bool_and(x)^", values,
+        "No match found for function signature BOOL_AND\\(<BOOLEAN>\\)", false);
+
+    checkBoolAndFunc(libraryTester(SqlLibrary.POSTGRESQL));
+  }
+
+  void checkBoolAndFunc(SqlTester tester) {
+    tester.setFor(SqlLibraryOperators.BOOL_AND, VM_EXPAND);
+
+    tester.checkFails("bool_and(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bool_and(true)", "BOOLEAN");
+    tester.checkFails("^bool_and(1)^",
+        "Cannot apply 'BOOL_AND' to arguments of type 'BOOL_AND\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOL_AND\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails("^bool_and()^",
+        "Invalid number of arguments to function 'BOOL_AND'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^bool_and(true, true)^",
+        "Invalid number of arguments to function 'BOOL_AND'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("bool_and(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("bool_and(x)", values2, false, 0d);
+    String[] values3 = {"true", "false", "false"};
+    tester.checkAgg("bool_and(x)", values3, false, 0d);
+    String[] values4 = {"null"};
+    tester.checkAgg("bool_and(x)", values4, null, 0d);
+  }
+
+  @Test void testBoolOrFunc() {
+    // not in standard dialect
+    final String[] values = {"true", "true", "null"};
+    tester.checkAggFails("^bool_or(x)^", values,
+        "No match found for function signature BOOL_OR\\(<BOOLEAN>\\)", false);
+
+    checkBoolOrFunc(libraryTester(SqlLibrary.POSTGRESQL));
+  }
+
+  void checkBoolOrFunc(SqlTester tester) {
+    tester.setFor(SqlLibraryOperators.BOOL_OR, VM_EXPAND);
+
+    tester.checkFails("bool_or(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bool_or(true)", "BOOLEAN");
+    tester.checkFails("^bool_or(1)^",
+        "Cannot apply 'BOOL_OR' to arguments of type 'BOOL_OR\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOL_OR\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails("^bool_or()^",
+        "Invalid number of arguments to function 'BOOL_OR'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^bool_or(true, true)^",
+        "Invalid number of arguments to function 'BOOL_OR'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("bool_or(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("bool_or(x)", values2, true, 0d);
+    String[] values3 = {"false", "false", "false"};
+    tester.checkAgg("bool_or(x)", values3, false, 0d);
+    String[] values4 = {"null"};
+    tester.checkAgg("bool_or(x)", values4, null, 0d);
+  }
+
+  @Test void testLogicalAndFunc() {
+    // not in standard dialect
+    final String[] values = {"true", "true", "null"};
+    tester.checkAggFails("^logical_and(x)^", values,
+        "No match found for function signature LOGICAL_AND\\(<BOOLEAN>\\)", false);
+
+    checkLogicalAndFunc(libraryTester(SqlLibrary.BIG_QUERY));
+  }
+
+  void checkLogicalAndFunc(SqlTester tester) {
+    tester.setFor(SqlLibraryOperators.LOGICAL_AND, VM_EXPAND);
+
+    tester.checkFails("logical_and(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("logical_and(true)", "BOOLEAN");
+    tester.checkFails("^logical_and(1)^",
+        "Cannot apply 'LOGICAL_AND' to arguments of type 'LOGICAL_AND\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'LOGICAL_AND\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails("^logical_and()^",
+        "Invalid number of arguments to function 'LOGICAL_AND'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^logical_and(true, true)^",
+        "Invalid number of arguments to function 'LOGICAL_AND'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("logical_and(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("logical_and(x)", values2, false, 0d);
+    String[] values3 = {"true", "false", "false"};
+    tester.checkAgg("logical_and(x)", values3, false, 0d);
+    String[] values4 = {"null"};
+    tester.checkAgg("logical_and(x)", values4, null, 0d);
+  }
+
+  @Test void testLogicalOrFunc() {
+    // not in standard dialect
+    final String[] values = {"true", "true", "null"};
+    tester.checkAggFails("^logical_or(x)^", values,
+        "No match found for function signature LOGICAL_OR\\(<BOOLEAN>\\)", false);
+
+    checkLogicalOrFunc(libraryTester(SqlLibrary.BIG_QUERY));
+  }
+
+  void checkLogicalOrFunc(SqlTester tester) {
+    tester.setFor(SqlLibraryOperators.LOGICAL_OR, VM_EXPAND);
+
+    tester.checkFails("logical_or(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("logical_or(true)", "BOOLEAN");
+    tester.checkFails("^logical_or(1)^",
+        "Cannot apply 'LOGICAL_OR' to arguments of type 'LOGICAL_OR\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'LOGICAL_OR\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails("^logical_or()^",
+        "Invalid number of arguments to function 'LOGICAL_OR'. Was expecting 1 arguments",
+        false);
+    tester.checkFails("^logical_or(true, true)^",
+        "Invalid number of arguments to function 'LOGICAL_OR'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("logical_or(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("logical_or(x)", values2, true, 0d);
+    String[] values3 = {"false", "false", "false"};
+    tester.checkAgg("logical_or(x)", values3, false, 0d);
+    String[] values4 = {"null"};
+    tester.checkAgg("logical_or(x)", values4, null, 0d);
+  }
+
   @Test void testBitAndFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);

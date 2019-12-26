@@ -55,6 +55,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -1972,6 +1973,12 @@ public class SubstitutionVisitor {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.MIN
         || aggregation == SqlStdOperatorTable.MAX
+        || aggregation == SqlStdOperatorTable.SOME
+        || aggregation == SqlStdOperatorTable.EVERY
+        || aggregation == SqlLibraryOperators.BOOL_AND
+        || aggregation == SqlLibraryOperators.BOOL_OR
+        || aggregation == SqlLibraryOperators.LOGICAL_AND
+        || aggregation == SqlLibraryOperators.LOGICAL_OR
         || aggregation == SqlStdOperatorTable.SUM0
         || aggregation == SqlStdOperatorTable.ANY_VALUE) {
       return aggregation;

@@ -1207,7 +1207,7 @@ completeness.
 | value IN (sub-query)                              | Whether *value* is equal to a row returned by *sub-query*
 | value NOT IN (sub-query)                          | Whether *value* is not equal to every row returned by *sub-query*
 | value comparison SOME (sub-query)                 | Whether *value* *comparison* at least one row returned by *sub-query*
-| value comparison ANY (sub-query)                  | Synonym for SOME
+| value comparison ANY (sub-query)                  | Synonym for `SOME`
 | value comparison ALL (sub-query)                  | Whether *value* *comparison* every row returned by *sub-query*
 | EXISTS (sub-query)                                | Whether *sub-query* returns at least one row
 
@@ -2045,7 +2045,7 @@ implements the OpenGIS Simple Features Implementation Specification for SQL,
 
 | C | Operator syntax      | Description
 |:- |:-------------------- |:-----------
-| p | ST_AsText(geom) | Alias for `ST_AsWKT`
+| p | ST_AsText(geom) | Synonym for `ST_AsWKT`
 | o | ST_AsWKT(geom) | Converts *geom* → WKT
 | o | ST_GeomFromText(wkt [, srid ]) | Returns a specified GEOMETRY value from WKT representation
 | o | ST_LineFromText(wkt [, srid ]) | Converts WKT → LINESTRING
@@ -2085,7 +2085,7 @@ Not implemented:
 | h | ST_MakeGrid(geom, deltaX, deltaY) | Calculates a regular grid of POLYGONs based on *geom*
 | h | ST_MakeGridPoints(geom, deltaX, deltaY) | Calculates a regular grid of points based on *geom*
 | o | ST_MakeLine(point1 [, point ]*) | Creates a line-string from the given POINTs (or MULTIPOINTs)
-| p | ST_MakePoint(x, y [, z ]) | Alias for `ST_Point`
+| p | ST_MakePoint(x, y [, z ]) | Synonym for `ST_Point`
 | o | ST_Point(x, y [, z ]) | Constructs a point from two or three coordinates
 
 Not implemented:
@@ -2143,7 +2143,7 @@ Not implemented:
 * ST_IsValidReason(geom [, selfTouchValid ]) Returns text stating whether *geom* is valid, and if not valid, a reason why
 * ST_NPoints(geom) Returns the number of points in *geom*
 * ST_NumGeometries(geom) Returns the number of geometries in *geom* (1 if it is not a GEOMETRYCOLLECTION)
-* ST_NumInteriorRing(geom) Alias for `ST_NumInteriorRings`
+* ST_NumInteriorRing(geom) Synonym for `ST_NumInteriorRings`
 * ST_NumInteriorRings(geom) Returns the number of interior rings of *geom*
 * ST_NumPoints(lineString) Returns the number of points in *lineString*
 * ST_PointN(geom, n) Returns the *n*th point of a *lineString*
@@ -2326,7 +2326,7 @@ Not implemented:
 Not implemented:
 
 * ST_Accum(geom) Accumulates *geom* into a GEOMETRYCOLLECTION (or MULTIPOINT, MULTILINESTRING or MULTIPOLYGON if possible)
-* ST_Collect(geom) Alias for `ST_Accum`
+* ST_Collect(geom) Synonym for `ST_Accum`
 * ST_Union(geom) Computes the union of geometries
 
 ### JSON Functions
@@ -2508,6 +2508,15 @@ Note:
 * `JSON_LENGTH` defines a JSON value's length as follows:
   * A scalar value has length 1;
   * The length of array or object is the number of elements is contains.
+
+Dialect-specific aggregate functions.
+
+| C | Operator syntax                                | Description
+|:- |:-----------------------------------------------|:-----------
+| p | BOOL_AND(condition)                            | Synonym for `EVERY`
+| p | BOOL_OR(condition)                             | Synonym for `SOME`
+| b | LOGICAL_AND(condition)                         | Synonym for `EVERY`
+| b | LOGICAL_OR(condition)                          | Synonym for `SOME`
 
 Usage Examples:
 
