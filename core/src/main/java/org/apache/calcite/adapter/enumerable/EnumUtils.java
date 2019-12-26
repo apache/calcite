@@ -639,7 +639,7 @@ public class EnumUtils {
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
   }
 
-  /** Generates a window selector which appends attribute of the window bases on
+  /** Generates a window selector which appends attribute of the window based on
    * the parameters. */
   static Expression windowSelector(
       PhysType inputPhysType,

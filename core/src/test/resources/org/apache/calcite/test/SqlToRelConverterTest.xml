@@ -4802,6 +4802,20 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableValuedFunctionTumbleWithSubQueryParam">
+        <Resource name="sql">
+            <![CDATA[select *
+from table(tumble((select * from Shipments), descriptor(rowtime), INTERVAL '1' MINUTE))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[TUMBLE($1, DESCRIPTOR($1), 60000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTumbleTableRowtimeNotFirstColumn">
         <Resource name="sql">
             <![CDATA[select stream

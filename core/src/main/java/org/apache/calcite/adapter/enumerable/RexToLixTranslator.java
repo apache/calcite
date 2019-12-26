@@ -45,6 +45,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -167,17 +168,14 @@ public class RexToLixTranslator {
         .translateList(program.getProjectList(), storageTypes);
   }
 
-  public static List<Expression> translateWindowTableFunctionParams(JavaTypeFactory typeFactory,
-      SqlConformance conformance,
-      BlockBuilder blockBuilder,
-      Expression root,
-      RexCall rexCall,
-      PhysType inputPhysType,
-      PhysType outputPhysType) {
+  public static Expression translateTableValuedFunction(JavaTypeFactory typeFactory,
+      SqlConformance conformance, BlockBuilder blockBuilder,
+      Expression root, RexCall rexCall, Expression inputEnumerable,
+      PhysType inputPhysType, PhysType outputPhysType) {
     return new RexToLixTranslator(null, typeFactory, root, null,
-            blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
-            null, null)
-            .translateWindowTableFunctionParams(rexCall, inputPhysType, outputPhysType);
+        blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+        null, null)
+        .translateTableValuedFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
   }
 
   /** Creates a translator for translating aggregate functions. */
@@ -948,34 +946,16 @@ public class RexToLixTranslator {
     return list;
   }
 
-  private List<Expression> translateWindowTableFunctionParams(
-      RexCall rexCall,
-      PhysType inputPhysType,
-      PhysType outputPhysType) {
-    if (rexCall.operands.size() < 3) {
-      throw new AssertionError("TUMBLE should have at least 3 arguments.");
+  private Expression translateTableValuedFunction(RexCall rexCall, Expression inputEnumerable,
+      PhysType inputPhysType, PhysType outputPhysType) {
+    assert rexCall.getOperator() instanceof SqlWindowTableFunction;
+    TableValuedFunctionCallImplementor implementor =
+        RexImpTable.INSTANCE.get((SqlWindowTableFunction) rexCall.getOperator());
+    if (implementor == null) {
+      throw Util.needToImplement("implementor of " + rexCall.getOperator().getName());
     }
-    if (rexCall.getOperands().get(1) instanceof RexCall
-        && ((RexCall) rexCall.getOperands().get(1)).getOperator().getKind()
-        != SqlKind.DESCRIPTOR) {
-      throw new AssertionError("The second argument of TUMBLE should be a descriptor.");
-    }
-    if (!(rexCall.getOperands().get(2) instanceof RexLiteral)) {
-      throw new AssertionError("The third argument of TUMBLE should be a literal.");
-    }
-
-    Expression intervalExpression = translate(rexCall.getOperands().get(2));
-    RexCall descriptor = (RexCall) rexCall.getOperands().get(1);
-    List<Expression> translatedOperands = new ArrayList<>();
-    final ParameterExpression parameter =
-        Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
-    Expression wmColExpr = inputPhysType.fieldReference(
-        parameter, ((RexInputRef) descriptor.getOperands().get(0)).getIndex(),
-        outputPhysType.getJavaFieldType(inputPhysType.getRowType().getFieldCount()));
-    translatedOperands.add(wmColExpr);
-    translatedOperands.add(intervalExpression);
-
-    return translatedOperands;
+    return implementor.implement(
+        this, inputEnumerable, rexCall, inputPhysType, outputPhysType);
   }
 
   public static Expression translateCondition(RexProgram program,

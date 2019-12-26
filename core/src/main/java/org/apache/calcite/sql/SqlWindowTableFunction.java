@@ -20,7 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.sql.type.*;
+import org.apache.calcite.sql.type.SqlOperandCountRanges;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.ArrayList;
@@ -46,7 +49,7 @@ public class SqlWindowTableFunction extends SqlFunction {
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
-                                             boolean throwOnFailure) {
+      boolean throwOnFailure) {
     // There should only be three operands, and number of operands are checked before
     // this call.
     final SqlNode operand0 = callBinding.operand(0);

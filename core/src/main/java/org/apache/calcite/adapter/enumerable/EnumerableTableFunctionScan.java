@@ -31,16 +31,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlUserDefinedTableFunction;
-import org.apache.calcite.util.BuiltInMethod;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
-
 
 /** Implementation of {@link org.apache.calcite.rel.core.TableFunctionScan} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -67,15 +66,19 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    final boolean isTumble = ((RexCall) getCall())
-        .getOperator()
-        .getName()
-        .equalsIgnoreCase("tumble");
-    if (isTumble) {
-      return tableValuedFunctionWindowingImplement(implementor, pref);
+    if (isImplementorDefined((RexCall) getCall())) {
+      return tvfImplementorBasedImplement(implementor, pref);
     } else {
       return defaultTableValuedFunctionImplement(implementor, pref);
     }
+  }
+
+  private boolean isImplementorDefined(RexCall call) {
+    if (call.getOperator() instanceof SqlWindowTableFunction
+        && RexImpTable.INSTANCE.get((SqlWindowTableFunction) call.getOperator()) != null) {
+      return true;
+    }
+    return false;
   }
 
   private boolean isQueryable() {
@@ -123,7 +126,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     return implementor.result(physType, bb.toBlock());
   }
 
-  private Result tableValuedFunctionWindowingImplement(
+  private Result tvfImplementorBasedImplement(
       EnumerableRelImplementor implementor, Prefer pref) {
     final JavaTypeFactory typeFactory = implementor.getTypeFactory();
     final BlockBuilder builder = new BlockBuilder();
@@ -132,33 +135,24 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
         implementor.visitChild(this, 0, child, pref);
     final PhysType physType = PhysTypeImpl.of(
         typeFactory, getRowType(), pref.prefer(result.format));
-
+    final Expression inputEnumerable = builder.append(
+        "_input", result.block, false);
     final SqlConformance conformance =
         (SqlConformance) implementor.map.getOrDefault("_conformance",
             SqlConformanceEnum.DEFAULT);
 
-    List<Expression> expressions =
-        RexToLixTranslator.translateWindowTableFunctionParams(
+    builder.add(
+        RexToLixTranslator.translateTableValuedFunction(
             typeFactory,
             conformance,
             builder,
             DataContext.ROOT,
             (RexCall) getCall(),
-            result.physType,
-            physType);
-
-    final Expression inputEnumerable = builder.append(
-        "_input", result.block, false);
-
-    builder.add(
-        Expressions.call(
-            BuiltInMethod.TUMBLING.method,
             inputEnumerable,
-            EnumUtils.windowSelector(
-                result.physType,
-                physType,
-                expressions.get(0),
-                expressions.get(1))));
+            result.physType,
+            physType
+        )
+    );
 
     return implementor.result(physType, builder.toBlock());
   }
