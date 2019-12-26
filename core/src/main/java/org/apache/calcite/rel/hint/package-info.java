@@ -70,7 +70,7 @@
  * <h2>Hints Propagation</h2>
  * There are two cases we need to consider the hints propagation:
  *
- * <ul/SqlHintsConverterTest>
+ * <ul>
  *   <li>Right after a {@code SqlNode} was converted to {@code RelNode}, we would
  *   propagate the hints from the attaching to its input(children) nodes. The hints was
  *   propagated recursively with a {@code RelShuttle}, see
