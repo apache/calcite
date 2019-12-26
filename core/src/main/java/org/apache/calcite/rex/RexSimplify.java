@@ -286,6 +286,8 @@ public class RexSimplify {
     case LESS_THAN_OR_EQUAL:
     case NOT_EQUALS:
       return simplifyComparison((RexCall) e, unknownAs);
+    case IF:
+      return simplifyIf((RexCall) e, unknownAs);
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);
@@ -2299,6 +2301,21 @@ public class RexSimplify {
     return true;
   }
 
+  private RexNode simplifyIf(RexCall e, RexUnknownAs unknownAs) {
+    List<RexNode> operands = e.getOperands();
+    List<RexNode> resultRexNode = new ArrayList<>();
+
+    for (RexNode operand : operands) {
+      resultRexNode.add(simplify(operand, unknownAs));
+    }
+
+    if (resultRexNode.get(0).isAlwaysTrue()) {
+      return resultRexNode.get(1);
+    } else if (resultRexNode.get(0).isAlwaysFalse()) {
+      return resultRexNode.get(2);
+    }
+    return e;
+  }
 }
 
 // End RexSimplify.java

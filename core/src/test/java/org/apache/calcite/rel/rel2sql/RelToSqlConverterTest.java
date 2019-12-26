@@ -4847,6 +4847,97 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test
+  public void testAscii() {
+    String query = "SELECT ASCII ('ABC')";
+    final String expected = "SELECT ASCII('ABC')";
+    final String expectedBigQuery = "SELECT TO_CODE_POINTS('ABC') [OFFSET(0)]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected);
+  }
+
+  @Test
+  public void testAsciiMethodArgument() {
+    String query = "SELECT ASCII (SUBSTRING('ABC',1,1))";
+    final String expected = "SELECT ASCII(SUBSTR('ABC', 1, 1))";
+    final String expectedSpark = "SELECT ASCII(SUBSTRING('ABC', 1, 1))";
+    final String expectedBigQuery = "SELECT TO_CODE_POINTS(SUBSTR('ABC', 1, 1)) [OFFSET(0)]";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expectedSpark);
+  }
+
+  @Test public void testAsciiColumnArgument() {
+    final String query = "select ASCII(\"product_name\") from \"product\" ";
+    final String bigQueryExpected = "SELECT TO_CODE_POINTS(product_name) [OFFSET(0)]\n"
+        + "FROM foodmart.product";
+    final String hiveExpected = "SELECT ASCII(product_name)\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withBigQuery()
+        .ok(bigQueryExpected)
+        .withHive()
+        .ok(hiveExpected);
+  }
+
+  @Test
+  public void testIf() {
+    String query = "SELECT if ('ABC'='' or 'ABC' is null, null, ASCII('ABC'))";
+    final String expected = "SELECT CAST(ASCII('ABC') AS INTEGER)";
+    final String expectedBigQuery = "SELECT CAST(TO_CODE_POINTS('ABC') [OFFSET(0)] AS INTEGER)";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected);
+  }
+
+  @Test
+  public void testIfMethodArgument() {
+    String query = "SELECT if (SUBSTRING('ABC',1,1)='' or SUBSTRING('ABC',1,1) is null, null, "
+        + "ASCII(SUBSTRING('ABC',1,1)))";
+    final String expected = "SELECT IF(SUBSTR('ABC', 1, 1) = '' OR SUBSTR('ABC', 1, 1) IS NULL, "
+        + "NULL, ASCII(SUBSTR('ABC', 1, 1)))";
+    final String expectedSpark = "SELECT IF(SUBSTRING('ABC', 1, 1) = '' OR SUBSTRING('ABC', 1, 1)"
+        + " IS NULL, NULL, ASCII(SUBSTRING('ABC', 1, 1)))";
+    final String expectedBigQuery = "SELECT IF(SUBSTR('ABC', 1, 1) = '' OR SUBSTR('ABC', 1, 1) IS"
+        + " NULL, NULL, TO_CODE_POINTS(SUBSTR('ABC', 1, 1)) [OFFSET(0)])";
+    sql(query)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expectedSpark);
+  }
+
+  @Test public void testIfColumnArgument() {
+    final String query = "select if (\"product_name\"='' or \"product_name\" is null, null, ASCII"
+        + "(\"product_name\")) from \"product\" ";
+    final String bigQueryExpected = "SELECT IF(product_name = '' OR product_name IS NULL, NULL, "
+        + "TO_CODE_POINTS(product_name) [OFFSET(0)])\n"
+        + "FROM foodmart.product";
+    final String hiveExpected = "SELECT IF(product_name = '' OR product_name IS NULL, NULL, "
+        + "ASCII(product_name))\n"
+        + "FROM foodmart.product";
+    sql(query)
+        .withBigQuery()
+        .ok(bigQueryExpected)
+        .withHive()
+        .ok(hiveExpected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;

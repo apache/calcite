@@ -145,6 +145,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** Converts string_expr to a NUMBER data type. */
   public static final SqlFunction TO_NUMBER = SqlLibraryOperators.TO_NUMBER;
 
+  public static final SqlFunction IF = SqlLibraryOperators.IF;
+
   //-------------------------------------------------------------
   //                   BINARY OPERATORS
   //-------------------------------------------------------------
@@ -1519,7 +1521,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   public static final SqlFunction ASCII =
       new SqlFunction(
           "ASCII",
-          SqlKind.OTHER_FUNCTION,
+          SqlKind.ASCII,
           ReturnTypes.INTEGER_NULLABLE,
           null,
           OperandTypes.CHARACTER,
