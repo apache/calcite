@@ -2860,21 +2860,25 @@ public class MaterializationTest {
 
   @Test public void testIntersectToIntersect0() {
     final String mv = ""
-        + "select \"deptno\" from\n"
-        + "\"emps\" intersect select \"deptno\"  from \"depts\"";
+        + "select \"deptno\" from \"emps\"\n"
+        + "intersect\n"
+        + "select \"deptno\" from \"depts\"";
     final String query = ""
-        + "select \"deptno\" from\n"
-        + "\"depts\" intersect select \"deptno\" from \"emps\"";
+        + "select \"deptno\" from \"depts\"\n"
+        + "intersect\n"
+        + "select \"deptno\" from \"emps\"";
     checkMaterialize(mv, query, true);
   }
 
   @Test public void testIntersectToIntersect1() {
     final String mv = ""
-        + "select \"deptno\" from\n"
-        + "\"emps\" intersect all select \"deptno\"  from \"depts\"";
+        + "select \"deptno\" from \"emps\"\n"
+        + "intersect all\n"
+        + "select \"deptno\" from \"depts\"";
     final String query = ""
-        + "select \"deptno\" from\n"
-        + "\"depts\" intersect all select \"deptno\" from \"emps\"";
+        + "select \"deptno\" from \"depts\"\n"
+        + "intersect all\n"
+        + "select \"deptno\" from \"emps\"";
     checkMaterialize(mv, query, true);
   }
 
