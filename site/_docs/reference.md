@@ -1751,6 +1751,8 @@ and `LISTAGG`).
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
+| BOOL_AND(value)                               | Returns true if all *values* are true
+| BOOL_OR(value)                                | Returns true if at least one value of *value* is true
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none

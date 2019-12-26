@@ -940,6 +940,18 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlMinMaxAggFunction(SqlKind.MAX);
 
   /**
+   * <code>BOOL_AND</code> aggregate function.
+   */
+  public static final SqlAggFunction BOOL_AND =
+      new SqlBoolAggFunction(SqlKind.BOOL_AND);
+
+  /**
+   * <code>BOOL_OR</code> aggregate function.
+   */
+  public static final SqlAggFunction BOOL_OR =
+      new SqlBoolAggFunction(SqlKind.BOOL_OR);
+
+  /**
    * <code>LAST_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction LAST_VALUE =

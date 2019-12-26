@@ -904,6 +904,12 @@ public enum SqlKind {
   /** The {@code MAX} aggregate function. */
   MAX,
 
+  /** The {@code BOOL_AND} aggregate function. */
+  BOOL_AND,
+
+  /** The {@code BOOL_OR} aggregate function. */
+  BOOL_OR,
+
   /** The {@code LEAD} aggregate function. */
   LEAD,
 
@@ -1155,7 +1161,8 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR, LISTAGG);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR, LISTAGG
+          BOOL_AND, BOOL_OR);
 
   /**
    * Category consisting of all DML operators.

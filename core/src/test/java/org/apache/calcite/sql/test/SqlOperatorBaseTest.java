@@ -8724,6 +8724,64 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testBoolAndFunc() {
+    tester.setFor(SqlStdOperatorTable.BOOL_AND, VM_EXPAND);
+
+    tester.checkFails(
+        "bool_and(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("bool_and(true)", "BOOLEAN");
+    tester.checkFails("^bool_and(1)^",
+        "Cannot apply 'BOOL_AND' to arguments of type 'BOOL_AND\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOL_AND\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails(
+        "^bool_and()^",
+        "Invalid number of arguments to function 'BOOL_AND'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bool_and(true, true)^",
+        "Invalid number of arguments to function 'BOOL_AND'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("bool_and(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("bool_and(x)", values2, false, 0d);
+    String[] values3 = {"true", "false", "false"};
+    tester.checkAgg("bool_and(x)", values3, false, 0d);
+  }
+
+  @Test public void testBoolOrFunc() {
+    tester.setFor(SqlStdOperatorTable.BOOL_OR, VM_EXPAND);
+
+    tester.checkFails(
+        "bool_or(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("bool_or(true)", "BOOLEAN");
+    tester.checkFails("^bool_or(1)^",
+        "Cannot apply 'BOOL_OR' to arguments of type 'BOOL_OR\\(<INTEGER>\\)'\\. "
+            + "Supported form\\(s\\): 'BOOL_OR\\(<BOOLEAN>\\)'",
+        false);
+    tester.checkFails(
+        "^bool_or()^",
+        "Invalid number of arguments to function 'BOOL_OR'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bool_or(true, true)^",
+        "Invalid number of arguments to function 'BOOL_OR'. Was expecting 1 arguments",
+        false);
+
+    final String[] values1 = {"true", "true", "null"};
+    tester.checkAgg("bool_or(x)", values1, true, 0d);
+    String[] values2 = {"true", "false", "null"};
+    tester.checkAgg("bool_or(x)", values2, true, 0d);
+    String[] values3 = {"false", "false", "false"};
+    tester.checkAgg("bool_or(x)", values3, false, 0d);
+  }
+
   @Test public void testBitAndFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);

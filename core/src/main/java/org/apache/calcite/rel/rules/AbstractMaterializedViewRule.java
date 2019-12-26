@@ -1710,6 +1710,8 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
       if (aggregation == SqlStdOperatorTable.SUM
           || aggregation == SqlStdOperatorTable.MIN
           || aggregation == SqlStdOperatorTable.MAX
+          || aggregation == SqlStdOperatorTable.BOOL_OR
+          || aggregation == SqlStdOperatorTable.BOOL_AND
           || aggregation == SqlStdOperatorTable.SUM0
           || aggregation == SqlStdOperatorTable.ANY_VALUE) {
         return aggregation;

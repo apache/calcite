@@ -29,6 +29,7 @@ import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlBitOpAggFunction;
+import org.apache.calcite.sql.fun.SqlBoolAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSumAggFunction;
@@ -230,6 +231,10 @@ public abstract class Match extends SingleRel {
       case MAX:
       case MIN:
         aggFunction = new SqlMinMaxAggFunction(call.getKind());
+        break;
+      case BOOL_AND:
+      case BOOL_OR:
+        aggFunction = new SqlBoolAggFunction(call.getKind());
         break;
       case COUNT:
         aggFunction = SqlStdOperatorTable.COUNT;
