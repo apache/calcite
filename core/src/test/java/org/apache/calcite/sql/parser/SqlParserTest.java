@@ -8646,10 +8646,15 @@ public class SqlParserTest {
 
   @Test public void testQueryHint() {
     final String sql = "select "
-        + "/*+ properties(k1='v1', k2='v2'), no_hash_join, Index(idx1, idx2) */ "
+        + "/*+ properties(k1='v1', k2='v2'), "
+        + "no_hash_join, Index(idx1, idx2), "
+        + "repartition(3) */ "
         + "empno, ename, deptno from emps";
     final String expected = "SELECT\n"
-        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `NO_HASH_JOIN`, `INDEX`(`IDX1`, `IDX2`) */\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`NO_HASH_JOIN`, "
+        + "`INDEX`(`IDX1`, `IDX2`), "
+        + "`REPARTITION`(3) */\n"
         + "`EMPNO`, `ENAME`, `DEPTNO`\n"
         + "FROM `EMPS`";
     sql(sql).ok(expected);
@@ -8742,9 +8747,9 @@ public class SqlParserTest {
 
   @Test public void testInvalidHintFormat() {
     final String sql1 = "select "
-        + "/*+ properties(k1^=^123, k2='v2'), no_hash_join() */ "
+        + "/*+ properties(^k1^=123, k2='v2'), no_hash_join() */ "
         + "empno, ename, deptno from emps";
-    sql(sql1).fails("(?s).*Encountered \"= 123\" at line 1, column 25.\n.*");
+    sql(sql1).fails("(?s).*Encountered \"k1 = 123\" at .*");
     final String sql2 = "select "
         + "/*+ properties(k1, k2^=^'v2'), no_hash_join */ "
         + "empno, ename, deptno from emps";
@@ -8752,7 +8757,7 @@ public class SqlParserTest {
     final String sql3 = "select "
         + "/*+ no_hash_join() */ "
         + "empno, ename, deptno from emps";
-    // allow empty options.
+    // Allow empty options.
     final String expected3 = "SELECT\n"
         + "/*+ `NO_HASH_JOIN` */\n"
         + "`EMPNO`, `ENAME`, `DEPTNO`\n"

@@ -18,12 +18,12 @@ limitations under the License.
 <Root>
     <TestCase name="testNestedQueryHint">
         <Resource name="sql">
-            <![CDATA[select /*+ resource(parallelism='3') */ empno
+            <![CDATA[select /*+ resource(parallelism='3'), repartition(10) */ empno
 from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)]]>
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [REPARTITION inheritPath:[] options:[10]]]
 ]]>
         </Resource>
     </TestCase>
@@ -42,6 +42,17 @@ LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 1, 0] options:[ENAME]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testQueryHintWithLiteralOptions">
+        <Resource name="sql">
+            <![CDATA[select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *
+from emp]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[TIME_ZONE inheritPath:[] options:[1, 1.23, a bc, -1.0]]]
 ]]>
         </Resource>
     </TestCase>

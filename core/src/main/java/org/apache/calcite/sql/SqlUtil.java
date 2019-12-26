@@ -1003,6 +1003,7 @@ public abstract class SqlUtil {
       case EMPTY:
         relHint = RelHint.of(inheritPath, hintName);
         break;
+      case LITERAL_LIST:
       case ID_LIST:
         relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionList());
         break;

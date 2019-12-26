@@ -98,8 +98,14 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testQueryHintWithLiteralOptions() {
+    final String sql = HintTools.withHint("select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *\n"
+        + "from emp");
+    sql(sql).ok();
+  }
+
   @Test public void testNestedQueryHint() {
-    final String sql = "select /*+ resource(parallelism='3') */ empno\n"
+    final String sql = "select /*+ resource(parallelism='3'), repartition(10) */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)";
     sql(sql).ok();
   }
@@ -600,6 +606,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
       return HintStrategyTable.builder()
         .addHintStrategy("no_hash_join", HintStrategies.JOIN)
         .addHintStrategy("time_zone", HintStrategies.SET_VAR)
+        .addHintStrategy("REPARTITION", HintStrategies.SET_VAR)
         .addHintStrategy("index", HintStrategies.TABLE_SCAN)
         .addHintStrategy("properties", HintStrategies.TABLE_SCAN)
         .addHintStrategy(
