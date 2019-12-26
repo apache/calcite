@@ -36,9 +36,11 @@ import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategies;
 import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -68,6 +70,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
@@ -123,6 +126,22 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n"
         + "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
     sql(sql).ok();
+  }
+
+  @Test public void testSortHints() {
+    final String sql = "select /*+ resource(mem='1024MB')*/"
+        + "ename, sal, deptno from emp order by deptno";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelHint hint = RelHint.of(
+        Collections.emptyList(),
+        "RESOURCE",
+        new HashMap<String, String>() {{ put("MEM", "1024MB"); }});
+    HepProgram program = new HepProgramBuilder()
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    RelNode newRel = planner.findBestExp();
+    new ValidateHintVisitor(hint, Sort.class).go(newRel);
   }
 
   @Test public void testAggregateHints() {
@@ -476,9 +495,9 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         int ordinal,
         RelNode parent) {
       if (clazz.isInstance(node)) {
-        Join join = (Join) node;
-        assertThat(join.getHints().size(), is(1));
-        assertThat(join.getHints().get(0), is(expectedHint));
+        Hintable rel = (Hintable) node;
+        assertThat(rel.getHints().size(), is(1));
+        assertThat(rel.getHints().get(0), is(expectedHint));
       }
       super.visit(node, ordinal, parent);
     }
@@ -604,7 +623,8 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .addHintStrategy("properties", HintStrategies.TABLE_SCAN)
         .addHintStrategy(
             "resource", HintStrategies.or(
-            HintStrategies.PROJECT, HintStrategies.AGGREGATE))
+            HintStrategies.PROJECT, HintStrategies.AGGREGATE,
+                HintStrategies.SORT))
         .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
         .addHintStrategy("use_hash_join",
           HintStrategies.and(HintStrategies.JOIN,

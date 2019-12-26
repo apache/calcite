@@ -20,6 +20,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
 
 /**
@@ -53,6 +54,11 @@ public class NodeTypeHintStrategy implements HintStrategy {
      * The hint would be propagated to the Project nodes.
      */
     PROJECT(Project.class),
+
+    /**
+     * The hint would be propagated to the Sort nodes.
+     */
+    SORT(Sort.class),
 
     /**
      * The hint would be propagated to the Aggregate nodes.
