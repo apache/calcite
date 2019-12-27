@@ -2053,7 +2053,9 @@ public class SqlFunctions {
     return localTime + " " + ttz.getTimeZone().getID();
   }
 
-  public static TimeWithTimeZone toTimeWithTimeZone(String v, TimeZone sesstionTimeZone) {
+  /**Convert a time {@link String} to an instance of {@link TimeWithTimeZone}. If the time string
+   * contains time zone component, use it. Otherwise, use the session time zone. */
+  public static TimeWithTimeZone stringToTimeWithTimeZone(String v, TimeZone sesstionTimeZone) {
     if (v == null) {
       return null;
     }
@@ -2148,7 +2150,10 @@ public class SqlFunctions {
     return new TimeWithTimeZone(milliOfDay, tstz.getTimeZone());
   }
 
-  public static TimestampWithTimeZone toTimestampWithTimeZone(String v, TimeZone sessionTimeZone) {
+  /**Convert a time {@link String} to an instance of {@link TimestampWithTimeZone}. If the time string
+   * contains time zone component, use it. Otherwise, use the session time zone. */
+  public static TimestampWithTimeZone stringToTimestampWithTimeZone(
+      String v, TimeZone sessionTimeZone) {
     if (v == null) {
       return null;
     }
@@ -2159,7 +2164,7 @@ public class SqlFunctions {
     int space = v.indexOf(' ');
     if (space >= 0) {
       d = DateTimeUtils.dateStringToUnixDate(v.substring(0, space));
-      t = toTimeWithTimeZone(v.substring(space + 1), sessionTimeZone);
+      t = stringToTimeWithTimeZone(v.substring(space + 1), sessionTimeZone);
     } else {
       d = DateTimeUtils.dateStringToUnixDate(v);
       t = new TimeWithTimeZone(0, sessionTimeZone);

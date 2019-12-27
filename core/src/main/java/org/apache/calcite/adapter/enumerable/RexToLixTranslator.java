@@ -350,7 +350,8 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 13.d
+    // SQL 2011 Part2 Section 6.13 General Rules 13.d
+    // CAST ( CAST ( VE AS TIMESTAMP WITHOUT TIME ZONE ) AS DATE )
     case TIMESTAMP_WITH_TIME_ZONE:
       convert = Expressions.convert_(
         Expressions.call(BuiltInMethod.FLOOR_DIV.method,
@@ -379,7 +380,7 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 15.c
+    // SQL 2011 Part2 Section 6.13 General Rules 15.c
     case TIME_WITH_TIME_ZONE:
       convert =
         Expressions.call(BuiltInMethod.TIME_WITH_TIME_ZONE_TO_TIME.method, operand);
@@ -400,7 +401,8 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 15.e
+    // SQL 2011 Part2 Section 6.13 General Rules 15.e
+    // CAST ( CAST ( VE AS TIMESTAMP WITHOUT TIME ZONE ) AS TIME )
     case TIMESTAMP_WITH_TIME_ZONE:
       convert = Expressions.convert_(
         Expressions.call(
@@ -455,7 +457,7 @@ public class RexToLixTranslator {
   private Expression converterToTimeWithTimeZone(RelDataType sourceType, Expression operand) {
     Expression convert = null;
     switch (sourceType.getSqlTypeName()) {
-    // SQL 2011 Part2 Section 4.6 General Rules 16.a
+    // SQL 2011 Part2 Section 6.13 General Rules 16.a
     case CHAR:
     case VARCHAR:
       convert =
@@ -464,7 +466,7 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 16.c
+    // SQL 2011 Part2 Section 6.13 General Rules 16.c
     case TIME:
       convert =
         Expressions.call(
@@ -476,7 +478,7 @@ public class RexToLixTranslator {
               operand)),
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 16.e
+    // SQL 2011 Part2 Section 6.13 General Rules 16.e
     case TIMESTAMP:
       convert =
         Expressions.call(
@@ -488,7 +490,7 @@ public class RexToLixTranslator {
               operand),
             Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 16.d
+    // SQL 2011 Part2 Section 6.13 General Rules 16.d
     case TIMESTAMP_WITH_TIME_ZONE:
       convert =
         Expressions.call(
@@ -532,7 +534,7 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 17.d
+    // SQL 2011 Part2 Section 6.13 General Rules 17.d
     case TIME_WITH_TIME_ZONE:
       convert = Expressions.call(
         BuiltInMethod.TIMESTAMP_WITH_TIME_ZONE_TO_TIMESTAMP.method,
@@ -550,7 +552,7 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root)));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 17.f
+    // SQL 2011 Part2 Section 6.13 General Rules 17.f
     case TIMESTAMP_WITH_TIME_ZONE:
       convert = Expressions.call(
         BuiltInMethod.TIMESTAMP_WITH_TIME_ZONE_TO_TIMESTAMP.method,
@@ -624,7 +626,7 @@ public class RexToLixTranslator {
   private Expression converterToTimestampWithTimeZone(RelDataType sourceType, Expression operand) {
     Expression convert = null;
     switch (sourceType.getSqlTypeName()) {
-    // SQL 2011 Part2 Section 4.6 General Rules 18.a
+    // SQL 2011 Part2 Section 6.13 General Rules 18.a
     case CHAR:
     case VARCHAR:
       convert =
@@ -633,7 +635,7 @@ public class RexToLixTranslator {
           operand,
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 18.b
+    // SQL 2011 Part2 Section 6.13 General Rules 18.b
     case DATE:
       convert =
         Expressions.call(
@@ -645,7 +647,7 @@ public class RexToLixTranslator {
               Expressions.constant(DateTimeUtils.MILLIS_PER_DAY))),
           Expressions.call(BuiltInMethod.TIME_ZONE.method, root));
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 18.c
+    // SQL 2011 Part2 Section 6.13 General Rules 18.c
     case TIME:
       convert =
         Expressions.call(
@@ -669,7 +671,7 @@ public class RexToLixTranslator {
           Expressions.call(BuiltInMethod.CURRENT_DATE.method, root),
           operand);
       break;
-    // SQL 2011 Part2 Section 4.6 General Rules 18.e
+    // SQL 2011 Part2 Section 6.13 General Rules 18.e
     case TIMESTAMP:
       convert =
         Expressions.call(
