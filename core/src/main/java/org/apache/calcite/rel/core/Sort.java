@@ -28,6 +28,8 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
@@ -42,9 +44,10 @@ import java.util.List;
  * Relational expression that imposes a particular sort order on its input
  * without otherwise changing its content.
  */
-public abstract class Sort extends SingleRel {
+public abstract class Sort extends SingleRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
+  protected final ImmutableList<RelHint> hints;
   public final RelCollation collation;
   protected final ImmutableList<RexNode> fieldExps;
   public final RexNode offset;
@@ -63,9 +66,49 @@ public abstract class Sort extends SingleRel {
   public Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
+      List<RelHint> hints,
       RelNode child,
       RelCollation collation) {
-    this(cluster, traits, child, collation, null, null);
+    this(cluster, traits, hints, child, collation, null, null);
+  }
+
+  /**
+   * Creates a Sort.
+   *
+   * @param cluster   Cluster this relational expression belongs to
+   * @param traits    Traits
+   * @param hints     Hints of a relation expression
+   * @param child     input relational expression
+   * @param collation array of sort specifications
+   * @param offset    Expression for number of rows to discard before returning
+   *                  first row
+   * @param fetch     Expression for number of rows to fetch
+   */
+  public Sort(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      List<RelHint> hints,
+      RelNode child,
+      RelCollation collation,
+      RexNode offset,
+      RexNode fetch) {
+    super(cluster, traits, child);
+    this.collation = collation;
+    this.offset = offset;
+    this.fetch = fetch;
+    this.hints = ImmutableList.copyOf(hints);
+    assert traits.containsIfApplicable(collation)
+        : "traits=" + traits + ", collation=" + collation;
+    assert !(fetch == null
+        && offset == null
+        && collation.getFieldCollations().isEmpty())
+        : "trivial sort";
+    ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (RelFieldCollation field : collation.getFieldCollations()) {
+      int index = field.getFieldIndex();
+      builder.add(cluster.getRexBuilder().makeInputRef(child, index));
+    }
+    fieldExps = builder.build();
   }
 
   /**
@@ -79,30 +122,15 @@ public abstract class Sort extends SingleRel {
    *                  first row
    * @param fetch     Expression for number of rows to fetch
    */
-  public Sort(
+  protected Sort(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
       RelCollation collation,
       RexNode offset,
       RexNode fetch) {
-    super(cluster, traits, child);
-    this.collation = collation;
-    this.offset = offset;
-    this.fetch = fetch;
-
-    assert traits.containsIfApplicable(collation)
-        : "traits=" + traits + ", collation=" + collation;
-    assert !(fetch == null
-        && offset == null
-        && collation.getFieldCollations().isEmpty())
-        : "trivial sort";
-    ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (RelFieldCollation field : collation.getFieldCollations()) {
-      int index = field.getFieldIndex();
-      builder.add(cluster.getRexBuilder().makeInputRef(child, index));
-    }
-    fieldExps = builder.build();
+    this(cluster, traits, Collections.emptyList(),
+        child, collation, offset, fetch);
   }
 
   /**
@@ -137,6 +165,10 @@ public abstract class Sort extends SingleRel {
     final double bytesPerRow = getRowType().getFieldCount() * 4;
     final double cpu = Util.nLogN(rowCount) * bytesPerRow;
     return planner.getCostFactory().makeCost(rowCount, cpu, 0);
+  }
+
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
   }
 
   @Override public List<RexNode> getChildExps() {

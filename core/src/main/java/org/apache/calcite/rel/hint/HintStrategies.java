@@ -41,6 +41,11 @@ public abstract class HintStrategies {
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.PROJECT);
 
   /** A hint strategy that indicates a hint can only be used to
+   * {@link org.apache.calcite.rel.core.Sort} nodes. */
+  public static final HintStrategy SORT =
+      new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.SORT);
+
+  /** A hint strategy that indicates a hint can only be used to
    * {@link org.apache.calcite.rel.core.Aggregate} nodes. */
   public static final HintStrategy AGGREGATE =
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.AGGREGATE);
