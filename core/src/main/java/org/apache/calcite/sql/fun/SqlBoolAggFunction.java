@@ -30,8 +30,6 @@ import com.google.common.base.Preconditions;
  */
 public class SqlBoolAggFunction extends SqlAggFunction {
 
-  //~ Instance fields --------------------------------------------------------
-
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SqlBoolAggFunction. */
@@ -49,6 +47,4 @@ public class SqlBoolAggFunction extends SqlAggFunction {
     Preconditions.checkArgument(kind == SqlKind.BOOL_AND
         || kind == SqlKind.BOOL_OR);
   }
-
-  //~ Methods ----------------------------------------------------------------
 }
