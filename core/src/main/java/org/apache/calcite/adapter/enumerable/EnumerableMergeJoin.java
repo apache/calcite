@@ -38,6 +38,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -89,7 +90,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       RexLiteral condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType) {
     final RelOptCluster cluster = right.getCluster();
-    RelTraitSet traitSet = cluster.traitSet();
+    RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE);
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
@@ -168,9 +169,12 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final PhysType rightKeyPhysType =
         rightResult.physType.project(joinInfo.rightKeys, JavaRowFormat.LIST);
-    return implementor.result(
-        physType,
+    final RexNode nonEquiCondition = RexUtil.composeConjunction(
+        getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+
+    Expression mergeJoin =
         builder.append(
+            "mergeJoin",
             Expressions.call(
                 BuiltInMethod.MERGE_JOIN.method,
                 Expressions.list(
@@ -187,6 +191,18 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                     Expressions.constant(
                         joinType.generatesNullsOnLeft()),
                     Expressions.constant(
-                        joinType.generatesNullsOnRight())))).toBlock());
+                        joinType.generatesNullsOnRight()))));
+    if (nonEquiCondition != null) {
+      // Add non-equi conditions as .where(x -> ...) filter
+      mergeJoin = builder.append(
+          "filteredMergeJoin",
+          Expressions.call(
+              mergeJoin,
+              BuiltInMethod.WHERE.method,
+              EnumUtils.generatePredicate(implementor, physType, nonEquiCondition)));
+    }
+    return implementor.result(
+        physType,
+        builder.append(mergeJoin).toBlock());
   }
 }

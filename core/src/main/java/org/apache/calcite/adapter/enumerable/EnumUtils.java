@@ -17,9 +17,11 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.ExtendedEnumerable;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Function2;
+import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
@@ -60,6 +62,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -813,5 +816,30 @@ public class EnumUtils {
                 implementor.allCorrelateVariables,
                 implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
+  }
+
+  /** Returns a predicate for {@link ExtendedEnumerable#where(Predicate1)}. **/
+  static Expression generatePredicate(
+      EnumerableRelImplementor implementor,
+      PhysType physType,
+      RexNode condition) {
+    final BlockBuilder builder = new BlockBuilder();
+    final RexBuilder rexBuilder = implementor.getRexBuilder();
+    final RexProgramBuilder rexProgramBuilder =
+        new RexProgramBuilder(physType.getRowType(), rexBuilder);
+    rexProgramBuilder.addCondition(condition);
+    final ParameterExpression inParameter =
+        Expressions.parameter(physType.getJavaRowType(), "v");
+    builder.append(
+        RexToLixTranslator.translateCondition(
+            rexProgramBuilder.getProgram(),
+            implementor.getTypeFactory(),
+            builder,
+            new RexToLixTranslator.InputGetterImpl(
+                Collections.singletonList(
+                    Pair.of(inParameter, physType))),
+            implementor.allCorrelateVariables,
+            implementor.getConformance()));
+    return Expressions.lambda(Predicate1.class, builder.toBlock(), inParameter);
   }
 }

@@ -213,11 +213,10 @@ public class EnumerableJoinTest {
             + "          BindableTableScan(table=[[s, depts]])\n"
             + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
-            + "        EnumerableInterpreter\n"
-            + "          BindableTableScan(table=[[s, emps]])\n")
-        .returnsUnordered(""
-            + "empid=110; name=Theodore; dept_name=Sales; e_deptno=10; d_deptno=10\n"
-            + "empid=150; name=Sebastian; dept_name=Sales; e_deptno=10; d_deptno=10");
+            + "        EnumerableTableScan(table=[[s, emps]])")
+        .returns(""
+            + "empid=150; name=Sebastian; dept=Sales; deptno=10; deptno=10\n"
+            + "empid=110; name=Theodore; dept=Sales; deptno=10; deptno=10\n");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,

@@ -62,6 +62,11 @@ public enum EnumerableConvention implements Convention {
 
   public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
+    // If you think you need to adjust that to true, please re-consider
+    // In most of the cases it means a rule is missing.
+    // Note: Volcano does not support changing multiple traits at the same time,
+    // so consider changing them one by one in multiple convert(...) calls.
+    // counter=2 (increase every time you've tried to set this to true and failed)
     return false;
   }
 }
