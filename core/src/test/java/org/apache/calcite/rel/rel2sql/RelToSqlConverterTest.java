@@ -6107,6 +6107,42 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testJsonInsert() {
+    String query0 = "select json_insert(\"product_name\", '$', 10) from \"product\"";
+    String query1 = "select json_insert(cast(null as varchar), '$', 10, '$', null, '$',"
+        + " '\n\t\n') from \"product\"";
+    final String expected0 = "SELECT JSON_INSERT(\"product_name\", '$', 10)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expected1 = "SELECT JSON_INSERT(NULL, '$', 10, '$', NULL, '$', "
+        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+    sql(query0).ok(expected0);
+    sql(query1).ok(expected1);
+  }
+
+  @Test public void testJsonReplace() {
+    String query = "select json_replace(\"product_name\", '$', 10) from \"product\"";
+    String query1 = "select json_replace(cast(null as varchar), '$', 10, '$', null, '$',"
+        + " '\n\t\n') from \"product\"";
+    final String expected = "SELECT JSON_REPLACE(\"product_name\", '$', 10)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expected1 = "SELECT JSON_REPLACE(NULL, '$', 10, '$', NULL, '$', "
+        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+    sql(query1).ok(expected1);
+  }
+
+  @Test public void testJsonSet() {
+    String query = "select json_set(\"product_name\", '$', 10) from \"product\"";
+    String query1 = "select json_set(cast(null as varchar), '$', 10, '$', null, '$',"
+        + " '\n\t\n') from \"product\"";
+    final String expected = "SELECT JSON_SET(\"product_name\", '$', 10)\n"
+        + "FROM \"foodmart\".\"product\"";
+    final String expected1 = "SELECT JSON_SET(NULL, '$', 10, '$', NULL, '$', "
+        + "u&'\\000a\\0009\\000a')\nFROM \"foodmart\".\"product\"";
+    sql(query).ok(expected);
+    sql(query1).ok(expected1);
+  }
+
   @Test void testUnionAllWithNoOperandsUsingOracleDialect() {
     String query = "select A.\"department_id\" "
         + "from \"foodmart\".\"employee\" A "
