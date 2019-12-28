@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pluginManagement {
     plugins {
         fun String.v() = extra["$this.version"].toString()
