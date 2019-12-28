@@ -910,6 +910,9 @@ public interface CalciteResource {
   @BaseMessage("Invalid input for XMLTRANSFORM xml: ''{0}''")
   ExInst<CalciteException> invalidInputForXmlTransform(String xml);
 
+  @BaseMessage("Invalid input for EXTRACT xpath: ''{0}'', namespace: ''{1}''")
+  ExInst<CalciteException> invalidInputForExtractXml(String xpath, String namespace);
+
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
 }

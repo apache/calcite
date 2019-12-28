@@ -184,6 +184,11 @@ public abstract class SqlLibraryOperators {
       ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
       null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EXTRACT_XML = new SqlFunction(
+      "EXTRACT", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */

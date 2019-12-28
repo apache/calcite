@@ -5226,6 +5226,42 @@ public abstract class SqlOperatorBaseTest {
         "VARCHAR(2000)");
   }
 
+  @Test public void testExtractXml() {
+    SqlTester sqlTester = tester(SqlLibrary.ORACLE);
+
+    sqlTester.checkFails("\"EXTRACT\"('', '<','a')",
+        "Invalid input for EXTRACT xpath: '.*", true);
+    sqlTester.checkFails("\"EXTRACT\"('', '<')",
+        "Invalid input for EXTRACT xpath: '.*", true);
+    sqlTester.checkNull("\"EXTRACT\"('', NULL)");
+    sqlTester.checkNull("\"EXTRACT\"(NULL,'')");
+
+    sqlTester.checkString(
+        "\"EXTRACT\"('<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar"
+            + "</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "<Title>Article1</Title>",
+        "VARCHAR(2000)");
+
+    sqlTester.checkString(
+        "\"EXTRACT\"('<Article><Title>Article1</Title><Title>Article2</Title><Authors><Author>Foo"
+            + "</Author><Author>Bar</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "<Title>Article1</Title><Title>Article2</Title>",
+        "VARCHAR(2000)");
+
+    sqlTester.checkString(
+        "\"EXTRACT\"(\n"
+            + "'<books xmlns=\"http://www.contoso"
+            + ".com/books\"><book><title>Title</title><author>Author Name</author><price>5"
+            + ".50</price></book></books>'"
+            + ", '/books:books/books:book', 'books=\"http://www.contoso.com/books\"'"
+            + ")",
+        "<book xmlns=\"http://www.contoso.com/books\"><title>Title</title><author>Author "
+            + "Name</author><price>5.50</price></book>",
+        "VARCHAR(2000)");
+  }
+
   @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 
