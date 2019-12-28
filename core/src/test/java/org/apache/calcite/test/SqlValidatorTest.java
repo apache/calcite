@@ -12530,6 +12530,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Cannot apply.*");
   }
 
+  @Test public void testJsonInsert() {
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_insert('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonReplace() {
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_replace('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
+  @Test public void testJsonSet() {
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')").ok();
+    expr("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')")
+        .columnType("VARCHAR(2000)");
+    expr("select ^json_set('{\"foo\":\"bar\"}')^")
+        .fails("(?s).*Invalid number of arguments.*");
+  }
+
   @Test void testRegexpReplace() {
     final SqlOperatorTable opTable = operatorTableFor(SqlLibrary.ORACLE);
 
