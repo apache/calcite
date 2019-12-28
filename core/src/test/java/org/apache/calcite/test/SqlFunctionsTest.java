@@ -128,7 +128,7 @@ public class SqlFunctionsTest {
       fail("'regexp_replace' on an invalid pos is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
-          is("Not a valid input for REGEXP_REPLACE: '0'"));
+          is("Invalid input for REGEXP_REPLACE: '0'"));
     }
 
     try {
@@ -136,7 +136,7 @@ public class SqlFunctionsTest {
       fail("'regexp_replace' on an invalid matchType is not possible");
     } catch (CalciteException e) {
       assertThat(e.getMessage(),
-          is("Not a valid input for REGEXP_REPLACE: 'WWW'"));
+          is("Invalid input for REGEXP_REPLACE: 'WWW'"));
     }
   }
 
