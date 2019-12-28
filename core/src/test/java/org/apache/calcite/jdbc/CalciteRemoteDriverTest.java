@@ -34,12 +34,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import net.jcip.annotations.NotThreadSafe;
-
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -88,7 +88,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Technically speaking, the test is thread safe, however Caclite/Avatica have thread-safety issues
  * see https://issues.apache.org/jira/browse/CALCITE-2853.
  */
-@NotThreadSafe
+@Execution(ExecutionMode.SAME_THREAD)
 public class CalciteRemoteDriverTest {
   public static final String LJS = Factory2.class.getName();
 

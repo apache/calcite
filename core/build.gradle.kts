@@ -66,7 +66,6 @@ dependencies {
     testOracle("com.oracle.ojdbc:ojdbc8")
     testPostgresql("org.postgresql:postgresql")
 
-    testImplementation("com.github.stephenc.jcip:jcip-annotations")
     testImplementation("net.hydromatic:foodmart-data-hsqldb")
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")

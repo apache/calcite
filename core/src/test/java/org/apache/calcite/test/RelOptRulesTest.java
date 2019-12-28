@@ -3157,9 +3157,9 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "when 1 IS NOT NULL then 2\n"
         + "else null end as qx "
         + "from emp";
-    try (Hook.Closeable a = Hook.REL_BUILDER_SIMPLIFY.add(Hook.propertyJ(false))) {
-      sql(sql).with(program).check();
-    }
+    sql(sql)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .with(program).check();
   }
 
   @Test public void testReduceCastsNullable() throws Exception {
