@@ -8548,6 +8548,21 @@ public class SqlParserTest {
         .ok("JSON_STORAGE_SIZE(NULL)");
   }
 
+  @Test public void testJsonInsert() {
+    checkExp("json_insert('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')",
+        "JSON_INSERT('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')");
+  }
+
+  @Test public void testJsonReplace() {
+    checkExp("json_replace('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')",
+        "JSON_REPLACE('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')");
+  }
+
+  @Test public void testJsonSet() {
+    checkExp("json_set('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')",
+        "JSON_SET('{ \"a\": 1, \"b\": [2]}', '$.c', '[true]')");
+  }
+
   @Test public void testJsonArrayAgg1() {
     expr("json_arrayagg(\"column\")")
         .ok("JSON_ARRAYAGG(`column` ABSENT ON NULL)");

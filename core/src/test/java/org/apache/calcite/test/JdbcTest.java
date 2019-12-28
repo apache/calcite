@@ -7197,6 +7197,33 @@ public class JdbcTest {
         .returns("A=29; B=35; C=37; D=36\n");
   }
 
+  @Test public void testJsonInsert() {
+    CalciteAssert.that()
+        .query("SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":1,\"b\":[2],\"c\":\"[1]\"}; C2={\"a\":1,\"b\":[2],\"c\":\"[1]\"}\n");
+  }
+
+  @Test public void testJsonReplace() {
+    CalciteAssert.that()
+        .query("SELECT JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2]}; C2=10\n");
+  }
+
+  @Test public void testJsonSet() {
+    CalciteAssert.that()
+        .query("SELECT JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1\n"
+            + ",JSON_SET(v, '$', 10, '$.c', '[1]') AS c2\n"
+            + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
+            + "limit 10")
+        .returns("C1={\"a\":10,\"b\":[2],\"c\":\"[1]\"}; C2=10\n");
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2609">[CALCITE-2609]

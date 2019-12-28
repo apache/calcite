@@ -5165,6 +5165,58 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'[]' is not json scalar", true);
   }
 
+  @Test public void testJsonInsert() {
+    tester.checkString("json_insert('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    tester.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":[2],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    tester.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$', 10, '$', '[true]')",
+        "{\"a\":1,\"b\":[2]}", "VARCHAR(2000)");
+    tester.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$.b[1]', 10)",
+        "{\"a\":1,\"b\":[2,10]}", "VARCHAR(2000)");
+    tester.checkString("json_insert('{\"a\": 1, \"b\": [2, 3, [true]]}', '$.b[3]', 'false')",
+        "{\"a\":1,\"b\":[2,3,[true],\"false\"]}", "VARCHAR(2000)");
+    tester.checkFails("json_insert('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    tester.checkNull("json_insert(cast(null as varchar), '$', 10)");
+  }
+
+  @Test public void testJsonReplace() {
+    tester.checkString("json_replace('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    tester.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":10,\"b\":[2]}", "VARCHAR(2000)");
+    tester.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    tester.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$.b', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":10}", "VARCHAR(2000)");
+    tester.checkString("json_replace('{ \"a\": 1, \"b\": [2, 3]}', '$.b[1]', 10)",
+        "{\"a\":1,\"b\":[2,10]}", "VARCHAR(2000)");
+    tester.checkFails("json_replace('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    tester.checkNull("json_replace(cast(null as varchar), '$', 10)");
+  }
+
+  @Test public void testJsonSet() {
+    tester.checkString("json_set('10', '$.a', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    tester.checkString("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
+        "{\"a\":10,\"b\":[2],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    tester.checkString("json_set('{ \"a\": 1, \"b\": [2]}', '$', 10, '$.c', '[true]')",
+        "10", "VARCHAR(2000)");
+    tester.checkString("json_set('{ \"a\": 1, \"b\": [2, 3]}', '$.b[1]', 10, '$.c', '[true]')",
+        "{\"a\":1,\"b\":[2,10],\"c\":\"[true]\"}", "VARCHAR(2000)");
+    tester.checkFails("json_set('{\"a\": 1, \"b\": [2, 3, [true]]}', 'a', 'false')",
+        "(?s).*Invalid input for.*", true);
+
+    // nulls
+    tester.checkNull("json_set(cast(null as varchar), '$', 10)");
+  }
+
   @Test public void testExtractValue() {
     SqlTester mySqlTester = tester(SqlLibrary.MYSQL);
     mySqlTester.checkNull("ExtractValue(NULL, '//b')");

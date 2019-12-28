@@ -877,29 +877,38 @@ public interface CalciteResource {
   @BaseMessage("While executing SQL [{0}] on JDBC sub-schema")
   ExInst<RuntimeException> exceptionWhilePerformingQueryOnJdbcSubSchema(String sql);
 
-  @BaseMessage("Not a valid input for JSON_TYPE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_TYPE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonType(String value);
 
-  @BaseMessage("Not a valid input for JSON_DEPTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_DEPTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonDepth(String value);
 
   @BaseMessage("Cannot serialize object to JSON: ''{0}''")
   ExInst<CalciteException> exceptionWhileSerializingToJson(String value);
 
-  @BaseMessage("Not a valid input for JSON_LENGTH: ''{0}''")
+  @BaseMessage("Invalid input for JSON_LENGTH: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonLength(String value);
 
-  @BaseMessage("Not a valid input for JSON_KEYS: ''{0}''")
+  @BaseMessage("Invalid input for JSON_KEYS: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonKeys(String value);
 
   @BaseMessage("Invalid input for JSON_REMOVE: document: ''{0}'', jsonpath expressions: ''{1}''")
   ExInst<CalciteException> invalidInputForJsonRemove(String value, String pathSpecs);
 
-  @BaseMessage("Not a valid input for JSON_STORAGE_SIZE: ''{0}''")
+  @BaseMessage("Invalid input for JSON_STORAGE_SIZE: ''{0}''")
   ExInst<CalciteException> invalidInputForJsonStorageSize(String value);
 
-  @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
+  @BaseMessage("Invalid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Invalid input for JSON_INSERT: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonInsert(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_REPLACE: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonReplace(String jsonDoc, String kvs);
+
+  @BaseMessage("Invalid input for JSON_SET: jsonDoc: ''{0}'', kvs: ''{1}''")
+  ExInst<CalciteException> invalidInputForJsonSet(String jsonDoc, String kvs);
 
   @BaseMessage("Illegal xslt specified : ''{0}''")
   ExInst<CalciteException> illegalXslt(String xslt);

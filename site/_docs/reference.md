@@ -2287,8 +2287,11 @@ semantics.
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
+| m | JSON_INSERT(jsonValue, path, val[, path, val])  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
+| m | JSON_REPLACE(jsonValue, path, val[, path, val])  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val[, path, val])  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
@@ -2394,6 +2397,23 @@ Result
 | ------ | ----- | ------- | ------- |
 | 1      | 2     | 1       | 1       |
 
+##### JSON_INSERT example
+
+SQL
+
+```SQL
+SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1,
+  JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{"a": [10, true]}')) AS t(v)
+LIMIT 10;
+```
+
+Result
+
+| c1                             | c2                            |
+| ------------------------------ | ----------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"} |
+
 ##### JSON_KEYS example
 
 SQL
@@ -2430,6 +2450,41 @@ LIMIT 10;
 | ---------- |
 | ["a", "d"] |
 
+##### JSON_REPLACE example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                             | c2                              |
+| ------------------------------ | ------------------------------- |
+| {"a":1 , "b":[2] , "c":"[1]"}  | {"a":1 , "b":[2] , "c":"[1]"}") |
+
+##### JSON_SET example
+
+SQL
+
+ ```SQL
+SELECT
+JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1,
+JSON_SET(v, '$', 10, '$.c', '[1]') AS c2
+FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)
+limit 10;
+```
+
+ Result
+
+| c1                 | c2 |
+| -------------------| -- |
+| {"a":10, "b":[2]}  | 10 |
 
 ##### JSON_STORAGE_SIZE example
 
@@ -2487,12 +2542,6 @@ Result
 | c1          | c2          | c3          | c4          |
 | ----------- | ----------- | ----------- | ----------- |
 | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d | Aa_Bb_CcD_d |
-
-Not implemented:
-
-* JSON_INSERT
-* JSON_SET
-* JSON_REPLACE
 
 ## User-defined functions
 

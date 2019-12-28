@@ -596,6 +596,39 @@ public class SqlJsonFunctionsTest {
     assertIsJsonScalar("{]", is(false));
   }
 
+  @Test public void testJsonInsert() {
+    assertJsonInsert(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":1,\"b\":[2],\"c\":\"[true]\"}"));
+    assertJsonInsert(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("{\"a\":1,\"b\":[2],\"c\":\"[true]\"}"));
+  }
+
+  @Test public void testJsonReplace() {
+    assertJsonReplace(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":10,\"b\":[2]}"));
+    assertJsonReplace(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("10"));
+  }
+
+  @Test public void testJsonSet() {
+    assertJsonSet(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$.a", 10, "$.c", "[true]"},
+        is("{\"a\":10,\"b\":[2],\"c\":\"[true]\"}"));
+    assertJsonSet(
+        JsonFunctions.jsonValueExpression("{\"a\": 1, \"b\": [2]}"),
+        new Object[]{"$", 10, "$.c", "[true]"},
+        is("10"));
+  }
+
   private void assertJsonValueExpression(String input,
       Matcher<? super JsonFunctions.JsonValueContext> matcher) {
     assertThat(
@@ -762,6 +795,30 @@ public class SqlJsonFunctionsTest {
       Matcher<? super Throwable> matcher) {
     assertFailed(invocationDesc(BuiltInMethod.JSON_STORAGE_SIZE.getMethodName(), input),
         () -> JsonFunctions.jsonStorageSize(input),
+        matcher);
+  }
+
+  private void assertJsonInsert(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_INSERT.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonInsert(jsonDoc, kvs),
+        matcher);
+  }
+
+  private void assertJsonReplace(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_REPLACE.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonReplace(jsonDoc, kvs),
+        matcher);
+  }
+
+  private void assertJsonSet(JsonFunctions.JsonValueContext jsonDoc,
+      Object[] kvs,
+      Matcher<? super String> matcher) {
+    assertThat(invocationDesc(BuiltInMethod.JSON_SET.getMethodName(), jsonDoc, kvs),
+        JsonFunctions.jsonSet(jsonDoc, kvs),
         matcher);
   }
 
