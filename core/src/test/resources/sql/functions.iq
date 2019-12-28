@@ -59,4 +59,18 @@ SELECT XMLTRANSFORM(
 !ok
 
 
+SELECT "EXTRACT"(
+            '<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar</Author></Authors><Body>article text</Body></Article>'
+            , '/Article/Title'
+        );
++-------------------------+
+| EXPR$0                  |
++-------------------------+
+| <Title>Article1</Title> |
++-------------------------+
+(1 row)
+
+!ok
+
+
 # End functions.iq
