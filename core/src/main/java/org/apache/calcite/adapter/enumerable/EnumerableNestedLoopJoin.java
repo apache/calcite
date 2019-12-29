@@ -25,12 +25,10 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
-import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
@@ -84,34 +82,30 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    double rowCount = mq.getRowCount(this);
-
-    // Joins can be flipped, and for many algorithms, both versions are viable
-    // and have the same cost. To make the results stable between versions of
-    // the planner, make one of the versions slightly more expensive.
-    switch (joinType) {
-    case SEMI:
-    case ANTI:
-      // SEMI and ANTI join cannot be flipped
-      break;
-    case RIGHT:
-      rowCount = RelMdUtil.addEpsilon(rowCount);
-      break;
-    default:
-      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
-        rowCount = RelMdUtil.addEpsilon(rowCount);
-      }
-    }
-
     final double rightRowCount = right.estimateRowCount(mq);
     final double leftRowCount = left.estimateRowCount(mq);
-    if (Double.isInfinite(leftRowCount)) {
-      rowCount = leftRowCount;
+    if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
+      return planner.getCostFactory().makeInfiniteCost();
     }
-    if (Double.isInfinite(rightRowCount)) {
-      rowCount = rightRowCount;
+    RelOptCost rightCost = planner.getCost(right, mq);
+    if (rightCost.isInfinite()) {
+      return rightCost;
     }
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+    double rowCount = mq.getRowCount(this);
+    // The cost of evaluating join predicates:
+    // TODO: account for joinInfo.nonEquiConditions
+    double filterCost = leftRowCount * rightRowCount * OPERATOR_COST * joinInfo.leftKeys.size();
+    // Note: -1 here is because the total cost of the plan would include costs of left and right
+    // inputs anyway.
+    RelOptCost rescanCost = rightCost.multiplyBy(Math.max(1.0, leftRowCount - 1));
+    // Note: even if filter would reduce the resulting set to 1 row, we would still have to
+    // restart the inner relation several times.
+    // Inner relation is restarted multiple times, so an epsilon is added
+    // to represent startup cost.
+    RelOptCost cost = planner.getCostFactory()
+        .makeCost(rowCount + filterCost, 0, 0)
+        .plus(rescanCost);
+    return EnumUtils.extraJoinCost(cost, this, leftRowCount, rightRowCount);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

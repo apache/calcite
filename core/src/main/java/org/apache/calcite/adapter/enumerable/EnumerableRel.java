@@ -27,6 +27,11 @@ import org.apache.calcite.rel.RelNode;
 public interface EnumerableRel
     extends RelNode {
 
+  /** The cost of processing a single tuple **/
+  double TUPLE_COST = 4;
+  /** The cost of evaluating a single operator (e.g. EQUALS) */
+  double OPERATOR_COST = 1;
+
   //~ Methods ----------------------------------------------------------------
 
   /**

@@ -106,15 +106,18 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       return planner.getCostFactory().makeInfiniteCost();
     }
 
-    Double restartCount = mq.getRowCount(getLeft()) / variablesSet.size();
+    double restartCount = mq.getRowCount(getLeft()) / variablesSet.size();
 
     RelOptCost rightCost = planner.getCost(getRight(), mq);
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 
+    // TODO: account for joinInfo.nonEquiConditions
+    double filterCost = leftRowCount * rightRowCount * OPERATOR_COST * joinInfo.leftKeys.size();
     // TODO Add cost of last loop (the one that looks for the match)
-    return planner.getCostFactory().makeCost(
-        rowCount + leftRowCount, 0, 0).plus(rescanCost);
+    RelOptCost cost = planner.getCostFactory().makeCost(
+        rowCount + filterCost, 0, 0).plus(rescanCost);
+    return EnumUtils.extraJoinCost(cost, this, leftRowCount, rightRowCount);
   }
 
   @Override public RelWriter explainTerms(RelWriter pw) {

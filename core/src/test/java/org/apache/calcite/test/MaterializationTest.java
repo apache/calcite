@@ -85,7 +85,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * query and one or more materializations (what Oracle calls materialized views)
  * and checks that the materialization is used.
  */
-@Tag("slow")
 public class MaterializationTest {
   private static final Consumer<ResultSet> CONTAINS_M0 =
       CalciteAssert.checkResultContains(
@@ -427,6 +426,7 @@ public class MaterializationTest {
     }
   }
 
+  @Tag("slow")
   @Test public void testFilterQueryOnFilterView() {
     checkMaterialize(
         "select \"deptno\", \"empid\", \"name\" from \"emps\" where \"deptno\" = 10",
@@ -1074,6 +1074,7 @@ public class MaterializationTest {
     checkNoMaterialize(mv, query, HR_FKUK_MODEL, true);
   }
 
+  @Tag("slow")
   @Test public void testSwapJoin() {
     checkMaterialize(
         "select count(*) as c from \"foodmart\".\"sales_fact_1997\" as s join \"foodmart\".\"time_by_day\" as t on s.\"time_id\" = t.\"time_id\"",
@@ -1952,6 +1953,7 @@ public class MaterializationTest {
             "expr#13=[OR($t10, $t12)], expr#14=[AND($t6, $t8, $t13)]"));
   }
 
+  @Tag("slow")
   @Test public void testJoinAggregateMaterializationNoAggregateFuncs10() {
     checkMaterialize(
         "select \"depts\".\"name\", \"dependents\".\"name\" as \"name2\", "
@@ -2089,11 +2091,10 @@ public class MaterializationTest {
             + "group by \"dependents\".\"empid\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableAggregate(group=[{4}], S=[$SUM0($6)])\n"
-                + "  EnumerableCalc(expr#0..6=[{inputs}], expr#7=[=($t5, $t0)], proj#0..6=[{exprs}], $condition=[$t7])\n"
-                + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-                + "      EnumerableTableScan(table=[[hr, depts]])\n"
-                + "      EnumerableTableScan(table=[[hr, m0]])"));
+            "EnumerableAggregate(group=[{0}], S=[$SUM0($2)])\n"
+                + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])\n"
+                + "    EnumerableTableScan(table=[[hr, depts]])"));
   }
 
   @Test public void testJoinAggregateMaterializationAggregateFuncs8() {
@@ -2109,11 +2110,10 @@ public class MaterializationTest {
             + "group by \"depts\".\"name\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableAggregate(group=[{1}], S=[$SUM0($6)])\n"
-                + "  EnumerableCalc(expr#0..6=[{inputs}], expr#7=[=($t5, $t0)], proj#0..6=[{exprs}], $condition=[$t7])\n"
-                + "    EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
-                + "      EnumerableTableScan(table=[[hr, depts]])\n"
-                + "      EnumerableTableScan(table=[[hr, m0]])"));
+            "EnumerableAggregate(group=[{4}], S=[$SUM0($2)])\n"
+                + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])\n"
+                + "    EnumerableTableScan(table=[[hr, depts]])"));
   }
 
   @Test public void testJoinAggregateMaterializationAggregateFuncs9() {
@@ -2145,6 +2145,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL);
   }
 
+  @Tag("slow")
   @Test public void testJoinAggregateMaterializationAggregateFuncs11() {
     checkMaterialize(
         "select \"depts\".\"deptno\", \"dependents\".\"empid\", count(\"emps\".\"salary\") as s\n"
@@ -2291,10 +2292,12 @@ public class MaterializationTest {
             + "join \"emps\" on (\"emps\".\"deptno\" = \"depts\".\"deptno\")",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0..2=[{inputs}], empid=[$t0])\n"
-                + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):VARCHAR, CAST($2):VARCHAR)], joinType=[inner])\n"
-                + "    EnumerableTableScan(table=[[hr, dependents]])\n"
-                + "    EnumerableTableScan(table=[[hr, m0]])"));
+            "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t2])\n"
+                + "  EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])\n"
+                + "    EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR], proj#0..1=[{exprs}])\n"
+                + "      EnumerableTableScan(table=[[hr, m0]])\n"
+                + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], proj#0..2=[{exprs}])\n"
+                + "      EnumerableTableScan(table=[[hr, dependents]])"));
   }
 
   @Test public void testJoinMaterialization9() {
@@ -2311,6 +2314,7 @@ public class MaterializationTest {
         CONTAINS_M0);
   }
 
+  @Tag("slow")
   @Test public void testJoinMaterialization10() {
     checkMaterialize(
         "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
@@ -2341,6 +2345,7 @@ public class MaterializationTest {
             "PLAN=EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Tag("slow")
   @Test public void testJoinMaterialization12() {
     checkMaterialize(
         "select \"empid\", \"emps\".\"name\", \"emps\".\"deptno\", \"depts\".\"name\"\n"
@@ -2408,6 +2413,7 @@ public class MaterializationTest {
             "PLAN=EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Tag("slow")
   @Test public void testJoinMaterializationUKFK5() {
     checkMaterialize(
         "select \"emps\".\"empid\", \"emps\".\"deptno\" from \"emps\"\n"
@@ -2423,6 +2429,7 @@ public class MaterializationTest {
                 + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
+  @Tag("slow")
   @Test public void testJoinMaterializationUKFK6() {
     checkMaterialize(
         "select \"emps\".\"empid\", \"emps\".\"deptno\" from \"emps\"\n"
@@ -2465,6 +2472,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL);
   }
 
+  @Tag("slow")
   @Test public void testJoinMaterializationUKFK9() {
     checkMaterialize(
         "select * from \"emps\"\n"

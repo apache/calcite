@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -113,11 +114,22 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     // We assume that the inputs are sorted. The price of sorting them has
     // already been paid. The cost of the join is therefore proportional to the
     // input and output size.
+    // Note: this is wrong for cases as follows (in case all emp.id are less than dept.id):
+    // select * from emp join dept on (emp.id*0 = dept.id*0)
+    // In practice, mergeJoin would have to perform cartesian join even though it would return 0
+    // rows or so.
     final double rightRowCount = right.estimateRowCount(mq);
     final double leftRowCount = left.estimateRowCount(mq);
     final double rowCount = mq.getRowCount(this);
-    final double d = leftRowCount + rightRowCount + rowCount;
-    return planner.getCostFactory().makeCost(d, 0, 0);
+    double cost = (leftRowCount + rightRowCount) * OPERATOR_COST * joinInfo.leftKeys.size();
+    if (leftRowCount > rightRowCount) {
+      // prefer leftRowCount <= rightRowCount
+      cost += RelMdUtil.addEpsilon(cost);
+    }
+    cost += rowCount;
+    // TODO: account for joinInfo.nonEquiConditions
+    cost = EnumUtils.extraJoinCost(cost, this, leftRowCount, rightRowCount);
+    return planner.getCostFactory().makeCost(cost, 0, 0);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

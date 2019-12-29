@@ -228,12 +228,12 @@ where e.deptno + 10 = d.deptno * 2;
 (9 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t1], DEPTNO0=[$t2])
-  EnumerableNestedLoopJoin(condition=[=(+($1, 10), *($2, 2))], joinType=[inner])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
-      EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t3], DEPTNO0=[$t0])
+  EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[*($t0, $t3)], DEPTNO=[$t0], $f1=[$t4])
       EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[+($t7, $t8)], EMPNO=[$t0], DEPTNO=[$t7], $f2=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 ### [CALCITE-801] NullPointerException using USING on table alias with column aliases
