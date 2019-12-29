@@ -133,10 +133,13 @@ public abstract class Sort extends SingleRel {
       RelMetadataQuery mq) {
     // Higher cost if rows are wider discourages pushing a project through a
     // sort.
-    final double rowCount = mq.getRowCount(this);
-    final double bytesPerRow = getRowType().getFieldCount() * 4;
-    final double cpu = Util.nLogN(rowCount) * bytesPerRow;
-    return planner.getCostFactory().makeCost(rowCount, cpu, 0);
+    double rowCount = mq.getRowCount(this);
+    double fieldCost = getRowType().getFieldCount() * 0.1;
+    // Note: we intentionally pass the "sorting" cost as ROWS
+    // since VolcanoPlanner uses just ROWS for comparing the plans :(
+    // Note: it is hard to compare (rows=10, cpu=20) vs (rows=20, cpu=10),
+    return planner.getCostFactory().makeCost(
+        Util.nLogN(rowCount) * (4 + fieldCost), rowCount, 0);
   }
 
   @Override public List<RexNode> getChildExps() {
