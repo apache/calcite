@@ -79,6 +79,7 @@ public class EnumerableMatch extends Match implements EnumerableRel {
     super(cluster, traitSet, input, rowType, pattern, strictStart, strictEnd,
         patternDefinitions, measures, after, subsets, allRows, partitionKeys,
         orderKeys, interval);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableMatch. */

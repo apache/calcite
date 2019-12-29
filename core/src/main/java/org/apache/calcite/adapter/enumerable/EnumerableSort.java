@@ -39,8 +39,7 @@ public class EnumerableSort extends Sort implements EnumerableRel {
   public EnumerableSort(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
-    assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == input.getConvention();
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableSort. */

@@ -51,6 +51,7 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
   protected EnumerableBindable(RelOptCluster cluster, RelNode input) {
     super(cluster, ConventionTraitDef.INSTANCE,
         cluster.traitSetOf(BindableConvention.INSTANCE), input);
+    EnumerableUtils.assertConvention(input);
   }
 
   @Override public EnumerableBindable copy(RelTraitSet traitSet,

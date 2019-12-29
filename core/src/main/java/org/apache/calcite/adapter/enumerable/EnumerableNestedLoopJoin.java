@@ -46,6 +46,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
       RelNode left, RelNode right, RexNode condition,
       Set<CorrelationId> variablesSet, JoinRelType joinType) {
     super(cluster, traits, left, right, condition, variablesSet, joinType);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Deprecated // to be removed before 2.0

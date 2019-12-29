@@ -67,7 +67,7 @@ public class EnumerableTableScan
   public EnumerableTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Class elementType) {
     super(cluster, traitSet, table);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertSelfAndInputs(this);
     this.elementType = elementType;
     assert canHandle(table)
         : "EnumerableTableScan can't implement " + table + ", see EnumerableTableScan#canHandle";

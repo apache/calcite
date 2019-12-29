@@ -34,6 +34,7 @@ public class EnumerableUnion extends Union implements EnumerableRel {
   public EnumerableUnion(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   public EnumerableUnion copy(RelTraitSet traitSet, List<RelNode> inputs,

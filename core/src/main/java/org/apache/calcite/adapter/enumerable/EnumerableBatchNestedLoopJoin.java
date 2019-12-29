@@ -62,6 +62,7 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       JoinRelType joinType) {
     super(cluster, traits, left, right, condition, variablesSet, joinType);
     this.requiredColumns = requiredColumns;
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   public static EnumerableBatchNestedLoopJoin create(

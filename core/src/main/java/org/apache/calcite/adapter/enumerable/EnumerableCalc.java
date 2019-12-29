@@ -72,7 +72,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
       RelNode input,
       RexProgram program) {
     super(cluster, traitSet, input, program);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertSelfAndInputs(this);
     assert !program.containsAggs();
   }
 

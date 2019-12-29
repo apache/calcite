@@ -31,8 +31,7 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
   public EnumerableCollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, String fieldName) {
     super(cluster, traitSet, child, fieldName);
-    assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == child.getConvention();
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Override public EnumerableCollect copy(RelTraitSet traitSet,

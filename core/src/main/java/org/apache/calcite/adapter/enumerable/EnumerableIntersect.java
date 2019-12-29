@@ -34,6 +34,7 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
   public EnumerableIntersect(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   public EnumerableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs,

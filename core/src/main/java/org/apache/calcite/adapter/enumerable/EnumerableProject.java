@@ -50,7 +50,7 @@ public class EnumerableProject extends Project implements EnumerableRel {
       List<? extends RexNode> projects,
       RelDataType rowType) {
     super(cluster, traitSet, input, projects, rowType);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Deprecated // to be removed before 2.0

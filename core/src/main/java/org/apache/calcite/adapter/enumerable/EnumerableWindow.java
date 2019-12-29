@@ -71,6 +71,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   EnumerableWindow(RelOptCluster cluster, RelTraitSet traits, RelNode child,
       List<RexLiteral> constants, RelDataType rowType, List<Group> groups) {
     super(cluster, traits, child, constants, rowType, groups);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

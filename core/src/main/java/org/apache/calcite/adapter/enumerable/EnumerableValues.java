@@ -49,6 +49,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
   private EnumerableValues(RelOptCluster cluster, RelDataType rowType,
       ImmutableList<ImmutableList<RexLiteral>> tuples, RelTraitSet traitSet) {
     super(cluster, rowType, tuples, traitSet);
+    EnumerableUtils.assertConvention(this);
   }
 
   /** Creates an EnumerableValues. */

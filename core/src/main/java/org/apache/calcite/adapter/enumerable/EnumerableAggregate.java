@@ -67,7 +67,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertSelfAndInputs(this);
 
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.isDistinct()) {

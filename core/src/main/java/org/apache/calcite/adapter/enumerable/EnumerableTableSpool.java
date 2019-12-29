@@ -47,6 +47,7 @@ public class EnumerableTableSpool extends TableSpool implements EnumerableRel {
   private EnumerableTableSpool(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, Type readType, Type writeType, RelOptTable table) {
     super(cluster, traitSet, input, readType, writeType, table);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableTableSpool. */

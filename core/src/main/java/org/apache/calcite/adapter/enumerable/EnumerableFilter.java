@@ -41,7 +41,7 @@ public class EnumerableFilter
       RelNode child,
       RexNode condition) {
     super(cluster, traitSet, child, condition);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableFilter. */

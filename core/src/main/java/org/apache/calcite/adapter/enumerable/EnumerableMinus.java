@@ -34,6 +34,7 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
   public EnumerableMinus(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   public EnumerableMinus copy(RelTraitSet traitSet, List<RelNode> inputs,

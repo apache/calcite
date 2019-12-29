@@ -47,6 +47,7 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
       Set<RelColumnMapping> columnMappings) {
     super(cluster, traits, inputs, call, elementType, rowType,
         columnMappings);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Override public EnumerableTableFunctionScan copy(

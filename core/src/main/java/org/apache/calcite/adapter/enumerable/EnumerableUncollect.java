@@ -49,8 +49,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
     super(cluster, traitSet, child, withOrdinality);
-    assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == child.getConvention();
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /**

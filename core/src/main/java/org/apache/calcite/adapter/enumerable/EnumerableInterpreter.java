@@ -56,7 +56,7 @@ public class EnumerableInterpreter extends SingleRel
   public EnumerableInterpreter(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, double factor) {
     super(cluster, traitSet, input);
-    assert getConvention() instanceof EnumerableConvention;
+    EnumerableUtils.assertConvention(this);
     this.factor = factor;
   }
 

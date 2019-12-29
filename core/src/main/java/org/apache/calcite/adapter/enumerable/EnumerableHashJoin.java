@@ -64,6 +64,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
         condition,
         variablesSet,
         joinType);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Deprecated // to be removed before 2.0

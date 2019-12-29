@@ -67,6 +67,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   @Deprecated // to be removed before 2.0

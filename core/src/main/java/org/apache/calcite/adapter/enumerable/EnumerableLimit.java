@@ -54,8 +54,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     super(cluster, traitSet, input);
     this.offset = offset;
     this.fetch = fetch;
-    assert getConvention() instanceof EnumerableConvention;
-    assert getConvention() == input.getConvention();
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableLimit. */

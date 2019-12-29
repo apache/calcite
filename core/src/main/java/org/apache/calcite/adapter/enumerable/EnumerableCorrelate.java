@@ -49,6 +49,7 @@ public class EnumerableCorrelate extends Correlate
       ImmutableBitSet requiredColumns, JoinRelType joinType) {
     super(cluster, traits, left, right, correlationId, requiredColumns,
         joinType);
+    EnumerableUtils.assertSelfAndInputs(this);
   }
 
   /** Creates an EnumerableCorrelate. */
