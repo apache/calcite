@@ -4322,6 +4322,22 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testInsertValuesWithExplicitColumnsAndDynamicParams() {
+    final String sql = ""
+        + "insert into \"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "values (?,?,?), (?,?,?)";
+    final String expected = ""
+        + "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
+        + "SELECT ?, ?, ?\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "UNION ALL\n"
+        + "SELECT ?, ?, ?\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
+    sql(sql)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .ok(expected);
+  }
+
   @Test public void testTableFunctionScan() {
     final String query = "SELECT *\n"
         + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
