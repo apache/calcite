@@ -111,7 +111,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import org.hamcrest.CoreMatchers;
-import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -1807,7 +1806,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
     final RelNode filter = relBuilder.peek();
     predicates = mq.getPulledUpPredicates(filter);
-    assertThat(predicates.pulledUpPredicates.toString(), is("[=($0, 1)]"));
+    assertThat(predicates.pulledUpPredicates, sortsAs("[=($0, 1)]"));
 
     final LogicalTableScan deptScan =
         LogicalTableScan.create(cluster, deptTable);
@@ -1937,7 +1936,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       final RelNode rel = convertSql(sql, false);
       final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
       RelOptPredicateList inputSet = mq.getPulledUpPredicates(rel.getInput(0));
-      assertThat(inputSet.pulledUpPredicates.size(), is(18));
+      assertThat(inputSet.pulledUpPredicates.size(), is(12));
     }
   }
 
@@ -1992,7 +1991,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "union all\n"
         + "select empno, comm, deptno from emp where empno=1 and comm=4");
     assertThat(mq.getPulledUpPredicates(rel).pulledUpPredicates,
-        sortsAs("[=($0, 1), OR(AND(=($1, 2), =($2, 3)), =($1, 4))]"));
+        sortsAs("[=($0, 1), OR(AND(=($2, 3), =($1, 2)), =($1, 4))]"));
 
   }
 
@@ -2511,12 +2510,12 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
-    assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[true, "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
-            + "true, "
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#2.$7), "
             + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7), "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#2.$7)]"));
+            + "true, "
+            + "true]"));
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences.toString(),
         equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
@@ -2537,11 +2536,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
-    assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[true, "
-            + "=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7), "
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[=([CATALOG, SALES, EMP].#0.$7, [CATALOG, SALES, EMP].#1.$7),"
+            + " =([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7), "
             + "true, "
-            + "=([CATALOG, SALES, EMP].#2.$7, [CATALOG, SALES, EMP].#3.$7)]"));
+            + "true]"));
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
     assertThat(tableReferences.toString(),
         equalTo("[[CATALOG, SALES, DEPT].#0, [CATALOG, SALES, DEPT].#1, "
@@ -2585,14 +2584,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
-    assertThat(tableReferences.toString(),
-        equalTo("[[CATALOG, SALES, DEPT].#0, "
+    assertThat(tableReferences,
+        sortsAs("[[CATALOG, SALES, DEPT].#0, "
             + "[CATALOG, SALES, EMP].#0, "
             + "[CATALOG, SALES, EMP].#1]"));
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
     // Note that we reference [CATALOG, SALES, EMP].#1 rather than [CATALOG, SALES, EMP].#0
-    assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[true, =([CATALOG, SALES, EMP].#1.$0, 5), true]"));
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[=([CATALOG, SALES, EMP].#1.$0, 5), true, true]"));
   }
 
   @Test public void testTableReferencesJoinUnknownNode() {
@@ -2618,15 +2617,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
-    assertThat(tableReferences.toString(),
-        equalTo("[[CATALOG, SALES, EMP].#0, "
+    assertThat(tableReferences,
+        sortsAs("[[CATALOG, SALES, EMP].#0, "
             + "[CATALOG, SALES, EMP].#1, "
             + "[CATALOG, SALES, EMP].#2]"));
     // Note that we reference [CATALOG, SALES, EMP].#2 rather than
     // [CATALOG, SALES, EMP].#0 or [CATALOG, SALES, EMP].#1
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
-    assertThat(inputSet.pulledUpPredicates.toString(),
-        equalTo("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[=([CATALOG, SALES, EMP].#2.$0, 5)]"));
   }
 
   @Test public void testTableReferencesUnionUnknownNode() {
@@ -3018,17 +3017,17 @@ public class RelMetadataTest extends SqlToRelTestBase {
    * <blockquote><pre>List&lt;Integer&gt; ints = Arrays.asList(2, 500, 12);
    * assertThat(ints, sortsAs("[12, 2, 500]");</pre></blockquote>
    */
-  static <T> Matcher<Iterable<? extends T>> sortsAs(final String value) {
-    return new CustomTypeSafeMatcher<Iterable<? extends T>>(value) {
-      protected boolean matchesSafely(Iterable<? extends T> item) {
+  public static <T> Matcher<Iterable<? extends T>> sortsAs(final String value) {
+    return Matchers.compose(equalTo(value), item -> {
+      try (RexNode.Closeable ignored = RexNode.skipNormalize()) {
         final List<String> strings = new ArrayList<>();
         for (T t : item) {
           strings.add(t.toString());
         }
         Collections.sort(strings);
-        return value.equals(strings.toString());
+        return strings.toString();
       }
-    };
+    });
   }
 
   /** Custom metadata interface. */

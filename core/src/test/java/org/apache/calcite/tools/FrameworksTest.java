@@ -144,7 +144,7 @@ public class FrameworksTest {
         });
     String s =
         RelOptUtil.dumpPlan("", x, SqlExplainFormat.TEXT,
-            SqlExplainLevel.DIGEST_ATTRIBUTES);
+            SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     assertThat(Util.toLinux(s),
         equalTo("EnumerableFilter(condition=[>($1, 1)])\n"
             + "  EnumerableTableScan(table=[[myTable]])\n"));

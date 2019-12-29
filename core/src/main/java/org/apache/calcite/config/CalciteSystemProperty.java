@@ -96,6 +96,13 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.enable.stream", true);
 
   /**
+   * Whether RexNode digest should be normalized (e.g. call operands ordered).
+   * <p>Normalization helps to treat $0=$1 and $1=$0 expressions equal, thus it saves efforts
+   * on planning.</p> */
+  public static final CalciteSystemProperty<Boolean> ENABLE_REX_DIGEST_NORMALIZE =
+      booleanProperty("calcite.enable.rexnode.digest.normalize", true);
+
+  /**
    *  Whether to follow the SQL standard strictly.
    */
   public static final CalciteSystemProperty<Boolean> STRICT =

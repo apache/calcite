@@ -58,10 +58,14 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral falseLiteral;
   protected RexLiteral nullBool;
   protected RexLiteral nullInt;
+  protected RexLiteral nullSmallInt;
   protected RexLiteral nullVarchar;
 
   private RelDataType nullableBool;
   private RelDataType nonNullableBool;
+
+  private RelDataType nullableSmallInt;
+  private RelDataType nonNullableSmallInt;
 
   private RelDataType nullableInt;
   private RelDataType nonNullableInt;
@@ -118,6 +122,10 @@ public abstract class RexProgramBuilderBase {
     nonNullableInt = typeFactory.createSqlType(SqlTypeName.INTEGER);
     nullableInt = typeFactory.createTypeWithNullability(nonNullableInt, true);
     nullInt = rexBuilder.makeNullLiteral(nullableInt);
+
+    nonNullableSmallInt = typeFactory.createSqlType(SqlTypeName.SMALLINT);
+    nullableSmallInt = typeFactory.createTypeWithNullability(nonNullableSmallInt, true);
+    nullSmallInt = rexBuilder.makeNullLiteral(nullableSmallInt);
 
     nonNullableBool = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     nullableBool = typeFactory.createTypeWithNullability(nonNullableBool, true);
@@ -386,6 +394,14 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableInt : nonNullableInt;
   }
 
+  protected RelDataType tSmallInt() {
+    return nonNullableSmallInt;
+  }
+
+  protected RelDataType tSmallInt(boolean nullable) {
+    return nullable ? nullableSmallInt : nonNullableSmallInt;
+  }
+
   protected RelDataType tBigInt() {
     return tBigInt(false);
   }
@@ -559,6 +575,50 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vIntNotNull(int arg) {
     return vParamNotNull("int", arg, nonNullableInt);
+  }
+
+  /**
+   * Creates {@code nullable int variable} with index of 0.
+   * If you need several distinct variables, use {@link #vSmallInt(int)}.
+   * The resulting node would look like {@code ?0.notNullSmallInt0}
+   *
+   * @return nullable int variable with index of 0
+   */
+  protected RexNode vSmallInt() {
+    return vSmallInt(0);
+  }
+
+  /**
+   * Creates {@code nullable int variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.int3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return nullable int variable with given index (0-based)
+   */
+  protected RexNode vSmallInt(int arg) {
+    return vParam("smallint", arg, nonNullableSmallInt);
+  }
+
+  /**
+   * Creates {@code non-nullable int variable} with index of 0.
+   * If you need several distinct variables, use {@link #vSmallIntNotNull(int)}.
+   * The resulting node would look like {@code ?0.notNullSmallInt0}
+   *
+   * @return non-nullable int variable with index of 0
+   */
+  protected RexNode vSmallIntNotNull() {
+    return vSmallIntNotNull(0);
+  }
+
+  /**
+   * Creates {@code non-nullable int variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.notNullSmallInt3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return non-nullable int variable with given index (0-based)
+   */
+  protected RexNode vSmallIntNotNull(int arg) {
+    return vParamNotNull("smallint", arg, nonNullableSmallInt);
   }
 
   /**

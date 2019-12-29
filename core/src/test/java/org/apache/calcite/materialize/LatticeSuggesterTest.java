@@ -668,12 +668,12 @@ public class LatticeSuggesterTest {
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(t.s.latticeMap.keySet().iterator().next(),
-        is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
+        is("sales_fact_1997 (customer:+(2, $2)):[MIN(customer.fname)]"));
     assertThat(t.s.space.g.toString(),
         is("graph(vertices: [[foodmart, customer],"
             + " [foodmart, sales_fact_1997]], "
             + "edges: [Step([foodmart, sales_fact_1997],"
-            + " [foodmart, customer], +($2, 2):+($0, 1))])"));
+            + " [foodmart, customer], +(2, $2):+(1, $0))])"));
   }
 
   /** Tests that we can run the suggester against non-JDBC schemas.

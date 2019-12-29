@@ -18,6 +18,7 @@ package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Pair;
@@ -140,6 +141,8 @@ public class RelJsonWriter implements RelWriter {
   public String asString() {
     final Map<String, Object> map = jsonBuilder.map();
     map.put("rels", relList);
-    return jsonBuilder.toJsonString(map);
+    try (RexNode.Closeable ignored = withRexNormalize()) {
+      return jsonBuilder.toJsonString(map);
+    }
   }
 }

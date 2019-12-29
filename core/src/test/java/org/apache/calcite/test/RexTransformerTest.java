@@ -114,7 +114,7 @@ public class RexTransformerTest {
 
     RexTransformer transformer = new RexTransformer(root, rexBuilder);
     RexNode result = transformer.transformNullSemantics();
-    String actual = result.toString();
+    String actual = result.toStringRaw();
     if (!actual.equals(expected)) {
       String msg =
           "\nExpected=<" + expected + ">\n  Actual=<" + actual + ">";
@@ -374,7 +374,7 @@ public class RexTransformerTest {
         null,
         null);
 
-    assertThat(remaining.toString(), is("<>(CAST($0):INTEGER NOT NULL, $9)"));
+    assertThat(remaining.toStringRaw(), is("<>(CAST($0):INTEGER NOT NULL, $9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));
     assertThat(rightJoinKeys.isEmpty(), is(true));
   }
