@@ -34,8 +34,13 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
+import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
@@ -653,6 +658,73 @@ public class EnumUtils {
       typeMatchedArguments.add(typeMatchedArgument);
     }
     return typeMatchedArguments;
+  }
+
+  /**
+   * Joins can be flipped, and for many algorithms, both versions are viable
+   * and have the same cost. To make the results stable between versions of
+   * the planner, make one of the versions slightly more expensive.
+   * @param cost original join cost
+   * @param rel join relation
+   * @param leftRowCount estimated number of rows of the left input
+   * @param rightRowCount estimated number of rows of the right input
+   * @return adjusted join cost
+   */
+  static double extraJoinCost(
+      double cost,
+      Join rel,
+      double leftRowCount,
+      double rightRowCount
+  ) {
+    switch (rel.getJoinType()) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      return cost;
+    case LEFT:
+      // prefer LEFT over right
+      break;
+    case RIGHT:
+      // Hash join always builds lookup from the right input
+      // And it has its own costing to prefer smaller inputs on the right
+      if (!(rel instanceof EnumerableHashJoin)) {
+        cost = RelMdUtil.addEpsilon(cost);
+      }
+      break;
+    default:
+      break;
+    }
+    // Ensure plan stability
+    if (leftRowCount == rightRowCount
+        && RelNodes.COMPARATOR.compare(rel.getLeft(), rel.getRight()) > 0) {
+      cost = RelMdUtil.addEpsilon(cost);
+    }
+    return cost;
+  }
+
+  /**
+   * Joins can be flipped, and for many algorithms, both versions are viable
+   * and have the same cost. To make the results stable between versions of
+   * the planner, make one of the versions slightly more expensive.
+   * @param cost original join cost
+   * @param rel join relation
+   * @param leftRowCount estimated number of rows of the left input
+   * @param rightRowCount estimated number of rows of the right input
+   * @return adjusted join cost
+   */
+  static RelOptCost extraJoinCost(
+      RelOptCost cost,
+      Join rel,
+      double leftRowCount,
+      double rightRowCount
+  ) {
+    double rows = cost.getRows();
+    double newRows = extraJoinCost(rows, rel, leftRowCount, rightRowCount);
+    if (rows == newRows) {
+      return cost;
+    }
+    RelOptCostFactory costFactory = rel.getCluster().getPlanner().getCostFactory();
+    return cost.plus(costFactory.makeCost(newRows - rows, 0, 0));
   }
 
   /**

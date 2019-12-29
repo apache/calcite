@@ -799,13 +799,25 @@ public class PigRelOpTest extends PigRelTestBase {
         + "    WHERE DEPTNO <= 20) AS t1";
     final String result = ""
         + "(10,10)\n"
-        + "(10,20)\n"
         + "(20,10)\n"
-        + "(20,20)\n"
         + "(30,10)\n"
-        + "(30,20)\n"
         + "(40,10)\n"
+        + "(10,20)\n"
+        + "(20,20)\n"
+        + "(30,20)\n"
         + "(40,20)\n";
+    // The expected physical plan is something like below.
+    // Note that is in the left input of NestedLoopJoin, so it produces less
+    // restarts of the other input
+    // EnumerableProject(DEPTNO=[$1], DEPTNO0=[$0])
+    //  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    //    EnumerableProject(DEPTNO=[$0])
+    //      EnumerableFilter(condition=[<=($0, 20)])
+    //        EnumerableInterpreter
+    //          BindableTableScan(table=[[scott, DEPT]])
+    //    EnumerableProject(DEPTNO=[$0])
+    //      EnumerableInterpreter
+    //        BindableTableScan(table=[[scott, DEPT]])
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql))
         .assertResult(is(result));
@@ -833,18 +845,18 @@ public class PigRelOpTest extends PigRelTestBase {
     final String result2 = ""
         + "(10,10,30)\n"
         + "(10,10,40)\n"
-        + "(10,20,30)\n"
-        + "(10,20,40)\n"
         + "(20,10,30)\n"
         + "(20,10,40)\n"
-        + "(20,20,30)\n"
-        + "(20,20,40)\n"
         + "(30,10,30)\n"
         + "(30,10,40)\n"
-        + "(30,20,30)\n"
-        + "(30,20,40)\n"
         + "(40,10,30)\n"
         + "(40,10,40)\n"
+        + "(10,20,30)\n"
+        + "(10,20,40)\n"
+        + "(20,20,30)\n"
+        + "(20,20,40)\n"
+        + "(30,20,30)\n"
+        + "(30,20,40)\n"
         + "(40,20,30)\n"
         + "(40,20,40)\n";
     final String sql2 = ""

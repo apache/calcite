@@ -209,6 +209,8 @@ public abstract class Correlate extends BiRel {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
+    // TODO: account for joinInfo.nonEquiConditions
+    double filterCost = leftRowCount * rightRowCount * requiredColumns.cardinality();
     Double restartCount = mq.getRowCount(getLeft());
     // RelMetadataQuery.getCumulativeCost(getRight()); does not work for
     // RelSubset, so we ask planner to cost-estimate right relation
@@ -217,7 +219,7 @@ public abstract class Correlate extends BiRel {
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 
     return planner.getCostFactory().makeCost(
-        rowCount /* generate results */ + leftRowCount /* scan left results */,
+        rowCount /* generate results */ + filterCost,
         0, 0).plus(rescanCost);
   }
 }
