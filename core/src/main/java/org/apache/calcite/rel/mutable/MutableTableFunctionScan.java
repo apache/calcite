@@ -82,6 +82,9 @@ public class MutableTableFunctionScan extends MutableMultiRel {
     if (elementType != null) {
       buf.append(", elementType: ").append(elementType);
     }
+    if (columnMappings != null) {
+      buf.append(", columnMappings: ").append(columnMappings);
+    }
     return buf.append(")");
   }
 
