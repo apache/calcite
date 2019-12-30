@@ -25,6 +25,10 @@ import java.util.Set;
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 
+/**
+ * Simple {@link javax.xml.namespace.NamespaceContext} implementation. Follows the standard
+ * NamespaceContext contract, and is loadable via a {@link java.util.Map}
+ */
 public class SimpleNamespaceContext implements NamespaceContext {
 
   private final Map<String, String> prefixToNamespaceUri = new HashMap<>();

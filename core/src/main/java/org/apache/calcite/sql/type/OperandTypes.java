@@ -231,7 +231,7 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
-  public static final SqlSingleOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
+  public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
       family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
           // Third operand optional (operand index 0, 1, 2)
           number -> number == 2);
