@@ -72,6 +72,8 @@ import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexFieldCollation;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -2646,13 +2648,13 @@ public class RelBuilder {
   }
 
   /** Creates an IN sub-query. */
-  public RexSubQuery in(RelNode rel, ImmutableList<RexNode> nodes) {
-    return RexSubQuery.in(rel, nodes);
+  public RexSubQuery in(RelNode rel, Iterable<? extends RexNode> nodes) {
+    return RexSubQuery.in(rel, ImmutableList.copyOf(nodes));
   }
 
   /** Creates an SOME sub-query. */
-  public RexSubQuery some(RelNode rel, ImmutableList<RexNode> nodes, SqlQuantifyOperator op) {
-    return RexSubQuery.some(rel, nodes, op);
+  public RexSubQuery some(RelNode rel, Iterable<? extends RexNode> nodes, SqlQuantifyOperator op) {
+    return RexSubQuery.some(rel, ImmutableList.copyOf(nodes), op);
   }
 
   /** Creates an EXISTS sub-query. */
