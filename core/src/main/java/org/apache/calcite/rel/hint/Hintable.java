@@ -33,10 +33,7 @@ import java.util.Set;
  * <p>Relational expressions that can attach hints should implement
  * this interface.
  *
- * <p>This interface is experimental, currently, we make
- * {@link org.apache.calcite.rel.core.Project}
- * {@link org.apache.calcite.rel.core.Join}
- * {@link org.apache.calcite.rel.core.TableScan}
+ * <p>This interface is experimental, currently, we make some {@link RelNode}s
  * implement this interface and add an argument named "hints" to construct these
  * relational expressions if hints are attached.
  *
@@ -55,7 +52,7 @@ public interface Hintable {
    * every logical node that supports hint. This method is only for
    * internal use during sql-to-rel conversion.
    *
-   * <p>The sub-class should return a new copy of the relational expression.
+   * <p>Sub-class should return a new copy of the relational expression.
    *
    * <p>The default implementation merges the given hints with existing ones,
    * put them in one list and eliminate the duplicates; then
@@ -77,9 +74,9 @@ public interface Hintable {
    * <p>This method should be overridden by every logical node that supports hint.
    * It is only for internal use during decorrelation.
    *
-   * <p>The sub-class should return a new copy of the relational expression.
+   * <p>Sub-class should return a new copy of the relational expression.
    *
-   * <p>We make the default implementation return the relational expression directly
+   * <p>The default implementation returns the relational expression directly
    * only because not every kind of relational expression supports hints.
    *
    * @return Relational expression with set up hints

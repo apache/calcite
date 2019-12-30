@@ -396,15 +396,55 @@ public abstract class RelOptUtil {
    * Copy the {@link org.apache.calcite.rel.hint.RelHint}s from {@code originalRel}
    * to {@code newRel} if both of them are {@link Hintable}.
    *
-   * <p>The hints are filtered by the hint strategies when attaching to the {@code newRel}.
+   * <p>The two relational expressions are assumed as semantically equivalent,
+   * that means the hints should be attached to the relational expression
+   * that expects to have them.
+   *
+   * <p>Try to propagate the hints to the first relational expression that matches,
+   * this is needed because many planner rules would generate a sub-tree whose
+   * root rel type is different with the original matched rel.
+   *
+   * <p>For the worst case, there is no relational expression that can apply these hints,
+   * and the whole sub-tree would be visited. We add a protection here:
+   * if the visiting depth is over than 3, just returns, because there are rare cases
+   * the new created sub-tree has layers bigger than that.
+   *
+   * <p>This is a best effort, we do not know exactly how the nodes are transformed
+   * in all kinds of planner rules, so for some complex relational expressions,
+   * the hints would very probably lost.
+   *
+   * <p>This function is experimental and would change without any notes.
    *
    * @param originalRel Original relational expression
    * @param newRel      New relational expression
    * @return A copy of {@code newRel} with attached qualified hints from {@code originalRel},
    * or {@code newRel} directly if one of them are not {@link Hintable}
    */
+  @Experimental
+  public static RelNode copyEquivalentRelHints(RelNode originalRel, RelNode newRel) {
+    if (!(originalRel instanceof Hintable)
+        || ((Hintable) originalRel).getHints().size() == 0) {
+      return newRel;
+    }
+    final RelShuttle shuttle = new SubTreeHintPropagateShuttle(
+        originalRel.getCluster().getHintStrategies(),
+        ((Hintable) originalRel).getHints());
+    return newRel.accept(shuttle);
+  }
+
+  /**
+   * Copy the {@link org.apache.calcite.rel.hint.RelHint}s from {@code originalRel}
+   * to {@code newRel} if both of them are {@link Hintable}.
+   *
+   * <p>The hints would be attached directly(e.g. without any filtering).
+   *
+   * @param originalRel Original relational expression
+   * @param newRel      New relational expression
+   * @return A copy of {@code newRel} with attached hints from {@code originalRel},
+   * or {@code newRel} directly if one of them are not {@link Hintable}
+   */
   public static RelNode copyRelHints(RelNode originalRel, RelNode newRel) {
-    return copyRelHints(originalRel, newRel, true);
+    return copyRelHints(originalRel, newRel, false);
   }
 
   /**
@@ -3877,6 +3917,127 @@ public abstract class RelOptUtil {
       return hints.stream()
           .map(hint -> hint.copy(path))
           .collect(Collectors.toList());
+    }
+  }
+
+  /**
+   * A {@code RelShuttle} which propagates the given hints to the sub-tree from the root node.
+   * It stops the search of current path if the node already has hints or the whole propagation
+   * if there is already a matched node.
+   *
+   * <p>Given a plan:
+   *
+   * <blockquote><pre>
+   *            Filter
+   *                |
+   *               Join
+   *              /    \
+   *            Scan  Project (Hint2)
+   *                     |
+   *                    Scan2
+   * </pre></blockquote>
+   *
+   * <p>The [Filter, Join, Scan] are the candidates(in sequence) to propagate,
+   * the whole propagation ends if we append the given hints to a node successfully.
+   */
+  private static class SubTreeHintPropagateShuttle extends RelHomogeneousShuttle {
+    /** Stack recording the appended inheritPath. */
+    private final List<Integer> appendPath = new ArrayList<>();
+
+    /**
+     * The hint strategies to decide if a hint should be attached to
+     * a relational expression.
+     */
+    private final HintStrategyTable hintStrategies;
+
+    /** Hints to propagate. */
+    private final List<RelHint> hints;
+
+    SubTreeHintPropagateShuttle(HintStrategyTable hintStrategies, List<RelHint> hints) {
+      this.hintStrategies = hintStrategies;
+      this.hints = hints;
+    }
+
+    /**
+     * Visits a particular child of a parent.
+     */
+    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+      appendPath.add(i);
+      try {
+        RelNode child2 = child.accept(this);
+        if (child2 != child) {
+          final List<RelNode> newInputs = new ArrayList<>(parent.getInputs());
+          newInputs.set(i, child2);
+          return parent.copy(parent.getTraitSet(), newInputs);
+        }
+        return parent;
+      } finally {
+        // Remove the last element.
+        appendPath.remove(appendPath.size() - 1);
+      }
+    }
+
+    public RelNode visit(RelNode other) {
+      if (this.appendPath.size() > 3) {
+        // Returns early if the visiting depth is bigger than 3
+        return other;
+      }
+      if (other instanceof Hintable) {
+        return visitHintable(other);
+      } else {
+        return visitChildren(other);
+      }
+    }
+
+    /**
+     * Handle the {@link Hintable}s.
+     *
+     * <p>Try to propagate the given hints to the node, the propagation finishes if:
+     *
+     * <ul>
+     *   <li>This hintable already has hints, that means, the rel is definitely
+     *   not created by a planner rule(or copied by the planner rule)</li>
+     *   <li>This hintable appended the hints successfully</li>
+     * </ul>
+     *
+     * @param node {@link Hintable} to handle
+     * @return New copy of the {@code hintable} with propagated hints attached
+     */
+    private RelNode visitHintable(RelNode node) {
+      final List<RelHint> topHints = ((Hintable) node).getHints();
+      final boolean hasHints = topHints != null && topHints.size() > 0;
+      if (hasHints) {
+        // This node is definitely not created by the planner, returns early.
+        return node;
+      }
+      final RelNode node1 = attachHints(node);
+      if (node1 != node) {
+        return node1;
+      }
+      return visitChildren(node);
+    }
+
+    private RelNode attachHints(RelNode original) {
+      assert original instanceof Hintable;
+      final List<RelHint> hints = this.hints.stream()
+          .map(hint -> copyWithAppendPath(hint, appendPath))
+          .collect(Collectors.toList());
+      final List<RelHint> filteredHints = hintStrategies.apply(hints, original);
+      if (filteredHints.size() > 0) {
+        return ((Hintable) original).attachHints(filteredHints);
+      }
+      return original;
+    }
+
+    private static RelHint copyWithAppendPath(RelHint hint,
+        List<Integer> appendPaths) {
+      if (appendPaths.size() == 0) {
+        return hint;
+      } else {
+        List<Integer> newPath = new ArrayList<>(hint.inheritPath);
+        newPath.addAll(appendPaths);
+        return hint.copy(newPath);
+      }
     }
   }
 

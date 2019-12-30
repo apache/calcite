@@ -253,7 +253,7 @@ public abstract class RelOptRuleCall {
    * @param equiv Map of other equivalences
    */
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
-    transformTo(rel, equiv, RelOptUtil::copyRelHints);
+    transformTo(rel, equiv, RelOptUtil::copyEquivalentRelHints);
   }
 
   /**
