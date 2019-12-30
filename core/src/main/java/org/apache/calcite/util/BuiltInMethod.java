@@ -316,7 +316,7 @@ public enum BuiltInMethod {
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
-  IF(SqlFunctions.class, "ifFunction", boolean.class, Object.class, Object.class),
+  IF(SqlFunctions.class, "ifFunction", Boolean.class, Object.class, Object.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),
@@ -326,6 +326,7 @@ public enum BuiltInMethod {
   EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
   XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
   EXTRACT_XML(XmlFunctions.class, "extractXml", String.class, String.class, String.class),
+  EXISTS_NODE(XmlFunctions.class, "existsNode", String.class, String.class, String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
@@ -583,7 +584,8 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
-      "singleGroupResultSelector", Function1.class);
+      "singleGroupResultSelector", Function1.class),
+  TUMBLING(EnumerableDefaults.class, "tumbling", Enumerable.class, Function1.class);
 
   public final Method method;
   public final Constructor constructor;

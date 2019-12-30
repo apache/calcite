@@ -1856,6 +1856,28 @@ Not implemented:
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
 
+### DESCRIPTOR
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
+
+### Table-valued functions.
+Table-valued functions occur in the `FROM` clause.
+
+#### TUMBLE
+In streaming queries, TUMBLE assigns a window for each row of a relation based on a timestamp column. An assigned window
+is specified by its beginning and ending. All assigned windows have the same length, and that's why tumbling sometimes
+is named as "fixed windowing".
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE(table, DESCRIPTOR(column_name), interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*. Tumbling is applied on table in which there is a watermarked column specified by descriptor.
+
+Here is an example:
+`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
+will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
+watermarked column of table orders that tells data completeness.
+
 ### Grouped window functions
 
 Grouped window functions occur in the `GROUP BY` clause and define a key value
@@ -2288,8 +2310,8 @@ The 'C' (compatibility) column contains value
 'o' for Oracle ('fun=oracle' in the connect string),
 'p' for PostgreSQL ('fun=postgresql' in the connect string).
 'b' for BigQuery ('fun=bigquery' in the connect string).
-'h' for hive ('fun=hive' in the connect string).
-'s' for spark ('fun=spark' in the connect string).
+'h' for Hive ('fun=hive' in the connect string).
+'s' for Spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2303,9 +2325,11 @@ semantics.
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
-| o | EXTRACT(xml, xpath, [, namespace ])            | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b h s | IF(boolean, object, object)                | Return one value if a logical expression is 'TRUE' and another if it is a 'FALSE'
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
@@ -2334,7 +2358,6 @@ semantics.
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
-| b h s | IF(boolean, object, object)                  | Return one value if a logical expression is 'TRUE' and another if it is a 'FALSE'
 
 Note:
 

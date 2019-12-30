@@ -36,6 +36,7 @@ import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
+import static org.apache.calcite.runtime.SqlFunctions.ifFunction;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
@@ -45,6 +46,7 @@ import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
@@ -101,6 +103,15 @@ public class SqlFunctionsTest {
     assertThat(posixRegex("abc", "[[:xdigit:]]", false), is(true));
     assertThat(posixRegex("abc", "[[:xdigit:]]+", false), is(true));
     assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
+
+  }
+
+  @Test public void testIf() {
+    assertThat(ifFunction("abc".equals("xyz"), "xyz", "abc"), is("abc"));
+    assertThat(ifFunction(null, "xyz", "abc"), is("abc"));
+    assertThat(ifFunction("1".equals("2"), "1", "2"), is("2"));
+    assertThat(ifFunction(substring("abc", 1, 2).equals("ab"), "1", "2"), is("1"));
+    assertThat(ifFunction(1 == 2, 1, 2), is(2));
   }
 
   @Test public void testRegexpReplace() {

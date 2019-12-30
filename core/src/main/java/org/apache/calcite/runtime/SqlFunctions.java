@@ -350,8 +350,12 @@ public class SqlFunctions {
   }
 
   /** SQL IF(boolean, object, object) function. */
-  public static Object ifFunction(boolean a, Object b, Object c) {
-    return a ? b : c;
+  public static Object ifFunction(Boolean a, Object b, Object c) {
+    if (a != null && a) {
+      return b;
+    } else {
+      return c;
+    }
   }
 
   /** SQL ASCII(string) function. */

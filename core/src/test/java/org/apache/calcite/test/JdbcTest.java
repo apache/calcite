@@ -6441,21 +6441,6 @@ public class JdbcTest {
         .returnsUnordered("R=1");
   }
 
-  @Test public void testIfWithExpression() {
-    CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with(CalciteConnectionProperty.FUN, "bigquery")
-        .query("select if(TRIM('a ') = 'a','a','b') as r")
-        .returnsUnordered("R=a");
-    CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with(CalciteConnectionProperty.FUN, "hive")
-        .query("select if(TRIM('a ') = 'a','a','b') as r")
-        .returnsUnordered("R=a");
-    CalciteAssert.that(CalciteAssert.Config.REGULAR)
-        .with(CalciteConnectionProperty.FUN, "spark")
-        .query("select if(TRIM('a ') = 'a','a','b') as r")
-        .returnsUnordered("R=a");
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */

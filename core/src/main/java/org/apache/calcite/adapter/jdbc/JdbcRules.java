@@ -96,7 +96,7 @@ public class JdbcRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
-      (input, projects, fieldNames) -> {
+      (input, hints, projects, fieldNames) -> {
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
             RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -114,7 +114,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.JoinFactory JOIN_FACTORY =
-      (left, right, condition, variablesSet, joinType, semiJoinDone) -> {
+      (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
         final RelTraitSet traitSet = cluster.traitSetOf(left.getConvention());
         try {
@@ -146,7 +146,7 @@ public class JdbcRules {
       };
 
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
-      (input, groupSet, groupSets, aggCalls) -> {
+      (input, hints, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
         final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
         try {
@@ -187,7 +187,7 @@ public class JdbcRules {
       };
 
   public static final RelFactories.TableScanFactory TABLE_SCAN_FACTORY =
-      (cluster, table) -> {
+      (cluster, table, hints) -> {
         throw new UnsupportedOperationException();
       };
 

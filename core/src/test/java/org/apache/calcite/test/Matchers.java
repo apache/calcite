@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -202,6 +203,17 @@ public class Matchers {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
     });
+  }
+
+  /**
+   * Creates a Matcher that matches a {@link RelNode} if its hints string
+   * representation is equal to the given {@code value}.
+   */
+  public static Matcher<RelNode> hasHints(final String value) {
+    return compose(Is.is(value),
+        input -> input instanceof Hintable
+            ? ((Hintable) input).getHints().toString()
+            : "[]");
   }
 
   /**

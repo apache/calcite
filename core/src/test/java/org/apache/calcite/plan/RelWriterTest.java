@@ -362,7 +362,8 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")));
+                      Arrays.asList("hr", "emps")),
+                  ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           LogicalFilter filter =
               LogicalFilter.create(scan,
@@ -376,7 +377,10 @@ public class RelWriterTest {
           final RelDataType bigIntType =
               cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           LogicalAggregate aggregate =
-              LogicalAggregate.create(filter, ImmutableBitSet.of(0), null,
+              LogicalAggregate.create(filter,
+                  ImmutableList.of(),
+                  ImmutableBitSet.of(0),
+                  null,
                   ImmutableList.of(
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
                           true, false, false, ImmutableList.of(1), -1,
@@ -403,12 +407,14 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")));
+                      Arrays.asList("hr", "emps")),
+                  ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           final RelDataType bigIntType =
               cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           LogicalProject project =
               LogicalProject.create(scan,
+                  ImmutableList.of(),
                   ImmutableList.of(
                       rexBuilder.makeInputRef(scan, 0),
                       rexBuilder.makeOver(bigIntType,

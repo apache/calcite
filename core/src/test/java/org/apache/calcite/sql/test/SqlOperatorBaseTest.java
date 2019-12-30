@@ -4504,27 +4504,6 @@ public abstract class SqlOperatorBaseTest {
     testerMysql.checkNull("reverse(cast(null as varchar(1)))");
   }
 
-  @Test public void testIfFunc() {
-    final SqlTester testerBigQuery = tester(SqlLibrary.BIGQUERY);
-    testerBigQuery.setFor(SqlLibraryOperators.IF);
-    testerBigQuery.checkString("if(1 = 2, 1, 2)", "2", "INTEGER NOT NULL");
-    testerBigQuery.checkString("if('abc'='xyz', 'abc', 'xyz')", "xyz", "CHAR(3) NOT NULL");
-    testerBigQuery.checkString("if(substring('abc',1,2)='ab', 'abc', 'xyz')", "abc", "CHAR(3) NOT"
-        + " NULL");
-    final SqlTester testerHive = tester(SqlLibrary.HIVE);
-    testerHive.setFor(SqlLibraryOperators.IF);
-    testerHive.checkString("if(1 = 2, 1, 2)", "2", "INTEGER NOT NULL");
-    testerHive.checkString("if('abc'='xyz', 'abc', 'xyz')", "xyz", "CHAR(3) NOT NULL");
-    testerHive.checkString("if(substring('abc',1,2)='ab', 'abc', 'xyz')", "abc", "CHAR(3) NOT "
-        + "NULL");
-    final SqlTester testerSpark = tester(SqlLibrary.SPARK);
-    testerSpark.setFor(SqlLibraryOperators.IF);
-    testerSpark.checkString("if(1 = 2, 1, 2)", "2", "INTEGER NOT NULL");
-    testerSpark.checkString("if('abc'='xyz', 'abc', 'xyz')", "xyz", "CHAR(3) NOT NULL");
-    testerSpark.checkString("if(substring('abc',1,2)='ab', 'abc', 'xyz')", "abc", "CHAR(3) NOT "
-        + "NULL");
-  }
-
   @Test public void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");
@@ -5282,6 +5261,57 @@ public abstract class SqlOperatorBaseTest {
         "<book xmlns=\"http://www.contoso.com/books\"><title>Title</title><author>Author "
             + "Name</author><price>5.50</price></book>",
         "VARCHAR(2000)");
+  }
+
+  @Test public void testExistsNode() {
+    SqlTester sqlTester = tester(SqlLibrary.ORACLE);
+
+    sqlTester.checkFails("EXISTSNODE('', '<','a')",
+        "Invalid input for EXISTSNODE xpath: '.*", true);
+    sqlTester.checkFails("EXISTSNODE('', '<')",
+        "Invalid input for EXISTSNODE xpath: '.*", true);
+    sqlTester.checkNull("EXISTSNODE('', NULL)");
+    sqlTester.checkNull("EXISTSNODE(NULL,'')");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar"
+            + "</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "1",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar"
+            + "</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title/Books')",
+        "0",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Title>Article2</Title><Authors><Author>Foo"
+            + "</Author><Author>Bar</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "1",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE(\n"
+            + "'<books xmlns=\"http://www.contoso"
+            + ".com/books\"><book><title>Title</title><author>Author Name</author><price>5"
+            + ".50</price></book></books>'"
+            + ", '/books:books/books:book', 'books=\"http://www.contoso.com/books\"'"
+            + ")",
+        "1",
+        "INTEGER");
+    sqlTester.checkString(
+        "EXISTSNODE(\n"
+            + "'<books xmlns=\"http://www.contoso"
+            + ".com/books\"><book><title>Title</title><author>Author Name</author><price>5"
+            + ".50</price></book></books>'"
+            + ", '/books:books/books:book/books:title2', 'books=\"http://www.contoso.com/books\"'"
+            + ")",
+        "0",
+        "INTEGER");
   }
 
   @Test public void testLowerFunc() {
