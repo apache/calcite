@@ -634,7 +634,7 @@ public class RelToSqlConverter extends SqlImplementor
     }
     Result x = visitChild(0, e.getInput());
     Builder builder = x.builder(e, Clause.ORDER_BY);
-    if (stack.getLast().r != e) {
+    if (stack.size() == 1) {
       if (builder.select.getSelectList() == null) {
         final List<SqlNode> selectList = Expressions.list();
         for (RelDataTypeField field : e.getRowType().getFieldList()) {
