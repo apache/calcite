@@ -1627,14 +1627,14 @@ public class SubstitutionVisitor {
         List<RexNode> rexInputs = queryInputExplained0.right;
         RelDataType targetRowType = target.rowType;
         for (int i = 0; i < rexInputs.size(); i++) {
-          if(rexInputs.get(i) instanceof RexInputRef) {
+          if (rexInputs.get(i) instanceof RexInputRef) {
             RexInputRef rexInputRef = (RexInputRef) rexInputs.get(i);
             int index = rexInputRef.getIndex();
-            RelDataType relDataType =  targetRowType.getFieldList().get(index).getType();
-            if(rexInputs.get(i).getType() == relDataType) {
+            RelDataType relDataType = targetRowType.getFieldList().get(index).getType();
+            if (rexInputs.get(i).getType() == relDataType) {
               projectExprs.add(rexInputs.get(i));
             } else if (rexInputs.get(i).getType().getSqlTypeName()
-                == relDataType.getSqlTypeName()){
+                == relDataType.getSqlTypeName()) {
               projectExprs.add(new RexInputRef(index, relDataType));
             }
           } else {
