@@ -1621,8 +1621,31 @@ public class SubstitutionVisitor {
             }
           }
         }
+
+        // try to adjust RelDataType
+        List<RexNode> projectExprs = new ArrayList<>();
+        List<RexNode> rexInputs = queryInputExplained0.right;
+        RelDataType targetRowType = target.rowType;
+        for (int i = 0; i < rexInputs.size(); i++) {
+          if(rexInputs.get(i) instanceof RexInputRef) {
+            RexInputRef rexInputRef = (RexInputRef) rexInputs.get(i);
+            int index = rexInputRef.getIndex();
+            RelDataType relDataType =  targetRowType.getFieldList().get(index).getType();
+            if(rexInputs.get(i).getType() == relDataType) {
+              projectExprs.add(rexInputs.get(i));
+            } else if (rexInputs.get(i).getType().getSqlTypeName()
+                == relDataType.getSqlTypeName()){
+              projectExprs.add(new RexInputRef(index, relDataType));
+            }
+          } else {
+            projectExprs.clear();
+            projectExprs = queryInputExplained0.right;
+            break;
+          }
+        }
+
         final RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, queryInputExplained0.right, queryInputExplained0.left,
+            target.rowType, projectExprs, queryInputExplained0.left,
             query.rowType, rexBuilder);
         final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);
