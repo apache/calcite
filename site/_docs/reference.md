@@ -2288,8 +2288,8 @@ The 'C' (compatibility) column contains value
 'o' for Oracle ('fun=oracle' in the connect string),
 'p' for PostgreSQL ('fun=postgresql' in the connect string).
 'b' for BigQuery ('fun=bigquery' in the connect string).
-'h' for hive ('fun=hive' in the connect string).
-'s' for spark ('fun=spark' in the connect string).
+'h' for Hive ('fun=hive' in the connect string).
+'s' for Spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2306,6 +2306,7 @@ semantics.
 | o | EXTRACT(xml, xpath, [, namespace ])            | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b h s | IF(boolean, object, object)                | Return one value if a logical expression is 'TRUE' and another if it is a 'FALSE'
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
@@ -2334,7 +2335,6 @@ semantics.
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
-| b h s | IF(boolean, object, object)                  | Return one value if a logical expression is 'TRUE' and another if it is a 'FALSE'
 
 Note:
 

@@ -2400,7 +2400,8 @@ public class RexSimplify {
 
     if (operands.get(0) != null && operands.get(0).isAlwaysTrue()) {
       return operands.get(1);
-    } else if (operands.get(0) != null && operands.get(0).isAlwaysFalse()) {
+    } else if (operands.get(0) != null
+        && (RexLiteral.isNullLiteral(operands.get(0)) || operands.get(0).isAlwaysFalse())) {
       return operands.get(2);
     }
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);

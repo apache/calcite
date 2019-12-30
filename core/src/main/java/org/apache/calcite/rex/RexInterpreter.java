@@ -199,6 +199,8 @@ public class RexInterpreter implements RexVisitor<Comparable> {
       return ceil(call, values);
     case EXTRACT:
       return extract(call, values);
+    case IF:
+      return ifFunction(values);
     default:
       throw unbound(call);
     }
@@ -310,6 +312,14 @@ public class RexInterpreter implements RexVisitor<Comparable> {
                 || comparable instanceof Short
         ? new BigDecimal(((Number) comparable).longValue())
         : new BigDecimal(((Number) comparable).doubleValue());
+  }
+
+  private Comparable ifFunction(List<Comparable> values) {
+    if (values.get(0) != null && values.get(0).equals(true)) {
+      return values.get(1);
+    } else {
+      return values.get(2);
+    }
   }
 
   private Comparable compare(List<Comparable> values, IntPredicate p) {

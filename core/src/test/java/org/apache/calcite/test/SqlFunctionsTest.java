@@ -101,6 +101,15 @@ public class SqlFunctionsTest {
     assertThat(posixRegex("abc", "[[:xdigit:]]", false), is(true));
     assertThat(posixRegex("abc", "[[:xdigit:]]+", false), is(true));
     assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
+
+  }
+
+  @Test public void testIf() {
+    assertThat(ifFunction("abc".equals("xyz"), "xyz", "abc"), is("abc"));
+    assertThat(ifFunction(null, "xyz", "abc"), is("abc"));
+    assertThat(ifFunction("1".equals("2"), "1", "2"), is("2"));
+    assertThat(ifFunction(substring("abc", 1, 2).equals("ab"), "1", "2"), is("1"));
+    assertThat(ifFunction(1 == 2, 1, 2), is(2));
   }
 
   @Test public void testRegexpReplace() {

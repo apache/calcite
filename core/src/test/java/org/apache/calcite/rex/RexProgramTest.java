@@ -26,6 +26,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeAssignmentRule;
@@ -2434,6 +2435,16 @@ public class RexProgramTest extends RexProgramTestBase {
         "IS NOT FALSE(?0.bool0)",
         "IS NOT FALSE(?0.bool0)",
         "?0.bool0");
+  }
+
+  @Test public void testIf() {
+    checkSimplify(
+        rexBuilder.makeCall(
+            SqlLibraryOperators.IF, rexBuilder.makeCall(
+            SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeLiteral("1"),
+            rexBuilder.makeLiteral("2")), rexBuilder.makeLiteral("3"), rexBuilder.makeLiteral("4")),
+        "'4'");
   }
 
   /** Unit tests for
