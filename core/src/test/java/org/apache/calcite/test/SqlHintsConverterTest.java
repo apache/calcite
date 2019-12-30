@@ -34,6 +34,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
@@ -45,6 +46,7 @@ import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.rules.AggregateReduceFunctionsRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
@@ -103,8 +105,8 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testQueryHintWithLiteralOptions() {
-    final String sql = HintTools.withHint("select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *\n"
-        + "from emp");
+    final String sql = "select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *\n"
+        + "from emp";
     sql(sql).ok();
   }
 
@@ -385,6 +387,26 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
     program.run(planner, rel, toTraits,
         Collections.emptyList(), Collections.emptyList());
+  }
+
+  @Test public void testHintsPropagateWithDifferentKindOfRels() {
+    final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE) */\n"
+        + "ename, avg(sal)\n"
+        + "from emp group by ename";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final RelHint hint = RelHint.of(
+        Collections.singletonList(0),
+        "AGG_STRATEGY",
+        Collections.singletonList("TWO_PHASE"));
+    // AggregateReduceFunctionsRule does the transformation:
+    // AGG -> PROJECT + AGG
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateReduceFunctionsRule.INSTANCE)
+        .build();
+    HepPlanner planner = new HepPlanner(program);
+    planner.setRoot(rel);
+    RelNode newRel = planner.findBestExp();
+    new ValidateHintVisitor(hint, Aggregate.class).go(newRel);
   }
 
   //~ Methods ----------------------------------------------------------------
