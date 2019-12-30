@@ -174,6 +174,23 @@ public abstract class MutableRels {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Construct expression list of Project by the given fields of the input.
+   */
+  public static List<RexNode> createProjects(final MutableRel child,
+      final List<RexNode> projs) {
+    List<RexNode> rexNodeList = new ArrayList<>();
+    for (int i = 0; i < projs.size(); i++) {
+      if (projs.get(i) instanceof RexInputRef) {
+        RexInputRef rexInputRef = (RexInputRef) projs.get(i);
+        rexNodeList.add(RexInputRef.of(rexInputRef.getIndex(), child.rowType));
+      } else {
+        rexNodeList.add(projs.get(i));
+      }
+    }
+    return rexNodeList;
+  }
+
   /** Equivalence to {@link org.apache.calcite.plan.RelOptUtil#createCastRel}
    * for {@link MutableRel}. */
   public static MutableRel createCastRel(MutableRel rel,
