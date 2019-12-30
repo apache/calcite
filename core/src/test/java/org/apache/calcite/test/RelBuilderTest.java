@@ -3050,16 +3050,23 @@ public class RelBuilderTest {
   }
 
   @Test public void testRexSubQueryIn() {
-
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE deptno IN (
+    //     SELECT deptno
+    //     FROM dept
+    //     WHERE dname = 'Accounting'
+    //     )
     final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root = builder.scan("EMP")
+    final RelNode root = builder.scan("EMP")
         .filter(
             builder.in(
                 builder.scan("DEPT")
                     .filter(
                         builder.call(SqlStdOperatorTable.EQUALS,
                             builder.field("DNAME"),
-                            builder.literal("AAA")))
+                            builder.literal("Accounting")))
                     .project(builder.field("DEPTNO"))
                     .build(),
                 ImmutableList.of(builder.field("DEPTNO"))))
@@ -3067,9 +3074,74 @@ public class RelBuilderTest {
 
     final String expected = "LogicalFilter(condition=[IN($7, {\n"
         + "LogicalProject(DEPTNO=[$0])\n"
-        + "  LogicalFilter(condition=[=($1, 'AAA')])\n"
+        + "  LogicalFilter(condition=[=($1, 'Accounting')])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n"
         + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testRexSubQueryExists() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE EXISTS (
+    //     SELECT deptno
+    //     FROM dept
+    //     WHERE dept.deptno = emp.deptno
+    //     )
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root = builder.scan("EMP")
+        .filter(
+            builder.exists(
+                builder.scan("DEPT")
+                    .filter(
+                        builder.call(SqlStdOperatorTable.EQUALS,
+                            builder.field("DNAME"),
+                            builder.literal("Accounting")))
+                    .project(builder.field("DEPTNO"))
+                    .build()))
+        .build();
+
+    final String expected = "LogicalFilter(condition=[EXISTS({\n"
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  LogicalFilter(condition=[=($1, 'Accounting')])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "})])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testRexSubQueryScalar() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp
+    //   WHERE sal > (
+    //     SELECT AVG(sal)
+    //     FROM emp
+    //     )
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root = builder.scan("EMP")
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.GREATER_THAN,
+                builder.field("SAL"),
+                builder.scalar(
+                    builder.scan("EMP")
+                        .aggregate(
+                            builder.groupKey(),
+                            builder.aggregateCall(
+                                SqlStdOperatorTable.AVG,
+                                builder.field("SAL")))
+                        .build())))
+        .build();
+
+    final String expected = "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
+        + "LogicalAggregate(group=[{}], agg#0=[AVG($5)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "}))])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     assertThat(root, hasTree(expected));
