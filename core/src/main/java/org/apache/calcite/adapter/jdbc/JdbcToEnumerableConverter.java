@@ -31,6 +31,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -70,11 +71,17 @@ public class JdbcToEnumerableConverter
       RelTraitSet traits,
       RelNode input) {
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
+    assert input.getConvention() instanceof JdbcConvention
+        : "Input must have JdbcConvention, got " + input;
+  }
+
+  @Override public Convention getPreferredInputConvention() {
+    return null;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new JdbcToEnumerableConverter(
-        getCluster(), traitSet, sole(inputs));
+        getCluster(), traitSet, soleWithPreferredConvention(inputs));
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

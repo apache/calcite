@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptQuery;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
@@ -125,6 +126,10 @@ public abstract class AbstractRelNode implements RelNode {
   protected static <T> T sole(List<T> collection) {
     assert collection.size() == 1;
     return collection.get(0);
+  }
+
+  protected <T extends RelNode> RelNode soleWithPreferredConvention(List<T> collection) {
+    return RelOptRule.convertToDesiredConvention(this, sole(collection));
   }
 
   @SuppressWarnings("deprecation")

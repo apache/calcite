@@ -61,7 +61,7 @@ public class CassandraToEnumerableConverter
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new CassandraToEnumerableConverter(
-        getCluster(), traitSet, sole(inputs));
+        getCluster(), traitSet, soleWithPreferredConvention(inputs));
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

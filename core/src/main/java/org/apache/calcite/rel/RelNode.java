@@ -17,12 +17,14 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptNode;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptQuery;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.Metadata;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -31,6 +33,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
+
+import org.apiguardian.api.API;
 
 import java.util.List;
 import java.util.Set;
@@ -102,6 +106,23 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return this RelNode's CallingConvention
    */
   Convention getConvention();
+
+  /**
+   * Return the preferred {@link Convention} for the input nodes.
+   * @return the preferred {@link Convention} for the input nodes, or
+   *         null if the convention is not known
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  default Convention getPreferredInputConvention() {
+    if (this instanceof Converter) {
+      return ((Converter) this).getInputTraits().getTrait(ConventionTraitDef.INSTANCE);
+    }
+    Convention convention = getConvention();
+    if (convention == null) {
+      return Convention.NONE;
+    }
+    return convention;
+  }
 
   /**
    * Returns the name of the variable which is to be implicitly set at runtime

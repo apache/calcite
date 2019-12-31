@@ -40,6 +40,7 @@ dependencies {
     api(project(":linq4j"))
 
     api("com.fasterxml.jackson.core:jackson-annotations")
+    api("com.google.code.findbugs:jsr305")
     api("org.apache.calcite.avatica:avatica-core")
     api("org.apiguardian:apiguardian-api")
 
@@ -47,7 +48,6 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
-    implementation("com.google.code.findbugs:jsr305"/* optional*/)
     implementation("com.google.guava:guava")
     implementation("com.jayway.jsonpath:json-path")
     implementation("com.yahoo.datasketches:sketches-core")

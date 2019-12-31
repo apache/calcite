@@ -79,7 +79,7 @@ public abstract class Spool extends SingleRel {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), readType, writeType);
+    return copy(traitSet, soleWithPreferredConvention(inputs), readType, writeType);
   }
 
   protected abstract Spool copy(RelTraitSet traitSet, RelNode input,

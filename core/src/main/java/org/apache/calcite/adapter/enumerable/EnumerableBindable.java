@@ -24,6 +24,7 @@ import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.interpreter.Sink;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -54,9 +55,13 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     EnumerableUtils.assertConvention(input);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return EnumerableConvention.INSTANCE;
+  }
+
   @Override public EnumerableBindable copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return new EnumerableBindable(getCluster(), sole(inputs));
+    return new EnumerableBindable(getCluster(), soleWithPreferredConvention(inputs));
   }
 
   public Class<Object[]> getElementType() {

@@ -17,10 +17,12 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -78,8 +80,12 @@ public class EnumerableInterpreter extends SingleRel
     return super.computeSelfCost(planner, mq).multiplyBy(factor);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return BindableConvention.INSTANCE;
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new EnumerableInterpreter(getCluster(), traitSet, sole(inputs),
+    return new EnumerableInterpreter(getCluster(), traitSet, soleWithPreferredConvention(inputs),
         factor);
   }
 

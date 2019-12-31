@@ -33,6 +33,7 @@ import org.apache.calcite.linq4j.tree.ClassDeclaration;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.FieldDeclaration;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -74,9 +75,13 @@ public class EnumerableInterpretable extends ConverterImpl
         cluster.traitSetOf(InterpretableConvention.INSTANCE), input);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return EnumerableConvention.INSTANCE;
+  }
+
   @Override public EnumerableInterpretable copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return new EnumerableInterpretable(getCluster(), sole(inputs));
+    return new EnumerableInterpretable(getCluster(), soleWithPreferredConvention(inputs));
   }
 
   public Node implement(final InterpreterImplementor implementor) {

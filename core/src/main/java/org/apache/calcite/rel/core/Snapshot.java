@@ -71,7 +71,7 @@ public abstract class Snapshot extends SingleRel  {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), getPeriod());
+    return copy(traitSet, soleWithPreferredConvention(inputs), getPeriod());
   }
 
   public abstract Snapshot copy(RelTraitSet traitSet, RelNode input, RexNode period);

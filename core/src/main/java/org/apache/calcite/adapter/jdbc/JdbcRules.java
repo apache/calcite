@@ -493,7 +493,7 @@ public class JdbcRules {
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new JdbcCalc(getCluster(), traitSet, sole(inputs), program);
+      return new JdbcCalc(getCluster(), traitSet, soleWithPreferredConvention(inputs), program);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -1013,7 +1013,7 @@ public class JdbcRules {
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new JdbcTableModify(
           getCluster(), traitSet, getTable(), getCatalogReader(),
-          sole(inputs), getOperation(), getUpdateColumnList(),
+          soleWithPreferredConvention(inputs), getOperation(), getUpdateColumnList(),
           getSourceExpressionList(), isFlattened());
     }
 

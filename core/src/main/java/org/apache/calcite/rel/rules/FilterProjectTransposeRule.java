@@ -163,7 +163,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
               () -> Collections.singletonList(
                       input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE)));
       newCondition = RexUtil.removeNullabilityCast(relBuilder.getTypeFactory(), newCondition);
-      newFilterRel = filter.copy(traitSet, input, newCondition);
+      newFilterRel = filter.copy(traitSet, convertToDesiredConvention(filter, input), newCondition);
     } else {
       newFilterRel =
           relBuilder.push(project.getInput()).filter(newCondition).build();
@@ -171,7 +171,7 @@ public class FilterProjectTransposeRule extends RelOptRule {
 
     RelNode newProjRel =
         copyProject
-            ? project.copy(project.getTraitSet(), newFilterRel,
+            ? project.copy(project.getTraitSet(), convertToDesiredConvention(project, newFilterRel),
                 project.getProjects(), project.getRowType())
             : relBuilder.push(newFilterRel)
                 .project(project.getProjects(), project.getRowType().getFieldNames())

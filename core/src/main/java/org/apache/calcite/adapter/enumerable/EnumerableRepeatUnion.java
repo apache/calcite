@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RepeatUnion;
@@ -51,7 +52,9 @@ public class EnumerableRepeatUnion extends RepeatUnion implements EnumerableRel 
   @Override public EnumerableRepeatUnion copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return new EnumerableRepeatUnion(getCluster(), traitSet,
-        inputs.get(0), inputs.get(1), all, iterationLimit);
+        RelOptRule.convertToDesiredConvention(this, inputs.get(0)),
+        RelOptRule.convertToDesiredConvention(this, inputs.get(1)),
+        all, iterationLimit);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

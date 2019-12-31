@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -32,6 +33,7 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Relational expression representing a scan of a table in a Pig data source.
@@ -47,9 +49,14 @@ public class PigToEnumerableConverter
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
+  @Nonnull
+  @Override public Convention getPreferredInputConvention() {
+    return PigRel.CONVENTION;
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new PigToEnumerableConverter(
-        getCluster(), traitSet, sole(inputs));
+        getCluster(), traitSet, soleWithPreferredConvention(inputs));
   }
 
   /**

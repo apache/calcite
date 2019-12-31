@@ -62,7 +62,7 @@ public class EnumerableTableModify extends TableModify
         traitSet,
         getTable(),
         getCatalogReader(),
-        sole(inputs),
+        soleWithPreferredConvention(inputs),
         getOperation(),
         getUpdateColumnList(),
         getSourceExpressionList(),

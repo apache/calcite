@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -60,6 +61,9 @@ public class AbstractConverter extends ConverterImpl {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public Convention getPreferredInputConvention() {
+    return null;
+  }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new AbstractConverter(

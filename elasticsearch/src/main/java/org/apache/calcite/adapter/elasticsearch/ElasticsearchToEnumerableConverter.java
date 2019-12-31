@@ -25,6 +25,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -50,8 +51,13 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return ElasticsearchRel.CONVENTION;
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new ElasticsearchToEnumerableConverter(getCluster(), traitSet, sole(inputs));
+    return new ElasticsearchToEnumerableConverter(getCluster(), traitSet,
+        soleWithPreferredConvention(inputs));
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {

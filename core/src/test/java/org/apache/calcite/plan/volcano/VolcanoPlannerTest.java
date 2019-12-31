@@ -177,6 +177,7 @@ public class VolcanoPlannerTest {
     }
   }
 
+  @Disabled("EnumerableUnion(input=phys) must not be used")
   @Test public void testMultiInputsParentOpMatching() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

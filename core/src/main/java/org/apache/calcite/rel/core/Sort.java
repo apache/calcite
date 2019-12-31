@@ -118,7 +118,7 @@ public abstract class Sort extends SingleRel {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final Sort copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), collation, offset, fetch);
+    return copy(traitSet, soleWithPreferredConvention(inputs), collation, offset, fetch);
   }
 
   public final Sort copy(RelTraitSet traitSet, RelNode newInput,

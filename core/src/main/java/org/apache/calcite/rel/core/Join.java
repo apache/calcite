@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
@@ -317,7 +318,9 @@ public abstract class Join extends BiRel implements Hintable {
 
   @Override public final Join copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
-    return copy(traitSet, getCondition(), inputs.get(0), inputs.get(1),
+    return copy(traitSet, getCondition(),
+        RelOptRule.convertToDesiredConvention(this, inputs.get(0)),
+        RelOptRule.convertToDesiredConvention(this, inputs.get(1)),
         joinType, isSemiJoinDone());
   }
 

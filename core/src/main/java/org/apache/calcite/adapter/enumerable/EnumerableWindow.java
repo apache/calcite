@@ -75,7 +75,7 @@ public class EnumerableWindow extends Window implements EnumerableRel {
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new EnumerableWindow(getCluster(), traitSet, sole(inputs),
+    return new EnumerableWindow(getCluster(), traitSet, soleWithPreferredConvention(inputs),
         constants, rowType, groups);
   }
 

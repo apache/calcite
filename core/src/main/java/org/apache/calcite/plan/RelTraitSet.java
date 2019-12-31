@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 /**
  * RelTraitSet represents an ordered set of {@link RelTrait}s.
@@ -178,8 +179,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @return New set
    * @see #plus(RelTrait)
    */
-  public RelTraitSet replace(
-      RelTrait trait) {
+  public @Nonnull RelTraitSet replace(
+      @Nonnull RelTrait trait) {
     // Quick check for common case
     if (containsShallow(traits, trait)) {
       return this;

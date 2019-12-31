@@ -18,6 +18,7 @@ package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelInput;
@@ -103,7 +104,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   @Override public final TableFunctionScan copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, inputs, rexCall, elementType, rowType,
+    return copy(traitSet,
+        RelOptRule.convertToDesiredConvention(this, inputs),
+        rexCall, elementType, rowType,
         columnMappings);
   }
 

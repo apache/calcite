@@ -102,7 +102,7 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     final RexNode newCondition =
         RexUtil.apply(mapping, filter.getCondition());
     final Filter newFilter = filter.copy(filter.getTraitSet(),
-        newAggregate, newCondition);
+        convertToDesiredConvention(filter, newAggregate), newCondition);
     if (allColumnsInAggregate && aggregate.getGroupType() == Group.SIMPLE) {
       // Everything needed by the filter is returned by the aggregate.
       assert newGroupSet.equals(aggregate.getGroupSet());

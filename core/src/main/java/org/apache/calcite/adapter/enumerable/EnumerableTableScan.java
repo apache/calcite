@@ -287,6 +287,7 @@ public class EnumerableTableScan
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    assert inputs.isEmpty() : "inputs must be empty";
     return new EnumerableTableScan(getCluster(), traitSet, table, elementType);
   }
 

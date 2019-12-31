@@ -190,8 +190,8 @@ public class ProjectJoinTransposeRule extends RelOptRule {
         join.copy(
             traits,
             newJoinFilter,
-            leftProjRel,
-            rightProjRel,
+            convertToDesiredConvention(join, leftProjRel),
+            convertToDesiredConvention(join, rightProjRel),
             join.getJoinType(),
             join.isSemiJoinDone());
 

@@ -136,6 +136,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
+import static org.apache.calcite.plan.RelOptRule.convertToDesiredConvention;
+
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
  * {@link RelNode}s.
@@ -3562,7 +3564,10 @@ public abstract class RelOptUtil {
     final RelNode left = relBuilder.build();
     relBuilder.push(
         originalJoin.copy(originalJoin.getTraitSet(),
-            joinCond, left, right, joinType, originalJoin.isSemiJoinDone()));
+            joinCond,
+            convertToDesiredConvention(originalJoin, left),
+            convertToDesiredConvention(originalJoin, right),
+            joinType, originalJoin.isSemiJoinDone()));
     if (!extraLeftExprs.isEmpty() || !extraRightExprs.isEmpty()) {
       final int totalFields = joinType.projectsRight()
           ? leftCount + extraLeftExprs.size() + rightCount + extraRightExprs.size()

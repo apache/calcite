@@ -20,6 +20,7 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -89,7 +90,8 @@ public abstract class Filter extends SingleRel {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), getCondition());
+    return copy(traitSet,
+        soleWithPreferredConvention(inputs), getCondition());
   }
 
   public abstract Filter copy(RelTraitSet traitSet, RelNode input,
@@ -104,7 +106,9 @@ public abstract class Filter extends SingleRel {
     if (this.condition == condition) {
       return this;
     }
-    return copy(traitSet, getInput(), condition);
+    return copy(traitSet,
+        RelOptRule.convertToDesiredConvention(this, getInput()),
+        condition);
   }
 
   public RexNode getCondition() {

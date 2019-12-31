@@ -77,7 +77,7 @@ public abstract class Exchange extends SingleRel {
 
   @Override public final Exchange copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), distribution);
+    return copy(traitSet, soleWithPreferredConvention(inputs), distribution);
   }
 
   public abstract Exchange copy(RelTraitSet traitSet, RelNode newInput,

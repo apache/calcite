@@ -236,7 +236,9 @@ public abstract class Aggregate extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), groupSet, groupSets, aggCalls);
+    return copy(traitSet,
+        soleWithPreferredConvention(inputs),
+        groupSet, groupSets, aggCalls);
   }
 
   /** Creates a copy of this aggregate.

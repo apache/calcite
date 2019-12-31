@@ -78,7 +78,7 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     return new EnumerableLimit(
         getCluster(),
         traitSet,
-        sole(newInputs),
+        soleWithPreferredConvention(newInputs),
         offset,
         fetch);
   }

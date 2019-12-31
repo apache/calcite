@@ -18,6 +18,7 @@ package org.apache.calcite.interpreter;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -39,8 +40,12 @@ public class InterpretableConverter extends ConverterImpl
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return null;
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new InterpretableConverter(getCluster(), traitSet, sole(inputs));
+    return new InterpretableConverter(getCluster(), traitSet, soleWithPreferredConvention(inputs));
   }
 
   public Class<Object[]> getElementType() {

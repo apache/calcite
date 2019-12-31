@@ -18,6 +18,7 @@ package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
@@ -78,7 +79,7 @@ public abstract class SetOp extends AbstractRelNode {
       boolean all);
 
   @Override public SetOp copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return copy(traitSet, inputs, all);
+    return copy(traitSet, RelOptRule.convertToDesiredConvention(this, inputs), all);
   }
 
   @Override public void replaceInput(int ordinalInParent, RelNode p) {

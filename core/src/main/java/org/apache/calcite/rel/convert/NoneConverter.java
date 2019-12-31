@@ -45,6 +45,9 @@ public class NoneConverter extends ConverterImpl {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public Convention getPreferredInputConvention() {
+    return null;
+  }
 
   public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.comprises(Convention.NONE);

@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.BiRel;
@@ -123,8 +124,8 @@ public abstract class Correlate extends BiRel {
   @Override public Correlate copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.size() == 2;
     return copy(traitSet,
-        inputs.get(0),
-        inputs.get(1),
+        RelOptRule.convertToDesiredConvention(this, inputs.get(0)),
+        RelOptRule.convertToDesiredConvention(this, inputs.get(1)),
         correlationId,
         requiredColumns,
         joinType);

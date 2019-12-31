@@ -27,6 +27,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -59,9 +60,13 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
     super(cluster, ConventionTraitDef.INSTANCE, traitSet, input);
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return GeodeRel.CONVENTION;
+  }
+
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     return new GeodeToEnumerableConverter(
-        getCluster(), traitSet, sole(inputs));
+        getCluster(), traitSet, soleWithPreferredConvention(inputs));
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

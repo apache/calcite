@@ -17,6 +17,10 @@
 package org.apache.calcite.test;
 
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableProject;
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
+import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
@@ -34,6 +38,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Correlate;
@@ -1602,16 +1607,23 @@ public class RelMetadataTest extends SqlToRelTestBase {
     assertThat(collations.get(0).getFieldCollations().get(1).getFieldIndex(),
         equalTo(0));
 
-    final LogicalProject project = LogicalProject.create(empSort, projects,
+    final LogicalProject logicalProject = LogicalProject.create(empSort, projects,
         ImmutableList.of("a", "b", "c", "d"));
 
-    final LogicalTableScan deptScan =
-        LogicalTableScan.create(cluster, deptTable);
+    // The rule here helps to convert LogicalRels to Enumerable ones
+    // Historically the test was created using Logical rels, so it is easier to convert,
+    // rather than to rewrite the test
+    final EnumerableProject project =
+        (EnumerableProject)
+            ((ConverterRule) EnumerableRules.ENUMERABLE_PROJECT_RULE).convert(logicalProject);
+
+    final EnumerableTableScan deptScan =
+        EnumerableTableScan.create(cluster, deptTable);
 
     final RelCollation deptCollation =
         RelCollations.of(new RelFieldCollation(0), new RelFieldCollation(1));
     final Sort deptSort =
-        LogicalSort.create(deptScan, deptCollation, null, null);
+        EnumerableSort.create(deptScan, deptCollation, null, null);
 
     final ImmutableIntList leftKeys = ImmutableIntList.of(2);
     final ImmutableIntList rightKeys = ImmutableIntList.of(0);

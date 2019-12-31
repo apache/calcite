@@ -292,7 +292,7 @@ public abstract class SparkRules {
       return new SparkCalc(
           getCluster(),
           traitSet,
-          sole(inputs),
+          soleWithPreferredConvention(inputs),
           program);
     }
 

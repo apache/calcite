@@ -127,7 +127,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, rowType);
+    return copy(traitSet, soleWithPreferredConvention(inputs), exps, rowType);
   }
 
   /**

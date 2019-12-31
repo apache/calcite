@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -53,6 +54,11 @@ public class JdbcToSparkConverter
   protected JdbcToSparkConverter(RelOptCluster cluster, RelTraitSet traits,
       RelNode input) {
     super(cluster, ConventionTraitDef.INSTANCE, traits, input);
+  }
+
+  @Override public Convention getPreferredInputConvention() {
+    // JdbcConvention is not a singleton.
+    return null;
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

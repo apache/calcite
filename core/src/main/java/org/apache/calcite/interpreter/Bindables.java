@@ -721,7 +721,7 @@ public class Bindables {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new BindableWindow(getCluster(), traitSet, sole(inputs),
+      return new BindableWindow(getCluster(), traitSet, soleWithPreferredConvention(inputs),
           constants, rowType, groups);
     }
 
@@ -791,7 +791,7 @@ public class Bindables {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new BindableMatch(getCluster(), traitSet, inputs.get(0), rowType,
+      return new BindableMatch(getCluster(), traitSet, soleWithPreferredConvention(inputs), rowType,
           pattern, strictStart, strictEnd, patternDefinitions, measures, after,
           subsets, allRows, partitionKeys, orderKeys, interval);
     }

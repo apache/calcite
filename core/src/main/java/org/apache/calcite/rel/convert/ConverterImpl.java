@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.convert;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -79,4 +80,7 @@ public abstract class ConverterImpl extends SingleRel
     return traitDef;
   }
 
+  @Override public Convention getPreferredInputConvention() {
+    return null;
+  }
 }

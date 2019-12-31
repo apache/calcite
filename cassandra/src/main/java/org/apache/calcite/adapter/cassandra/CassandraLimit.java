@@ -51,7 +51,8 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
   }
 
   @Override public CassandraLimit copy(RelTraitSet traitSet, List<RelNode> newInputs) {
-    return new CassandraLimit(getCluster(), traitSet, sole(newInputs), offset, fetch);
+    return new CassandraLimit(getCluster(), traitSet,
+        soleWithPreferredConvention(newInputs), offset, fetch);
   }
 
   public void implement(Implementor implementor) {

@@ -76,7 +76,7 @@ public class Collect extends SingleRel {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs));
+    return copy(traitSet, soleWithPreferredConvention(inputs));
   }
 
   public RelNode copy(RelTraitSet traitSet, RelNode input) {

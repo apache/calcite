@@ -88,7 +88,7 @@ public class FilterSetOpTransposeRule extends RelOptRule {
 
     // create a new setop whose children are the filters created above
     SetOp newSetOp =
-        setOp.copy(setOp.getTraitSet(), newSetOpInputs);
+        setOp.copy(setOp.getTraitSet(), convertToDesiredConvention(setOp, newSetOpInputs));
 
     call.transformTo(newSetOp);
   }

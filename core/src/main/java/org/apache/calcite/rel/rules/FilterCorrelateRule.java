@@ -108,7 +108,8 @@ public class FilterCorrelateRule extends RelOptRule {
 
     // Create the new Correlate
     RelNode newCorrRel =
-        corr.copy(corr.getTraitSet(), ImmutableList.of(leftRel, rightRel));
+        corr.copy(corr.getTraitSet(),
+            convertToDesiredConvention(corr, ImmutableList.of(leftRel, rightRel)));
 
     call.getPlanner().onCopy(corr, newCorrRel);
 

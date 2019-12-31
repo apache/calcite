@@ -39,6 +39,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
@@ -1639,8 +1640,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // implements the interface required by its calling convention.
     final RelTraitSet traits = rel.getTraitSet();
     final Convention convention = traits.getTrait(ConventionTraitDef.INSTANCE);
-    assert convention != null;
-    if (!convention.getInterface().isInstance(rel)
+    assert convention != null : "Relational expression " + rel + " has null convention";
+    if (!(rel instanceof HepRelVertex)
+        && !convention.getInterface().isInstance(rel)
         && !(rel instanceof Converter)) {
       throw new AssertionError("Relational expression " + rel
           + " has calling-convention " + convention

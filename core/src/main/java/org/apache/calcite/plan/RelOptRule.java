@@ -25,10 +25,13 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.apiguardian.api.API;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import javax.annotation.Nonnull;
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -577,11 +580,12 @@ public abstract class RelOptRule {
    * @return a relational expression with the desired trait; never null
    */
   public static RelNode convert(RelNode rel, RelTrait toTrait) {
-    RelOptPlanner planner = rel.getCluster().getPlanner();
-    RelTraitSet outTraits = rel.getTraitSet();
-    if (toTrait != null) {
-      outTraits = outTraits.replace(toTrait);
+    if (toTrait == null) {
+      return rel;
     }
+
+    RelOptPlanner planner = rel.getCluster().getPlanner();
+    RelTraitSet outTraits = rel.getTraitSet().replace(toTrait);
 
     if (rel.getTraitSet().matches(outTraits)) {
       return rel;
@@ -601,6 +605,43 @@ public abstract class RelOptRule {
       final RelTrait trait) {
     return Lists.transform(rels,
         rel -> convert(rel, rel.getTraitSet().replace(trait)));
+  }
+
+  /**
+   * Converts input relation to the preferred convention.
+   * It enables to keep relation nodes consistent.
+   * For instance, when pushing {@code Filter} into {@code EnumerableProject},
+   * the filter should be converted to the appropriate convention.
+   *
+   * @param parent parent relation
+   * @param input    input relation
+   * @return a relational expression with the desired trait; never null
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static @Nonnull RelNode convertToDesiredConvention(
+      @Nonnull RelNode parent, @Nonnull RelNode input) {
+    Convention convention = parent.getPreferredInputConvention();
+    if (convention == null || convention == Convention.NONE) {
+      return input;
+    }
+    return convert(input, convention);
+  }
+
+  /**
+   * Converts input relation to the preferred convention.
+   * It enables to keep relation nodes consistent.
+   * For instance, when pushing {@code Filter} into {@code EnumerableProject},
+   * the filter should be converted to the appropriate convention.
+   *
+   * @param parent parent relation
+   * @param input    input relation
+   * @return a relational expression with the desired trait; never null
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static @Nonnull List<RelNode> convertToDesiredConvention(
+      @Nonnull RelNode parent, @Nonnull List<RelNode> input) {
+    return Lists.transform(input,
+        rel -> convertToDesiredConvention(parent, rel));
   }
 
   /**
