@@ -21,16 +21,15 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
-import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -101,44 +100,23 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    double rowCount = mq.getRowCount(this);
-
-    // Joins can be flipped, and for many algorithms, both versions are viable
-    // and have the same cost. To make the results stable between versions of
-    // the planner, make one of the versions slightly more expensive.
-    switch (joinType) {
-    case SEMI:
-    case ANTI:
-      // SEMI and ANTI join cannot be flipped
-      break;
-    case RIGHT:
-      rowCount = RelMdUtil.addEpsilon(rowCount);
-      break;
-    default:
-      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
-        rowCount = RelMdUtil.addEpsilon(rowCount);
-      }
-    }
-
-    // Cheaper if the smaller number of rows is coming from the LHS.
-    // Model this by adding L log L to the cost.
+    RelOptCostFactory costFactory = planner.getCostFactory();
     final double rightRowCount = right.estimateRowCount(mq);
     final double leftRowCount = left.estimateRowCount(mq);
-    if (Double.isInfinite(leftRowCount)) {
-      rowCount = leftRowCount;
-    } else {
-      rowCount += Util.nLogN(leftRowCount);
+    if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
+      return costFactory.makeInfiniteCost();
     }
-    if (Double.isInfinite(rightRowCount)) {
-      rowCount = rightRowCount;
-    } else {
-      rowCount += rightRowCount;
-    }
+    double rowCount = mq.getRowCount(this);
+    // The cost of calculating hash values
+    rowCount += (leftRowCount + rightRowCount) * OPERATOR_COST * joinInfo.leftKeys.size();
+    // Currently the right side is hashed
+    rowCount += rightRowCount * TUPLE_COST;
     if (isSemiJoin()) {
-      return planner.getCostFactory().makeCost(rowCount, 0, 0).multiplyBy(.01d);
-    } else {
-      return planner.getCostFactory().makeCost(rowCount, 0, 0);
+      rowCount *= 0.01d;
     }
+    // TODO: account for joinInfo.nonEquiConditions
+    rowCount = EnumUtils.extraJoinCost(rowCount, this, leftRowCount, rightRowCount);
+    return costFactory.makeCost(rowCount, 0, 0);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
