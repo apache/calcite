@@ -32,7 +32,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlAnyValueAggFunction;
 import org.apache.calcite.sql.fun.SqlBitOpAggFunction;
-import org.apache.calcite.sql.fun.SqlBoolAggFunction;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.calcite.sql.fun.SqlMinMaxAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -66,7 +65,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     SUPPORTED_AGGREGATES.put(SqlCountAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlSumAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlSumEmptyIsZeroAggFunction.class, true);
-    SUPPORTED_AGGREGATES.put(SqlBoolAggFunction.class, true);
+    SUPPORTED_AGGREGATES.put(SqlStdOperatorTable.BOOL_OR.getClass(), true);
+    SUPPORTED_AGGREGATES.put(SqlStdOperatorTable.BOOL_AND.getClass(), true);
     SUPPORTED_AGGREGATES.put(SqlAnyValueAggFunction.class, true);
     SUPPORTED_AGGREGATES.put(SqlBitOpAggFunction.class, true);
   }

@@ -3278,6 +3278,10 @@ public class RelOptRulesTest extends RelOptTestBase {
     basePushAggThroughUnion();
   }
 
+  @Test public void testPushBoolAndBoolOrThroughUnion() throws Exception {
+    basePushAggThroughUnion();
+  }
+
   @Test public void testPullFilterThroughAggregate() throws Exception {
     HepProgram preProgram = HepProgram.builder()
         .addRuleInstance(ProjectMergeRule.INSTANCE)
