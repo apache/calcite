@@ -1624,8 +1624,8 @@ public class SubstitutionVisitor {
 
         // try to adjust RelDataType
         List<RexNode> projectExprs = new ArrayList<>();
-        List<RexNode> rexInputs = queryInputExplained0.right;
-        RelDataType targetRowType = target.rowType;
+        final List<RexNode> rexInputs = queryInputExplained0.right;
+        final RelDataType targetRowType = target.rowType;
         for (int i = 0; i < rexInputs.size(); i++) {
           if (rexInputs.get(i) instanceof RexInputRef) {
             RexInputRef rexInputRef = (RexInputRef) rexInputs.get(i);
