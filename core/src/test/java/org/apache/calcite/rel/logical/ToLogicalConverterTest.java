@@ -468,4 +468,18 @@ public class ToLogicalConverterTest {
             + "    LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysial, expectedLogical);
   }
+
+  @Test public void testTableModify() {
+    final String sql = "insert into \"employee\" select * from \"employee\"";
+    final String expectedPhysial = ""
+        + "JdbcToEnumerableConverter\n"
+        + "  JdbcTableModify(table=[[foodmart, employee]], operation=[INSERT], flattened=[true])\n"
+        + "    JdbcTableScan(table=[[foodmart, employee]])\n";
+    final String expectedLogical = ""
+        + "LogicalTableModify(table=[[foodmart, employee]], "
+        + "operation=[INSERT], flattened=[true])\n"
+        + "  LogicalTableScan(table=[[foodmart, employee]])\n";
+    verify(rel(sql), expectedPhysial, expectedLogical);
+  }
+
 }
