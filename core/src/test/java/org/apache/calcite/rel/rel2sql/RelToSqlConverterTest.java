@@ -3734,6 +3734,19 @@ public class RelToSqlConverterTest {
     sql(sql).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3651">[CALCITE-3651]
+   * NullPointerException when convert relational algebra that correlates TableFunctionScan</a>. */
+  @Test public void testLateralCorrelate() {
+    final String query = "select * from \"product\",\n"
+        + "lateral table(RAMP(\"product\".\"product_id\"))";
+    final String expected = "SELECT *\n"
+        + "FROM \"foodmart\".\"product\" AS \"$cor0\",\n"
+        + "LATERAL (SELECT *\n"
+        + "FROM TABLE(RAMP(\"$cor0\".\"product_id\"))) AS \"t\"";
+    sql(query).ok(expected);
+  }
+
   @Test public void testUncollectExplicitAlias() {
     final String sql = "select did + 1 \n"
         + "from unnest(select collect(\"department_id\") as deptid"
