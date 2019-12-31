@@ -39,7 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link PartiallyOrderedSet}.
  */
-@Tag("slow")
 public class PartiallyOrderedSetTest {
   private static final boolean DEBUG = false;
 
@@ -209,6 +208,7 @@ public class PartiallyOrderedSetTest {
     printValidate(poset);
   }
 
+  @Tag("slow")
   @Test public void testPosetBitsLarge() {
     // It takes 80 seconds, and the computations are exactly the same every time
     final PartiallyOrderedSet<Integer> poset =
@@ -216,6 +216,7 @@ public class PartiallyOrderedSetTest {
     checkPosetBitsLarge(poset, 30000, 2921, 164782);
   }
 
+  @Tag("slow")
   @Test public void testPosetBitsLarge2() {
     final int n = 30000;
     final PartiallyOrderedSet<Integer> poset =
