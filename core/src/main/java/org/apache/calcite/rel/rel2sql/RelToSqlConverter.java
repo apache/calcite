@@ -881,9 +881,7 @@ public class RelToSqlConverter extends SqlImplementor
     SqlNode select = new SqlSelect(
         SqlParserPos.ZERO, null, null, tableCall,
         null, null, null, null, null, null, null, SqlNodeList.EMPTY);
-    Result x = new Result(select,
-        ImmutableList.of(Clause.SELECT), null, e.getRowType(), null);
-    return x;
+    return result(select, ImmutableList.of(Clause.SELECT), e, null);
   }
 
   /**
