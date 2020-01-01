@@ -4164,7 +4164,7 @@ LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[INSERT], flattened=[
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColumnList=[["F0"."C0"]], sourceExpressionList=[[+($cor0."F0"."C0", 1)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, STRUCT, T]], operation=[UPDATE], updateColumnList=[["F0"."C0"]], sourceExpressionList=[[+($4, 1)]], flattened=[true])
   LogicalProject("K0"=[$0], "C1"=[$1], "F1"."A0"=[$2], "F2"."A0"=[$3], "F0"."C0"=[$4], "F1"."C0"=[$5], "F0"."C1"=[$6], "F1"."C2"=[$7], "F2"."C3"=[$8], EXPR$0=[+($4, 1)])
     LogicalTableScan(table=[[CATALOG, STRUCT, T]])
 ]]>
@@ -4634,7 +4634,7 @@ LogicalProject(DEPTNO=[$0])
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($cor0.EMPNO, 1)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($0, 1)]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
     LogicalFilter(condition=[=($7, 10)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4647,7 +4647,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColu
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[SAL]], sourceExpressionList=[[+($cor0.SAL, ?0)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[SAL]], sourceExpressionList=[[+($5, ?0)]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($5, ?0)])
     LogicalFilter(condition=[=($8, false)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4825,7 +4825,7 @@ set sal = sal + 5000 where slacker = false]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPDATE], updateColumnList=[[SAL]], sourceExpressionList=[[+($cor0.SAL, 5000)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPDATE], updateColumnList=[[SAL]], sourceExpressionList=[[+($5, 5000)]], flattened=[true])
   LogicalProject(ENAME=[$0], EMPNO=[$1], JOB=[$2], DEPTNO=[$3], SLACKER=[$4], SAL=[$5], EXTRA=[$6], HIREDATE=[$7], MGR=[$8], COMM=[$9], EXPR$0=[+($5, 5000)])
     LogicalFilter(condition=[=($4, false)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
@@ -4840,7 +4840,7 @@ where slacker = false]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPDATE], updateColumnList=[[UPDATED, SAL]], sourceExpressionList=[[2017-03-12 13:03:05, +($cor0.SAL, 5000)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPDATE], updateColumnList=[[UPDATED, SAL]], sourceExpressionList=[[2017-03-12 13:03:05, +($5, 5000)]], flattened=[true])
   LogicalProject(ENAME=[$0], EMPNO=[$1], JOB=[$2], DEPTNO=[$3], SLACKER=[$4], SAL=[$5], EXTRA=[$6], HIREDATE=[$7], MGR=[$8], COMM=[$9], UPDATED=[$10], EXPR$0=[2017-03-12 13:03:05], EXPR$1=[+($5, 5000)])
     LogicalFilter(condition=[=($4, false)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]])
@@ -4865,7 +4865,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[DELETE], flattened=
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($cor0.EMPNO, 1)]], flattened=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP]], operation=[UPDATE], updateColumnList=[[EMPNO]], sourceExpressionList=[[+($0, 1)]], flattened=[true])
   LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], EXPR$0=[+($0, 1)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
