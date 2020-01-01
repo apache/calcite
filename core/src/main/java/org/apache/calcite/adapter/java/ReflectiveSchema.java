@@ -48,9 +48,9 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Constructor;
@@ -58,7 +58,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -106,37 +106,46 @@ public class ReflectiveSchema
   }
 
   private Map<String, Table> createTableMap() {
+    final ImmutableListMultimap.Builder<String, RelReferentialConstraint> constraintBuilder =
+        ImmutableListMultimap.builder();
+    // Unique-Key - Foreign-Key
+    Field[] fields = clazz.getFields();
+    for (Field field : fields) {
+      if (!RelReferentialConstraint.class.isAssignableFrom(field.getType())) {
+        continue;
+      }
+      RelReferentialConstraint rc;
+      try {
+        rc = (RelReferentialConstraint) field.get(target);
+      } catch (IllegalAccessException e) {
+        throw new RuntimeException(
+            "Error while accessing field " + field, e);
+      }
+      constraintBuilder.put(Util.last(rc.getSourceQualifiedName()), rc);
+    }
+    ImmutableListMultimap<String, RelReferentialConstraint> constraints = constraintBuilder.build();
+
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
-    for (Field field : clazz.getFields()) {
+    for (Field field : fields) {
       final String fieldName = field.getName();
-      final Table table = fieldRelation(field);
+      //noinspection rawtypes
+      final FieldTable table = fieldRelation(field);
       if (table == null) {
         continue;
       }
+      ImmutableList<RelReferentialConstraint> tableConstraints = constraints.get(fieldName);
+      if (!tableConstraints.isEmpty()) {
+        Statistic oldStatistics = table.statistic;
+        table.statistic =
+            Statistics.of(
+                oldStatistics.getRowCount(),
+                oldStatistics.getKeys(),
+                tableConstraints,
+                oldStatistics.getCollations());
+      }
       builder.put(fieldName, table);
     }
-    Map<String, Table> tableMap = builder.build();
-    // Unique-Key - Foreign-Key
-    for (Field field : clazz.getFields()) {
-      if (RelReferentialConstraint.class.isAssignableFrom(field.getType())) {
-        RelReferentialConstraint rc;
-        try {
-          rc = (RelReferentialConstraint) field.get(target);
-        } catch (IllegalAccessException e) {
-          throw new RuntimeException(
-              "Error while accessing field " + field, e);
-        }
-        FieldTable table =
-            (FieldTable) tableMap.get(Util.last(rc.getSourceQualifiedName()));
-        assert table != null;
-        table.statistic = Statistics.of(
-            ImmutableList.copyOf(
-                Iterables.concat(
-                    table.getStatistic().getReferentialConstraints(),
-                    Collections.singleton(rc))));
-      }
-    }
-    return tableMap;
+    return builder.build();
   }
 
   @Override protected Multimap<String, Function> getFunctionMultimap() {
@@ -178,7 +187,7 @@ public class ReflectiveSchema
 
   /** Returns a table based on a particular field of this schema. If the
    * field is not of the right type to be a relation, returns null. */
-  private <T> Table fieldRelation(final Field field) {
+  private <T> FieldTable<T> fieldRelation(final Field field) {
     final Type elementType = getElementType(field.getType());
     if (elementType == null) {
       return null;
@@ -192,7 +201,9 @@ public class ReflectiveSchema
     }
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
-    return new FieldTable<>(field, elementType, enumerable);
+    return new FieldTable<>(field, elementType, enumerable,
+        Statistics.of(estimateRowCount(o),
+            ImmutableList.of(), ImmutableList.of(), ImmutableList.of()));
   }
 
   /** Deduces the element type of a collection;
@@ -220,6 +231,17 @@ public class ReflectiveSchema
     }
     throw new RuntimeException(
         "Cannot convert " + o.getClass() + " into a Enumerable");
+  }
+
+  private static Double estimateRowCount(final Object o) {
+    if (o.getClass().isArray()) {
+      return (double) java.lang.reflect.Array.getLength(o);
+    }
+    if (o instanceof Collection) {
+      //noinspection rawtypes
+      return (double) ((Collection) o).size();
+    }
+    return null;
   }
 
   /** Table that is implemented by reading from a Java object. */
