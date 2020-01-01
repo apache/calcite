@@ -39,7 +39,11 @@ import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
+import org.apache.calcite.schema.Statistic;
+import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.TransientTable;
+
+import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -78,6 +82,10 @@ public class ListTransientTable extends AbstractQueryableTable
       boolean flattened) {
     return LogicalTableModify.create(table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
+  }
+
+  @Override public Statistic getStatistic() {
+    return Statistics.of(rows.size(), ImmutableList.of());
   }
 
   @Override public Collection getModifiableCollection() {
