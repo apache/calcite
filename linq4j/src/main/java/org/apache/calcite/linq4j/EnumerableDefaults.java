@@ -3796,7 +3796,11 @@ public abstract class EnumerableDefaults {
     private final Function1<TInner, TKey> innerKeySelector;
     private final Function2<TSource, TInner, TResult> resultSelector;
     boolean done;
-    Enumerator<List<Object>> cartesians;
+    final Enumerator<List<Object>> cartesians =
+        Linq4j.product(
+            ImmutableList.of(
+                Linq4j.enumerator(lefts),
+                Linq4j.enumerator(rights)));
 
     MergeJoinEnumerator(Enumerator<TSource> leftEnumerator,
         Enumerator<TInner> rightEnumerator,
@@ -3812,11 +3816,12 @@ public abstract class EnumerableDefaults {
     }
 
     private void start() {
+      lefts.clear();
+      rights.clear();
       if (!leftEnumerator.moveNext()
           || !rightEnumerator.moveNext()
           || !advance()) {
         done = true;
-        cartesians = Linq4j.emptyEnumerator();
       }
     }
 
@@ -3889,9 +3894,7 @@ public abstract class EnumerableDefaults {
         }
         rights.add(right);
       }
-      cartesians = Linq4j.product(
-          ImmutableList.of(Linq4j.enumerator(lefts),
-              Linq4j.enumerator(rights)));
+      cartesians.reset();
       return true;
     }
 
