@@ -196,6 +196,33 @@ public class EnumerablesTest {
             + "Emp(5, Peter), Emp(6, Peter)]"));
   }
 
+  @Test public void testMergeJoin5() {
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(2, "Fred"),
+                    new Emp(3, "Joe"),
+                    new Emp(5, "Joe"),
+                    new Emp(6, "Peter"))),
+            Linq4j.asEnumerable(
+                Arrays.asList(
+                    new Emp(1, "Fred"),
+                    new Emp(2, "Fred"),
+                    new Emp(3, "Joe"),
+                    new Emp(4, "Joe"),
+                    new Emp(5, "Peter"))),
+            e1 -> e1.name,
+            e2 -> e2.name,
+            (e1, e2) -> e1.deptno > e2.deptno,
+            (v0, v1) -> v0 + ", " + v1, false, false).toList().toString(),
+        equalTo("["
+            + "Emp(2, Fred), Emp(1, Fred), "
+            + "Emp(5, Joe), Emp(3, Joe), "
+            + "Emp(5, Joe), Emp(4, Joe), "
+            + "Emp(6, Peter), Emp(5, Peter)]"));
+  }
+
   private static <T extends Comparable<T>> Enumerable<T> intersect(
       List<T> list0, List<T> list1) {
     return EnumerableDefaults.mergeJoin(

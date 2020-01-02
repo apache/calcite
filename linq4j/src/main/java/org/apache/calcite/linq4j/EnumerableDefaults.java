@@ -3834,7 +3834,7 @@ public abstract class EnumerableDefaults {
       TKey rightKey = innerKeySelector.apply(right);
       for (;;) {
         int c = leftKey.compareTo(rightKey);
-        if (c == 0 && predicate.apply(left, right)) {
+        if (c == 0) {
           break;
         }
         if (c < 0) {
@@ -3893,10 +3893,10 @@ public abstract class EnumerableDefaults {
         }
         rights.add(right);
       }
-      cartesians = new TakeWhileLongEnumerator<>(
+      cartesians = new ConditionalEnumerator<>(
           Linq4j.product(
               ImmutableList.of(Linq4j.enumerator(lefts), Linq4j.enumerator(rights))),
-          (v0, v1) -> predicate.apply((TSource) v0.get(0), (TInner) v0.get(1)));
+          v -> predicate.apply((TSource) v.get(0), (TInner) v.get(1)));
       return true;
     }
 
@@ -3931,6 +3931,42 @@ public abstract class EnumerableDefaults {
     }
 
     public void close() {
+    }
+  }
+
+  /**
+   * Enumerable that emits values satisfy condition.
+   * @param <TSource> element type
+   */
+  private static class ConditionalEnumerator<TSource> implements Enumerator<TSource> {
+    private final Enumerator<TSource> enumerator;
+    private final Predicate1<TSource> predicate;
+
+    ConditionalEnumerator(Enumerator<TSource> enumerator,
+        Predicate1<TSource> predicate) {
+      this.enumerator = enumerator;
+      this.predicate = predicate;
+    }
+
+    public TSource current() {
+      return enumerator.current();
+    }
+
+    public boolean moveNext() {
+      while (enumerator.moveNext()) {
+        if (predicate.apply(enumerator.current())) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public void reset() {
+      enumerator.reset();
+    }
+
+    public void close() {
+      enumerator.close();
     }
   }
 
