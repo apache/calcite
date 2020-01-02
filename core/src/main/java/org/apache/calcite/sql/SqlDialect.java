@@ -1117,6 +1117,8 @@ public class SqlDialect {
     case UNKNOWN:
     case CALCITE:
       return SqlConformanceEnum.DEFAULT;
+    case BIG_QUERY:
+      return SqlConformanceEnum.BIG_QUERY;
     case MYSQL:
       return SqlConformanceEnum.MYSQL_5;
     case ORACLE:
