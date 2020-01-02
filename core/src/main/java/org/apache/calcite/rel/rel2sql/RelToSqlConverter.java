@@ -227,8 +227,13 @@ public class RelToSqlConverter extends SqlImplementor
     if (isStar(e.getChildExps(), e.getInput().getRowType(), e.getRowType())) {
       return x;
     }
-    final Builder builder =
-        x.builder(e, Clause.SELECT);
+    final Builder builder;
+    if (e.getInput() instanceof Sort) {
+      builder = x.builder(e);
+      builder.clauses.add(Clause.SELECT);
+    } else {
+      builder = x.builder(e, Clause.SELECT);
+    }
     final List<SqlNode> selectList = new ArrayList<>();
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);

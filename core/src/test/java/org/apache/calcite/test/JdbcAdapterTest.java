@@ -177,6 +177,17 @@ public class JdbcAdapterTest {
             + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
+  @Test public void testGroupByWithLimitPlan() {
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query("select sum(sal)\n"
+            + "from scott.emp \n"
+            + "group by ename limit 10")
+        .planHasSql("SELECT SUM(\"SAL\")\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "GROUP BY \"ENAME\"\n"
+            + "LIMIT 10");
+  }
+
   @Test public void testPushDownSort() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select ename \n"
