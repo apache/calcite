@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -49,6 +50,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
@@ -80,8 +82,10 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -101,6 +105,7 @@ import org.apache.calcite.util.ImmutableIntList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -126,6 +131,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -189,7 +196,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     return convertSql(tester, sql);
   }
 
-  private RelNode convertSql(Tester tester, String sql) {
+  private static RelNode convertSql(Tester tester, String sql) {
     final RelRoot root = tester.convertSqlToRel(sql);
     root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
     return root.rel;
@@ -197,9 +204,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private RelNode convertSql(String sql, boolean typeCoercion) {
     final Tester tester = typeCoercion ? this.tester : this.strictTester;
-    final RelRoot root = tester.convertSqlToRel(sql);
-    root.rel.getCluster().setMetadataProvider(DefaultRelMetadataProvider.INSTANCE);
-    return root.rel;
+    return convertSql(tester, sql);
   }
 
   private void checkPercentageOriginalRows(String sql, double expected) {
@@ -889,24 +894,31 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /**
    * Checks result of getting unique keys for sql, using specific tester.
    */
-  private void checkGetUniqueKeys(Tester tester,
-      String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
-    RelNode rel = convertSql(tester, sql);
+  private void checkGetUniqueKeys(String sql, Set<ImmutableBitSet> expectedUniqueKeySet,
+      Function<String, RelNode> converter) {
+    RelNode rel = converter.apply(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result, CoreMatchers.equalTo(expectedUniqueKeySet));
+    assertEquals(
+        ImmutableSortedSet.copyOf(expectedUniqueKeySet),
+        ImmutableSortedSet.copyOf(result),
+        () -> "unique keys, sql: " + sql + ", rel: " + RelOptUtil.toString(rel));
     assertUniqueConsistent(rel);
+  }
+
+  /**
+   * Checks result of getting unique keys for sql, using specific tester.
+   */
+  private void checkGetUniqueKeys(Tester tester,
+      String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
+    checkGetUniqueKeys(sql, expectedUniqueKeySet, s -> convertSql(tester, s));
   }
 
   /**
    * Checks result of getting unique keys for sql, using default tester.
    */
   private void checkGetUniqueKeys(String sql, Set<ImmutableBitSet> expectedUniqueKeySet) {
-    RelNode rel = convertSql(sql);
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    Set<ImmutableBitSet> result = mq.getUniqueKeys(rel);
-    assertThat(result, CoreMatchers.equalTo(expectedUniqueKeySet));
-    assertUniqueConsistent(rel);
+    checkGetUniqueKeys(tester, sql, expectedUniqueKeySet);
   }
 
   /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}
@@ -919,7 +931,9 @@ public class RelMetadataTest extends SqlToRelTestBase {
         ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
     for (ImmutableBitSet key : allCols.powerSet()) {
       Boolean result2 = mq.areColumnsUnique(rel, key);
-      assertTrue(result2 == null || result2 == isUnique(uniqueKeys, key));
+      assertEquals(isUnique(uniqueKeys, key), SqlFunctions.isTrue(result2),
+          () -> "areColumnsUnique. key: " + key + ", uniqueKeys: " + uniqueKeys
+              + ", rel: " + RelOptUtil.toString(rel));
     }
   }
 
@@ -1178,6 +1192,66 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // no column of composite keys
     checkGetUniqueKeys(newTester, "select value1 from s.composite_keys_table",
         ImmutableSet.of());
+  }
+
+  private static ImmutableBitSet bitSetOf(int... bits) {
+    return ImmutableBitSet.of(bits);
+  }
+
+  @Test public void calcColumnsAreUniqueSimpleCalc() {
+    checkGetUniqueKeys("select empno, empno*0 from emp",
+        ImmutableSet.of(bitSetOf(0)),
+        convertProjectAsCalc());
+  }
+
+  @Test public void calcColumnsAreUniqueCalcWithFirstConstant() {
+    checkGetUniqueKeys("select 1, empno, empno*0 from emp",
+        ImmutableSet.of(bitSetOf(1)),
+        convertProjectAsCalc());
+
+  }
+  @Test public void calcMultipleColumnsAreUniqueCalc() {
+    checkGetUniqueKeys("select empno, empno from emp",
+        ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
+        convertProjectAsCalc());
+  }
+
+  @Test public void calcMultipleColumnsAreUniqueCalc2() {
+    checkGetUniqueKeys(
+        "select a1.empno, a2.empno from emp a1 join emp a2 on (a1.empno=a2.empno)",
+        ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
+        convertProjectAsCalc());
+  }
+
+  @Test public void calcMultipleColumnsAreUniqueCalc3() {
+    checkGetUniqueKeys(
+        "select a1.empno, a2.empno, a2.empno\n"
+        + " from emp a1 join emp a2\n"
+        + " on (a1.empno=a2.empno)",
+        ImmutableSet.of(
+            bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 1, 2), bitSetOf(0, 2),
+            bitSetOf(1), bitSetOf(1, 2), bitSetOf(2)),
+        convertProjectAsCalc());
+  }
+
+  @Test public void calcColumnsAreNonUniqueCalc() {
+    checkGetUniqueKeys("select empno*0 from emp",
+        ImmutableSet.of(),
+        convertProjectAsCalc());
+  }
+
+  @Nonnull
+  private Function<String, RelNode> convertProjectAsCalc() {
+    return s -> {
+      Project project = (Project) convertSql(s);
+      RexProgram program = RexProgram.create(
+          project.getInput().getRowType(),
+          project.getProjects(),
+          null,
+          project.getRowType(),
+          project.getCluster().getRexBuilder());
+      return LogicalCalc.create(project.getInput(), program);
+    };
   }
 
   @Test public void testBrokenCustomProviderWithMetadataFactory() {
