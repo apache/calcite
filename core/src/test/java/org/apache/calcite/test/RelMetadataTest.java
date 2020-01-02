@@ -218,8 +218,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     Double result = mq.getPercentageOriginalRows(rel);
-    assertNotNull(result);
-    assertEquals(expected, result, epsilon);
+    assertNotNull(result,
+        () -> "getPercentageOriginalRows. sql=" + sql + ", rel=" + RelOptUtil.toString(rel));
+    assertEquals(expected, result, epsilon,
+        () -> "getPercentageOriginalRows. sql=" + sql + ", rel=" + RelOptUtil.toString(rel));
   }
 
   @Test public void testPercentageOriginalRowsTableOnly() {
@@ -502,14 +504,14 @@ public class RelMetadataTest extends SqlToRelTestBase {
     RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Double result = mq.getRowCount(rel);
-    assertThat(result, notNullValue());
-    assertThat(result, is(expected));
+    assertEquals(expected, result,
+        () -> "getRowCount. sql=" + sql + ", rel=" + RelOptUtil.toString(rel));
     final Double max = mq.getMaxRowCount(rel);
-    assertThat(max, notNullValue());
-    assertThat(max, is(expectedMax));
+    assertEquals(expectedMax, max,
+        () -> "getMaxRowCount. sql=" + sql + ", rel=" + RelOptUtil.toString(rel));
     final Double min = mq.getMinRowCount(rel);
-    assertThat(max, notNullValue());
-    assertThat(min, is(expectedMin));
+    assertEquals(expectedMin, min,
+        () -> "getMinRowCount. sql=" + sql + ", rel=" + RelOptUtil.toString(rel));
   }
 
   private void checkExchangeRowCount(RelNode rel, double expected, double expectedMin,
@@ -546,10 +548,66 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRowCount(sql, EMP_SIZE * DEPT_SIZE, 0D, Double.POSITIVE_INFINITY);
   }
 
-  @Test public void testRowCountJoin() {
+  @Test public void rowCountInnerNonUniqueUnique() {
     final String sql = "select * from emp\n"
         + "inner join dept on emp.deptno = dept.deptno";
-    checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY,
+    checkRowCount(sql, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY,
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountLeftNonUniqueUnique() {
+    final String sql = "select * from emp\n"
+        + "left join dept on emp.deptno = dept.deptno";
+    checkRowCount(sql, EMP_SIZE,
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountRightNonUniqueUnique() {
+    final String sql = "select * from emp\n"
+        + "right join dept on emp.deptno = dept.deptno";
+    checkRowCount(sql, Math.max(DEPT_SIZE, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY),
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountInnerUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "inner join emp on dept.deptno = emp.deptno";
+    checkRowCount(sql, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY,
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountLeftUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "left join emp on dept.deptno = emp.deptno";
+    checkRowCount(sql, Math.max(DEPT_SIZE, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY),
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountRightUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "right join emp on dept.deptno = emp.deptno";
+    checkRowCount(sql, EMP_SIZE,
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountInnerNonUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "inner join emp on dept.name = emp.ename";
+    checkRowCount(sql, DEPT_SIZE * EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY,
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountLeftNonUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "left join emp on dept.name = emp.ename";
+    checkRowCount(sql, Math.max(DEPT_SIZE, DEPT_SIZE * EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY),
+        0D, Double.POSITIVE_INFINITY);
+  }
+
+  @Test public void rowCountRightNonUniqueNonUnique() {
+    final String sql = "select * from dept\n"
+        + "right join emp on dept.name = emp.ename";
+    checkRowCount(sql, Math.max(EMP_SIZE, DEPT_SIZE * EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY),
         0D, Double.POSITIVE_INFINITY);
   }
 
@@ -557,7 +615,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String sql = "select * from (select * from emp limit 14) as emp\n"
         + "inner join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
-    checkRowCount(sql, EMP_SIZE * DEPT_SIZE * DEFAULT_EQUAL_SELECTIVITY,
+    checkRowCount(sql, EMP_SIZE * DEFAULT_EQUAL_SELECTIVITY,
         0D, 56D); // 4 * 14
   }
 
@@ -581,7 +639,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final String sql = "select * from (select * from emp limit 0) as emp\n"
         + "right join (select * from dept limit 4) as dept\n"
         + "on emp.deptno = dept.deptno";
-    checkRowCount(sql, 1D, // 0, rounded up to row count's minimum 1
+    checkRowCount(sql, 4D, // 0, rounded up to row count's minimum 1
         0D, 4D); // 1 * 4
   }
 

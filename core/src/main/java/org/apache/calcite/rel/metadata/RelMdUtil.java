@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
@@ -35,6 +36,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
@@ -717,9 +719,64 @@ public class RelMdUtil {
         return max;
       }
     }
-    double product = left * right;
+    double product = 0.0;
+    // If one side of the join is unique, then the join can't multiply rows
+    JoinInfo joinInfo = join.analyzeCondition();
 
-    return product * mq.getSelectivity(join, condition);
+    // select from dept d join       emp e on (d.id = e.X)
+    // select from dept d left join  emp e on (d.id = e.X)
+    // select from dept d right join emp e on (d.id = e.X)
+    // select from dept d full join  emp e on (d.id = e.X)
+    boolean leftUnique = SqlFunctions.isTrue(
+        mq.areColumnsUnique(join.getLeft(), ImmutableBitSet.of(joinInfo.leftKeys), true));
+
+    // select from emp e join       dept d on (e.X = d.id)
+    // select from emp e left join  dept d on (e.X = d.id)
+    // select from emp e right join dept d on (e.X = d.id)
+    // select from emp e full join  dept d on (e.X = d.id)
+    boolean rightUnique = SqlFunctions.isTrue(
+        mq.areColumnsUnique(join.getRight(), ImmutableBitSet.of(joinInfo.rightKeys), true));
+
+    RexNode filter = null;
+    JoinRelType joinType = join.getJoinType();
+    if (joinType.generatesNullsOnLeft() && leftUnique) {
+      // select from dept d right join emp e on (d.id = e.X)
+      product = right;
+    } else if (joinType.generatesNullsOnRight() && rightUnique) {
+      // select from emp e left join  dept d on (e.X = d.id)
+      product = left;
+    } else {
+      filter = condition;
+      if (leftUnique && rightUnique) {
+        product = Math.min(left, right);
+      } else if (leftUnique) {
+        // The number of rows can't exceed the number of rows on the right
+        // outer join is handled below (see max)
+        product = right;
+      } else if (rightUnique) {
+        // The number of rows can't exceed the number of rows on the left
+        // outer join is handled below (see max)
+        product = left;
+      } else {
+        product = left * right;
+      }
+    }
+    if (filter != null) {
+      Double selectivity = mq.getSelectivity(join, condition);
+      if (selectivity == null) {
+        return null;
+      }
+      product *= selectivity;
+    }
+    if (joinType.generatesNullsOnRight()) {
+      // Left join can't produce less rows than in the left input
+      product = Math.max(product, left);
+    }
+    if (joinType.generatesNullsOnLeft()) {
+      // Right join can't produce less rows than in the right input
+      product = Math.max(product, right);
+    }
+    return product;
   }
 
   /** Returns an estimate of the number of rows returned by a semi-join. */
