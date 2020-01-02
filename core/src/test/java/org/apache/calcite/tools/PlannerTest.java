@@ -592,7 +592,7 @@ public class PlannerTest {
             + "left outer join \"depts\" d "
             + " on e.\"deptno\" = d.\"deptno\" "
             + "order by e.\"deptno\" "
-            + "limit 10");
+            + "limit 2");
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;
     RelTraitSet traitSet = convert.getTraitSet()
@@ -600,9 +600,9 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform),
         equalTo("EnumerableProject(deptno=[$1])\n"
-        + "  EnumerableLimit(fetch=[10])\n"
+        + "  EnumerableLimit(fetch=[2])\n"
         + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[left])\n"
-        + "      EnumerableLimit(fetch=[10])\n"
+        + "      EnumerableLimit(fetch=[2])\n"
         + "        EnumerableSort(sort0=[$1], dir0=[ASC])\n"
         + "          EnumerableTableScan(table=[[hr, emps]])\n"
         + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
@@ -1003,11 +1003,10 @@ public class PlannerTest {
         + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
         + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
         + "    EnumerableTableScan(table=[[hr, dependents]])\n"
-        + "    EnumerableProject(empid=[$5], deptno=[$6], name=[$7], salary=[$8], commission=[$9], deptno0=[$0], name0=[$1], employees=[$2], x=[$3], y=[$4])\n"
-        + "      EnumerableHashJoin(condition=[=($0, $6)], joinType=[left])\n"
-        + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "          EnumerableTableScan(table=[[hr, depts]])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])";
+        + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[right])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     checkHeuristic(sql, expected);
   }
 

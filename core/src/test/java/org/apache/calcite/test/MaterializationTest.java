@@ -1542,8 +1542,10 @@ public class MaterializationTest {
         "select \"deptno\" from \"emps\" group by \"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableAggregate(group=[{1}])\n"
-                + "  EnumerableTableScan(table=[[hr, m0]])"));
+            ""
+                + "EnumerableAggregate(group=[{0}])\n"
+                + "  EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t1])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testAggregateMaterializationNoAggregateFuncs3() {
@@ -2316,7 +2318,6 @@ public class MaterializationTest {
         CONTAINS_M0);
   }
 
-  @Tag("slow")
   @Test public void testJoinMaterialization10() {
     checkMaterialize(
         "select \"depts\".\"deptno\", \"dependents\".\"empid\"\n"
@@ -2331,9 +2332,20 @@ public class MaterializationTest {
             + "where \"depts\".\"deptno\" > 10",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
-            "EnumerableUnion(all=[true])",
-            "EnumerableTableScan(table=[[hr, m0]])",
-            "expr#5=[10], expr#6=[>($t0, $t5)], expr#7=[30], expr#8=[>=($t7, $t0)]"));
+            ""
+                + "EnumerableUnion(all=[true])\n"
+                + "  EnumerableCalc(expr#0..2=[{inputs}], empid=[$t2])\n"
+                + "    EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])\n"
+                + "      EnumerableCalc(expr#0..4=[{inputs}], expr#5=[30], expr#6=[>=($t5, $t1)], deptno=[$t1], $condition=[$t6])\n"
+                + "        EnumerableTableScan(table=[[hr, emps]])\n"
+                + "      EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t2], empid=[$t0])\n"
+                + "        EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+                + "          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[CAST($t1):VARCHAR], empid=[$t0], name0=[$t2])\n"
+                + "            EnumerableTableScan(table=[[hr, dependents]])\n"
+                + "          EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t1):VARCHAR], expr#5=[10], expr#6=[>($t0, $t5)], deptno=[$t0], name0=[$t4], $condition=[$t6])\n"
+                + "            EnumerableTableScan(table=[[hr, depts]])\n"
+                + "  EnumerableCalc(expr#0..1=[{inputs}], empid=[$t1])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testJoinMaterialization11() {

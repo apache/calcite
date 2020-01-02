@@ -599,12 +599,12 @@ where empno IN (
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], SAL=[$t4])
-  EnumerableHashJoin(condition=[AND(=($1, $3), =($0, $2))], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t1)], proj#0..1=[{exprs}], $condition=[$t3])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..4=[{inputs}], SAL=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], JOB=[$t2], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[IS NOT NULL($t1)], proj#0..1=[{exprs}], $condition=[$t3])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # As above, but for EXISTS
@@ -622,11 +622,11 @@ where exists (
 (1 row)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t1], DNAME=[$t2], LOC=[$t3])
-  EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])
+EnumerableCalc(expr#0..3=[{inputs}], proj#0..2=[{exprs}])
+  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
+    EnumerableTableScan(table=[[scott, DEPT]])
     EnumerableCalc(expr#0..7=[{inputs}], expr#8=['SMITH':VARCHAR(10)], expr#9=[=($t1, $t8)], expr#10=[IS NOT NULL($t7)], expr#11=[AND($t9, $t10)], DEPTNO=[$t7], $condition=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # [DRILL-5644]
@@ -1709,12 +1709,12 @@ select sal from "scott".emp e
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal IN nullable correlated
@@ -1730,12 +1730,12 @@ select sal from "scott".emp e
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t2])
-  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])
-    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
-      EnumerableTableScan(table=[[scott, DEPT]])
+EnumerableCalc(expr#0..3=[{inputs}], SAL=[$t1])
+  EnumerableHashJoin(condition=[=($2, $3)], joinType=[inner])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5], DEPTNO=[$t7])
       EnumerableTableScan(table=[[scott, EMP]])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[10], expr#4=[=($t3, $t0)], DEPTNO=[$t0], $condition=[$t4])
+      EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null NOT IN null correlated
@@ -2056,11 +2056,10 @@ EnumerableAggregate(group=[{}], C=[COUNT()])
           EnumerableTableScan(table=[[scott, EMP]])
         EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1:BIGINT], expr#4=[IS NOT NULL($t1)], DNAME=[$t1], $f1=[$t3], $f2=[$t3], $condition=[$t4])
           EnumerableTableScan(table=[[scott, DEPT]])
-      EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t2], i=[$t3], DNAME=[$t4], SAL=[$t0])
-        EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])
-          EnumerableCalc(expr#0=[{inputs}], expr#1=[100], expr#2=[+($t0, $t1)], SAL=[$t0], $f1=[$t2])
-            EnumerableAggregate(group=[{5}])
-              EnumerableTableScan(table=[[scott, EMP]])
+      EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t1], i=[$t2], DNAME=[$t3], SAL=[$t0])
+        EnumerableNestedLoopJoin(condition=[=(+($0, 100), $1)], joinType=[inner])
+          EnumerableAggregate(group=[{5}])
+            EnumerableTableScan(table=[[scott, EMP]])
           EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[IS NOT NULL($t1)], DEPTNO=[$t0], i=[$t3], DNAME=[$t1], $condition=[$t4])
             EnumerableTableScan(table=[[scott, DEPT]])
 !plan
