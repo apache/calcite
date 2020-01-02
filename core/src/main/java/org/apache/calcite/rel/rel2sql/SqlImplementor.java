@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1227,6 +1228,11 @@ public abstract class SqlImplementor {
       if (rel instanceof Aggregate
           && !dialect.supportsNestedAggregations()
           && hasNestedAggregations((Aggregate) rel)) {
+        needNew = true;
+      }
+
+      if (rel instanceof Project && this.clauses.contains(Clause.HAVING)
+          && dialect.getConformance().isHavingAlias()) {
         needNew = true;
       }
 

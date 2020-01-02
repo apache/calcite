@@ -34,6 +34,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.ImmutableBitSet;
 
@@ -180,8 +181,8 @@ public class RelToSqlConverterStructsTest {
 
   private RelToSqlConverterTest.Sql sql(String sql) {
     return new RelToSqlConverterTest.Sql(ROOT_SCHEMA, sql,
-        CalciteSqlDialect.DEFAULT, RelToSqlConverterTest.DEFAULT_REL_CONFIG,
-        ImmutableList.of());
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        RelToSqlConverterTest.DEFAULT_REL_CONFIG, ImmutableList.of());
   }
 
   @Test public void testNestedSchemaSelectStar() {

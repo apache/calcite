@@ -107,8 +107,8 @@ public class RelToSqlConverterTest {
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        CalciteSqlDialect.DEFAULT, DEFAULT_REL_CONFIG,
-        ImmutableList.of());
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        DEFAULT_REL_CONFIG, ImmutableList.of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -4344,37 +4344,65 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  @Test public void testBigQueryHaving() {
+    final String sql = ""
+        + "SELECT \"DEPTNO\" - 10 \"DEPTNO\"\n"
+        + "FROM \"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "HAVING \"DEPTNO\" > 0";
+    final String expected = ""
+        + "SELECT DEPTNO - 10 AS DEPTNO\n"
+        + "FROM (SELECT DEPTNO\n"
+        + "FROM SCOTT.EMP\n"
+        + "GROUP BY DEPTNO\n"
+        + "HAVING DEPTNO > 0) AS t1";
+
+    // Parse the input sql with PostgreSql dialect in which "isHavingAlias" is false.
+    final SqlParser.Config sqlParserConfig =
+        PostgresqlSqlDialect.DEFAULT.configureParser(SqlParser.configBuilder()).build();
+
+    // Convert rel node to sql with BigQuery dialect in which "isHavingAlias" is true.
+    sql(sql)
+        .sqlParserConfig(sqlParserConfig)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
     private final List<Function<RelNode, RelNode>> transforms;
+    private final SqlParser.Config sqlParserConfig;
     private final SqlToRelConverter.Config config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlToRelConverter.Config config,
+        SqlParser.Config sqlParserConfig, SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
       final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
+      this.sqlParserConfig = sqlParserConfig;
       this.config = config;
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlToRelConverter.Config config,
+        SqlParser.Config sqlParserConfig, SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
+      this.sqlParserConfig = sqlParserConfig;
       this.config = config;
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, sqlParserConfig, config, transforms);
     }
 
     Sql withCalcite() {
@@ -4487,12 +4515,15 @@ public class RelToSqlConverterTest {
       return dialect(oracleSqlDialect);
     }
 
+    Sql sqlParserConfig(SqlParser.Config sqlParserConfig) {
+      return new Sql(schema, sql, dialect, sqlParserConfig, config, transforms);
+    }
     Sql config(SqlToRelConverter.Config config) {
-      return new Sql(schema, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, sqlParserConfig, config, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schema, sql, dialect, config,
+      return new Sql(schema, sql, dialect, sqlParserConfig, config,
           FlatLists.append(transforms, r -> {
             Program program = Programs.of(ruleSet);
             final RelOptPlanner p =
@@ -4523,7 +4554,7 @@ public class RelToSqlConverterTest {
 
     String exec() {
       final Planner planner =
-          getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
+          getPlanner(null, sqlParserConfig, schema, config);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -4538,7 +4569,7 @@ public class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schemaSpec, sql, dialect, sqlParserConfig, config, transforms);
     }
   }
 }

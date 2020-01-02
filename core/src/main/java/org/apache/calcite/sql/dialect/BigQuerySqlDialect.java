@@ -39,6 +39,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlAbstractConformance;
+import org.apache.calcite.sql.validate.SqlConformance;
 
 import com.google.common.collect.ImmutableList;
 
@@ -190,6 +192,14 @@ public class BigQuerySqlDialect extends SqlDialect {
     } else {
       throw new RuntimeException("Range time unit is not supported for BigQuery.");
     }
+  }
+
+  @Override public SqlConformance getConformance() {
+    return new SqlAbstractConformance() {
+      @Override public boolean isHavingAlias() {
+        return true;
+      }
+    };
   }
 
   private TimeUnit validate(TimeUnit timeUnit) {
