@@ -1113,8 +1113,8 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {7.474454677389998E8 rows, 777302.0 cpu, 0.0 io}\n"
-                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.0281533782499995E7 rows, 724261.0 cpu, 0.0 io}\n"
+                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 1953.8324999999998, cumulative cost = {224176.8325 rows, 777302.0 cpu, 0.0 io}\n"
+                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 13025.55, cumulative cost = {206233.44999999998 rows, 724261.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
                 + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
                 + "      EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
@@ -2703,12 +2703,12 @@ public class JdbcTest {
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
-            + "  EnumerableAggregate(group=[{1, 2}])\n"
-            + "    EnumerableNestedLoopJoin(condition=[=(CAST($3):INTEGER NOT NULL, $0)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n"
-            + "      EnumerableTableScan(table=[[SALES, EMPS]])\n")
+        .explainContains(""
+            + "EnumerableAggregate(group=[{0, 3}])\n"
+            + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
+            + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 
@@ -2721,12 +2721,12 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t2], deptno=[$t0], name=[$t1])\n"
-            + "  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t0], deptno=[$t2], name=[$t3])\n"
+            + "  EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, emps]])")
+            + "      EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[hr, depts]])")
         .returns("empid=100; deptno=10; name=Sales\n"
             + "empid=150; deptno=10; name=Sales\n"
             + "empid=110; deptno=10; name=Sales\n");
@@ -2792,13 +2792,13 @@ public class JdbcTest {
         .query(s)
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.ORACLE)
         .explainContains(""
-            + "EnumerableAggregate(group=[{0}], m0=[COUNT($1)])\n"
+            + "EnumerableAggregate(group=[{1}], m0=[COUNT($0)])\n"
             + "  EnumerableAggregate(group=[{1, 3}])\n"
             + "    EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])\n"
-            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])\n"
             + "      EnumerableCalc(expr#0..7=[{inputs}], time_id=[$t1], unit_sales=[$t7])\n"
-            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])")
+            + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n"
+            + "      EnumerableCalc(expr#0..9=[{inputs}], expr#10=[CAST($t4):INTEGER], expr#11=[1997], expr#12=[=($t10, $t11)], time_id=[$t0], the_year=[$t4], $condition=[$t12])\n"
+            + "        EnumerableTableScan(table=[[foodmart2, time_by_day]])")
         .returns("c0=1997; m0=6\n");
   }
 
