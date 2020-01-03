@@ -79,6 +79,18 @@ public final class CalciteSystemProperty<T> {
   public static final CalciteSystemProperty<Boolean> ENABLE_ENUMERABLE =
       booleanProperty("calcite.enable.enumerable", true);
 
+  /** Whether the EnumerableTableScan should support ARRAY fields. */
+  public static final CalciteSystemProperty<Boolean> ENUMERABLE_ENABLE_TABLESCAN_ARRAY =
+      booleanProperty("calcite.enable.enumerable.tablescan.array", false);
+
+  /** Whether the EnumerableTableScan should support MAP fields. */
+  public static final CalciteSystemProperty<Boolean> ENUMERABLE_ENABLE_TABLESCAN_MAP =
+      booleanProperty("calcite.enable.enumerable.tablescan.map", false);
+
+  /** Whether the EnumerableTableScan should support MULTISET fields. */
+  public static final CalciteSystemProperty<Boolean> ENUMERABLE_ENABLE_TABLESCAN_MULTISET =
+      booleanProperty("calcite.enable.enumerable.tablescan.multiset", false);
+
   /** Whether streaming is enabled in the default planner configuration. */
   public static final CalciteSystemProperty<Boolean> ENABLE_STREAM =
       booleanProperty("calcite.enable.stream", true);

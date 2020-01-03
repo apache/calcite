@@ -23,7 +23,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.function.Predicate;
@@ -45,7 +44,8 @@ public class EnumerableTableScanRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableTableScanRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableScan.class, (Predicate<RelNode>) r -> true,
+    super(LogicalTableScan.class,
+        (Predicate<LogicalTableScan>) r -> EnumerableTableScan.canHandle(r.getTable()),
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableTableScanRule");
   }
@@ -53,10 +53,6 @@ public class EnumerableTableScanRule extends ConverterRule {
   @Override public RelNode convert(RelNode rel) {
     LogicalTableScan scan = (LogicalTableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
-    final Table table = relOptTable.unwrap(Table.class);
-    if (!EnumerableTableScan.canHandle(table)) {
-      return null;
-    }
     final Expression expression = relOptTable.getExpression(Object.class);
     if (expression == null) {
       return null;

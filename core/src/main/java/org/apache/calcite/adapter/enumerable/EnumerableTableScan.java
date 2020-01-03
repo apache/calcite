@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Row;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Queryable;
@@ -30,6 +31,7 @@ import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -42,6 +44,8 @@ import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.TransientTable;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
@@ -65,6 +69,8 @@ public class EnumerableTableScan
     super(cluster, traitSet, table);
     assert getConvention() instanceof EnumerableConvention;
     this.elementType = elementType;
+    assert canHandle(table)
+        : "EnumerableTableScan can't implement " + table + ", see EnumerableTableScan#canHandle";
   }
 
   /** Creates an EnumerableTableScan. */
@@ -84,13 +90,57 @@ public class EnumerableTableScan
   }
 
   /** Returns whether EnumerableTableScan can generate code to handle a
-   * particular variant of the Table SPI. */
+   * particular variant of the Table SPI.
+   * @deprecated
+   **/
+  @Deprecated
   public static boolean canHandle(Table table) {
-    // FilterableTable and ProjectableFilterableTable cannot be handled in
-    // enumerable convention because they might reject filters and those filters
-    // would need to be handled dynamically.
+    if (table instanceof TransientTable) {
+      // CALCITE-3673: TransientTable can't be implemented with Enumerable
+      return false;
+    }
+    // See org.apache.calcite.prepare.RelOptTableImpl.getClassExpressionFunction
     return table instanceof QueryableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable
         || table instanceof ScannableTable;
+  }
+
+  /** Returns whether EnumerableTableScan can generate code to handle a
+   * particular variant of the Table SPI.
+   **/
+  public static boolean canHandle(RelOptTable relOptTable) {
+    Table table = relOptTable.unwrap(Table.class);
+    if (table != null && !canHandle(table)) {
+      return false;
+    }
+    boolean supportArray = CalciteSystemProperty.ENUMERABLE_ENABLE_TABLESCAN_ARRAY.value();
+    boolean supportMap = CalciteSystemProperty.ENUMERABLE_ENABLE_TABLESCAN_MAP.value();
+    boolean supportMultiset = CalciteSystemProperty.ENUMERABLE_ENABLE_TABLESCAN_MULTISET.value();
+    if (supportArray && supportMap && supportMultiset) {
+      return true;
+    }
+    // Struct fields are not supported in EnumerableTableScan
+    for (RelDataTypeField field : relOptTable.getRowType().getFieldList()) {
+      boolean unsupportedType = false;
+      switch (field.getType().getSqlTypeName()) {
+      case ARRAY:
+        unsupportedType = supportArray;
+        break;
+      case MAP:
+        unsupportedType = supportMap;
+        break;
+      case MULTISET:
+        unsupportedType = supportMultiset;
+        break;
+      default:
+        break;
+      }
+      if (unsupportedType) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static Class deduceElementType(Table table) {
@@ -121,6 +171,11 @@ public class EnumerableTableScan
 
   private Expression getExpression(PhysType physType) {
     final Expression expression = table.getExpression(Queryable.class);
+    if (expression == null) {
+      throw new IllegalStateException(
+          "Unable to implement " + RelOptUtil.toString(this, SqlExplainLevel.ALL_ATTRIBUTES)
+          + ": " + table + ".getExpression(Queryable.class) returned null");
+    }
     final Expression expression2 = toEnumerable(expression);
     assert Types.isAssignableFrom(Enumerable.class, expression2.getType());
     return toRows(physType, expression2);
