@@ -29,9 +29,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.junit.jupiter.api.extension.AfterAllCallback;
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,17 +39,18 @@ import java.util.Objects;
 
 /**
  * Used to initialize a single elastic node. For performance reasons (node startup costs),
- * same instance is usually shared across multiple tests.
+ * same instance is shared across multiple tests (Elasticsearch does not allow multiple
+ * instances per JVM).
  *
  * <p>This rule should be used as follows:
  * <pre>
  *  public class MyTest {
- *    &#64;ClassRule
  *    public static final EmbeddedElasticsearchPolicy RULE = EmbeddedElasticsearchPolicy.create();
  *
  *    &#64;BeforeClass
  *    public static void setup() {
  *       // ... populate instance
+ *       // The collections must have different names so the tests could be executed concurrently
  *    }
  *
  *    &#64;Test
@@ -63,26 +61,26 @@ import java.util.Objects;
  *  }
  *  </pre>
  */
-class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback {
+class EmbeddedElasticsearchPolicy {
 
   private final EmbeddedElasticsearchNode node;
   private final ObjectMapper mapper;
   private final Closer closer;
   private RestClient client;
 
+  static class Singleton {
+    static final EmbeddedElasticsearchPolicy INSTANCE =
+        new EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode.create());
+  }
+
   private EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode resource) {
     this.node = Objects.requireNonNull(resource, "resource");
+    this.node.start();
     this.mapper = new ObjectMapper();
     this.closer = new Closer();
     closer.add(node);
-  }
-
-  @Override public void beforeAll(ExtensionContext context) {
-    node.start();
-  }
-
-  @Override public void afterAll(ExtensionContext context) throws Exception {
-    closer.close();
+    // initialize client
+    restClient();
   }
 
   /**
@@ -90,7 +88,7 @@ class EmbeddedElasticsearchPolicy implements BeforeAllCallback, AfterAllCallback
    * @return managed resource to be used in unit tests
    */
   public static EmbeddedElasticsearchPolicy create() {
-    return new EmbeddedElasticsearchPolicy(EmbeddedElasticsearchNode.create());
+    return Singleton.INSTANCE;
   }
 
   /**

@@ -30,7 +30,8 @@ import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -45,9 +46,9 @@ import java.util.Map;
 /**
  * Testing Elasticsearch aggregation transformations.
  */
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 public class AggregationTest {
 
-  @RegisterExtension
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "aggs";

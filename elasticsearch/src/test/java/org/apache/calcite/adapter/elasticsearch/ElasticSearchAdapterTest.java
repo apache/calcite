@@ -32,7 +32,8 @@ import com.google.common.io.Resources;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,9 +54,9 @@ import java.util.function.Consumer;
  * Set of tests for ES adapter. Uses real instance via {@link EmbeddedElasticsearchPolicy}. Document
  * source is local {@code zips-mini.json} file (located in test classpath).
  */
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 public class ElasticSearchAdapterTest {
 
-  @RegisterExtension //init once for all tests
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   /** Default index/type name */
@@ -238,12 +239,16 @@ public class ElasticSearchAdapterTest {
             throw new IllegalStateException(message);
           }
           if (object != null) {
+            //noinspection rawtypes
             states.add((Comparable) object);
           }
         }
         for (int i = 0; i < states.size() - 1; i++) {
+          //noinspection rawtypes
           final Comparable current = states.get(i);
+          //noinspection rawtypes
           final Comparable next = states.get(i + 1);
+          //noinspection unchecked
           final int cmp = current.compareTo(next);
           if (direction == RelFieldCollation.Direction.ASCENDING ? cmp > 0 : cmp < 0) {
             final String message = String.format(Locale.ROOT,
@@ -686,7 +691,7 @@ public class ElasticSearchAdapterTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-cardinality-aggregation.html">Cardinality Aggregation</a>
    * (approximate counts using HyperLogLog++ algorithm).
    */
-  @Test public void approximateCount() throws Exception {
+  @Test public void approximateCount() {
     calciteAssert()
         .query("select state, approx_count_distinct(city), approx_count_distinct(pop) from zips"
             + " group by state order by state limit 3")
