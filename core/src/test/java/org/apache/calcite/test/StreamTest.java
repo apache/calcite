@@ -363,7 +363,8 @@ public class StreamTest {
     }
 
     public Statistic getStatistic() {
-      return Statistics.of(100d, ImmutableList.of(),
+      // 100_000 prevents the table from used for hash lookup
+      return Statistics.of(100_000d, ImmutableList.of(),
         RelCollations.createSingleton(0));
     }
 
