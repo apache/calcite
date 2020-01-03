@@ -1098,6 +1098,38 @@ public class Linq4jTest {
         s);
   }
 
+  @Test public void cartesianProductWithReset() {
+    Enumerator<List<Integer>> product =
+        Linq4j.product(
+            Arrays.asList(
+                Linq4j.enumerator(Arrays.asList(1, 2)),
+                Linq4j.enumerator(Arrays.asList(3, 4))));
+
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product");
+    product.reset();
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product after .reset()");
+    product.moveNext();
+    product.reset();
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product after .moveNext(); .reset()");
+  }
+
+  private <T> List<T> contentsOf(Enumerator<T> enumerator) {
+    List<T> result = new ArrayList<>();
+    while (enumerator.moveNext()) {
+      result.add(enumerator.current());
+    }
+    return result;
+  }
+
   @Test public void testJoinCartesianProduct() {
     int n =
         Linq4j.asEnumerable(emps)
