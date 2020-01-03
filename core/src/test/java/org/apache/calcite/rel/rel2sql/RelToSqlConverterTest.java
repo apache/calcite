@@ -4260,8 +4260,11 @@ public class RelToSqlConverterTest {
 
   @Test public void testRowValueExpression() {
     final String expected0 = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "FROM (VALUES  (0)) t (ZERO)\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'\n"
+        + "FROM (VALUES  (0)) t (ZERO)";
     String sql = "insert into \"DEPT\"\n"
             + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
     sql(sql)
@@ -4270,39 +4273,55 @@ public class RelToSqlConverterTest {
         .ok(expected0);
 
     final String expected1 = "INSERT INTO `SCOTT`.`DEPT` (`DEPTNO`, `DNAME`, `LOC`)\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withMysql()
         .ok(expected1);
 
-    final String expected2 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+    final String expected2 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
+        + "\"DNAME\", \"LOC\")\n"
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "FROM \"DUAL\"\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'\n"
+        + "FROM \"DUAL\"";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withOracle()
         .ok(expected2);
 
     final String expected3 = "INSERT INTO [SCOTT].[DEPT] ([DEPTNO], [DNAME], [LOC])\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "FROM (VALUES  (0)) AS [t] ([ZERO])\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'\n"
+        + "FROM (VALUES  (0)) AS [t] ([ZERO])";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .withMssql()
         .ok(expected3);
 
-    final String expected4 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+    final String expected4 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
+        + "\"DNAME\", \"LOC\")\n"
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql)
         .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .ok(expected4);
 
-    final String expected5 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", \"DNAME\", \"LOC\")\n"
-            + "VALUES  (1, 'Fred', 'San Francisco'),\n"
-            + " (2, 'Eric', 'Washington')";
+    final String expected5 = "INSERT INTO \"SCOTT\".\"DEPT\" (\"DEPTNO\", "
+        + "\"DNAME\", \"LOC\")\n"
+        + "SELECT 1, 'Fred', 'San Francisco'\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "UNION ALL\n"
+        + "SELECT 2, 'Eric', 'Washington'\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     sql(sql).withCalcite()
             .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
             .ok(expected5);

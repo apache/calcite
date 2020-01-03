@@ -175,4 +175,20 @@ public interface TypeCoercion {
    */
   boolean userDefinedFunctionCoercion(SqlValidatorScope scope, SqlCall call,
       SqlFunction function);
+
+  /**
+   * Coerces the source row expression to target type in an INSERT or UPDATE query.
+   *
+   * <p>If the source and target fields in the same ordinal do not equal sans nullability,
+   * try to coerce the source field to target field type.
+   *
+   * @param scope         Source scope
+   * @param sourceRowType Source row type
+   * @param targetRowType Target row type
+   * @param query         The query, either an INSERT or UPDATE
+   *
+   * @return True if any type coercion happens
+   */
+  boolean querySourceCoercion(SqlValidatorScope scope,
+      RelDataType sourceRowType, RelDataType targetRowType, SqlNode query);
 }

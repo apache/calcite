@@ -669,10 +669,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private SqlNode maybeCast(SqlNode node, RelDataType currentType,
       RelDataType desiredType) {
-    return currentType.equals(desiredType)
-        || (currentType.isNullable() != desiredType.isNullable()
-            && typeFactory.createTypeWithNullability(currentType,
-                desiredType.isNullable()).equals(desiredType))
+    return SqlTypeUtil.equalSansNullability(typeFactory, currentType, desiredType)
         ? node
         : SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
             node, SqlTypeUtil.convertTypeToSpec(desiredType));
@@ -4405,10 +4402,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         targetRowTypeToValidate, realTargetRowType,
         source, logicalSourceRowType, logicalTargetRowType);
 
-    // Skip the virtual columns(can not insert into) type assignment
-    // check if the source fields num is equals with
-    // the real target table fields num, see how #checkFieldCount was used.
-    checkTypeAssignment(logicalSourceRowType, targetRowTypeToValidate, insert);
+    checkTypeAssignment(scopes.get(source),
+        table,
+        logicalSourceRowType,
+        targetRowTypeToValidate,
+        insert);
 
     checkConstraint(table, source, logicalTargetRowType);
 
@@ -4538,8 +4536,9 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final int targetRealFieldCount = realTargetRowType.getFieldCount();
     if (sourceFieldCount != targetFieldCount
         && sourceFieldCount != targetRealFieldCount) {
-      // we allow the source row fields equals with either the target row fields num,
-      // or the number of real(exclusive columns that can not insert into) target row fields.
+      // Allows the source row fields count to be equal with either
+      // the logical or the real(excludes columns that can not insert into)
+      // target row fields count.
       throw newValidationError(node,
           RESOURCE.unmatchInsertColumn(targetFieldCount, sourceFieldCount));
     }
@@ -4624,13 +4623,60 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     return sourceRowType;
   }
 
+  /**
+   * Checks the type assignment of an INSERT or UPDATE query.
+   *
+   * <p>Skip the virtual columns(can not insert into) type assignment
+   * check if the source fields count equals with
+   * the real target table fields count, see how #checkFieldCount was used.
+   *
+   * @param sourceScope   Scope of query source which is used to infer node type
+   * @param table         Target table
+   * @param sourceRowType Source row type
+   * @param targetRowType Target row type, it should either contain all the virtual columns
+   *                      (can not insert into) or exclude all the virtual columns
+   * @param query The query
+   */
   protected void checkTypeAssignment(
+      SqlValidatorScope sourceScope,
+      SqlValidatorTable table,
       RelDataType sourceRowType,
       RelDataType targetRowType,
       final SqlNode query) {
     // NOTE jvs 23-Feb-2006: subclasses may allow for extra targets
     // representing system-maintained columns, so stop after all sources
     // matched
+    boolean isUpdateModifiableViewTable = false;
+    if (query instanceof SqlUpdate) {
+      final SqlNodeList targetColumnList = ((SqlUpdate) query).getTargetColumnList();
+      if (targetColumnList != null) {
+        final int targetColumnCnt = targetColumnList.size();
+        targetRowType = SqlTypeUtil.extractLastNFields(typeFactory, targetRowType,
+            targetColumnCnt);
+        sourceRowType = SqlTypeUtil.extractLastNFields(typeFactory, sourceRowType,
+            targetColumnCnt);
+      }
+      isUpdateModifiableViewTable = table.unwrap(ModifiableViewTable.class) != null;
+    }
+    if (SqlTypeUtil.equalAsStructSansNullability(typeFactory,
+        sourceRowType,
+        targetRowType,
+        null)) {
+      // Returns early if source and target row type equals sans nullability.
+      return;
+    }
+    if (enableTypeCoercion && !isUpdateModifiableViewTable) {
+      // Try type coercion first if implicit type coercion is allowed.
+      boolean coerced = typeCoercion.querySourceCoercion(sourceScope,
+          sourceRowType,
+          targetRowType,
+          query);
+      if (coerced) {
+        return;
+      }
+    }
+
+    // Fall back to default behavior: compare the type families.
     List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
     List<RelDataTypeField> targetFields = targetRowType.getFieldList();
     final int sourceCount = sourceFields.size();
@@ -4638,16 +4684,10 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType sourceType = sourceFields.get(i).getType();
       RelDataType targetType = targetFields.get(i).getType();
       if (!SqlTypeUtil.canAssignFrom(targetType, sourceType)) {
-        // FRG-255:  account for UPDATE rewrite; there's
-        // probably a better way to do this.
-        int iAdjusted = i;
-        if (query instanceof SqlUpdate) {
-          int nUpdateColumns =
-              ((SqlUpdate) query).getTargetColumnList().size();
-          assert sourceFields.size() >= nUpdateColumns;
-          iAdjusted -= sourceFields.size() - nUpdateColumns;
+        SqlNode node = getNthExpr(query, i, sourceCount);
+        if (node instanceof SqlDynamicParam) {
+          continue;
         }
-        SqlNode node = getNthExpr(query, iAdjusted, sourceCount);
         String targetTypeString;
         String sourceTypeString;
         if (SqlTypeUtil.areCharacterSetsMismatched(
@@ -4688,9 +4728,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
     } else if (query instanceof SqlUpdate) {
       SqlUpdate update = (SqlUpdate) query;
-      if (update.getTargetColumnList() != null) {
-        return update.getTargetColumnList().get(ordinal);
-      } else if (update.getSourceExpressionList() != null) {
+      if (update.getSourceExpressionList() != null) {
         return update.getSourceExpressionList().get(ordinal);
       } else {
         return getNthExpr(
@@ -4739,8 +4777,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final SqlSelect select = call.getSourceSelect();
     validateSelect(select, targetRowType);
 
-    final RelDataType sourceRowType = getNamespace(call).getRowType();
-    checkTypeAssignment(sourceRowType, targetRowType, call);
+    final RelDataType sourceRowType = getValidatedNodeType(select);
+    checkTypeAssignment(scopes.get(select),
+        table,
+        sourceRowType,
+        targetRowType,
+        call);
 
     checkConstraint(table, call, targetRowType);
 

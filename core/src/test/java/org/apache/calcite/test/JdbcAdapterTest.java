@@ -777,11 +777,16 @@ public class JdbcAdapterTest {
         + " 666, '666', 666, 666)";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
         + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-        + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 }]])\n";
-    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
-        + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
-        + " \"category_id\", \"currency_id\", \"amount\")\n"
-        + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
+        + "    JdbcProject(store_id=[666], account_id=[666], exp_date=[1997-01-01 00:00:00], "
+        + "time_id=[666], category_id=['666'], currency_id=[666], amount=[666:DECIMAL(10, 4)])\n"
+        + "      JdbcValues(tuples=[[{ 0 }]])\n\n";
+    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\" (\"store_id\", "
+        + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\", "
+        + "\"amount\")\n"
+        + "(SELECT 666 AS \"store_id\", 666 AS \"account_id\", "
+        + "TIMESTAMP '1997-01-01 00:00:00' AS \"exp_date\", 666 AS \"time_id\", "
+        + "'666' AS \"category_id\", 666 AS \"currency_id\", "
+        + "666 AS \"amount\"\nFROM (VALUES  (0)) AS \"t\" (\"ZERO\"))";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB
@@ -807,13 +812,17 @@ public class JdbcAdapterTest {
         + "   666, '666', 666, 666)";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
         + "  JdbcTableModify(table=[[foodmart, expense_fact]], operation=[INSERT], flattened=[false])\n"
-        + "    JdbcValues(tuples=[[{ 666, 666, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 },"
-        + " { 666, 777, 1997-01-01 00:00:00, 666, '666', 666, 666.0000 }]])\n";
-    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\""
-        + " (\"store_id\", \"account_id\", \"exp_date\", \"time_id\","
-        + " \"category_id\", \"currency_id\", \"amount\")\n"
-        + "VALUES  (666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000),\n"
-        + " (666, 777, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666.0000)";
+        + "    JdbcUnion(all=[true])\n"
+        + "      JdbcProject(EXPR$0=[666], EXPR$1=[666], EXPR$2=[1997-01-01 00:00:00], EXPR$3=[666], EXPR$4=['666'], EXPR$5=[666], EXPR$6=[666:DECIMAL(10, 4)])\n"
+        + "        JdbcValues(tuples=[[{ 0 }]])\n"
+        + "      JdbcProject(EXPR$0=[666], EXPR$1=[777], EXPR$2=[1997-01-01 00:00:00], EXPR$3=[666], EXPR$4=['666'], EXPR$5=[666], EXPR$6=[666:DECIMAL(10, 4)])\n"
+        + "        JdbcValues(tuples=[[{ 0 }]])\n\n";
+    final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\" (\"store_id\", "
+        + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\","
+        + " \"amount\")\nSELECT 666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\nUNION ALL\nSELECT 666, 777, "
+        + "TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     final AssertThat that =
         CalciteAssert.model(JdbcTest.FOODMART_MODEL)
             .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB

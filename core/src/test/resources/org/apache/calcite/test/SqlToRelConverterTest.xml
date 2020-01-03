@@ -4747,12 +4747,12 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[UPD
     </TestCase>
     <TestCase name="testUpdateExtendedColumnModifiableViewUnderlyingCollision">
         <Resource name="sql">
-            <![CDATA[update EMP_MODIFIABLEVIEW3(extra BOOLEAN, comm INTEGER) set empno = 20, comm = true, extra = true where ename = 'Bob']]>
+            <![CDATA[update EMP_MODIFIABLEVIEW3(extra BOOLEAN, comm INTEGER) set empno = 20, comm = 123, extra = true where ename = 'Bob']]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPDATE], updateColumnList=[[EMPNO, COMM, EXTRA]], sourceExpressionList=[[20, true, true]], flattened=[true])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], SLACKER=[$6], EXTRA=[$7], COMM=[$8], EXPR$0=[20], EXPR$1=[true], EXPR$2=[true])
+LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPDATE], updateColumnList=[[EMPNO, COMM, EXTRA]], sourceExpressionList=[[20, 123, true]], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], SLACKER=[$6], EXTRA=[$7], COMM=[$8], EXPR$0=[20], EXPR$1=[123], EXPR$2=[true])
     LogicalFilter(condition=[=($1, 'Bob')])
       LogicalTableScan(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]])
 ]]>
