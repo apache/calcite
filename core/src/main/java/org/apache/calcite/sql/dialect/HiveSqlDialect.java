@@ -37,6 +37,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ToNumberUtils;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IF;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -182,6 +184,9 @@ public class HiveSqlDialect extends SqlDialect {
     case TO_NUMBER:
       ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
       break;
+    case NULLIF:
+      unparseNullIf(writer, call, leftPrec, rightPrec);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -300,5 +305,16 @@ public class HiveSqlDialect extends SqlDialect {
     unparseSqlIntervalLiteralHive(writer, call.operand(1));
     writer.endFunCall(frame);
   }
+
+  private void unparseNullIf(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlNode[] operands = new SqlNode[call.getOperandList().size()];
+    call.getOperandList().toArray(operands);
+    SqlParserPos pos = call.getParserPosition();
+    SqlNode[] ifOperands = new SqlNode[]{new SqlBasicCall(EQUALS, operands, pos),
+        SqlLiteral.createNull(SqlParserPos.ZERO), operands[0]};
+    SqlCall ifCall = new SqlBasicCall(IF, ifOperands, pos);
+    unparseCall(writer, ifCall, leftPrec, rightPrec);
+  }
+
 }
 // End HiveSqlDialect.java

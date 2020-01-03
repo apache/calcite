@@ -4938,6 +4938,28 @@ public class RelToSqlConverterTest {
         .ok(hiveExpected);
   }
 
+  @Test public void testNullIfFunctionRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode nullifRexNode = builder.call(SqlStdOperatorTable.NULLIF,
+        builder.scan("EMP").field(0), builder.literal(20));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(nullifRexNode, "NI"))
+        .build();
+    final String expectedSql = "SELECT NULLIF(\"EMPNO\", 20) AS \"NI\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT NULLIF(EMPNO, 20) AS NI\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = "SELECT NULLIF(EMPNO, 20) NI\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT IF(EMPNO = 20, NULL, EMPNO) NI\n"
+        + "FROM scott.EMP";
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
