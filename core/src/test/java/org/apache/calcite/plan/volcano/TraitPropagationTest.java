@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -48,6 +47,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.SortRemoveRule;
@@ -153,7 +153,7 @@ public class TraitPropagationTest {
         }
       };
 
-      final RelNode rt1 = EnumerableTableScan.create(cluster, t1);
+      final RelNode rt1 = LogicalTableScan.create(cluster, t1);
 
       // project s column
       RelNode project = LogicalProject.create(rt1,
@@ -279,11 +279,11 @@ public class TraitPropagationTest {
     static final PhysTableRule INSTANCE = new PhysTableRule();
 
     private PhysTableRule() {
-      super(anyChild(EnumerableTableScan.class), "PhysScan");
+      super(anyChild(LogicalTableScan.class), "PhysScan");
     }
 
     public void onMatch(RelOptRuleCall call) {
-      EnumerableTableScan rel = call.rel(0);
+      LogicalTableScan rel = call.rel(0);
       call.transformTo(new PhysTable(rel.getCluster()));
     }
   }

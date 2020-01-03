@@ -41,8 +41,10 @@ import org.apache.calcite.linq4j.tree.Statement;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.linq4j.tree.VisitorImpl;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
@@ -101,7 +103,15 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
 
   public ClassDeclaration implementRoot(EnumerableRel rootRel,
       EnumerableRel.Prefer prefer) {
-    EnumerableRel.Result result = rootRel.implement(this, prefer);
+    EnumerableRel.Result result;
+    try {
+      result = rootRel.implement(this, prefer);
+    } catch (RuntimeException e) {
+      IllegalStateException ex = new IllegalStateException("Unable to implement "
+          + RelOptUtil.toString(rootRel, SqlExplainLevel.ALL_ATTRIBUTES));
+      ex.addSuppressed(e);
+      throw ex;
+    }
     switch (prefer) {
     case ARRAY:
       if (result.physType.getFormat() == JavaRowFormat.ARRAY
