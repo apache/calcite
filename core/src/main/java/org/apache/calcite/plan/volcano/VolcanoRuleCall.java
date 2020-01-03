@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
@@ -317,8 +318,10 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           final RelSubset subset =
               (RelSubset) inputs.get(operand.ordinalInParent);
           if (operand.getMatchedClass() == RelSubset.class) {
-            // If the rule wants the whole subset, we just provide it
-            successors = ImmutableList.of(subset);
+            // Find all the sibling subsets that satisfy the traitSet of current subset.
+            successors = subset.set.subsets.stream()
+                .filter(s -> s.getTraitSet().satisfies(subset.getTraitSet()))
+                .collect(Collectors.toList());
           } else {
             successors = subset.getRelList();
           }
