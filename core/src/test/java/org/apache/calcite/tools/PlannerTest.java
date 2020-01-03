@@ -743,10 +743,10 @@ public class PlannerTest {
     RelNode convert = planner.rel(validate).rel;
     RelDataType insertSourceType = convert.getInput(0).getRowType();
     String typeString = SqlTests.getTypeString(insertSourceType);
-    assertEquals("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, VARCHAR name, "
-            + "REAL NOT NULL salary, INTEGER commission) NOT NULL", typeString);
+    assertEquals("RecordType(INTEGER NOT NULL empid, INTEGER NOT NULL deptno, "
+        + "JavaType(class java.lang.String) name, REAL NOT NULL salary, "
+        + "INTEGER NOT NULL commission) NOT NULL", typeString);
   }
-
 
   /** Unit test that parses, validates, converts and plans. Planner is
    * provided with a list of RelTraitDefs to register. */

@@ -1092,7 +1092,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testUpdateExtendedColumnModifiableViewUnderlyingCollision() {
     sql("update EMP_MODIFIABLEVIEW3(extra BOOLEAN, comm INTEGER)"
-        + " set empno = 20, comm = true, extra = true"
+        + " set empno = 20, comm = 123, extra = true"
         + " where ename = 'Bob'").with(getExtendedTester()).ok();
   }
 

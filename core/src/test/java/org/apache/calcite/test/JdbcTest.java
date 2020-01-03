@@ -279,8 +279,8 @@ public class JdbcTest {
           assertThat(resultSet.getString(1),
               isLinux(
                   "EnumerableTableModify(table=[[adhoc, MUTABLE_EMPLOYEES]], operation=[INSERT], flattened=[false])\n"
-                  + "  EnumerableCalc(expr#0..2=[{inputs}], expr#3=[CAST($t1):JavaType(int) NOT NULL], expr#4=[10], expr#5=[CAST($t0):JavaType(class java.lang.String)], expr#6=[CAST($t2):JavaType(float) NOT NULL], expr#7=[null:JavaType(class java.lang.Integer)], empid=[$t3], deptno=[$t4], name=[$t5], salary=[$t6], commission=[$t7])\n"
-                  + "    EnumerableValues(tuples=[[{ 'Fred', 56, 123.4 }]])\n"));
+                      + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[56], expr#2=[10], expr#3=['Fred':JavaType(class java.lang.String)], expr#4=[CAST($t3):JavaType(class java.lang.String)], expr#5=[123.4:JavaType(float)], expr#6=[null:JavaType(class java.lang.Integer)], empid=[$t1], deptno=[$t2], name=[$t4], salary=[$t5], commission=[$t6])\n"
+                      + "    EnumerableValues(tuples=[[{ 0 }]])\n"));
 
           // With named columns
           resultSet =

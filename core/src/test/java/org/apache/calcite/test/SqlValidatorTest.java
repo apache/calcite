@@ -9330,7 +9330,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "^values(1, '2', 'abc')^";
     final String error4 = "(?s).*Cannot assign to target field 'B' of type BIGINT "
         + "from source field 'EXPR\\$1' of type CHAR\\(1\\).*";
-    s.sql(sql4).fails(error4);
+    s.sql(sql4).withTypeCoercion(false).fails(error4);
+    s.sql(sql4).ok();
   }
 
   @Test public void testInsertFailNullability() {
@@ -10284,17 +10285,30 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testInsertFailDataType() {
     sql("insert into empnullables ^values ('5', 'bob')^")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
             + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    sql("insert into empnullables values ('5', 'bob')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
     sql("insert into empnullables (^empno^, ename) values ('5', 'bob')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
             + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    sql("insert into empnullables (empno, ename) values ('5', 'bob')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
     sql("insert into empnullables(extra BOOLEAN)"
         + " (empno, ename, ^extra^) values (5, 'bob', 'true')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EXTRA' of type BOOLEAN"
             + " from source field 'EXPR\\$2' of type CHAR\\(4\\)");
+    sql("insert into empnullables(extra BOOLEAN)"
+        + " (empno, ename, ^extra^) values (5, 'bob', 'true')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
   }
 
   @Disabled("CALCITE-1727")
@@ -10495,13 +10509,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^comm^)\n"
         + "values (1, 'Arthur', 'clown', true)")
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'COMM' of type INTEGER"
             + " from source field 'EXPR\\$3' of type BOOLEAN");
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, comm)\n"
+        + "values (1, 'Arthur', 'clown', true)")
+        .ok();
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^)\n"
         + "values (1, 'Arthur', 'clown', 1)")
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'comm' of type BOOLEAN"
             + " from source field 'EXPR\\$3' of type INTEGER");
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, \"comm\")\n"
+        + "values (1, 'Arthur', 'clown', 1)")
+        .ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailCollision() {
@@ -10516,14 +10540,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^slacker^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).fails(error1);
+    s.sql(sql1).withTypeCoercion(false).fails(error1);
+    s.sql(sql1).ok();
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^\"slacker\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error2 = "Cannot assign to target field 'slacker' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql2).fails(error2);
+    s.sql(sql2).withTypeCoercion(false).fails(error2);
+    s.sql(sql2).ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailExtendedCollision() {
@@ -10538,14 +10564,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^extra^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'EXTRA' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).fails(error1);
+    s.sql(sql1).withTypeCoercion(false).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+        + " (empno, ename, job, extra) values (1, 'Arthur', 'clown', 1)";
+    s.sql(sql2).ok();
+
+    final String sql3 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^\"extra\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
-    final String error2 = "Cannot assign to target field 'extra' of type"
+    final String error3 = "Cannot assign to target field 'extra' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql2).fails(error2);
+    s.sql(sql3).withTypeCoercion(false).fails(error3);
+
+    final String sql4 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+        + " (empno, ename, job, \"extra\")\n"
+        + "values (1, 'Arthur', 'clown', true)";
+    s.sql(sql4).ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailUnderlyingCollision() {
@@ -10566,7 +10601,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^\"comm\"^) values (1, 'Arthur', 'clown', 1)";
     final String error2 = "Cannot assign to target field 'comm' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql2).fails(error2);
+    s.sql(sql2).withTypeCoercion(false).fails(error2);
+    s.sql(sql2).ok();
   }
 
   @Test public void testDelete() {
