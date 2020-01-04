@@ -29,6 +29,7 @@ import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelReferentialConstraintImpl;
+import org.apache.calcite.rel.RelUniqueKeyConstraint;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataType;
@@ -50,6 +51,7 @@ import org.apache.calcite.test.JdbcTest.Event;
 import org.apache.calcite.test.JdbcTest.Location;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TryThreadLocal;
@@ -2960,6 +2962,13 @@ public class MaterializationTest {
         RelReferentialConstraintImpl.of(
             ImmutableList.of("hr", "emps"), ImmutableList.of("hr", "depts"),
             ImmutableList.of(IntPair.of(1, 0)));
+
+    // depts.deptno uniqueness is inferred from rcs0 above
+    public final RelUniqueKeyConstraint empsPk =
+        RelUniqueKeyConstraint.of(ImmutableList.of("hr", "emps"), ImmutableBitSet.of(0));
+
+    public final RelUniqueKeyConstraint locationsPk =
+        RelUniqueKeyConstraint.of(ImmutableList.of("hr", "locations"), ImmutableBitSet.of(0));
 
     public QueryableTable foo(int count) {
       return Smalls.generateStrings(count);

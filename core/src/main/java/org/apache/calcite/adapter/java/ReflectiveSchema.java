@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.rel.RelReferentialConstraint;
+import org.apache.calcite.rel.RelUniqueKeyConstraint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.Function;
@@ -45,12 +46,15 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.schema.impl.ReflectiveFunctionBase;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Constructor;
@@ -61,6 +65,7 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of {@link org.apache.calcite.schema.Schema} that exposes the
@@ -108,22 +113,39 @@ public class ReflectiveSchema
   private Map<String, Table> createTableMap() {
     final ImmutableListMultimap.Builder<String, RelReferentialConstraint> constraintBuilder =
         ImmutableListMultimap.builder();
+    final ImmutableSetMultimap.Builder<String, ImmutableBitSet> uniqueKeyBuilder =
+        ImmutableSetMultimap.builder();
     // Unique-Key - Foreign-Key
     Field[] fields = clazz.getFields();
     for (Field field : fields) {
-      if (!RelReferentialConstraint.class.isAssignableFrom(field.getType())) {
-        continue;
+      Class<?> fieldType = field.getType();
+      if (RelReferentialConstraint.class.isAssignableFrom(fieldType)) {
+        RelReferentialConstraint rc;
+        try {
+          rc = (RelReferentialConstraint) field.get(target);
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(
+              "Error while accessing field " + field, e);
+        }
+        constraintBuilder.put(Util.last(rc.getSourceQualifiedName()), rc);
+        List<Integer> targetCols =
+            rc.getColumnPairs().stream().map(pair -> pair.target).collect(Collectors.toList());
+        uniqueKeyBuilder.put(
+            Util.last(rc.getTargetQualifiedName()),
+            ImmutableBitSet.of(targetCols));
+      } else if (RelUniqueKeyConstraint.class.isAssignableFrom(fieldType)) {
+        RelUniqueKeyConstraint uk;
+        try {
+          uk = (RelUniqueKeyConstraint) field.get(target);
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(
+              "Error while accessing field " + field, e);
+        }
+        uniqueKeyBuilder.put(Util.last(uk.getTableName()), uk.getColumns());
       }
-      RelReferentialConstraint rc;
-      try {
-        rc = (RelReferentialConstraint) field.get(target);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(
-            "Error while accessing field " + field, e);
-      }
-      constraintBuilder.put(Util.last(rc.getSourceQualifiedName()), rc);
     }
     ImmutableListMultimap<String, RelReferentialConstraint> constraints = constraintBuilder.build();
+    ImmutableSetMultimap<String, ImmutableBitSet> uniqueKeys = uniqueKeyBuilder.build();
 
     final ImmutableMap.Builder<String, Table> builder = ImmutableMap.builder();
     for (Field field : fields) {
@@ -134,12 +156,13 @@ public class ReflectiveSchema
         continue;
       }
       ImmutableList<RelReferentialConstraint> tableConstraints = constraints.get(fieldName);
-      if (!tableConstraints.isEmpty()) {
+      ImmutableSet<ImmutableBitSet> uniqueKey = uniqueKeys.get(fieldName);
+      if (!tableConstraints.isEmpty() || !uniqueKey.isEmpty()) {
         Statistic oldStatistics = table.statistic;
         table.statistic =
             Statistics.of(
                 oldStatistics.getRowCount(),
-                oldStatistics.getKeys(),
+                ImmutableList.copyOf(uniqueKey),
                 tableConstraints,
                 oldStatistics.getCollations());
       }
