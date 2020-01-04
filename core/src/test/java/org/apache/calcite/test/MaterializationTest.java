@@ -68,11 +68,11 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -2954,28 +2954,74 @@ public class MaterializationTest {
         new Employee(100, 10, "Bill", 10000, 1000),
         new Employee(200, 20, "Eric", 8000, 500),
         new Employee(150, 10, "Sebastian", 7000, null),
-        new Employee(110, 10, "Theodore", 10000, 250),
+        new Employee(110, 40, "Theodore", 10000, 250),
+        new Employee(160, 40, "David", 1000, 250),
+        new Employee(170, 40, "Merry", 100, 250),
+        new Employee(180, 50, "Susan", 2300, 250),
+        new Employee(190, 50, "Emma", 45000, null),
+        new Employee(200, 40, "Juan", 58000, 250),
+        new Employee(210, 40, "Bill", 900, null),
+        new Employee(220, 50, "King", 800, 125),
+        new Employee(230, 40, "Rob", 300, 300),
+        new Employee(240, 40, "Queen", 2300, null),
+        new Employee(250, 40, "Theodore", 4200, 750),
+        new Employee(260, 50, "Theodore", 91000, 150),
+        new Employee(270, 20, "Theodore", 29000, null),
+        new Employee(280, 40, "Theodore", 27000, 50),
+        new Employee(290, 10, "Theodore", 9200, 50),
+        new Employee(300, 40, "Theodore", 7400, null),
+        new Employee(310, 40, "Theodore", 6500, 20),
+        new Employee(320, 40, "Theodore", 4500, null),
+        new Employee(330, 40, "Theodore", 5400, 80),
     };
+
+    private List<Employee> getEmps(int deptno) {
+      return Stream.of(emps).filter(e -> e.deptno == deptno).collect(Collectors.toList());
+    }
+
     public final Department[] depts = {
-        new Department(10, "Sales", Arrays.asList(emps[0], emps[2], emps[3]),
+        new Department(10, "Sales", getEmps(10),
             new Location(-122, 38)),
-        new Department(30, "Marketing", ImmutableList.of(),
+        new Department(30, "Marketing", getEmps(30),
             new Location(0, 52)),
-        new Department(20, "HR", Collections.singletonList(emps[1]), null),
+        new Department(20, "HR", getEmps(20), null),
+        new Department(40, "IT", getEmps(40), null),
+        new Department(50, "Development", getEmps(50), null),
     };
     public final Dependent[] dependents = {
-        new Dependent(10, "Michael"),
-        new Dependent(10, "Jane"),
+        new Dependent(100, "Michael"),
+        new Dependent(100, "Jane"),
+        new Dependent(110, "Merry"),
+        new Dependent(200, "John"),
+        new Dependent(210, "Chris"),
+        new Dependent(230, "Theodore"),
     };
     public final Dependent[] locations = {
         new Dependent(10, "San Francisco"),
         new Dependent(20, "San Diego"),
+        new Dependent(30, "San Marino"),
     };
     public final Event[] events = {
         new Event(100, new Timestamp(0)),
         new Event(200, new Timestamp(0)),
         new Event(150, new Timestamp(0)),
         new Event(110, null),
+        new Event(150, new Timestamp(0)),
+        new Event(160, new Timestamp(0)),
+        new Event(170, new Timestamp(0)),
+        new Event(180, new Timestamp(1)),
+        new Event(190, new Timestamp(2)),
+        new Event(200, new Timestamp(3)),
+        new Event(210, new Timestamp(4)),
+        new Event(220, null),
+        new Event(230, new Timestamp(0)),
+        new Event(240, new Timestamp(0)),
+        new Event(250, null),
+        new Event(260, new Timestamp(0)),
+        new Event(270, new Timestamp(6)),
+        new Event(280, new Timestamp(7)),
+        new Event(290, new Timestamp(8)),
+        new Event(300, new Timestamp(9)),
     };
 
     public final RelReferentialConstraint rcs0 =
