@@ -125,11 +125,6 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Filter rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
     // REVIEW zfong 4/18/06 - In the Broadbase code, duplicates are not
     // removed from the two filter lists.  However, the code below is
     // doing so.
@@ -150,11 +145,6 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
     // determine which predicates can be applied on the child of the
     // aggregate
     final List<RexNode> notPushable = new ArrayList<>();
@@ -187,11 +177,6 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Values rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
     double selectivity = RelMdUtil.guessSelectivity(predicate);
 
     // assume half the rows are duplicates
@@ -201,11 +186,6 @@ public class RelMdDistinctRowCount
 
   public Double getDistinctRowCount(Project rel, RelMetadataQuery mq,
       ImmutableBitSet groupKey, RexNode predicate) {
-    if (predicate == null || predicate.isAlwaysTrue()) {
-      if (groupKey.isEmpty()) {
-        return 1D;
-      }
-    }
     ImmutableBitSet.Builder baseCols = ImmutableBitSet.builder();
     ImmutableBitSet.Builder projCols = ImmutableBitSet.builder();
     List<RexNode> projExprs = rel.getProjects();

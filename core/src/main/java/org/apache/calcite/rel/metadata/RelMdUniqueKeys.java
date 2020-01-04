@@ -42,6 +42,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -250,8 +251,28 @@ public class RelMdUniqueKeys
 
   public Set<ImmutableBitSet> getUniqueKeys(Aggregate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
+      return null;
+    }
+
+    // TODO: support constants pulled up from input: mq.getPulledUpPredicates(rel).constantMap
+    Set<ImmutableBitSet> childUniqueKeys = mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+    // If none of the input columns are known to be unique then return just the grouping columns
+    if (childUniqueKeys == null || childUniqueKeys.isEmpty()) {
+      return ImmutableSet.of(rel.getGroupSet());
+    }
+
+    // If some of the grouping columns are constants, then we don't really need
+    ImmutableSet.Builder<ImmutableBitSet> resultBuilder = ImmutableSet.builder();
     // group by keys form a unique key
-    return ImmutableSet.of(rel.getGroupSet());
+    resultBuilder.add(rel.getGroupSet());
+    ImmutableBitSet inColumnsUsed = rel.getGroupSet();
+    Map<Integer, ImmutableBitSet> mapInToOutPos = new HashMap<>();
+    for (Integer inputColumn : inColumnsUsed) {
+      mapInToOutPos.put(inputColumn, ImmutableBitSet.of(mapInToOutPos.size()));
+    }
+    appendChildUniqueKeys(resultBuilder, childUniqueKeys, inColumnsUsed, mapInToOutPos);
+    return resultBuilder.build();
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(SetOp rel, RelMetadataQuery mq,

@@ -175,6 +175,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
 
   private static final double DEFAULT_SELECTIVITY = 0.25;
 
+  private static final double DEFAULT_GROUP_DISTINCT = 10;
+
   private static final double EMP_SIZE = 14d;
 
   private static final double DEPT_SIZE = 4d;
@@ -714,7 +716,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testRowCountAggregateGroupingSetsOneEmpty() {
     final String sql = "select deptno from emp\n"
         + "group by grouping sets ((deptno), ())";
-    checkRowCount(sql, 2.8D, 0D, Double.POSITIVE_INFINITY);
+    checkRowCount(sql, EMP_SIZE / DEFAULT_GROUP_DISTINCT + 1, // 2.4
+        0D, Double.POSITIVE_INFINITY);
   }
 
   @Test public void testRowCountAggregateEmptyKey() {
@@ -1124,14 +1127,29 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testColumnUniquenessForAggregateWithConstantColumns() {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final String sql = ""
-        + "select deptno, ename, sum(sal)\n"
+        + "select deptno, ename, sum(sal) as sum_sal\n"
         + "from emp\n"
         + "where deptno=1010\n"
         + "group by deptno, ename";
-    final RelNode rel = convertSql(sql);
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(1)), is(true));
+    checkGetUniqueKeys(sql, ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+    checkAreColumnsUnique(false, sql,
+        "[DEPTNO, ENAME, SUM_SAL]",
+        ImmutableSet.of(
+            bitSetOf(0, 1), bitSetOf(0, 1, 2),
+            bitSetOf(1), bitSetOf(1, 2)));
+  }
+
+  @Test public void testColumnUniquenessForAggregate() {
+    final String sql = ""
+        + "select deptno, ename, sum(sal) as sum_sal\n"
+        + "from emp\n"
+        + "group by deptno, ename";
+    checkGetUniqueKeys(sql, ImmutableSet.of(ImmutableBitSet.of(0, 1)));
+    checkAreColumnsUnique(false, sql,
+        "[DEPTNO, ENAME, SUM_SAL]",
+        ImmutableSet.of(
+            bitSetOf(0, 1), bitSetOf(0, 1, 2)));
   }
 
   @Test public void testColumnUniquenessForExchangeWithConstantColumns() {

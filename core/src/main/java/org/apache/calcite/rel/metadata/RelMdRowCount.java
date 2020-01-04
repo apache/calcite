@@ -192,19 +192,18 @@ public class RelMdRowCount
   }
 
   public Double getRowCount(Aggregate rel, RelMetadataQuery mq) {
-    ImmutableBitSet groupKey = rel.getGroupSet();
+    double rowCount = 0;
+    for (ImmutableBitSet groupKey : rel.groupSets) {
+      // rowCount is the cardinality of the group by columns
+      Double distinctRowCount =
+          mq.getDistinctRowCount(rel.getInput(), groupKey, null);
+      if (distinctRowCount == null) {
+        distinctRowCount = mq.getRowCount(rel.getInput()) / 10;
+      }
 
-    // rowCount is the cardinality of the group by columns
-    Double distinctRowCount =
-        mq.getDistinctRowCount(rel.getInput(), groupKey, null);
-    if (distinctRowCount == null) {
-      distinctRowCount = mq.getRowCount(rel.getInput()) / 10;
+      rowCount += distinctRowCount;
     }
-
-    // Grouping sets multiply
-    distinctRowCount *= rel.getGroupSets().size();
-
-    return distinctRowCount;
+    return rowCount;
   }
 
   public Double getRowCount(TableScan rel, RelMetadataQuery mq) {

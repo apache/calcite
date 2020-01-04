@@ -753,6 +753,10 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
       RexNode predicate) {
     for (;;) {
       try {
+        if ((predicate == null || predicate.isAlwaysTrue()) && groupKey.isEmpty()) {
+          // group by () => one row always
+          return 1D;
+        }
         Double result =
             distinctRowCountHandler.getDistinctRowCount(rel, this, groupKey,
                 predicate);

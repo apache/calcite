@@ -348,10 +348,35 @@ public class RelMdColumnUniqueness
 
   public Boolean areColumnsUnique(Aggregate rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
+    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
+      return null;
+    }
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
     // group by keys form a unique key
     ImmutableBitSet groupKey = ImmutableBitSet.range(rel.getGroupCount());
-    return columns.contains(groupKey);
+    if (columns.contains(groupKey)) {
+      return true;
+    }
+
+    // If group a subset of grouping columns is unique in the input relation
+    // then they would be unique in the output as well
+    // So map aggregate positions back to their input positions, and query the input uniqueness
+    ImmutableBitSet.Builder groupIndices = groupKey.rebuild();
+    groupIndices.intersect(columns);
+    if (groupIndices.isEmpty()) {
+      // The requested columns do not refer to the input columns, so uniqueness is not known
+      return null;
+    }
+
+    // groupKey has a bit for each input column index
+    // groupIndices refers to "group column position"
+    ImmutableBitSet.Builder inputColumns = ImmutableBitSet.builder();
+    List<Integer> inputColumnPositions = groupKey.toList();
+    for (Integer columnPosition : groupIndices.build()) {
+      inputColumns.set(inputColumnPositions.get(columnPosition));
+    }
+
+    return mq.areColumnsUnique(rel.getInput(), inputColumns.build(), ignoreNulls);
   }
 
   public Boolean areColumnsUnique(Values rel, RelMetadataQuery mq,
@@ -461,18 +486,16 @@ public class RelMdColumnUniqueness
   private static ImmutableBitSet decorateWithConstantColumnsFromPredicates(
       ImmutableBitSet checkingColumns, RelNode rel, RelMetadataQuery mq) {
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
-    if (predicates != null) {
-      final Set<Integer> constantIndexes = new HashSet();
-      predicates.constantMap.keySet().forEach(rex -> {
-        if (rex instanceof RexInputRef) {
-          constantIndexes.add(((RexInputRef) rex).getIndex());
-        }
-      });
-      if (!constantIndexes.isEmpty()) {
-        return checkingColumns.union(ImmutableBitSet.of(constantIndexes));
+    if (predicates == null) {
+      // If no constant columns deduced, return the original "checkingColumns".
+      return checkingColumns;
+    }
+    ImmutableBitSet.Builder withConstants = checkingColumns.rebuild();
+    for (RexNode rex : predicates.constantMap.keySet()) {
+      if (rex instanceof RexInputRef) {
+        withConstants.set(((RexInputRef) rex).getIndex());
       }
     }
-    // If no constant columns deduced, return the original "checkingColumns".
-    return checkingColumns;
+    return withConstants.build(checkingColumns);
   }
 }

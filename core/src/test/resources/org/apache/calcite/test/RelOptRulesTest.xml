@@ -3031,11 +3031,10 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
 LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
   LogicalJoin(condition=[AND(=($3, $10), =($5, $9))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0, 1}])
-      LogicalProject(EXPR$0=[$2], EMPNO=[$1])
-        LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($3)])
-          LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f1=['abc'], SAL=[$5])
-            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(EXPR$0=[$2], EMPNO=[$1])
+      LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($3)])
+        LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f1=['abc'], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
     </TestCase>
@@ -5804,7 +5803,7 @@ LogicalAggregate(group=[{1}])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}])
+LogicalProject(ENAME=[$0])
   LogicalJoin(condition=[=($1, $2)], joinType=[left])
     LogicalAggregate(group=[{1, 2}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -6175,7 +6174,7 @@ LogicalAggregate(group=[{2}])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}])
+LogicalProject(JOB=[$0])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
@@ -6241,7 +6240,7 @@ LogicalAggregate(group=[{2, 11}])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0, 2}])
+LogicalProject(JOB=[$0], NAME=[$2])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[left])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
@@ -7429,7 +7428,7 @@ LogicalAggregate(group=[{2, 11}])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0, 2}])
+LogicalProject(JOB=[$0], NAME=[$2])
   LogicalJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner])
     LogicalAggregate(group=[{2, 9}])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, $0)])
