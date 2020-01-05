@@ -112,7 +112,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     double cpu = (leftRowCount + rightRowCount) * OPERATOR_COST
         * (0.5 + joinInfo.leftKeys.size());
     // Currently the right side is hashed
-    cpu += rightRowCount * TUPLE_COST;
+    cpu += rightRowCount * (TUPLE_COST + getRowType().getFieldCount() * 0.01);
     // TODO: account for joinInfo.nonEquiConditions
     cpu = EnumUtils.extraJoinCost(cpu, this, leftRowCount, rightRowCount);
     return costFactory.makeCost(rowCount, cpu, 0);

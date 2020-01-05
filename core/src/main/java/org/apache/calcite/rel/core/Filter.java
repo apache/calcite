@@ -132,7 +132,6 @@ public abstract class Filter extends SingleRel {
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(this);
     double dCpu = mq.getRowCount(getInput()) * RexUtil.cost(condition);
-    dCpu += dRows * 0.01 * rowType.getFieldCount();
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }

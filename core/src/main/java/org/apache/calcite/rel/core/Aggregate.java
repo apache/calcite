@@ -366,8 +366,9 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     // REVIEW jvs 24-Aug-2008:  This is bogus, but no more bogus
     // than what's currently in Join.
     double rowCount = mq.getRowCount(this);
+    double inputRows = mq.getRowCount(getInput());
     // Aggregates with more aggregate functions cost a bit more
-    float multiplier = 1f + (float) aggCalls.size() * 0.125f;
+    float multiplier = 1f + (float) aggCalls.size();
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
         // Pretend that SUM costs a little bit more than $SUM0,
@@ -375,7 +376,9 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         multiplier += 0.0125f;
       }
     }
-    return planner.getCostFactory().makeCost(rowCount, rowCount * multiplier, 0);
+    double aggregateCost = inputRows * multiplier;
+    double projectCost = rowCount * (4 + getRowType().getFieldCount() * 0.01);
+    return planner.getCostFactory().makeCost(rowCount, aggregateCost + projectCost, 0);
   }
 
   protected RelDataType deriveRowType() {
