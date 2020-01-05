@@ -40,6 +40,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ControlFlowException;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -1399,6 +1400,51 @@ public class RexUtil {
         list.add(expr);
       }
     }
+  }
+
+  public static double cost(RexNode node) {
+    if (node instanceof RexLiteral) {
+      return 0.001;
+    }
+    if (node instanceof RexLocalRef) {
+      return 0;
+    }
+    if (node instanceof RexInputRef) {
+      return 0.01;
+    }
+    if (node instanceof RexCall) {
+      double cost = 0.1;
+      for (RexNode op : ((RexCall) node).operands) {
+        cost += cost(op);
+      }
+      return cost;
+    }
+    return 0.1;
+  }
+
+  public static double cost(RexProgram program, RexNode node, ImmutableBitSet.Builder visited) {
+    if (node instanceof RexLiteral) {
+      return 0.001;
+    }
+    if (node instanceof RexInputRef) {
+      return 0.01;
+    }
+    if (node instanceof RexLocalRef) {
+      RexLocalRef ref = (RexLocalRef) node;
+      if (visited.get(ref.index)) {
+        return 0;
+      }
+      visited.set(ref.index);
+      return cost(program, program.getExprList().get(ref.index), visited);
+    }
+    if (node instanceof RexCall) {
+      double cost = 0.1;
+      for (RexNode op : ((RexCall) node).operands) {
+        cost += cost(program, op, visited);
+      }
+      return cost;
+    }
+    return 0.1;
   }
 
   /**

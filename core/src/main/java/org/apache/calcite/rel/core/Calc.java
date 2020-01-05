@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
@@ -169,11 +170,20 @@ public abstract class Calc extends SingleRel implements Hintable {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    double dRows = mq.getRowCount(this);
-    double dCpu = mq.getRowCount(getInput())
-        * program.getExprCount();
+    double outputRows = mq.getRowCount(this);
+    double inputRows = mq.getRowCount(getInput());
+    ImmutableBitSet.Builder visited = ImmutableBitSet.builder();
+    RexLocalRef condition = program.getCondition();
+    double filterCost = condition == null
+        ? 0 : RexUtil.cost(program, condition, visited) * inputRows;
+    double projectCost = 0;
+    visited.intersect(ImmutableBitSet.of());
+    for (RexNode node : program.getProjectList()) {
+      projectCost += RexUtil.cost(program, node, visited);
+    }
+    projectCost *= outputRows;
     double dIo = 0;
-    return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
+    return planner.getCostFactory().makeCost(outputRows, filterCost + projectCost, dIo);
   }
 
   public RelWriter explainTerms(RelWriter pw) {

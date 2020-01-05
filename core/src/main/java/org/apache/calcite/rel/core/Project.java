@@ -240,7 +240,11 @@ public abstract class Project extends SingleRel implements Hintable {
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double dRows = mq.getRowCount(getInput());
-    double dCpu = dRows * exps.size();
+    double dCpu = 0;
+    for (RexNode node : exps) {
+      dCpu += RexUtil.cost(node);
+    }
+    dCpu *= dRows;
     double dIo = 0;
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
