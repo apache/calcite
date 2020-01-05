@@ -1632,6 +1632,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  public static final SqlFunction CBRT =
+      new SqlFunction(
+          "CBRT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   public static final SqlFunction COS =
       new SqlFunction(
           "COS",

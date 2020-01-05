@@ -1384,6 +1384,17 @@ public class SqlFunctions {
     return Math.atan2(b0, b1);
   }
 
+  // CBRT
+  /** SQL <code>CBRT</code> operator applied to BigDecimal values. */
+  public static double cbrt(BigDecimal b0) {
+    return Math.cbrt(b0.doubleValue());
+  }
+
+  /** SQL <code>CBRT</code> operator applied to double values. */
+  public static double cbrt(double b0) {
+    return Math.cbrt(b0);
+  }
+
   // COS
   /** SQL <code>COS</code> operator applied to BigDecimal values. */
   public static double cos(BigDecimal b0) {

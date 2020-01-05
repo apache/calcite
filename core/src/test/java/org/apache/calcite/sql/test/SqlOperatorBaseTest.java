@@ -1820,6 +1820,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalarApprox("{fn ASIN(0.2)}", "DOUBLE NOT NULL", 0.20135, 0.001);
     tester.checkScalarApprox("{fn ATAN(0.2)}", "DOUBLE NOT NULL", 0.19739, 0.001);
     tester.checkScalarApprox("{fn ATAN2(-2, 2)}", "DOUBLE NOT NULL", -0.78539, 0.001);
+    tester.checkScalar("{fn CBRT(8)}", 2.0, "DOUBLE NOT NULL");
     tester.checkScalar("{fn CEILING(-2.6)}", -2, "DECIMAL(2, 0) NOT NULL");
     tester.checkScalarApprox("{fn COS(0.2)}", "DOUBLE NOT NULL", 0.98007, 0.001);
     tester.checkScalarApprox("{fn COT(0.2)}", "DOUBLE NOT NULL", 4.93315, 0.001);
@@ -5602,6 +5603,34 @@ public abstract class SqlOperatorBaseTest {
         0.0001d);
     tester.checkNull("atan2(cast(null as integer), -1)");
     tester.checkNull("atan2(1, cast(null as double))");
+  }
+
+  @Test public void testCbrtFunc() {
+    tester.setFor(
+        SqlStdOperatorTable.CBRT);
+    tester.checkType("cbrt(1)", "DOUBLE NOT NULL");
+    tester.checkType("cbrt(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cbrt(case when false then 1 else null end)", "DOUBLE");
+    strictTester.checkFails(
+        "^cbrt('abc')^",
+        "Cannot apply 'CBRT' to arguments of type 'CBRT\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'CBRT\\(<NUMERIC>\\)'",
+        false);
+    tester.checkType("cbrt('abc')", "DOUBLE NOT NULL");
+    tester.checkScalar(
+        "cbrt(8)",
+        "2.0",
+        "DOUBLE NOT NULL");
+    tester.checkScalar(
+        "cbrt(-8)",
+        "-2.0",
+        "DOUBLE NOT NULL");
+    tester.checkScalar(
+        "cbrt(cast(1 as decimal(1, 0)))",
+        "1.0",
+        "DOUBLE NOT NULL");
+    tester.checkNull("cbrt(cast(null as integer))");
+    tester.checkNull("cbrt(cast(null as double))");
   }
 
   @Test public void testCosFunc() {
