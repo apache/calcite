@@ -375,7 +375,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         multiplier += 0.0125f;
       }
     }
-    return planner.getCostFactory().makeCost(rowCount * multiplier, 0, 0);
+    return planner.getCostFactory().makeCost(rowCount, rowCount * multiplier, 0);
   }
 
   protected RelDataType deriveRowType() {
