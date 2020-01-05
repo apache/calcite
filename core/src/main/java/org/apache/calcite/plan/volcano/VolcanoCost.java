@@ -16,10 +16,13 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptUtil;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.Objects;
 
 /**
@@ -31,54 +34,71 @@ import java.util.Objects;
 class VolcanoCost implements RelOptCost {
   //~ Static fields/initializers ---------------------------------------------
 
+  private static final MathContext MATH_CONTEXT = new MathContext(5);
+
   static final VolcanoCost INFINITY =
       new VolcanoCost(
           Double.POSITIVE_INFINITY,
           Double.POSITIVE_INFINITY,
-          Double.POSITIVE_INFINITY) {
+          Double.POSITIVE_INFINITY,
+          0) {
         public String toString() {
           return "{inf}";
         }
       };
 
   static final VolcanoCost HUGE =
-      new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE) {
+      new VolcanoCost(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE, 0) {
         public String toString() {
           return "{huge}";
+        }
+
+        @Override protected double overallCost() {
+          return Double.MAX_VALUE;
         }
       };
 
   static final VolcanoCost ZERO =
-      new VolcanoCost(0.0, 0.0, 0.0) {
+      new VolcanoCost(0.0, 0.0, 0.0, 0) {
         public String toString() {
           return "{0}";
         }
       };
 
   static final VolcanoCost TINY =
-      new VolcanoCost(1.0, 1.0, 0.0) {
+      new VolcanoCost(1.0, 1.0, 0.0, 0) {
         public String toString() {
           return "{tiny}";
         }
       };
 
-  public static final RelOptCostFactory FACTORY = new Factory();
+  public static final Factory FACTORY = new Factory(
+      CalciteSystemProperty.VOLCANO_DEFAULT_CPU_PER_IO.value());
 
   //~ Instance fields --------------------------------------------------------
 
   final double cpu;
   final double io;
   final double rowCount;
+  final double cpuPerIo;
 
   //~ Constructors -----------------------------------------------------------
 
-  VolcanoCost(double rowCount, double cpu, double io) {
+  VolcanoCost(double rowCount, double cpu, double io, double cpuPerIo) {
     this.rowCount = rowCount;
     this.cpu = cpu;
     this.io = io;
+    this.cpuPerIo = cpuPerIo;
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  protected double overallCost() {
+    if (isInfinite()) {
+      return Double.POSITIVE_INFINITY;
+    }
+    return cpu + io * cpuPerIo;
+  }
 
   public double getCpu() {
     return cpu;
@@ -86,9 +106,9 @@ class VolcanoCost implements RelOptCost {
 
   public boolean isInfinite() {
     return (this == INFINITY)
-        || (this.rowCount == Double.POSITIVE_INFINITY)
-        || (this.cpu == Double.POSITIVE_INFINITY)
-        || (this.io == Double.POSITIVE_INFINITY);
+        || (rowCount == Double.POSITIVE_INFINITY)
+        || (cpu == Double.POSITIVE_INFINITY)
+        || (io == Double.POSITIVE_INFINITY);
   }
 
   public double getIo() {
@@ -97,22 +117,18 @@ class VolcanoCost implements RelOptCost {
 
   public boolean isLe(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
-    if (true) {
-      return this == that
-          || this.rowCount <= that.rowCount;
-    }
-    return (this == that)
-        || ((this.rowCount <= that.rowCount)
-        && (this.cpu <= that.cpu)
-        && (this.io <= that.io));
+    return this == that
+        || that == INFINITY
+        || cpu <= that.cpu && io <= that.io
+        || overallCost() <= that.overallCost();
   }
 
   public boolean isLt(RelOptCost other) {
-    if (true) {
-      VolcanoCost that = (VolcanoCost) other;
-      return this.rowCount < that.rowCount;
-    }
-    return isLe(other) && !equals(other);
+    VolcanoCost that = (VolcanoCost) other;
+    return this != that
+        && (cpu < that.cpu && io <= that.io
+        || cpu <= that.cpu && io < that.io
+        || overallCost() < that.overallCost());
   }
 
   public double getRows() {
@@ -126,27 +142,19 @@ class VolcanoCost implements RelOptCost {
   public boolean equals(RelOptCost other) {
     return this == other
         || other instanceof VolcanoCost
-        && (this.rowCount == ((VolcanoCost) other).rowCount)
-        && (this.cpu == ((VolcanoCost) other).cpu)
-        && (this.io == ((VolcanoCost) other).io);
+        && this.cpu == ((VolcanoCost) other).cpu
+        && this.io == ((VolcanoCost) other).io;
   }
 
   @Override public boolean equals(Object obj) {
-    if (obj instanceof VolcanoCost) {
-      return equals((VolcanoCost) obj);
-    }
-    return false;
+    return obj instanceof RelOptCost && equals((RelOptCost) obj);
   }
 
   public boolean isEqWithEpsilon(RelOptCost other) {
-    if (!(other instanceof VolcanoCost)) {
-      return false;
-    }
     VolcanoCost that = (VolcanoCost) other;
-    return (this == that)
-        || ((Math.abs(this.rowCount - that.rowCount) < RelOptUtil.EPSILON)
-        && (Math.abs(this.cpu - that.cpu) < RelOptUtil.EPSILON)
-        && (Math.abs(this.io - that.io) < RelOptUtil.EPSILON));
+    return this == that
+        || Math.abs(this.cpu - that.cpu) < RelOptUtil.EPSILON
+        && Math.abs(this.io - that.io) < RelOptUtil.EPSILON;
   }
 
   public RelOptCost minus(RelOptCost other) {
@@ -154,32 +162,29 @@ class VolcanoCost implements RelOptCost {
       return this;
     }
     VolcanoCost that = (VolcanoCost) other;
+    assertSameCpuPerIo(that, " - ");
     return new VolcanoCost(
-        this.rowCount - that.rowCount,
-        this.cpu - that.cpu,
-        this.io - that.io);
+        rowCount - that.rowCount,
+        cpu - that.cpu,
+        io - that.io,
+        cpuPerIo);
   }
 
   public RelOptCost multiplyBy(double factor) {
     if (this == INFINITY) {
       return this;
     }
-    return new VolcanoCost(rowCount * factor, cpu * factor, io * factor);
+    return new VolcanoCost(
+        rowCount * factor, cpu * factor, io * factor, cpuPerIo);
   }
 
   public double divideBy(RelOptCost cost) {
     // Compute the geometric average of the ratios of all of the factors
     // which are non-zero and finite.
     VolcanoCost that = (VolcanoCost) cost;
+    assertSameCpuPerIo(that, " / ");
     double d = 1;
     double n = 0;
-    if ((this.rowCount != 0)
-        && !Double.isInfinite(this.rowCount)
-        && (that.rowCount != 0)
-        && !Double.isInfinite(that.rowCount)) {
-      d *= this.rowCount / that.rowCount;
-      ++n;
-    }
     if ((this.cpu != 0)
         && !Double.isInfinite(this.cpu)
         && (that.cpu != 0)
@@ -205,21 +210,47 @@ class VolcanoCost implements RelOptCost {
     if ((this == INFINITY) || (that == INFINITY)) {
       return INFINITY;
     }
+    assertSameCpuPerIo(that, " + ");
     return new VolcanoCost(
-        this.rowCount + that.rowCount,
-        this.cpu + that.cpu,
-        this.io + that.io);
+        rowCount + that.rowCount,
+        cpu + that.cpu,
+        io + that.io,
+        cpuPerIo);
+  }
+
+  private void assertSameCpuPerIo(VolcanoCost that, String op) {
+    // static HUGE, ZERO, TINY instances have cpuPerIo=0
+    assert this.cpuPerIo == that.cpuPerIo || cpuPerIo == 0 || that.cpuPerIo == 0
+        : "Cost should have the same cpuPerIo. Actual costs are " + this + op + that;
+  }
+
+  private String format(double value) {
+    return new BigDecimal(value, MATH_CONTEXT).stripTrailingZeros().toPlainString();
   }
 
   public String toString() {
-    return "{" + rowCount + " rows, " + cpu + " cpu, " + io + " io}";
+    return "{" + format(overallCost()) + " = "
+        + format(rowCount) + " rows, " + format(cpu) + " cpu, " + format(io) + " io}";
   }
 
   /** Implementation of {@link org.apache.calcite.plan.RelOptCostFactory}
    * that creates {@link org.apache.calcite.plan.volcano.VolcanoCost}s. */
-  private static class Factory implements RelOptCostFactory {
+  static class Factory implements RelOptCostFactory {
+    private final double cpuPerIo;
+
+    private Factory(double cpuPerIo) {
+      this.cpuPerIo = cpuPerIo;
+    }
+
+    public static Factory of(double cpuPerIo) {
+      if (cpuPerIo == FACTORY.cpuPerIo) {
+        return FACTORY;
+      }
+      return new Factory(cpuPerIo);
+    }
+
     public RelOptCost makeCost(double dRows, double dCpu, double dIo) {
-      return new VolcanoCost(dRows, dCpu, dIo);
+      return new VolcanoCost(dRows, dCpu, dIo, cpuPerIo);
     }
 
     public RelOptCost makeHugeCost() {

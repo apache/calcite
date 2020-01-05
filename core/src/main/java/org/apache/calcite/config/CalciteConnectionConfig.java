@@ -22,6 +22,8 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
+import org.apiguardian.api.API;
+
 /** Interface for reading connection properties within Calcite code. There is
  * a method for every property. At some point there will be similar config
  * classes for system and statement properties. */
@@ -66,6 +68,12 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean spark();
   /** @see CalciteConnectionProperty#FORCE_DECORRELATE */
   boolean forceDecorrelate();
+  /** @see CalciteConnectionProperty#VOLCANO_COST_IO_PER_CPU */
+  @API(status = API.Status.EXPERIMENTAL, since = "1.22")
+  default double volcanoCostCpuPerIo() {
+    // Default implementation is for backward-compatibility reasons
+    return CalciteSystemProperty.VOLCANO_DEFAULT_CPU_PER_IO.value();
+  }
   /** @see CalciteConnectionProperty#TYPE_SYSTEM */
   <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
   /** @see CalciteConnectionProperty#CONFORMANCE */

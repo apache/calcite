@@ -83,6 +83,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -267,7 +268,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   public VolcanoPlanner(RelOptCostFactory costFactory, //
       Context externalContext) {
-    super(costFactory == null ? VolcanoCost.FACTORY : costFactory, //
+    super(costFactory == null ? costFactory(externalContext) : costFactory,
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
@@ -276,6 +277,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private static RelOptCostFactory costFactory(@Nullable Context context) {
+    if (context == null) {
+      return VolcanoCost.FACTORY;
+    }
+    CalciteConnectionConfig config = context.unwrap(CalciteConnectionConfig.class);
+    double cpuPerIo = config != null ? config.volcanoCostCpuPerIo()
+        : CalciteSystemProperty.VOLCANO_DEFAULT_CPU_PER_IO.value();
+    return VolcanoCost.Factory.of(cpuPerIo);
+  }
 
   protected VolcanoPlannerPhaseRuleMappingInitializer
       getPhaseRuleMappingInitializer() {

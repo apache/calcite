@@ -170,6 +170,11 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
+  @Override public double volcanoCostCpuPerIo() {
+    return CalciteConnectionProperty.VOLCANO_COST_IO_PER_CPU.wrap(properties)
+        .getDouble();
+  }
+
   public <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);

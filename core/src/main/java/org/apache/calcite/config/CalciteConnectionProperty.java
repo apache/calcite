@@ -23,6 +23,8 @@ import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Bug;
 
+import org.apiguardian.api.API;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -144,6 +146,11 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   /** If the planner should try de-correlating as much as it is possible.
    * If true (the default), Calcite de-correlates the plan. */
   FORCE_DECORRELATE("forceDecorrelate", Type.BOOLEAN, true, false),
+
+  /** Specifies the factor how CPU units convert to IO. Integral numbers are preferred to avoid
+   * 2.4 vs 2,4 parsing issues. */
+  @API(status = API.Status.EXPERIMENTAL, since = "1.22")
+  VOLCANO_COST_IO_PER_CPU("volcanoCostIoPerCpu", Type.NUMBER, 10_000, false),
 
   /** Type system. The name of a class that implements
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem} and has a public
