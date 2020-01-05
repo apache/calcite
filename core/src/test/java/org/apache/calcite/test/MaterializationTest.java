@@ -2523,7 +2523,10 @@ public class MaterializationTest {
         + "where \"empid\" = (\n"
         + "  select max(\"empid\") from \"emps\"\n"
         + "  where \"deptno\" = e1.\"deptno\")";
-    final String m = "select \"empid\", \"deptno\" from \"emps\"\n";
+    // It is important to have deptno, empid field order here
+    // otherwise the plan with materialization would have an extra project,
+    // that would make the plan with materialization less attractive.
+    final String m = "select \"deptno\", \"empid\" from \"emps\"\n";
     checkMaterialize(m, q, HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             "EnumerableTableScan(table=[[hr, m0]])", 1));
