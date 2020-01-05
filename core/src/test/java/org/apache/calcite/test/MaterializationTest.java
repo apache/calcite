@@ -92,9 +92,9 @@ public class MaterializationTest {
       CalciteAssert.checkResultContains(
           "EnumerableTableScan(table=[[hr, m0]])");
 
-  private static final Consumer<ResultSet> CONTAINS_LOCATIONS =
+  private static final Consumer<ResultSet> CONTAINS_TESTPREPOPULATED =
       CalciteAssert.checkResultContains(
-          "EnumerableTableScan(table=[[hr, locations]])");
+          "EnumerableTableScan(table=[[hr, testPrePopulated]])");
 
   private static final Ordering<Iterable<String>> CASE_INSENSITIVE_LIST_COMPARATOR =
       Ordering.from(String.CASE_INSENSITIVE_ORDER).lexicographical();
@@ -2567,7 +2567,7 @@ public class MaterializationTest {
           .withMaterializations(
               HR_FKUK_MODEL, builder -> {
                 final Map<String, Object> map = builder.map();
-                map.put("table", "locations");
+                map.put("table", "testPrePopulated");
                 String sql = "select distinct `deptno` as `empid`, '' as `name`\n"
                     + "from `emps`";
                 final String sql2 = sql.replaceAll("`", "\"");
@@ -2576,7 +2576,7 @@ public class MaterializationTest {
               })
           .query(q)
           .enableMaterializations(true)
-          .explainMatches("", CONTAINS_LOCATIONS)
+          .explainMatches("", CONTAINS_TESTPREPOPULATED)
           .sameResultWithMaterializationsDisabled();
     }
   }
@@ -3030,6 +3030,15 @@ public class MaterializationTest {
         new Dependent(20, "San Diego"),
         new Dependent(30, "San Marino"),
     };
+
+    // This is a pre-populated materialized view for testPrePopulated
+    public final Department[] distinctDeptnoFromEmps =
+        Stream.of(emps)
+        .map(e -> e.deptno)
+        .distinct()
+        .map(deptno -> new Department(deptno, null, null, null))
+        .toArray(Department[]::new);
+
     public final Event[] events = {
         new Event(100, new Timestamp(0)),
         new Event(200, new Timestamp(0)),
