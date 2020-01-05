@@ -2682,6 +2682,26 @@ public class MaterializationTest {
     }
   }
 
+  @Test public void testAggregateMaterializationOnCountDistinctQuery1NoEmpid() {
+    checkMaterialize(
+        "select \"deptno\", \"commission\", \"salary\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"commission\", \"salary\"",
+        "select \"deptno\", count(distinct \"commission\") as c from (\n"
+            + "select \"deptno\", \"commission\"\n"
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"commission\")\n"
+            + "group by \"deptno\"",
+        HR_FKUK_MODEL,
+        CalciteAssert.checkResultContains(
+            ""
+                + "EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
+                + "  EnumerableAggregate(group=[{0, 1}])\n"
+                + "    EnumerableTableScan(table=[[hr, m0]])"));
+  }
+
+  @Disabled(
+      "CALCITE-3682 MaterializationService#defineMaterialization loses information on unique keys")
   @Test public void testAggregateMaterializationOnCountDistinctQuery1() {
     // The column empid is already unique, thus DISTINCT is not
     // in the COUNT of the resulting rewriting
@@ -2700,6 +2720,8 @@ public class MaterializationTest {
                 + "  EnumerableTableScan(table=[[hr, m0]]"));
   }
 
+  @Disabled(
+      "CALCITE-3682 MaterializationService#defineMaterialization loses information on unique keys")
   @Test public void testAggregateMaterializationOnCountDistinctQuery2() {
     // The column empid is already unique, thus DISTINCT is not
     // in the COUNT of the resulting rewriting
@@ -2718,6 +2740,8 @@ public class MaterializationTest {
                 + "  EnumerableTableScan(table=[[hr, m0]]"));
   }
 
+  @Disabled(
+      "CALCITE-3682 MaterializationService#defineMaterialization loses information on unique keys")
   @Test public void testAggregateMaterializationOnCountDistinctQuery3() {
     // The column salary is not unique, thus we end up with
     // a different rewriting
@@ -2737,6 +2761,8 @@ public class MaterializationTest {
                 + "    EnumerableTableScan(table=[[hr, m0]]"));
   }
 
+  @Disabled(
+      "CALCITE-3682 MaterializationService#defineMaterialization loses information on unique keys")
   @Test public void testAggregateMaterializationOnCountDistinctQuery4() {
     // Although there is no DISTINCT in the COUNT, this is
     // equivalent to previous query
