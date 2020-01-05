@@ -93,6 +93,9 @@ import javax.annotation.Nullable;
 public class VolcanoPlanner extends AbstractRelOptPlanner {
   protected static final double COST_IMPROVEMENT = .5;
 
+  private static final Pattern WRAP_AFTER_50_CHARS = Pattern.compile("(.{50,}?),");
+  private static final Pattern WRAP_AFTER_100_CHARS = Pattern.compile("(.{100,}?),");
+
   //~ Instance fields --------------------------------------------------------
 
   protected RelSubset root;
@@ -1227,7 +1230,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       pw.print(set.id);
       pw.println("{");
       pw.print("\t\tlabel=");
-      Util.printJavaString(pw, "Set " + set.id + " " + set.subsets.get(0).getRowType(), false);
+      String rowType = set.subsets.get(0).getRowType().toString();
+      rowType = WRAP_AFTER_100_CHARS.matcher(rowType).replaceAll("$1\n");
+      Util.printJavaString(pw, "Set " + set.id + " " + rowType, false);
       pw.print(";\n");
       for (RelNode rel : set.rels) {
         pw.print("\t\trel");
@@ -1251,6 +1256,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
                 + title.substring(openParen + 1, title.length() - 1);
           }
         }
+        title = title.replace("=RelSubset#", "=rel#");
+        title = WRAP_AFTER_50_CHARS.matcher(title).replaceAll("$1,\n");
         Util.printJavaString(pw,
             title
                 + "\nrows=" + mq.getRowCount(rel) + ", cost=" + getCost(rel, mq), false);
