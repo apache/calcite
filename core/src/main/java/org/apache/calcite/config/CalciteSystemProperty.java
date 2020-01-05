@@ -19,6 +19,8 @@ package org.apache.calcite.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
+import org.apiguardian.api.API;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +29,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 /**
@@ -88,6 +90,13 @@ public final class CalciteSystemProperty<T> {
    */
   public static final CalciteSystemProperty<Boolean> STRICT =
       booleanProperty("calcite.strict.sql", false);
+
+  /**
+   * The default value fo
+   */
+  @API(status = API.Status.EXPERIMENTAL, since = "1.22")
+  public static final CalciteSystemProperty<Double> VOLCANO_DEFAULT_CPU_PER_IO =
+      doubleProperty("calcite.volcano.default.cpu_per_io", 100_000);
 
   /**
    * Whether to include a GraphViz representation when dumping the state of the Volcano planner.
@@ -330,14 +339,28 @@ public final class CalciteSystemProperty<T> {
    * </ol>
    */
   private static CalciteSystemProperty<Integer> intProperty(String key, int defaultValue,
-      IntPredicate valueChecker) {
+      Predicate<Integer> valueChecker) {
+    return convertedProperty(key, defaultValue, Integer::parseInt, valueChecker);
+  }
+
+  private static CalciteSystemProperty<Double> doubleProperty(String key, double defaultValue) {
+    return doubleProperty(key, defaultValue, v -> true);
+  }
+
+  private static CalciteSystemProperty<Double> doubleProperty(String key, double defaultValue,
+      Predicate<Double> valueChecker) {
+    return convertedProperty(key, defaultValue, Double::parseDouble, valueChecker);
+  }
+
+  private static <T> CalciteSystemProperty<T> convertedProperty(String key, T defaultValue,
+      Function<String, T> converter, Predicate<T> valueChecker) {
     return new CalciteSystemProperty<>(key, v -> {
       if (v == null) {
         return defaultValue;
       }
       try {
-        int intVal = Integer.parseInt(v);
-        return valueChecker.test(intVal) ? intVal : defaultValue;
+        T value = converter.apply(v);
+        return valueChecker.test(value) ? value : defaultValue;
       } catch (NumberFormatException nfe) {
         return defaultValue;
       }
