@@ -927,9 +927,9 @@ public class MaterializationTest {
 
   @Test public void testPermutationError() {
     checkMaterialize(
-        "select min(\"salary\"), count(*), max(\"salary\"), sum(\"salary\"), \"empid\" "
-            + "from \"emps\" group by \"empid\"",
-        "select count(*), \"empid\" from \"emps\" group by \"empid\"",
+        "select min(\"salary\"), count(*), max(\"salary\"), sum(\"salary\"), \"deptno\" "
+            + "from \"emps\" group by \"deptno\"",
+        "select count(*), \"deptno\" from \"emps\" group by \"deptno\"",
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains("EnumerableTableScan(table=[[hr, m0]])"));
   }
