@@ -1479,8 +1479,9 @@ PI
 
 # CBRT
 select cbrt(-8);
-SELECT "CBRT"(-8)
-!explain-validated-on calcite
+EXPR$0
+-2.0
+!ok
 
 # CEILING (or CEIL)
 select ceiling(10.5);
