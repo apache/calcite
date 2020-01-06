@@ -46,6 +46,11 @@ public class ElasticsearchFilter extends Filter implements ElasticsearchRel {
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    InputRefVerifier verifier = new InputRefVerifier();
+    condition.accept(verifier);
+    if (verifier.hasInvalidInput) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 

@@ -21,12 +21,14 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -238,6 +240,13 @@ class ElasticsearchRules {
     private ElasticsearchFilterRule() {
       super(LogicalFilter.class, Convention.NONE, ElasticsearchRel.CONVENTION,
           "ElasticsearchFilterRule");
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Filter rel = call.rel(0);
+      InputRefVerifier verifier = new InputRefVerifier();
+      rel.getCondition().accept(verifier);
+      return !verifier.hasInvalidInput;
     }
 
     @Override public RelNode convert(RelNode relNode) {
