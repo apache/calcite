@@ -5623,6 +5623,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from dept where exists (\n"
         + "select 1 from emp join bonus using (^deptno^))")
         .fails("Column 'DEPTNO' not found in any table");
+
+    // cannot qualify common column in Oracle.
+    sql("select ^emp.deptno^ from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select ^emp.deptno^ from emp natural join dept")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select count(^emp.deptno^) from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select emp.deptno from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok();
+
+    sql("select emp.empno from emp natural join dept")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .ok();
+
+    sql("select emp.empno from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .ok();
   }
 
   @Test public void testCrossJoinOnFails() {

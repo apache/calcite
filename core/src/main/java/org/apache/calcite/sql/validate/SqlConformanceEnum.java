@@ -314,4 +314,18 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  @Override public boolean allowQualifyingCommonColumn() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+    case STRICT_92:
+    case STRICT_99:
+    case STRICT_2003:
+      return false;
+    default:
+      return true;
+    }
+  }
+
+
 }

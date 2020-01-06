@@ -292,6 +292,9 @@ public interface CalciteResource {
   @BaseMessage("INNER, LEFT, RIGHT or FULL join requires a condition (NATURAL keyword or ON or USING clause)")
   ExInst<SqlValidatorException> joinRequiresCondition();
 
+  @BaseMessage("Cannot qualify common column ''{0}''")
+  ExInst<SqlValidatorException> disallowsQualifyingCommonColumn(String a0);
+
   @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS JOIN")
   ExInst<SqlValidatorException> crossJoinDisallowsCondition();
 
