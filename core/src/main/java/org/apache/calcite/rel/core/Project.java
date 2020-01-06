@@ -245,8 +245,39 @@ public abstract class Project extends SingleRel implements Hintable {
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
+  /**
+   * Returns the number of expressions at the front of an array which are
+   * simply projections of the same field.
+   *
+   * @param refs References
+   * @return the index of the first non-trivial expression, or list.size otherwise
+   */
+  private static int countTrivial(List<RexNode> refs) {
+    for (int i = 0; i < refs.size(); i++) {
+      RexNode ref = refs.get(i);
+      if (!(ref instanceof RexInputRef)
+          || ((RexInputRef) ref).getIndex() != i) {
+        return i;
+      }
+    }
+    return refs.size();
+  }
+
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
+    // Skip writing field names so the optimizer can reuse the projects that differ in
+    // field names only
+    if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
+      final int firstNonTrivial = countTrivial(exps);
+      if (firstNonTrivial != 0) {
+        pw.item("inputs", "0.." + (firstNonTrivial - 1));
+      }
+      if (firstNonTrivial != exps.size()) {
+        pw.item("exprs", exps.subList(firstNonTrivial, exps.size()));
+      }
+      return pw;
+    }
+
     if (pw.nest()) {
       pw.item("fields", rowType.getFieldNames());
       pw.item("exprs", exps);
@@ -258,16 +289,6 @@ public abstract class Project extends SingleRel implements Hintable {
         }
         pw.item(fieldName, exps.get(field.i));
       }
-    }
-
-    // If we're generating a digest, include the rowtype. If two projects
-    // differ in return type, we don't want to regard them as equivalent,
-    // otherwise we will try to put rels of different types into the same
-    // planner equivalence set.
-    //CHECKSTYLE: IGNORE 2
-    if ((pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-        && false) {
-      pw.item("type", rowType);
     }
 
     return pw;
