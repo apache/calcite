@@ -54,12 +54,7 @@ public class GeodeSort extends Sort implements GeodeRel {
       RelMetadataQuery mq) {
 
     RelOptCost cost = super.computeSelfCost(planner, mq);
-
-    if (fetch != null) {
-      return cost.multiplyBy(0.05);
-    } else {
-      return cost;
-    }
+    return cost.multiplyBy(0.1);
   }
 
   @Override public Sort copy(RelTraitSet traitSet, RelNode input,

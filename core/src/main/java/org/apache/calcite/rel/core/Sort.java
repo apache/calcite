@@ -29,6 +29,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
@@ -131,12 +132,25 @@ public abstract class Sort extends SingleRel {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    // Higher cost if rows are wider discourages pushing a project through a
-    // sort.
+    // TODO: properly estimate cost when fieldExps is empty (the sort is trivial offset+limit)
+    final double inputRows = mq.getRowCount(getInput());
     final double rowCount = mq.getRowCount(this);
-    final double bytesPerRow = getRowType().getFieldCount() * 4;
-    final double cpu = Util.nLogN(rowCount) * bytesPerRow;
-    return planner.getCostFactory().makeCost(rowCount, cpu, 0);
+    double offsetRows;
+    if (offset == null) {
+      offsetRows = 0;
+    } else if (offset instanceof RexLiteral) {
+      offsetRows = RexLiteral.intValue(offset);
+    } else {
+      offsetRows = inputRows / 2;
+    }
+    // When limit is present, the sort still has to process all the input rows
+    // So the estimation is inputRows * Log(outputRows)
+    final double cmpCost = fieldExps.size() * 4;
+    final double sortCost = inputRows > rowCount
+        ? inputRows * Util.logN(Math.min(rowCount + offsetRows, inputRows)) * cmpCost
+        : Util.nLogN(rowCount) * cmpCost;
+    final double storageCost = (1 + getRowType().getFieldCount() * 0.01) * rowCount;
+    return planner.getCostFactory().makeCost(inputRows, sortCost + storageCost, 0);
   }
 
   @Override public List<RexNode> getChildExps() {

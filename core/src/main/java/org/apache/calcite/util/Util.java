@@ -357,6 +357,15 @@ public class Util {
   }
 
   /**
+   * Computes <code>logn(n)</code> using the natural logarithm (or <code>
+   * n</code> if <code>n &lt; {@link Math#E}</code>, so the result is never
+   * negative.
+   */
+  public static double logN(double d) {
+    return (d < Math.E) ? d : Math.log(d);
+  }
+
+  /**
    * Prints an object using reflection. We can handle <code>null</code>;
    * arrays of objects and primitive values; for regular objects, we print all
    * public fields.
