@@ -18,6 +18,19 @@
 !use mysqlfunc
 !set outputformat mysql
 
+# MATH Functions
+
+# CBRT
+select cbrt(-8);
++--------+
+| EXPR$0 |
++--------+
+|   -2.0 |
++--------+
+(1 row)
+
+!ok
+
 # XML Functions
 
 SELECT ExtractValue('<a>c</a>', '//a');
