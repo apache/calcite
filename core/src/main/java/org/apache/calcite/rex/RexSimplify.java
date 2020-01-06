@@ -1834,6 +1834,47 @@ public class RexSimplify {
     if (sameTypeOrNarrowsNullability(e.getType(), operand.getType())) {
       return operand;
     }
+    if (RexUtil.isLosslessCast(operand)) {
+      // x :: y below means cast(x as y) (which is PostgreSQL-specifiic cast by the way)
+      // A) Remove lossless casts:
+      // A.1) intExpr :: bigint :: int => intExpr
+      // A.2) char2Expr :: char(5) :: char(2) => char2Expr
+      // B) There are cases when we can't remove two casts, but we could probably remove inner one
+      // B.1) char2expression :: char(4) :: char(5) -> char2expression :: char(5)
+      // B.2) char2expression :: char(10) :: char(5) -> char2expression :: char(5)
+      // B.3) char2expression :: varchar(10) :: char(5) -> char2expression :: char(5)
+      // B.4) char6expression :: varchar(10) :: char(5) -> char6expression :: char(5)
+      // C) Simplification is not possible:
+      // C.1) char6expression :: char(3) :: char(5) -> must not be changed
+      //      the input is truncated to 3 chars, so we can't use char6expression :: char(5)
+      // C.2) varchar2Expr :: char(5) :: varchar(2) -> must not be changed
+      //      the input have to be padded with spaces (up to 2 chars)
+      // C.3) char2expression :: char(4) :: varchar(5) -> must not be changed
+      //      would not have the padding
+
+      // The approach seems to be:
+      // 1) Ensure inner cast is lossless (see if above)
+      // 2) If operand of the inner cast has the same type as the outer cast,
+      //    remove two casts except C.2 or C.3-like pattern (== inner cast is CHAR)
+      // 3) If outer cast is lossless, remove inner cast (B-like cases)
+
+      // Here we try to remove two casts in one go (A-like cases)
+      RexNode intExpr = ((RexCall) operand).operands.get(0);
+      // intExpr == CHAR detects A.1
+      // operand != CHAR detects C.2
+      if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
+          && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
+        return intExpr;
+      }
+      // Here we try to remove inner cast (B-like cases)
+      if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
+          && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
+          || e.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)) {
+        return rexBuilder.makeCast(e.getType(), intExpr);
+      }
+    }
     switch (operand.getKind()) {
     case LITERAL:
       final RexLiteral literal = (RexLiteral) operand;

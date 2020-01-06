@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.rex;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -23,18 +23,6 @@ import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexInterpreter;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexSimplify;
-import org.apache.calcite.rex.RexUnknownAs;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
@@ -56,7 +44,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -81,142 +68,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit tests for {@link RexProgram} and
  * {@link org.apache.calcite.rex.RexProgramBuilder}.
  */
-public class RexProgramTest extends RexProgramBuilderBase {
-  @BeforeEach public void setUp() {
-    super.setUp();
-  }
-
-  private void checkCnf(RexNode node, String expected) {
-    assertThat("RexUtil.toCnf(rexBuilder, " + node + ")",
-        RexUtil.toCnf(rexBuilder, node).toString(), equalTo(expected));
-  }
-
-  private void checkThresholdCnf(RexNode node, int threshold, String expected) {
-    assertThat("RexUtil.toCnf(rexBuilder, threshold=" + threshold + " , " + node + ")",
-        RexUtil.toCnf(rexBuilder, threshold, node).toString(),
-        equalTo(expected));
-  }
-
-  private void checkPullFactorsUnchanged(RexNode node) {
-    checkPullFactors(node, node.toString());
-  }
-
-  private void checkPullFactors(RexNode node, String expected) {
-    assertThat("RexUtil.pullFactors(rexBuilder, " + node + ")",
-        RexUtil.pullFactors(rexBuilder, node).toString(),
-        equalTo(expected));
-  }
-
-  /**
-   * Asserts that given node has expected string representation with account of node type
-   * @param message extra message that clarifies where the node came from
-   * @param expected expected string representation of the node
-   * @param node node to check
-   */
-  private void assertNode(String message, String expected, RexNode node) {
-    String actual;
-    if (node.isA(SqlKind.CAST) || node.isA(SqlKind.NEW_SPECIFICATION)) {
-      // toString contains type (see RexCall.toString)
-      actual = node.toString();
-    } else {
-      actual = node + ":" + node.getType() + (node.getType().isNullable() ? "" : " NOT NULL");
-    }
-    assertEquals(expected, actual, message);
-  }
-
-  /** Simplifies an expression and checks that the result is as expected. */
-  private void checkSimplify(RexNode node, String expected) {
-    final String nodeString = node.toString();
-    checkSimplify3_(node, expected, expected, expected);
-    if (expected.equals(nodeString)) {
-      throw new AssertionError("expected == node.toString(); "
-          + "use checkSimplifyUnchanged");
-    }
-  }
-
-  /** Simplifies an expression and checks that the result is unchanged. */
-  private void checkSimplifyUnchanged(RexNode node) {
-    final String expected = node.toString();
-    checkSimplify3_(node, expected, expected, expected);
-  }
-
-  /** Simplifies an expression and checks the result if unknowns remain
-   * unknown, or if unknown becomes false. If the result is the same, use
-   * {@link #checkSimplify(RexNode, String)}.
-   *
-   * @param node Expression to simplify
-   * @param expected Expected simplification
-   * @param expectedFalse Expected simplification, if unknown is to be treated
-   *     as false
-   */
-  private void checkSimplify2(RexNode node, String expected,
-      String expectedFalse) {
-    checkSimplify3_(node, expected, expectedFalse, expected);
-    if (expected.equals(expectedFalse)) {
-      throw new AssertionError("expected == expectedFalse; use checkSimplify");
-    }
-  }
-
-  private void checkSimplify3(RexNode node, String expected,
-      String expectedFalse, String expectedTrue) {
-    checkSimplify3_(node, expected, expectedFalse, expectedTrue);
-    if (expected.equals(expectedFalse) && expected.equals(expectedTrue)) {
-      throw new AssertionError("expected == expectedFalse == expectedTrue; "
-          + "use checkSimplify");
-    }
-    if (expected.equals(expectedTrue)) {
-      throw new AssertionError("expected == expectedTrue; use checkSimplify2");
-    }
-  }
-
-  private void checkSimplify3_(RexNode node, String expected,
-      String expectedFalse, String expectedTrue) {
-    final RexNode simplified =
-        simplify.simplifyUnknownAs(node, RexUnknownAs.UNKNOWN);
-    assertThat("simplify(unknown as unknown): " + node,
-        simplified.toString(), equalTo(expected));
-    if (node.getType().getSqlTypeName() == SqlTypeName.BOOLEAN) {
-      final RexNode simplified2 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-      assertThat("simplify(unknown as false): " + node,
-          simplified2.toString(), equalTo(expectedFalse));
-      final RexNode simplified3 =
-          simplify.simplifyUnknownAs(node, RexUnknownAs.TRUE);
-      assertThat("simplify(unknown as true): " + node,
-          simplified3.toString(), equalTo(expectedTrue));
-    } else {
-      assertThat("node type is not BOOLEAN, so <<expectedFalse>> should match <<expected>>",
-          expectedFalse, is(expected));
-      assertThat("node type is not BOOLEAN, so <<expectedTrue>> should match <<expected>>",
-          expectedTrue, is(expected));
-    }
-  }
-
-  private void checkSimplifyFilter(RexNode node, String expected) {
-    final RexNode simplified =
-        this.simplify.simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toString(), equalTo(expected));
-  }
-
-  private void checkSimplifyFilter(RexNode node, RelOptPredicateList predicates,
-      String expected) {
-    final RexNode simplified =
-        simplify.withPredicates(predicates)
-            .simplifyUnknownAs(node, RexUnknownAs.FALSE);
-    assertThat(simplified.toString(), equalTo(expected));
-  }
-
-  /** Returns the number of nodes (including leaves) in a Rex tree. */
-  private static int nodeCount(RexNode node) {
-    int n = 1;
-    if (node instanceof RexCall) {
-      for (RexNode operand : ((RexCall) node).getOperands()) {
-        n += nodeCount(operand);
-      }
-    }
-    return n;
-  }
-
+public class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests construction of a RexProgram.
    */
@@ -650,117 +502,6 @@ public class RexProgramTest extends RexProgramBuilderBase {
         and(vBool(), not(vBool()),
             vBoolNotNull(1), not(vBoolNotNull(1))),
         "false");
-  }
-
-  /** Unit test for {@link org.apache.calcite.rex.RexUtil#isLosslessCast(RexNode)}. */
-  @Test public void testLosslessCast() {
-    final RelDataType tinyIntType = typeFactory.createSqlType(SqlTypeName.TINYINT);
-    final RelDataType smallIntType = typeFactory.createSqlType(SqlTypeName.SMALLINT);
-    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-    final RelDataType bigIntType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-    final RelDataType floatType = typeFactory.createSqlType(SqlTypeName.FLOAT);
-    final RelDataType booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-    final RelDataType charType5 = typeFactory.createSqlType(SqlTypeName.CHAR, 5);
-    final RelDataType charType6 = typeFactory.createSqlType(SqlTypeName.CHAR, 6);
-    final RelDataType varCharType10 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 10);
-    final RelDataType varCharType11 = typeFactory.createSqlType(SqlTypeName.VARCHAR, 11);
-
-    // Negative
-    assertThat(RexUtil.isLosslessCast(rexBuilder.makeInputRef(intType, 0)), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                tinyIntType, rexBuilder.makeInputRef(smallIntType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                smallIntType, rexBuilder.makeInputRef(intType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                intType, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                bigIntType, rexBuilder.makeInputRef(floatType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                booleanType, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                intType, rexBuilder.makeInputRef(charType5, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                intType, rexBuilder.makeInputRef(varCharType10, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType10, rexBuilder.makeInputRef(varCharType11, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                charType5, rexBuilder.makeInputRef(bigIntType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                charType5, rexBuilder.makeInputRef(smallIntType, 0))), is(false));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType10, rexBuilder.makeInputRef(intType, 0))), is(false));
-
-    // Positive
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                smallIntType, rexBuilder.makeInputRef(tinyIntType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                intType, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                bigIntType, rexBuilder.makeInputRef(intType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                intType, rexBuilder.makeInputRef(intType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                charType6, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType10, rexBuilder.makeInputRef(smallIntType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType11, rexBuilder.makeInputRef(intType, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType11, rexBuilder.makeInputRef(charType6, 0))), is(true));
-    assertThat(
-        RexUtil.isLosslessCast(
-            rexBuilder.makeCast(
-                varCharType11, rexBuilder.makeInputRef(varCharType10, 0))), is(true));
-  }
-
-  @Test public void removeRedundantCast() {
-    checkSimplify(cast(vInt(), nullable(tInt())), "?0.int0");
-    checkSimplifyUnchanged(cast(vInt(), tInt()));
-    checkSimplify(cast(vIntNotNull(), nullable(tInt())), "?0.notNullInt0");
-    checkSimplify(cast(vIntNotNull(), tInt()), "?0.notNullInt0");
-
-    // Nested int int cast is removed
-    checkSimplify(cast(cast(vVarchar(), tInt()), tInt()),
-        "CAST(?0.varchar0):INTEGER NOT NULL");
-    checkSimplifyUnchanged(cast(cast(vVarchar(), tInt()), tVarchar()));
   }
 
   @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
@@ -2641,13 +2382,6 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "IS NULL(?0.int1)");
   }
 
-  private RexNode simplify(RexNode e) {
-    final RexSimplify simplify =
-        new RexSimplify(rexBuilder, RelOptPredicateList.EMPTY, RexUtil.EXECUTOR)
-            .withParanoid(true);
-    return simplify.simplifyUnknownAs(e, RexUnknownAs.UNKNOWN);
-  }
-
   @Test public void testInterpreter() {
     assertThat(eval(trueLiteral), is(true));
     assertThat(eval(nullInt), is(NullSentinel.INSTANCE));
@@ -2758,20 +2492,6 @@ public class RexProgramTest extends RexProgramBuilderBase {
   @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisNotTrue() {
     // "((x IS NULL) IS NOT NULL) IS NOT TRUE" -> false
     checkIs(isNotTrue(isNotNull(isNull(vBool()))), false);
-  }
-
-  /** Checks that {@link RexNode#isAlwaysTrue()},
-   * {@link RexNode#isAlwaysTrue()} and {@link RexSimplify} agree that
-   * an expression reduces to true or false. */
-  private void checkIs(RexNode e, boolean expected) {
-    assertThat("isAlwaysTrue() of expression: " + e.toString(), e.isAlwaysTrue(), is(expected));
-    assertThat("isAlwaysFalse() of expression: " + e.toString(), e.isAlwaysFalse(), is(!expected));
-    assertThat("Simplification is not using isAlwaysX informations", simplify(e).toString(),
-            is(expected ? "true" : "false"));
-  }
-
-  private Comparable eval(RexNode e) {
-    return RexInterpreter.evaluate(e, ImmutableMap.of());
   }
 
   /** Unit test for

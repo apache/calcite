@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.test;
+package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -24,20 +24,14 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexDynamicParam;
-import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexExecutorImpl;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import org.junit.jupiter.api.BeforeEach;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -110,7 +104,7 @@ public abstract class RexProgramBuilderBase {
     }
   }
 
-  public void setUp() {
+  @BeforeEach public void setUp() {
     typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     rexBuilder = new RexBuilder(typeFactory);
     executor =
@@ -351,6 +345,31 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableVarchar : nonNullableVarchar;
   }
 
+  protected RelDataType tVarchar(int precision) {
+    return tVarchar(false, precision);
+  }
+
+  protected RelDataType tVarchar(boolean nullable, int precision) {
+    RelDataType sqlType = typeFactory.createSqlType(SqlTypeName.VARCHAR, precision);
+    if (nullable) {
+      sqlType = typeFactory.createTypeWithNullability(sqlType, true);
+    }
+    return sqlType;
+  }
+
+
+  protected RelDataType tChar(int precision) {
+    return tChar(false, precision);
+  }
+
+  protected RelDataType tChar(boolean nullable, int precision) {
+    RelDataType sqlType = typeFactory.createSqlType(SqlTypeName.CHAR, precision);
+    if (nullable) {
+      sqlType = typeFactory.createTypeWithNullability(sqlType, true);
+    }
+    return sqlType;
+  }
+
   protected RelDataType tBool() {
     return nonNullableBool;
   }
@@ -365,6 +384,18 @@ public abstract class RexProgramBuilderBase {
 
   protected RelDataType tInt(boolean nullable) {
     return nullable ? nullableInt : nonNullableInt;
+  }
+
+  protected RelDataType tBigInt() {
+    return tBigInt(false);
+  }
+
+  protected RelDataType tBigInt(boolean nullable) {
+    RelDataType type = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    if (nullable) {
+      type = nullable(type);
+    }
+    return type;
   }
 
   protected RelDataType tArray(RelDataType elemType) {
@@ -457,11 +488,11 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code nullable boolean variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.bool3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return nullable boolean variable with given index (0-based)
    */
   protected RexNode vBool(int arg) {
-    assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableBool, "bool"), arg);
+    return vParam("bool", arg, nonNullableBool);
   }
 
   /**
@@ -479,13 +510,11 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code non-nullable boolean variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.notNullBool3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return non-nullable boolean variable with given index (0-based)
    */
   protected RexNode vBoolNotNull(int arg) {
-    assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(
-        getDynamicParam(nonNullableBool, "bool"),
-        arg + MAX_FIELDS);
+    return vParamNotNull("bool", arg, nonNullableBool);
   }
 
   /**
@@ -503,11 +532,11 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code nullable int variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.int3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return nullable int variable with given index (0-based)
    */
   protected RexNode vInt(int arg) {
-    assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableInt, "int"), arg);
+    return vParam("int", arg, nonNullableInt);
   }
 
   /**
@@ -525,13 +554,11 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code non-nullable int variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.notNullInt3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return non-nullable int variable with given index (0-based)
    */
   protected RexNode vIntNotNull(int arg) {
-    assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(
-        getDynamicParam(nonNullableInt, "int"),
-        arg + MAX_FIELDS);
+    return vParamNotNull("int", arg, nonNullableInt);
   }
 
   /**
@@ -549,12 +576,11 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code nullable varchar variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.varchar3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return nullable varchar variable with given index (0-based)
    */
   protected RexNode vVarchar(int arg) {
-    assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(
-        getDynamicParam(nonNullableVarchar, "varchar"), arg);
+    return vParam("varchar", arg, nonNullableVarchar);
   }
 
   /**
@@ -572,12 +598,72 @@ public abstract class RexProgramBuilderBase {
    * Creates {@code non-nullable varchar variable} with index of {@code arg} (0-based).
    * The resulting node would look like {@code ?0.notNullVarchar3} if {@code arg} is {@code 3}.
    *
+   * @param arg argument index (0-based)
    * @return non-nullable varchar variable with given index (0-based)
    */
   protected RexNode vVarcharNotNull(int arg) {
+    return vParamNotNull("varchar", arg, nonNullableVarchar);
+  }
+
+  /**
+   * Creates {@code nullable variable} with given type and name of {@code arg} (0-based).
+   * This enables cases when type is built dynamically.
+   * For instance {@code vParam("char(2)_", tChar(2))} would generate a nullable
+   * char(2) variable that would look like {@code ?0.char(2)_0}.
+   * If you need multiple variables of that kind, use {@link #vParam(String, int, RelDataType)}.
+   *
+   * @param name variable name prefix
+   * @return nullable variable of a given type
+   */
+  protected RexNode vParam(String name, RelDataType type) {
+    return vParam(name, 0, type);
+  }
+
+  /**
+   * Creates {@code nullable variable} with given type and name with index of {@code arg} (0-based).
+   * This enables cases when type is built dynamically.
+   * For instance {@code vParam("char(2)_", 3, tChar(2))} would generate a nullable
+   * char(2) variable that would look like {@code ?0.char(2)_3}.
+   *
+   * @param name variable name prefix
+   * @param arg argument index (0-based)
+   * @return nullable varchar variable with given index (0-based)
+   */
+  protected RexNode vParam(String name, int arg, RelDataType type) {
     assertArgValue(arg);
-    return rexBuilder.makeFieldAccess(
-        getDynamicParam(nonNullableVarchar, "varchar"),
-        arg + MAX_FIELDS);
+    RelDataType nonNullableType = typeFactory.createTypeWithNullability(type, false);
+    return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableType, name), arg);
+  }
+
+  /**
+   * Creates {@code non-nullable variable} with given type and name.
+   * This enables cases when type is built dynamically.
+   * For instance {@code vParam("char(2)_", tChar(2))} would generate a non-nullable
+   * char(2) variable that would look like {@code ?0.char(2)_0}.
+   * If you need multiple variables of that kind, use
+   * {@link #vParamNotNull(String, int, RelDataType)}
+   *
+   * @param name variable name prefix
+   * @return nullable variable of a given type
+   */
+  protected RexNode vParamNotNull(String name, RelDataType type) {
+    return vParamNotNull(name, 0, type);
+  }
+
+  /**
+   * Creates {@code non-nullable variable} with given type and name with index of
+   * {@code arg} (0-based).
+   * This enables cases when type is built dynamically.
+   * For instance {@code vParam("char(2)_", 3, tChar(2))} would generate a non-nullable
+   * char(2) variable that would look like {@code ?0.char(2)_3}.
+   *
+   * @param name variable name prefix
+   * @param arg argument index (0-based)
+   * @return nullable varchar variable with given index (0-based)
+   */
+  protected RexNode vParamNotNull(String name, int arg, RelDataType type) {
+    assertArgValue(arg);
+    RelDataType nonNullableType = typeFactory.createTypeWithNullability(type, false);
+    return rexBuilder.makeFieldAccess(getDynamicParam(nonNullableType, name), arg + MAX_FIELDS);
   }
 }

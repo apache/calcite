@@ -7709,7 +7709,7 @@ LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened
         <Resource name="planAfter">
             <![CDATA[
 LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened=[false])
-  LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t2):VARCHAR(128)], expr#10=[CAST($t9):VARCHAR(10) NOT NULL], DEPTNO=[$t0], NAME=[$t10])
+  LogicalCalc(expr#0..8=[{inputs}], expr#9=[CAST($t2):VARCHAR(10) NOT NULL], DEPTNO=[$t0], NAME=[$t9])
     LogicalTableScan(table=[[CATALOG, SALES, EMPNULLABLES]])
 ]]>
         </Resource>

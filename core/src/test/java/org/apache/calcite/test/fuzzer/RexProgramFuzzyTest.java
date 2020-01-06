@@ -19,16 +19,15 @@ package org.apache.calcite.test.fuzzer;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilderBase;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.test.RexProgramBuilderBase;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -120,10 +119,6 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     @Override public Iterator<E> iterator() {
       throw new UnsupportedOperationException("Order of elements is not defined, please use .peek");
     }
-  }
-
-  @BeforeEach public void setUp() {
-    super.setUp();
   }
 
   /**

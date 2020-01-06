@@ -50,6 +50,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.apiguardian.api.API;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1411,14 +1413,34 @@ public class RexUtil {
    *
    * <p>The implementation of this method does not return false positives.
    * However, it is not complete.
+   * @param node input node to verify if it represents a loss-less cast
+   * @return true iff the node is a loss-less cast
    */
   public static boolean isLosslessCast(RexNode node) {
     if (!node.isA(SqlKind.CAST)) {
       return false;
     }
-    final RelDataType source = ((RexCall) node).getOperands().get(0).getType();
+    return isLosslessCast(((RexCall) node).getOperands().get(0).getType(), node.getType());
+  }
+
+
+  /**
+   * Returns whether the conversion from {@code source} to {@code target} type
+   * is a 'loss-less' cast, that is, a cast from which
+   * the original value of the field can be certainly recovered.
+   *
+   * <p>For instance, int &rarr; bigint is loss-less (as you can cast back to
+   * int without loss of information), but bigint &rarr; int is not loss-less.
+   *
+   * <p>The implementation of this method does not return false positives.
+   * However, it is not complete.
+   * @param source source type
+   * @param target target type
+   * @return true iff the conversion is a loss-less cast
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static boolean isLosslessCast(RelDataType source, RelDataType target) {
     final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
-    final RelDataType target = node.getType();
     final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
     // 1) Both INT numeric types
     if (SqlTypeFamily.INTEGER.getTypeNames().contains(sourceSqlTypeName)
