@@ -952,6 +952,18 @@ public class ImmutableBitSet
       this.words = words;
     }
 
+
+    @Override public String toString() {
+      // toString implementation improves ImmutableBitSet.Builder in debugger
+      if (words == null) {
+        return "unknown (.build() already called)";
+      }
+      if (words.length == 0) {
+        return "{}";
+      }
+      return new ImmutableBitSet(words).toString();
+    }
+
     /** Builds an ImmutableBitSet from the contents of this Builder.
      *
      * <p>After calling this method, the Builder cannot be used again. */
