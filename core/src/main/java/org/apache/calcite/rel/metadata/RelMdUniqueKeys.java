@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
@@ -135,7 +134,7 @@ public class RelMdUniqueKeys
     Set<ImmutableBitSet> childUniqueKeySet =
         mq.getUniqueKeys(rel.getInput(), ignoreNulls);
 
-    if (childUniqueKeySet == null) {
+    if (childUniqueKeySet == null || childUniqueKeySet.isEmpty()) {
       return ImmutableSet.of();
     }
 
@@ -145,23 +144,31 @@ public class RelMdUniqueKeys
     ImmutableSet.Builder<ImmutableBitSet> resultBuilder = ImmutableSet.builder();
     // Now add to the projUniqueKeySet the child keys that are fully
     // projected.
+    appendChildUniqueKeys(resultBuilder, childUniqueKeySet, inColumnsUsed, mapInToOutPos);
+    return resultBuilder.build();
+  }
+
+  private void appendChildUniqueKeys(ImmutableSet.Builder<ImmutableBitSet> resultBuilder,
+      Set<ImmutableBitSet> childUniqueKeySet, ImmutableBitSet inColumnsUsed,
+      Map<Integer, ImmutableBitSet> mapInToOutPos) {
+    // Now add to the projUniqueKeySet the children keys that are fully
+    // projected.
     for (ImmutableBitSet colMask : childUniqueKeySet) {
-      ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
       if (!inColumnsUsed.contains(colMask)) {
         // colMask contains a column that is not projected as RexInput => the key is not unique
         continue;
       }
       // colMask is mapped to output project, however, the column can be mapped more than once:
       // select id, id, id, unique2, unique2
-      // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
+      // the resulting unique keys would be (6 items):
+      //   {{0},{3}}, {{0},{4}}, {{1},{3}}, {{1},{4}}, {{2},{3}}, {{2},{4}}
 
-      Iterable<List<ImmutableBitSet>> product = Linq4j.product(
-          Iterables.transform(colMask,
-              in -> Iterables.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
+      List<List<Integer>> product = Lists.cartesianProduct(
+          Lists.transform(colMask.toList(),
+              in -> mapInToOutPos.get(in).toList()));
 
-      resultBuilder.addAll(Iterables.transform(product, ImmutableBitSet::union));
+      resultBuilder.addAll(Iterables.transform(product, ImmutableBitSet::of));
     }
-    return resultBuilder.build();
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,

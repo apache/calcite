@@ -920,19 +920,49 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkGetUniqueKeys(tester, sql, expectedUniqueKeySet);
   }
 
+  /**
+   * Checks that only the provided set of columns return positive results for areColumnsUnique.
+   */
+  private void checkAreColumnsUnique(boolean ignoreNulls,
+      String sql, String fieldNames, Set<ImmutableBitSet> expectedUniqueKeySet) {
+    RelNode rel = convertSql(tester, sql);
+    assertEquals(fieldNames, rel.getRowType().getFieldNames().toString(),
+        () -> "getFieldNames() for sql: " + sql);
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
+    ImmutableSortedSet.Builder<ImmutableBitSet> actualBuilder =
+        ImmutableSortedSet.naturalOrder();
+    final ImmutableBitSet allCols =
+        ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
+    for (ImmutableBitSet key : allCols.powerSet()) {
+      if (SqlFunctions.isTrue(mq.areColumnsUnique(rel, key, ignoreNulls))) {
+        actualBuilder.add(key);
+      }
+    }
+    assertEquals(
+        ImmutableSortedSet.copyOf(expectedUniqueKeySet),
+        actualBuilder.build(),
+        () -> "areColumnsUnique, sql: " + sql + ", rel: " + RelOptUtil.toString(rel));
+  }
+
   /** Asserts that {@link RelMetadataQuery#getUniqueKeys(RelNode)}
    * and {@link RelMetadataQuery#areColumnsUnique(RelNode, ImmutableBitSet)}
    * return consistent results. */
   private void assertUniqueConsistent(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final Set<ImmutableBitSet> uniqueKeys = mq.getUniqueKeys(rel);
+    // Note: the number of uniqueKeys can be exponential, so
+    // we assume that areColumnsUnique has better information than getUniqueKeys
     final ImmutableBitSet allCols =
         ImmutableBitSet.range(0, rel.getRowType().getFieldCount());
     for (ImmutableBitSet key : allCols.powerSet()) {
-      Boolean result2 = mq.areColumnsUnique(rel, key);
-      assertEquals(isUnique(uniqueKeys, key), SqlFunctions.isTrue(result2),
-          () -> "areColumnsUnique. key: " + key + ", uniqueKeys: " + uniqueKeys
-              + ", rel: " + RelOptUtil.toString(rel));
+      if (isUnique(uniqueKeys, key)) {
+        Boolean areColumnsUnique = mq.areColumnsUnique(rel, key);
+        // When `key` is a part of a unique key, areColumnsUnique must be true
+        assertEquals(Boolean.TRUE, areColumnsUnique,
+            () -> "areColumnsUnique. key: " + key + ", uniqueKeys: " + uniqueKeys
+                + ", rel: " + RelOptUtil.toString(rel));
+      }
     }
   }
 
@@ -1082,19 +1112,15 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testColumnUniquenessForJoinWithConstantColumns() {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
     final String sql = ""
         + "select *\n"
         + "from (select distinct deptno, sal from emp) A\n"
         + "join (select distinct deptno, sal from emp) B\n"
         + "on A.deptno=B.deptno and A.sal=1000 and B.sal=1000";
-    final RelNode rel = convertSql(sql);
-    assertThat(rel.getRowType().getFieldNames().toString(),
-        is("[DEPTNO, SAL, DEPTNO0, SAL0]"));
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 2)), is(true));
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1, 2)), is(true));
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 2, 3)), is(true));
-    assertThat(mq.areColumnsUnique(rel, ImmutableBitSet.of(0, 1)), is(false));
+    checkAreColumnsUnique(false, sql,
+        "[DEPTNO, SAL, DEPTNO0, SAL0]",
+        ImmutableSet.of(
+            bitSetOf(0, 2), bitSetOf(0, 1, 2), bitSetOf(0, 1, 2, 3), bitSetOf(0, 2, 3)));
   }
 
   @Test public void testColumnUniquenessForAggregateWithConstantColumns() {
@@ -1211,7 +1237,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
   @Test public void calcMultipleColumnsAreUniqueCalc() {
     checkGetUniqueKeys("select empno, empno from emp",
-        ImmutableSet.of(bitSetOf(0), bitSetOf(1), bitSetOf(0, 1)),
+        ImmutableSet.of(bitSetOf(0), bitSetOf(1)),
         convertProjectAsCalc());
   }
 
@@ -1228,8 +1254,8 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + " from emp a1 join emp a2\n"
         + " on (a1.empno=a2.empno)",
         ImmutableSet.of(
-            bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 1, 2), bitSetOf(0, 2),
-            bitSetOf(1), bitSetOf(1, 2), bitSetOf(2)),
+            bitSetOf(0), bitSetOf(0, 1), bitSetOf(0, 2),
+            bitSetOf(1), bitSetOf(2)),
         convertProjectAsCalc());
   }
 
