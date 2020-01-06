@@ -19,11 +19,14 @@ package org.apache.calcite.adapter.geode.rel;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -172,6 +175,16 @@ public class GeodeRules {
 
     GeodeAggregateRule() {
       super(LogicalAggregate.class, "GeodeAggregateRule");
+    }
+
+    @Override public boolean matches(RelOptRuleCall call) {
+      Aggregate aggregateRel = call.rel(0);
+      for (AggregateCall agg : aggregateRel.getAggCallList()) {
+        if (agg.getAggregation().kind == SqlKind.SUM0) {
+          return false;
+        }
+      }
+      return super.matches(call);
     }
 
     @Override public RelNode convert(RelNode rel) {

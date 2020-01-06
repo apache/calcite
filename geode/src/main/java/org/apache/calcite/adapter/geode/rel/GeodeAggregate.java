@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
@@ -83,6 +84,13 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
   }
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    // Geode does not seem to support SUM0, and it supports AVG just fine,
+    // so mark SUM0 with infinite cost.
+    for (AggregateCall call : aggCalls) {
+      if (call.getAggregation().kind == SqlKind.SUM0) {
+        return planner.getCostFactory().makeInfiniteCost();
+      }
+    }
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 
