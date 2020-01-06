@@ -1622,6 +1622,12 @@ EXPR$0
 -0.8939966636005579
 !ok
 
+# SINH
+select sinh(1);
+EXPR$0
+1.1752011936438014
+!ok
+
 # SIGN
 select sign(23);
 EXPR$0

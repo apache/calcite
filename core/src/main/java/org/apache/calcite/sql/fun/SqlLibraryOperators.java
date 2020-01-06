@@ -358,6 +358,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction SINH =
+      new SqlFunction("SINH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =
       new SqlFunction("MD5",

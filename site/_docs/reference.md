@@ -2348,6 +2348,7 @@ semantics.
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
