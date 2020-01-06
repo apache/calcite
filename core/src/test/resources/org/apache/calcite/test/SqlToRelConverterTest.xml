@@ -6474,4 +6474,15 @@ LogicalProject(EMPNO=[$0], DEPTNO=[$1], DEPTNO0=[$3], NAME=[$4])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCoalesceOnNullableField">
+        <Resource name="sql">
+            <![CDATA[select coalesce(mgr, 0) from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[CASE(IS NOT NULL($3), CAST($3):INTEGER NOT NULL, 0)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>

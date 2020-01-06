@@ -18,6 +18,9 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -216,9 +219,7 @@ public class SqlCaseOperator extends SqlOperator {
       SqlOperatorBinding opBinding) {
     // REVIEW jvs 4-June-2005:  can't these be unified?
     if (!(opBinding instanceof SqlCallBinding)) {
-      return inferTypeFromOperands(
-          opBinding.getTypeFactory(),
-          opBinding.collectOperandTypes());
+      return inferTypeFromOperands(opBinding);
     }
     return inferTypeFromValidator((SqlCallBinding) opBinding);
   }
@@ -290,16 +291,29 @@ public class SqlCaseOperator extends SqlOperator {
     return ret;
   }
 
-  private RelDataType inferTypeFromOperands(
-      RelDataTypeFactory typeFactory,
-      List<RelDataType> argTypes) {
+  private RelDataType inferTypeFromOperands(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final List<RelDataType> argTypes = opBinding.collectOperandTypes();
     assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
         + argTypes.size();
     assert argTypes.size() > 1 : "CASE must have more than 1 argument. Given "
       + argTypes.size() + ", " + argTypes;
     List<RelDataType> thenTypes = new ArrayList<>();
     for (int j = 1; j < (argTypes.size() - 1); j += 2) {
-      thenTypes.add(argTypes.get(j));
+      RelDataType argType = argTypes.get(j);
+      if (opBinding instanceof RexCallBinding) {
+        final RexCallBinding rexCallBinding = (RexCallBinding) opBinding;
+        final RexNode whenNode = rexCallBinding.operands().get(j - 1);
+        final RexNode thenNode = rexCallBinding.operands().get(j);
+        if (whenNode.getKind() == SqlKind.IS_NOT_NULL && argType.isNullable()) {
+          // Type is not nullable if the kind is IS NOT NULL.
+          final RexCall isNotNullCall = (RexCall) whenNode;
+          if (isNotNullCall.getOperands().get(0).equals(thenNode)) {
+            argType = typeFactory.createTypeWithNullability(argType, false);
+          }
+        }
+      }
+      thenTypes.add(argType);
     }
 
     thenTypes.add(Iterables.getLast(argTypes));

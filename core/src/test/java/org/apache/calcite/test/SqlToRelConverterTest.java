@@ -3645,6 +3645,11 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testCoalesceOnNullableField() {
+    final String sql = "select coalesce(mgr, 0) from emp";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *

@@ -3270,6 +3270,21 @@ public class JdbcTest {
             "deptno=20; C=1; S=8000.0");
   }
 
+  @Test public void testCaseWhenOnNullableField() {
+    CalciteAssert.hr()
+        .query("select case when \"commission\" is not null "
+            + "then \"commission\" else 100 end\n"
+            + "from \"hr\".\"emps\"\n")
+        .explainContains("PLAN=EnumerableCalc(expr#0..4=[{inputs}],"
+            + " expr#5=[IS NOT NULL($t4)], expr#6=[CAST($t4):INTEGER NOT NULL],"
+            + " expr#7=[100], expr#8=[CASE($t5, $t6, $t7)], EXPR$0=[$t8])\n"
+            + "  EnumerableTableScan(table=[[hr, emps]])")
+        .returns("EXPR$0=1000\n"
+            + "EXPR$0=500\n"
+            + "EXPR$0=100\n"
+            + "EXPR$0=250\n");
+  }
+
   @Test public void testSelectDistinct() {
     CalciteAssert.hr()
         .query("select distinct \"deptno\"\n"
