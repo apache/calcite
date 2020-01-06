@@ -924,7 +924,11 @@ public class RelToSqlConverter extends SqlImplementor
     final String lowerName = name.toLowerCase(Locale.ROOT);
     if (lowerName.startsWith("expr$")) {
       // Put it in ordinalMap
-      ordinalMap.put(lowerName, node);
+      if (stack.size() != 1) {
+        node = as(node, name);
+      } else {
+        ordinalMap.put(lowerName, node);
+      }
     } else if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }
