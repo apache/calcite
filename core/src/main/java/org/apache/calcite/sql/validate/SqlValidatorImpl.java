@@ -526,14 +526,34 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
   }
 
-  private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
-      SqlNode selectItem, SelectScope scope) {
-    if (!(selectItem instanceof SqlIdentifier)) {
-      return selectItem;
+  /** Returns the set of field names in the join condition specified by USING
+   * or implicitly by NATURAL, de-duplicated and in order. */
+  public List<String> usingNames(SqlJoin join) {
+    switch (join.getConditionType()) {
+    case USING:
+      final ImmutableList.Builder<String> list = ImmutableList.builder();
+      final Set<String> names = catalogReader.nameMatcher().createSet();
+      for (SqlNode node : (SqlNodeList) join.getCondition()) {
+        final String name = ((SqlIdentifier) node).getSimple();
+        if (names.add(name)) {
+          list.add(name);
+        }
+      }
+      return list.build();
+    case NONE:
+      if (join.isNatural()) {
+        final RelDataType t0 = getValidatedNodeType(join.getLeft());
+        final RelDataType t1 = getValidatedNodeType(join.getRight());
+        return SqlValidatorUtil.deriveNaturalJoinColumnList(
+            catalogReader.nameMatcher(), t0, t1);
+      }
     }
+    return null;
+  }
 
-    final SqlIdentifier identifier = (SqlIdentifier) selectItem;
-    if (!identifier.isSimple()) {
+  private static SqlNode expandCommonColumn(SqlSelect sqlSelect,
+      SqlNode selectItem, SelectScope scope, SqlValidatorImpl validator) {
+    if (!(selectItem instanceof SqlIdentifier)) {
       return selectItem;
     }
 
@@ -542,7 +562,43 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       return selectItem;
     }
 
+    final SqlIdentifier identifier = (SqlIdentifier) selectItem;
+    final SqlConformance conformance = validator.getConformance();
+    if (!identifier.isSimple()) {
+      if (!conformance.allowQualifyingCommonColumn()) {
+        validateQualifiedCommonColumn((SqlJoin) from, identifier, scope, validator);
+      }
+      return selectItem;
+    }
+
     return expandExprFromJoin((SqlJoin) from, identifier, scope);
+  }
+
+  private static void validateQualifiedCommonColumn(SqlJoin join,
+      SqlIdentifier identifier, SelectScope scope, SqlValidatorImpl validator) {
+    List<String> names = validator.usingNames(join);
+    if (names == null) {
+      // Not USING or NATURAL.
+      return;
+    }
+
+    // First we should make sure that the first component is the table name.
+    // Then check whether the qualified identifier contains common column.
+    for (ScopeChild child : scope.children) {
+      if (child.name.equals(identifier.getComponent(0).toString())) {
+        if (names.indexOf(identifier.getComponent(1).toString()) >= 0) {
+          throw validator.newValidationError(identifier,
+              RESOURCE.disallowsQualifyingCommonColumn(identifier.toString()));
+        }
+      }
+    }
+
+    // Only need to try to validate the expr from the left input of join
+    // since it is always left-deep join.
+    final SqlNode node = join.getLeft();
+    if (node instanceof SqlJoin) {
+      validateQualifiedCommonColumn((SqlJoin) node, identifier, scope, validator);
+    }
   }
 
   private boolean expandStar(List<SqlNode> selectItems, Set<String> aliases,
@@ -6088,7 +6144,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     @Override public SqlNode visit(SqlIdentifier id) {
-      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope());
+      final SqlNode node = expandCommonColumn(select, id, (SelectScope) getScope(), validator);
       if (node != id) {
         return node;
       } else {
@@ -6151,7 +6207,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
       if (id.isSimple()) {
         final SelectScope scope = validator.getRawSelectScope(select);
-        SqlNode node = expandCommonColumn(select, id, scope);
+        SqlNode node = expandCommonColumn(select, id, scope, validator);
         if (node != id) {
           return node;
         }
@@ -6578,31 +6634,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
     private RelDataTypeField field(String name) {
       return catalogReader.nameMatcher().field(rowType, name);
-    }
-
-    /** Returns the set of field names in the join condition specified by USING
-     * or implicitly by NATURAL, de-duplicated and in order. */
-    private List<String> usingNames(SqlJoin join) {
-      switch (join.getConditionType()) {
-      case USING:
-        final ImmutableList.Builder<String> list = ImmutableList.builder();
-        final Set<String> names = catalogReader.nameMatcher().createSet();
-        for (SqlNode node : (SqlNodeList) join.getCondition()) {
-          final String name = ((SqlIdentifier) node).getSimple();
-          if (names.add(name)) {
-            list.add(name);
-          }
-        }
-        return list.build();
-      case NONE:
-        if (join.isNatural()) {
-          final RelDataType t0 = getValidatedNodeType(join.getLeft());
-          final RelDataType t1 = getValidatedNodeType(join.getRight());
-          return SqlValidatorUtil.deriveNaturalJoinColumnList(
-              catalogReader.nameMatcher(), t0, t1);
-        }
-      }
-      return null;
     }
 
     /** Moves fields according to the permutation. */
