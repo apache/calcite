@@ -101,13 +101,13 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
       final RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
 
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     if (Double.isInfinite(leftRowCount) || Double.isInfinite(rightRowCount)) {
       return planner.getCostFactory().makeInfiniteCost();
     }
 
-    double restartCount = mq.getRowCount(getLeft()) / variablesSet.size();
+    double restartCount = leftRowCount / variablesSet.size();
 
     RelOptCost rightCost = planner.getCost(getRight(), mq);
     RelOptCost rescanCost =

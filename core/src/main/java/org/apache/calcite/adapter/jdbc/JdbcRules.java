@@ -415,8 +415,8 @@ public class JdbcRules {
     }
 
     @Override public double estimateRowCount(RelMetadataQuery mq) {
-      final double leftRowCount = left.estimateRowCount(mq);
-      final double rightRowCount = right.estimateRowCount(mq);
+      final double rightRowCount = mq.getRowCount(right);
+      final double leftRowCount = mq.getRowCount(left);
       return Math.max(leftRowCount, rightRowCount);
     }
 

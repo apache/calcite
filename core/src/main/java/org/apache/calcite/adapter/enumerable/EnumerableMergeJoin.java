@@ -118,8 +118,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     // select * from emp join dept on (emp.id*0 = dept.id*0)
     // In practice, mergeJoin would have to perform cartesian join even though it would return 0
     // rows or so.
-    final double rightRowCount = right.estimateRowCount(mq);
-    final double leftRowCount = left.estimateRowCount(mq);
+    final double rightRowCount = mq.getRowCount(right);
+    final double leftRowCount = mq.getRowCount(left);
     final double rowCount = mq.getRowCount(this);
     double cpu = (leftRowCount + rightRowCount) * OPERATOR_COST
         * (0.5 + joinInfo.leftKeys.size()) * 2;
