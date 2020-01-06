@@ -1386,13 +1386,13 @@ public class SqlFunctions {
 
   // CBRT
   /** SQL <code>CBRT</code> operator applied to BigDecimal values. */
-  public static double cbrt(BigDecimal b0) {
-    return Math.cbrt(b0.doubleValue());
+  public static double cbrt(BigDecimal b) {
+    return cbrt(b.doubleValue());
   }
 
   /** SQL <code>CBRT</code> operator applied to double values. */
-  public static double cbrt(double b0) {
-    return Math.cbrt(b0);
+  public static double cbrt(double b) {
+    return Math.cbrt(b);
   }
 
   // COS
