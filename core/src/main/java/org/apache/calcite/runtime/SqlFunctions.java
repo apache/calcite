@@ -1569,6 +1569,17 @@ public class SqlFunctions {
     return Math.sin(b0);
   }
 
+  // SINH
+  /** SQL <code>SINH</code> operator applied to BigDecimal values. */
+  public static double sinh(BigDecimal b) {
+    return sinh(b.doubleValue());
+  }
+
+  /** SQL <code>SINH</code> operator applied to double values. */
+  public static double sinh(double b) {
+    return Math.sinh(b);
+  }
+
   // TAN
   /** SQL <code>TAN</code> operator applied to BigDecimal values. */
   public static double tan(BigDecimal b0) {

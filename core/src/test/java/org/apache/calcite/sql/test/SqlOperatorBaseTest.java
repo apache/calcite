@@ -5983,6 +5983,31 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("sin(cast(null as double))");
   }
 
+  @Test public void testSinhFunc() {
+    SqlTester tester = tester(SqlLibrary.ORACLE);
+    tester.checkType("sinh(1)", "DOUBLE NOT NULL");
+    tester.checkType("sinh(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "sinh(case when false then 1 else null end)", "DOUBLE");
+    strictTester.checkFails(
+        "^sinh('abc')^",
+        "No match found for function signature SINH\\(<CHARACTER>\\)",
+        false);
+    tester.checkType("sinh('abc')", "DOUBLE NOT NULL");
+    tester.checkScalarApprox(
+        "sinh(1)",
+        "DOUBLE NOT NULL",
+        1.1752d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "sinh(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.1752d,
+        0.0001d);
+    tester.checkNull("sinh(cast(null as integer))");
+    tester.checkNull("sinh(cast(null as double))");
+  }
+
   @Test public void testTanFunc() {
     tester.setFor(
         SqlStdOperatorTable.TAN);

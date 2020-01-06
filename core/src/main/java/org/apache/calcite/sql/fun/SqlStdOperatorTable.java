@@ -1728,7 +1728,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
-
   public static final SqlFunction TAN =
       new SqlFunction(
           "TAN",
