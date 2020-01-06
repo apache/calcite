@@ -2234,10 +2234,9 @@ public class MaterializationTest {
         "select \"empid\" \"deptno\" from \"emps\"\n"
             + "join \"depts\" using (\"deptno\") where \"empid\" = 1",
         HR_FKUK_MODEL,
-        CalciteAssert.checkResultContains(
-            "EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):INTEGER NOT NULL], expr#2=[1], "
-                + "expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
-                + "  EnumerableTableScan(table=[[hr, m0]])"));
+        CalciteAssert.checkResultContains(""
+            + "EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[CAST($t0):INTEGER NOT NULL], expr#3=[=($t1, $t2)], deptno=[$t0], $condition=[$t3])\n"
+            + "  EnumerableTableScan(table=[[hr, m0]])"));
   }
 
   @Test public void testJoinMaterialization5() {
