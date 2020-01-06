@@ -565,6 +565,7 @@ public class MaterializationTest {
 
   /** As {@link #testFilterQueryOnFilterView7()} but columns in materialized
    * view are a permutation of columns in the query. */
+  @Disabled("The cost of scanning materialized view is exactly the same as the cost of table scan")
   @Test public void testFilterQueryOnFilterView14() {
     String q = "select * from \"emps\" where (\"salary\" > 1000 "
         + "or (\"deptno\" >= 30 and \"salary\" <= 500))";
