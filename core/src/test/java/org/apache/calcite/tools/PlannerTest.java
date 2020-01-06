@@ -1428,7 +1428,7 @@ public class PlannerTest {
             + "  EnumerableUnion(all=[true])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n"
             + "    EnumerableTableScan(table=[[scott, EMP]])\n"
-            + "  EnumerableFilter(condition=[=($0, $cor0.DEPTNO)])\n"
+            + "  EnumerableFilter(condition=[=($cor0.DEPTNO, $0)])\n"
             + "    EnumerableUnion(all=[true])\n"
             + "      EnumerableTableScan(table=[[scott, EMP]])\n"
             + "      EnumerableTableScan(table=[[scott, EMP]])\n"));
