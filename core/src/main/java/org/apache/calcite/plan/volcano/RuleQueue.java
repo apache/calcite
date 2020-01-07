@@ -20,6 +20,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.ChunkList;
 import org.apache.calcite.util.Util;
@@ -632,11 +633,25 @@ class RuleQueue {
       implements Comparator<VolcanoRuleMatch> {
     public int compare(VolcanoRuleMatch match1,
         VolcanoRuleMatch match2) {
+      boolean firstIsConverter = match1.rule instanceof ConverterRule ||
+          match1.rule instanceof AbstractConverter.ExpandConversionRule;
+      boolean secondIsConverter = match2.rule instanceof ConverterRule ||
+          match2.rule instanceof AbstractConverter.ExpandConversionRule;
+
+      if (firstIsConverter != secondIsConverter) {
+        // Converters (physical implementation rules) always have priority over the logical rules.
+        return firstIsConverter ? -1 : 1;
+      }
+
       double imp1 = match1.getImportance();
       double imp2 = match2.getImportance();
       int c = Double.compare(imp1, imp2);
       if (c != 0) {
-        return -c;
+        // Here both rules are either converters or not.
+        // Generally parent nodes have higher priority than children ones, so let's use this fact
+        // for the proper rules sorting: converters should be sorted in a bottom-up fashion,
+        // logical rules in a top-down fashion.
+        return firstIsConverter ? c : -c;
       }
       c = match1.rule.getClass().getName()
           .compareTo(match2.rule.getClass().getName());

@@ -637,6 +637,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
 
       ruleQueue.phaseCompleted(phase);
+
+      if (tick > 1) // skip empty phases.
+        System.out.println("ticks=" + tick);
     }
     if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
