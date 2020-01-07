@@ -368,7 +368,10 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     double rowCount = mq.getRowCount(this);
     double inputRows = mq.getRowCount(getInput());
     // Aggregates with more aggregate functions cost a bit more
-    float multiplier = 1f + (float) aggCalls.size();
+    // Each column in groupCount adds cost to calculate hash
+    // Each column in aggCall adds cost to update aggregate value
+    // The costs here are similar to the costs of EnumerableHashJoin
+    float multiplier = 0.5f + (float) aggCalls.size() * 2 + getGroupCount();
     for (AggregateCall aggCall : aggCalls) {
       if (aggCall.getAggregation().getName().equals("SUM")) {
         // Pretend that SUM costs a little bit more than $SUM0,
@@ -377,6 +380,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       }
     }
     double aggregateCost = inputRows * multiplier;
+    // This accounts for storing the output result
     double projectCost = rowCount * (4 + getRowType().getFieldCount() * 0.01);
     return planner.getCostFactory().makeCost(rowCount, aggregateCost + projectCost, 0);
   }
