@@ -183,4 +183,7 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
     return localTime;
   }
 
+  public TimeZone getTimeZone() {
+    return timeZone;
+  }
 }

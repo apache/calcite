@@ -36,6 +36,8 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimeWithTimeZone;
+import org.apache.calcite.util.TimestampWithTimeZone;
 import org.apache.calcite.util.Util;
 
 import java.lang.reflect.Field;
@@ -192,6 +194,10 @@ public class JavaTypeFactoryImpl
       case INTERVAL_MINUTE_SECOND:
       case INTERVAL_SECOND:
         return type.isNullable() ? Long.class : long.class;
+      case TIME_WITH_TIME_ZONE:
+        return TimeWithTimeZone.class;
+      case TIMESTAMP_WITH_TIME_ZONE:
+        return TimestampWithTimeZone.class;
       case SMALLINT:
         return type.isNullable() ? Short.class : short.class;
       case TINYINT:

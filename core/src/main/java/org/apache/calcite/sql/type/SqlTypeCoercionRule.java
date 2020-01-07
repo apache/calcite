@@ -209,6 +209,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
         coerceRules.copyValues(SqlTypeName.DATE)
             .add(SqlTypeName.TIMESTAMP)
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
             .addAll(SqlTypeName.BINARY_TYPES)
@@ -218,8 +219,10 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
     coerceRules.add(SqlTypeName.TIME,
         coerceRules.copyValues(SqlTypeName.TIME)
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIME_WITH_TIME_ZONE)
             .add(SqlTypeName.TIMESTAMP)
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
             .addAll(SqlTypeName.BINARY_TYPES)
@@ -236,13 +239,25 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .addAll(SqlTypeName.BINARY_TYPES)
             .build());
 
+    // TIME WITH TIME ZONE is castable from...
+    coerceRules.add(SqlTypeName.TIME_WITH_TIME_ZONE,
+        coerceRules.copyValues(SqlTypeName.TIME_WITH_TIME_ZONE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
+            .build());
+
     // TIMESTAMP is castable from...
     coerceRules.add(SqlTypeName.TIMESTAMP,
         coerceRules.copyValues(SqlTypeName.TIMESTAMP)
             .add(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE)
             .add(SqlTypeName.DATE)
             .add(SqlTypeName.TIME)
             .add(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE)
+            .add(SqlTypeName.TIME_WITH_TIME_ZONE)
             .add(SqlTypeName.CHAR)
             .add(SqlTypeName.VARCHAR)
             .addAll(SqlTypeName.BINARY_TYPES)
@@ -260,6 +275,17 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
             .add(SqlTypeName.VARCHAR)
             .addAll(SqlTypeName.BINARY_TYPES)
             .addAll(SqlTypeName.NUMERIC_TYPES)
+            .build());
+
+    // TIMESTAMP WITH TIME ZONE is castable from...
+    coerceRules.add(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE,
+        coerceRules.copyValues(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE)
+            .add(SqlTypeName.TIMESTAMP)
+            .add(SqlTypeName.DATE)
+            .add(SqlTypeName.TIME)
+            .add(SqlTypeName.TIME_WITH_TIME_ZONE)
+            .add(SqlTypeName.CHAR)
+            .add(SqlTypeName.VARCHAR)
             .build());
 
     INSTANCE = new SqlTypeCoercionRule(coerceRules.map);

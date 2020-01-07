@@ -47,6 +47,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.TimeString;
+import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
 import org.apache.calcite.util.Util;
@@ -65,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -2220,15 +2222,27 @@ public class RexProgramTest extends RexProgramBuilderBase {
     final RexLiteral literalTimeLTZ =
         rexBuilder.makeTimeWithLocalTimeZoneLiteral(
             new TimeString(1, 23, 45), 0);
+    final RexLiteral timeChar = rexBuilder.makeLiteral("12:34:45");
     final RexLiteral timeLTZChar1 = rexBuilder.makeLiteral("12:34:45 America/Los_Angeles");
     final RexLiteral timeLTZChar2 = rexBuilder.makeLiteral("12:34:45 UTC");
     final RexLiteral timeLTZChar3 = rexBuilder.makeLiteral("12:34:45 GMT+01");
+    final RexLiteral timestampChar = rexBuilder.makeLiteral("2011-07-20 12:34:56");
     final RexLiteral timestampLTZChar1 = rexBuilder.makeLiteral("2011-07-20 12:34:56 Asia/Tokyo");
     final RexLiteral timestampLTZChar2 = rexBuilder.makeLiteral("2011-07-20 12:34:56 GMT+01");
     final RexLiteral timestampLTZChar3 = rexBuilder.makeLiteral("2011-07-20 12:34:56 UTC");
     final RexLiteral literalTimestampLTZ =
         rexBuilder.makeTimestampWithLocalTimeZoneLiteral(
             new TimestampString(2011, 7, 20, 8, 23, 45), 0);
+    final RexLiteral literalTimeWithTZ =
+        rexBuilder.makeTimeWithTimeZoneLiteral(
+            new TimeWithTimeZoneString(
+                new TimeString(1, 23, 45),
+                TimeZone.getTimeZone("Asia/Shanghai")), 0);
+    final RexLiteral literalTimestampWithTZ =
+        rexBuilder.makeTimestampWithTimeZoneLiteral(
+            new TimestampWithTimeZoneString(
+                new TimestampString(2017, 7, 20, 8, 23, 45),
+              TimeZone.getTimeZone("Asia/Shanghai")), 0);
 
     final RelDataType dateType =
         typeFactory.createSqlType(SqlTypeName.DATE);
@@ -2240,6 +2254,10 @@ public class RexProgramTest extends RexProgramBuilderBase {
         typeFactory.createSqlType(SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
     final RelDataType timestampLTZType =
         typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+    final RelDataType timeWithTZType =
+        typeFactory.createSqlType(SqlTypeName.TIME_WITH_TIME_ZONE);
+    final RelDataType timestampWithTZType =
+        typeFactory.createSqlType(SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
     final RelDataType varCharType =
         typeFactory.createSqlType(SqlTypeName.VARCHAR, 40);
 
@@ -2285,6 +2303,53 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "2011-07-19 18:23:45");
     checkSimplify(cast(literalTimeLTZ, timestampLTZType),
         "2011-07-20 01:23:45:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)");
+
+    // to time with time zone
+    checkSimplify(cast(timeChar, timeWithTZType),
+        "12:34:45 America/Los_Angeles:TIME_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timeLTZChar1, timeWithTZType),
+        "12:34:45 America/Los_Angeles:TIME_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timeLTZChar2, timeWithTZType),
+        "12:34:45 UTC:TIME_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timeLTZChar3, timeWithTZType),
+        "12:34:45 GMT+01:00:TIME_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(literalTime, timeWithTZType),
+        "12:34:56 America/Los_Angeles:TIME_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(literalTimestamp, timeWithTZType),
+        "12:34:56 America/Los_Angeles:TIME_WITH_TIME_ZONE(0)");
+    checkSimplifyUnchanged(cast(literalTimeWithTZ, timeWithTZType));
+    checkSimplify(cast(literalTimestampWithTZ, timeWithTZType),
+        "08:23:45 Asia/Shanghai:TIME_WITH_TIME_ZONE(0)");
+
+    // to timestamp with time zone
+    checkSimplify(cast(timestampChar, timestampWithTZType),
+        "2011-07-20 12:34:56 America/Los_Angeles:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timestampLTZChar1, timestampWithTZType),
+        "2011-07-20 12:34:56 Asia/Tokyo:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timestampLTZChar2, timestampWithTZType),
+        "2011-07-20 12:34:56 GMT+01:00:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(timestampLTZChar3, timestampWithTZType),
+        "2011-07-20 12:34:56 UTC:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(literalDate, timestampWithTZType),
+        "2011-07-20 00:00:00 America/Los_Angeles:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(literalTime, timestampWithTZType),
+        "2011-07-20 12:34:56 America/Los_Angeles:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplify(cast(literalTimeWithTZ, timestampWithTZType),
+        "2011-07-20 01:23:45 Asia/Shanghai:TIMESTAMP_WITH_TIME_ZONE(0)");
+    checkSimplifyUnchanged(cast(literalTimestampWithTZ, timestampWithTZType));
+
+    // from time with time zone
+    checkSimplify(cast(literalTimeWithTZ, varCharType),
+        "'01:23:45 Asia/Shanghai':VARCHAR(40)");
+    checkSimplify(cast(literalTimeWithTZ, timeType), "01:23:45");
+    checkSimplify(cast(literalTimeWithTZ, timestampType), "2011-07-20 01:23:45");
+
+    // from timestamp with time zone
+    checkSimplify(cast(literalTimestampWithTZ, varCharType),
+        "'2017-07-20 08:23:45 Asia/Shanghai':VARCHAR(40)");
+    checkSimplify(cast(literalTimestampWithTZ, dateType), "2017-07-20");
+    checkSimplify(cast(literalTimestampWithTZ, timeType), "08:23:45");
+    checkSimplify(cast(literalTimestampWithTZ, timestampType), "2017-07-20 08:23:45");
   }
 
   @Test public void testRemovalOfNullabilityWideningCast() {

@@ -98,10 +98,12 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return 15;
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_WITH_TIME_ZONE:
     case DATE:
       return 0; // SQL99 part 2 section 6.1 syntax rule 30
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
       // farrago supports only 0 (see
       // SqlTypeName.getDefaultPrecision), but it should be 6
       // (microseconds) per SQL99 part 2 section 6.1 syntax rule 30.
@@ -123,8 +125,10 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return 65536;
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
+    case TIME_WITH_TIME_ZONE:
     case TIMESTAMP:
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+    case TIMESTAMP_WITH_TIME_ZONE:
       return SqlTypeName.MAX_DATETIME_PRECISION;
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -165,6 +169,8 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return isPrefix ? "TIMESTAMP '" : "'";
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       return isPrefix ? "TIMESTAMP WITH LOCAL TIME ZONE '" : "'";
+    case TIMESTAMP_WITH_TIME_ZONE:
+      return isPrefix ? "TIMESTAMP WITH TIME ZONE '" : "'";
     case INTERVAL_DAY:
     case INTERVAL_DAY_HOUR:
     case INTERVAL_DAY_MINUTE:
@@ -184,6 +190,8 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
       return isPrefix ? "TIME '" : "'";
     case TIME_WITH_LOCAL_TIME_ZONE:
       return isPrefix ? "TIME WITH LOCAL TIME ZONE '" : "'";
+    case TIME_WITH_TIME_ZONE:
+      return isPrefix ? "TIME WITH TIME ZONE '" : ";";
     case DATE:
       return isPrefix ? "DATE '" : "'";
     case ARRAY:

@@ -139,9 +139,15 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     case DATE:
       return ImmutableList.of(SqlTypeName.DATE);
     case TIME:
-      return ImmutableList.of(SqlTypeName.TIME, SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+      return ImmutableList.of(
+        SqlTypeName.TIME,
+        SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE,
+        SqlTypeName.TIME_WITH_TIME_ZONE);
     case TIMESTAMP:
-      return ImmutableList.of(SqlTypeName.TIMESTAMP, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+      return ImmutableList.of(
+        SqlTypeName.TIMESTAMP,
+        SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+        SqlTypeName.TIMESTAMP_WITH_TIME_ZONE);
     case BOOLEAN:
       return SqlTypeName.BOOLEAN_TYPES;
     case INTERVAL_YEAR_MONTH:
