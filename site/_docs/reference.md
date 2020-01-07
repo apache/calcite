@@ -248,10 +248,15 @@ hint:
 
 hintOptions:
       hintKVOption [, hintKVOption]*
-  |   optionName, [, optionName]*
+  |   optionName [, optionName]*
+  |   optionValue [, optionValue]*
 
 hintKVOption:
       optionName '=' stringLiteral
+
+optionValue:
+      stringLiteral
+  |   numericLiteral
 
 values:
       VALUES expression [, expression ]*
@@ -1460,7 +1465,7 @@ i: implicit cast / e: explicit cast / x: not allowed
 
 ##### Conversion Contexts and Strategies
 
-* Set operation (`UNION`, `EXCEPT`, `INTERSECT`): Compare every branch
+* Set operation (`UNION`, `EXCEPT`, `INTERSECT`): compare every branch
   row data type and find the common type of each fields pair;
 * Binary arithmetic expression (`+`, `-`, `&`, `^`, `/`, `%`): promote
   string operand to data type of the other numeric operand;
@@ -1473,12 +1478,24 @@ i: implicit cast / e: explicit cast / x: not allowed
 * `IN` expression list: compare every expression to find the common type;
 * `CASE WHEN` expression or `COALESCE`: find the common wider type of the `THEN`
   and `ELSE` operands;
-* Character + `INTERVAL` or character - `INTERVAL`: Promote character to
+* Character + `INTERVAL` or character - `INTERVAL`: promote character to
   `TIMESTAMP`;
-* Built-in function: Look up the type families registered in the checker,
+* Built-in function: look up the type families registered in the checker,
   find the family default type if checker rules allow it;
-* User-defined function (UDF): Coerce based on the declared argument types
-  of the `eval()` method.
+* User-defined function (UDF): coerce based on the declared argument types
+  of the `eval()` method;
+* `INSERT` and `UPDATE`: coerce a source field to counterpart target table
+  field's type if the two fields differ with type name or precision(scale).
+
+Note:
+
+Implicit type coercion of following cases are ignored:
+
+* One of the type is `ANY`;
+* Type coercion within `CHARACTER` types are always ignored,
+  i.e. from `CHAR(20)` to `VARCHAR(30)`;
+* Type coercion from a numeric to another with higher precedence is ignored,
+  i.e. from `INT` to `LONG`.
 
 ##### Strategies for Finding Common Type
 
