@@ -90,7 +90,6 @@ import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 
 import static org.apache.calcite.test.Matchers.isLinux;
-import static org.apache.calcite.util.BitString.createFromBitString;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -334,13 +333,27 @@ public class UtilTest {
     assertReversible("01");
     assertReversible("001010");
     assertReversible("000000000100");
+
+    // from bytes
+    final byte[] b255 = {(byte) 0xFF};
+    assertThat(BitString.createFromBytes(b255).toString(),
+        is("11111111"));
+    final byte[] b11 = {(byte) 0x0B};
+    assertThat(BitString.createFromBytes(b11).toString(),
+        is("00001011"));
+    final byte[] b011 = {(byte) 0x00, 0x0B};
+    assertThat(BitString.createFromBytes(b011).toString(),
+        is("0000000000001011"));
   }
 
   private static void assertReversible(String s) {
-    assertEquals(createFromBitString(s).toBitString(), s, s);
-    assertEquals(
-        s,
-        BitString.createFromHexString(s).toHexString());
+    final BitString bitString = BitString.createFromBitString(s);
+    assertThat(bitString.toBitString(), is(s));
+    assertThat(BitString.createFromHexString(s).toHexString(), is(s));
+
+    final BitString bitString8 =
+        BitString.createFromBytes(bitString.getAsByteArray());
+    assertThat(bitString8.getAsByteArray(), is(bitString.getAsByteArray()));
   }
 
   private void assertByteArray(
