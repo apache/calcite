@@ -470,7 +470,7 @@ public class SqlToRelConverter {
       boolean restructure) {
     RelStructuredTypeFlattener typeFlattener =
         new RelStructuredTypeFlattener(relBuilder,
-            rexBuilder, createToRelContext(), restructure);
+            rexBuilder, createToRelContext(ImmutableList.of()), restructure);
     return typeFlattener.rewrite(rootRel);
   }
 
@@ -2439,7 +2439,7 @@ public class SqlToRelConverter {
       final RelDataType rowType = table.getRowType(typeFactory);
       RelOptTable relOptTable = RelOptTableImpl.create(null, rowType, table,
           udf.getNameAsId().names);
-      RelNode converted = toRel(relOptTable, null);
+      RelNode converted = toRel(relOptTable, ImmutableList.of());
       bb.setRoot(converted, true);
       return;
     }
@@ -3377,13 +3377,13 @@ public class SqlToRelConverter {
         .build();
   }
 
-  private RelOptTable.ToRelContext createToRelContext() {
-    return ViewExpanders.toRelContext(viewExpander, cluster);
+  private RelOptTable.ToRelContext createToRelContext(List<RelHint> hints) {
+    return ViewExpanders.toRelContext(viewExpander, cluster, hints);
   }
 
-  public RelNode toRel(final RelOptTable table, final List<RelHint> hints) {
-    final RelNode rel = table.toRel(createToRelContext());
-    final RelNode scan = rel instanceof Hintable && hints != null && hints.size() > 0
+  public RelNode toRel(final RelOptTable table, @Nonnull final List<RelHint> hints) {
+    final RelNode rel = table.toRel(createToRelContext(hints));
+    final RelNode scan = rel instanceof Hintable && hints.size() > 0
         ? SqlUtil.attachRelHint(hintStrategies, hints, (Hintable) rel)
         : rel;
 
