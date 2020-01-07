@@ -5263,6 +5263,57 @@ public abstract class SqlOperatorBaseTest {
         "VARCHAR(2000)");
   }
 
+  @Test public void testExistsNode() {
+    SqlTester sqlTester = tester(SqlLibrary.ORACLE);
+
+    sqlTester.checkFails("EXISTSNODE('', '<','a')",
+        "Invalid input for EXISTSNODE xpath: '.*", true);
+    sqlTester.checkFails("EXISTSNODE('', '<')",
+        "Invalid input for EXISTSNODE xpath: '.*", true);
+    sqlTester.checkNull("EXISTSNODE('', NULL)");
+    sqlTester.checkNull("EXISTSNODE(NULL,'')");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar"
+            + "</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "1",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Authors><Author>Foo</Author><Author>Bar"
+            + "</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title/Books')",
+        "0",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE('<Article><Title>Article1</Title><Title>Article2</Title><Authors><Author>Foo"
+            + "</Author><Author>Bar</Author></Authors><Body>article text"
+            + ".</Body></Article>', '/Article/Title')",
+        "1",
+        "INTEGER");
+
+    sqlTester.checkString(
+        "EXISTSNODE(\n"
+            + "'<books xmlns=\"http://www.contoso"
+            + ".com/books\"><book><title>Title</title><author>Author Name</author><price>5"
+            + ".50</price></book></books>'"
+            + ", '/books:books/books:book', 'books=\"http://www.contoso.com/books\"'"
+            + ")",
+        "1",
+        "INTEGER");
+    sqlTester.checkString(
+        "EXISTSNODE(\n"
+            + "'<books xmlns=\"http://www.contoso"
+            + ".com/books\"><book><title>Title</title><author>Author Name</author><price>5"
+            + ".50</price></book></books>'"
+            + ", '/books:books/books:book/books:title2', 'books=\"http://www.contoso.com/books\"'"
+            + ")",
+        "0",
+        "INTEGER");
+  }
+
   @Test public void testLowerFunc() {
     tester.setFor(SqlStdOperatorTable.LOWER);
 
