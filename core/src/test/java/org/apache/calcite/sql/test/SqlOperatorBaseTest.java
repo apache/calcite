@@ -5745,6 +5745,31 @@ public abstract class SqlOperatorBaseTest {
     tester.checkNull("cos(cast(null as double))");
   }
 
+  @Test public void testCoshFunc() {
+    SqlTester tester = tester(SqlLibrary.ORACLE);
+    tester.checkType("cosh(1)", "DOUBLE NOT NULL");
+    tester.checkType("cosh(cast(1 as float))", "DOUBLE NOT NULL");
+    tester.checkType(
+        "cosh(case when false then 1 else null end)", "DOUBLE");
+    strictTester.checkFails(
+        "^cosh('abc')^",
+        "No match found for function signature COSH\\(<CHARACTER>\\)",
+        false);
+    tester.checkType("cosh('abc')", "DOUBLE NOT NULL");
+    tester.checkScalarApprox(
+        "cosh(1)",
+        "DOUBLE NOT NULL",
+        1.5430d,
+        0.0001d);
+    tester.checkScalarApprox(
+        "cosh(cast(1 as decimal(1, 0)))",
+        "DOUBLE NOT NULL",
+        1.5430d,
+        0.0001d);
+    tester.checkNull("cosh(cast(null as integer))");
+    tester.checkNull("cosh(cast(null as double))");
+  }
+
   @Test public void testCotFunc() {
     tester.setFor(
         SqlStdOperatorTable.COT);

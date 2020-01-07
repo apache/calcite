@@ -96,6 +96,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
@@ -400,6 +401,7 @@ public class RexImpTable {
     defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
     defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
     defineMethod(COS, "cos", NullPolicy.STRICT);
+    defineMethod(COSH, "cosh", NullPolicy.STRICT);
     defineMethod(COT, "cot", NullPolicy.STRICT);
     defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
     defineMethod(RADIANS, "radians", NullPolicy.STRICT);
