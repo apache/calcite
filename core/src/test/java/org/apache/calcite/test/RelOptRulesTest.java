@@ -5316,7 +5316,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         + "group by sal, hiredate\n"
         + "having count(*) > 3";
     sql(sql).withRule(AggregateProjectPullUpConstantsRule.INSTANCE2)
-        .checkUnchanged();
+        .check();
   }
 
   @Test public void testReduceExpressionsNot() {
