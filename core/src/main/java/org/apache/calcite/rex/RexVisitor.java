@@ -51,4 +51,6 @@ public interface RexVisitor<R> {
   R visitTableInputRef(RexTableInputRef fieldRef);
 
   R visitPatternFieldRef(RexPatternFieldRef fieldRef);
+
+  R visitLambda(RexLambda lambda);
 }

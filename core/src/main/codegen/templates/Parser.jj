@@ -103,6 +103,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlLambda;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
@@ -3751,6 +3752,8 @@ SqlNode AtomicRowExpression() :
     |
         e = MultisetConstructor()
     |
+        e = LambdaExpression()
+    |
         e = ArrayConstructor()
     |
         LOOKAHEAD(3)
@@ -5255,6 +5258,34 @@ SqlNode CursorExpression(ExprContext exprContext) :
     }
 }
 
+/**
+ * Parses a call to a builtin function with special syntax.
+ */
+SqlNode LambdaExpression() :
+{
+    List<SqlNode> args = new ArrayList<SqlNode>();
+    final SqlNode e;
+    final Span s;
+    SqlNode arg;
+}
+{
+    (
+        <LPAREN>
+        [
+            arg = SimpleIdentifier() { args.add(arg); }
+            (
+                <COMMA>
+                arg = SimpleIdentifier() { args.add(arg); }
+            )*
+        ]
+        <RPAREN>
+        <LAMBDA_OPERATOR> { s = span(); }
+        e = Expression(ExprContext.ACCEPT_NON_QUERY)
+        {
+            return SqlLambda.createLambda(s.end(this), args, e);
+        }
+    )
+}
 /**
  * Parses a call to a builtin function with special syntax.
  */
@@ -7566,6 +7597,7 @@ void NonReservedKeyWord2of3() :
     < EQ: "=" >
 |   < GT: ">" >
 |   < LT: "<" >
+|   < LAMBDA_OPERATOR: "->" >
 |   < HOOK: "?" >
 |   < COLON: ":" >
 |   < LE: "<=" >

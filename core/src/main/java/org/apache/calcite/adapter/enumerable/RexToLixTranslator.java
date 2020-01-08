@@ -37,10 +37,12 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexVariable;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
@@ -706,6 +708,22 @@ public class RexToLixTranslator {
     case CORREL_VARIABLE:
       throw new RuntimeException("Cannot translate " + expr + ". Correlated"
           + " variables should always be referenced by field access");
+    case LAMBDA: {
+      RexLambda rexLambda = (RexLambda) expr;
+      RexNode referenceExpr = rexLambda.getReferenceExpr();
+      List<RexVariable> variables = rexLambda.getVariables();
+      ParameterExpression[] parameterExpressions = new ParameterExpression[variables.size()];
+      for (int i = 0; i < variables.size(); i++) {
+        RexVariable rexVariable = variables.get(i);
+        parameterExpressions[i] = Expressions
+            .parameter(typeFactory.getJavaClass(rexVariable.getType()), rexVariable.getName());
+      }
+      Expression translate = translate(
+          referenceExpr,
+          nullAs,
+          storageType);
+      return Expressions.lambda(translate, parameterExpressions);
+    }
     case FIELD_ACCESS: {
       RexFieldAccess fieldAccess = (RexFieldAccess) expr;
       RexNode target = deref(fieldAccess.getReferenceExpr());

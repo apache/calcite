@@ -113,6 +113,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_REMOVE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_STORAGE_SIZE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_TYPE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.LEFT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.MAP_FILTER;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MD5;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.MONTHNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
@@ -341,6 +342,7 @@ public class RexImpTable {
     defineMethod(SOUNDEX, BuiltInMethod.SOUNDEX.method, NullPolicy.STRICT);
     defineMethod(DIFFERENCE, BuiltInMethod.DIFFERENCE.method, NullPolicy.STRICT);
     defineMethod(REVERSE, BuiltInMethod.REVERSE.method, NullPolicy.STRICT);
+    defineMethod(MAP_FILTER, BuiltInMethod.MAP_FILTER.method, NullPolicy.STRICT);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);

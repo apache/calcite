@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
@@ -303,6 +304,15 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.CHARACTER,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction MAP_FILTER =
+      new SqlFunction("MAP_FILTER",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.cascade(ReturnTypes.INTEGER, SqlTypeTransforms.FORCE_NULLABLE),
+          null,
+          OperandTypes.family(SqlTypeFamily.LAMBDA),
+          SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction FROM_BASE64 =

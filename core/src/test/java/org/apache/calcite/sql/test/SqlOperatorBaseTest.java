@@ -4569,7 +4569,17 @@ public abstract class SqlOperatorBaseTest {
         });
   }
 
-  @Test public void testRegexpReplaceFunc() {
+  @Test
+  public void testLambda() {
+//    tester.setFor(SqlStdOperatorTable.LAMBDA);
+    final SqlTester tester = tester(SqlLibrary.MYSQL);
+    tester.checkType("(a)->2+2*a", "LAMBDA NOT NULL");
+//    tester.checkString("map_filter((a)->a*2+2)","4","VARCHAR(2000)");
+    tester.checkString("map_filter((a)->2+2*a)", "8", "INTEGER");
+  }
+
+  @Test
+  public void testRegexpReplaceFunc() {
     Stream.of(SqlLibrary.MYSQL, SqlLibrary.ORACLE)
         .map(this::tester)
         .forEach(t -> {

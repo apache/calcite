@@ -29,6 +29,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.function.Deterministic;
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.linq4j.function.Function0;
 import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -2846,6 +2847,10 @@ public class SqlFunctions {
         ordinality = 0;
       }
     }
+  }
+
+  public static Integer map_filter(Function1<Integer,Integer> function) {
+    return function.apply(2);
   }
 
   /** Type of argument passed into {@link #flatProduct}. */

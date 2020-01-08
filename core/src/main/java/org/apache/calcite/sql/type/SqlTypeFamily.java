@@ -67,6 +67,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   DATETIME_INTERVAL,
   MULTISET,
   ARRAY,
+  LAMBDA,
   MAP,
   NULL,
   ANY,
@@ -162,6 +163,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.INTERVAL_TYPES;
     case GEO:
       return ImmutableList.of(SqlTypeName.GEOMETRY);
+    case LAMBDA:
+      return ImmutableList.of(SqlTypeName.LAMBDA);
     case MULTISET:
       return ImmutableList.of(SqlTypeName.MULTISET);
     case ARRAY:
@@ -220,6 +223,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
           new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
     case GEO:
       return factory.createSqlType(SqlTypeName.GEOMETRY);
+    case LAMBDA:
+      return factory.createSqlType(SqlTypeName.LAMBDA);
     case MULTISET:
       return factory.createMultisetType(factory.createSqlType(SqlTypeName.ANY), -1);
     case ARRAY:

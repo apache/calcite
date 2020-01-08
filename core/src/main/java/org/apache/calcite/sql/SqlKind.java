@@ -718,6 +718,9 @@ public enum SqlKind {
    */
   CAST,
 
+
+  LAMBDA,
+
   /**
    * The "NEXT VALUE OF sequence" operator.
    */

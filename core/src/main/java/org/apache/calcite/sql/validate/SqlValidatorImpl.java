@@ -79,6 +79,7 @@ import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.fun.SqlCase;
+import org.apache.calcite.sql.fun.SqlLambda;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.AssignableOperandTypeChecker;
@@ -2384,6 +2385,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     case EXCEPT:
     case VALUES:
     case WITH:
+    case LAMBDA:
     case OTHER_FUNCTION:
       if (alias == null) {
         alias = deriveAlias(node, nextGeneratedId++);
@@ -2698,6 +2700,22 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           node,
           alias,
           forceNullable);
+      break;
+    case LAMBDA:
+      call = (SqlCall) node;
+      LambdaScope lambdaScope = new LambdaScope(parentScope, (SqlLambda)call);
+      scopes.put(call, lambdaScope);
+      final LambdaNamespace tableConstructorNamespace2 =
+          new LambdaNamespace(this,(SqlLambda)call,node);
+      registerNamespace(
+          usingScope,
+          alias,
+          tableConstructorNamespace2,
+          forceNullable);
+      operands = call.getOperandList();
+      for (int i = 1; i < operands.size(); ++i) {
+        registerOperandSubQueries(parentScope, call, i);
+      }
       break;
 
     case WITH:
@@ -3018,6 +3036,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     if (node.getKind().belongsTo(SqlKind.QUERY)
         || node.getKind() == SqlKind.MULTISET_QUERY_CONSTRUCTOR
+        || node.getKind() == SqlKind.LAMBDA
         || node.getKind() == SqlKind.MULTISET_VALUE_CONSTRUCTOR) {
       registerQuery(parentScope, null, node, node, null, false);
     } else if (node instanceof SqlCall) {
@@ -6000,6 +6019,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       case CURRENT_VALUE:
       case NEXT_VALUE:
       case WITH:
+      case LAMBDA:
         return call;
       }
       // Only visits arguments which are expressions. We don't want to

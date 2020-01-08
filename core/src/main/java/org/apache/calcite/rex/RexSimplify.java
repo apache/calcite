@@ -1153,6 +1153,11 @@ public class RexSimplify {
       return false;
     }
 
+    @Override
+    public Boolean visitLambda(RexLambda lambda) {
+      return false;
+    }
+
   }
 
   /** Analyzes a given {@link RexNode} and decides whenever it is safe to
