@@ -2350,6 +2350,7 @@ semantics.
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
