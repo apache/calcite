@@ -1145,10 +1145,10 @@ public class RelToSqlConverterTest {
   @Test public void testUnionOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "UNION select 1 from \"product\"";
-    final String expected = "SELECT MOD(11, 3)\n"
+    final String expected = "SELECT MOD(11, 3) AS `EXPR$0`\n"
         + "FROM foodmart.product\n"
         + "UNION DISTINCT\n"
-        + "SELECT 1\n"
+        + "SELECT 1 AS `EXPR$0`\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -1156,10 +1156,10 @@ public class RelToSqlConverterTest {
   @Test public void testUnionAllOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "UNION ALL select 1 from \"product\"";
-    final String expected = "SELECT MOD(11, 3)\n"
+    final String expected = "SELECT MOD(11, 3) AS `EXPR$0`\n"
         + "FROM foodmart.product\n"
         + "UNION ALL\n"
-        + "SELECT 1\n"
+        + "SELECT 1 AS `EXPR$0`\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -4341,6 +4341,21 @@ public class RelToSqlConverterTest {
         + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testSelectImplicitAliasFromUnionByStar() {
+    final String query = "select \"shelf_width\", * from (\n"
+        + "select \"shelf_width\", \"product_id\" + 1 from \"product\"\n"
+        + "union all\n"
+        + "select \"shelf_width\", \"product_id\" from \"product\""
+        + ") A";
+    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\", \"EXPR$1\"\n"
+        + "FROM (SELECT \"shelf_width\", \"product_id\" + 1 AS \"EXPR$1\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"shelf_width\", \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t1\"";
     sql(query).ok(expected);
   }
 

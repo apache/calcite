@@ -188,27 +188,6 @@ public class JdbcAdapterTest {
             + "LIMIT 10");
   }
 
-  @Test public void testSelectImplicitAliasByStar() {
-    CalciteAssert.model(JdbcTest.FOODMART_MODEL)
-        .query(
-            "select \"product_id\" + 1, * from ("
-            + "select * from\n"
-            + "("
-            + "select \"product_id\", sum(\"store_sales\") from \"sales_fact_1997\" group by \"product_id\") A\n"
-            + "union all\n"
-            + "select * from (\n"
-            + "select \"product_id\", sum(\"store_sales\") from \"sales_fact_1997\" group by \"product_id\") B\n"
-            + ") C")
-        .planHasSql("SELECT \"product_id\" + 1, \"product_id\", \"EXPR$1\"\n" +
-            "FROM (SELECT \"product_id\", COALESCE(SUM(\"store_sales\"), 0) AS \"EXPR$1\"\n" +
-            "FROM \"foodmart\".\"sales_fact_1997\"\n" +
-            "GROUP BY \"product_id\"\n" +
-            "UNION ALL\n" +
-            "SELECT \"product_id\", COALESCE(SUM(\"store_sales\"), 0) AS \"EXPR$1\"\n" +
-            "FROM \"foodmart\".\"sales_fact_1997\"\n" +
-            "GROUP BY \"product_id\") AS \"t1\"");
-  }
-
   @Test public void testPushDownSort() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select ename \n"

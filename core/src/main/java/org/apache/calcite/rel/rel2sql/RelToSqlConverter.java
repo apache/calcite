@@ -230,7 +230,6 @@ public class RelToSqlConverter extends SqlImplementor
     final Builder builder;
     if (e.getInput() instanceof Sort) {
       builder = x.builder(e);
-      builder.clauses.add(Clause.SELECT);
     } else {
       builder = x.builder(e, Clause.SELECT);
     }
@@ -639,15 +638,6 @@ public class RelToSqlConverter extends SqlImplementor
     }
     Result x = visitChild(0, e.getInput());
     Builder builder = x.builder(e, Clause.ORDER_BY);
-    if (stack.size() != 1 && builder.select.getSelectList() == null) {
-      // Generates explicit column names instead of start(*) for
-      // non-root order by to avoid ambiguity.
-      final List<SqlNode> selectList = Expressions.list();
-      for (RelDataTypeField field : e.getRowType().getFieldList()) {
-        addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
-      }
-      builder.select.setSelectList(new SqlNodeList(selectList, POS));
-    }
     List<SqlNode> orderByList = Expressions.list();
     for (RelFieldCollation field : e.getCollation().getFieldCollations()) {
       builder.addOrderItem(orderByList, field);
@@ -923,8 +913,12 @@ public class RelToSqlConverter extends SqlImplementor
     String alias = SqlValidatorUtil.getAlias(node, -1);
     final String lowerName = name.toLowerCase(Locale.ROOT);
     if (lowerName.startsWith("expr$")) {
-      // Put it in ordinalMap
-      if (stack.size() != 1) {
+      final ArrayDeque<Frame> clone = new ArrayDeque<>(stack);
+      clone.pop();
+      final Frame parent = clone.peek();
+      if (parent != null && parent.r instanceof Union) {
+        // For case: Project(Union(expression without alias))
+        // Project should use the alias to fill its select-list.
         node = as(node, name);
       } else {
         ordinalMap.put(lowerName, node);
