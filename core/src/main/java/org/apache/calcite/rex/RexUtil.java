@@ -517,12 +517,9 @@ public class RexUtil {
 
     public Boolean visitCall(RexCall call) {
       // Constant if operator meets the following conditions:
-      // 1. It is non-dynamic, e.g. it is safe to
-      //    cache query plans referencing this operator;
-      // 2. It is deterministic;
-      // 3. All its operands are constant.
-      return !call.getOperator().isDynamicFunction()
-          && call.getOperator().isDeterministic()
+      // 1. It is deterministic;
+      // 2. All its operands are constant.
+      return call.getOperator().isDeterministic()
           && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
     }
 
