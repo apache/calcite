@@ -187,6 +187,14 @@ public class HiveSqlDialect extends SqlDialect {
     case NULLIF:
       unparseNullIf(writer, call, leftPrec, rightPrec);
       break;
+    case FORMAT_TIMESTAMP:
+      final SqlWriter.Frame formatTimestampFrame = writer.startFunCall("DATE_FORMAT");
+      for (SqlNode operand : call.getOperandList()) {
+        writer.sep(",");
+        operand.unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(formatTimestampFrame);
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }

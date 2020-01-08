@@ -459,6 +459,11 @@ public enum SqlKind {
   REGEXP_SUBSTR,
 
   /**
+   * The "FORMAT_TIMESTAMP" function.
+   */
+  FORMAT_TIMESTAMP,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,

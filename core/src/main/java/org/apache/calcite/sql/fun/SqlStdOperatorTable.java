@@ -1768,6 +1768,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlFunction REGEXP_SUBSTR = new SqlRegexpSubstrFunction();
 
+  public static final SqlFunction FORMAT_TIMESTAMP = SqlLibraryOperators.FORMAT_TIMESTAMP;
+
   /**
    * The COALESCE builtin function.
    */

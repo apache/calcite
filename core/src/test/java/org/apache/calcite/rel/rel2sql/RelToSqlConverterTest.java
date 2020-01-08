@@ -4133,6 +4133,16 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testFormatTimestampFunction() {
+    final String query = "select \"product_id\", FORMAT_TIMESTAMP('%F %H:%M:%E6S', TIMESTAMP '2099-12-31 00:00:00.000')"
+            + "from \"foodmart\".\"product\" where \"product_id\" = 1";
+    final String expected = "";
+    sql(query)
+            .withBigQuery()
+            .withHive()
+            .ok(expected);
+  }
+
   @Test public void testJsonType() {
     String query = "select json_type(\"product_name\") from \"product\"";
     final String expected = "SELECT "
