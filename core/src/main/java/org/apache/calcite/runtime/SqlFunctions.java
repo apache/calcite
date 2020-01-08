@@ -1562,6 +1562,17 @@ public class SqlFunctions {
     return Math.tan(b0);
   }
 
+  // TANH
+  /** SQL <code>TANH</code> operator applied to BigDecimal values. */
+  public static double tanh(BigDecimal b) {
+    return tanh(b.doubleValue());
+  }
+
+  /** SQL <code>TANH</code> operator applied to double values. */
+  public static double tanh(double b) {
+    return Math.tanh(b);
+  }
+
   // Helpers
 
   /** Helper for implementing MIN. Somewhat similar to LEAST operator. */
