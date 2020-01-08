@@ -4488,6 +4488,37 @@ public class JdbcTest {
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
+   * GROUP_ID returns wrong result</a>. */
+  @Test public void testGroupId() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, group_id() + 1 as g, count(*) as c\n"
+            + "from \"scott\".emp\n"
+            + "group by grouping sets (deptno, deptno, deptno, (), ())\n"
+            + "having group_id() > 0")
+        .explainContains("EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], "
+            + "expr#5=[0], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])")
+        .returnsUnordered("DEPTNO=10; G=2; C=3",
+            "DEPTNO=10; G=3; C=3",
+            "DEPTNO=20; G=2; C=5",
+            "DEPTNO=20; G=3; C=5",
+            "DEPTNO=30; G=2; C=6",
+            "DEPTNO=30; G=3; C=6",
+            "DEPTNO=null; G=2; C=14");
+  }
+
   /** Tests CALCITE-980: Not (C='a' or C='b') causes NPE */
   @Test public void testWhereOrAndNullable() {
     /* Generates the following code:

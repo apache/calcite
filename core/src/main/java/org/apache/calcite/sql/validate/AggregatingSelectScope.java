@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,8 +111,11 @@ public class AggregatingSelectScope
 
     final Set<ImmutableBitSet> flatGroupSets =
         Sets.newTreeSet(ImmutableBitSet.COMPARATOR);
+    final Map<ImmutableBitSet, Integer> groupSetCount = new HashMap<>();
     for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
-      flatGroupSets.add(ImmutableBitSet.union(groupSet));
+      final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
+      groupSetCount.put(set, groupSetCount.getOrDefault(set, 0) + 1);
+      flatGroupSets.add(set);
     }
 
     // For GROUP BY (), we need a singleton grouping set.
@@ -120,7 +124,7 @@ public class AggregatingSelectScope
     }
 
     return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSets,
-        groupExprProjection);
+        groupSetCount, groupExprProjection);
   }
 
   /**
@@ -245,15 +249,18 @@ public class AggregatingSelectScope
     public final ImmutableList<SqlNode> groupExprList;
     public final ImmutableBitSet groupSet;
     public final ImmutableList<ImmutableBitSet> groupSets;
+    public final Map<ImmutableBitSet, Integer> groupSetCount;
     public final Map<Integer, Integer> groupExprProjection;
 
     Resolved(List<SqlNode> extraExprList, List<SqlNode> groupExprList,
         Iterable<ImmutableBitSet> groupSets,
+        Map<ImmutableBitSet, Integer> groupSetCount,
         Map<Integer, Integer> groupExprProjection) {
       this.extraExprList = ImmutableList.copyOf(extraExprList);
       this.groupExprList = ImmutableList.copyOf(groupExprList);
       this.groupSet = ImmutableBitSet.range(groupExprList.size());
       this.groupSets = ImmutableList.copyOf(groupSets);
+      this.groupSetCount = ImmutableMap.copyOf(groupSetCount);
       this.groupExprProjection = ImmutableMap.copyOf(groupExprProjection);
     }
 
