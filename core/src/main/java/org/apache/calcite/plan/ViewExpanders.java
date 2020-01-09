@@ -38,10 +38,10 @@ public abstract class ViewExpanders {
       RelOptTable.ViewExpander viewExpander,
       RelOptCluster cluster,
       List<RelHint> hints) {
-    // See if the user want to customize the ToRelContext.
-    if (viewExpander instanceof RelOptTable.ToRelContextSupplier) {
-      return ((RelOptTable.ToRelContextSupplier) viewExpander)
-          .get(viewExpander, cluster, hints);
+    // See if the user wants to customize the ToRelContext.
+    if (viewExpander instanceof RelOptTable.ToRelContextFactory) {
+      return ((RelOptTable.ToRelContextFactory) viewExpander)
+          .createToRelContext(viewExpander, cluster, hints);
     }
     return new RelOptTable.ToRelContext() {
       public RelOptCluster getCluster() {

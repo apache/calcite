@@ -162,7 +162,7 @@ public interface RelOptTable extends Wrapper {
   }
 
   /** Interface to customize the {@link ToRelContext}. **/
-  interface ToRelContextSupplier {
+  interface ToRelContextFactory {
     /**
      * Returns a {@link ToRelContext} instance.
      *
@@ -173,7 +173,7 @@ public interface RelOptTable extends Wrapper {
      *
      * @return A new {@link ToRelContext} instance.
      */
-    ToRelContext get(RelOptTable.ViewExpander viewExpander,
+    ToRelContext createToRelContext(RelOptTable.ViewExpander viewExpander,
         RelOptCluster cluster, List<RelHint> hints);
   }
 }
