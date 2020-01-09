@@ -193,7 +193,7 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {ORACLE})
   public static final SqlFunction EXISTS_NODE = new SqlFunction(
       "EXISTSNODE", SqlKind.OTHER_FUNCTION,
-      ReturnTypes.INTEGER_NULLABLE,
+      ReturnTypes.cascade(ReturnTypes.INTEGER_NULLABLE, SqlTypeTransforms.FORCE_NULLABLE),
       null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
