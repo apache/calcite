@@ -227,12 +227,8 @@ public class RelToSqlConverter extends SqlImplementor
     if (isStar(e.getChildExps(), e.getInput().getRowType(), e.getRowType())) {
       return x;
     }
-    final Builder builder;
-    if (e.getInput() instanceof Sort) {
-      builder = x.builder(e);
-    } else {
-      builder = x.builder(e, Clause.SELECT);
-    }
+    final Builder builder =
+        x.builder(e, Clause.SELECT);
     final List<SqlNode> selectList = new ArrayList<>();
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
@@ -638,6 +634,15 @@ public class RelToSqlConverter extends SqlImplementor
     }
     Result x = visitChild(0, e.getInput());
     Builder builder = x.builder(e, Clause.ORDER_BY);
+    if (stack.size() != 1 && builder.select.getSelectList() == null) {
+      // Generates explicit column names instead of start(*) for
+      // non-root order by to avoid ambiguity.
+      final List<SqlNode> selectList = Expressions.list();
+      for (RelDataTypeField field : e.getRowType().getFieldList()) {
+        addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
+      }
+      builder.select.setSelectList(new SqlNodeList(selectList, POS));
+    }
     List<SqlNode> orderByList = Expressions.list();
     for (RelFieldCollation field : e.getCollation().getFieldCollations()) {
       builder.addOrderItem(orderByList, field);
