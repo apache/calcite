@@ -54,6 +54,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
@@ -213,7 +214,8 @@ public abstract class MutableRels {
       final MutableAggregate aggregate = (MutableAggregate) node;
       relBuilder.push(fromMutable(aggregate.input, relBuilder));
       relBuilder.aggregate(
-          relBuilder.groupKey(aggregate.groupSet, aggregate.groupSets),
+          relBuilder.groupKey(aggregate.groupSet,
+              (Iterable<ImmutableBitSet>) aggregate.groupSets),
           aggregate.aggCalls);
       return relBuilder.build();
     case SORT:

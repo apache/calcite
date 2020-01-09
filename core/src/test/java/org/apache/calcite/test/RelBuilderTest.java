@@ -1088,8 +1088,9 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of())),
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of())),
                 builder.count()
                     .filter(
                         builder.call(SqlStdOperatorTable.GREATER_THAN,
@@ -1209,8 +1210,9 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(ImmutableBitSet.of(7),
-                      ImmutableList.of(ImmutableBitSet.of(4),
-                          ImmutableBitSet.of())))
+                      (Iterable<ImmutableBitSet>)
+                          ImmutableList.of(ImmutableBitSet.of(4),
+                              ImmutableBitSet.of())))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1225,9 +1227,10 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7, 6),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of(6),
-                        ImmutableBitSet.of(7))))
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of(6),
+                            ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"

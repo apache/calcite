@@ -786,7 +786,8 @@ public class RelBuilder {
    * expressions, only column projections, but is efficient, especially when you
    * are coming from an existing {@link Aggregate}. */
   public GroupKey groupKey(@Nonnull ImmutableBitSet groupSet) {
-    return groupKey(groupSet, ImmutableList.of(groupSet));
+    return groupKey(groupSet,
+        (Iterable<ImmutableBitSet>) ImmutableList.of(groupSet));
   }
 
   /** Creates a group key with grouping sets, both identified by field positions
@@ -800,8 +801,8 @@ public class RelBuilder {
     return groupKey_(groupSet, ImmutableList.copyOf(groupSets));
   }
 
-  /** As {@link #groupKey(ImmutableBitSet, Iterable)}. */
-  // deprecated, to be removed before 2.0
+  /** @deprecated Use {@link #groupKey(ImmutableBitSet, Iterable)}. */
+  @Deprecated // to be removed before 2.0
   public GroupKey groupKey(ImmutableBitSet groupSet,
       ImmutableList<ImmutableBitSet> groupSets) {
     return groupKey_(groupSet, groupSets == null
