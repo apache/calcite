@@ -21,11 +21,13 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -4357,6 +4359,23 @@ public class RelToSqlConverterTest {
         + "SELECT \"shelf_width\", \"product_id\"\n"
         + "FROM \"foodmart\".\"product\") AS \"t1\"";
     sql(query).ok(expected);
+  }
+
+  @Test public void testGroupByWithLimitPlan() {
+    final HepProgram program = HepProgram
+        .builder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepPlanner planner = new HepPlanner(program);
+    final String query = "SELECT sum(\"salary\") FROM \"employee\" group by \"gender\" limit 10";
+    final String expected = "SELECT \"EXPR$0\"\n"
+        + "FROM (SELECT \"gender\", SUM(\"salary\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY \"gender\"\n"
+        + "FETCH NEXT 10 ROWS ONLY) AS \"t1\"";
+    sql(query)
+        .optimize(RuleSets.ofList(SortProjectTransposeRule.INSTANCE), planner)
+        .ok(expected);
   }
 
   /** Fluid interface to run tests. */
