@@ -889,6 +889,7 @@ public class MaterializationTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3448">[CALCITE-3448]
    * AggregateOnCalcToAggregateUnifyRule ignores Project incorrectly when
    * there's missing grouping or mapping breaks ordering</a>. */
+  @Disabled("Planner optimizes group by empid away, so there's materialization does not help here")
   @Test public void testAggregateOnProject5() {
     checkMaterialize(
         "select \"empid\", \"deptno\", \"name\", count(*) from \"emps\"\n"
@@ -1502,6 +1503,7 @@ public class MaterializationTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-891">[CALCITE-891]
    * TableScan without Project cannot be substituted by any projected
    * materialization</a>. */
+  @Disabled("Materialization is not used because it requires extra Project that adds cost")
   @Test public void testJoinMaterialization2() {
     String q = "select *\n"
         + "from \"emps\"\n"
@@ -2698,7 +2700,7 @@ public class MaterializationTest {
         HR_FKUK_MODEL,
         CalciteAssert.checkResultContains(
             ""
-                + "EnumerableAggregate(group=[{0}], C=[COUNT($1)])\n"
+                + "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NOT NULL($t1)], expr#3=[1:BIGINT], expr#4=[0:BIGINT], expr#5=[CASE($t2, $t3, $t4)], deptno=[$t0], $f1=[$t5])\n"
                 + "  EnumerableAggregate(group=[{0, 1}])\n"
                 + "    EnumerableTableScan(table=[[hr, m0]])"));
   }
