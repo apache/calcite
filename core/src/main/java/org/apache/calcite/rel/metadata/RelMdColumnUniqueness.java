@@ -440,7 +440,7 @@ public class RelMdColumnUniqueness
         }
       }
     }
-    return nullCount == 0 ? false : null;
+    return nullCount == 0 ? null : null;
   }
 
   private boolean simplyProjects(RelNode rel, ImmutableBitSet columns) {

@@ -17,7 +17,11 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreter;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.volcano.RelSubset;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Join;
@@ -156,10 +160,35 @@ public class RelMdPercentageOriginalRows
 
   // Ditto for getNonCumulativeCost
   public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
-    RelOptCost cost = mq.getNonCumulativeCost(rel);
+    RelOptPlanner planner = rel.getCluster().getPlanner();
+    if (planner instanceof VolcanoPlanner
+        && ((VolcanoPlanner) planner).isNoneConventionHasInfiniteCost()
+        && rel.getConvention() == Convention.NONE) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
+
+    RelOptCost cost;
+    try {
+      cost = mq.getNonCumulativeCost(rel);
+    } catch (CyclicMetadataException cme) {
+//      if (rel instanceof RelSubset) {
+//        RelOptCost staleCost = ((RelSubset) rel).getBestCost();
+//        System.out.println("Stale cost for " + rel + " " + staleCost);
+//        return staleCost;
+//      }
+      throw cme;
+    }
+
+    if (cost.isInfinite()) {
+      return cost;
+    }
     List<RelNode> inputs = rel.getInputs();
     for (RelNode input : inputs) {
-      cost = cost.plus(mq.getCumulativeCost(input));
+      RelOptCost inputCost = mq.getCumulativeCost(input);
+      if (inputCost.isInfinite()) {
+        return inputCost;
+      }
+      cost = cost.plus(inputCost);
     }
     return cost;
   }
@@ -171,6 +200,12 @@ public class RelMdPercentageOriginalRows
 
   // Ditto for getNonCumulativeCost
   public RelOptCost getNonCumulativeCost(RelNode rel, RelMetadataQuery mq) {
+    RelOptPlanner planner = rel.getCluster().getPlanner();
+    if (planner instanceof VolcanoPlanner
+        && ((VolcanoPlanner) planner).isNoneConventionHasInfiniteCost()
+        && rel.getConvention() == Convention.NONE) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 

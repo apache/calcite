@@ -59,6 +59,7 @@ import org.apache.calcite.util.PartiallyOrderedSet;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -79,6 +80,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -246,6 +248,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * conform to rules. */
   private final SetMultimap<String, Class> ruleNames =
       LinkedHashMultimap.create();
+
+  private final Set<RelSubset> updatedSubsets = new LinkedHashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -884,11 +888,28 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Checking if tree is valid considerably slows down planning
     // Only doing it if logger level is debug or finer
-    if (LOGGER.isDebugEnabled()) {
+//    if (LOGGER.isDebugEnabled()) {
+    updateBestCost();
       assert isValid(Litmus.THROW);
-    }
+//    }
 
     return result;
+  }
+
+  void registerUpdate(RelSubset subset) {
+    updatedSubsets.add(subset);
+  }
+
+  private void updateBestCost() {
+    if (updatedSubsets.isEmpty() || root == null) {
+      return;
+    }
+    ImmutableList<RelSubset> updated = ImmutableList.copyOf(updatedSubsets);
+    RelSubset.updateBestCost(this, root.getCluster().getMetadataQuery(), updatedSubsets);
+    for (RelSubset subset : updated) {
+      ruleQueue.recompute(subset, true);
+    }
+//    updatedSubsets.clear();
   }
 
   /**
@@ -936,12 +957,28 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             RelOptCost relCost = getCost(rel, metaQuery);
             if (relCost.isLt(subset.bestCost)) {
               return litmus.fail("rel [{}] has lower cost {} than "
-                      + "best cost {} of subset [{}]",
-                      rel, relCost, subset.bestCost, subset);
+                      + "best cost {} of rel [{}] in subset [{}]",
+                      rel, relCost, subset.bestCost, subset.best, subset);
             }
           } catch (CyclicMetadataException e) {
             // ignore
           }
+        }
+
+        // Validate if cluster.metadataQuery has stale cost value for some rel
+        for (RelNode rel : set.rels) {
+          RelOptCost actualCost = getCost(rel, metaQuery);
+          RelOptCost cachedCost = getCost(rel);
+          if (!actualCost.equals(cachedCost)) {
+            return litmus.fail("rel [{}] has wrong cached cost. Actual {}, cached {}",
+                rel, actualCost, cachedCost);
+          }
+        }
+        RelOptCost actualCost = getCost(subset, metaQuery);
+        RelOptCost cachedCost = getCost(subset);
+        if (!actualCost.equals(cachedCost)) {
+          return litmus.fail("subset [{}] has wrong cached cost. Actual {}, cached {}",
+              subset, actualCost, cachedCost);
         }
       }
     }
@@ -971,24 +1008,50 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.noneConventionHasInfiniteCost = infinite;
   }
 
+  public boolean isNoneConventionHasInfiniteCost() {
+    return noneConventionHasInfiniteCost;
+  }
+
   public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
-    if (rel instanceof RelSubset) {
-      return ((RelSubset) rel).bestCost;
+    return mq.getCumulativeCost(rel);
+//    if (rel instanceof RelSubset) {
+//      return rel.computeSelfCost(this, mq);
+//    }
+//    if (noneConventionHasInfiniteCost
+//        && rel.getTraitSet().getTrait(ConventionTraitDef.INSTANCE) == Convention.NONE) {
+//      return costFactory.makeInfiniteCost();
+//    }
+//    RelOptCost cost = mq.getNonCumulativeCost(rel);
+//    if (!zeroCost.isLt(cost)) {
+//      // cost must be positive, so nudge it
+//      cost = costFactory.makeTinyCost();
+//    }
+//    for (RelNode input : rel.getInputs()) {
+//      RelOptCost inputCost = getCost(input, mq);
+//      if (inputCost.isInfinite()) {
+//        return inputCost;
+//      }
+//      cost = cost.plus(inputCost);
+//    }
+//    return cost;
+  }
+
+
+  boolean forget(RelSet set) {
+    if (!allSets.remove(set)) {
+      return false;
     }
-    if (noneConventionHasInfiniteCost
-        && rel.getTraitSet().getTrait(ConventionTraitDef.INSTANCE) == Convention.NONE) {
-      return costFactory.makeInfiniteCost();
+    for (RelSubset subset : set.subsets) {
+      updatedSubsets.remove(subset);
+      ruleQueue.subsetImportances.remove(subset);
     }
-    RelOptCost cost = mq.getNonCumulativeCost(rel);
-    if (!zeroCost.isLt(cost)) {
-      // cost must be positive, so nudge it
-      cost = costFactory.makeTinyCost();
-    }
-    for (RelNode input : rel.getInputs()) {
-      cost = cost.plus(getCost(input, mq));
-    }
-    return cost;
+    return true;
+  }
+
+  void forget(RelSubset subset) {
+    updatedSubsets.remove(subset);
+    ruleQueue.subsetImportances.remove(subset);
   }
 
   /**
@@ -1225,6 +1288,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     PartiallyOrderedSet<RelSubset> subsetPoset = new PartiallyOrderedSet<>(
         (e1, e2) -> e1.getTraitSet().satisfies(e2.getTraitSet()));
     Set<RelSubset> nonEmptySubsets = new HashSet<>();
+    RelMetadataQuery mq = root.getCluster().getMetadataQuery();
     for (RelSet set : ordering.immutableSortedCopy(allSets)) {
       pw.print("\tsubgraph cluster");
       pw.print(set.id);
@@ -1235,10 +1299,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       Util.printJavaString(pw, "Set " + set.id + " " + rowType, false);
       pw.print(";\n");
       for (RelNode rel : set.rels) {
+        if (getCost(rel, mq).isInfinite()) {
+          continue;
+        }
         pw.print("\t\trel");
         pw.print(rel.getId());
         pw.print(" [label=");
-        RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+
 
         // Note: rel traitset could be different from its subset.traitset
         // It can happen due to RelTraitset#simplify
@@ -1277,11 +1344,31 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
       subsetPoset.clear();
       for (RelSubset subset : set.subsets) {
+        if (subset.getBest() == null) {
+          continue;
+        }
         subsetPoset.add(subset);
         pw.print("\t\tsubset");
         pw.print(subset.getId());
         pw.print(" [label=");
-        Util.printJavaString(pw, subset.toString(), false);
+        StringBuilder sb = new StringBuilder();
+        sb.append(subset).append("\nrows=");
+        try {
+          sb.append(mq.getRowCount(subset));
+        } catch (CyclicMetadataException e) {
+          sb.append("cyclic");
+        }
+        sb.append(", bestCost=").append(subset.bestCost);
+        try {
+          RelOptCost cost = getCost(subset, mq);
+          if (!cost.equals(subset.bestCost)) {
+            sb.append(", cost=");
+            sb.append(cost);
+          }
+        } catch (CyclicMetadataException e) {
+          sb.append(", cost=cyclic");
+        }
+        Util.printJavaString(pw, sb.toString(), false);
         boolean empty = !nonEmptySubsets.contains(subset);
         if (empty) {
           // We don't want to iterate over rels when we know the set is not empty
@@ -1320,6 +1407,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     pw.println(";");
     for (RelSet set : ordering.immutableSortedCopy(allSets)) {
       for (RelNode rel : set.rels) {
+        if (rel.getConvention() == Convention.NONE) {
+          continue;
+        }
         RelSubset relSubset = getSubset(rel);
         pw.print("\tsubset");
         pw.print(relSubset.getId());
@@ -1410,7 +1500,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       LOGGER.trace("Rename #{} from '{}' to '{}'", rel.getId(), oldDigest, newDigest);
       final Pair<String, List<RelDataType>> key = key(rel);
       final RelNode equivRel = mapDigestToRel.put(key, rel);
-      if (equivRel != null) {
+      if (equivRel == null) {
+        updatedSubsets.add(getSubset(rel));
+      } else {
         assert equivRel != rel;
 
         // There's already an equivalent with the same name, and we
@@ -1421,7 +1513,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         mapDigestToRel.put(key, equivRel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
-        ruleQueue.recompute(equivRelSubset, true);
 
         // Remove back-links from children.
         for (RelNode input : rel.getInputs()) {
@@ -1434,19 +1525,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         final RelSubset subset = mapRel2Subset.put(rel, equivRelSubset);
         assert subset != null;
         boolean existed = subset.set.rels.remove(rel);
+        updatedSubsets.add(subset);
+        updatedSubsets.add(equivRelSubset);
         assert existed : "rel was not known to its set";
+        // TODO: replace with equivRelSubset from above
         final RelSubset equivSubset = getSubset(equivRel);
-        for (RelSubset s : subset.set.subsets) {
-          if (s.best == rel) {
-            Set<RelSubset> activeSet = new HashSet<>();
-            s.best = equivRel;
-
-            // Propagate cost improvement since this potentially would change the subset's best cost
-            s.propagateCostImprovements(
-                    this, equivRel.getCluster().getMetadataQuery(),
-                    equivRel, activeSet);
-          }
-        }
 
         if (equivSubset != subset) {
           // The equivalent relational expression is in a different
@@ -1586,6 +1669,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           set.getOrCreateSubset(
               root.getCluster(),
               root.getTraitSet());
+      updatedSubsets.add(root);
       ensureRootConverters();
     }
 
@@ -1815,20 +1899,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private RelSubset addRelToSet(RelNode rel, RelSet set) {
     RelSubset subset = set.add(rel);
     mapRel2Subset.put(rel, subset);
-
-    // While a tree of RelNodes is being registered, sometimes nodes' costs
-    // improve and the subset doesn't hear about it. You can end up with
-    // a subset with a single rel of cost 99 which thinks its best cost is
-    // 100. We think this happens because the back-links to parents are
-    // not established. So, give the subset another chance to figure out
-    // its cost.
-    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
-    try {
-      subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
-    } catch (CyclicMetadataException e) {
-      // ignore
-    }
-
+    updatedSubsets.add(subset);
     return subset;
   }
 

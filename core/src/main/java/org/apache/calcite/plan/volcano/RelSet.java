@@ -316,41 +316,17 @@ class RelSet {
     RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
     // remove from table
-    boolean existed = planner.allSets.remove(otherSet);
-    assert existed : "merging with a dead otherSet";
+    boolean existed = planner.forget(otherSet);
+    assert existed : "merging " + this + " with a dead otherSet " + otherSet;
 
-    Map<RelSubset, RelNode> changedSubsets = new IdentityHashMap<>();
-
-    // merge subsets
-    for (RelSubset otherSubset : otherSet.subsets) {
-      planner.ruleQueue.subsetImportances.remove(otherSubset);
-      RelSubset subset =
-          getOrCreateSubset(
-              otherSubset.getCluster(),
-              otherSubset.getTraitSet());
-      // collect RelSubset instances, whose best should be changed
-      if (otherSubset.bestCost.isLt(subset.bestCost)) {
-        changedSubsets.put(subset, otherSubset.best);
-      }
-      for (RelNode otherRel : otherSubset.getRels()) {
-        planner.reregister(this, otherRel);
-      }
+    // re-register all the rels into the current set
+    for (RelNode otherRel : otherSet.rels) {
+      planner.reregister(this, otherRel);
     }
 
     // Has another set merged with this?
-    assert equivalentSet == null;
-
-    // calls propagateCostImprovements() for RelSubset instances,
-    // whose best should be changed to check whether that
-    // subset's parents get cheaper.
-    Set<RelSubset> activeSet = new HashSet<>();
-    for (Map.Entry<RelSubset, RelNode> subsetBestPair : changedSubsets.entrySet()) {
-      RelSubset relSubset = subsetBestPair.getKey();
-      relSubset.propagateCostImprovements(
-          planner, mq, subsetBestPair.getValue(),
-          activeSet);
-    }
-    assert activeSet.isEmpty();
+    assert equivalentSet == null : "Expecting null for equivalentSet " + equivalentSet
+        + " in subset " + this;
 
     // Update all rels which have a child in the other set, to reflect the
     // fact that the child has been renamed.
@@ -370,14 +346,12 @@ class RelSet {
     }
 
     // Make sure the cost changes as a result of merging are propagated.
-    for (RelNode parentRel : getParentRels()) {
-      final RelSubset parentSubset = planner.getSubset(parentRel);
-      parentSubset.propagateCostImprovements(
-          planner, mq, parentRel,
-          activeSet);
-    }
-    assert activeSet.isEmpty();
-    assert equivalentSet == null;
+//    for (RelNode parentRel : getParentRels()) {
+//      final RelSubset parentSubset = planner.getSubset(parentRel);
+//      parentSubset.propagateCostImprovements(
+//          planner, mq, parentRel,
+//          activeSet);
+//    }
 
     // Each of the relations in the old set now has new parents, so
     // potentially new rules can fire. Check for rule matches, just as if

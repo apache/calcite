@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptListener;
@@ -29,6 +30,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
+import org.apache.calcite.rel.metadata.CyclicMetadataException;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -87,6 +89,8 @@ public class RelSubset extends AbstractRelNode {
    */
   final RelSet set;
 
+  boolean bestUptodate;
+
   /**
    * best known plan
    */
@@ -132,7 +136,7 @@ public class RelSubset extends AbstractRelNode {
    *    {@link RelSet#mergeWith(VolcanoPlanner, RelSet)}.</li>
    * </ol>
    */
-  private void computeBestCost(RelOptPlanner planner) {
+  void computeBestCost(RelOptPlanner planner) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
     final RelMetadataQuery mq = getCluster().getMetadataQuery();
     for (RelNode rel : getRels()) {
@@ -146,6 +150,10 @@ public class RelSubset extends AbstractRelNode {
 
   public RelNode getBest() {
     return best;
+  }
+
+  public RelOptCost getBestCost() {
+    return bestCost;
   }
 
   public RelNode getOriginal() {
@@ -164,7 +172,33 @@ public class RelSubset extends AbstractRelNode {
   }
 
   public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-    return planner.getCostFactory().makeZeroCost();
+    if (!bestUptodate) {
+      bestCost = planner.getCostFactory().makeInfiniteCost();
+      best = null;
+      CyclicMetadataException cycle = null;
+      for (RelNode rel : getRels()) {
+        try {
+          final RelOptCost cost = mq.getCumulativeCost(rel);
+          bestUptodate = true;
+          if (cost.isLt(bestCost)) {
+            bestCost = cost;
+            best = rel;
+            System.out.println("  new best: " + cost + " of " + best + " in " + this);
+          }
+        } catch (CyclicMetadataException e) {
+          ((VolcanoPlanner) planner).registerUpdate(this);
+          cycle = e;
+        }
+      }
+      if (cycle != null) {
+        ((VolcanoPlanner) planner).registerUpdate(this);
+      }
+      if (!bestUptodate && cycle != null) {
+        System.out.println("!!! this = " + this);
+        throw cycle;
+      }
+    }
+    return bestCost;
   }
 
   public double estimateRowCount(RelMetadataQuery mq) {
@@ -210,7 +244,8 @@ public class RelSubset extends AbstractRelNode {
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
         // see usage of this method in propagateCostImprovements0()
-        if (rel == this) {
+//        if (rel == this) {
+        if (rel.set == set && traitSet.satisfies(rel.getTraitSet())) {
           list.add(parent);
         }
       }
@@ -333,18 +368,131 @@ public class RelSubset extends AbstractRelNode {
         propagationQueue.offer(Pair.of(subset, rel));
       }
     }
+//    invalidateDependents(planner, mq);
+//    while (!propagationQueue.isEmpty()) {
+//      Pair<RelSubset, RelNode> p = propagationQueue.poll();
+//      p.left.propagateCostImprovements0(planner, mq, p.right, activeSet, propagationQueue);
+//    }
 
-    while (!propagationQueue.isEmpty()) {
-      Pair<RelSubset, RelNode> p = propagationQueue.poll();
-      p.left.propagateCostImprovements0(planner, mq, p.right, activeSet, propagationQueue);
+  }
+
+  static boolean isValid(VolcanoPlanner planner, RelMetadataQuery mq) {
+    for (RelSet set : planner.allSets) {
+      for (RelNode rel : set.rels) {
+        RelOptCost actualCost = planner.getCost(rel, mq);
+        RelOptCost cachedCost = planner.getCost(rel);
+        if (!actualCost.equals(cachedCost)) {
+          throw new AssertionError("rel [" + rel +"] has wrong cached cost. Actual " + actualCost
+                  + ", cached " + cachedCost);
+        }
+      }
     }
+    return true;
+  }
+
+  static void updateBestCost(VolcanoPlanner planner, RelMetadataQuery mq, Set<RelSubset> subsets) {
+    Set<RelSubset> activeSet = new HashSet<>();
+    Set<RelNode> allRels = new LinkedHashSet<>();
+    Queue<RelSubset> workQueue = new ArrayDeque<>(subsets);
+    RelSubset next;
+    while((next = workQueue.poll()) != null) {
+      next.resetBestCost(planner, mq, workQueue, activeSet, allRels);
+    }
+    System.out.println("Update " + subsets.size() + " affected " + activeSet.size());
+    activeSet.clear();
+    workQueue.addAll(subsets);
+    subsets.clear();
+    while((next = workQueue.poll()) != null) {
+      next.updateBestCost(planner, mq, workQueue, activeSet);
+    }
+    if (!subsets.isEmpty()) {
+      System.out.println("NOT CLEAR: " + subsets);
+      activeSet.clear();
+      for (RelSubset subset : subsets) {
+        mq.clearCache(subset);
+        subset.bestUptodate = false;
+      }
+      for (RelNode rel : allRels) {
+        mq.clearCache(rel);
+      }
+      workQueue.addAll(subsets);
+      subsets.clear();
+      while((next = workQueue.poll()) != null) {
+        next.updateBestCost(planner, mq, workQueue, activeSet);
+      }
+      for (RelNode rel : allRels) {
+        mq.clearCache(rel);
+      }
+      for (RelNode rel : allRels) {
+        RelOptCost cost = mq.getCumulativeCost(rel);
+        System.out.println("  " + cost + ", " + rel);
+      }
+      System.out.println("NOT CLEAR DONE: " + subsets);
+    }
+
+    assert isValid(planner, mq);
+//    RelMetadataQuery mq = getCluster().getMetadataQuery();
+//    for (RelSet set : planner.allSets) {
+//      for (RelSubset subset : set.subsets) {
+//        mq.clearCache(subset);
+//        subset.timestamp++;
+//      }
+//      for (RelNode rel : set.rels) {
+//        mq.clearCache(rel);
+//      }
+//    }
+  }
+
+  private void resetBestCost(VolcanoPlanner planner,
+      RelMetadataQuery mq, Queue<RelSubset> workQueue, Set<RelSubset> activeSet,
+      Set<RelNode> allRels) {
+    if (!activeSet.add(this)) {
+      return;
+    }
+    timestamp++;
+    bestUptodate = false;
+//    bestCost = planner.getCostFactory().makeInfiniteCost();
+//    best = null;
+    mq.clearCache(this);
+    if (getConvention() != Convention.NONE) {
+      System.out.println("clearCache " + this);
+    }
+    for (RelNode rel : getRels()) {
+      allRels.add(rel);
+      mq.clearCache(rel);
+      if (rel.getConvention() != Convention.NONE) {
+        System.out.println("  clearCache " + rel);
+      }
+    }
+    // Add other subsets in the current set
+    for (RelSubset subset : set.subsets) {
+      if (subset != this && traitSet.satisfies(subset.traitSet)) {
+        workQueue.add(subset);
+      }
+    }
+    // Add those that depend on the given subset
+    workQueue.addAll(getParentSubsets(planner));
+  }
+
+  private void updateBestCost(VolcanoPlanner planner,
+      RelMetadataQuery mq, Queue<RelSubset> workQueue, Set<RelSubset> activeSet) {
+    if (!activeSet.add(this)) {
+      return;
+    }
+    mq.getNonCumulativeCost(this);
+    for (RelSubset subset : set.subsets) {
+      if (subset != this && traitSet.satisfies(subset.traitSet)) {
+        workQueue.add(subset);
+      }
+    }
+    // Add those that depend on the given subset
+    workQueue.addAll(getParentSubsets(planner));
   }
 
   void propagateCostImprovements0(VolcanoPlanner planner, RelMetadataQuery mq,
       RelNode rel, Set<RelSubset> activeSet,
       Queue<Pair<RelSubset, RelNode>> propagationQueue) {
     ++timestamp;
-
     if (!activeSet.add(this)) {
       // This subset is already in the chain being propagated to. This
       // means that the graph is cyclic, and therefore the cost of this
@@ -355,6 +503,7 @@ public class RelSubset extends AbstractRelNode {
     try {
       RelOptCost cost = planner.getCost(rel, mq);
 
+      boolean needPropagate = false;
       // Update subset best cost when we find a cheaper rel or the current
       // best's cost is changed
       if (cost.isLt(bestCost)) {
@@ -363,6 +512,19 @@ public class RelSubset extends AbstractRelNode {
 
         bestCost = cost;
         best = rel;
+        needPropagate = true;
+      } else if (best == rel && bestCost.isLt(cost)) {
+        // The cost of the best relation degraded
+        // this means we need to find the new best
+        RelNode oldBest = this.best;
+        computeBestCost(planner);
+        needPropagate = true;//oldBest != best;
+      } else if (best == rel) {
+        needPropagate = true;
+      }
+      needPropagate = true;
+      if (needPropagate) {
+        timestamp++;
         // since best was changed, cached metadata for this subset should be removed
         mq.clearCache(this);
 
@@ -374,11 +536,11 @@ public class RelSubset extends AbstractRelNode {
           final RelSubset parentSubset = planner.getSubset(parent);
 
           // parent subset will clear its cache in propagateCostImprovements0 method itself
-          for (RelSubset subset : parentSubset.set.subsets) {
-            if (parent.getTraitSet().satisfies(subset.traitSet)) {
-              propagationQueue.offer(Pair.of(subset, parent));
-            }
-          }
+//          for (RelSubset subset : parentSubset.set.subsets) {
+//            if (parent.getTraitSet().satisfies(subset.traitSet)) {
+              propagationQueue.offer(Pair.of(parentSubset, parent));
+//            }
+//          }
         }
         planner.checkForSatisfiedConverters(set, rel);
       }
