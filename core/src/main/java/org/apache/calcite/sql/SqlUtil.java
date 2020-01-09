@@ -997,7 +997,6 @@ public abstract class SqlUtil {
       final SqlHint sqlHint = (SqlHint) node;
       final String hintName = sqlHint.getName();
       final List<Integer> inheritPath = new ArrayList<>();
-      hintStrategies.validateHint(hintName);
       RelHint relHint;
       switch (sqlHint.getOptionFormat()) {
       case EMPTY:
@@ -1013,7 +1012,10 @@ public abstract class SqlUtil {
       default:
         throw new AssertionError("Unexpected hint option format");
       }
-      relHints.add(relHint);
+      if (hintStrategies.validateHint(relHint)) {
+        // Skips the hint if the validation fails.
+        relHints.add(relHint);
+      }
     }
     return ImmutableList.copyOf(relHints);
   }

@@ -33,8 +33,8 @@
  *
  * <h2>Customize Hint Matching Rules</h2>
  * Calcite implements a framework to define and propagate the hints. In order to make the hints
- *  propagate efficiently, every hint referenced in the sql statement needs to
- *  register the propagation rules.
+ * propagate efficiently, every hint referenced in the sql statement needs to
+ * register the propagation rules.
  *
  * <p>We support two kinds of matching rules for rule registration:
  *

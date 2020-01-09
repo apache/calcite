@@ -63,7 +63,13 @@ import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
+
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -80,10 +86,10 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsIn.in;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
@@ -191,12 +197,28 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     final String sql = "select /*+ weird_hint */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
-    sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+    sql(sql).warns("Hint: WEIRD_HINT should be registered in the HintStrategyTable");
 
     final String sql1 = "select /*+ resource(mem='20Mb')*/ empno\n"
         + "from (select /*+ weird_kv_hint(k1='v1') */ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
-    sql(sql1).fails("Hint: WEIRD_KV_HINT should be registered in the HintStrategies.");
+    sql(sql1).warns("Hint: WEIRD_KV_HINT should be registered in the HintStrategyTable");
+
+    final String sql2 = "select /*+ AGG_STRATEGY(OPTION1) */\n"
+        + "ename, avg(sal)\n"
+        + "from emp group by ename";
+    final String error2 = "Hint AGG_STRATEGY only allows single option, "
+        + "allowed options: [ONE_PHASE, TWO_PHASE]";
+    sql(sql2).warns(error2);
+    // Change the error handler to validate again.
+    sql(sql2).withTester(
+        tester -> tester.withConfig(
+        SqlToRelConverter.configBuilder()
+            .withHintStrategyTable(
+                HintTools.createHintStrategies(
+                HintStrategyTable.builder().errorHandler(Litmus.THROW)))
+            .build()))
+        .fails(error2);
   }
 
   @Test public void testTableHintsInJoin() {
@@ -299,14 +321,14 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         + "from emp /*+ weird_hint(idx1, idx2) */\n"
         + "join dept /*+ properties(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
-    sql(sql).fails("Hint: WEIRD_HINT should be registered in the HintStrategies.");
+    sql(sql).warns("Hint: WEIRD_HINT should be registered in the HintStrategyTable");
 
     final String sql1 = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ index(idx1, idx2) */\n"
         + "join dept /*+ weird_kv_hint(k1='v1', k2='v2') */\n"
         + "on emp.deptno = dept.deptno";
-    sql(sql1).fails("Hint: WEIRD_KV_HINT should be registered in the HintStrategies.");
+    sql(sql1).warns("Hint: WEIRD_KV_HINT should be registered in the HintStrategyTable");
   }
 
   @Test public void testJoinHintRequiresSpecificInputs() {
@@ -577,10 +599,25 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     void fails(String failedMsg) {
       try {
         tester.convertSqlToRel(sql);
-        fail("Unexpected exception");
-      } catch (RuntimeException e) {
+      } catch (AssertionError e) {
         assertThat(e.getMessage(), is(failedMsg));
       }
+    }
+
+    void warns(String expectWarning) {
+      MockAppender appender = new MockAppender();
+      Logger logger = Logger.getRootLogger();
+      logger.addAppender(appender);
+      try {
+        tester.convertSqlToRel(sql);
+      } finally {
+        logger.removeAppender(appender);
+      }
+      List<String> warnings = appender.loggingEvents.stream()
+          .filter(e -> e.getLevel() == Level.WARN)
+          .map(LoggingEvent::getRenderedMessage)
+          .collect(Collectors.toList());
+      assertThat(expectWarning, is(in(warnings)));
     }
 
     /** A shuttle to collect all the hints within the relational expression into a collection. */
@@ -621,6 +658,23 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     }
   }
 
+  /** Mock appender to collect the logging events. */
+  private static class MockAppender extends AppenderSkeleton {
+    public final List<LoggingEvent> loggingEvents = new ArrayList<>();
+
+    protected void append(org.apache.log4j.spi.LoggingEvent event) {
+      loggingEvents.add(event);
+    }
+
+    public void close() {
+      // no-op
+    }
+
+    public boolean requiresLayout() {
+      return false;
+    }
+  }
+
   /** Define some tool members and methods for hints test. */
   private static class HintTools {
     //~ Static fields/initializers ---------------------------------------------
@@ -646,7 +700,16 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
      * @return HintStrategyTable instance
      */
     private static HintStrategyTable createHintStrategies() {
-      return HintStrategyTable.builder()
+      return createHintStrategies(HintStrategyTable.builder());
+    }
+
+    /**
+     * Creates mock hint strategies with given builder.
+     *
+     * @return HintStrategyTable instance
+     */
+    static HintStrategyTable createHintStrategies(HintStrategyTable.Builder builder) {
+      return builder
         .addHintStrategy("no_hash_join", HintStrategies.JOIN)
         .addHintStrategy("time_zone", HintStrategies.SET_VAR)
         .addHintStrategy("REPARTITION", HintStrategies.SET_VAR)
@@ -655,7 +718,16 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .addHintStrategy(
             "resource", HintStrategies.or(
             HintStrategies.PROJECT, HintStrategies.AGGREGATE, HintStrategies.CALC))
-        .addHintStrategy("AGG_STRATEGY", HintStrategies.AGGREGATE)
+        .addHintStrategy("AGG_STRATEGY",
+            HintStrategies.AGGREGATE,
+            (hint, errorHandler) -> errorHandler.check(
+                hint.listOptions.size() == 1
+                    && (hint.listOptions.get(0).equalsIgnoreCase("ONE_PHASE")
+                        || hint.listOptions.get(0).equalsIgnoreCase("TWO_PHASE")),
+                "Hint {} only allows single option, "
+                    + "allowed options: [ONE_PHASE, TWO_PHASE]",
+                hint.hintName
+            ))
         .addHintStrategy("use_hash_join",
           HintStrategies.and(HintStrategies.JOIN,
             HintStrategies.explicit((hint, rel) -> {
