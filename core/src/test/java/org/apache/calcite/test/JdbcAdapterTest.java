@@ -182,10 +182,11 @@ public class JdbcAdapterTest {
         .query("select sum(sal)\n"
             + "from scott.emp \n"
             + "group by ename limit 10")
-        .planHasSql("SELECT SUM(\"SAL\")\n"
+        .planHasSql("SELECT \"EXPR$0\"\n"
+            + "FROM (SELECT \"ENAME\", SUM(\"SAL\") AS \"EXPR$0\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "GROUP BY \"ENAME\"\n"
-            + "LIMIT 10");
+            + "LIMIT 10) AS \"t0\"");
   }
 
   @Test public void testPushDownSort() {
