@@ -130,6 +130,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
@@ -393,6 +394,7 @@ public class RexImpTable {
     defineMethod(ASIN, "asin", NullPolicy.STRICT);
     defineMethod(ATAN, "atan", NullPolicy.STRICT);
     defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
+    defineMethod(BIT_NOT, BuiltInMethod.BIT_NOT.method, NullPolicy.STRICT);
     defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
     defineMethod(COS, "cos", NullPolicy.STRICT);
     defineMethod(COT, "cot", NullPolicy.STRICT);

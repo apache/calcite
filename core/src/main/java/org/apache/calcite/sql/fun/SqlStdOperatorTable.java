@@ -1633,6 +1633,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
           OperandTypes.NUMERIC_NUMERIC,
           SqlFunctionCategory.NUMERIC);
 
+  public static final SqlFunction BIT_NOT =
+      new SqlFunction(
+          "BIT_NOT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
   public static final SqlFunction CBRT =
       new SqlFunction(
           "CBRT",

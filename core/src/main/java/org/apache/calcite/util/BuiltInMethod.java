@@ -408,6 +408,7 @@ public enum BuiltInMethod {
   LESSER(SqlFunctions.class, "lesser", Comparable.class, Comparable.class),
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
   BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
+  BIT_NOT(SqlFunctions.class, "bitNot", long.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
   BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
