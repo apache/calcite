@@ -4352,7 +4352,8 @@ public class RelToSqlConverterTest {
         + "union all\n"
         + "select \"shelf_width\", \"product_id\" from \"product\""
         + ") A";
-    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\", \"product_id\" + 1\n"
+    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\""
+        + ", \"product_id\" + 1\n"
         + "FROM (SELECT \"shelf_width\", \"product_id\" + 1\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
