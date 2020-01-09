@@ -1145,10 +1145,10 @@ public class RelToSqlConverterTest {
   @Test public void testUnionOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "UNION select 1 from \"product\"";
-    final String expected = "SELECT MOD(11, 3) AS `EXPR$0`\n"
+    final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "UNION DISTINCT\n"
-        + "SELECT 1 AS `EXPR$0`\n"
+        + "SELECT 1\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -1156,10 +1156,10 @@ public class RelToSqlConverterTest {
   @Test public void testUnionAllOperatorForBigQuery() {
     final String query = "select mod(11,3) from \"product\"\n"
         + "UNION ALL select 1 from \"product\"";
-    final String expected = "SELECT MOD(11, 3) AS `EXPR$0`\n"
+    final String expected = "SELECT MOD(11, 3)\n"
         + "FROM foodmart.product\n"
         + "UNION ALL\n"
-        + "SELECT 1 AS `EXPR$0`\n"
+        + "SELECT 1\n"
         + "FROM foodmart.product";
     sql(query).withBigQuery().ok(expected);
   }
@@ -2488,7 +2488,7 @@ public class RelToSqlConverterTest {
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE EXISTS (SELECT COUNT(*)\n"
+        + "WHERE EXISTS (SELECT COUNT(*) AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
     sql(query).config(NO_EXPAND_CONFIG).ok(expected);
@@ -2501,7 +2501,7 @@ public class RelToSqlConverterTest {
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
+        + "WHERE NOT EXISTS (SELECT COUNT(*) AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
     sql(query).config(NO_EXPAND_CONFIG).ok(expected);
@@ -3751,7 +3751,7 @@ public class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
     sql(sql).ok(expected);
   }
@@ -4029,11 +4029,11 @@ public class RelToSqlConverterTest {
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\")\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
         + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\nFROM \"DUAL\"\nWHERE 1 = 0) \"t\",\n"
         + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\nGROUP BY \"department_id\") \"t1\"\n"
         + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).withOracle().ok(expected);
   }
 
@@ -4044,7 +4044,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
-        + " MIN(\"t1\".\"department_id\")\n"
+        + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
         + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
         + " AS \"t\" (\"department_id\", \"department_description\")"
         + "\nWHERE 1 = 0) AS \"t\","
@@ -4052,7 +4052,7 @@ public class RelToSqlConverterTest {
         + "\nGROUP BY \"department_id\") AS \"t1\""
         + "\nGROUP BY \"t1\".\"department_id\") AS \"t3\" "
         + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).ok(expected);
   }
 
@@ -4350,8 +4350,8 @@ public class RelToSqlConverterTest {
         + "union all\n"
         + "select \"shelf_width\", \"product_id\" from \"product\""
         + ") A";
-    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\", \"EXPR$1\"\n"
-        + "FROM (SELECT \"shelf_width\", \"product_id\" + 1 AS \"EXPR$1\"\n"
+    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\", \"product_id\" + 1\n"
+        + "FROM (SELECT \"shelf_width\", \"product_id\" + 1\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "UNION ALL\n"
         + "SELECT \"shelf_width\", \"product_id\"\n"

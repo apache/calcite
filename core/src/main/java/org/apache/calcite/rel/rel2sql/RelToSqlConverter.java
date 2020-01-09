@@ -913,12 +913,8 @@ public class RelToSqlConverter extends SqlImplementor
     String alias = SqlValidatorUtil.getAlias(node, -1);
     final String lowerName = name.toLowerCase(Locale.ROOT);
     if (lowerName.startsWith("expr$")) {
-      final ArrayDeque<Frame> clone = new ArrayDeque<>(stack);
-      clone.pop();
-      final Frame parent = clone.peek();
-      if (parent != null && parent.r instanceof Union) {
-        // For case: Project(Union(expression without alias))
-        // Project should use the alias to fill its select-list.
+      final RelNode current = stack.peek().r;
+      if (stack.size() != 1 && current instanceof Aggregate) {
         node = as(node, name);
       } else {
         ordinalMap.put(lowerName, node);
