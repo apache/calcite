@@ -397,6 +397,7 @@ public class RelMdColumnUniqueness
       if (rel2 instanceof Aggregate
           || rel2 instanceof Filter
           || rel2 instanceof Values
+          || rel2 instanceof Sort
           || rel2 instanceof TableScan
           || simplyProjects(rel2, columns)) {
         try {
