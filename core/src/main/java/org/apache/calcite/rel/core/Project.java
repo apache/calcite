@@ -28,6 +28,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexChecker;
@@ -239,6 +240,10 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
+    if (ProjectRemoveRule.isTrivial(this)) {
+      // Don't spend time on trivial projects
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     double dRows = mq.getRowCount(getInput());
     double dCpu = 0;
     for (RexNode node : exps) {
