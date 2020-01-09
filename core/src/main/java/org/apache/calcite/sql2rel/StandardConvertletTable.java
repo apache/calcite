@@ -140,44 +140,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     registerOp(SqlLibraryOperators.GREATEST, new GreatestConvertlet());
     registerOp(SqlLibraryOperators.LEAST, new GreatestConvertlet());
 
-    registerOp(SqlLibraryOperators.NVL,
-        (cx, call) -> {
-          final RexBuilder rexBuilder = cx.getRexBuilder();
-          final RexNode operand0 =
-              cx.convertExpression(call.getOperandList().get(0));
-          final RexNode operand1 =
-              cx.convertExpression(call.getOperandList().get(1));
-          final RelDataType type =
-              cx.getValidator().getValidatedNodeType(call);
-          return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE,
-              ImmutableList.of(
-                  rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
-                      operand0),
-                  rexBuilder.makeCast(type, operand0),
-                  rexBuilder.makeCast(type, operand1)));
-        });
-
+    registerOp(SqlLibraryOperators.NVL, StandardConvertletTable::convertNvl);
     registerOp(SqlLibraryOperators.DECODE,
-        (cx, call) -> {
-          final RexBuilder rexBuilder = cx.getRexBuilder();
-          final List<RexNode> operands = convertExpressionList(cx,
-              call.getOperandList(), SqlOperandTypeChecker.Consistency.NONE);
-          final RelDataType type =
-              cx.getValidator().getValidatedNodeType(call);
-          final List<RexNode> exprs = new ArrayList<>();
-          for (int i = 1; i < operands.size() - 1; i += 2) {
-            exprs.add(
-                RelOptUtil.isDistinctFrom(rexBuilder, operands.get(0),
-                    operands.get(i), true));
-            exprs.add(operands.get(i + 1));
-          }
-          if (operands.size() % 2 == 0) {
-            exprs.add(Util.last(operands));
-          } else {
-            exprs.add(rexBuilder.makeNullLiteral(type));
-          }
-          return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, exprs);
-        });
+        StandardConvertletTable::convertDecode);
+    registerOp(SqlLibraryOperators.IF, StandardConvertletTable::convertIf);
 
     // Expand "x NOT LIKE y" into "NOT (x LIKE y)"
     registerOp(SqlStdOperatorTable.NOT_LIKE,
@@ -295,6 +261,57 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             return cx.getRexBuilder().makeFieldAccess(expr, 0);
           });
     }
+  }
+
+  /** Converts a call to the NVL function. */
+  private static RexNode convertNvl(SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final RexNode operand0 =
+        cx.convertExpression(call.getOperandList().get(0));
+    final RexNode operand1 =
+        cx.convertExpression(call.getOperandList().get(1));
+    final RelDataType type =
+        cx.getValidator().getValidatedNodeType(call);
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE,
+        ImmutableList.of(
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL,
+                operand0),
+            rexBuilder.makeCast(type, operand0),
+            rexBuilder.makeCast(type, operand1)));
+  }
+
+  /** Converts a call to the DECODE function. */
+  private static RexNode convertDecode(SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final List<RexNode> operands = convertExpressionList(cx,
+        call.getOperandList(), SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataType type =
+        cx.getValidator().getValidatedNodeType(call);
+    final List<RexNode> exprs = new ArrayList<>();
+    for (int i = 1; i < operands.size() - 1; i += 2) {
+      exprs.add(
+          RelOptUtil.isDistinctFrom(rexBuilder, operands.get(0),
+              operands.get(i), true));
+      exprs.add(operands.get(i + 1));
+    }
+    if (operands.size() % 2 == 0) {
+      exprs.add(Util.last(operands));
+    } else {
+      exprs.add(rexBuilder.makeNullLiteral(type));
+    }
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, exprs);
+  }
+
+  /** Converts a call to the IF function.
+   *
+   * <p>{@code IF(b, x, y)} &rarr; {@code CASE WHEN b THEN x ELSE y END}. */
+  private static RexNode convertIf(SqlRexContext cx, SqlCall call) {
+    final RexBuilder rexBuilder = cx.getRexBuilder();
+    final List<RexNode> operands = convertExpressionList(cx,
+        call.getOperandList(), SqlOperandTypeChecker.Consistency.NONE);
+    final RelDataType type =
+        cx.getValidator().getValidatedNodeType(call);
+    return rexBuilder.makeCall(type, SqlStdOperatorTable.CASE, operands);
   }
 
   /** Converts an interval expression to a numeric multiplied by an interval

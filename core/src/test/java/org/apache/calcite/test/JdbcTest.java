@@ -6716,6 +6716,36 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  @Test public void testIf() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select if(1 = 1,1,2) as r")
+        .returnsUnordered("R=1");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select if(1 = 1,1,2) as r")
+        .returnsUnordered("R=1");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select if(1 = 1,1,2) as r")
+        .returnsUnordered("R=1");
+  }
+
+  @Test public void testIfWithExpression() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select if(TRIM('a ') = 'a','a','b') as r")
+        .returnsUnordered("R=a");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select if(TRIM('a ') = 'a','a','b') as r")
+        .returnsUnordered("R=a");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select if(TRIM('a ') = 'a','a','b') as r")
+        .returnsUnordered("R=a");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */

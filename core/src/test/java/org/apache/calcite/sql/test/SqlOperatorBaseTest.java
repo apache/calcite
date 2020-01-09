@@ -4560,6 +4560,27 @@ public abstract class SqlOperatorBaseTest {
     testerMysql.checkNull("reverse(cast(null as varchar(1)))");
   }
 
+  @Test void testIfFunc() {
+    checkIf(tester(SqlLibrary.BIG_QUERY));
+    checkIf(tester(SqlLibrary.HIVE));
+    checkIf(tester(SqlLibrary.SPARK));
+  }
+
+  private void checkIf(SqlTester tester) {
+    tester.setFor(SqlLibraryOperators.IF);
+    tester.checkString("if(1 = 2, 1, 2)", "2", "INTEGER NOT NULL");
+    tester.checkString("if('abc'='xyz', 'abc', 'xyz')", "xyz",
+        "CHAR(3) NOT NULL");
+    tester.checkString("if(substring('abc',1,2)='ab', 'abc', 'xyz')", "abc",
+        "CHAR(3) NOT NULL");
+    tester.checkString("if(substring('abc',1,2)='ab', 'abc', 'wxyz')", "abc ",
+        "CHAR(4) NOT NULL");
+    // TRUE yields first arg, FALSE and UNKNOWN yield second arg
+    tester.checkScalar("if(nullif(true,false), 5, 10)", 5, "INTEGER NOT NULL");
+    tester.checkScalar("if(nullif(true,true), 5, 10)", 10, "INTEGER NOT NULL");
+    tester.checkScalar("if(nullif(true,true), 5, 10)", 10, "INTEGER NOT NULL");
+  }
+
   @Test void testUpperFunc() {
     tester.setFor(SqlStdOperatorTable.UPPER);
     tester.checkString("upper('a')", "A", "CHAR(1) NOT NULL");

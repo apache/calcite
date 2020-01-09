@@ -22,21 +22,29 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.calcite.util.Litmus;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
+import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -86,6 +94,36 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction DECODE =
       new SqlFunction("DECODE", SqlKind.DECODE, DECODE_RETURN_TYPE, null,
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
+
+  /** The "IF(condition, thenValue, elseValue)" function. */
+  @LibraryOperator(libraries = {BIG_QUERY, HIVE, SPARK})
+  public static final SqlFunction IF =
+      new SqlFunction("IF", SqlKind.IF, SqlLibraryOperators::inferIfReturnType,
+          null,
+          OperandTypes.and(
+              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY,
+                  SqlTypeFamily.ANY),
+              // Arguments 1 and 2 must have same type
+              new SameOperandTypeChecker(3) {
+                @Override protected List<Integer>
+                getOperandList(int operandCount) {
+                  return ImmutableList.of(1, 2);
+                }
+              }),
+          SqlFunctionCategory.SYSTEM) {
+        @Override public boolean validRexOperands(int count, Litmus litmus) {
+          // IF is translated to RexNode by expanding to CASE.
+          return litmus.fail("not a rex operator");
+        }
+      };
+
+  /** Infers the return type of {@code IF(b, x, y)},
+   * namely the least restrictive of the types of x and y.
+   * Similar to {@link ReturnTypes#LEAST_RESTRICTIVE}. */
+  private static RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
+    return opBinding.getTypeFactory()
+        .leastRestrictive(opBinding.collectOperandTypes().subList(1, 3));
+  }
 
   /** The "NVL(value, value)" function. */
   @LibraryOperator(libraries = {ORACLE})
@@ -484,5 +522,4 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
-
 }

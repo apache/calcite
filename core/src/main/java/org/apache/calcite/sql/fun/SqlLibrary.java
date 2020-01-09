@@ -48,13 +48,19 @@ public enum SqlLibrary {
   /** A collection of operators that are in Google BigQuery but not in standard
    * SQL. */
   BIG_QUERY("b", "bigquery"),
+  /** A collection of operators that are in Apache Hive but not in standard
+   * SQL. */
+  HIVE("h", "hive"),
   /** A collection of operators that are in MySQL but not in standard SQL. */
   MYSQL("m", "mysql"),
   /** A collection of operators that are in Oracle but not in standard SQL. */
   ORACLE("o", "oracle"),
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
-  POSTGRESQL("p", "postgresql");
+  POSTGRESQL("p", "postgresql"),
+  /** A collection of operators that are in Apache Spark but not in standard
+   * SQL. */
+  SPARK("s", "spark");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

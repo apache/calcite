@@ -1315,7 +1315,6 @@ Not implemented:
 | LOCALTIMESTAMP(precision) | Returns the current date and time in the session time zone in a value of datatype TIMESTAMP, with *precision* digits of precision
 | CURRENT_TIME              | Returns the current time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
-| CURRENT_DATE              | Returns the current date in the session time zone, in a value of datatype DATE
 | CURRENT_TIMESTAMP         | Returns the current date and time in the session time zone, in a value of datatype TIMESTAMP WITH TIME ZONE
 | EXTRACT(timeUnit FROM datetime) | Extracts and returns the value of a specified datetime field from a datetime value expression
 | FLOOR(datetime TO timeUnit) | Rounds *datetime* down to *timeUnit*
@@ -1799,8 +1798,8 @@ and `LISTAGG`).
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
-| SOME(condition)                               | Returns true if any condition is true.
-| EVERY(condition)                              | Returns true if all conditions are true.
+| SOME(condition)                               | Returns TRUE if one or more of the values of *condition* is TRUE
+| EVERY(condition)                              | Returns TRUE if all of the values of *condition* are TRUE
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none; integer and binary types are supported
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none; integer and binary types are supported
 | BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none; integer and binary types are supported
@@ -2417,11 +2416,13 @@ To enable an operator table, set the
 [fun]({{ site.baseurl }}/docs/adapter.html#jdbc-connect-string-parameters)
 connect string parameter.
 
-The 'C' (compatibility) column contains value
-'b' for BigQuery ('fun=bigquery' in the connect string),
-'m' for MySQL ('fun=mysql' in the connect string),
-'o' for Oracle ('fun=oracle' in the connect string),
-'p' for PostgreSQL ('fun=postgresql' in the connect string).
+The 'C' (compatibility) column contains value:
+* 'b' for Google BigQuery ('fun=bigquery' in the connect string),
+* 'h' for Apache Hive ('fun=hive' in the connect string),
+* 'm' for MySQL ('fun=mysql' in the connect string),
+* 'o' for Oracle ('fun=oracle' in the connect string),
+* 'p' for PostgreSQL ('fun=postgresql' in the connect string),
+* 's' for Apache Spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2435,7 +2436,7 @@ semantics.
 | m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
 | m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
-| b | CURRENT_DATETIME([timezone])                   | Returns the currenttime as a DATETIME from *timzezone*
+| b | CURRENT_DATETIME([timezone])                   | Returns the current time as a TIMESTAMP from *timezone*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | b | DATE(string)                                   | Equivalent to `CAST(string AS DATE)`
 | b | DATE_FROM_UNIX_DATE(integer)                   | Returns the DATE that is *integer* days after 1970-01-01
@@ -2445,6 +2446,7 @@ semantics.
 | o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
+| b h s | IF(condition, value1, value2)              | Returns *value1* if *condition* is TRUE, *value2* otherwise
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
@@ -2482,7 +2484,7 @@ semantics.
 | b | UNIX_MILLIS(timestamp)                         | Returns the number of milliseconds since 1970-01-01 00:00:00
 | b | UNIX_SECONDS(timestamp)                        | Returns the number of seconds since 1970-01-01 00:00:00
 | b | UNIX_DATE(date)                                | Returns the number of days since 1970-01-01
-| o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied XML
+| o | XMLTRANSFORM(xml, xslt)                        | Applies XSLT transform *xslt* to XML string *xml* and returns the result
 
 Note:
 
