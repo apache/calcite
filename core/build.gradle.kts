@@ -78,7 +78,31 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+}
+
+val mainSourceSet = sourceSets.main.get()
+
+// This creates an extra source set so modules that validate logging behavior can use
+// extra dependencies (e.g. slf4j-test)
+val loggingTest by sourceSets.creating {
+    java.srcDir("src/loggingTest/java")
+    resources.srcDir("src/loggingTest/resources")
+    val testSourceSet = sourceSets.test.get()
+    compileClasspath += mainSourceSet.output.classesDirs + testSourceSet.output.classesDirs
+    runtimeClasspath += mainSourceSet.output + testSourceSet.output.classesDirs
+    dependencies {
+        testImplementation("org.slf4j:slf4j-log4j12")
+    }
+}
+
+configurations {
+    "loggingTestImplementation" {
+        extendsFrom(testImplementation.get())
+    }
+    "loggingTestRuntimeOnly" {
+        extendsFrom(testRuntimeOnly.get())
+    }
 }
 
 // There are users that reuse/extend test code (e.g. Apache Felix)
@@ -98,6 +122,15 @@ tasks.jar {
             textFrom("$projectDir/src/main/codegen")
         }
     }
+}
+
+val testLogging by tasks.registering(Test::class) {
+    testClassesDirs = loggingTest.output.classesDirs
+    classpath = loggingTest.runtimeClasspath
+}
+
+tasks.check {
+    dependsOn(testLogging)
 }
 
 val generatedVersionDir = File(buildDir, "generated/sources/version")
@@ -190,8 +223,8 @@ val integTestAll by tasks.registering() {
     description = "Executes integration JDBC tests for all DBs"
 }
 
-val coreTestClasses = sourceSets.main.get().output
-val coreClasses = sourceSets.main.get().output + coreTestClasses
+val coreTestClasses = mainSourceSet.output
+val coreClasses = mainSourceSet.output + coreTestClasses
 for (db in listOf("h2", "mysql", "oracle", "postgresql")) {
     val task = tasks.register("integTest" + db.capitalize(), Test::class) {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
