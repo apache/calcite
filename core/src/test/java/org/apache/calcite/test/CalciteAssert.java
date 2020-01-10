@@ -35,6 +35,7 @@ import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
@@ -51,6 +52,7 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -78,6 +80,7 @@ import com.google.common.collect.Lists;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import org.apiguardian.api.API;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -111,6 +114,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
 import static org.apache.calcite.util.Util.toLinux;
@@ -1604,6 +1608,105 @@ public class CalciteAssert {
       return explainMatches("", checkResultContains(expected));
     }
 
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(String)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(String expectedPlan) {
+      return explainHookContains(SqlExplainLevel.EXPPLAN_ATTRIBUTES, expectedPlan);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(SqlExplainLevel, Matcher)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(SqlExplainLevel sqlExplainLevel, String expectedPlan) {
+      return explainHookMatches(sqlExplainLevel, containsString(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(String expectedPlan) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, is(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(Matcher<String> planMatcher) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, planMatcher);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(SqlExplainLevel sqlExplainLevel,
+        Matcher<String> planMatcher) {
+      return withHook(Hook.PLAN_BEFORE_IMPLEMENTATION,
+          (RelRoot root) ->
+              assertThat(
+                  "Execution plan for sql " + sql,
+                  RelOptUtil.toString(root.rel, sqlExplainLevel),
+                  compose(planMatcher, Util::toLinux)));
+    }
+
     public final AssertQuery explainMatches(String extra,
         Consumer<ResultSet> checker) {
       return returns("explain plan " + extra + "for " + sql, checker);
@@ -1727,7 +1830,16 @@ public class CalciteAssert {
     }
 
     /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
-     * will be used instead of the SQL string. */
+     * will be used instead of the SQL string.
+     *
+     * <p>Note: if you want to assert the optimized plan, consider using {@code explainHook...}
+     * methods like {@link #explainHookMatches(String)}</p>
+     *
+     * @param relFn a custom factory that creates a RelNode instead of regular sql to rel
+     * @return updated AssertQuery
+     * @see #explainHookContains(String)
+     * @see #explainHookMatches(String)
+     **/
     public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)

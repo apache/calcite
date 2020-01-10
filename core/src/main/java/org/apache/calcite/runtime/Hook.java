@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.util.Holder;
+
+import org.apiguardian.api.API;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,7 +89,15 @@ public enum Hook {
   /** Called with a query that has been generated to send to a back-end system.
    * The query might be a SQL string (for the JDBC adapter), a list of Mongo
    * pipeline expressions (for the MongoDB adapter), et cetera. */
-  QUERY_PLAN;
+  QUERY_PLAN,
+
+  /**
+   * Called when a plan is about to be implemented (e.g. implemented via Enumerable, Bindable,
+   * and so on).
+   * The hook supplies {@link RelRoot} as an argument.
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  PLAN_BEFORE_IMPLEMENTATION;
 
   private final List<Consumer<Object>> handlers =
       new CopyOnWriteArrayList<>();
