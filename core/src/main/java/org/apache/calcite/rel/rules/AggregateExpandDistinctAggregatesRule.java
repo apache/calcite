@@ -403,14 +403,17 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       Aggregate aggregate) {
     final Set<ImmutableBitSet> groupSetTreeSet =
         new TreeSet<>(ImmutableBitSet.ORDERING);
+    final Map<ImmutableBitSet, Integer> groupSetToDistinctAggCallFilterArg = new HashMap<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       if (!aggCall.isDistinct()) {
         groupSetTreeSet.add(aggregate.getGroupSet());
       } else {
-        groupSetTreeSet.add(
+        ImmutableBitSet groupSet =
             ImmutableBitSet.of(aggCall.getArgList())
                 .setIf(aggCall.filterArg, aggCall.filterArg >= 0)
-                .union(aggregate.getGroupSet()));
+                .union(aggregate.getGroupSet());
+        groupSetTreeSet.add(groupSet);
+        groupSetToDistinctAggCallFilterArg.put(groupSet, aggCall.filterArg);
       }
     }
 
@@ -456,10 +459,17 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       final RexNode nodeZ = nodes.remove(nodes.size() - 1);
       for (Map.Entry<ImmutableBitSet, Integer> entry : filters.entrySet()) {
         final long v = groupValue(fullGroupSet, entry.getKey());
-        nodes.add(
-            relBuilder.alias(
-                relBuilder.equals(nodeZ, relBuilder.literal(v)),
-                "$g_" + v));
+        int distinctAggCallFilterArg = remap(fullGroupSet,
+            groupSetToDistinctAggCallFilterArg.getOrDefault(entry.getKey(), -1));
+        RexNode expr = relBuilder.equals(nodeZ, relBuilder.literal(v));
+        if (distinctAggCallFilterArg > -1) {
+          // merge the filter of the distinct aggregate call itself.
+          RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
+          expr = relBuilder.and(expr,
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                  relBuilder.field(distinctAggCallFilterArg)));
+        }
+        nodes.add(relBuilder.alias(expr, "$g_" + v));
       }
       relBuilder.project(nodes);
     }
