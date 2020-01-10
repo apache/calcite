@@ -46,6 +46,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
@@ -328,11 +329,7 @@ class RuleQueue {
   void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
     for (PhaseMatchList matchList : matchListMap.values()) {
-      if (!matchList.names.add(matchName)) {
-        // Identical match has already been added.
-        continue;
-      }
-
+      // If the rule is not required for this phase, ignore it
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
       if (phaseRuleSet != ALL_RULES) {
         String ruleDescription = match.getRule().toString();
@@ -340,6 +337,12 @@ class RuleQueue {
           continue;
         }
       }
+
+      if (!matchList.names.add(matchName)) {
+        // Identical match has already been added.
+        continue;
+      }
+
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
@@ -378,6 +381,9 @@ class RuleQueue {
    * </blockquote>
    */
   double computeImportance(RelSubset subset) {
+    if (true) {
+      return 1.0;
+    }
     double importance;
     if (subset == planner.root) {
       // The root always has importance = 1
@@ -465,13 +471,13 @@ class RuleQueue {
       } else {
         // If we're not tracing, it's not worth the effort of sorting the
         // list to find the minimum.
-        match = null;
-        int bestPos = -1;
-        int i = -1;
-        for (VolcanoRuleMatch match2 : matchList) {
-          ++i;
-          if (match == null
-              || MATCH_COMPARATOR.compare(match2, match) < 0) {
+        match = matchList.get(0);
+        int bestPos = 0;
+        for (int i = 1; i < matchList.size(); i++) {
+          VolcanoRuleMatch match2 = matchList.get(i);
+          final int newRels = planner.compareMatches(match2, match);
+          if (newRels < 0
+              || newRels == 0 && ThreadLocalRandom.current().nextBoolean()) {
             bestPos = i;
             match = match2;
           }

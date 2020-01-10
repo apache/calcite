@@ -81,6 +81,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -202,6 +203,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * are merged. Tells us whether anything is going on.
    */
   private int registerCount;
+
+  private RuleStatisticsHolder ruleStatisticsHolder = new RuleStatisticsHolder();
 
   /**
    * Listener for this planner, or null if none set.
@@ -433,6 +436,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.materializations.clear();
     this.latticeByName.clear();
     this.provenanceMap.clear();
+    this.ruleStatisticsHolder.clear();
   }
 
   public List<RelOptRule> getRules() {
@@ -632,12 +636,28 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           break;
         }
 
+        final int relsBefore = mapDigestToRel.size();
+        final int setsBefore = allSets.size();
+        final int setsChurnBefore = nextSetId;
+        final int registerCountBefore = registerCount;
+
         assert match.getRule().matches(match);
         match.onMatch();
 
         // The root may have been merged with another
         // subset. Find the new root subset.
         root = canonize(root);
+
+        final int relsAfter = mapDigestToRel.size();
+        final int setsAfter = allSets.size();
+        final int setsChurnAfter = nextSetId;
+        final int registerCountAfter = registerCount;
+        ruleStatisticsHolder.onComplete(
+            match,
+            relsAfter - relsBefore,
+            setsAfter - setsBefore,
+            setsChurnAfter - setsChurnBefore,
+            registerCountAfter - registerCountBefore);
       }
 
       ruleQueue.phaseCompleted(phase);
@@ -659,6 +679,28 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
     return cheapest;
+  }
+
+  int compareMatches(VolcanoRuleCall call, VolcanoRuleCall call2) {
+    final RuleStatistics stats = ruleStatisticsHolder.get(call);
+    final RuleStatistics stats2 = ruleStatisticsHolder.get(call2);
+    if (stats == null && stats2 == null) {
+      // Both rules are unexplored, pick a random one
+      return ThreadLocalRandom.current().nextBoolean() ? -1 : 1;
+    }
+    if (stats == null) {
+      if (stats2.reduces()) {
+        return 1;
+      }
+      return -1;
+    }
+    if (stats2 == null) {
+      if (stats.reduces()) {
+        return -1;
+      }
+      return 1;
+    }
+    return stats.compareTo(stats2);
   }
 
   /** Informs {@link JaninoRelMetadataProvider} about the different kinds of
