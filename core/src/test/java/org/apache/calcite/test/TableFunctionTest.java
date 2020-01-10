@@ -441,6 +441,17 @@ public class TableFunctionTest {
     with().query(q).returnsUnordered("C=7");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3364">[CALCITE-3364]
+   * Can't group table function result due to a type cast error if table function
+   * returns a row with a single value</a>. */
+  @Test public void testUserDefinedTableFunction9() {
+    final String q = "select \"N\" + 1 as c\n"
+        + "from table(\"s\".\"fibonacci2\"(3))\n"
+        + "group by \"N\"";
+    with().query(q).returnsUnordered("C=2\nC=3\nC=4");
+  }
+
   @Test public void testCrossApply() {
     final String q1 = "select *\n"
         + "from (values 2, 5) as t (c)\n"
