@@ -28,6 +28,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -81,18 +83,26 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final RelNode left = newInputs.get(0);
     final RelNode right = newInputs.get(1);
     final RelOptCluster cluster = join.getCluster();
+    RelNode newRel;
 
     RelTraitSet traitSet = join.getTraitSet()
         .replace(EnumerableConvention.INSTANCE);
     if (!collations.isEmpty()) {
       traitSet = traitSet.replace(collations);
     }
-    return new EnumerableMergeJoin(cluster,
+    newRel = new EnumerableMergeJoin(cluster,
         traitSet,
         left,
         right,
-        join.getCondition(),
+        info.getEquiCondition(left, right, cluster.getRexBuilder()),
         join.getVariablesSet(),
         join.getJoinType());
+    if (!info.isEqui()) {
+      RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
+          info.nonEquiConditions);
+      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
+          newRel, nonEqui);
+    }
+    return newRel;
   }
 }
