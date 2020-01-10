@@ -1222,6 +1222,7 @@ comp:
 | numeric1 % numeric2       | As *MOD(numeric1, numeric2)* (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPercentRemainderAllowed--))
 | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | ABS(numeric)              | Returns the absolute value of *numeric*
+| BIT_NOT(value)            | Returns the bitwise NOT of non-null *numeric*
 | MOD(numeric1, numeric2)   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
 | SQRT(numeric)             | Returns the square root of *numeric*
 | LN(numeric)               | Returns the natural logarithm (base *e*) of *numeric*
@@ -1772,7 +1773,6 @@ and `LISTAGG`).
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none
-| BIT_NOT( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise NOT of all non-null input values, or null if none
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none
 | BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
