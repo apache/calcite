@@ -62,7 +62,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-@Tag("slow")
 public class LatticeSuggesterTest {
 
   /** Some basic query patterns on the Scott schema with "EMP" and "DEPT"
@@ -242,6 +241,7 @@ public class LatticeSuggesterTest {
     };
   }
 
+  @Tag("slow")
   @Test public void testSharedSnowflake() throws Exception {
     final Tester t = new Tester().foodmart();
     // foodmart query 5827 (also 5828, 5830, 5832) uses the "region" table
@@ -393,10 +393,12 @@ public class LatticeSuggesterTest {
     }
   }
 
+  @Tag("slow")
   @Test public void testFoodMartAll() throws Exception {
     checkFoodMartAll(false);
   }
 
+  @Tag("slow")
   @Test public void testFoodMartAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
