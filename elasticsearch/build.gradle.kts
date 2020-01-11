@@ -59,5 +59,5 @@ dependencies {
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":core", "testClasses"))
     testRuntimeOnly("net.java.dev.jna:jna")
-    testRuntimeOnly("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

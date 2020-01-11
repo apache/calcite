@@ -71,13 +71,16 @@ dependencies {
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
     testImplementation("org.apache.commons:commons-pool2")
+    testImplementation("log4j:log4j") {
+        because("SqlHintsConverterTest needs to implement a MockAppender")
+    }
     testImplementation("org.hsqldb:hsqldb")
     testImplementation("org.incava:java-diff")
     testImplementation("sqlline:sqlline")
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }
 
 // There are users that reuse/extend test code (e.g. Apache Felix)
