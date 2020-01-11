@@ -46,6 +46,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Priority queue of relexps whose rules have not been called, and rule-matches
@@ -300,6 +301,9 @@ class RuleQueue {
    */
   double getImportance(RelSubset rel) {
     assert rel != null;
+    if (true) {
+      return 1;
+    }
 
     double importance = 0;
     final RelSet set = planner.getSet(rel);
@@ -471,7 +475,7 @@ class RuleQueue {
         for (VolcanoRuleMatch match2 : matchList) {
           ++i;
           if (match == null
-              || MATCH_COMPARATOR.compare(match2, match) < 0) {
+              || ThreadLocalRandom.current().nextBoolean()) {
             bestPos = i;
             match = match2;
           }

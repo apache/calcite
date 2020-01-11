@@ -96,6 +96,9 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
    * @return importance of this rule match
    */
   double computeImportance() {
+    if (true) {
+      return 1;
+    }
     assert rels[0] != null;
     RelSubset subset = volcanoPlanner.getSubset(rels[0]);
     double importance = 0;
