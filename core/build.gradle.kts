@@ -80,7 +80,7 @@ dependencies {
     testImplementation(kotlin("stdlib-jdk8"))
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.slf4j:slf4j-log4j12")
+    testRuntimeOnly("org.slf4j:slf4j-log4j12")
 }
 
 // There are users that reuse/extend test code (e.g. Apache Felix)
