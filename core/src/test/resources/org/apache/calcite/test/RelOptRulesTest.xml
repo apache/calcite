@@ -1155,22 +1155,21 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($3)], EXPR$2=[MIN($4)], EXPR$3=[COUNT(
     </TestCase>
     <TestCase name="testDistinctWithFilterWithoutGroupBy">
         <Resource name="sql">
-            <![CDATA[SELECT SUM(comm), COUNT(DISTINCT comm),
-COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+            <![CDATA[SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
 FROM emp]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $0)], EXPR$2=[COUNT(DISTINCT $1) FILTER $2])
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER $2])
   LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[MIN($3) FILTER $6], EXPR$1=[COUNT($0) FILTER $4], EXPR$2=[COUNT($1) FILTER $5])
-  LogicalProject(COMM=[$0], SAL=[$1], $f2=[$2], EXPR$0=[$3], $g_3=[=($4, 3)], $g_4=[AND(=($4, 4), IS TRUE($2))], $g_7=[=($4, 7)])
-    LogicalAggregate(group=[{0, 1, 2}], groups=[[{0}, {1, 2}, {}]], EXPR$0=[SUM($0)], $g=[GROUPING($0, $1, $2)])
+LogicalAggregate(group=[{}], EXPR$0=[MIN($1) FILTER $3], EXPR$1=[COUNT($0) FILTER $2])
+  LogicalProject(SAL=[$0], EXPR$0=[$2], $g_0=[AND(=($3, 0), IS TRUE($1))], $g_3=[=($3, 3)])
+    LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {}]], EXPR$0=[SUM($0)], $g=[GROUPING($1, $2)])
       LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1178,24 +1177,23 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($3) FILTER $6], EXPR$1=[COUNT($0) FILTE
     </TestCase>
     <TestCase name="testDistinctWithFilterAndGroupBy">
         <Resource name="sql">
-            <![CDATA[SELECT deptno, SUM(comm), COUNT(DISTINCT comm),
-COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
+            <![CDATA[SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)
 FROM emp
 GROUP BY deptno]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT(DISTINCT $1)], EXPR$3=[COUNT(DISTINCT $2) FILTER $3])
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT(DISTINCT $2) FILTER $3])
   LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2], EXPR$3=[$3])
-  LogicalAggregate(group=[{0}], EXPR$1=[MIN($4) FILTER $7], EXPR$2=[COUNT($1) FILTER $5], EXPR$3=[COUNT($2) FILTER $6])
-    LogicalProject(DEPTNO=[$0], COMM=[$1], SAL=[$2], $f3=[$3], EXPR$1=[$4], $g_3=[=($5, 3)], $g_4=[AND(=($5, 4), IS TRUE($3))], $g_7=[=($5, 7)])
-      LogicalAggregate(group=[{0, 1, 2, 3}], groups=[[{0, 1}, {0, 2, 3}, {0}]], EXPR$1=[SUM($1)], $g=[GROUPING($0, $1, $2, $3)])
+LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2])
+  LogicalAggregate(group=[{0}], EXPR$1=[MIN($2) FILTER $4], EXPR$2=[COUNT($1) FILTER $3])
+    LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$1=[$3], $g_0=[AND(=($4, 0), IS TRUE($2))], $g_3=[=($4, 3)])
+      LogicalAggregate(group=[{0, 2, 3}], groups=[[{0, 2, 3}, {0}]], EXPR$1=[SUM($1)], $g=[GROUPING($0, $2, $3)])
         LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

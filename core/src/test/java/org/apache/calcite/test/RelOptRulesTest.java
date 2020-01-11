@@ -1483,8 +1483,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testDistinctWithFilterWithoutGroupBy() {
-    final String sql = "SELECT SUM(comm), COUNT(DISTINCT comm),\n"
-        + "COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
+    final String sql = "SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
         + "FROM emp";
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
@@ -1493,8 +1492,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testDistinctWithFilterAndGroupBy() {
-    final String sql = "SELECT deptno, SUM(comm), COUNT(DISTINCT comm),\n"
-        + "COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
+    final String sql = "SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
         + "FROM emp\n"
         + "GROUP BY deptno";
     HepProgram program = new HepProgramBuilder()
