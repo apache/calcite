@@ -16,16 +16,13 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Aggregate.Group;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -403,22 +400,27 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       Aggregate aggregate) {
     final Set<ImmutableBitSet> groupSetTreeSet =
         new TreeSet<>(ImmutableBitSet.ORDERING);
-    final Map<ImmutableBitSet, Integer> groupSetToDistinctAggCallFilterArg = new HashMap<>();
-    final Set<Integer> distinctFilterArg = new HashSet<>();
+    // groupSet to distinct filter arg map,
+    // filterArg will be -1 for groupSet of non-distinct agg.
+    final Map<ImmutableBitSet, Set<Integer>> distinctFilterArgMap = new HashMap<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
+      ImmutableBitSet groupSet;
+      int filterArg;
       if (!aggCall.isDistinct()) {
+        filterArg = -1;
+        groupSet = aggregate.getGroupSet();
         groupSetTreeSet.add(aggregate.getGroupSet());
       } else {
-        ImmutableBitSet groupSet =
+        filterArg = aggCall.filterArg;
+        groupSet =
             ImmutableBitSet.of(aggCall.getArgList())
-                .setIf(aggCall.filterArg, aggCall.filterArg >= 0)
+                .setIf(filterArg, filterArg >= 0)
                 .union(aggregate.getGroupSet());
         groupSetTreeSet.add(groupSet);
-        groupSetToDistinctAggCallFilterArg.put(groupSet, aggCall.filterArg);
-        if (aggCall.filterArg > -1) {
-          distinctFilterArg.add(aggCall.filterArg);
-        }
       }
+      Set<Integer> filterList = distinctFilterArgMap
+          .computeIfAbsent(groupSet, g -> new HashSet<>());
+      filterList.add(filterArg);
     }
 
     final ImmutableList<ImmutableBitSet> groupSets =
@@ -440,17 +442,21 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     relBuilder.push(aggregate.getInput());
     final int groupCount = fullGroupSet.cardinality();
 
-    final Map<ImmutableBitSet, Integer> filters = new LinkedHashMap<>();
     // get the base ordinal for filter args for different groupSet.
-    final int z = groupCount + distinctAggCalls.size() - distinctFilterArg.size();
+    final Map<Pair<ImmutableBitSet, Integer>, Integer> filters = new LinkedHashMap<>();
+    int z = groupCount + distinctAggCalls.size();
+    for (ImmutableBitSet groupSet: groupSets) {
+      Set<Integer> filterArgList = distinctFilterArgMap.get(groupSet);
+      for (Integer filterArg: filterArgList) {
+        filters.put(Pair.of(groupSet, filterArg), z);
+        z += 1;
+      }
+    }
+
     distinctAggCalls.add(
         AggregateCall.create(SqlStdOperatorTable.GROUPING, false, false, false,
             ImmutableIntList.copyOf(fullGroupSet), -1, RelCollations.EMPTY,
             groupSets.size(), relBuilder.peek(), null, "$g"));
-    for (Ord<ImmutableBitSet> groupSet : Ord.zip(groupSets)) {
-      filters.put(groupSet.e, z + groupSet.i);
-    }
-
     relBuilder.aggregate(relBuilder.groupKey(fullGroupSet, groupSets),
         distinctAggCalls);
 
@@ -459,29 +465,25 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
     if (!filters.isEmpty()) {
       final List<RexNode> nodes = new ArrayList<>(relBuilder.fields());
       final RexNode nodeZ = nodes.remove(nodes.size() - 1);
-      Set<RexNode> filterExprs = new HashSet<>();
-      for (Map.Entry<ImmutableBitSet, Integer> entry : filters.entrySet()) {
-        final long v = groupValue(fullGroupSet, entry.getKey());
-        int distinctAggCallFilterArg = remap(fullGroupSet,
-            groupSetToDistinctAggCallFilterArg.getOrDefault(entry.getKey(), -1));
+      for (Map.Entry<Pair<ImmutableBitSet, Integer>, Integer> entry : filters.entrySet()) {
+        final long v = groupValue(fullGroupSet, entry.getKey().left);
+        int distinctFilterArg = remap(fullGroupSet, entry.getKey().right);
         RexNode expr = relBuilder.equals(nodeZ, relBuilder.literal(v));
-        if (distinctAggCallFilterArg > -1) {
+        if (distinctFilterArg > -1) {
           // merge the filter of the distinct aggregate call itself.
           RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
-          RexNode filterExpr = relBuilder.field(distinctAggCallFilterArg);
           expr = relBuilder.and(expr,
-              rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE, filterExpr));
-          filterExprs.add(filterExpr);
+              rexBuilder.makeCall(SqlStdOperatorTable.IS_TRUE,
+                  relBuilder.field(distinctFilterArg)));
         }
-        nodes.add(relBuilder.alias(expr, "$g_" + v));
+        nodes.add(
+            relBuilder.alias(expr,
+            "$g_" + v + (distinctFilterArg < 0 ? "" : "_" + distinctFilterArg)));
       }
-      // remove useless filter expressions for distinct aggregate call,
-      // as they are already merged with filter expressions for groupSet.
-      nodes.removeAll(filterExprs);
       relBuilder.project(nodes);
     }
 
-    int x = groupCount - distinctFilterArg.size();
+    int x = groupCount;
     final List<AggregateCall> newCalls = new ArrayList<>();
     for (AggregateCall aggCall : aggregate.getAggCallList()) {
       final int newFilterArg;
@@ -490,15 +492,14 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
       if (!aggCall.isDistinct()) {
         aggregation = SqlStdOperatorTable.MIN;
         newArgList = ImmutableIntList.of(x++);
-        newFilterArg = filters.get(aggregate.getGroupSet());
+        newFilterArg = filters.get(Pair.of(aggregate.getGroupSet(), -1));
       } else {
         aggregation = aggCall.getAggregation();
         newArgList = remap(fullGroupSet, aggCall.getArgList());
-        newFilterArg =
-            filters.get(
-                ImmutableBitSet.of(aggCall.getArgList())
-                    .setIf(aggCall.filterArg, aggCall.filterArg >= 0)
-                    .union(aggregate.getGroupSet()));
+        final ImmutableBitSet groupSet = ImmutableBitSet.of(aggCall.getArgList())
+            .setIf(aggCall.filterArg, aggCall.filterArg >= 0)
+            .union(aggregate.getGroupSet());
+        newFilterArg = filters.get(Pair.of(groupSet, aggCall.filterArg));
       }
       final AggregateCall newCall =
           AggregateCall.create(aggregation, false,
