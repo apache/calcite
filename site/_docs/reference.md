@@ -2287,11 +2287,11 @@ semantics.
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
 | m | JSON_PRETTY(jsonValue)                         | Returns a pretty-printing of *jsonValue*
 | m | JSON_LENGTH(jsonValue [, path ])               | Returns a integer indicating the length of *jsonValue*
-| m | JSON_INSERT(jsonValue, path, val[, path, val])  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
+| m | JSON_INSERT(jsonValue, path, val[, path, val]*)  | Returns a JSON document insert a data of *jsonValue*, *path*, *val*
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
-| m | JSON_REPLACE(jsonValue, path, val[, path, val])  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
-| m | JSON_SET(jsonValue, path, val[, path, val])  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
+| m | JSON_REPLACE(jsonValue, path, val[, path, val]*)  | Returns a JSON document replace a data of *jsonValue*, *path*, *val*
+| m | JSON_SET(jsonValue, path, val[, path, val]*)  | Returns a JSON document set a data of *jsonValue*, *path*, *val*
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*

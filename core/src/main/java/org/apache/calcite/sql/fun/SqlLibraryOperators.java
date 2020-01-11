@@ -170,13 +170,13 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction JSON_STORAGE_SIZE = new SqlJsonStorageSizeFunction();
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_INSERT = new SqlJsonInsertFunction();
+  public static final SqlFunction JSON_INSERT = new SqlJsonInsertFunction("JSON_INSERT");
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_REPLACE = new SqlJsonReplaceFunction();
+  public static final SqlFunction JSON_REPLACE = new SqlJsonReplaceFunction("JSON_REPLACE");
 
   @LibraryOperator(libraries = {MYSQL})
-  public static final SqlFunction JSON_SET = new SqlJsonSetFunction();
+  public static final SqlFunction JSON_SET = new SqlJsonSetFunction("JSON_SET");
 
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
