@@ -8810,6 +8810,26 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("bit_and(x)", values, 2, 0);
   }
 
+  @Test public void testBitCountFunc() {
+    SqlTester tester = tester(SqlLibrary.MYSQL);
+    tester.checkFails("bit_count(^*^)", "Unknown identifier '\\*'", false);
+    tester.checkType("bit_count(1)", "INTEGER NOT NULL");
+    tester.checkType("bit_count(CAST(2 AS TINYINT))", "TINYINT NOT NULL");
+    tester.checkType("bit_count(CAST(2 AS SMALLINT))", "SMALLINT NOT NULL");
+    tester.checkFails("^bit_count(1.2)^",
+        "Cannot apply 'BIT_COUNT' to arguments of type 'BIT_COUNT\\(<DECIMAL\\(2, 1\\)>\\)'\\. Supported form\\(s\\): 'BIT_COUNT\\(<INTEGER>\\)'",
+        false);
+    tester.checkFails(
+        "^bit_count()^",
+        "Invalid number of arguments to function 'BIT_COUNT'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^bit_count(1, 2)^",
+        "Invalid number of arguments to function 'BIT_COUNT'. Was expecting 1 arguments",
+        false);
+    tester.checkScalar("bit_count(8)", "1", "INTEGER NOT NULL");
+  }
+
   @Test public void testBitOrFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_OR, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_or(^*^)", "Unknown identifier '\\*'", false);
