@@ -157,6 +157,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     this.fastBailOut = fastBailOut;
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    return !call.getPlanner().getMaterializations().isEmpty();
+  }
+
   /**
    * Rewriting logic is based on "Optimizing Queries Using Materialized Views:
    * A Practical, Scalable Solution" by Goldstein and Larson.
