@@ -327,17 +327,17 @@ class RuleQueue {
   void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
     for (PhaseMatchList matchList : matchListMap.values()) {
-      if (!matchList.names.add(matchName)) {
-        // Identical match has already been added.
-        continue;
-      }
-
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
       if (phaseRuleSet != ALL_RULES) {
         String ruleDescription = match.getRule().toString();
         if (!phaseRuleSet.contains(ruleDescription)) {
           continue;
         }
+      }
+
+      if (!matchList.names.add(matchName)) {
+        // Identical match has already been added.
+        continue;
       }
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
