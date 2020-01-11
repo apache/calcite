@@ -94,6 +94,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_NOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
@@ -130,7 +131,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ASIN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_NOT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
@@ -394,7 +394,6 @@ public class RexImpTable {
     defineMethod(ASIN, "asin", NullPolicy.STRICT);
     defineMethod(ATAN, "atan", NullPolicy.STRICT);
     defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
-    defineMethod(BIT_NOT, BuiltInMethod.BIT_NOT.method, NullPolicy.STRICT);
     defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
     defineMethod(COS, "cos", NullPolicy.STRICT);
     defineMethod(COT, "cot", NullPolicy.STRICT);
@@ -407,6 +406,9 @@ public class RexImpTable {
     defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
     map.put(PI, (translator, call, nullAs) -> Expressions.constant(Math.PI));
+
+    // bitwise
+    defineMethod(BIT_NOT, BuiltInMethod.BIT_NOT.method, NullPolicy.STRICT);
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,

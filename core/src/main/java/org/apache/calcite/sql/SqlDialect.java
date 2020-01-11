@@ -100,7 +100,6 @@ public class SqlDialect {
           .add(SqlStdOperatorTable.AND)
           .add(SqlStdOperatorTable.ASIN)
           .add(SqlStdOperatorTable.BETWEEN)
-          .add(SqlStdOperatorTable.BIT_NOT)
           .add(SqlStdOperatorTable.CASE)
           .add(SqlStdOperatorTable.CAST)
           .add(SqlStdOperatorTable.CEIL)

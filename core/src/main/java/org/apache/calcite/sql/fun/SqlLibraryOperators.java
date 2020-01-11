@@ -255,6 +255,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction BIT_NOT =
+      new SqlFunction(
+          "BIT_NOT",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.ARG0,
+          null,
+          OperandTypes.INTEGER,
+          SqlFunctionCategory.NUMERIC);
+
   /** The "CONCAT(arg, ...)" function that concatenates strings.
    * For example, "CONCAT('a', 'bc', 'd')" returns "abcd". */
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})

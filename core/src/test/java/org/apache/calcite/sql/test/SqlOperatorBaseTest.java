@@ -8811,7 +8811,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testBitNotFunc() {
-    tester.setFor(SqlStdOperatorTable.BIT_NOT);
+    SqlTester tester = tester(SqlLibrary.MYSQL);
     tester.checkFails("bit_not(^*^)", "Unknown identifier '\\*'", false);
     tester.checkType("bit_not(1)", "INTEGER NOT NULL");
     tester.checkType("bit_not(CAST(2 AS TINYINT))", "TINYINT NOT NULL");

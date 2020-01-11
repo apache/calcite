@@ -1222,7 +1222,6 @@ comp:
 | numeric1 % numeric2       | As *MOD(numeric1, numeric2)* (only in certain [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#isPercentRemainderAllowed--))
 | POWER(numeric1, numeric2) | Returns *numeric1* raised to the power of *numeric2*
 | ABS(numeric)              | Returns the absolute value of *numeric*
-| BIT_NOT(value)            | Returns the bitwise NOT of non-null *numeric*
 | MOD(numeric1, numeric2)   | Returns the remainder (modulus) of *numeric1* divided by *numeric2*. The result is negative only if *numeric1* is negative
 | SQRT(numeric)             | Returns the square root of *numeric*
 | LN(numeric)               | Returns the natural logarithm (base *e*) of *numeric*
@@ -2295,6 +2294,7 @@ semantics.
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
+| m | BIT_NOT(value)                                 | Returns the bitwise NOT of non-null *numeric*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | m o p | CONCAT(string [, string ]*)                | Concatenates two or more strings
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
