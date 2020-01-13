@@ -48,7 +48,8 @@ public class ReflectiveCallNotNullImplementor implements NotNullImplementor {
     translatedOperands =
         EnumUtils.fromInternal(method.getParameterTypes(), translatedOperands, method.isVarArgs());
     translatedOperands =
-        EnumUtils.convertAssignableTypes(method.getParameterTypes(), translatedOperands);
+        EnumUtils.convertAssignableTypes(method.getParameterTypes(), translatedOperands,
+            method.isVarArgs());
     final Expression callExpr;
     if ((method.getModifiers() & Modifier.STATIC) != 0) {
       callExpr = Expressions.call(method, translatedOperands);

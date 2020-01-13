@@ -575,23 +575,37 @@ public class EnumUtils {
    * @return Input expressions with probable type conversion
    */
   static List<Expression> convertAssignableTypes(Class<?>[] targetTypes,
-      List<Expression> arguments) {
+      List<Expression> arguments, boolean varArgs) {
     final List<Expression> list = new ArrayList<>();
-    if (targetTypes.length == arguments.size()) {
-      for (int i = 0; i < arguments.size(); i++) {
-        list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
+
+    if (varArgs) {
+      Class<?> varTargetType = targetTypes[targetTypes.length - 1];
+      Preconditions.checkArgument(varTargetType != null && varTargetType.isArray(),
+          "the var target type should not null and it must be an array.");
+
+      Class<?> varArgsType = varTargetType.getComponentType();
+      for (int i = 0; i < list.size(); i++) {
+        list.add(
+            convertAssignableType(list.get(i),
+                i < targetTypes.length - 1 ? targetTypes[i] : varArgsType));
       }
     } else {
-      int j = 0;
-      for (Expression argument: arguments) {
-        Class<?> type;
-        if (!targetTypes[j].isArray()) {
-          type = targetTypes[j];
-          j++;
-        } else {
-          type = targetTypes[j].getComponentType();
+      if (targetTypes.length == arguments.size()) {
+        for (int i = 0; i < arguments.size(); i++) {
+          list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
         }
-        list.add(convertAssignableType(argument, type));
+      } else {
+        int j = 0;
+        for (Expression argument : arguments) {
+          Class<?> type;
+          if (!targetTypes[j].isArray()) {
+            type = targetTypes[j];
+            j++;
+          } else {
+            type = targetTypes[j].getComponentType();
+          }
+          list.add(convertAssignableType(argument, type));
+        }
       }
     }
     return list;

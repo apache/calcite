@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
@@ -196,7 +195,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || node.getKind() == SqlKind.CAST
-            && isNull(((SqlCall) node).operand(0));
+        && isNull(((SqlCall) node).operand(0));
   }
 
   /**

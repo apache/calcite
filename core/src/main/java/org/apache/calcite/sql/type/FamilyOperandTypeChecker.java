@@ -40,9 +40,6 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     ImplicitCastOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
-
-  private static final int MAX_PARAMETER_COUNT = 1200;
-
   protected final ImmutableList<SqlTypeFamily> families;
   protected final Predicate<Integer> optional;
   protected final boolean varArgs;
@@ -178,7 +175,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
   }
 
   public SqlOperandCountRange getOperandCountRange() {
-    final int max = varArgs ? MAX_PARAMETER_COUNT : families.size();
+    final int max = varArgs ? -1 : families.size();
     int min = families.size();
     while (min > 0 && optional.test(min - 1)) {
       --min;
