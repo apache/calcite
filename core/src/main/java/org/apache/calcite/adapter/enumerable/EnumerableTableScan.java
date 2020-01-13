@@ -66,7 +66,7 @@ public class EnumerableTableScan
    * <p>Use {@link #create} unless you know what you are doing. */
   public EnumerableTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Class elementType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     assert getConvention() instanceof EnumerableConvention;
     this.elementType = elementType;
     assert canHandle(table)

@@ -171,16 +171,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     }
   }
 
-  /**
-   * Create an Aggregate.
-   *
-   * @param cluster  Cluster
-   * @param traitSet Trait set
-   * @param input    Input relational expression
-   * @param groupSet Bit set of grouping fields
-   * @param groupSets List of all grouping sets; null for just {@code groupSet}
-   * @param aggCalls Collection of calls to aggregate functions
-   */
+  @Deprecated // to be removed before 2.0
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -191,9 +182,6 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     this(cluster, traitSet, new ArrayList<>(), input, groupSet, groupSets, aggCalls);
   }
 
-  /**
-   * Creates an Aggregate.
-   */
   @Deprecated // to be removed before 2.0
   protected Aggregate(
       RelOptCluster cluster,
@@ -203,7 +191,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    this(cluster, traits, new ArrayList<>(), child, groupSet, groupSets, aggCalls);
+    this(cluster, traits, ImmutableList.of(), child, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 

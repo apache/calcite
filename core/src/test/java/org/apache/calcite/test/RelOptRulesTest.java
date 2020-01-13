@@ -6199,7 +6199,7 @@ public class RelOptRulesTest extends RelOptTestBase {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     }
 
     public MyProject copy(RelTraitSet traitSet, RelNode input,

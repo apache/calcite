@@ -27,6 +27,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
@@ -49,7 +51,7 @@ public class EnumerableProject extends Project implements EnumerableRel {
       RelNode input,
       List<? extends RexNode> projects,
       RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() instanceof EnumerableConvention;
   }
 

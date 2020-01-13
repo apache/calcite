@@ -29,6 +29,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +41,7 @@ import java.util.List;
 public class MongoProject extends Project implements MongoRel {
   public MongoProject(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }

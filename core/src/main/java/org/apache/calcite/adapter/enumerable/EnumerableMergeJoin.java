@@ -61,7 +61,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       RexNode condition,
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);

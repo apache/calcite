@@ -1243,7 +1243,7 @@ public class PlannerTest {
 
     MockJdbcTableScan(RelOptCluster cluster, RelOptTable table,
         JdbcConvention jdbcConvention) {
-      super(cluster, cluster.traitSetOf(jdbcConvention), table);
+      super(cluster, cluster.traitSetOf(jdbcConvention), ImmutableList.of(), table);
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

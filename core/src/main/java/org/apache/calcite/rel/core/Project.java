@@ -46,7 +46,6 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -91,24 +90,16 @@ public abstract class Project extends SingleRel implements Hintable {
     assert isValid(Litmus.THROW, null);
   }
 
-  /**
-   * Creates a Project.
-   *
-   * @param cluster  Cluster that this relational expression belongs to
-   * @param traits   Traits of this relational expression
-   * @param input    Input relational expression
-   * @param projects List of expressions for the input columns
-   * @param rowType  Output row type
-   */
+  @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traits,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    this(cluster, traits, new ArrayList<>(), input, projects, rowType);
+    this(cluster, traits, ImmutableList.of(), input, projects, rowType);
   }
 
   @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType, int flags) {
-    this(cluster, traitSet, input, projects, rowType);
+    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     Util.discard(flags);
   }
 
@@ -118,6 +109,7 @@ public abstract class Project extends SingleRel implements Hintable {
   protected Project(RelInput input) {
     this(input.getCluster(),
         input.getTraitSet(),
+        ImmutableList.of(),
         input.getInput(),
         input.getExpressionList("exprs"),
         input.getRowType("exprs", "fields"));

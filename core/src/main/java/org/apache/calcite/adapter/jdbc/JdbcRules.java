@@ -376,7 +376,7 @@ public class JdbcRules {
         RelNode left, RelNode right, RexNode condition,
         Set<CorrelationId> variablesSet, JoinRelType joinType)
         throws InvalidRelException {
-      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+      super(cluster, traitSet, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     }
 
     @Deprecated // to be removed before 2.0
@@ -557,7 +557,7 @@ public class JdbcRules {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
       assert getConvention() instanceof JdbcConvention;
     }
 
@@ -695,7 +695,7 @@ public class JdbcRules {
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
