@@ -7199,6 +7199,7 @@ public class JdbcTest {
 
   @Test public void testJsonInsert() {
     CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
         .query("SELECT JSON_INSERT(v, '$.a', 10, '$.c', '[1]') AS c1\n"
             + ",JSON_INSERT(v, '$', 10, '$.c', '[1]') AS c2\n"
             + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
@@ -7208,6 +7209,7 @@ public class JdbcTest {
 
   @Test public void testJsonReplace() {
     CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
         .query("SELECT JSON_REPLACE(v, '$.a', 10, '$.c', '[1]') AS c1\n"
             + ",JSON_REPLACE(v, '$', 10, '$.c', '[1]') AS c2\n"
             + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"
@@ -7217,6 +7219,7 @@ public class JdbcTest {
 
   @Test public void testJsonSet() {
     CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
         .query("SELECT JSON_SET(v, '$.a', 10, '$.c', '[1]') AS c1\n"
             + ",JSON_SET(v, '$', 10, '$.c', '[1]') AS c2\n"
             + "FROM (VALUES ('{\"a\": 1,\"b\":[2]}')) AS t(v)\n"

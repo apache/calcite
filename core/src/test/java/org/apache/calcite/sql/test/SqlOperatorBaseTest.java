@@ -5166,6 +5166,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testJsonInsert() {
+    SqlTester tester = tester(SqlLibrary.MYSQL);
     tester.checkString("json_insert('10', '$.a', 10, '$.c', '[true]')",
         "10", "VARCHAR(2000)");
     tester.checkString("json_insert('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
@@ -5184,6 +5185,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testJsonReplace() {
+    SqlTester tester = tester(SqlLibrary.MYSQL);
     tester.checkString("json_replace('10', '$.a', 10, '$.c', '[true]')",
         "10", "VARCHAR(2000)");
     tester.checkString("json_replace('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",
@@ -5202,6 +5204,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test public void testJsonSet() {
+    SqlTester tester = tester(SqlLibrary.MYSQL);
     tester.checkString("json_set('10', '$.a', 10, '$.c', '[true]')",
         "10", "VARCHAR(2000)");
     tester.checkString("json_set('{ \"a\": 1, \"b\": [2]}', '$.a', 10, '$.c', '[true]')",

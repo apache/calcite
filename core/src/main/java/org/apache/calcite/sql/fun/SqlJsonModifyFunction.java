@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperandCountRange;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
@@ -45,7 +46,7 @@ public class SqlJsonModifyFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        null,
+        OperandTypes.ANY,
         SqlFunctionCategory.SYSTEM);
   }
 
