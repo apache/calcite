@@ -71,19 +71,15 @@ public final class LogicalTableScan extends TableScan {
     super(cluster, traitSet, hints, table);
   }
 
-  /**
-   * Creates a LogicalTableScan.
-   *
-   * <p>Use {@link #create} unless you know what you're doing.
-   */
+  @Deprecated // to be removed before 2.0
   public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
-    this(cluster, traitSet, new ArrayList<>(), table);
+    this(cluster, traitSet, ImmutableList.of(), table);
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalTableScan(RelOptCluster cluster, RelOptTable table) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), table);
+    this(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), table);
   }
 
   /**

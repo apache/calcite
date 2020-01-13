@@ -36,6 +36,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.BitSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,7 +96,7 @@ public class ProjectWindowTransposeRule extends RelOptRule {
     }
 
     final LogicalProject projectBelowWindow =
-        new LogicalProject(cluster, window.getTraitSet(),
+        new LogicalProject(cluster, window.getTraitSet(), ImmutableList.of(),
             window.getInput(), exps, builder.build());
 
     // Create a new LogicalWindow with necessary inputs only

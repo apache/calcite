@@ -168,7 +168,7 @@ public class TraitPropagationTest {
           false, false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
           sqlBigInt, "cnt");
       RelNode agg = new LogicalAggregate(cluster,
-          cluster.traitSetOf(Convention.NONE), project,
+          cluster.traitSetOf(Convention.NONE), ImmutableList.of(), project,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
 
       final RelNode rootRel = agg;
@@ -297,7 +297,7 @@ public class TraitPropagationTest {
     PhysAgg(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     }
 
     public Aggregate copy(RelTraitSet traitSet, RelNode input,
@@ -317,7 +317,7 @@ public class TraitPropagationTest {
   private static class PhysProj extends Project implements Phys {
     PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
-      super(cluster, traits, child, exps, rowType);
+      super(cluster, traits, ImmutableList.of(), child, exps, rowType);
     }
 
     public static PhysProj create(final RelNode input,

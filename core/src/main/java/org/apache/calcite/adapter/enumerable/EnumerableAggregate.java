@@ -66,7 +66,7 @@ public class EnumerableAggregate extends Aggregate implements EnumerableRel {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() instanceof EnumerableConvention;
 
     for (AggregateCall aggCall : aggCalls) {

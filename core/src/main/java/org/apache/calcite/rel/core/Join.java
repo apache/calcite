@@ -41,7 +41,6 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -116,32 +115,12 @@ public abstract class Join extends BiRel implements Hintable {
     this.hints = ImmutableList.copyOf(hints);
   }
 
-  /**
-   * Creates a Join.
-   *
-   * <p>Note: We plan to change the {@code variablesStopped} parameter to
-   * {@code Set&lt;CorrelationId&gt; variablesSet}
-   * {@link org.apache.calcite.util.Bug#upgrade(String) before version 2.0},
-   * because {@link #getVariablesSet()}
-   * is preferred over {@link #getVariablesStopped()}.
-   * This constructor is not deprecated, for now, because maintaining overloaded
-   * constructors in multiple sub-classes would be onerous.
-   *
-   * @param cluster          Cluster
-   * @param traitSet         Trait set
-   * @param left             Left input
-   * @param right            Right input
-   * @param condition        Join condition
-   * @param joinType         Join type
-   * @param variablesSet     Set variables that are set by the
-   *                         LHS and used by the RHS and are not available to
-   *                         nodes above this Join in the tree
-   */
+  @Deprecated // to be removed before 2.0
   protected Join(
       RelOptCluster cluster, RelTraitSet traitSet, RelNode left,
       RelNode right, RexNode condition, Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    this(cluster, traitSet, new ArrayList<>(), left, right,
+    this(cluster, traitSet, ImmutableList.of(), left, right,
         condition, variablesSet, joinType);
   }
 
@@ -154,7 +133,7 @@ public abstract class Join extends BiRel implements Hintable {
       RexNode condition,
       JoinRelType joinType,
       Set<String> variablesStopped) {
-    this(cluster, traitSet, left, right, condition,
+    this(cluster, traitSet, ImmutableList.of(), left, right, condition,
         CorrelationId.setOf(variablesStopped), joinType);
   }
 

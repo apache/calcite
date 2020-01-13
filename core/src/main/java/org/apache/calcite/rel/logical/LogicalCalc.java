@@ -39,7 +39,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -80,13 +79,13 @@ public final class LogicalCalc extends Calc {
     super(cluster, traitSet, hints, child, program);
   }
 
-  /** Creates a LogicalCalc. */
+  @Deprecated // to be removed before 2.0
   public LogicalCalc(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       RelNode child,
       RexProgram program) {
-    this(cluster, traitSet, Collections.emptyList(), child, program);
+    this(cluster, traitSet, ImmutableList.of(), child, program);
   }
 
   /**
@@ -95,6 +94,7 @@ public final class LogicalCalc extends Calc {
   public LogicalCalc(RelInput input) {
     this(input.getCluster(),
         input.getTraitSet(),
+        ImmutableList.of(),
         input.getInput(),
         RexProgram.create(input));
   }
@@ -106,7 +106,7 @@ public final class LogicalCalc extends Calc {
       RelNode child,
       RexProgram program,
       List<RelCollation> collationList) {
-    this(cluster, traitSet, child, program);
+    this(cluster, traitSet, ImmutableList.of(), child, program);
     Util.discard(collationList);
   }
 
@@ -120,7 +120,7 @@ public final class LogicalCalc extends Calc {
             () -> RelMdCollation.calc(mq, input, program))
         .replaceIf(RelDistributionTraitDef.INSTANCE,
             () -> RelMdDistribution.calc(mq, input, program));
-    return new LogicalCalc(cluster, traitSet, input, program);
+    return new LogicalCalc(cluster, traitSet, ImmutableList.of(), input, program);
   }
 
   //~ Methods ----------------------------------------------------------------

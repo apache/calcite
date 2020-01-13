@@ -181,7 +181,7 @@ public class Bindables {
     BindableTableScan(RelOptCluster cluster, RelTraitSet traitSet,
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
-      super(cluster, traitSet, table);
+      super(cluster, traitSet, ImmutableList.of(), table);
       this.filters = Objects.requireNonNull(filters);
       this.projects = Objects.requireNonNull(projects);
       Preconditions.checkArgument(canHandle(table));
@@ -369,7 +369,7 @@ public class Bindables {
   public static class BindableProject extends Project implements BindableRel {
     public BindableProject(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-      super(cluster, traitSet, input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
       assert getConvention() instanceof BindableConvention;
     }
 
@@ -487,7 +487,8 @@ public class Bindables {
     protected BindableJoin(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode left, RelNode right, RexNode condition,
         Set<CorrelationId> variablesSet, JoinRelType joinType) {
-      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+      super(cluster, traitSet, ImmutableList.of(), left, right,
+          condition, variablesSet, joinType);
     }
 
     @Deprecated // to be removed before 2.0
@@ -630,7 +631,7 @@ public class Bindables {
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof BindableConvention;
 
       for (AggregateCall aggCall : aggCalls) {

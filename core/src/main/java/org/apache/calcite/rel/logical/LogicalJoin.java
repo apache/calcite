@@ -109,7 +109,7 @@ public final class LogicalJoin extends Join {
       RelNode left, RelNode right, RexNode condition, Set<CorrelationId> variablesSet,
       JoinRelType joinType, boolean semiJoinDone,
       ImmutableList<RelDataTypeField> systemFieldList) {
-    this(cluster, traitSet, new ArrayList<>(), left, right, condition,
+    this(cluster, traitSet, ImmutableList.of(), left, right, condition,
         variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
@@ -118,7 +118,7 @@ public final class LogicalJoin extends Join {
       RelNode right, RexNode condition, JoinRelType joinType,
       Set<String> variablesStopped, boolean semiJoinDone,
       ImmutableList<RelDataTypeField> systemFieldList) {
-    this(cluster, traitSet, left, right, condition,
+    this(cluster, traitSet, ImmutableList.of(), left, right, condition,
         CorrelationId.setOf(variablesStopped), joinType, semiJoinDone,
         systemFieldList);
   }
@@ -126,18 +126,18 @@ public final class LogicalJoin extends Join {
   @Deprecated // to be removed before 2.0
   public LogicalJoin(RelOptCluster cluster, RelNode left, RelNode right,
       RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
-        CorrelationId.setOf(variablesStopped), joinType, false,
-        ImmutableList.of());
+    this(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(),
+        left, right, condition, CorrelationId.setOf(variablesStopped),
+        joinType, false, ImmutableList.of());
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalJoin(RelOptCluster cluster, RelNode left, RelNode right,
       RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
       boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), left, right, condition,
-        CorrelationId.setOf(variablesStopped), joinType, semiJoinDone,
-        systemFieldList);
+    this(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(),
+        left, right, condition, CorrelationId.setOf(variablesStopped), joinType,
+        semiJoinDone, systemFieldList);
   }
 
   /**
