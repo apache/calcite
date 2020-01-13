@@ -30,6 +30,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -252,6 +254,13 @@ public class ServerTest {
       int x = s.executeUpdate("insert into w "
           + "values (1, mytype(1, 1))");
       assertThat(x, is(1));
+
+      try (ResultSet r = s.executeQuery("select * from w")) {
+        assertThat(r.next(), is(true));
+        assertThat(r.getInt("i"), is(1));
+        assertArrayEquals(r.getObject("j", Struct.class).getAttributes(), new Object[] {1, 1});
+        assertThat(r.next(), is(false));
+      }
     }
   }
 

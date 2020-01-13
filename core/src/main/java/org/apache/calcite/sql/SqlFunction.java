@@ -292,25 +292,19 @@ public class SqlFunction extends SqlOperator {
           }
         }
 
-        if (function == null) {
-          final SqlFunction x = (SqlFunction) call.getOperator();
-          final SqlIdentifier identifier =
-              Util.first(x.getSqlIdentifier(),
-                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
-          RelDataType type = validator.getCatalogReader().getNamedType(identifier);
-          if (type != null) {
-            function = new SqlTypeConstructorFunction(identifier, type);
-            break validCoercionType;
-          }
+        // check if the identifier represents type
+        final SqlFunction x = (SqlFunction) call.getOperator();
+        final SqlIdentifier identifier = Util.first(x.getSqlIdentifier(),
+            new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+        RelDataType type = validator.getCatalogReader().getNamedType(identifier);
+        if (type != null) {
+          function = new SqlTypeConstructorFunction(identifier, type);
+          break validCoercionType;
         }
 
         // if function doesn't exist within operator table and known function
         // handling is turned off then create a more permissive function
         if (function == null && validator.isLenientOperatorLookup()) {
-          final SqlFunction x = (SqlFunction) call.getOperator();
-          final SqlIdentifier identifier =
-              Util.first(x.getSqlIdentifier(),
-                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
           function = new SqlUnresolvedFunction(identifier, null,
               null, OperandTypes.VARIADIC, null, x.getFunctionType());
           break validCoercionType;
