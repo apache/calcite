@@ -573,6 +573,14 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(FilterJoinRule.FILTER_ON_JOIN).check();
   }
 
+  @Test public void testPushAboveFiltersIntoInnerJoinCondition() {
+    final String sql = ""
+        + "select * from sales.dept d inner join sales.emp e\n"
+        + "on d.deptno = e.deptno and d.deptno > e.mgr\n"
+        + "where d.deptno > e.mgr";
+    sql(sql).withRule(FilterJoinRule.FILTER_ON_JOIN).check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3225">[CALCITE-3225]
    * JoinToMultiJoinRule should not match SEMI/ANTI LogicalJoin</a>. */
