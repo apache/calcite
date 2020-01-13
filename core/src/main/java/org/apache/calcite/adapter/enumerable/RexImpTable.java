@@ -50,6 +50,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlTypeConstructorFunction;
 import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
@@ -902,6 +903,8 @@ public class RexImpTable {
             + " must implement ImplementableFunction");
       }
       return ((ImplementableFunction) udf).getImplementor();
+    } else if (operator instanceof SqlTypeConstructorFunction) {
+      return map.get(SqlStdOperatorTable.ROW);
     }
     return map.get(operator);
   }
