@@ -21,22 +21,15 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCharStringLiteral;
-import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSetOperator;
-import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlTimestampFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
@@ -46,9 +39,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -255,6 +247,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.endFunCall(toCodePointsFrame);
       writer.literal("[OFFSET(0)]");
       break;
+    case OTHER_FUNCTION:
+      if(((SqlTimestampFunction) (call).getOperator()).typeName == SqlTypeName.TIMESTAMP) {
+        SqlCall currentTimestampCall = makeTimestampCall(call);
+        FORMAT_TIMESTAMP.unparse(writer, currentTimestampCall, leftPrec, rightPrec);
+      }
+      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -308,6 +306,32 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
     }
+  }
+
+/*  private void unparseTimestampFunction(SqlWriter writer, SqlCall call, ) {
+    *//*SqlLiteral node = call.operand(0);
+    String precision = node.getValue().toString();
+    String dateFormat = "%F %H:%M:%E" + precision + "S";
+    SqlFunction sqlFunction = SqlLibraryOperators.FORMAT_TIMESTAMP;
+    writer.print(sqlFunction.toString());
+    SqlWriter.Frame frame = writer.startList("(", ")");
+    writer.print(dateFormat + "," + call.getOperator().getName());
+    writer.endList(frame);*//*
+
+  }*/
+
+  private SqlCall makeTimestampCall(SqlCall call) {
+    SqlCharStringLiteral formatNode = makeDateFormatSqlCall(call);
+    SqlCharStringLiteral timestampLiteral = SqlLiteral.createCharString(call.getOperator().getName(), call.getParserPosition());
+    SqlNode[] timestampNodeOperands = new SqlNode[]{formatNode, timestampLiteral};
+    return new SqlBasicCall(FORMAT_TIMESTAMP, timestampNodeOperands, SqlParserPos.ZERO);
+  }
+
+  private SqlCharStringLiteral makeDateFormatSqlCall(SqlCall call) {
+    SqlLiteral node = call.operand(0);
+    String precision = node.getValue().toString();
+    String dateFormat = "%F %H:%M:%E" + precision + "S";
+    return SqlLiteral.createCharString(dateFormat, call.getParserPosition());
   }
 
   private void writeOffset(SqlWriter writer, SqlCall call) {

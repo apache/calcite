@@ -836,6 +836,11 @@ public enum SqlKind {
   UNNEST,
 
   /**
+   * The "SYSTEM FUNCTION" operator.
+   */
+  SYSTEM_FUNCTION,
+
+  /**
    * The "LATERAL" qualifier to relations in the FROM clause.
    */
   LATERAL,
