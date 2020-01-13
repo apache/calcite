@@ -915,8 +915,12 @@ public class RelToSqlConverter extends SqlImplementor
     String alias = SqlValidatorUtil.getAlias(node, -1);
     final String lowerName = name.toLowerCase(Locale.ROOT);
     if (lowerName.startsWith("expr$")) {
-      // Put it in ordinalMap
-      ordinalMap.put(lowerName, node);
+      final RelNode current = stack.peek().r;
+      if (stack.size() != 1 && current instanceof Aggregate) {
+        node = as(node, name);
+      } else {
+        ordinalMap.put(lowerName, node);
+      }
     } else if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }

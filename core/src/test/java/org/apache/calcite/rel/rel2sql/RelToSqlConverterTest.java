@@ -21,11 +21,13 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -2758,7 +2760,7 @@ public class RelToSqlConverterTest {
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE EXISTS (SELECT COUNT(*)\n"
+        + "WHERE EXISTS (SELECT COUNT(*) AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
     sql(query).config(NO_EXPAND_CONFIG).ok(expected);
@@ -2771,7 +2773,7 @@ public class RelToSqlConverterTest {
         + "where b.\"product_id\" = a.\"product_id\")";
     String expected = "SELECT \"product_name\"\n"
         + "FROM \"foodmart\".\"product\"\n"
-        + "WHERE NOT EXISTS (SELECT COUNT(*)\n"
+        + "WHERE NOT EXISTS (SELECT COUNT(*) AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\"\n"
         + "WHERE \"product_id\" = \"product\".\"product_id\")";
     sql(query).config(NO_EXPAND_CONFIG).ok(expected);
@@ -4034,7 +4036,7 @@ public class RelToSqlConverterTest {
         + "            from \"department\") as t(did)";
 
     final String expected = "SELECT \"col_0\" + 1\n"
-        + "FROM UNNEST (SELECT COLLECT(\"department_id\")\n"
+        + "FROM UNNEST (SELECT COLLECT(\"department_id\") AS \"EXPR$0\"\n"
         + "FROM \"foodmart\".\"department\") AS \"t0\" (\"col_0\")";
     sql(sql).ok(expected);
   }
@@ -4312,11 +4314,11 @@ public class RelToSqlConverterTest {
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\")\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
         + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\nFROM \"DUAL\"\nWHERE 1 = 0) \"t\",\n"
         + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\nGROUP BY \"department_id\") \"t1\"\n"
         + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).withOracle().ok(expected);
   }
 
@@ -4327,7 +4329,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
-        + " MIN(\"t1\".\"department_id\")\n"
+        + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
         + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
         + " AS \"t\" (\"department_id\", \"department_description\")"
         + "\nWHERE 1 = 0) AS \"t\","
@@ -4335,7 +4337,7 @@ public class RelToSqlConverterTest {
         + "\nGROUP BY \"department_id\") AS \"t1\""
         + "\nGROUP BY \"t1\".\"department_id\") AS \"t3\" "
         + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).ok(expected);
   }
 
@@ -4674,6 +4676,39 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"employee\"\n"
         + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
     sql(query).ok(expected);
+  }
+
+  @Test public void testSelectImplicitAliasFromUnionByStar() {
+    final String query = "select \"shelf_width\", * from (\n"
+        + "select \"shelf_width\", \"product_id\" + 1 from \"product\"\n"
+        + "union all\n"
+        + "select \"shelf_width\", \"product_id\" from \"product\""
+        + ") A";
+    final String expected = "SELECT \"shelf_width\", \"shelf_width\" AS \"shelf_width0\""
+        + ", \"product_id\" + 1\n"
+        + "FROM (SELECT \"shelf_width\", \"product_id\" + 1\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "UNION ALL\n"
+        + "SELECT \"shelf_width\", \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\") AS \"t1\"";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testGroupByWithLimitPlan() {
+    final HepProgram program = HepProgram
+        .builder()
+        .addRuleInstance(SortProjectTransposeRule.INSTANCE)
+        .build();
+    final HepPlanner planner = new HepPlanner(program);
+    final String query = "SELECT sum(\"salary\") FROM \"employee\" group by \"gender\" limit 10";
+    final String expected = "SELECT \"EXPR$0\"\n"
+        + "FROM (SELECT \"gender\", SUM(\"salary\") AS \"EXPR$0\"\n"
+        + "FROM \"foodmart\".\"employee\"\n"
+        + "GROUP BY \"gender\"\n"
+        + "FETCH NEXT 10 ROWS ONLY) AS \"t1\"";
+    sql(query)
+        .optimize(RuleSets.ofList(SortProjectTransposeRule.INSTANCE), planner)
+        .ok(expected);
   }
 
   /** Fluid interface to run tests. */
