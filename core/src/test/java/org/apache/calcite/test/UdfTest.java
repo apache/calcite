@@ -192,7 +192,7 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunction() throws Exception {
-    final String sql = "select \"adhoc\".var_args(x=>\"deptno\", y_1=>100) as p\n"
+    final String sql = "select \"adhoc\".var_args(x=>\"deptno\", y=>100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
     final int before = c.get();

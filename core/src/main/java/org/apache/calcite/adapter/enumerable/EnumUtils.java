@@ -584,9 +584,9 @@ public class EnumUtils {
           "the var target type should not null and it must be an array.");
 
       Class<?> varArgsType = varTargetType.getComponentType();
-      for (int i = 0; i < list.size(); i++) {
+      for (int i = 0; i < arguments.size(); i++) {
         list.add(
-            convertAssignableType(list.get(i),
+            convertAssignableType(arguments.get(i),
                 i < targetTypes.length - 1 ? targetTypes[i] : varArgsType));
       }
     } else {
