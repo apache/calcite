@@ -117,5 +117,3 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
     }
   }
 }
-
-// End FilterRemoveIsNotDistinctFromRule.java

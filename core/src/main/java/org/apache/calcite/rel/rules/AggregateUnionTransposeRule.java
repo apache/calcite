@@ -182,5 +182,3 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     return newCalls;
   }
 }
-
-// End AggregateUnionTransposeRule.java

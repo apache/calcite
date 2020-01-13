@@ -33,5 +33,3 @@ public class DefaultExpression extends Expression {
   }
 
 }
-
-// End DefaultExpression.java

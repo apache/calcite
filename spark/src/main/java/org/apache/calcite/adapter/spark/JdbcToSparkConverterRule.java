@@ -42,5 +42,3 @@ public class JdbcToSparkConverterRule extends ConverterRule {
     return new JdbcToSparkConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End JdbcToSparkConverterRule.java

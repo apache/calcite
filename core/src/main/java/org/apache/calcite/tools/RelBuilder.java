@@ -565,6 +565,11 @@ public class RelBuilder {
     return nodes.build();
   }
 
+  /** Returns references to fields for a given bit set of input ordinals. */
+  public ImmutableList<RexNode> fields(ImmutableBitSet ordinals) {
+    return fields(ordinals.asList());
+  }
+
   /** Returns references to fields identified by name. */
   public ImmutableList<RexNode> fields(Iterable<String> fieldNames) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
@@ -818,12 +823,8 @@ public class RelBuilder {
       throw new IllegalArgumentException("out of bounds: " + groupSet);
     }
     Objects.requireNonNull(groupSets);
-    final ImmutableList<RexNode> nodes =
-        fields(ImmutableIntList.of(groupSet.toArray()));
-    final List<ImmutableList<RexNode>> nodeLists =
-        Util.transform(groupSets,
-            bitSet -> fields(ImmutableIntList.of(bitSet.toArray())));
-    return groupKey_(nodes, nodeLists);
+    final ImmutableList<RexNode> nodes = fields(groupSet);
+    return groupKey_(nodes, Util.transform(groupSets, bitSet -> fields(bitSet)));
   }
 
   @Deprecated // to be removed before 2.0
@@ -1265,6 +1266,37 @@ public class RelBuilder {
     return project(builder.addAll(fields()).addAll(nodes).build());
   }
 
+  /** Creates a {@link Project} of all original fields, except the given
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
+  public RelBuilder projectExcept(RexNode... expressions) {
+    return projectExcept(ImmutableList.copyOf(expressions));
+  }
+
+  /** Creates a {@link Project} of all original fields, except the given list of
+   * expressions.
+   *
+   * @throws IllegalArgumentException if the given expressions contain duplicates
+   *    or there is an expression that does not match an existing field
+   */
+  public RelBuilder projectExcept(Iterable<RexNode> expressions) {
+    List<RexNode> allExpressions = new ArrayList<>(fields());
+    Set<RexNode> excludeExpressions = new HashSet<>();
+    for (RexNode excludeExp : expressions) {
+      if (!excludeExpressions.add(excludeExp)) {
+        throw new IllegalArgumentException(
+          "Input list contains duplicates. Expression " + excludeExp + " exists multiple times.");
+      }
+      if (!allExpressions.remove(excludeExp)) {
+        throw new IllegalArgumentException("Expression " + excludeExp.toString() + " not found.");
+      }
+    }
+    return this.project(allExpressions);
+  }
+
   /** Creates a {@link Project} of the given list
    * of expressions, using the given names.
    *
@@ -1548,6 +1580,15 @@ public class RelBuilder {
     return aggregate(groupKey, ImmutableList.copyOf(aggCalls));
   }
 
+  /** Creates an {@link Aggregate} with an array of
+   * {@link AggregateCall}s. */
+  public RelBuilder aggregate(GroupKey groupKey, List<AggregateCall> aggregateCalls) {
+    return aggregate(groupKey,
+        aggregateCalls.stream()
+            .map(AggCallImpl2::new)
+            .collect(Collectors.toList()));
+  }
+
   /** Creates an {@link Aggregate} with a list of
    * calls. */
   public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
@@ -1571,13 +1612,13 @@ public class RelBuilder {
         final Boolean unique = mq.areColumnsUnique(peek(), groupSet);
         if (unique != null && unique) {
           // Rel is already unique.
-          return project(fields(groupSet.asList()));
+          return project(fields(groupSet));
         }
       }
       final Double maxRowCount = mq.getMaxRowCount(peek());
       if (maxRowCount != null && maxRowCount <= 1D) {
         // If there is at most one row, rel is already unique.
-        return project(fields(groupSet.asList()));
+        return project(fields(groupSet));
       }
     }
     final ImmutableList<ImmutableBitSet> groupSets;
@@ -2463,12 +2504,6 @@ public class RelBuilder {
     return project(exprList);
   }
 
-  public RelBuilder aggregate(GroupKey groupKey,
-      List<AggregateCall> aggregateCalls) {
-    return aggregate(groupKey,
-        Lists.transform(aggregateCalls, AggCallImpl2::new));
-  }
-
   /** Creates a {@link Match}. */
   public RelBuilder match(RexNode pattern, boolean strictStart,
       boolean strictEnd, Map<String, RexNode> patternDefinitions,
@@ -2949,5 +2984,3 @@ public class RelBuilder {
     }
   }
 }
-
-// End RelBuilder.java

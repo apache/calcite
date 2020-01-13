@@ -75,5 +75,3 @@ public final class LogicalSort extends Sort {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalSort.java

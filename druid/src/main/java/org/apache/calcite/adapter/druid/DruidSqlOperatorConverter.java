@@ -45,5 +45,3 @@ public interface DruidSqlOperatorConverter {
    */
   @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType, DruidQuery druidQuery);
 }
-
-// End DruidSqlOperatorConverter.java

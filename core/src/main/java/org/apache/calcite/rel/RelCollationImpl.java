@@ -171,5 +171,3 @@ public class RelCollationImpl implements RelCollation {
     return RelCollations.ordinals(collation);
   }
 }
-
-// End RelCollationImpl.java

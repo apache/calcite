@@ -112,5 +112,3 @@ final class BlackholeMap<K, V> extends AbstractMap<K, V> {
     return (Map<K, V>) INSTANCE;
   }
 }
-
-// End BlackholeMap.java

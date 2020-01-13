@@ -27,7 +27,7 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import java.util.List;
 
 /**
- * Default Strategies to coerce differing types that participate in
+ * Default strategies to coerce differing types that participate in
  * operations into compatible ones.
  *
  * <p>Notes about type widening / tightest common types: Broadly, there are two cases that need
@@ -43,6 +43,7 @@ import java.util.List;
  * decimal(with default max precision), and yet decimal is more precise than double,
  * but in union we would cast the decimal to double).</li>
  * </ul>
+ *
  * <p>REFERENCE: <a href="https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-conversion-database-engine?">SQL-SERVER</a>
  * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types">HIVE</a></p>
  */
@@ -65,19 +66,20 @@ public interface TypeCoercion {
   /**
    * Similar to {@link #getWiderTypeForTwo}, but can handle
    * sequence types. {@link #getWiderTypeForTwo} doesn't satisfy the associative law,
-   * i.e. (a op b) op c may not equal to a op (b op c). This is only a problem for StringType or
-   * nested StringType in collection type like Array. Excluding these types,
+   * i.e. (a op b) op c may not equal to a op (b op c). This is only a problem for STRING or
+   * nested STRING in collection type like ARRAY. Excluding these types,
    * {@link #getWiderTypeForTwo} satisfies the associative law. For instance,
    * (DATE, INTEGER, VARCHAR) should have VARCHAR as the wider common type.
    */
   RelDataType getWiderTypeFor(List<RelDataType> typeList, boolean stringPromotion);
 
   /**
-   * Finds a wider type when one or both types are decimal type.
-   * If the wider decimal type's precision/scale exceeds system limitation,
+   * Finds a wider type when one or both types are DECIMAL type.
+   *
+   * <p>If the wider decimal type's precision/scale exceeds system limitation,
    * this rule will truncate the decimal type to the max precision/scale.
-   * For decimal and fractional types, returns a decimal type
-   * which has the higher precision of the two.
+   * For DECIMAL and fractional types, returns DECIMAL type
+   * that has the higher precision of the two.
    *
    * <p>The default implementation depends on the max precision/scale of the type system,
    * you can override it based on the specific system requirement in
@@ -86,20 +88,20 @@ public interface TypeCoercion {
   RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2);
 
   /**
-   * Determines common type for a comparison operator whose operands are String type and the
-   * other(non String type) type.
+   * Determines common type for a comparison operator whose operands are STRING
+   * type and the other (non STRING) type.
    */
   RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2);
 
   /**
-   * Widen a SqlNode ith column type to target type, mainly used for set operations like UNION,
-   * INTERSECT and EXCEPT.
+   * Widen a SqlNode ith column type to target type, mainly used for set
+   * operations like UNION, INTERSECT and EXCEPT.
    *
    * @param scope       scope to query
    * @param query       SqlNode which have children nodes as columns
    * @param columnIndex target column index
    * @param targetType  target type to cast to
-   * @return true if we add any cast in successfully.
+   * @return true if we add any cast in successfully
    */
   boolean rowTypeCoercion(
       SqlValidatorScope scope,
@@ -108,43 +110,50 @@ public interface TypeCoercion {
       RelDataType targetType);
 
   /**
-   * Handles type coercion for IN operation with or without subquery.
-   * see {@link TypeCoercionImpl} for default strategies.
+   * Handles type coercion for IN operation with or without sub-query.
+   *
+   * <p>See {@link TypeCoercionImpl} for default strategies.
    */
   boolean inOperationCoercion(SqlCallBinding binding);
 
   /** Coerce operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 
+  /** Coerce operands in binary comparison expressions. */
+  boolean binaryComparisonCoercion(SqlCallBinding binding);
+
   /**
    * Coerce CASE WHEN statement branches to one common type.
    *
-   * <p>Rules: Find common type for all the then operands and else operands, then
-   * try to coerce the then/else operands to the type if needed.
-   * */
+   * <p>Rules: Find common type for all the then operands and else operands,
+   * then try to coerce the then/else operands to the type if needed.
+   */
   boolean caseWhenCoercion(SqlCallBinding binding);
 
   /**
-   * Type coercion with inferred type from passed in arguments and the {@link SqlTypeFamily}
-   * defined in the checkers, e.g. the {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}.
+   * Type coercion with inferred type from passed in arguments and the
+   * {@link SqlTypeFamily} defined in the checkers, e.g. the
+   * {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}.
    *
-   * <p>Caution that We do not cast from numeric if desired type family is also
+   * <p>Caution that we do not cast from NUMERIC if desired type family is also
    * {@link SqlTypeFamily#NUMERIC}.
    *
-   * <p>If the {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}s are subsumed in a
-   * {@link org.apache.calcite.sql.type.CompositeOperandTypeChecker}, check them based on
-   * their combination order. i.e. If we allows a (numeric, numeric) OR (string, numeric) family
-   * but with arguments (op1, op2) of types (varchar(20), boolean), try to coerce op1
-   * to numeric and op2 to numeric if the type coercion rules allow it, or else try to coerce
-   * op2 to numeric and keep op1 the type as it is.
+   * <p>If the {@link org.apache.calcite.sql.type.FamilyOperandTypeChecker}s are
+   * subsumed in a
+   * {@link org.apache.calcite.sql.type.CompositeOperandTypeChecker}, check them
+   * based on their combination order. i.e. If we allow a NUMERIC_NUMERIC OR
+   * STRING_NUMERIC family combination and are with arguments (op1: VARCHAR(20), op2: BOOLEAN),
+   * try to coerce both op1 and op2 to NUMERIC if the type coercion rules allow it,
+   * or else try to coerce op2 to NUMERIC and keep op1 the type as it is.
    *
-   * <p>This is also very interrelated to the
-   * composition predicate for the checkers, if the predicate is AND, we would fail fast
-   * if the first family type coercion fails.
-   * @param binding          call binding.
-   * @param operandTypes     Types of the operands passed in.
-   * @param expectedFamilies Expected SqlTypeFamily list by user specified.
-   * @return true if we successfully do any implicit cast.
+   * <p>This is also very interrelated to the composition predicate for the
+   * checkers: if the predicate is AND, we would fail fast if the first family
+   * type coercion fails.
+   *
+   * @param binding          Call binding
+   * @param operandTypes     Types of the operands passed in
+   * @param expectedFamilies Expected SqlTypeFamily list by user specified
+   * @return true if we successfully do any implicit cast
    */
   boolean builtinFunctionCoercion(
       SqlCallBinding binding,
@@ -152,18 +161,34 @@ public interface TypeCoercion {
       List<SqlTypeFamily> expectedFamilies);
 
   /**
-   * Non builtin functions(UDFs) type coercion, compare the types of arguments with
-   * rules:
+   * Non built-in functions (UDFs) type coercion, compare the types of arguments
+   * with rules:
+   *
    * <ol>
-   * <li>named param: find the desired type by the passed in operand's name.</li>
-   * <li>non-named param: find the desired type by formal parameter ordinal.</li>
+   * <li>named param: find the desired type by the passed in operand's name
+   * <li>non-named param: find the desired type by formal parameter ordinal
    * </ol>
    *
    * <p>Try to make type coercion only of the desired type is found.
    *
-   * @return true if any operands is coerced.
+   * @return true if any operands is coerced
    */
-  boolean userDefinedFunctionCoercion(SqlValidatorScope scope, SqlCall call, SqlFunction function);
-}
+  boolean userDefinedFunctionCoercion(SqlValidatorScope scope, SqlCall call,
+      SqlFunction function);
 
-// End TypeCoercion.java
+  /**
+   * Coerces the source row expression to target type in an INSERT or UPDATE query.
+   *
+   * <p>If the source and target fields in the same ordinal do not equal sans nullability,
+   * try to coerce the source field to target field type.
+   *
+   * @param scope         Source scope
+   * @param sourceRowType Source row type
+   * @param targetRowType Target row type
+   * @param query         The query, either an INSERT or UPDATE
+   *
+   * @return True if any type coercion happens
+   */
+  boolean querySourceCoercion(SqlValidatorScope scope,
+      RelDataType sourceRowType, RelDataType targetRowType, SqlNode query);
+}

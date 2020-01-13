@@ -194,5 +194,3 @@ public class SqlInOperator extends SqlBinaryOperator {
     return ordinal == 0;
   }
 }
-
-// End SqlInOperator.java

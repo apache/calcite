@@ -1,4 +1,4 @@
-Apache Calcite release 1.20.0
+Apache Calcite release 1.21.0
 
 This is a source or binary distribution of Apache Calcite.
 
@@ -10,8 +10,6 @@ The LICENSE and NOTICE files contain license information.
 If this is a source distribution, you can find instructions how to
 build the release in the "Building from a source distribution" section
 in site/_docs/howto.md.
-
-README.md contains examples of running Calcite.
 
 Further information about Apache Calcite is available at its web site,
 http://calcite.apache.org.

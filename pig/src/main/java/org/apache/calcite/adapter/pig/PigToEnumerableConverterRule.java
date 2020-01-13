@@ -39,5 +39,3 @@ public class PigToEnumerableConverterRule extends ConverterRule {
     return new PigToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End PigToEnumerableConverterRule.java

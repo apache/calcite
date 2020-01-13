@@ -90,5 +90,3 @@ public interface RelDistribution extends RelMultipleTrait {
     }
   }
 }
-
-// End RelDistribution.java

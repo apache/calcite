@@ -142,5 +142,3 @@ public class AggregateFunctionImpl implements AggregateFunction,
     return new RexImpTable.UserDefinedAggReflectiveImplementor(this);
   }
 }
-
-// End AggregateFunctionImpl.java

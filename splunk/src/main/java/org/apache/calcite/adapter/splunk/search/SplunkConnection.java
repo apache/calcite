@@ -31,5 +31,3 @@ public interface SplunkConnection {
   Enumerator<Object> getSearchResultEnumerator(String search,
       Map<String, String> otherArgs, List<String> fieldList);
 }
-
-// End SplunkConnection.java

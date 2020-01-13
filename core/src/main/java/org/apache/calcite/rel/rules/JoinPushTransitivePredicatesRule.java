@@ -93,5 +93,3 @@ public class JoinPushTransitivePredicatesRule extends RelOptRule {
     call.transformTo(newRel);
   }
 }
-
-// End JoinPushTransitivePredicatesRule.java

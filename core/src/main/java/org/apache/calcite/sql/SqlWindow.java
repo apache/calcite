@@ -915,5 +915,3 @@ public class SqlWindow extends SqlCall {
     }
   }
 }
-
-// End SqlWindow.java

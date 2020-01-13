@@ -52,5 +52,3 @@ public abstract class RexVariable extends RexNode {
     return name;
   }
 }
-
-// End RexVariable.java

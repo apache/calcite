@@ -57,5 +57,3 @@ abstract class MutableSingleRel extends MutableRel {
     return input;
   }
 }
-
-// End MutableSingleRel.java

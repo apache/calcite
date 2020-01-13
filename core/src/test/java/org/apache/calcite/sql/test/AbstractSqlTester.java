@@ -48,7 +48,6 @@ import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.CalciteAssert;
-import org.apache.calcite.test.SqlValidatorTestCase;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
@@ -62,14 +61,16 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Abstract implementation of
@@ -81,9 +82,12 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   protected final SqlTestFactory factory;
+  protected final UnaryOperator<SqlValidator> validatorTransform;
 
-  public AbstractSqlTester(SqlTestFactory factory) {
-    this.factory = factory;
+  public AbstractSqlTester(SqlTestFactory factory,
+      UnaryOperator<SqlValidator> validatorTransform) {
+    this.factory = Objects.requireNonNull(factory);
+    this.validatorTransform = Objects.requireNonNull(validatorTransform);
   }
 
   public final SqlTestFactory getFactory() {
@@ -126,7 +130,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
       thrown = ex;
     }
 
-    SqlValidatorTestCase.checkEx(thrown, expectedMsgPattern, sap);
+    SqlTests.checkEx(thrown, expectedMsgPattern, sap, SqlTests.Stage.VALIDATE);
   }
 
   protected void checkParseEx(Throwable e, String expectedMsgPattern, String sql) {
@@ -150,7 +154,7 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   public RelDataType getColumnType(String sql) {
     RelDataType rowType = getResultType(sql);
     final List<RelDataTypeField> fields = rowType.getFieldList();
-    assertEquals("expected query to return 1 field", 1, fields.size());
+    assertEquals(1, fields.size(), "expected query to return 1 field");
     return fields.get(0).getType();
   }
 
@@ -162,9 +166,6 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   }
 
   public SqlNode parseAndValidate(SqlValidator validator, String sql) {
-    if (validator == null) {
-      validator = getValidator();
-    }
     SqlNode sqlNode;
     try {
       sqlNode = parseQuery(sql);
@@ -291,6 +292,10 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
 
   public SqlTester withCaseSensitive(boolean sensitive) {
     return with("caseSensitive", sensitive);
+  }
+
+  public SqlTester withLenientOperatorLookup(boolean lenient) {
+    return with("lenientOperatorLookup", lenient);
   }
 
   public SqlTester withLex(Lex lex) {
@@ -493,10 +498,8 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertThat(monotonicity, equalTo(expectedMonotonicity));
   }
 
-  public void checkRewrite(
-      SqlValidator validator,
-      String query,
-      String expectedRewrite) {
+  public void checkRewrite(String query, String expectedRewrite) {
+    final SqlValidator validator = validatorTransform.apply(getValidator());
     SqlNode rewrittenNode = parseAndValidate(validator, query);
     String actualRewrite =
         rewrittenNode.toSqlString(AnsiSqlDialect.DEFAULT, false).getSql();
@@ -707,5 +710,3 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
   }
 
 }
-
-// End AbstractSqlTester.java

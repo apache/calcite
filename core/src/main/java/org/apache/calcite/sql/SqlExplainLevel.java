@@ -55,5 +55,3 @@ public enum SqlExplainLevel {
     return SqlLiteral.createSymbol(this, pos);
   }
 }
-
-// End SqlExplainLevel.java

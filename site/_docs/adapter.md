@@ -38,6 +38,7 @@ presenting the data as tables within a schema.
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
 * [OS adapter](os_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/os/package-summary.html">calcite-os</a>)
 * [Pig adapter](pig_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/pig/package-summary.html">calcite-pig</a>)
+* [Redis adapter](redis_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/redis/package-summary.html">calcite-redis</a>)
 * Solr cloud adapter (<a href="https://github.com/bluejoe2008/solr-sql">solr-sql</a>)
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
@@ -107,14 +108,14 @@ as implemented by Avatica's
 To make a connection to a single schema based on a built-in schema type, you don't need to specify
 a model. For example,
 
-  jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart
+  `jdbc:calcite:schemaType=JDBC; schema.jdbcUser=SCOTT; schema.jdbcPassword=TIGER; schema.jdbcUrl=jdbc:hsqldb:res:foodmart`
 
 creates a connection with a schema mapped via the JDBC schema adapter to the foodmart database.
 
 Similarly, you can connect to a single schema based on a user-defined schema adapter.
 For example,
 
-  jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra
+  `jdbc:calcite:schemaFactory=org.apache.calcite.adapter.cassandra.CassandraSchemaFactory; schema.host=localhost; schema.keyspace=twissandra`
 
 makes a connection to the Cassandra adapter, equivalent to writing the following model file:
 
@@ -156,6 +157,8 @@ adding some DDL commands:
 * `CREATE` and `DROP TABLE` (including `CREATE TABLE ... AS SELECT`)
 * `CREATE` and `DROP MATERIALIZED VIEW`
 * `CREATE` and `DROP VIEW`
+* `CREATE` and `DROP FUNCTION`
+* `CREATE` and `DROP TYPE`
 
 Commands are described in the [SQL reference](reference.html#ddl-extensions).
 
@@ -612,4 +615,3 @@ While preparing a query Calcite combines all of the applicable metadata
 providers and maintains a cache so that a given piece of metadata (for example
 the selectivity of the condition `x > 10` in a particular `Filter` operator)
 is computed only once.
-

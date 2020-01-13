@@ -654,5 +654,3 @@ public class PigRelBuilder extends RelBuilder {
     final Map<String, FuncSpec> pigUdfs = new HashMap<>();
   }
 }
-
-// End PigRelBuilder.java

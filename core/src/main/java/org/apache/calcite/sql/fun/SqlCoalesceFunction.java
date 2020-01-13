@@ -82,5 +82,3 @@ public class SqlCoalesceFunction extends SqlFunction {
     return SqlCase.createSwitched(pos, null, whenList, thenList, elseExpr);
   }
 }
-
-// End SqlCoalesceFunction.java

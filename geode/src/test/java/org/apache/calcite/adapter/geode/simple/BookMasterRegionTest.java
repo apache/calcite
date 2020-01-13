@@ -53,5 +53,3 @@ public class BookMasterRegionTest {
     System.out.println(result.asList());
   }
 }
-
-// End BookMasterRegionTest.java

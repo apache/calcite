@@ -54,5 +54,3 @@ public class CsvScannableTable extends CsvTable
     };
   }
 }
-
-// End CsvScannableTable.java

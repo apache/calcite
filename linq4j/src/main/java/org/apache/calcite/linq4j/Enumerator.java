@@ -106,7 +106,7 @@ public interface Enumerator<T> extends AutoCloseable {
    * <p>This method is optional; it may throw
    * {@link UnsupportedOperationException}.
    *
-   * <h3>Notes to Implementers</h3>
+   * <p><b>Notes to Implementers</b>
    *
    * <p>All calls to Reset must result in the same state for the enumerator.
    * The preferred implementation is to move the enumerator to the beginning
@@ -125,5 +125,3 @@ public interface Enumerator<T> extends AutoCloseable {
    */
   void close();
 }
-
-// End Enumerator.java

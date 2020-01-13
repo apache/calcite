@@ -71,5 +71,3 @@ public class SqlNullifFunction extends SqlFunction {
         SqlNode.clone(operands.get(0)));
   }
 }
-
-// End SqlNullifFunction.java

@@ -216,12 +216,21 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.except(getThis(), enumerable1);
+    return except(enumerable1, false);
+  }
+
+  public Enumerable<T> except(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.except(getThis(), enumerable1, comparer);
+    return except(enumerable1, comparer, false);
+  }
+
+  public Enumerable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, comparer, all);
   }
 
   public T first() {
@@ -328,12 +337,21 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1);
+    return intersect(enumerable1, false);
+  }
+
+  public Enumerable<T> intersect(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, all);
   }
 
   public Enumerable<T> intersect(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer);
+    return intersect(enumerable1, comparer, false);
+  }
+
+  public Enumerable<T> intersect(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), enumerable1, comparer, all);
   }
 
   public <C extends Collection<? super T>> C into(C sink) {
@@ -753,5 +771,3 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.zip(getThis(), source1, resultSelector);
   }
 }
-
-// End DefaultEnumerable.java

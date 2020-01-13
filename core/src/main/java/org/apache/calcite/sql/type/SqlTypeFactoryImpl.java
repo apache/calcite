@@ -220,6 +220,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createMultisetType() instead";
     assert typeName != SqlTypeName.ARRAY
         : "use createArrayType() instead";
+    assert typeName != SqlTypeName.MAP
+        : "use createMapType() instead";
     assert typeName != SqlTypeName.ROW
         : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
@@ -563,5 +565,3 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     }
   }
 }
-
-// End SqlTypeFactoryImpl.java

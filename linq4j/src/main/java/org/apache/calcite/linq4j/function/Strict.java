@@ -35,5 +35,3 @@ import static java.lang.annotation.ElementType.TYPE;
 @Experimental
 public @interface Strict {
 }
-
-// End Strict.java

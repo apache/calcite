@@ -50,5 +50,3 @@ public class SqlNewOperator extends SqlPrefixOperator {
     return false;
   }
 }
-
-// End SqlNewOperator.java

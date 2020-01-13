@@ -101,5 +101,3 @@ public class NameMap<V> {
     return map.remove(key);
   }
 }
-
-// End NameMap.java

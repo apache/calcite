@@ -35,5 +35,3 @@ public class CycleDetector<V, E extends DefaultEdge> {
     return new TopologicalOrderIterator<>(graph).findCycles();
   }
 }
-
-// End CycleDetector.java

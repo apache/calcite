@@ -83,5 +83,3 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
     return list;
   }
 }
-
-// End ChainedSqlOperatorTable.java

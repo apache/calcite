@@ -124,5 +124,3 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
     return builder.result();
   }
 }
-
-// End PigRelToSqlConverter.java

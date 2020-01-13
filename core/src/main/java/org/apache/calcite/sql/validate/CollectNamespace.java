@@ -76,5 +76,3 @@ public class CollectNamespace extends AbstractNamespace {
     return scope;
   }
 }
-
-// End CollectNamespace.java

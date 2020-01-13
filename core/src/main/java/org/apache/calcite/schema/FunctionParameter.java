@@ -66,5 +66,3 @@ public interface FunctionParameter {
    */
   boolean isVarArgs();
 }
-
-// End FunctionParameter.java

@@ -22,7 +22,7 @@ import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.Utilities;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -54,10 +54,10 @@ import static org.apache.calcite.test.Matchers.within;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AnyOf.anyOf;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -65,7 +65,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * Unit test for the methods in {@link SqlFunctions} that implement SQL
  * functions.
  *
- * <p>Developers, please use {@link org.junit.Assert#assertThat assertThat}
+ * <p>Developers, please use {@link org.hamcrest.MatcherAssert#assertThat assertThat}
  * rather than {@code assertEquals}.
  */
 public class SqlFunctionsTest {
@@ -944,5 +944,3 @@ public class SqlFunctionsTest {
     }
   }
 }
-
-// End SqlFunctionsTest.java

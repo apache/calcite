@@ -44,5 +44,3 @@ public class DelegatingEnumerator<T> implements Enumerator<T> {
     delegate.close();
   }
 }
-
-// End DelegatingEnumerator.java

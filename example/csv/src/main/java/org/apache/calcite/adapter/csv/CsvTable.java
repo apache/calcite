@@ -59,5 +59,3 @@ public abstract class CsvTable extends AbstractTable {
     SCANNABLE, FILTERABLE, TRANSLATABLE
   }
 }
-
-// End CsvTable.java

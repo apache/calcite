@@ -71,5 +71,3 @@ public class PreferredAlbumsTableFactory implements TableFactory<AbstractQueryab
     }
   }
 }
-
-// End PreferredAlbumsTableFactory.java

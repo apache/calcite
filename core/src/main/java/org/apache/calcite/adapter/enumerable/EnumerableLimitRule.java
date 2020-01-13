@@ -56,5 +56,3 @@ class EnumerableLimitRule extends RelOptRule {
             sort.fetch));
   }
 }
-
-// End EnumerableLimitRule.java

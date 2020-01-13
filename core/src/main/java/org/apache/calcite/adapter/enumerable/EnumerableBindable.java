@@ -106,5 +106,3 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
     }
   }
 }
-
-// End EnumerableBindable.java

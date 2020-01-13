@@ -17,6 +17,7 @@
 package org.apache.calcite.schema;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
@@ -30,7 +31,6 @@ import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.MethodCallExpression;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -176,7 +176,7 @@ public final class Schemas {
           Expressions.constant(elementType),
           Expressions.constant(tableName));
     }
-    return Types.castIfNecessary(clazz, expression);
+    return EnumUtils.convert(expression, clazz);
   }
 
   public static DataContext createDataContext(
@@ -623,5 +623,3 @@ public final class Schemas {
     }
   }
 }
-
-// End Schemas.java

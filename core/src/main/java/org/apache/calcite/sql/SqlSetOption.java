@@ -174,5 +174,3 @@ public class SqlSetOption extends SqlAlter {
     this.value = value;
   }
 }
-
-// End SqlSetOption.java

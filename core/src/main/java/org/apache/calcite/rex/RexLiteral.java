@@ -429,8 +429,8 @@ public class RexLiteral extends RexNode {
       NlsString nlsString = (NlsString) value;
 
       // Ignore type information for 'Bar':CHAR(3)
-      if (((nlsString.getCharset() != null
-          && type.getCharset().equals(nlsString.getCharset()))
+      if ((
+          (nlsString.getCharset() != null && type.getCharset().equals(nlsString.getCharset()))
           || (nlsString.getCharset() == null
           && SqlCollation.IMPLICIT.getCharset().equals(type.getCharset())))
           && nlsString.getCollation().equals(type.getCollation())
@@ -458,7 +458,8 @@ public class RexLiteral extends RexNode {
     if (o == null
         || o instanceof BigDecimal
         || o instanceof NlsString
-        || o instanceof ByteString) {
+        || o instanceof ByteString
+        || o instanceof Boolean) {
       return litmus.succeed();
     } else if (o instanceof List) {
       List list = (List) o;
@@ -1141,5 +1142,3 @@ public class RexLiteral extends RexNode {
     return visitor.visitLiteral(this, arg);
   }
 }
-
-// End RexLiteral.java

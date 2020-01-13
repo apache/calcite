@@ -235,5 +235,3 @@ public class EnumerableInterpretable extends ConverterImpl
     }
   }
 }
-
-// End EnumerableInterpretable.java

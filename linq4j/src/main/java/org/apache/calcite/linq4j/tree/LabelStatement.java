@@ -66,5 +66,3 @@ public class LabelStatement extends Statement {
     return Objects.hash(nodeType, type, defaultValue);
   }
 }
-
-// End LabelStatement.java

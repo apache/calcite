@@ -26,8 +26,8 @@ import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Statement;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 
@@ -35,8 +35,8 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TRUE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests expression inlining in BlockBuilder.
@@ -44,7 +44,7 @@ import static org.junit.Assert.assertThat;
 public class InlinerTest {
   BlockBuilder b;
 
-  @Before
+  @BeforeEach
   public void prepareBuilder() {
     b = new BlockBuilder(true);
   }
@@ -223,5 +223,3 @@ public class InlinerTest {
         builder.toBlock().toString());
   }
 }
-
-// End InlinerTest.java

@@ -193,5 +193,3 @@ public class PigRelBuilder extends RelBuilder {
     COLLECTED
   }
 }
-
-// End PigRelBuilder.java

@@ -68,5 +68,3 @@ public class CastingList<E> extends AbstractList<E> implements List<E> {
     list.add(pos, o);
   }
 }
-
-// End CastingList.java

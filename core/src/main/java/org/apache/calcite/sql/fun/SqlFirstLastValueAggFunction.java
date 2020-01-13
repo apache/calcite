@@ -79,5 +79,3 @@ public class SqlFirstLastValueAggFunction extends SqlAggFunction {
     return true;
   }
 }
-
-// End SqlFirstLastValueAggFunction.java

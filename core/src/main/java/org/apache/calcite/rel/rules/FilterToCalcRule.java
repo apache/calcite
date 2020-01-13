@@ -78,5 +78,3 @@ public class FilterToCalcRule extends RelOptRule {
     call.transformTo(calc);
   }
 }
-
-// End FilterToCalcRule.java

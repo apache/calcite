@@ -34,5 +34,3 @@ public class LambdaExpression extends Expression {
   }
 
 }
-
-// End LambdaExpression.java

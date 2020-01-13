@@ -35,14 +35,9 @@ class EnumerableIntersectRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalIntersect intersect = (LogicalIntersect) rel;
-    if (intersect.all) {
-      return null; // INTERSECT ALL not implemented
-    }
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
     final RelTraitSet traitSet = intersect.getTraitSet().replace(out);
     return new EnumerableIntersect(rel.getCluster(), traitSet,
-        convertList(intersect.getInputs(), out), false);
+        convertList(intersect.getInputs(), out), intersect.all);
   }
 }
-
-// End EnumerableIntersectRule.java

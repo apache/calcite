@@ -183,5 +183,3 @@ public abstract class SemiJoinRule extends RelOptRule {
     perform(call, null, join, left, aggregate);
   }
 }
-
-// End SemiJoinRule.java

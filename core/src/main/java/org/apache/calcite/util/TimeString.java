@@ -223,5 +223,3 @@ public class TimeString implements Comparable<TimeString> {
     return v.length() < 9 ? 0 : (v.length() - 9);
   }
 }
-
-// End TimeString.java

@@ -150,5 +150,3 @@ public class RexWindow {
     return isRows;
   }
 }
-
-// End RexWindow.java

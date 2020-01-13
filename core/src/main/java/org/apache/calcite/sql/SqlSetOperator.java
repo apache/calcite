@@ -90,5 +90,3 @@ public class SqlSetOperator extends SqlBinaryOperator {
     validator.validateQuery(call, operandScope, validator.getUnknownType());
   }
 }
-
-// End SqlSetOperator.java

@@ -842,8 +842,8 @@ public class Lattice {
           final Edge edge = edges.get(0);
           final MutableNode parent = map.get(edge.getSource().table);
           final Step step =
-              new Step(edge.getSource().table,
-                  edge.getTarget().table, edge.pairs);
+              Step.create(edge.getSource().table,
+                  edge.getTarget().table, edge.pairs, space);
           node = new MutableNode(vertex.table, parent, step);
           node.alias = vertex.alias;
         }
@@ -1167,5 +1167,3 @@ public class Lattice {
     }
   }
 }
-
-// End Lattice.java

@@ -147,6 +147,15 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         this.expressionFunction, this.rowCount);
   }
 
+  @Override public String toString() {
+    return "RelOptTableImpl{"
+        + "schema=" + schema
+        + ", names= " + names
+        + ", table=" + table
+        + ", rowType=" + rowType
+        + '}';
+  }
+
   private static Function<Class, Expression> getClassExpressionFunction(
       CalciteSchema.TableEntry tableEntry, Table table) {
     return getClassExpressionFunction(tableEntry.schema.plus(), tableEntry.name,
@@ -284,7 +293,9 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return LogicalTableScan.create(cluster, this);
     }
     if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
-        && table instanceof QueryableTable) {
+        && table instanceof QueryableTable
+        && (expressionFunction != null
+        || EnumerableTableScan.canHandle(this))) {
       return EnumerableTableScan.create(cluster, this);
     }
     if (table instanceof ScannableTable
@@ -292,10 +303,15 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         || table instanceof ProjectableFilterableTable) {
       return LogicalTableScan.create(cluster, this);
     }
-    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
+    // Some tests rely on the old behavior when tables were immediately converted to
+    // EnumerableTableScan
+    // Note: EnumerableTableScanRule can convert LogicalTableScan to EnumerableTableScan
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
+        && ((table == null && expressionFunction != null)
+        || EnumerableTableScan.canHandle(this))) {
       return EnumerableTableScan.create(cluster, this);
     }
-    throw new AssertionError();
+    return LogicalTableScan.create(cluster, this);
   }
 
   public List<RelCollation> getCollationList() {
@@ -317,6 +333,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return table.getStatistic().isKey(columns);
     }
     return false;
+  }
+
+  public List<ImmutableBitSet> getKeys() {
+    return table.getStatistic().getKeys();
   }
 
   public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -534,5 +554,3 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
   }
 }
-
-// End RelOptTableImpl.java

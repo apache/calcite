@@ -24,5 +24,3 @@ package org.apache.calcite.util;
  */
 public interface CalciteParserException {
 }
-
-// End CalciteParserException.java

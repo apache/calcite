@@ -159,5 +159,3 @@ public class SocketFactoryImpl extends SocketFactory {
     return new SocketFactoryImpl();
   }
 }
-
-// End SocketFactoryImpl.java

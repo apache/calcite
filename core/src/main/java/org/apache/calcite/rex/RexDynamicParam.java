@@ -74,5 +74,3 @@ public class RexDynamicParam extends RexVariable {
     return Objects.hash(digest, type, index);
   }
 }
-
-// End RexDynamicParam.java

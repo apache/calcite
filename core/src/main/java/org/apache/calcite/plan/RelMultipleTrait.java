@@ -28,5 +28,3 @@ public interface RelMultipleTrait
    * (including itself). */
   boolean isTop();
 }
-
-// End RelMultipleTrait.java

@@ -362,5 +362,3 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return false;
   }
 }
-
-// End CompositeOperandTypeChecker.java

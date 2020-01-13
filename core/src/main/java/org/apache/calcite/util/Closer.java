@@ -46,5 +46,3 @@ public final class Closer implements AutoCloseable {
     }
   }
 }
-
-// End Closer.java

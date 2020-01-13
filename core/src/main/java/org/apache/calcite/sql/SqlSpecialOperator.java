@@ -121,5 +121,3 @@ public class SqlSpecialOperator extends SqlOperator {
     }
   }
 }
-
-// End SqlSpecialOperator.java

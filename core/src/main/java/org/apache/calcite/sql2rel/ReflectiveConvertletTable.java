@@ -192,5 +192,3 @@ public class ReflectiveConvertletTable implements SqlRexConvertletTable {
         });
   }
 }
-
-// End ReflectiveConvertletTable.java

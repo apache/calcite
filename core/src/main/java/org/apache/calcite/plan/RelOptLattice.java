@@ -84,5 +84,3 @@ public class RelOptLattice {
         false);
   }
 }
-
-// End RelOptLattice.java

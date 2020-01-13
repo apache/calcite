@@ -208,5 +208,3 @@ public class ProjectCorrelateTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End ProjectCorrelateTransposeRule.java

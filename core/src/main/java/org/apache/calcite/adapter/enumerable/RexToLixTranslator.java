@@ -25,12 +25,10 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.CatchBlock;
 import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.linq4j.tree.Statement;
-import org.apache.calcite.linq4j.tree.UnaryExpression;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexBuilder;
@@ -197,7 +195,7 @@ public class RexToLixTranslator {
   Expression translate(RexNode expr, RexImpTable.NullAs nullAs,
       Type storageType) {
     Expression expression = translate0(expr, nullAs, storageType);
-    expression = EnumUtils.enforce(storageType, expression);
+    expression = EnumUtils.toInternal(expression, storageType);
     assert expression != null;
     return list.append("v", expression);
   }
@@ -491,7 +489,7 @@ public class RexToLixTranslator {
       }
     }
     if (convert == null) {
-      convert = convert(operand, typeFactory.getJavaClass(targetType));
+      convert = EnumUtils.convert(operand, typeFactory.getJavaClass(targetType));
     }
     // Going from anything to CHAR(n) or VARCHAR(n), make sure value is no
     // longer than n.
@@ -664,16 +662,14 @@ public class RexToLixTranslator {
       nullAs = RexImpTable.NullAs.NOT_POSSIBLE;
     }
     switch (expr.getKind()) {
-    case INPUT_REF:
-    {
+    case INPUT_REF: {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
       return handleNullUnboxingIfNecessary(input, nullAs, storageType);
     }
-    case PATTERN_INPUT_REF:
-    {
+    case PATTERN_INPUT_REF: {
       final int index = ((RexInputRef) expr).getIndex();
       Expression x = inputGetter.field(list, index, storageType);
 
@@ -765,7 +761,7 @@ public class RexToLixTranslator {
       storageType = typeFactory.getJavaClass(expr.getType());
     }
     return nullAs.handle(
-        convert(
+        EnumUtils.convert(
             Expressions.call(root, BuiltInMethod.DATA_CONTEXT_GET.method,
                 Expressions.constant("?" + expr.getIndex())),
             storageType));
@@ -954,211 +950,6 @@ public class RexToLixTranslator {
     return translator.translate(
         program.getCondition(),
         RexImpTable.NullAs.FALSE);
-  }
-
-  public static Expression convert(Expression operand, Type toType) {
-    final Type fromType = operand.getType();
-    return convert(operand, fromType, toType);
-  }
-
-  public static Expression convert(Expression operand, Type fromType,
-      Type toType) {
-    if (fromType.equals(toType)) {
-      return operand;
-    }
-    // E.g. from "Short" to "int".
-    // Generate "x.intValue()".
-    final Primitive toPrimitive = Primitive.of(toType);
-    final Primitive toBox = Primitive.ofBox(toType);
-    final Primitive fromBox = Primitive.ofBox(fromType);
-    final Primitive fromPrimitive = Primitive.of(fromType);
-    final boolean fromNumber = fromType instanceof Class
-        && Number.class.isAssignableFrom((Class) fromType);
-    if (fromType == String.class) {
-      if (toPrimitive != null) {
-        switch (toPrimitive) {
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          // Generate "SqlFunctions.toShort(x)".
-          return Expressions.call(
-              SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
-              operand);
-        default:
-          // Generate "Short.parseShort(x)".
-          return Expressions.call(
-              toPrimitive.boxClass,
-              "parse" + SqlFunctions.initcap(toPrimitive.primitiveName),
-              operand);
-        }
-      }
-      if (toBox != null) {
-        switch (toBox) {
-        case CHAR:
-          // Generate "SqlFunctions.toCharBoxed(x)".
-          return Expressions.call(
-              SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toBox.primitiveName) + "Boxed",
-              operand);
-        default:
-          // Generate "Short.valueOf(x)".
-          return Expressions.call(
-              toBox.boxClass,
-              "valueOf",
-              operand);
-        }
-      }
-    }
-    if (toPrimitive != null) {
-      if (fromPrimitive != null) {
-        // E.g. from "float" to "double"
-        return Expressions.convert_(
-            operand, toPrimitive.primitiveClass);
-      }
-      if (fromNumber || fromBox == Primitive.CHAR) {
-        // Generate "x.shortValue()".
-        return Expressions.unbox(operand, toPrimitive);
-      } else {
-        // E.g. from "Object" to "short".
-        // Generate "SqlFunctions.toShort(x)"
-        return Expressions.call(
-            SqlFunctions.class,
-            "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
-            operand);
-      }
-    } else if (fromNumber && toBox != null) {
-      // E.g. from "Short" to "Integer"
-      // Generate "x == null ? null : Integer.valueOf(x.intValue())"
-      return Expressions.condition(
-          Expressions.equal(operand, RexImpTable.NULL_EXPR),
-          RexImpTable.NULL_EXPR,
-          Expressions.box(
-              Expressions.unbox(operand, toBox),
-              toBox));
-    } else if (fromPrimitive != null && toBox != null) {
-      // E.g. from "int" to "Long".
-      // Generate Long.valueOf(x)
-      // Eliminate primitive casts like Long.valueOf((long) x)
-      if (operand instanceof UnaryExpression) {
-        UnaryExpression una = (UnaryExpression) operand;
-        if (una.nodeType == ExpressionType.Convert
-            || Primitive.of(una.getType()) == toBox) {
-          return Expressions.box(una.expression, toBox);
-        }
-      }
-      return Expressions.box(operand, toBox);
-    } else if (fromType == java.sql.Date.class) {
-      if (toBox == Primitive.INT) {
-        return Expressions.call(BuiltInMethod.DATE_TO_INT.method, operand);
-      } else {
-        return Expressions.convert_(operand, toType);
-      }
-    } else if (toType == java.sql.Date.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Date",
-      // generate "SqlFunctions.internalToDate".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_DATE.method, operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Date.class);
-      }
-    } else if (toType == java.sql.Time.class) {
-      // E.g. from "int" or "Integer" to "java.sql.Time",
-      // generate "SqlFunctions.internalToTime".
-      if (isA(fromType, Primitive.INT)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIME.method, operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Time.class);
-      }
-    } else if (toType == java.sql.Timestamp.class) {
-      // E.g. from "long" or "Long" to "java.sql.Timestamp",
-      // generate "SqlFunctions.internalToTimestamp".
-      if (isA(fromType, Primitive.LONG)) {
-        return Expressions.call(BuiltInMethod.INTERNAL_TO_TIMESTAMP.method,
-            operand);
-      } else {
-        return Expressions.convert_(operand, java.sql.Timestamp.class);
-      }
-    } else if (toType == BigDecimal.class) {
-      if (fromBox != null) {
-        // E.g. from "Integer" to "BigDecimal".
-        // Generate "x == null ? null : new BigDecimal(x.intValue())"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.new_(
-                BigDecimal.class,
-                Expressions.unbox(operand, fromBox)));
-      }
-      if (fromPrimitive != null) {
-        // E.g. from "int" to "BigDecimal".
-        // Generate "new BigDecimal(x)"
-        // Fix CALCITE-2325, we should decide null here for int type.
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.new_(
-                BigDecimal.class,
-                operand));
-      }
-      // E.g. from "Object" to "BigDecimal".
-      // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
-      return Expressions.condition(
-          Expressions.equal(operand, RexImpTable.NULL_EXPR),
-          RexImpTable.NULL_EXPR,
-          Expressions.call(
-              SqlFunctions.class,
-              "toBigDecimal",
-              operand));
-    } else if (toType == String.class) {
-      if (fromPrimitive != null) {
-        switch (fromPrimitive) {
-        case DOUBLE:
-        case FLOAT:
-          // E.g. from "double" to "String"
-          // Generate "SqlFunctions.toString(x)"
-          return Expressions.call(
-              SqlFunctions.class,
-              "toString",
-              operand);
-        default:
-          // E.g. from "int" to "String"
-          // Generate "Integer.toString(x)"
-          return Expressions.call(
-              fromPrimitive.boxClass,
-              "toString",
-              operand);
-        }
-      } else if (fromType == BigDecimal.class) {
-        // E.g. from "BigDecimal" to "String"
-        // Generate "x.toString()"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.call(
-                SqlFunctions.class,
-                "toString",
-                operand));
-      } else {
-        // E.g. from "BigDecimal" to "String"
-        // Generate "x == null ? null : x.toString()"
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.call(
-                operand,
-                "toString"));
-      }
-    }
-    return Expressions.convert_(operand, toType);
-  }
-
-  static boolean isA(Type fromType, Primitive primitive) {
-    return Primitive.of(fromType) == primitive
-        || Primitive.ofBox(fromType) == primitive;
   }
 
   public Expression translateConstructor(
@@ -1372,5 +1163,3 @@ public class RexToLixTranslator {
     private AlwaysNull() {}
   }
 }
-
-// End RexToLixTranslator.java

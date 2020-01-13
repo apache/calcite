@@ -207,5 +207,3 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
         Util.cast(operandList, SqlLiteral.class));
   }
 }
-
-// End SqlLiteralChainOperator.java

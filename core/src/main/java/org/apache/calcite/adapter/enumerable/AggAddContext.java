@@ -61,5 +61,3 @@ public interface AggAddContext extends AggResultContext {
    */
   RexToLixTranslator rowTranslator();
 }
-
-// End AggAddContext.java

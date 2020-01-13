@@ -110,5 +110,3 @@ class AggFinder extends AggVisitor {
     }
   }
 }
-
-// End AggFinder.java

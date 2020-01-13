@@ -91,5 +91,3 @@ public class DelegatingSchema implements Schema {
     return schema.getSubSchemaNames();
   }
 }
-
-// End DelegatingSchema.java

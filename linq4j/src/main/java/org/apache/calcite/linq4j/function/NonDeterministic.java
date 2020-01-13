@@ -32,5 +32,3 @@ import java.lang.annotation.Target;
 @Target({ElementType.CONSTRUCTOR, ElementType.METHOD, ElementType.TYPE })
 public @interface NonDeterministic {
 }
-
-// End NonDeterministic.java

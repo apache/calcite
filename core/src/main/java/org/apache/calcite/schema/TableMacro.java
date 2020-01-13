@@ -34,5 +34,3 @@ public interface TableMacro extends Function {
    */
   TranslatableTable apply(List<Object> arguments);
 }
-
-// End TableMacro.java

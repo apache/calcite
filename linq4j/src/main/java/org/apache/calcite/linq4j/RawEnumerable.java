@@ -35,5 +35,3 @@ public interface RawEnumerable<T> {
    */
   Enumerator<T> enumerator();
 }
-
-// End RawEnumerable.java

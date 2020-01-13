@@ -88,5 +88,3 @@ public class MutableJoin extends MutableBiRel {
         right.clone(), condition, joinType, variablesSet);
   }
 }
-
-// End MutableJoin.java

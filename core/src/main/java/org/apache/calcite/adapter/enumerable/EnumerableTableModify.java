@@ -169,5 +169,3 @@ public class EnumerableTableModify extends TableModify
   }
 
 }
-
-// End EnumerableTableModify.java

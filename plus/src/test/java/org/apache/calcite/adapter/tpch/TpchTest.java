@@ -16,32 +16,34 @@
  */
 package org.apache.calcite.adapter.tpch;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.TestUtil;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpch.TpchSchema}.
  *
  * <p>Because the TPC-H data generator takes time and memory to instantiate,
- * tests that read data (that is, most tests) only run
- * if {@link org.apache.calcite.config.CalciteSystemProperty#TEST_SLOW} is set.</p>
+ * tests only run as part of slow tests.</p>
  */
+@Tag("slow")
 public class TpchTest {
-  public static final boolean ENABLE =
-      CalciteSystemProperty.TEST_SLOW.value() && TestUtil.getJavaMajorVersion() >= 7;
+  public static final boolean ENABLE = TestUtil.getJavaMajorVersion() >= 7;
 
   private static String schema(String name, String scaleFactor) {
     return "     {\n"
@@ -780,7 +782,7 @@ public class TpchTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1543">[CALCITE-1543]
    * Correlated scalar sub-query with multiple aggregates gives
    * AssertionError</a>. */
-  @Ignore("planning succeeds, but gives OutOfMemoryError during execution")
+  @Disabled("planning succeeds, but gives OutOfMemoryError during execution")
   @Test public void testDecorrelateScalarAggregate() {
     final String sql = "select sum(l_extendedprice)\n"
         + "from lineitem, part\n"
@@ -800,15 +802,9 @@ public class TpchTest {
         .returnsCount(150000);
   }
 
-  private CalciteAssert.AssertThat with(boolean enable) {
-    return CalciteAssert.model(TPCH_MODEL)
-        .enable(enable);
-  }
-
   private CalciteAssert.AssertThat with() {
     // Only run on JDK 1.7 or higher. The io.airlift.tpch library requires it.
-    // Only run if slow tests are enabled; the library uses lots of memory.
-    return with(ENABLE);
+    return CalciteAssert.model(TPCH_MODEL).enable(ENABLE);
   }
 
   /** Tests the customer table with scale factor 5. */
@@ -822,14 +818,14 @@ public class TpchTest {
     checkQuery(1);
   }
 
-  @Ignore("slow")
+  @Disabled("Infinite planning")
   @Test public void testQuery02() {
     checkQuery(2);
   }
 
+  @Disabled("Infinite planning")
   @Test public void testQuery02Conversion() {
-    query(2, true)
-        .enable(ENABLE)
+    query(2)
         .convertMatches(relNode -> {
           String s = RelOptUtil.toString(relNode);
           assertThat(s, not(containsString("Correlator")));
@@ -841,12 +837,12 @@ public class TpchTest {
     checkQuery(3);
   }
 
-  @Ignore("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
+  @Disabled("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
   @Test public void testQuery04() {
     checkQuery(4);
   }
 
-  @Ignore("OutOfMemoryError")
+  @Disabled("OutOfMemoryError")
   @Test public void testQuery05() {
     checkQuery(5);
   }
@@ -855,17 +851,16 @@ public class TpchTest {
     checkQuery(6);
   }
 
-  @Ignore("slow")
   @Test public void testQuery07() {
+    assumeTrue(Bug.CALCITE_2223_FIXED);
     checkQuery(7);
   }
 
-  @Ignore("slow")
   @Test public void testQuery08() {
     checkQuery(8);
   }
 
-  @Ignore("no method found")
+  @Disabled("no method found")
   @Test public void testQuery09() {
     checkQuery(9);
   }
@@ -874,17 +869,17 @@ public class TpchTest {
     checkQuery(10);
   }
 
-  @Ignore("CannotPlanException")
+  @Disabled("CannotPlanException")
   @Test public void testQuery11() {
     checkQuery(11);
   }
 
-  @Ignore("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
+  @Disabled("NoSuchMethodException: SqlFunctions.lt(Date, Date)")
   @Test public void testQuery12() {
     checkQuery(12);
   }
 
-  @Ignore("CannotPlanException")
+  @Disabled("CannotPlanException")
   @Test public void testQuery13() {
     checkQuery(13);
   }
@@ -893,7 +888,7 @@ public class TpchTest {
     checkQuery(14);
   }
 
-  @Ignore("AssertionError")
+  @Disabled("AssertionError")
   @Test public void testQuery15() {
     checkQuery(15);
   }
@@ -902,7 +897,6 @@ public class TpchTest {
     checkQuery(16);
   }
 
-  @Ignore("slow")
   @Test public void testQuery17() {
     checkQuery(17);
   }
@@ -912,6 +906,7 @@ public class TpchTest {
   }
 
   // a bit slow
+  @Timeout(value = 10, unit = TimeUnit.MINUTES)
   @Test public void testQuery19() {
     checkQuery(19);
   }
@@ -920,31 +915,24 @@ public class TpchTest {
     checkQuery(20);
   }
 
-  @Ignore("slow")
   @Test public void testQuery21() {
     checkQuery(21);
   }
 
-  @Ignore("IllegalArgumentException during decorrelation")
+  @Disabled("IllegalArgumentException during decorrelation")
   @Test public void testQuery22() {
     checkQuery(22);
   }
 
   private void checkQuery(int i) {
-    query(i, null).runs();
+    query(i).runs();
   }
 
   /** Runs with query #i.
    *
-   * @param i Ordinal of query, per the benchmark, 1-based
-   * @param enable Whether to enable query execution.
-   *     If null, use the value of {@link #ENABLE}.
-   *     Pass true only for 'fast' tests that do not read any data.
-   */
-  private CalciteAssert.AssertQuery query(int i, Boolean enable) {
-    return with(Util.first(enable, ENABLE))
+   * @param i Ordinal of query, per the benchmark, 1-based */
+  private CalciteAssert.AssertQuery query(int i) {
+    return with()
         .query(QUERIES.get(i - 1).replaceAll("tpch\\.", "tpch_01."));
   }
 }
-
-// End TpchTest.java

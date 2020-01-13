@@ -62,5 +62,3 @@ public class CodesFunction {
     };
   }
 }
-
-// End CodesFunction.java

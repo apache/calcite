@@ -896,5 +896,3 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
   }
 }
-
-// End ArrayTable.java

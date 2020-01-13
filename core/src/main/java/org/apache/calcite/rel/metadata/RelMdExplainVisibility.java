@@ -53,5 +53,3 @@ public class RelMdExplainVisibility
     return null;
   }
 }
-
-// End RelMdExplainVisibility.java

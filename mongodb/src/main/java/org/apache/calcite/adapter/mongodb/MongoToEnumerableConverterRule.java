@@ -49,5 +49,3 @@ public class MongoToEnumerableConverterRule extends ConverterRule {
     return new MongoToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End MongoToEnumerableConverterRule.java

@@ -99,5 +99,3 @@ public class RelationalJdbcExample {
     connection.close();
   }
 }
-
-// End RelationalJdbcExample.java

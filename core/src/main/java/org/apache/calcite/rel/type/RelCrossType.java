@@ -76,5 +76,3 @@ public class RelCrossType extends RelDataTypeImpl {
     sb.append(")");
   }
 }
-
-// End RelCrossType.java

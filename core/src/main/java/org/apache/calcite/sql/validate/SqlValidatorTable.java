@@ -61,5 +61,3 @@ public interface SqlValidatorTable extends Wrapper {
       InitializerContext initializerContext);
 
 }
-
-// End SqlValidatorTable.java

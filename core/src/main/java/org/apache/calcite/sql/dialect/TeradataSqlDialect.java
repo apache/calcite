@@ -22,15 +22,15 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Teradata database.
  */
 public class TeradataSqlDialect extends SqlDialect {
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.TERADATA)
+      .withIdentifierQuoteString("\"");
+
   public static final SqlDialect DEFAULT =
-      new TeradataSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.TERADATA)
-          .withIdentifierQuoteString("\""));
+      new TeradataSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a TeradataSqlDialect. */
   public TeradataSqlDialect(Context context) {
     super(context);
   }
 }
-
-// End TeradataSqlDialect.java

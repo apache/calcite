@@ -91,5 +91,3 @@ public class SimpleJdbcExample {
     connection.close();
   }
 }
-
-// End SimpleJdbcExample.java

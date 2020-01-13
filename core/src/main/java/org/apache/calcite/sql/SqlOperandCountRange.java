@@ -37,5 +37,3 @@ public interface SqlOperandCountRange {
   int getMax();
 
 }
-
-// End SqlOperandCountRange.java

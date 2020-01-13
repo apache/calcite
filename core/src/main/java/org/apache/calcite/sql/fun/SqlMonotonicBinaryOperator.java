@@ -152,5 +152,3 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
     return super.getMonotonicity(call);
   }
 }
-
-// End SqlMonotonicBinaryOperator.java

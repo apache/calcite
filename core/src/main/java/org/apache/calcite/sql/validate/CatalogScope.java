@@ -51,5 +51,3 @@ class CatalogScope extends DelegatingScope {
   }
 
 }
-
-// End CatalogScope.java

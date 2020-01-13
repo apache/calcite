@@ -373,5 +373,3 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
     return new DeterministicCodeOptimizer(this);
   }
 }
-
-// End DeterministicCodeOptimizer.java

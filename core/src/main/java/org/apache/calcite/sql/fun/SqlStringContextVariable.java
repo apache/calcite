@@ -30,5 +30,3 @@ public class SqlStringContextVariable extends SqlBaseContextVariable {
     super(name, ReturnTypes.VARCHAR_2000, SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlStringContextVariable.java

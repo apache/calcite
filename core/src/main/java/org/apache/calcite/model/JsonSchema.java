@@ -110,5 +110,3 @@ public abstract class JsonSchema {
     CUSTOM
   }
 }
-
-// End JsonSchema.java

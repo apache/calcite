@@ -56,5 +56,3 @@ class SchemaNamespace extends AbstractNamespace {
     return null;
   }
 }
-
-// End SchemaNamespace.java

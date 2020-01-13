@@ -295,5 +295,3 @@ public class RelOptMaterialization {
     return rel2;
   }
 }
-
-// End RelOptMaterialization.java

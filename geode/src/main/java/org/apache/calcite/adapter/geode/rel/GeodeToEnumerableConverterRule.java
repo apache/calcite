@@ -39,5 +39,3 @@ public class GeodeToEnumerableConverterRule extends ConverterRule {
     return new GeodeToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End GeodeToEnumerableConverterRule.java

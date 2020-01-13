@@ -22,24 +22,21 @@
 # Build classpath on first call.
 # (To force rebuild, remove target/fullclasspath.txt.)
 
+# Deduce whether we are running cygwin
+case $(uname -s) in
+(CYGWIN*) cygwin=true;;
+(*) cygwin=;;
+esac
+
 root=$(cd "$(dirname "$(readlink $0)")"; pwd)
 
-if [ ! -f ${root}/target/fullclasspath.txt ]; then
+CP=$root/build/libs/sqllineClasspath.jar
+if [ ! -f $CP ]; then
   (
-    cd ${root}
-    mvn dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
-    awk -v RS=: -v ORS=: '{if (!m[$0]) {m[$0]=1; print}}' \
-        target/classpath.txt \
-        */target/classpath.txt > target/fullclasspath.txt
+    cd $root
+    ./gradlew :buildSqllineClasspath
   )
 fi
-
-CP=
-for module in core file plus; do
-  CP=${CP}${root}/${module}/target/classes:
-  CP=${CP}${root}/${module}/target/test-classes:
-done
-CP="${CP}$(cat ${root}/target/fullclasspath.txt)"
 
 VM_OPTS=
 export JAVA_OPTS=-Djavax.xml.parsers.DocumentBuilderFactory=com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl

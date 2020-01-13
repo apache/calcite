@@ -718,5 +718,3 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return builder.checkMap(root);
   }
 }
-
-// End PigRelOpVisitor.java

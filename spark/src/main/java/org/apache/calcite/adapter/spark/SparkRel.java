@@ -56,5 +56,3 @@ public interface SparkRel extends RelNode {
     }
   }
 }
-
-// End SparkRel.java

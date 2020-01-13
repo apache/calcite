@@ -85,5 +85,3 @@ public class CsvTranslatableTable extends CsvTable
     return new CsvTableScan(context.getCluster(), relOptTable, this, fields);
   }
 }
-
-// End CsvTranslatableTable.java

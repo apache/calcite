@@ -110,5 +110,3 @@ class MaterializationActor {
     }
   }
 }
-
-// End MaterializationActor.java

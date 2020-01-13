@@ -27,9 +27,10 @@ import org.apache.calcite.util.TestUtil;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -42,20 +43,21 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 
 /**
  * Checks renaming of fields (also upper, lower cases) during projections
  */
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
 public class Projection2Test {
 
-  @ClassRule
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
   private static final String NAME = "nested";
 
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
 
     final Map<String, String> mappings = ImmutableMap.of("a", "long",
@@ -92,16 +94,14 @@ public class Projection2Test {
     };
   }
 
-  @Test
-  public void projection() {
+  @Test public void projection() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select \"a\", \"b.a\", \"b.b\", \"b.c.a\" from view")
             .returns("a=1; b.a=2; b.b=3; b.c.a=foo\n");
   }
 
-  @Test
-  public void projection2() {
+  @Test public void projection2() {
     String sql = String.format(Locale.ROOT, "select _MAP['a'], _MAP['b.a'], _MAP['b.b'], "
         + "_MAP['b.c.a'], _MAP['missing'], _MAP['b.missing'] from \"elastic\".\"%s\"", NAME);
 
@@ -111,8 +111,7 @@ public class Projection2Test {
             .returns("EXPR$0=1; EXPR$1=2; EXPR$2=3; EXPR$3=foo; EXPR$4=null; EXPR$5=null\n");
   }
 
-  @Test
-  public void projection3() {
+  @Test public void projection3() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query(
@@ -130,8 +129,7 @@ public class Projection2Test {
    * Test that {@code _id} field is available when queried explicitly.
    * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">ID Field</a>
    */
-  @Test
-  public void projectionWithIdField() {
+  @Test public void projectionWithIdField() {
 
     final CalciteAssert.AssertThat factory = CalciteAssert.that().with(newConnectionFactory());
 
@@ -201,8 +199,7 @@ public class Projection2Test {
    * should be used just
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-source-filtering.html">_source</a>
    */
-  @Test
-  public void simpleProjectionNoScripting() {
+  @Test public void simpleProjectionNoScripting() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query(
@@ -285,5 +282,3 @@ public class Projection2Test {
     };
   }
 }
-
-// End Projection2Test.java

@@ -78,5 +78,3 @@ public class CalciteTimingTracer {
     logger.debug("{}:  elapsed nanos={}", event, DECIMAL_FORMAT.format(elapsed));
   }
 }
-
-// End CalciteTimingTracer.java

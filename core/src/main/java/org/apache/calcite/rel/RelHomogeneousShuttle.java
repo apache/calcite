@@ -92,5 +92,3 @@ public class RelHomogeneousShuttle extends RelShuttleImpl {
     return visit((RelNode) exchange);
   }
 }
-
-// End RelHomogeneousShuttle.java

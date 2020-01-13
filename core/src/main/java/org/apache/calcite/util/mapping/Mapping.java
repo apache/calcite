@@ -79,5 +79,3 @@ public interface Mapping
    */
   int size();
 }
-
-// End Mapping.java

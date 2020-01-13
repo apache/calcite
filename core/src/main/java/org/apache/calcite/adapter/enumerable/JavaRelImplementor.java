@@ -53,5 +53,3 @@ public abstract class JavaRelImplementor implements RelImplementor {
     return DataContext.ROOT;
   }
 }
-
-// End JavaRelImplementor.java

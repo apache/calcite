@@ -23,8 +23,9 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests return type inference using {@code RelDataTypeSystem}
@@ -119,85 +120,76 @@ public class RelDataTypeSystemTest {
   private static final SqlTypeFactoryImpl CUSTOM_FACTORY = new SqlTypeFactoryImpl(new
           CustomTypeSystem());
 
-  @Test
-  public void testDecimalAdditionReturnTypeInference() {
+  @Test public void testDecimalAdditionReturnTypeInference() {
     RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 1);
     RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 2);
 
     RelDataType dataType = SqlStdOperatorTable.MINUS.inferReturnType(TYPE_FACTORY,
             Lists.newArrayList(operand1, operand2));
-    Assert.assertEquals(12, dataType.getPrecision());
-    Assert.assertEquals(2, dataType.getScale());
+    assertEquals(12, dataType.getPrecision());
+    assertEquals(2, dataType.getScale());
   }
 
-  @Test
-  public void testDecimalModReturnTypeInference() {
+  @Test public void testDecimalModReturnTypeInference() {
     RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 1);
     RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 19, 2);
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(19, dataType.getPrecision());
-    Assert.assertEquals(2, dataType.getScale());
+    assertEquals(11, dataType.getPrecision());
+    assertEquals(2, dataType.getScale());
   }
 
-  @Test
-  public void testDoubleModReturnTypeInference() {
+  @Test public void testDoubleModReturnTypeInference() {
     RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
     RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(TYPE_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
+    assertEquals(SqlTypeName.DOUBLE, dataType.getSqlTypeName());
   }
 
-  @Test
-  public void testCustomDecimalPlusReturnTypeInference() {
+  @Test public void testCustomDecimalPlusReturnTypeInference() {
     RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 10);
     RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
 
     RelDataType dataType = SqlStdOperatorTable.PLUS.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(38, dataType.getPrecision());
-    Assert.assertEquals(9, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(38, dataType.getPrecision());
+    assertEquals(9, dataType.getScale());
   }
 
-  @Test
-  public void testCustomDecimalMultiplyReturnTypeInference() {
+  @Test public void testCustomDecimalMultiplyReturnTypeInference() {
     RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 2, 4);
     RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 3, 5);
 
     RelDataType dataType = SqlStdOperatorTable.MULTIPLY.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(6, dataType.getPrecision());
-    Assert.assertEquals(20, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(6, dataType.getPrecision());
+    assertEquals(20, dataType.getScale());
   }
 
-  @Test
-  public void testCustomDecimalDivideReturnTypeInference() {
+  @Test public void testCustomDecimalDivideReturnTypeInference() {
     RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 10);
     RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
 
     RelDataType dataType = SqlStdOperatorTable.DIVIDE.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(10, dataType.getPrecision());
-    Assert.assertEquals(10, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(10, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
   }
 
-  @Test
-  public void testCustomDecimalModReturnTypeInference() {
+  @Test public void testCustomDecimalModReturnTypeInference() {
     RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 10);
     RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 38, 20);
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
-    Assert.assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
-    Assert.assertEquals(28, dataType.getPrecision());
-    Assert.assertEquals(10, dataType.getScale());
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(28, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
   }
 }
-
-// End RelDataTypeSystemTest.java

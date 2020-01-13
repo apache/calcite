@@ -280,5 +280,3 @@ public class DruidTable extends AbstractTable implements TranslatableTable {
     }
   }
 }
-
-// End DruidTable.java

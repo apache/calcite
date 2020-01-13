@@ -67,7 +67,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -85,12 +85,14 @@ import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link RelBuilder}.
@@ -2024,6 +2026,105 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithOrdinal() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field(2),
+                builder.field(3))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("MGR"),
+                builder.field("JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithExplicitAliasAndName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .projectExcept(
+                builder.field("e", "MGR"),
+                builder.field("e", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithImplicitAliasAndName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("EMP", "MGR"),
+                builder.field("EMP", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithDuplicateField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      builder.scan("EMP")
+          .projectExcept(
+            builder.field("EMP", "MGR"),
+            builder.field("EMP", "MGR"));
+    }, "Project should fail since we are trying to remove the same field two times.");
+    assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithMissingField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    RexNode deptnoField = builder.field("DEPTNO");
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      builder.project(
+            builder.field("EMPNO"),
+            builder.field("ENAME"))
+          .projectExcept(deptnoField);
+    }, "Project should fail since we are trying to remove a field that does not exist.");
+    assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
+  }
+
   @Test public void testMultiLevelAlias() {
     final RelBuilder builder = RelBuilder.create(config().build());
     RelNode root =
@@ -2948,5 +3049,3 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 }
-
-// End RelBuilderTest.java

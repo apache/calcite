@@ -33,5 +33,3 @@ public class VirtualColumnsExpressionFactory extends NullInitializerExpressionFa
     }
   }
 }
-
-// End VirtualColumnsExpressionFactory.java

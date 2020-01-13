@@ -82,5 +82,3 @@ public final class BlockBuilderBase {
     return Expressions.parameter(Integer.class, name);
   }
 }
-
-// End BlockBuilderBase.java

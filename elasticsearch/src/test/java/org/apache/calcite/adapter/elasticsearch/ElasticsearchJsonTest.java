@@ -19,8 +19,8 @@ package org.apache.calcite.adapter.elasticsearch;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +29,10 @@ import java.util.Map;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsIterableContaining.hasItem;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Testing correct parsing of JSON (elasticsearch) response.
@@ -41,15 +41,14 @@ public class ElasticsearchJsonTest {
 
   private ObjectMapper mapper;
 
-  @Before
+  @BeforeEach
   public void setUp() throws Exception {
     this.mapper = new ObjectMapper()
         .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
         .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
   }
 
-  @Test
-  public void aggEmpty() throws Exception {
+  @Test public void aggEmpty() throws Exception {
     String json = "{}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
@@ -58,8 +57,7 @@ public class ElasticsearchJsonTest {
     assertThat(a.asMap().size(), is(0));
   }
 
-  @Test
-  public void aggSingle1() throws Exception {
+  @Test public void aggSingle1() throws Exception {
     String json = "{agg1: {value: '111'}}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
@@ -76,8 +74,7 @@ public class ElasticsearchJsonTest {
     assertThat(rows.get(0).get("agg1"), is("111"));
   }
 
-  @Test
-  public void aggMultiValues() throws Exception {
+  @Test public void aggMultiValues() throws Exception {
     String json = "{ agg1: {min: 0, max: 2, avg: 2.33}}";
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
     assertNotNull(a);
@@ -89,8 +86,7 @@ public class ElasticsearchJsonTest {
     assertThat(values.keySet(), hasItems("min", "max", "avg"));
   }
 
-  @Test
-  public void aggSingle2() throws Exception {
+  @Test public void aggSingle2() throws Exception {
     String json = "{ agg1: {value: 'foo'}, agg2: {value: 42}}";
 
     ElasticsearchJson.Aggregations a = mapper.readValue(json, ElasticsearchJson.Aggregations.class);
@@ -100,8 +96,7 @@ public class ElasticsearchJsonTest {
     assertThat(a.asMap().keySet(), hasItems("agg1", "agg2"));
   }
 
-  @Test
-  public void aggBuckets1() throws Exception {
+  @Test public void aggBuckets1() throws Exception {
     String json = "{ groupby: {buckets: [{key:'k1', doc_count:0, myagg:{value: 1.1}},"
         + " {key:'k2', myagg:{value: 2.2}}] }}";
 
@@ -118,8 +113,7 @@ public class ElasticsearchJsonTest {
     assertThat(multi.buckets().get(1).keyAsString(), is("k2"));
   }
 
-  @Test
-  public void aggManyAggregations() throws Exception {
+  @Test public void aggManyAggregations() throws Exception {
     String json = "{groupby:{buckets:["
         + "{key:'k1', a1:{value:1}, a2:{value:2}},"
         + "{key:'k2', a1:{value:3}, a2:{value:4}}"
@@ -144,8 +138,7 @@ public class ElasticsearchJsonTest {
     assertThat(rows.get(0).get("a2"), is(2));
   }
 
-  @Test
-  public void aggMultiBuckets() throws Exception {
+  @Test public void aggMultiBuckets() throws Exception {
     String json = "{col1: {buckets: ["
         + "{col2: {doc_count:1, buckets:[{key:'k3', max:{value:41}}]}, key:'k1'},"
         + "{col2: {buckets:[{key:'k4', max:{value:42}}], doc_count:1}, key:'k2'}"
@@ -179,5 +172,3 @@ public class ElasticsearchJsonTest {
   }
 
 }
-
-// End ElasticsearchJsonTest.java

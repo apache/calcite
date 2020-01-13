@@ -50,5 +50,3 @@ public class EnumerableInterpreterRule extends ConverterRule {
     return EnumerableInterpreter.create(rel, 0.5d);
   }
 }
-
-// End EnumerableInterpreterRule.java

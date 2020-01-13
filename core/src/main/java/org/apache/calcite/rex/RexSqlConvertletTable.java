@@ -27,5 +27,3 @@ public interface RexSqlConvertletTable {
    */
   RexSqlConvertlet get(RexCall call);
 }
-
-// End RexSqlConvertletTable.java

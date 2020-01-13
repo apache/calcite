@@ -18,9 +18,4 @@
 /**
  * Query provider based on a Druid database.
  */
-@PackageMarker
 package org.apache.calcite.adapter.druid;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

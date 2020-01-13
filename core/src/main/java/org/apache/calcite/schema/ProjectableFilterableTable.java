@@ -59,5 +59,3 @@ public interface ProjectableFilterableTable extends Table {
   Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
       int[] projects);
 }
-
-// End ProjectableFilterableTable.java

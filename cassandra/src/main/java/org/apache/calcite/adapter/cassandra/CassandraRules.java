@@ -373,7 +373,7 @@ public class CassandraRules {
 
     private CassandraLimitRule() {
       super(operand(EnumerableLimit.class, operand(CassandraToEnumerableConverter.class, any())),
-        "CassandraLimitRule");
+          "CassandraLimitRule");
     }
 
     public RelNode convert(EnumerableLimit limit) {
@@ -393,5 +393,3 @@ public class CassandraRules {
     }
   }
 }
-
-// End CassandraRules.java

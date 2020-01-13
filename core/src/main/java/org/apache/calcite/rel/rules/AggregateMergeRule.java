@@ -147,5 +147,3 @@ public class AggregateMergeRule extends RelOptRule {
     call.transformTo(finalAgg);
   }
 }
-
-// End AggregateMergeRule.java

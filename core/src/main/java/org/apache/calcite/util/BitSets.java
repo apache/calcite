@@ -352,5 +352,3 @@ public final class BitSets {
     }
   }
 }
-
-// End BitSets.java

@@ -271,5 +271,3 @@ public class BinarySearch {
     }
   }
 }
-
-// End BinarySearch.java

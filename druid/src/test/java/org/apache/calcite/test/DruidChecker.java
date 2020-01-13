@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * A consumer that checks that a particular Druid query is generated to implement a query.
@@ -51,5 +51,3 @@ class DruidChecker implements Consumer<List> {
     }
   }
 }
-
-// End DruidChecker.java

@@ -17,18 +17,33 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.linq4j.MemoryFactory;
+import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.hamcrest.core.Is;
+import org.junit.jupiter.api.Test;
 
 import java.util.AbstractList;
+import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link Automaton}. */
 public class AutomatonTest {
+
+  /** Creates a Matcher that matches a list of
+   * {@link org.apache.calcite.runtime.Matcher.PartialMatch} if they
+   * a formatted to a given string. */
+  private static <E> org.hamcrest.Matcher<List<Matcher.PartialMatch<E>>>
+      isMatchList(final String value) {
+    return Matchers.compose(Is.is(value),
+        match -> match.stream().map(pm -> pm.rows).collect(Collectors.toList())
+            .toString());
+  }
+
   @Test public void testSimple() {
     // pattern(a)
     final Pattern p = Pattern.builder().symbol("a").build();
@@ -40,7 +55,8 @@ public class AutomatonTest {
             .add("a", s -> s.get().contains("a"))
             .build();
     final String expected = "[[a], [a]]";
-    assertThat(matcher.match(rows).toString(), is(expected));
+
+    assertThat(matcher.match(rows), isMatchList(expected));
   }
 
   @Test public void testSequence() {
@@ -56,7 +72,7 @@ public class AutomatonTest {
             .add("b", s -> s.get().contains("b"))
             .build();
     final String expected = "[[a, ab], [ab, b]]";
-    assertThat(matcher.match(rows).toString(), is(expected));
+    assertThat(matcher.match(rows), isMatchList(expected));
   }
 
   @Test public void testStar() {
@@ -74,7 +90,7 @@ public class AutomatonTest {
             .build();
     final String expected = "[[b], [ab], [ab], [ab, a, ab], [a, ab], [b], [ab, b], [ab, a, ab, b], "
         + "[a, ab, b], [b]]";
-    assertThat(matcher.match(rows).toString(), is(expected));
+    assertThat(matcher.match(rows), isMatchList(expected));
   }
 
   @Test public void testPlus() {
@@ -91,7 +107,7 @@ public class AutomatonTest {
             .add("b", s -> s.get().contains("b"))
             .build();
     final String expected = "[[ab, a, ab], [a, ab], [ab, b], [ab, a, ab, b], [a, ab, b]]";
-    assertThat(matcher.match(rows).toString(), is(expected));
+    assertThat(matcher.match(rows), isMatchList(expected));
   }
 
   @Test public void testOr() {
@@ -109,7 +125,7 @@ public class AutomatonTest {
             .add("b", s -> s.get().contains("b"))
             .build();
     final String expected = "[[a], [b], [ab], [ab], [a], [ab], [ab], [b], [b]]";
-    assertThat(matcher.match(rows).toString(), is(expected));
+    assertThat(matcher.match(rows), isMatchList(expected));
   }
 
   @Test public void testOptional() {
@@ -129,7 +145,7 @@ public class AutomatonTest {
             .add("c", s -> s.get() == 'c')
             .build();
     final String expected = "[[a, c], [a, b, c]]";
-    assertThat(matcher.match(chars(rows)).toString(), is(expected));
+    assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
   @Test public void testRepeat() {
@@ -164,7 +180,7 @@ public class AutomatonTest {
             .add("b", s -> s.get() == 'b')
             .add("c", s -> s.get() == 'c')
             .build();
-    assertThat(matcher.match(chars(rows)).toString(), is(expected));
+    assertThat(matcher.match(chars(rows)), isMatchList(expected));
   }
 
   @Test public void testRepeatComposite() {
@@ -184,8 +200,8 @@ public class AutomatonTest {
             .add("b", s -> s.get() == 'b')
             .add("c", s -> s.get() == 'c')
             .build();
-    assertThat(matcher.match(chars(rows)).toString(),
-        is("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
+    assertThat(matcher.match(chars(rows)),
+        isMatchList("[[a, b, a, c], [a, b, a, c], [a, b, a, b, a, c]]"));
   }
 
   @Test public void testResultWithLabels() {
@@ -229,5 +245,3 @@ public class AutomatonTest {
     };
   }
 }
-
-// End AutomatonTest.java

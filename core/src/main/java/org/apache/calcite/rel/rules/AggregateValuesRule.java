@@ -82,8 +82,9 @@ public class AggregateValuesRule extends RelOptRule {
       switch (aggregateCall.getAggregation().getKind()) {
       case COUNT:
       case SUM0:
-        literals.add((RexLiteral) rexBuilder.makeLiteral(
-            BigDecimal.ZERO, aggregateCall.getType(), false));
+        literals.add(
+            (RexLiteral) rexBuilder.makeLiteral(
+                BigDecimal.ZERO, aggregateCall.getType(), false));
         break;
 
       case MIN:
@@ -106,5 +107,3 @@ public class AggregateValuesRule extends RelOptRule {
     call.getPlanner().setImportance(aggregate, 0.0);
   }
 }
-
-// End AggregateValuesRule.java

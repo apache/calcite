@@ -148,5 +148,3 @@ public class SqlInsert extends SqlCall {
     validator.validateInsert(this);
   }
 }
-
-// End SqlInsert.java

@@ -80,5 +80,3 @@ public class TypeBinaryExpression extends Expression {
     return Objects.hash(nodeType, super.type, type, expression);
   }
 }
-
-// End TypeBinaryExpression.java

@@ -62,5 +62,3 @@ public abstract class RelVisitor {
     return root;
   }
 }
-
-// End RelVisitor.java

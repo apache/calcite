@@ -92,5 +92,3 @@ public class MutableTableFunctionScan extends MutableMultiRel {
   }
 
 }
-
-// End MutableTableFunctionScan.java

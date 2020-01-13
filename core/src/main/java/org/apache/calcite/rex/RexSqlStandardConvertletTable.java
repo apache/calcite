@@ -258,5 +258,3 @@ public class RexSqlStandardConvertletTable
     }
   }
 }
-
-// End RexSqlStandardConvertletTable.java

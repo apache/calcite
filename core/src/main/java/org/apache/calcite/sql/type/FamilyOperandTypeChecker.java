@@ -194,5 +194,3 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
     return Consistency.NONE;
   }
 }
-
-// End FamilyOperandTypeChecker.java

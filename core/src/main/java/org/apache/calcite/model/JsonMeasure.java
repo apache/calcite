@@ -55,5 +55,3 @@ public class JsonMeasure {
     modelHandler.visit(this);
   }
 }
-
-// End JsonMeasure.java

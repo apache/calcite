@@ -122,6 +122,10 @@ public class RexCallBinding extends SqlOperatorBinding {
     return RexUtil.isLiteral(operands.get(ordinal), allowCast);
   }
 
+  public List<RexNode> operands() {
+    return operands;
+  }
+
   // implement SqlOperatorBinding
   public int getOperandCount() {
     return operands.size();
@@ -159,5 +163,3 @@ public class RexCallBinding extends SqlOperatorBinding {
     }
   }
 }
-
-// End RexCallBinding.java

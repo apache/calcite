@@ -275,7 +275,7 @@ public class RelJsonReader {
   private AggregateCall toAggCall(RelInput relInput, Map<String, Object> jsonAggCall) {
     final Map<String, Object> aggMap = (Map) jsonAggCall.get("agg");
     final SqlAggFunction aggregation =
-        relJson.toAggregation(relInput, (String) aggMap.get("name"), aggMap);
+        relJson.toAggregation(aggMap);
     final Boolean distinct = (Boolean) jsonAggCall.get("distinct");
     @SuppressWarnings("unchecked")
     final List<Integer> operands = (List<Integer>) jsonAggCall.get("operands");
@@ -298,5 +298,3 @@ public class RelJsonReader {
     return node;
   }
 }
-
-// End RelJsonReader.java

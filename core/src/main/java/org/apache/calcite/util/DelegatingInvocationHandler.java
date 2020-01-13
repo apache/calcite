@@ -87,5 +87,3 @@ public abstract class DelegatingInvocationHandler implements InvocationHandler {
    */
   protected abstract Object getTarget();
 }
-
-// End DelegatingInvocationHandler.java

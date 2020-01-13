@@ -97,6 +97,11 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return false;
   }
 
+  // Override to get unique keys
+  public List<ImmutableBitSet> getKeys() {
+    return Collections.emptyList();
+  }
+
   // Override to define foreign keys
   public List<RelReferentialConstraint> getReferentialConstraints() {
     return Collections.emptyList();
@@ -119,5 +124,3 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
 }
-
-// End RelOptAbstractTable.java

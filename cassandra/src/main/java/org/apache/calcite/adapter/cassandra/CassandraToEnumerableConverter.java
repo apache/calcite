@@ -146,5 +146,3 @@ public class CassandraToEnumerableConverter
     return Lists.transform(values, Expressions::constant);
   }
 }
-
-// End CassandraToEnumerableConverter.java

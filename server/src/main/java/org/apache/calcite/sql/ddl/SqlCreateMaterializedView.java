@@ -153,5 +153,3 @@ public class SqlCreateMaterializedView extends SqlCreate
     }
   }
 }
-
-// End SqlCreateMaterializedView.java

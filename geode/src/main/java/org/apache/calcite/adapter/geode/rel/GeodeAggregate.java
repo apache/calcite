@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
@@ -49,7 +50,7 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
 
     assert getConvention() == GeodeRel.CONVENTION;
     assert getConvention() == this.input.getConvention();
@@ -135,5 +136,3 @@ public class GeodeAggregate extends Aggregate implements GeodeRel {
     return names;
   }
 }
-
-// End GeodeAggregate.java

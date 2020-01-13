@@ -34,5 +34,3 @@ public interface RelCollation extends RelMultipleTrait {
    */
   List<RelFieldCollation> getFieldCollations();
 }
-
-// End RelCollation.java

@@ -35,5 +35,3 @@ public class SqlJsonValueExpressionOperator extends SqlPostfixOperator {
             SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.CHARACTER);
   }
 }
-
-// End SqlJsonValueExpressionOperator.java

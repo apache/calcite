@@ -71,5 +71,3 @@ public class SqlDescribeSchema extends SqlCall {
     return schema;
   }
 }
-
-// End SqlDescribeSchema.java

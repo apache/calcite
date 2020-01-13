@@ -721,6 +721,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         return rexBuilder;
       }
 
+      public SqlNode validateExpression(RelDataType rowType, SqlNode expr) {
+        throw new UnsupportedOperationException();
+      }
+
       public RexNode convertExpression(SqlNode e) {
         throw new UnsupportedOperationException();
       }
@@ -1514,5 +1518,3 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 }
-
-// End StandardConvertletTable.java

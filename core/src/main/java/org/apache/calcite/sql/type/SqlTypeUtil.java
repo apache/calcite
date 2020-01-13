@@ -805,9 +805,9 @@ public abstract class SqlTypeUtil {
    *
    * <p>REVIEW jvs 17-Dec-2004: the coerce param below shouldn't really be
    * necessary. We're using it as a hack because
-   * {@link SqlTypeFactoryImpl#leastRestrictiveSqlType} isn't complete enough
+   * {@link SqlTypeFactoryImpl#leastRestrictive} isn't complete enough
    * yet.  Once it is, this param (and the non-coerce rules of
-   * {@link SqlTypeAssignmentRules}) should go away.
+   * {@link SqlTypeAssignmentRule}) should go away.
    *
    * @param toType   target of assignment
    * @param fromType source of assignment
@@ -904,8 +904,8 @@ public abstract class SqlTypeUtil {
     // where internally a cast across character repertoires is OK.  Should
     // probably clean that up.
 
-    SqlTypeAssignmentRules rules = SqlTypeAssignmentRules.instance(coerce);
-    return rules.canCastFrom(toTypeName, fromTypeName);
+    SqlTypeMappingRule rules = SqlTypeMappingRules.instance(coerce);
+    return rules.canApplyFrom(toTypeName, fromTypeName);
   }
 
   /**
@@ -1155,7 +1155,9 @@ public abstract class SqlTypeUtil {
    * @param factory       Type factory
    * @param type1         First type
    * @param type2         Second type
-   * @param nameMatcher   Name matcher used to compare the field names
+   * @param nameMatcher   Name matcher used to compare the field names, if null,
+   *                      the field names are also ignored
+   *
    * @return Whether types are equal, ignoring nullability
    */
   public static boolean equalAsStructSansNullability(
@@ -1172,7 +1174,8 @@ public abstract class SqlTypeUtil {
 
     for (Pair<RelDataTypeField, RelDataTypeField> pair
         : Pair.zip(type1.getFieldList(), type2.getFieldList())) {
-      if (!nameMatcher.matches(pair.left.getName(), pair.right.getName())) {
+      if (nameMatcher != null
+          && !nameMatcher.matches(pair.left.getName(), pair.right.getName())) {
         return false;
       }
       if (!equalSansNullability(factory, pair.left.getType(), pair.right.getType())) {
@@ -1577,6 +1580,16 @@ public abstract class SqlTypeUtil {
 
     return factory.createSqlType(SqlTypeName.DECIMAL, maxPrecision, maxScale);
   }
-}
 
-// End SqlTypeUtil.java
+  /**
+   * Keeps only the last N fields and returns the new struct type.
+   */
+  public static RelDataType extractLastNFields(RelDataTypeFactory typeFactory,
+      RelDataType type, int numToKeep) {
+    assert type.isStruct();
+    assert type.getFieldCount() >= numToKeep;
+    final int fieldsCnt = type.getFieldCount();
+    return typeFactory.createStructType(
+        type.getFieldList().subList(fieldsCnt - numToKeep, fieldsCnt));
+  }
+}

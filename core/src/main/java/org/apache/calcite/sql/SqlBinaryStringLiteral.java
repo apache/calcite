@@ -68,5 +68,3 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
         literals.get(0).getParserPosition());
   }
 }
-
-// End SqlBinaryStringLiteral.java

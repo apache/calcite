@@ -70,5 +70,3 @@ public interface CassandraRel extends RelNode {
     }
   }
 }
-
-// End CassandraRel.java

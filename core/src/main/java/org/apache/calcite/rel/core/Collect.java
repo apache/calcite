@@ -124,5 +124,3 @@ public class Collect extends SingleRel {
     return typeFactory.createTypeWithNullability(ret, false);
   }
 }
-
-// End Collect.java

@@ -27,6 +27,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import org.apache.pig.scripting.Pig;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -42,7 +44,7 @@ public class PigAggregate extends Aggregate implements PigRel {
   public PigAggregate(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() == PigRel.CONVENTION;
   }
 
@@ -209,5 +211,3 @@ public class PigAggregate extends Aggregate implements PigRel {
     return getInput().getRowType().getFieldList().get(fieldIndex).getName();
   }
 }
-
-// End PigAggregate.java

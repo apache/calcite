@@ -24,9 +24,12 @@ import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.core.Union;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
@@ -143,12 +146,12 @@ public class RelMdTableReferences
   }
 
   /**
-   * Table references from {@link Union}.
+   * Table references from Union, Intersect, Minus.
    *
    * <p>For Union operator, we might be able to extract multiple table
    * references.
    */
-  public Set<RelTableRef> getTableReferences(Union rel, RelMetadataQuery mq) {
+  public Set<RelTableRef> getTableReferences(SetOp rel, RelMetadataQuery mq) {
     final Set<RelTableRef> result = new HashSet<>();
 
     // Infer column origin expressions for given references
@@ -205,11 +208,31 @@ public class RelMdTableReferences
   }
 
   /**
+   * Table references from TableModify.
+   */
+  public Set<RelTableRef> getTableReferences(TableModify rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
    * Table references from Exchange.
    */
   public Set<RelTableRef> getTableReferences(Exchange rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
-}
 
-// End RelMdTableReferences.java
+  /**
+   * Table references from Window.
+   */
+  public Set<RelTableRef> getTableReferences(Window rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
+   * Table references from Sample.
+   */
+  public Set<RelTableRef> getTableReferences(Sample rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+}

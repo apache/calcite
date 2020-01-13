@@ -46,5 +46,3 @@ class CalciteSqlValidator extends SqlValidatorImpl {
     return ((JavaTypeFactory) typeFactory).toSql(superType);
   }
 }
-
-// End CalciteSqlValidator.java

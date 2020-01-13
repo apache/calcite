@@ -117,5 +117,3 @@ public class JdbcToSparkConverter
     return result.asStatement().toSqlString(dialect).getSql();
   }
 }
-
-// End JdbcToSparkConverter.java

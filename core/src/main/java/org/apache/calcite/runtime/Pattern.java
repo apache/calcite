@@ -226,5 +226,3 @@ public interface Pattern {
 
   }
 }
-
-// End Pattern.java

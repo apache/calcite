@@ -72,5 +72,3 @@ public enum Lex {
     this.caseSensitive = caseSensitive;
   }
 }
-
-// End Lex.java

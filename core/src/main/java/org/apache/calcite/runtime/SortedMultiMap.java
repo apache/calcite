@@ -76,5 +76,3 @@ public class SortedMultiMap<K, V> extends HashMap<K, List<V>> {
     return multiMap.arrays(comparator);
   }
 }
-
-// End SortedMultiMap.java

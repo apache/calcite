@@ -638,5 +638,3 @@ abstract class DruidJsonFilter implements DruidJson {
     return dateFormatter;
   }
 }
-
-// End DruidJsonFilter.java

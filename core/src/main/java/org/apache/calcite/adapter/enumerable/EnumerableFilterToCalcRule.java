@@ -54,5 +54,3 @@ public class EnumerableFilterToCalcRule extends RelOptRule {
     call.transformTo(calc);
   }
 }
-
-// End EnumerableFilterToCalcRule.java

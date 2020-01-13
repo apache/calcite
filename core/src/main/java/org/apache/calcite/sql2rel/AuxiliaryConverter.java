@@ -69,5 +69,3 @@ public interface AuxiliaryConverter {
     }
   }
 }
-
-// End AuxiliaryConverter.java

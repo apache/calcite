@@ -42,5 +42,3 @@ public class MaterializationKey implements Serializable {
     return uuid.toString();
   }
 }
-
-// End MaterializationKey.java

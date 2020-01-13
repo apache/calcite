@@ -95,5 +95,3 @@ public abstract class AbstractTargetMapping
 
   public abstract int getTargetOpt(int source);
 }
-
-// End AbstractTargetMapping.java

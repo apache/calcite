@@ -215,6 +215,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newRootRel = decorrelator.decorrelate(newRootRel);
     }
 
+    // Re-propagate the hints.
+    newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
+
     return newRootRel;
   }
 
@@ -531,6 +534,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
 
+    newProject = RelOptUtil.copyRelHints(newInput, newProject);
+
     // update mappings:
     // oldInput ----> newInput
     //
@@ -617,17 +622,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
       relBuilder.project(postProjects);
     }
 
+    RelNode newRel = RelOptUtil.copyRelHints(rel, relBuilder.build());
+
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
-    return register(rel, relBuilder.build(), outputMap, corDefOutputs);
+    return register(rel, newRel, outputMap, corDefOutputs);
   }
 
   /**
    * Shift the mapping to fixed offset from the {@code startIndex}.
-   * @param mapping    the original mapping
-   * @param startIndex any output whose index equals with or bigger than the starting index
+   *
+   * @param mapping    The original mapping
+   * @param startIndex Any output whose index equals with or bigger than the starting index
    *                   would be shift
-   * @param offset     shift offset
+   * @param offset     Shift offset
    */
   private static void shiftMapping(Map<Integer, Integer> mapping, int startIndex, int offset) {
     for (Map.Entry<Integer, Integer> entry : mapping.entrySet()) {
@@ -715,6 +723,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RelNode newProject = relBuilder.push(frame.r)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
+
+    newProject = RelOptUtil.copyRelHints(rel, newProject);
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1202,12 +1212,14 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return null;
     }
 
-    final RelNode newJoin = relBuilder
+    RelNode newJoin = relBuilder
         .push(leftFrame.r)
         .push(rightFrame.r)
         .join(rel.getJoinType(), decorrelateExpr(currentRel, map, cm, rel.getCondition()),
             ImmutableSet.of())
         .build();
+
+    newJoin = RelOptUtil.copyRelHints(rel, newJoin);
 
     // Create the mapping between the output of the old correlation rel
     // and the new join rel
@@ -1473,13 +1485,10 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final List<RelDataTypeField> fieldList =
         input.getRowType().getFieldList();
     List<Pair<RexNode, String>> projects = new ArrayList<>();
-    for (Ord<RelDataTypeField> field : Ord.zip(fieldList)) {
-      projects.add(
-          Pair.of(
-              (RexNode) relBuilder.getRexBuilder().makeInputRef(
-                  field.e.getType(), field.i),
-              field.e.getName()));
-    }
+    Ord.forEach(fieldList, (field, i) ->
+        projects.add(
+            Pair.of(relBuilder.getRexBuilder().makeInputRef(field.getType(), i),
+                field.getName())));
     projects.addAll(additionalExprs);
     return relBuilder.push(input)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
@@ -1934,7 +1943,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, right,
             rightJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              rightJoinKeys.toString(), right.toString());
+              rightJoinKeys, right);
           return;
         }
 
@@ -2150,7 +2159,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, left,
             correlatedInputRefJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              correlatedJoinKeys.toString(), left.toString());
+              correlatedJoinKeys, left);
           return;
         }
 
@@ -2398,11 +2407,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           flavor
               ? operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Project.class,
-                          operand(Aggregate.class, any())))
+                  operand(Project.class,
+                      operand(Aggregate.class, any())))
               : operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Aggregate.class, any())),
+                  operand(Aggregate.class, any())),
           relBuilderFactory, null);
       this.flavor = flavor;
     }
@@ -2818,5 +2827,3 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 }
-
-// End RelDecorrelator.java

@@ -107,5 +107,3 @@ public class ViewTableMacro implements TableMacro {
         RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath);
   }
 }
-
-// End ViewTableMacro.java

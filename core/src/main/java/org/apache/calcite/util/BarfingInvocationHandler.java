@@ -85,5 +85,3 @@ public class BarfingInvocationHandler implements InvocationHandler {
     return new UnsupportedOperationException(signature);
   }
 }
-
-// End BarfingInvocationHandler.java

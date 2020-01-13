@@ -600,5 +600,3 @@ public class BlockBuilder {
     private int count;
   }
 }
-
-// End BlockBuilder.java

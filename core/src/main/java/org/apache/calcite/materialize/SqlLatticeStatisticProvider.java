@@ -64,5 +64,3 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
     return ((Number) values[0]).doubleValue();
   }
 }
-
-// End SqlLatticeStatisticProvider.java

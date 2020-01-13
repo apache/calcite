@@ -80,5 +80,3 @@ class WithScope extends ListScope {
     super.resolve(names, nameMatcher, deep, resolved);
   }
 }
-
-// End WithScope.java

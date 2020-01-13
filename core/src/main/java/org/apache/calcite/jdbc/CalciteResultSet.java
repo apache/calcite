@@ -112,5 +112,3 @@ public class CalciteResultSet extends AvaticaResultSet {
     return (CalciteConnectionImpl) statement.getConnection();
   }
 }
-
-// End CalciteResultSet.java

@@ -36,5 +36,3 @@ public class SqlAdvisorHint2 extends SqlAdvisorHint {
     this.replacement = replacement;
   }
 }
-
-// End SqlAdvisorHint2.java

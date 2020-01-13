@@ -101,5 +101,3 @@ public class JoinScope extends ListScope {
     return usingScope.isWithin(scope2);
   }
 }
-
-// End JoinScope.java

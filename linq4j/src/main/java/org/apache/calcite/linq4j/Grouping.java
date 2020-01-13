@@ -28,5 +28,3 @@ public interface Grouping<K, V> extends Enumerable<V> {
    */
   K getKey();
 }
-
-// End Grouping.java

@@ -31,7 +31,7 @@ import java.io.File;
  * Contains all of the {@link org.slf4j.Logger tracers} used within
  * org.apache.calcite class libraries.
  *
- * <h3>Note to developers</h3>
+ * <h2>Note to developers</h2>
  *
  * <p>Please ensure that every tracer used in org.apache.calcite is added to
  * this class as a <em>public static final</em> member called <code>
@@ -119,6 +119,14 @@ public abstract class CalciteTrace {
   }
 
   /**
+   * The tracers report important/useful information related with the execution
+   * of unit tests.
+   */
+  public static Logger getTestTracer(Class<?> testClass) {
+    return LoggerFactory.getLogger(testClass.getName());
+  }
+
+  /**
    * Thread-local handler that is called with dynamically generated Java code.
    * It exists for unit-testing.
    * The handler is never null; the default handler does nothing.
@@ -127,5 +135,3 @@ public abstract class CalciteTrace {
     return DYNAMIC_HANDLER;
   }
 }
-
-// End CalciteTrace.java

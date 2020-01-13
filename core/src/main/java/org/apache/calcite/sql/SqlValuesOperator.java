@@ -42,5 +42,3 @@ public class SqlValuesOperator extends SqlSpecialOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlValuesOperator.java

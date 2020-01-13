@@ -116,5 +116,3 @@ public class SqlCreateView extends SqlCreate
   }
 
 }
-
-// End SqlCreateView.java

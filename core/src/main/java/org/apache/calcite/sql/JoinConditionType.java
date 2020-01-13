@@ -47,5 +47,3 @@ public enum JoinConditionType {
     return SqlLiteral.createSymbol(this, pos);
   }
 }
-
-// End JoinConditionType.java

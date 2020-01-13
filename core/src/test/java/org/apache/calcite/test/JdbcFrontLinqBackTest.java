@@ -31,8 +31,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.util.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -50,9 +50,9 @@ import static org.apache.calcite.test.CalciteAssert.hr;
 import static org.apache.calcite.test.CalciteAssert.that;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for a JDBC front-end (with some quite complex SQL) and Linq4j back-end
@@ -172,7 +172,7 @@ public class JdbcFrontLinqBackTest {
   /**
    * Tests EXCEPT.
    */
-  @Ignore
+  @Disabled
   @Test public void testExcept() {
     hr()
         .query("select substring(\"name\" from 1 for 1) as x\n"
@@ -446,5 +446,3 @@ public class JdbcFrontLinqBackTest {
         .throws_("Incompatible types");
   }
 }
-
-// End JdbcFrontLinqBackTest.java

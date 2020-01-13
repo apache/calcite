@@ -190,5 +190,3 @@ public class TimestampWithTimeZoneString
   }
 
 }
-
-// End TimestampWithTimeZoneString.java

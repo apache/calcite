@@ -138,5 +138,3 @@ public class ProjectJoinJoinRemoveRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End ProjectJoinJoinRemoveRule.java

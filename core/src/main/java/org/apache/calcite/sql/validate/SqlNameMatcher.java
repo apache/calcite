@@ -67,5 +67,3 @@ public interface SqlNameMatcher {
   /** Creates a set that has the same case-sensitivity as this matcher. */
   Set<String> createSet();
 }
-
-// End SqlNameMatcher.java

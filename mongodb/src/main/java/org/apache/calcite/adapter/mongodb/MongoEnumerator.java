@@ -135,5 +135,3 @@ class MongoEnumerator implements Enumerator<Object> {
     return o;
   }
 }
-
-// End MongoEnumerator.java

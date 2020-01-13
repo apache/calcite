@@ -81,5 +81,3 @@ public abstract class AbstractJoinExtractFilterRule extends RelOptRule {
     call.transformTo(builder.build());
   }
 }
-
-// End AbstractJoinExtractFilterRule.java

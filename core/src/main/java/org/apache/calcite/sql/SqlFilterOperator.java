@@ -143,5 +143,3 @@ public class SqlFilterOperator extends SqlBinaryOperator {
     return call.getOperator().getKind() == SqlKind.WITHIN_GROUP;
   }
 }
-
-// End SqlFilterOperator.java

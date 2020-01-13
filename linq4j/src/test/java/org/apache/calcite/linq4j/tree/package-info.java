@@ -18,9 +18,4 @@
 /**
  * Tests for expressions.
  */
-@PackageMarker
 package org.apache.calcite.linq4j.tree;
-
-import org.apache.calcite.linq4j.PackageMarker;
-
-// End package-info.java

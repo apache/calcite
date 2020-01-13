@@ -28,5 +28,3 @@ import org.apache.calcite.schema.Wrapper;
  */
 public interface Context extends Wrapper {
 }
-
-// End Context.java

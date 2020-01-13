@@ -302,5 +302,3 @@ public class BasicSqlType extends AbstractSqlType {
         scale);
   }
 }
-
-// End BasicSqlType.java

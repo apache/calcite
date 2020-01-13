@@ -61,5 +61,3 @@ public class SqlIdentifierMoniker implements SqlMoniker {
     return id.toString();
   }
 }
-
-// End SqlIdentifierMoniker.java

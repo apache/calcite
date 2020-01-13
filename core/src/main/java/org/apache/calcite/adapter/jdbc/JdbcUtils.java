@@ -233,5 +233,3 @@ final class JdbcUtils {
     }
   }
 }
-
-// End JdbcUtils.java

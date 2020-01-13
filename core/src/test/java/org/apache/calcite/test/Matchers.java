@@ -24,11 +24,11 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.core.Is;
@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
@@ -130,7 +131,6 @@ public class Matchers {
    * Creates a matcher that matches when the examined object is within
    * {@code epsilon} of the specified <code>operand</code>.
    */
-  @Factory
   public static <T extends Number> Matcher<T> within(T value, double epsilon) {
     return new IsWithin<T>(value, epsilon);
   }
@@ -175,7 +175,6 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> isLinux(final String value) {
     return compose(Is.is(value), input -> input == null ? null : Util.toLinux(input));
   }
@@ -185,7 +184,6 @@ public class Matchers {
    * representation, after converting Windows-style line endings ("\r\n")
    * to Unix-style line endings ("\n"), is equal to the given {@code value}.
    */
-  @Factory
   public static Matcher<RelNode> hasTree(final String value) {
     return compose(Is.is(value), input -> {
       // Convert RelNode to a string with Linux line-endings
@@ -199,12 +197,22 @@ public class Matchers {
    * to Unix-style line endings ("\n"), contains the given {@code value}
    * as a substring.
    */
-  @Factory
   public static Matcher<RelNode> inTree(final String value) {
     return compose(StringContains.containsString(value), input -> {
       // Convert RelNode to a string with Linux line-endings
       return Util.toLinux(RelOptUtil.toString(input));
     });
+  }
+
+  /**
+   * Creates a {@link Matcher} that matches execution plan and trims {@code , id=123} node ids.
+   * {@link RelNode#getId()} is not stable across runs, so this matcher enables to trim those.
+   * @param value execpted execution plan
+   * @return matcher
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static Matcher<String> containsWithoutNodeIds(String value) {
+    return compose(CoreMatchers.containsString(value), Matchers::trimNodeIds);
   }
 
   /**
@@ -223,9 +231,35 @@ public class Matchers {
    *
    * @see Util#toLinux(String)
    */
-  @Factory
   public static Matcher<String> containsStringLinux(String value) {
     return compose(CoreMatchers.containsString(value), Util::toLinux);
+  }
+
+  public static String trimNodeIds(String s) {
+    return s.replaceAll(", id = [0-9]+", "");
+  }
+
+  /**
+   * Creates a matcher that matches if the examined value is expected throwable.
+   *
+   * @param expected Throwable to match.
+   */
+  public static Matcher<? super Throwable> expectThrowable(Throwable expected) {
+    return new BaseMatcher<Throwable>() {
+      @Override public boolean matches(Object item) {
+        if (!(item instanceof Throwable)) {
+          return false;
+        }
+        Throwable error = (Throwable) item;
+        return expected != null
+            && Objects.equals(error.getClass(), expected.getClass())
+            && Objects.equals(error.getMessage(), expected.getMessage());
+      }
+
+      @Override public void describeTo(Description description) {
+        description.appendText("is ").appendText(expected.toString());
+      }
+    };
   }
 
   /**
@@ -295,5 +329,3 @@ public class Matchers {
     }
   }
 }
-
-// End Matchers.java

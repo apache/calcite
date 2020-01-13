@@ -51,5 +51,3 @@ public class DirectOperatorConversion implements DruidSqlOperatorConverter {
     return DruidExpressions.functionCall(druidFunctionName, druidExpressions);
   }
 }
-
-// End DirectOperatorConversion.java

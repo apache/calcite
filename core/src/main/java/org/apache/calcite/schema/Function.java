@@ -48,5 +48,3 @@ public interface Function {
     return getParameters().stream().anyMatch(fp -> fp.isVarArgs());
   }
 }
-
-// End Function.java

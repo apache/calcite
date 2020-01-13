@@ -101,5 +101,3 @@ public class NameMultimap<V> {
     return map.map();
   }
 }
-
-// End NameMultimap.java

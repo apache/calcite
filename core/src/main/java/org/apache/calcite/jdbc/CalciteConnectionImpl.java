@@ -296,9 +296,8 @@ abstract class CalciteConnectionImpl
       throw new SQLException("exception while executing query: unbound parameter");
     }
 
-    for (Ord<TypedValue> o : Ord.zip(parameterValues)) {
-      map.put("?" + o.i, o.e.toLocal());
-    }
+    Ord.forEach(parameterValues,
+        (e, i) -> map.put("?" + i, e.toLocal()));
     map.putAll(signature.internalParameters);
     final AtomicBoolean cancelFlag;
     try {
@@ -627,5 +626,3 @@ abstract class CalciteConnectionImpl
   }
 
 }
-
-// End CalciteConnectionImpl.java

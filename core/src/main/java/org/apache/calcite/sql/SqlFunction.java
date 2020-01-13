@@ -18,6 +18,8 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -284,23 +286,37 @@ public class SqlFunction extends SqlOperator {
         return validator.deriveConstructorType(scope, call, this, function,
             argTypes);
       }
-      if (function == null && validator.isTypeCoercionEnabled()) {
-        // try again if implicit type coercion is allowed.
-        boolean changed = false;
-        function = (SqlFunction) SqlUtil.lookupRoutine(validator.getOperatorTable(),
-            getNameAsId(), argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION, getKind(),
-            validator.getCatalogReader().nameMatcher(),
-            true);
-        // try to coerce the function arguments to the declared sql type name.
-        // if we succeed, the arguments would be wrapped with CAST operator.
-        if (function != null) {
-          TypeCoercion typeCoercion = validator.getTypeCoercion();
-          changed = typeCoercion.userDefinedFunctionCoercion(scope, call, function);
+
+      validCoercionType:
+      if (function == null) {
+        if (validator.isTypeCoercionEnabled()) {
+          // try again if implicit type coercion is allowed.
+          function = (SqlFunction)
+              SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
+                  argTypes, argNames, getFunctionType(), SqlSyntax.FUNCTION,
+                  getKind(), validator.getCatalogReader().nameMatcher(), true);
+          // try to coerce the function arguments to the declared sql type name.
+          // if we succeed, the arguments would be wrapped with CAST operator.
+          if (function != null) {
+            TypeCoercion typeCoercion = validator.getTypeCoercion();
+            if (typeCoercion.userDefinedFunctionCoercion(scope, call, function)) {
+              break validCoercionType;
+            }
+          }
         }
-        if (!changed) {
-          throw validator.handleUnresolvedFunction(call, this, argTypes,
-              argNames);
+        // if function doesn't exist within operator table and known function
+        // handling is turned off then create a more permissive function
+        if (function == null && validator.isLenientOperatorLookup()) {
+          final SqlFunction x = (SqlFunction) call.getOperator();
+          final SqlIdentifier identifier =
+              Util.first(x.getSqlIdentifier(),
+                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+          function = new SqlUnresolvedFunction(identifier, null,
+              null, OperandTypes.VARIADIC, null, x.getFunctionType());
+          break validCoercionType;
         }
+        throw validator.handleUnresolvedFunction(call, this, argTypes,
+            argNames);
       }
 
       // REVIEW jvs 25-Mar-2005:  This is, in a sense, expanding
@@ -326,5 +342,3 @@ public class SqlFunction extends SqlOperator {
     return false;
   }
 }
-
-// End SqlFunction.java

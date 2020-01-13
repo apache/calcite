@@ -40,7 +40,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
@@ -140,10 +140,11 @@ public class RelToSqlConverterStructsTest {
       return false;
     }
 
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call,
-                                                          SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+    @Override public boolean rolledUpColumnValidInsideAgg(
+        String column,
+        SqlCall call,
+        SqlNode parent,
+        CalciteConnectionConfig config) {
       return false;
     }
   };
@@ -155,6 +156,10 @@ public class RelToSqlConverterStructsTest {
 
     @Override public boolean isKey(ImmutableBitSet columns) {
       return false;
+    }
+
+    @Override public List<ImmutableBitSet> getKeys() {
+      return ImmutableList.of();
     }
 
     @Override public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -210,5 +215,3 @@ public class RelToSqlConverterStructsTest {
     sql(query).ok(expected);
   }
 }
-
-// End RelToSqlConverterStructsTest.java

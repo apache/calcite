@@ -287,5 +287,3 @@ public class TableScanNode implements Node {
     return new TableScanNode(compiler, rel, enumerable);
   }
 }
-
-// End TableScanNode.java

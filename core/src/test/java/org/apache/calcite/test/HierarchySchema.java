@@ -87,5 +87,3 @@ public class HierarchySchema {
     }
   }
 }
-
-// End HierarchySchema.java

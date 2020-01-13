@@ -38,7 +38,7 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
       RelOptTable table,
       JdbcTable jdbcTable,
       JdbcConvention jdbcConvention) {
-    super(cluster, cluster.traitSetOf(jdbcConvention), table);
+    super(cluster, cluster.traitSetOf(jdbcConvention), ImmutableList.of(), table);
     this.jdbcTable = Objects.requireNonNull(jdbcTable);
   }
 
@@ -53,5 +53,3 @@ public class JdbcTableScan extends TableScan implements JdbcRel {
         ImmutableList.of(JdbcImplementor.Clause.FROM), this, null);
   }
 }
-
-// End JdbcTableScan.java

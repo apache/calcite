@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.adapter.enumerable.EnumerableTableScan;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -48,6 +47,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.SortRemoveRule;
@@ -73,7 +73,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,7 +81,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests that determine whether trait propagation work in Volcano Planner.
@@ -110,9 +110,9 @@ public class TraitPropagationTest {
           RelOptUtil.dumpPlan("LOGICAL PLAN", planned, SqlExplainFormat.TEXT,
               SqlExplainLevel.ALL_ATTRIBUTES));
     }
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
-    assertEquals("Sortedness was not propagated", 3,
-        mq.getCumulativeCost(planned).getRows(), 0);
+    final RelMetadataQuery mq = planned.getCluster().getMetadataQuery();
+    assertEquals(3, 0, mq.getCumulativeCost(planned).getRows(),
+        "Sortedness was not propagated");
   }
 
   /**
@@ -153,7 +153,7 @@ public class TraitPropagationTest {
         }
       };
 
-      final RelNode rt1 = EnumerableTableScan.create(cluster, t1);
+      final RelNode rt1 = LogicalTableScan.create(cluster, t1);
 
       // project s column
       RelNode project = LogicalProject.create(rt1,
@@ -168,7 +168,7 @@ public class TraitPropagationTest {
           false, false, false, Collections.singletonList(1), -1, RelCollations.EMPTY,
           sqlBigInt, "cnt");
       RelNode agg = new LogicalAggregate(cluster,
-          cluster.traitSetOf(Convention.NONE), project,
+          cluster.traitSetOf(Convention.NONE), ImmutableList.of(), project,
           ImmutableBitSet.of(0), null, Collections.singletonList(aggCall));
 
       final RelNode rootRel = agg;
@@ -279,11 +279,11 @@ public class TraitPropagationTest {
     static final PhysTableRule INSTANCE = new PhysTableRule();
 
     private PhysTableRule() {
-      super(anyChild(EnumerableTableScan.class), "PhysScan");
+      super(anyChild(LogicalTableScan.class), "PhysScan");
     }
 
     public void onMatch(RelOptRuleCall call) {
-      EnumerableTableScan rel = call.rel(0);
+      LogicalTableScan rel = call.rel(0);
       call.transformTo(new PhysTable(rel.getCluster()));
     }
   }
@@ -297,7 +297,7 @@ public class TraitPropagationTest {
     PhysAgg(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
         ImmutableBitSet groupSet,
         List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     }
 
     public Aggregate copy(RelTraitSet traitSet, RelNode input,
@@ -317,13 +317,13 @@ public class TraitPropagationTest {
   private static class PhysProj extends Project implements Phys {
     PhysProj(RelOptCluster cluster, RelTraitSet traits, RelNode child,
         List<RexNode> exps, RelDataType rowType) {
-      super(cluster, traits, child, exps, rowType);
+      super(cluster, traits, ImmutableList.of(), child, exps, rowType);
     }
 
     public static PhysProj create(final RelNode input,
         final List<RexNode> projects, RelDataType rowType) {
       final RelOptCluster cluster = input.getCluster();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = cluster.getMetadataQuery();
       final RelTraitSet traitSet =
           cluster.traitSet().replace(PHYSICAL)
               .replaceIfs(
@@ -427,5 +427,3 @@ public class TraitPropagationTest {
         prepareContext.getRootSchema().plus());
   }
 }
-
-// End TraitPropagationTest.java

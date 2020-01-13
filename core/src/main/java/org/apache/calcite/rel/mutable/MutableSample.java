@@ -65,5 +65,3 @@ public class MutableSample extends MutableSingleRel {
     return MutableSample.of(input.clone(), params);
   }
 }
-
-// End MutableSample.java

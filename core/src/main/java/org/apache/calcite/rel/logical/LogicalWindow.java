@@ -368,5 +368,3 @@ public final class LogicalWindow extends Window {
     windowMap.put(windowKey, over);
   }
 }
-
-// End LogicalWindow.java

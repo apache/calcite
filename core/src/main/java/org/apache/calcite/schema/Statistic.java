@@ -39,6 +39,9 @@ public interface Statistic {
    */
   boolean isKey(ImmutableBitSet columns);
 
+  /** Returns a list of unique keys, or null if no key exist. */
+  List<ImmutableBitSet> getKeys();
+
   /** Returns the collection of referential constraints (foreign-keys)
    * for this table. */
   List<RelReferentialConstraint> getReferentialConstraints();
@@ -49,5 +52,3 @@ public interface Statistic {
   /** Returns the distribution of the data in this table. */
   RelDistribution getDistribution();
 }
-
-// End Statistic.java

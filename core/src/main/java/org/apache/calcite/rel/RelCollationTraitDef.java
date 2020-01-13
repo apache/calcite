@@ -99,5 +99,3 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     return true;
   }
 }
-
-// End RelCollationTraitDef.java

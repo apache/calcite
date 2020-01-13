@@ -68,5 +68,3 @@ public interface Source {
    */
   Source relative(Source source);
 }
-
-// End Source.java

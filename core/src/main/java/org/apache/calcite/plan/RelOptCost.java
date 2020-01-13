@@ -132,5 +132,3 @@ public interface RelOptCost {
    */
   String toString();
 }
-
-// End RelOptCost.java

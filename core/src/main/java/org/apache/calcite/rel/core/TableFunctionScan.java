@@ -218,5 +218,3 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     return elementType;
   }
 }
-
-// End TableFunctionScan.java

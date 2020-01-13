@@ -90,5 +90,3 @@ public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
       E visitee,
       String visitMethodName);
 }
-
-// End ReflectiveVisitDispatcher.java

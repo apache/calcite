@@ -29,14 +29,14 @@ import com.google.common.collect.ImmutableList;
 
 import org.hamcrest.Matcher;
 import org.joda.time.Interval;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 import java.util.List;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 public class DruidDateRangeRulesTest {
@@ -194,5 +194,3 @@ public class DruidDateRangeRulesTest {
     }
   }
 }
-
-// End DruidDateRangeRulesTest.java

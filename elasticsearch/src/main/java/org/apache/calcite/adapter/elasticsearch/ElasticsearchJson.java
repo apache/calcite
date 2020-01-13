@@ -755,5 +755,3 @@ final class ElasticsearchJson {
   }
 
 }
-
-// End ElasticsearchJson.java

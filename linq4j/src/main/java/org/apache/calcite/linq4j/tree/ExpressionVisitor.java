@@ -27,5 +27,3 @@ public interface ExpressionVisitor {
    */
   <T extends Function<?>> void visitLambda(FunctionExpression<T> expression);
 }
-
-// End ExpressionVisitor.java

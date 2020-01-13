@@ -72,5 +72,3 @@ class WithItemNamespace extends AbstractNamespace {
         + "' in rowtype " + underlyingRowType);
   }
 }
-
-// End WithItemNamespace.java

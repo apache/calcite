@@ -103,5 +103,3 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
     return function.getReturnType(typeFactory);
   }
 }
-
-// End SqlUserDefinedAggFunction.java

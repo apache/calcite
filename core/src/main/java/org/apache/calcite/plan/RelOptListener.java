@@ -183,5 +183,3 @@ public interface RelOptListener extends EventListener {
     }
   }
 }
-
-// End RelOptListener.java

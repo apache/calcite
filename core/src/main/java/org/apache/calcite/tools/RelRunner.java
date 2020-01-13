@@ -31,5 +31,3 @@ public interface RelRunner {
   /** Runs a relational expression. */
   PreparedStatement prepare(RelNode rel);
 }
-
-// End RelRunner.java

@@ -225,5 +225,3 @@ public class RexTransformer {
     return node;
   }
 }
-
-// End RexTransformer.java

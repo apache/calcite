@@ -207,5 +207,3 @@ public abstract class SqlCall extends SqlNode {
     return null;
   }
 }
-
-// End SqlCall.java

@@ -98,5 +98,3 @@ public class SqlColumnDeclaration extends SqlCall {
     }
   }
 }
-
-// End SqlColumnDeclaration.java

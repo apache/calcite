@@ -35,7 +35,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -76,8 +76,6 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   private RelDataType charType;
   private RelDataType varcharType;
   private RelDataType varchar20Type;
-
-  //~ Constructors -----------------------------------------------------------
 
   public TypeCoercionTest() {
     // tool tester impl.
@@ -415,7 +413,7 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
   /** Test case for {@link TypeCoercion#getWiderTypeForTwo}
-   * and {@link TypeCoercion#getWiderTypeFor} */
+   * and {@link TypeCoercion#getWiderTypeFor}. */
   @Test public void testWiderTypeFor() {
     // DECIMAL please see details in SqlTypeFactoryImpl#leastRestrictiveSqlType.
     checkWiderType(decimalType(5, 4), decimalType(7, 1), decimalType(10, 4), true, true);
@@ -473,6 +471,17 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
             + " DECIMAL(19, 0) NOT NULL T1_DECIMAL,"
             + " FLOAT NOT NULL T1_SMALLINT,"
             + " DOUBLE NOT NULL T1_DOUBLE) NOT NULL");
+    // (int) union (int) union (varchar(20))
+    sql("select t1_int from t1 "
+        + "union select t2_int from t2 "
+        + "union select t1_varchar20 from t1")
+        .columnType("VARCHAR NOT NULL");
+
+    // (varchar(20)) union (int) union (int)
+    sql("select t1_varchar20 from t1 "
+        + "union select t2_int from t2 "
+        + "union select t1_int from t1")
+        .columnType("VARCHAR NOT NULL");
 
     // intersect
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
@@ -493,11 +502,11 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   /** Test arithmetic expressions with string type arguments. */
   @Test public void testArithmeticExpressionsWithStrings() {
     // for null type in binary arithmetic.
-    checkExp("1 + null");
-    checkExp("1 - null");
-    checkExp("1 / null");
-    checkExp("1 * null");
-    checkExp("MOD(1, null)");
+    expr("1 + null").ok();
+    expr("1 - null").ok();
+    expr("1 / null").ok();
+    expr("1 * null").ok();
+    expr("MOD(1, null)").ok();
 
     sql("select 1+'2', 2-'3', 2*'3', 2/'3', MOD(4,'3') "
         + "from (values (true, true, true, true, true))")
@@ -507,50 +516,70 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
             + "INTEGER NOT NULL EXPR$3, "
             + "DECIMAL(19, 19) "
             + "NOT NULL EXPR$4) NOT NULL");
-    checkExp("select abs(t1_varchar20) from t1");
-    checkExp("select sum(t1_varchar20) from t1");
-    checkExp("select avg(t1_varchar20) from t1");
+    expr("select abs(t1_varchar20) from t1").ok();
+    expr("select sum(t1_varchar20) from t1").ok();
+    expr("select avg(t1_varchar20) from t1").ok();
     tester.setFor(SqlStdOperatorTable.STDDEV_POP);
     tester.setFor(SqlStdOperatorTable.STDDEV_SAMP);
-    checkExp("select STDDEV_POP(t1_varchar20) from t1");
-    checkExp("select STDDEV_SAMP(t1_varchar20) from t1");
-    checkExp("select -(t1_varchar20) from t1");
-    checkExp("select +(t1_varchar20) from t1");
+    expr("select STDDEV_POP(t1_varchar20) from t1").ok();
+    expr("select STDDEV_SAMP(t1_varchar20) from t1").ok();
+    expr("select -(t1_varchar20) from t1").ok();
+    expr("select +(t1_varchar20) from t1").ok();
     tester.setFor(SqlStdOperatorTable.VAR_POP);
     tester.setFor(SqlStdOperatorTable.VAR_SAMP);
-    checkExp("select VAR_POP(t1_varchar20) from t1");
-    checkExp("select VAR_SAMP(t1_varchar20) from t1");
+    expr("select VAR_POP(t1_varchar20) from t1").ok();
+    expr("select VAR_SAMP(t1_varchar20) from t1").ok();
     // test divide with strings
-    checkExpType("'12.3'/5", "INTEGER NOT NULL");
-    checkExpType("'12.3'/cast(5 as bigint)", "BIGINT NOT NULL");
-    checkExpType("'12.3'/cast(5 as float)", "FLOAT NOT NULL");
-    checkExpType("'12.3'/cast(5 as double)", "DOUBLE NOT NULL");
-    checkExpType("'12.3'/5.1", "DECIMAL(19, 18) NOT NULL");
-    checkExpType("12.3/'5.1'", "DECIMAL(19, 0) NOT NULL");
+    expr("'12.3'/5")
+        .columnType("INTEGER NOT NULL");
+    expr("'12.3'/cast(5 as bigint)")
+        .columnType("BIGINT NOT NULL");
+    expr("'12.3'/cast(5 as float)")
+        .columnType("FLOAT NOT NULL");
+    expr("'12.3'/cast(5 as double)")
+        .columnType("DOUBLE NOT NULL");
+    expr("'12.3'/5.1")
+        .columnType("DECIMAL(19, 18) NOT NULL");
+    expr("12.3/'5.1'")
+        .columnType("DECIMAL(19, 0) NOT NULL");
     // test binary arithmetic with two strings.
-    checkExpType("'12.3' + '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' - '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' * '5'", "DECIMAL(19, 19) NOT NULL");
-    checkExpType("'12.3' / '5'", "DECIMAL(19, 0) NOT NULL");
+    expr("'12.3' + '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' - '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' * '5'")
+        .columnType("DECIMAL(19, 19) NOT NULL");
+    expr("'12.3' / '5'")
+        .columnType("DECIMAL(19, 0) NOT NULL");
   }
 
   /** Test cases for binary comparison expressions. */
   @Test public void testBinaryComparisonCoercion() {
-    sql("select '2' = 3 from (values true)")
+    expr("'2' = 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' > 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' >= 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' < 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' <= 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' is distinct from 3").columnType("BOOLEAN NOT NULL");
+    expr("'2' is not distinct from 3").columnType("BOOLEAN NOT NULL");
+    // NULL operand
+    expr("'2' = null").columnType("BOOLEAN");
+    expr("'2' > null").columnType("BOOLEAN");
+    expr("'2' >= null").columnType("BOOLEAN");
+    expr("'2' < null").columnType("BOOLEAN");
+    expr("'2' <= null").columnType("BOOLEAN");
+    expr("'2' is distinct from null").columnType("BOOLEAN NOT NULL");
+    expr("'2' is not distinct from null").columnType("BOOLEAN NOT NULL");
+    // BETWEEN operator
+    expr("'2' between 1 and 3").columnType("BOOLEAN NOT NULL");
+    expr("NULL between 1 and 3").columnType("BOOLEAN");
+    sql("select '2019-09-23' between t1_date and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' > 3 from (values true)")
+    sql("select t1_date between '2019-09-23' and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' >= 3 from (values true)")
+    sql("select cast('2019-09-23' as date) between t1_date and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
-    sql("select '2' < 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' <= 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is distinct from 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is not distinct from 3 from (values true)")
-        .columnType("BOOLEAN NOT NULL");
-    sql("select '2' is not distinct from 3 from (values true)")
+    sql("select t1_date between cast('2019-09-23' as date) and t1_timestamp from t1")
         .columnType("BOOLEAN NOT NULL");
   }
 
@@ -750,22 +779,57 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     shouldNotCast(checkedType15, SqlTypeFamily.INTEGER);
   }
 
-  /** Test case for {@link AbstractTypeCoercion#implicitCast}. */
-  @Test  public void testBuiltinFunctionCoercion() {
+  /** Test case for {@link TypeCoercion#builtinFunctionCoercion}. */
+  @Test public void testBuiltinFunctionCoercion() {
     // concat
-    checkExpType("'ab'||'cde'", "CHAR(5) NOT NULL");
-    checkExpType("null||'cde'", "VARCHAR");
-    checkExpType("1||'234'", "VARCHAR NOT NULL");
-    checkExpFails("select ^'a'||t1_binary^ from t1",
-        "(?s).*Cannot apply.*");
+    expr("'ab'||'cde'")
+        .columnType("CHAR(5) NOT NULL");
+    expr("null||'cde'")
+        .columnType("VARCHAR");
+    expr("1||'234'")
+        .columnType("VARCHAR NOT NULL");
+    expr("select ^'a'||t1_binary^ from t1")
+        .fails("(?s).*Cannot apply.*");
     // smallint int double
-    checkExpType("select t1_smallint||t1_int||t1_double from t1", "VARCHAR");
+    expr("select t1_smallint||t1_int||t1_double from t1")
+        .columnType("VARCHAR");
     // boolean float smallint
-    checkExpType("select t1_boolean||t1_float||t1_smallint from t1", "VARCHAR");
+    expr("select t1_boolean||t1_float||t1_smallint from t1")
+        .columnType("VARCHAR");
     // decimal
-    checkExpType("select t1_decimal||t1_varchar20 from t1", "VARCHAR");
+    expr("select t1_decimal||t1_varchar20 from t1")
+        .columnType("VARCHAR");
     // date timestamp
-    checkExpType("select t1_timestamp||t1_date from t1", "VARCHAR");
+    expr("select t1_timestamp||t1_date from t1")
+        .columnType("VARCHAR");
+  }
+
+  /** Test case for {@link TypeCoercion#querySourceCoercion}. */
+  @Test public void testQuerySourceCoercion() {
+    final String expectRowType = "RecordType("
+        + "VARCHAR(20) NOT NULL t1_varchar20, "
+        + "SMALLINT NOT NULL t1_smallint, "
+        + "INTEGER NOT NULL t1_int, "
+        + "BIGINT NOT NULL t1_bigint, "
+        + "FLOAT NOT NULL t1_float, "
+        + "DOUBLE NOT NULL t1_double, "
+        + "DECIMAL(19, 0) NOT NULL t1_decimal, "
+        + "TIMESTAMP(0) NOT NULL t1_timestamp, "
+        + "DATE NOT NULL t1_date, "
+        + "BINARY(1) NOT NULL t1_binary, "
+        + "BOOLEAN NOT NULL t1_boolean) NOT NULL";
+
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+        + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
+    sql(sql).type(expectRowType);
+
+    final String sql1 = "insert into ^t1^(t1_varchar20, t1_date, t1_int)\n"
+        + "select t2_smallint, t2_timestamp, t2_float from t2";
+    sql(sql1).fails("(?s).*Column 't1_smallint' has no default value and does not allow NULLs.*");
+
+    final String sql2 = "update t1 set t1_varchar20=123, "
+        + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
+    sql(sql2).type(expectRowType);
   }
 
   //~ Inner Class ------------------------------------------------------------
@@ -821,5 +885,3 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
 }
-
-// End TypeCoercionTest.java

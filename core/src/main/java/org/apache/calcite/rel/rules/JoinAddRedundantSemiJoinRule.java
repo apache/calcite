@@ -90,5 +90,3 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule {
     call.transformTo(newJoinRel);
   }
 }
-
-// End JoinAddRedundantSemiJoinRule.java

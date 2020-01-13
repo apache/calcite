@@ -844,5 +844,3 @@ public class LoptSemiJoinOptimizer {
     }
   }
 }
-
-// End LoptSemiJoinOptimizer.java

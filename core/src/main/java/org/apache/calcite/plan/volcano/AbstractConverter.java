@@ -127,5 +127,3 @@ public class AbstractConverter extends ConverterImpl {
     }
   }
 }
-
-// End AbstractConverter.java

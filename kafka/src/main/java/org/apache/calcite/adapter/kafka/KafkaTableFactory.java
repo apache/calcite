@@ -68,8 +68,8 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     tableOptionBuilder.setRowConverter(rowConverter);
 
     if (operand.containsKey(KafkaTableConstants.SCHEMA_CONSUMER_PARAMS)) {
-      tableOptionBuilder.setConsumerParams((Map<String, String>) operand.get(
-          KafkaTableConstants.SCHEMA_CONSUMER_PARAMS));
+      tableOptionBuilder.setConsumerParams(
+          (Map<String, String>) operand.get(KafkaTableConstants.SCHEMA_CONSUMER_PARAMS));
     }
     if (operand.containsKey(KafkaTableConstants.SCHEMA_CUST_CONSUMER)) {
       String custConsumerClass = (String) operand.get(KafkaTableConstants.SCHEMA_CUST_CONSUMER);
@@ -93,5 +93,3 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
     return new KafkaStreamTable(tableOptionBuilder);
   }
 }
-
-// End KafkaTableFactory.java

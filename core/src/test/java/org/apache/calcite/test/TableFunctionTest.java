@@ -28,8 +28,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.Smalls;
 import org.apache.calcite.util.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,8 +43,8 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for user-defined table functions.
@@ -102,6 +102,42 @@ public class TableFunctionTest {
       ResultSet resultSet = connection.createStatement().executeQuery(sql);
       assertThat(CalciteAssert.toString(resultSet),
           equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  @Test public void testTableFunctionWithArrayParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputSize\"(ARRAY[5,4,3,1,2])) as t(n, c)\n"
+          + "where char_length(c) > 3";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=4; C=abcd\n"));
+    }
+  }
+
+  @Test public void testTableFunctionWithMapParameter() throws SQLException {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+      final TableFunction table =
+          TableFunctionImpl.create(Smalls.GENERATE_STRINGS_OF_INPUT_MAP_SIZE_METHOD);
+      schema.add("GenerateStringsOfInputMapSize", table);
+      final String sql = "select *\n"
+          + "from table(\"s\".\"GenerateStringsOfInputMapSize\"(Map[5,4,3,1])) as t(n, c)\n"
+          + "where char_length(c) > 0";
+      ResultSet resultSet = connection.createStatement().executeQuery(sql);
+      assertThat(CalciteAssert.toString(resultSet),
+          equalTo("N=1; C=a\n"));
     }
   }
 
@@ -224,7 +260,7 @@ public class TableFunctionTest {
    * Tests that non-nullable arguments of a table function must be provided
    * as literals.
    */
-  @Ignore("SQLException does not include message from nested exception")
+  @Disabled("SQLException does not include message from nested exception")
   @Test public void testTableFunctionNonNullableMustBeLiterals()
       throws SQLException, ClassNotFoundException {
     Connection connection = getConnectionWithMultiplyFunction();
@@ -261,7 +297,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes cursor input.
    */
-  @Ignore("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#18:Subset#4.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorInputs()
       throws SQLException, ClassNotFoundException {
@@ -296,7 +332,7 @@ public class TableFunctionTest {
   /**
    * Tests a table function that takes multiple cursor inputs.
    */
-  @Ignore("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
+  @Disabled("CannotPlanException: Node [rel#24:Subset#6.ENUMERABLE.[]] "
       + "could not be implemented")
   @Test public void testTableFunctionCursorsInputs()
       throws SQLException, ClassNotFoundException {
@@ -359,16 +395,10 @@ public class TableFunctionTest {
   }
 
   @Test public void testUserDefinedTableFunction4() {
-    final String q = "select *\n"
+    final String q = "select \"c1\"\n"
         + "from table(\"s\".\"multiplication\"('2', 3, 100))\n"
-        + "where c1 + 2 < c2";
-    // With type coercion, a cast node with null as argument would be
-    // passed to the function to infer the table row type, we use
-    // SqlUserDefinedTableMacro#convertArguments to decide the type.
-    // For this table function: multiplication,
-    // it will just throw IllegalArgumentException.
-    final String e = "java.lang.IllegalArgumentException";
-    with().query(q).throws_(e);
+        + "where \"c1\" + 2 < \"c2\"";
+    with().query(q).returnsUnordered("c1=103");
   }
 
   @Test public void testUserDefinedTableFunction5() {
@@ -409,6 +439,17 @@ public class TableFunctionTest {
     final String q = "select count(*) as c\n"
         + "from table(\"s\".\"fibonacci2\"(20))";
     with().query(q).returnsUnordered("C=7");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3364">[CALCITE-3364]
+   * Can't group table function result due to a type cast error if table function
+   * returns a row with a single value</a>. */
+  @Test public void testUserDefinedTableFunction9() {
+    final String q = "select \"N\" + 1 as c\n"
+        + "from table(\"s\".\"fibonacci2\"(3))\n"
+        + "group by \"N\"";
+    with().query(q).returnsUnordered("C=2\nC=3\nC=4");
   }
 
   @Test public void testCrossApply() {
@@ -476,5 +517,3 @@ public class TableFunctionTest {
     }
   }
 }
-
-// End TableFunctionTest.java

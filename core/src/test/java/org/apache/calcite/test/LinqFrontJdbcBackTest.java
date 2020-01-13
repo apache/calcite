@@ -23,7 +23,7 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -56,5 +56,3 @@ public class LinqFrontJdbcBackTest {
     Util.discard(s);
   }
 }
-
-// End LinqFrontJdbcBackTest.java

@@ -177,5 +177,3 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
         mergedProgram.getCondition());
   }
 }
-
-// End SemiJoinProjectTransposeRule.java

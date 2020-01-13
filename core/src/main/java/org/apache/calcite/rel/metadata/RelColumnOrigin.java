@@ -91,5 +91,3 @@ public class RelColumnOrigin {
         + iOriginColumn + (isDerived ? 313 : 0);
   }
 }
-
-// End RelColumnOrigin.java

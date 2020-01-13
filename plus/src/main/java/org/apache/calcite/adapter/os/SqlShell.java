@@ -438,5 +438,3 @@ public class SqlShell {
         throws SQLException;
   }
 }
-
-// End SqlShell.java

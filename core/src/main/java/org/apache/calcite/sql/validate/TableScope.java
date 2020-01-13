@@ -58,5 +58,3 @@ class TableScope extends ListScope {
     return s.isWithin(scope2);
   }
 }
-
-// End TableScope.java

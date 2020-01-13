@@ -110,5 +110,3 @@ public class JdbcExample {
     }
   }
 }
-
-// End JdbcExample.java

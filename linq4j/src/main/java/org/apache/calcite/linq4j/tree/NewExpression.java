@@ -105,5 +105,3 @@ public class NewExpression extends Expression {
     return result;
   }
 }
-
-// End NewExpression.java

@@ -76,5 +76,3 @@ public class DuTableFunction {
   }
 
 }
-
-// End DuTableFunction.java

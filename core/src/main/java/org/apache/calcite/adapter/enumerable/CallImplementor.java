@@ -40,5 +40,3 @@ public interface CallImplementor {
       RexCall call,
       RexImpTable.NullAs nullAs);
 }
-
-// End CallImplementor.java

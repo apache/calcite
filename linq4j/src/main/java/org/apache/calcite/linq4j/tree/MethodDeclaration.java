@@ -107,5 +107,3 @@ public class MethodDeclaration extends MemberDeclaration {
     return Objects.hash(modifier, name, resultType, parameters, body);
   }
 }
-
-// End MethodDeclaration.java

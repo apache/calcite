@@ -961,5 +961,3 @@ public enum SqlTypeName {
     int YES_YES = 4;
   }
 }
-
-// End SqlTypeName.java

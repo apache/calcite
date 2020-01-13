@@ -27,5 +27,3 @@ public class Feature
     super(base, locale, method, args);
   }
 }
-
-// End Feature.java

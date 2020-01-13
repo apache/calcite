@@ -74,5 +74,3 @@ public class SelectNamespace extends AbstractNamespace {
     return validator.getSelectScope(select).getMonotonicity(selectItem);
   }
 }
-
-// End SelectNamespace.java

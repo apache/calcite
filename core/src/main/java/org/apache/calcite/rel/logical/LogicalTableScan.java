@@ -24,10 +24,12 @@ import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.schema.Table;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -65,13 +67,19 @@ public final class LogicalTableScan extends TableScan {
    * <p>Use {@link #create} unless you know what you're doing.
    */
   public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
+      List<RelHint> hints, RelOptTable table) {
+    super(cluster, traitSet, hints, table);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
-    super(cluster, traitSet, table);
+    this(cluster, traitSet, ImmutableList.of(), table);
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalTableScan(RelOptCluster cluster, RelOptTable table) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), table);
+    this(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), table);
   }
 
   /**
@@ -89,11 +97,12 @@ public final class LogicalTableScan extends TableScan {
 
   /** Creates a LogicalTableScan.
    *
-   * @param cluster Cluster
+   * @param cluster     Cluster
    * @param relOptTable Table
+   * @param hints       The hints
    */
   public static LogicalTableScan create(RelOptCluster cluster,
-      final RelOptTable relOptTable) {
+      final RelOptTable relOptTable, List<RelHint> hints) {
     final Table table = relOptTable.unwrap(Table.class);
     final RelTraitSet traitSet =
         cluster.traitSetOf(Convention.NONE)
@@ -103,8 +112,20 @@ public final class LogicalTableScan extends TableScan {
               }
               return ImmutableList.of();
             });
-    return new LogicalTableScan(cluster, traitSet, relOptTable);
+    return new LogicalTableScan(cluster, traitSet, hints, relOptTable);
+  }
+
+  /** Creates a LogicalTableScan.
+   *
+   * @param cluster Cluster
+   * @param relOptTable Table
+   */
+  public static LogicalTableScan create(RelOptCluster cluster,
+      final RelOptTable relOptTable) {
+    return create(cluster, relOptTable, new ArrayList<>());
+  }
+
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    return new LogicalTableScan(getCluster(), traitSet, hintList, table);
   }
 }
-
-// End LogicalTableScan.java

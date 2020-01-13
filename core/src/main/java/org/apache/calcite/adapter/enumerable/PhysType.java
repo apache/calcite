@@ -212,5 +212,3 @@ public interface PhysType {
    * the <code>targetFormat</code> for representing its rows. */
   Expression convertTo(Expression expression, JavaRowFormat targetFormat);
 }
-
-// End PhysType.java

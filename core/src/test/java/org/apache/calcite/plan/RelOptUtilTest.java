@@ -28,10 +28,12 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
@@ -42,6 +44,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
@@ -49,8 +52,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,9 +61,9 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link RelOptUtil} and other classes in this package.
@@ -84,14 +87,7 @@ public class RelOptUtilTest {
 
   private List<RelDataTypeField> empDeptJoinRelFields;
 
-  //~ Constructors -----------------------------------------------------------
-
-  public RelOptUtilTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  @Before public void setUp() {
+  @BeforeEach public void setUp() {
     relBuilder = RelBuilder.create(config().build());
 
     empScan = relBuilder.scan("EMP").build();
@@ -546,6 +542,104 @@ public class RelOptUtilTest {
         is(relBuilder.call(SqlStdOperatorTable.PLUS, leftKeyInputRef, relBuilder.literal(1))
             .toString()));
   }
-}
 
-// End RelOptUtilTest.java
+  /**
+   * Test {@link RelOptUtil#createCastRel(RelNode, RelDataType, boolean)}
+   * with changed field nullability or field name.
+   */
+  @Test public void testCreateCastRel() {
+    // Equivalent SQL:
+    // select empno, ename, count(job)
+    // from emp
+    // group by empno, ename
+
+    // Row type:
+    // RecordType(SMALLINT NOT NULL EMPNO, VARCHAR(10) ENAME, BIGINT NOT NULL $f2) NOT NULL
+    final RelNode agg = relBuilder
+        .push(empScan)
+        .aggregate(
+            relBuilder.groupKey("EMPNO", "ENAME"),
+            relBuilder.count(relBuilder.field("JOB")))
+        .build();
+    // Cast with row type(change nullability):
+    // RecordType(SMALLINT EMPNO, VARCHAR(10) ENAME, BIGINT $f2) NOT NULL
+    // The fields.
+    final RelDataTypeField fieldEmpno = agg.getRowType().getField("EMPNO", false, false);
+    final RelDataTypeField fieldEname = agg.getRowType().getField("ENAME", false, false);
+    final RelDataTypeField fieldJobCnt = Util.last(agg.getRowType().getFieldList());
+    final RelDataTypeFactory typeFactory = relBuilder.getTypeFactory();
+    // The field types.
+    final RelDataType fieldTypeEmpnoNullable = typeFactory
+        .createTypeWithNullability(fieldEmpno.getType(), true);
+    final RelDataType fieldTypeJobCntNullable = typeFactory
+        .createTypeWithNullability(fieldJobCnt.getType(), true);
+
+    final RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    final RelDataType castRowType = typeFactory
+        .createStructType(
+            ImmutableList.of(
+            Pair.of(fieldEmpno.getName(), fieldTypeEmpnoNullable),
+            Pair.of(fieldEname.getName(), fieldEname.getType()),
+            Pair.of(fieldJobCnt.getName(), fieldTypeJobCntNullable)));
+    final RelNode castNode = RelOptUtil.createCastRel(agg, castRowType, false);
+    final RelNode expectNode = relBuilder
+        .push(agg)
+        .project(
+            rexBuilder.makeCast(
+                fieldTypeEmpnoNullable,
+                RexInputRef.of(0, agg.getRowType()),
+                true),
+            RexInputRef.of(1, agg.getRowType()),
+            rexBuilder.makeCast(
+                fieldTypeJobCntNullable,
+                RexInputRef.of(2, agg.getRowType()),
+                true))
+        .build();
+    assertThat(RelOptUtil.toString(castNode), is(RelOptUtil.toString(expectNode)));
+
+    // Cast with row type(change field name):
+    // RecordType(SMALLINT NOT NULL EMPNO, VARCHAR(10) ENAME, BIGINT NOT NULL JOB_CNT) NOT NULL
+    final RelDataType castRowType1 = typeFactory
+        .createStructType(
+            ImmutableList.of(
+            Pair.of(fieldEmpno.getName(), fieldEmpno.getType()),
+            Pair.of(fieldEname.getName(), fieldEname.getType()),
+            Pair.of("JOB_CNT", fieldJobCnt.getType())));
+    final RelNode castNode1 = RelOptUtil.createCastRel(agg, castRowType1, true);
+    final RelNode expectNode1 = RelFactories
+        .DEFAULT_PROJECT_FACTORY
+        .createProject(
+            agg,
+            ImmutableList.of(
+                RexInputRef.of(0, agg.getRowType()),
+                RexInputRef.of(1, agg.getRowType()),
+                RexInputRef.of(2, agg.getRowType())),
+            ImmutableList.of(
+                fieldEmpno.getName(),
+                fieldEname.getName(),
+                "JOB_CNT"));
+    assertThat(RelOptUtil.toString(castNode1), is(RelOptUtil.toString(expectNode1)));
+    // Change the field JOB_CNT field name again.
+    // The projection expect to be merged.
+    final RelDataType castRowType2 = typeFactory
+        .createStructType(
+            ImmutableList.of(
+            Pair.of(fieldEmpno.getName(), fieldEmpno.getType()),
+            Pair.of(fieldEname.getName(), fieldEname.getType()),
+            Pair.of("JOB_CNT2", fieldJobCnt.getType())));
+    final RelNode castNode2 = RelOptUtil.createCastRel(agg, castRowType2, true);
+    final RelNode expectNode2 = RelFactories
+        .DEFAULT_PROJECT_FACTORY
+        .createProject(
+            agg,
+            ImmutableList.of(
+                RexInputRef.of(0, agg.getRowType()),
+                RexInputRef.of(1, agg.getRowType()),
+                RexInputRef.of(2, agg.getRowType())),
+            ImmutableList.of(
+                fieldEmpno.getName(),
+                fieldEname.getName(),
+                "JOB_CNT2"));
+    assertThat(RelOptUtil.toString(castNode2), is(RelOptUtil.toString(expectNode2)));
+  }
+}

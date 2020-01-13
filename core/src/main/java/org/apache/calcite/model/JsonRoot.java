@@ -66,5 +66,3 @@ public class JsonRoot {
    */
   public final List<JsonSchema> schemas = new ArrayList<>();
 }
-
-// End JsonRoot.java

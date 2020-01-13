@@ -116,5 +116,3 @@ public class ConstructorDeclaration extends MemberDeclaration {
     return result;
   }
 }
-
-// End ConstructorDeclaration.java

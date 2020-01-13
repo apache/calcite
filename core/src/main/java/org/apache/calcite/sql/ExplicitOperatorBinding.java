@@ -92,5 +92,3 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
     return false;
   }
 }
-
-// End ExplicitOperatorBinding.java

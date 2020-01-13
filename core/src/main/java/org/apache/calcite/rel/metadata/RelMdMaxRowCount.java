@@ -21,12 +21,14 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -89,6 +91,10 @@ public class RelMdMaxRowCount
   }
 
   public Double getMaxRowCount(Project rel, RelMetadataQuery mq) {
+    return mq.getMaxRowCount(rel.getInput());
+  }
+
+  public Double getMaxRowCount(Exchange rel, RelMetadataQuery mq) {
     return mq.getMaxRowCount(rel.getInput());
   }
 
@@ -186,6 +192,10 @@ public class RelMdMaxRowCount
     return (double) values.getTuples().size();
   }
 
+  public Double getMaxRowCount(TableModify rel, RelMetadataQuery mq) {
+    return mq.getMaxRowCount(rel.getInput());
+  }
+
   public Double getMaxRowCount(RelSubset rel, RelMetadataQuery mq) {
     // FIXME This is a short-term fix for [CALCITE-1018]. A complete
     // solution will come with [CALCITE-1048].
@@ -207,5 +217,3 @@ public class RelMdMaxRowCount
     return null;
   }
 }
-
-// End RelMdMaxRowCount.java

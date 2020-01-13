@@ -1358,5 +1358,3 @@ public class FlatLists {
   }
 
 }
-
-// End FlatLists.java

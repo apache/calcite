@@ -95,5 +95,3 @@ public class HepRelVertex extends AbstractRelNode {
     return currentRel;
   }
 }
-
-// End HepRelVertex.java

@@ -80,5 +80,3 @@ public class ForEachStatement extends Statement {
     return result;
   }
 }
-
-// End ForEachStatement.java

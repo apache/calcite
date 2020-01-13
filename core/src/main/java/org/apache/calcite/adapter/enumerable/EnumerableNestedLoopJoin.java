@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -46,7 +47,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition,
       Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
   }
 
   @Deprecated // to be removed before 2.0
@@ -89,11 +90,15 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     // and have the same cost. To make the results stable between versions of
     // the planner, make one of the versions slightly more expensive.
     switch (joinType) {
+    case SEMI:
+    case ANTI:
+      // SEMI and ANTI join cannot be flipped
+      break;
     case RIGHT:
       rowCount = RelMdUtil.addEpsilon(rowCount);
       break;
     default:
-      if (left.getId() > right.getId()) {
+      if (RelNodes.COMPARATOR.compare(left, right) > 0) {
         rowCount = RelMdUtil.addEpsilon(rowCount);
       }
     }
@@ -141,5 +146,3 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
             .toBlock());
   }
 }
-
-// End EnumerableNestedLoopJoin.java

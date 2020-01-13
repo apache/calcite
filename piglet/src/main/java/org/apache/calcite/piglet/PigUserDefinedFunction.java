@@ -74,5 +74,3 @@ public class PigUserDefinedFunction extends SqlUserDefinedFunction {
   }
 
 }
-
-// End PigUserDefinedFunction.java

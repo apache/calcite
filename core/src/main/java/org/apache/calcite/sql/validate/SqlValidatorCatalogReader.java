@@ -113,5 +113,3 @@ public interface SqlValidatorCatalogReader extends Wrapper {
   /** Returns Config settings */
   CalciteConnectionConfig getConfig();
 }
-
-// End SqlValidatorCatalogReader.java

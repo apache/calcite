@@ -154,5 +154,3 @@ public class AggregateJoinJoinRemoveRule extends RelOptRule {
     call.transformTo(newAggregate);
   }
 }
-
-// End AggregateJoinJoinRemoveRule.java

@@ -70,5 +70,3 @@ public abstract class CorrelationReferenceFinder extends RelHomogeneousShuttle {
     }
   }
 }
-
-// End CorrelationReferenceFinder.java

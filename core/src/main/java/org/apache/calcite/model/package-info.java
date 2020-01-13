@@ -33,9 +33,4 @@
  * <p>There are several examples of schemas in the
  * <a href="https://calcite.apache.org/docs/tutorial.html">tutorial</a>.
  */
-@PackageMarker
 package org.apache.calcite.model;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

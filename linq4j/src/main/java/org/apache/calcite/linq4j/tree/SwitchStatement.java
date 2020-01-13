@@ -34,5 +34,3 @@ public class SwitchStatement extends Statement {
   }
 
 }
-
-// End SwitchStatement.java

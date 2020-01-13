@@ -156,7 +156,7 @@ public abstract class Types {
     return classes.toArray(new Class[0]);
   }
 
-  static Class[] toClassArray(Iterable<? extends Expression> arguments) {
+  public static Class[] toClassArray(Iterable<? extends Expression> arguments) {
     List<Class> classes = new ArrayList<>();
     for (Expression argument : arguments) {
       classes.add(toClass(argument.getType()));
@@ -255,7 +255,7 @@ public abstract class Types {
     return field(toClass(clazz).getFields()[ordinal]);
   }
 
-  static boolean allAssignable(boolean varArgs, Class[] parameterTypes,
+  public static boolean allAssignable(boolean varArgs, Class[] parameterTypes,
       Class[] argumentTypes) {
     if (varArgs) {
       if (argumentTypes.length < parameterTypes.length - 1) {
@@ -427,11 +427,7 @@ public abstract class Types {
   public static Expression castIfNecessary(Type returnType,
       Expression expression) {
     final Type type = expression.getType();
-    if (returnType instanceof RecordType) {
-      // We can't extract Class from RecordType since mapping Java Class might not generated yet.
-      return expression;
-    }
-    if (Types.isAssignableFrom(returnType, type)) {
+    if (!needTypeCast(type, returnType)) {
       return expression;
     }
     if (returnType instanceof Class
@@ -462,6 +458,28 @@ public abstract class Types {
           Types.unbox(returnType));
     }
     return Expressions.convert_(expression, returnType);
+  }
+
+  /**
+   * When trying to cast/convert a {@code Type} to another {@code Type},
+   * it is necessary to pre-check whether the cast operation is needed.
+   * We summarize general exceptions, including:
+   *
+   * <ol>
+   *   <li>target Type {@code toType} equals with original Type {@code fromType}</li>
+   *   <li>target Type can be assignable from original Type</li>
+   *   <li>target Type is an instance of {@code RecordType},
+   *   since the mapping Java Class might not generated yet</li>
+   * </ol>
+   *
+   * @param fromType original type
+   * @param toType   target type
+   * @return Whether a cast operation is needed
+   */
+  public static boolean needTypeCast(Type fromType, Type toType) {
+    return !(fromType.equals(toType)
+        || toType instanceof RecordType
+        || isAssignableFrom(toType, fromType));
   }
 
   public static PseudoField field(final Field field) {
@@ -643,5 +661,3 @@ public abstract class Types {
 
   }
 }
-
-// End Types.java

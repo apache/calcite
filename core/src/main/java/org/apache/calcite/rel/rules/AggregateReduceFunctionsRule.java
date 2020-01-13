@@ -858,5 +858,3 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
     return inputField.getType();
   }
 }
-
-// End AggregateReduceFunctionsRule.java

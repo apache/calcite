@@ -37,5 +37,3 @@ public interface SqlOperandTypeInference {
       RelDataType returnType,
       RelDataType[] operandTypes);
 }
-
-// End SqlOperandTypeInference.java

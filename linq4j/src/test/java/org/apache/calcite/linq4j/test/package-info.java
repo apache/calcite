@@ -18,9 +18,4 @@
 /**
  * Core linq4j tests.
  */
-@PackageMarker
 package org.apache.calcite.linq4j.test;
-
-import org.apache.calcite.linq4j.PackageMarker;
-
-// End package-info.java

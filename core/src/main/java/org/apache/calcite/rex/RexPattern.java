@@ -32,5 +32,3 @@ public interface RexPattern {
       RexNode ptree,
       RexAction action);
 }
-
-// End RexPattern.java

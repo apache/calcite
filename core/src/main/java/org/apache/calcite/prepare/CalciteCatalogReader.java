@@ -413,5 +413,3 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return null;
   }
 }
-
-// End CalciteCatalogReader.java

@@ -52,5 +52,3 @@ public interface RexVisitor<R> {
 
   R visitPatternFieldRef(RexPatternFieldRef fieldRef);
 }
-
-// End RexVisitor.java

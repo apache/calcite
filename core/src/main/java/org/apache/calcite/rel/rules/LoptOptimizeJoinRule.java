@@ -1883,10 +1883,8 @@ public class LoptOptimizeJoinRule extends RelOptRule {
     if ((leftRowCount != null)
         && (rightRowCount != null)
         && ((leftRowCount < rightRowCount)
-        || ((Math.abs(leftRowCount - rightRowCount)
-        < RelOptUtil.EPSILON)
-        && (rowWidthCost(left.getJoinTree())
-        < rowWidthCost(right.getJoinTree()))))) {
+        || ((Math.abs(leftRowCount - rightRowCount) < RelOptUtil.EPSILON)
+            && (rowWidthCost(left.getJoinTree()) < rowWidthCost(right.getJoinTree()))))) {
       swap = true;
     }
     return swap;
@@ -2065,5 +2063,3 @@ public class LoptOptimizeJoinRule extends RelOptRule {
         joinInfo.leftSet());
   }
 }
-
-// End LoptOptimizeJoinRule.java

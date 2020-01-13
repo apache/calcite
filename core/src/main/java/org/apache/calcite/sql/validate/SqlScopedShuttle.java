@@ -67,5 +67,3 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
     return scopes.peek();
   }
 }
-
-// End SqlScopedShuttle.java

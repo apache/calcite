@@ -39,5 +39,3 @@ public interface Program {
       List<RelOptMaterialization> materializations,
       List<RelOptLattice> lattices);
 }
-
-// End Program.java

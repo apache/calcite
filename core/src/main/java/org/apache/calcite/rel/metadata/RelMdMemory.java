@@ -100,5 +100,3 @@ public class RelMdMemory implements MetadataHandler<BuiltInMetadata.Memory> {
     return memoryWithinPhase / splitCount;
   }
 }
-
-// End RelMdMemory.java

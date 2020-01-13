@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * MockRelOptPlanner is a mock implementation of the {@link RelOptPlanner}
@@ -233,10 +234,9 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     }
 
     // implement RelOptRuleCall
-    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+        BiFunction<RelNode, RelNode, RelNode> handler) {
       transformationResult = rel;
     }
   }
 }
-
-// End MockRelOptPlanner.java

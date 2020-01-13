@@ -49,5 +49,3 @@ public enum MongoMethod {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 }
-
-// End MongoMethod.java

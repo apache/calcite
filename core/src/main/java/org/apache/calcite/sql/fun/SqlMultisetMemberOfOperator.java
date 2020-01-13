@@ -87,5 +87,3 @@ public class SqlMultisetMemberOfOperator extends SqlBinaryOperator {
     return SqlOperandCountRanges.of(2);
   }
 }
-
-// End SqlMultisetMemberOfOperator.java

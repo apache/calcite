@@ -100,5 +100,3 @@ public class EnumerableInterpreter extends SingleRel
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableInterpreter.java

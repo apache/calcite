@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.List;
@@ -771,25 +772,60 @@ public interface SqlValidator {
   SqlValidatorScope getWithScope(SqlNode withItem);
 
   /**
-   * Set if implicit type coercion is allowed when the validator does validation.
-   * See {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl} for the details.
-   * @param enabled default as true.
+   * Sets whether this validator should be lenient upon encountering an unknown
+   * function.
+   *
+   * @param lenient Whether to be lenient when encountering an unknown function
+   */
+  SqlValidator setLenientOperatorLookup(boolean lenient);
+
+  /** Returns whether this validator should be lenient upon encountering an
+   * unknown function.
+   *
+   * <p>If true, if a statement contains a call to a function that is not
+   * present in the operator table, or if the call does not have the required
+   * number or types of operands, the validator nevertheless regards the
+   * statement as valid. The type of the function call will be
+   * {@link #getUnknownType() UNKNOWN}.
+   *
+   * <p>If false (the default behavior), an unknown function call causes a
+   * validation error to be thrown. */
+  boolean isLenientOperatorLookup();
+
+  /**
+   * Sets enable or disable implicit type coercion when the validator does validation.
+   *
+   * @param enabled if enable the type coercion, default is true
+   *
+   * @see org.apache.calcite.sql.validate.implicit.TypeCoercionImpl TypeCoercionImpl
    */
   SqlValidator setEnableTypeCoercion(boolean enabled);
 
-  /** Get if this validator supports implicit type coercion. */
+  /** Returns if this validator supports implicit type coercion. */
   boolean isTypeCoercionEnabled();
 
   /**
-   * Set an instance of type coercion, you can customize the coercion rules to
-   * override the default ones
-   * in {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
-   * @param typeCoercion instance of {@link TypeCoercion}.
+   * Sets an instance of type coercion, you can customize the coercion rules to
+   * override the default ones defined in
+   * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
+   *
+   * @param typeCoercion {@link TypeCoercion} instance
    */
   void setTypeCoercion(TypeCoercion typeCoercion);
 
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
-}
 
-// End SqlValidator.java
+  /**
+   * Sets the {@link SqlTypeCoercionRule} instance which defines the type conversion matrix
+   * for the explicit type coercion.
+   *
+   * <p>The {@code typeCoercionRules} setting should be thread safe.
+   * In the default implementation,
+   * the {@code typeCoercionRules} is set to a ThreadLocal variable.
+   *
+   * @param typeCoercionRules The {@link SqlTypeCoercionRule} instance, see its documentation
+   *                          for how to customize the rules.
+   */
+  void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules);
+}

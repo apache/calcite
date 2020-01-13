@@ -114,5 +114,3 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
         || namespace.isWrapperFor(clazz);
   }
 }
-
-// End DelegatingNamespace.java

@@ -38,8 +38,8 @@ import org.apache.calcite.util.Smalls;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for user-defined functions;
@@ -206,7 +206,7 @@ public class UdfTest {
 
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
-  @Ignore("[CALCITE-1561] Intermittent test failures")
+  @Disabled("[CALCITE-1561] Intermittent test failures")
   @Test public void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
@@ -974,8 +974,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2053">[CALCITE-2053]
    * Overloaded user-defined functions that have Double and BigDecimal arguments
    * will goes wrong </a>. */
-  @Test
-  public void testBigDecimalAndLong() {
+  @Test public void testBigDecimalAndLong() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
         .returns("EXPR$0=1.0\n");
@@ -1132,5 +1131,3 @@ public class UdfTest {
   }
 
 }
-
-// End UdfTest.java
