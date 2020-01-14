@@ -52,7 +52,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
   }
 
   @Override public RelNode visit(TableScan scan) {
-    return LogicalTableScan.create(scan.getCluster(), scan.getTable());
+    return LogicalTableScan.create(scan.getCluster(), scan.getTable(), scan.getHints());
   }
 
   @Override public RelNode visit(RelNode relNode) {

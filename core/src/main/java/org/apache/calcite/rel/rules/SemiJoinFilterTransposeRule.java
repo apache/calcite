@@ -26,6 +26,7 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -65,6 +66,8 @@ public class SemiJoinFilterTransposeRule extends RelOptRule {
     RelNode newSemiJoin =
         LogicalJoin.create(filter.getInput(),
             semiJoin.getRight(),
+            // No need to copy the hints, the framework would try to do that.
+            ImmutableList.of(),
             semiJoin.getCondition(),
             ImmutableSet.of(),
             JoinRelType.SEMI);

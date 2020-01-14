@@ -33,6 +33,7 @@ Downloads are available on the
 #### Breaking Changes
 
 * Constructors for `Project`, `TableScan`, `Calc`, `Aggregate` and `Join` introduce new parameter named "hints";
+* Logical `RelNode`'s `create` method need to pass in hints explicitly;
 * `Project` names will not represent in `RelNode` digest anymore;
 * `RexCall`s are default to be normalized in the `RelNode` digest. 
 

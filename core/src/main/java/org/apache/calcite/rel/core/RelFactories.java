@@ -25,6 +25,7 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
@@ -143,9 +144,23 @@ public class RelFactories {
    * appropriate type for this rule's calling convention.
    */
   public interface ProjectFactory {
-    /** Creates a project. */
-    RelNode createProject(RelNode input, List<? extends RexNode> childExprs,
-        List<String> fieldNames);
+    /**
+     * Creates a project.
+     *
+     * @param input The input
+     * @param hints The hints
+     * @param childExprs The projection expressions
+     * @param fieldNames The projection field names
+     * @return a project
+     */
+    RelNode createProject(RelNode input, List<RelHint> hints,
+        List<? extends RexNode> childExprs, List<String> fieldNames);
+
+    @Deprecated // to be removed before 1.23
+    default RelNode createProject(RelNode input,
+        List<? extends RexNode> childExprs, List<String> fieldNames) {
+      return createProject(input, ImmutableList.of(), childExprs, fieldNames);
+    }
   }
 
   /**
@@ -153,9 +168,9 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
-    public RelNode createProject(RelNode input,
+    public RelNode createProject(RelNode input, List<RelHint> hints,
         List<? extends RexNode> childExprs, List<String> fieldNames) {
-      return LogicalProject.create(input, childExprs, fieldNames);
+      return LogicalProject.create(input, hints, childExprs, fieldNames);
     }
   }
 
@@ -272,15 +287,21 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
+    RelNode createAggregate(RelNode input, List<RelHint> hints, ImmutableBitSet groupSet,
         ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
 
-    @Deprecated // to be removed before 2.0
+    @Deprecated // to be removed before 1.23
+    default RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
+        ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      return createAggregate(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
+    }
+
+    @Deprecated // to be removed before 1.23
     default RelNode createAggregate(RelNode input, boolean indicator,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
       Aggregate.checkIndicator(indicator);
-      return createAggregate(input, groupSet, groupSets, aggCalls);
+      return createAggregate(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
     }
   }
 
@@ -289,10 +310,10 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    public RelNode createAggregate(RelNode input,
+    public RelNode createAggregate(RelNode input, List<RelHint> hints,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return LogicalAggregate.create(input, groupSet, groupSets, aggCalls);
+      return LogicalAggregate.create(input, hints, groupSet, groupSets, aggCalls);
     }
   }
 
@@ -346,6 +367,7 @@ public class RelFactories {
      *
      * @param left             Left input
      * @param right            Right input
+     * @param hints            Hints
      * @param condition        Join condition
      * @param variablesSet     Set of variables that are set by the
      *                         LHS and used by the RHS and are not available to
@@ -354,15 +376,23 @@ public class RelFactories {
      * @param semiJoinDone     Whether this join has been translated to a
      *                         semi-join
      */
-    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        Set<CorrelationId> variablesSet, JoinRelType joinType,
+    RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
         boolean semiJoinDone);
 
-    @Deprecated // to be removed before 2.0
+    @Deprecated // to be removed before 1.23
+    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
+        Set<CorrelationId> variablesSet, JoinRelType joinType,
+        boolean semiJoinDone) {
+      return createJoin(left, right, ImmutableList.of(), condition, variablesSet,
+          joinType, semiJoinDone);
+    }
+
+    @Deprecated // to be removed before 1.23
     default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
         JoinRelType joinType, Set<String> variablesStopped,
         boolean semiJoinDone) {
-      return createJoin(left, right, condition,
+      return createJoin(left, right, ImmutableList.of(), condition,
           CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
     }
   }
@@ -372,10 +402,10 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
   private static class JoinFactoryImpl implements JoinFactory {
-    public RelNode createJoin(RelNode left, RelNode right,
+    public RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
         RexNode condition, Set<CorrelationId> variablesSet,
         JoinRelType joinType, boolean semiJoinDone) {
-      return LogicalJoin.create(left, right, condition, variablesSet, joinType,
+      return LogicalJoin.create(left, right, hints, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
     }
   }
@@ -479,7 +509,12 @@ public class RelFactories {
     /**
      * Creates a {@link TableScan}.
      */
-    RelNode createScan(RelOptCluster cluster, RelOptTable table);
+    RelNode createScan(RelOptCluster cluster, RelOptTable table, List<RelHint> hints);
+
+    @Deprecated // to be removed before 1.23
+    default RelNode createScan(RelOptCluster cluster, RelOptTable table) {
+      return createScan(cluster, table, ImmutableList.of());
+    }
   }
 
   /**
@@ -487,8 +522,8 @@ public class RelFactories {
    * {@link LogicalTableScan}.
    */
   private static class TableScanFactoryImpl implements TableScanFactory {
-    public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
-      return LogicalTableScan.create(cluster, table);
+    public RelNode createScan(RelOptCluster cluster, RelOptTable table, List<RelHint> hints) {
+      return LogicalTableScan.create(cluster, table, hints);
     }
   }
 
@@ -521,15 +556,15 @@ public class RelFactories {
   @Nonnull public static TableScanFactory expandingScanFactory(
       @Nonnull RelOptTable.ViewExpander viewExpander,
       @Nonnull TableScanFactory tableScanFactory) {
-    return (cluster, table) -> {
+    return (cluster, table, hints) -> {
       final TranslatableTable translatableTable =
           table.unwrap(TranslatableTable.class);
       if (translatableTable != null) {
         final RelOptTable.ToRelContext toRelContext =
-            ViewExpanders.toRelContext(viewExpander, cluster);
+            ViewExpanders.toRelContext(viewExpander, cluster, hints);
         return translatableTable.toRel(toRelContext, table);
       }
-      return tableScanFactory.createScan(cluster, table);
+      return tableScanFactory.createScan(cluster, table, hints);
     };
   }
 
