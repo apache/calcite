@@ -1183,7 +1183,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RexNode condition =
         RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
     RelNode newJoin = relBuilder.push(leftFrame.r).push(rightFrame.r)
-        .join(rel.getJoinType(), condition, ImmutableSet.of()).build();
+        .join(rel.getJoinType(), condition).build();
 
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1220,11 +1220,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RelNode newJoin = relBuilder
         .push(leftFrame.r)
         .push(rightFrame.r)
-        .join(rel.getJoinType(), decorrelateExpr(currentRel, map, cm, rel.getCondition()),
+        .join(rel.getJoinType(),
+            decorrelateExpr(currentRel, map, cm, rel.getCondition()),
             ImmutableSet.of())
+        .hints(rel.getHints())
         .build();
-
-    newJoin = RelOptUtil.copyRelHints(rel, newJoin);
 
     // Create the mapping between the output of the old correlation rel
     // and the new join rel
@@ -2299,8 +2299,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                       "nullIndicator")));
 
       Join join =
-          (Join) relBuilder.push(left).push(right)
-              .join(joinType, joinCond, ImmutableSet.of()).build();
+          (Join) relBuilder.push(left).push(right).join(joinType, joinCond).build();
 
       // To the consumer of joinOutputProjRel, nullIndicator is located
       // at the end
