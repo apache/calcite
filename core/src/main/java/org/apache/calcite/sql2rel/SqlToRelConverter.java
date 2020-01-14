@@ -3042,9 +3042,9 @@ public class SqlToRelConverter {
 
   /**
    * The {@code GROUP_ID()} function is used to distinguish duplicate groups.
-   * However, as Aggregate normalizes group sets (i.e., sorting, redundancy removal),
-   * this information is lost in RelNode. Therefore, it is impossible to
-   * implement the function in runtime.
+   * However, as Aggregate normalizes group sets to canonical form (i.e.,
+   * flatten, sorting, redundancy removal), this information is lost in RelNode.
+   * Therefore, it is impossible to implement the function in runtime.
    *
    * To fill this gap, an aggregation query that contains {@code GROUP_ID()} function
    * will generally be rewritten into UNION when converting to RelNode.
@@ -3062,7 +3062,7 @@ public class SqlToRelConverter {
     final List<String> fieldNamesIfNoRewrite = createAggregate(bb, groupSet,
         r.groupSets, aggregateCalls).getRowType().getFieldNames();
 
-    // For every GROUP_ID value, collect its group sets in map
+    // For every GROUP_ID value, collect its group sets in a map
     // E.g., GROUPING SETS (a, a, b, c, c, c, c), the map will be
     // {0 -> (a, b, c), 1 -> (a, c), 2 -> (c), 3 -> (c)},
     // in which the max GROUP_ID() value is 3
@@ -3074,7 +3074,9 @@ public class SqlToRelConverter {
         maxGroupId = groupId;
       }
       for (int i = 0; i <= groupId; i++) {
-        addGroupSet(i, entry.getKey(), groupIdToGroupSets);
+        groupIdToGroupSets.computeIfAbsent(i,
+            k -> Sets.newTreeSet(ImmutableBitSet.COMPARATOR))
+            .add(entry.getKey());
       }
     }
 
@@ -3085,7 +3087,6 @@ public class SqlToRelConverter {
         aggregateCallsWithoutGroupId.add(aggregateCall);
       }
     }
-
     final List<RelNode> projects = new ArrayList<>();
     // For each group id, we first construct an Aggregate without GROUP_ID()
     // function call, and then create a Project node on top of it.
@@ -3103,48 +3104,32 @@ public class SqlToRelConverter {
           BigDecimal.valueOf(groupId), groupIdType);
 
       relBuilder.push(aggregate);
-      final List<String> aggregateFieldNames = aggregate.getRowType().getFieldNames();
-
       final List<RexNode> selectList = new ArrayList<>();
-      final List<String> selectListNames = new ArrayList<>();
       final int groupExprLength = r.groupExprList.size();
-      // Project fields from group by expressions
+      // Project fields in group by expressions
       for (int i = 0; i < groupExprLength; i++) {
         selectList.add(relBuilder.field(i));
-        selectListNames.add(aggregateFieldNames.get(i));
       }
-      // Project fields from aggregate calls
+      // Project fields in aggregate calls
       int groupIdCount = 0;
       for (int i = 0; i < aggregateCalls.size(); i++) {
         if (aggregateCalls.get(i).getAggregation().kind == SqlKind.GROUP_ID) {
           selectList.add(groupIdLiteral);
-          selectListNames.add(fieldNamesIfNoRewrite.get(groupExprLength + i));
           groupIdCount++;
         } else {
           int ordinal = groupExprLength + i - groupIdCount;
           selectList.add(relBuilder.field(ordinal));
-          selectListNames.add(aggregateFieldNames.get(ordinal));
         }
       }
-      final RelNode project = relBuilder.project(selectList)
-          .rename(selectListNames).build();
+      final RelNode project = relBuilder.project(
+          selectList, fieldNamesIfNoRewrite).build();
       projects.add(project);
     }
+    // Skip to create Union when there is only one child, i.e., no duplicate group set.
     if (projects.size() == 1) {
       return projects.get(0);
     }
     return LogicalUnion.create(projects, true);
-  }
-
-  /**
-   * Add a group set to the group sets of a specific group id
-   */
-  private void addGroupSet(int groupId, ImmutableBitSet groupSet,
-      final Map<Integer, Set<ImmutableBitSet>> groupIdToGroupSets) {
-    final Set<ImmutableBitSet> groupSets = groupIdToGroupSets.getOrDefault(
-        groupId, Sets.newTreeSet(ImmutableBitSet.COMPARATOR));
-    groupSets.add(groupSet);
-    groupIdToGroupSets.put(groupId, groupSets);
   }
 
   /**
@@ -5443,7 +5428,7 @@ public class SqlToRelConverter {
       return aggCalls;
     }
 
-    boolean containsGroupId() {
+    private boolean containsGroupId() {
       return aggCalls.stream().anyMatch(
           agg -> agg.getAggregation().kind == SqlKind.GROUP_ID);
     }
