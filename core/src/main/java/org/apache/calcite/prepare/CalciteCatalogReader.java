@@ -324,7 +324,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     final List<RelDataType> paramTypes = toSql(typeFactory, argTypes);
     if (function instanceof ScalarFunction) {
       return new SqlUserDefinedFunction(name, infer((ScalarFunction) function),
-          InferTypes.explicit(argTypes), typeChecker, paramTypes, function.isVarArgs(), function);
+          InferTypes.explicit(argTypes), typeChecker, paramTypes,
+          function.isVarArgs(), function);
     } else if (function instanceof AggregateFunction) {
       return new SqlUserDefinedAggFunction(name,
           infer((AggregateFunction) function), InferTypes.explicit(argTypes),
