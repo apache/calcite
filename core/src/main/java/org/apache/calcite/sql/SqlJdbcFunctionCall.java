@@ -363,6 +363,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * LONGVARBINARY, LONGVARCHAR, REAL, SMALLINT, TIME, TIMESTAMP, TINYINT,
  * VARBINARY, or VARCHAR</td>
  * </tr>
+ * <tr>
+ * <td>IF(boolean, Object, Object)</td>
+ * <td>Returns one value if a logical expression is `TRUE` and another if it is `FALSE`</td>
+ * </tr>
  * </table>
  */
 public class SqlJdbcFunctionCall extends SqlFunction {
@@ -767,6 +771,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               return super.createCall(pos, operands[0], jdbcType.createDataType(typeOperand.pos));
             }
           });
+      map.put("IF", simple(SqlLibraryOperators.IF));
       this.map = map.build();
     }
 

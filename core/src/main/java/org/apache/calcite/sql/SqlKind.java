@@ -472,6 +472,11 @@ public enum SqlKind {
   NVL,
 
   /**
+   * The "IF" function (BigQuery, Hive, Spark).
+   */
+  IF,
+
+  /**
    * The "GREATEST" function (Oracle).
    */
   GREATEST,

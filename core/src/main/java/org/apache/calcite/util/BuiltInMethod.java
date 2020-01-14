@@ -316,6 +316,7 @@ public enum BuiltInMethod {
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
+  IF(SqlFunctions.class, "ifFunction", boolean.class, Object.class, Object.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),

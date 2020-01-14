@@ -2287,6 +2287,9 @@ The 'C' (compatibility) column contains value
 'm' for MySQL ('fun=mysql' in the connect string),
 'o' for Oracle ('fun=oracle' in the connect string),
 'p' for PostgreSQL ('fun=postgresql' in the connect string).
+'b' for BigQuery ('fun=bigquery' in the connect string).
+'h' for hive ('fun=hive' in the connect string).
+'s' for spark ('fun=spark' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2331,6 +2334,7 @@ semantics.
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
 | o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
+| b h s | IF(boolean, object, object)                  | Return one value if a logical expression is 'TRUE' and another if it is a 'FALSE'
 
 Note:
 
