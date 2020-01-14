@@ -3017,7 +3017,7 @@ class MaterializationTest {
     sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
-  @Test void testIntersectToCalcOnIntersect() {
+  @Test void testIntersectToCalcOnIntersect0() {
     final String intersect = ""
         + "select \"deptno\",\"name\" from \"emps\"\n"
         + "intersect all\n"
@@ -3028,6 +3028,23 @@ class MaterializationTest {
         + "select \"name\",\"deptno\" from \"depts\"\n"
         + "intersect all\n"
         + "select \"name\",\"deptno\" from \"emps\"";
+    sql(mv, query).withOnlyBySubstitution(true).ok();
+  }
+
+  @Test void testIntersectToCalcOnIntersect1() {
+    final String intersect = ""
+        + "select \"name\",\"deptno\" from \"emps\"\n"
+        + "intersect all\n"
+        + "select \"name\",\"deptno\" from \"depts\"";
+    final String mv = ""
+        + "select \"name\",\"deptno\" from (" + intersect + ")"
+        + "where \"deptno\" > 100";
+
+    final String query = ""
+        + "select \"name\",\"deptno\" from \"depts\" where \"deptno\" > 100\n"
+        + "intersect all\n"
+        + "select \"name\",\"deptno\" from \"emps\" where \"deptno\" > 100";
+
     sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 

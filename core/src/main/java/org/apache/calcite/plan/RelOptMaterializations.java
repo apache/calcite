@@ -28,6 +28,7 @@ import org.apache.calcite.rel.rules.FilterCalcMergeRule;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterMergeRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
+import org.apache.calcite.rel.rules.FilterSetOpTransposeRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
 import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
@@ -208,6 +209,7 @@ public abstract class RelOptMaterializations {
             .addRuleInstance(ProjectMergeRule.INSTANCE)
             .addRuleInstance(ProjectRemoveRule.INSTANCE)
             .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+            .addRuleInstance(FilterSetOpTransposeRule.INSTANCE)
             .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
             .addRuleInstance(FilterToCalcRule.INSTANCE)
             .addRuleInstance(ProjectToCalcRule.INSTANCE)
