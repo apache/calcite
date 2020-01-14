@@ -23,7 +23,7 @@ from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)]]>
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [REPARTITION inheritPath:[] options:[10]]]
+Project:[[RESOURCE inheritPath:[] options:{MEM=20Mb}], [RESOURCE inheritPath:[] options:{PARALLELISM=3}], [REPARTITION inheritPath:[] options:[10]]]
 ]]>
         </Resource>
     </TestCase>
@@ -165,7 +165,7 @@ from emp left join dept on emp.deptno = dept.deptno)]]>
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [NO_HASH_JOIN inheritPath:[]]]
+Project:[[RESOURCE inheritPath:[] options:{MEM=20Mb}], [RESOURCE inheritPath:[] options:{PARALLELISM=3}], [NO_HASH_JOIN inheritPath:[]]]
 LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
 ]]>
         </Resource>

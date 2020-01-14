@@ -102,17 +102,17 @@ public final class LogicalProject extends Project {
   //~ Methods ----------------------------------------------------------------
 
   /** Creates a LogicalProject. */
-  public static LogicalProject create(final RelNode input,
+  public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects, List<String> fieldNames) {
     final RelOptCluster cluster = input.getCluster();
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
             fieldNames, SqlValidatorUtil.F_SUGGESTER);
-    return create(input, projects, rowType);
+    return create(input, hints, projects, rowType);
   }
 
   /** Creates a LogicalProject, specifying row type rather than field names. */
-  public static LogicalProject create(final RelNode input,
+  public static LogicalProject create(final RelNode input, List<RelHint> hints,
       final List<? extends RexNode> projects, RelDataType rowType) {
     final RelOptCluster cluster = input.getCluster();
     final RelMetadataQuery mq = cluster.getMetadataQuery();
@@ -120,7 +120,19 @@ public final class LogicalProject extends Project {
         cluster.traitSet().replace(Convention.NONE)
             .replaceIfs(RelCollationTraitDef.INSTANCE,
                 () -> RelMdCollation.project(mq, input, projects));
-    return new LogicalProject(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
+    return new LogicalProject(cluster, traitSet, hints, input, projects, rowType);
+  }
+
+  @Deprecated // to be removed before 1.23
+  public static LogicalProject create(final RelNode input,
+      final List<? extends RexNode> projects, List<String> fieldNames) {
+    return create(input, ImmutableList.of(), projects, fieldNames);
+  }
+
+  @Deprecated // to be removed before 1.23
+  public static LogicalProject create(final RelNode input,
+      final List<? extends RexNode> projects, RelDataType rowType) {
+    return create(input, ImmutableList.of(), projects, rowType);
   }
 
   @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,

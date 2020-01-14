@@ -493,7 +493,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return LogicalTableScan.create(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this, context.getTableHints());
     }
 
     public List<RelCollation> getCollationList() {
@@ -864,7 +864,8 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public RelNode toRel(ToRelContext context) {
-      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable);
+      RelNode rel = LogicalTableScan.create(context.getCluster(), fromTable,
+          context.getTableHints());
       final RexBuilder rexBuilder = context.getCluster().getRexBuilder();
       rel = LogicalFilter.create(
           rel, getConstraint(rexBuilder, rel.getRowType()));
@@ -880,7 +881,9 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
               return mapping.size();
             }
           };
-      return LogicalProject.create(rel, Pair.left(projects),
+      return LogicalProject.create(rel,
+          ImmutableList.of(),
+          Pair.left(projects),
           Pair.right(projects));
     }
 
@@ -919,7 +922,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-      return LogicalTableScan.create(context.getCluster(), relOptTable);
+      return LogicalTableScan.create(context.getCluster(), relOptTable, context.getTableHints());
     }
   }
 
