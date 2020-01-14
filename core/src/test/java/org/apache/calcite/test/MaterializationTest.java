@@ -2895,7 +2895,7 @@ public class MaterializationTest {
   }
 
   @Test public void testUnionOnCalcsToUnion() {
-    String mv = ""
+    final String mv = ""
         + "select \"deptno\", \"salary\"\n"
         + "from \"emps\"\n"
         + "where \"empid\" > 300\n"
@@ -2903,7 +2903,7 @@ public class MaterializationTest {
         + "select \"deptno\", \"salary\"\n"
         + "from \"emps\"\n"
         + "where \"empid\" < 100";
-    String query = ""
+    final String query = ""
         + "select \"deptno\", \"salary\" * 2\n"
         + "from \"emps\"\n"
         + "where \"empid\" > 300 and \"salary\" > 100\n"
@@ -2912,6 +2912,26 @@ public class MaterializationTest {
         + "from \"emps\"\n"
         + "where \"empid\" < 100 and \"salary\" > 100";
     sql(mv, query).ok();
+  }
+
+  @Test public void testIntersectOnCalcsToIntersect() {
+    final String mv = ""
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" > 300\n"
+        + "intersect all\n"
+        + "select \"deptno\", \"salary\"\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" < 100";
+    final String query = ""
+        + "select \"deptno\", \"salary\" * 2\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" > 300 and \"salary\" > 100\n"
+        + "intersect all\n"
+        + "select \"deptno\", \"salary\" * 2\n"
+        + "from \"emps\"\n"
+        + "where \"empid\" < 100 and \"salary\" > 100";
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testIntersectToIntersect0() {

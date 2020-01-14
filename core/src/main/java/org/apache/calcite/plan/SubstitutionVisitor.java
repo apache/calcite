@@ -29,10 +29,12 @@ import org.apache.calcite.rel.mutable.MutableCalc;
 import org.apache.calcite.rel.mutable.MutableFilter;
 import org.apache.calcite.rel.mutable.MutableIntersect;
 import org.apache.calcite.rel.mutable.MutableJoin;
+import org.apache.calcite.rel.mutable.MutableMinus;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRelVisitor;
 import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.mutable.MutableScan;
+import org.apache.calcite.rel.mutable.MutableSetOp;
 import org.apache.calcite.rel.mutable.MutableUnion;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -136,7 +138,8 @@ public class SubstitutionVisitor {
           AggregateOnCalcToAggregateUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
           UnionOnCalcsToUnionUnifyRule.INSTANCE,
-          IntersectToIntersectUnifyRule.INSTANCE);
+          IntersectToIntersectUnifyRule.INSTANCE,
+          IntersectOnCalcsToIntersectUnifyRule.INSTANCE);
 
   /**
    * Factory for a builder for relational expressions.
@@ -1585,53 +1588,7 @@ public class SubstitutionVisitor {
     }
 
     public UnifyResult apply(UnifyRuleCall call) {
-      final MutableUnion query = (MutableUnion) call.query;
-      final MutableUnion target = (MutableUnion) call.target;
-      final List<MutableCalc> queryInputs = new ArrayList<>();
-      final List<MutableRel> queryGrandInputs = new ArrayList<>();
-      final List<MutableRel> targetInputs = new ArrayList<>(target.getInputs());
-
-      final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
-
-      for (MutableRel rel: query.getInputs()) {
-        if (rel instanceof MutableCalc) {
-          queryInputs.add((MutableCalc) rel);
-          queryGrandInputs.add(((MutableCalc) rel).getInput());
-        } else {
-          return null;
-        }
-      }
-
-      if (query.isAll() && target.isAll()
-          && sameRelCollectionNoOrderConsidered(queryGrandInputs, targetInputs)) {
-        final Pair<RexNode, List<RexNode>> queryInputExplained0 =
-            explainCalc(queryInputs.get(0));
-        for (int i = 1; i < queryGrandInputs.size(); i++) {
-          final Pair<RexNode, List<RexNode>> queryInputExplained =
-              explainCalc(queryInputs.get(i));
-          // Matching fails when filtering conditions are not equal or projects are not equal.
-          if (!splitFilter(call.getSimplify(), queryInputExplained0.left,
-              queryInputExplained.left).isAlwaysTrue()) {
-            return null;
-          }
-          for (Pair<RexNode, RexNode> pair : Pair.zip(
-              queryInputExplained0.right, queryInputExplained.right)) {
-            if (!pair.left.equals(pair.right)) {
-              return null;
-            }
-          }
-        }
-
-        List<RexNode> projectExprs = MutableRels.createProjects(target,
-            queryInputExplained0.right);
-        final RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, projectExprs, queryInputExplained0.left,
-            query.rowType, rexBuilder);
-        final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
-        return tryMergeParentCalcAndGenResult(call, compenCalc);
-      }
-
-      return null;
+      return setOpApply(call);
     }
   }
 
@@ -1659,6 +1616,86 @@ public class SubstitutionVisitor {
       }
       return null;
     }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a {@link MutableIntersect}
+   * which has {@link MutableCalc} as child to a {@link MutableIntersect}.
+   * We try to pull up the {@link MutableCalc} to top of {@link MutableIntersect},
+   * then match the {@link MutableIntersect} in query to {@link MutableIntersect} in target.
+   */
+  private static class IntersectOnCalcsToIntersectUnifyRule extends AbstractUnifyRule {
+    public static final IntersectOnCalcsToIntersectUnifyRule INSTANCE =
+        new IntersectOnCalcsToIntersectUnifyRule();
+
+    private IntersectOnCalcsToIntersectUnifyRule() {
+      super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      return setOpApply(call);
+    }
+  }
+
+  /**
+   * Applies a AbstractUnifyRule to a particular node in a query. We try to pull up the
+   * {@link MutableCalc} to top of {@link MutableUnion} or {@link MutableIntersect}, this
+   * method not suit for {@link MutableMinus}.
+   *
+   * @param call Input parameters
+   */
+  private static UnifyResult setOpApply(UnifyRuleCall call) {
+    if (call.query instanceof MutableMinus && call.target
+        instanceof MutableMinus) {
+      return null;
+    }
+    final MutableSetOp query = (MutableSetOp) call.query;
+    final MutableSetOp target = (MutableSetOp) call.target;
+    final List<MutableCalc> queryInputs = new ArrayList<>();
+    final List<MutableRel> queryGrandInputs = new ArrayList<>();
+    final List<MutableRel> targetInputs = new ArrayList<>(target.getInputs());
+
+    final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
+
+    for (MutableRel rel : query.getInputs()) {
+      if (rel instanceof MutableCalc) {
+        queryInputs.add((MutableCalc) rel);
+        queryGrandInputs.add(((MutableCalc) rel).getInput());
+      } else {
+        return null;
+      }
+    }
+
+    if (query.isAll() && target.isAll()
+        && sameRelCollectionNoOrderConsidered(queryGrandInputs, targetInputs)) {
+      final Pair<RexNode, List<RexNode>> queryInputExplained0 =
+          explainCalc(queryInputs.get(0));
+      for (int i = 1; i < queryGrandInputs.size(); i++) {
+        final Pair<RexNode, List<RexNode>> queryInputExplained =
+            explainCalc(queryInputs.get(i));
+        // Matching fails when filtering conditions are not equal or projects are not equal.
+        if (!splitFilter(call.getSimplify(), queryInputExplained0.left,
+            queryInputExplained.left).isAlwaysTrue()) {
+          return null;
+        }
+        for (Pair<RexNode, RexNode> pair : Pair.zip(
+            queryInputExplained0.right, queryInputExplained.right)) {
+          if (!pair.left.equals(pair.right)) {
+            return null;
+          }
+        }
+      }
+
+      List<RexNode> projectExprs = MutableRels.createProjects(target,
+          queryInputExplained0.right);
+      final RexProgram compenRexProgram = RexProgram.create(
+          target.rowType, projectExprs, queryInputExplained0.left,
+          query.rowType, rexBuilder);
+      final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
+      return tryMergeParentCalcAndGenResult(call, compenCalc);
+    }
+
+    return null;
   }
 
   /** Check if list0 and list1 contains the same nodes -- order is not considered. */
