@@ -23,10 +23,13 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlTimestampFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
@@ -245,11 +248,9 @@ public class BigQuerySqlDialect extends SqlDialect {
       writer.literal("[OFFSET(0)]");
       break;
     case OTHER_FUNCTION:
-      if(call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())) {
-        SqlCall formatTimestampCall = makeFormatTimestampCall(call);
-        FORMAT_TIMESTAMP.unparse(writer, formatTimestampCall, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
+      if(((SqlTimestampFunction) (call).getOperator()).typeName == SqlTypeName.TIMESTAMP) {
+        SqlCall currentTimestampCall = makeTimestampCall(call);
+        FORMAT_TIMESTAMP.unparse(writer, currentTimestampCall, leftPrec, rightPrec);
       }
       break;
     default:
@@ -307,26 +308,30 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private SqlCall makeFormatTimestampCall(SqlCall call) {
-    SqlCharStringLiteral formatNode = makeDateFormatSqlCall(call);
-    SqlNode timestampCall = new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY, SqlParserPos.ZERO) {
-      @Override
-      public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-        SqlSyntax.FUNCTION.unparse(writer, CURRENT_TIMESTAMP, getEmptyCall(), leftPrec, rightPrec);
-      }
-    };
-    SqlNode[] formatTimestampOperands = new SqlNode[]{formatNode, timestampCall};
-    return new SqlBasicCall(FORMAT_TIMESTAMP, formatTimestampOperands, SqlParserPos.ZERO);
-  }
+/*  private void unparseTimestampFunction(SqlWriter writer, SqlCall call, ) {
+    *//*SqlLiteral node = call.operand(0);
+    String precision = node.getValue().toString();
+    String dateFormat = "%F %H:%M:%E" + precision + "S";
+    SqlFunction sqlFunction = SqlLibraryOperators.FORMAT_TIMESTAMP;
+    writer.print(sqlFunction.toString());
+    SqlWriter.Frame frame = writer.startList("(", ")");
+    writer.print(dateFormat + "," + call.getOperator().getName());
+    writer.endList(frame);*//*
 
-  private SqlBasicCall getEmptyCall() {
-    return new SqlBasicCall(CURRENT_TIMESTAMP, SqlBasicCall.EMPTY_ARRAY, SqlParserPos.ZERO);
+  }*/
+
+  private SqlCall makeTimestampCall(SqlCall call) {
+    SqlCharStringLiteral formatNode = makeDateFormatSqlCall(call);
+    SqlCharStringLiteral timestampLiteral = SqlLiteral.createCharString(call.getOperator().getName(), call.getParserPosition());
+    SqlNode[] timestampNodeOperands = new SqlNode[]{formatNode, timestampLiteral};
+    return new SqlBasicCall(FORMAT_TIMESTAMP, timestampNodeOperands, SqlParserPos.ZERO);
   }
 
   private SqlCharStringLiteral makeDateFormatSqlCall(SqlCall call) {
-    String precision = call.operandCount() > 0 ? ((SqlLiteral)call.operand(0)).getValue().toString() : "6";
+    SqlLiteral node = call.operand(0);
+    String precision = node.getValue().toString();
     String dateFormat = "%F %H:%M:%E" + precision + "S";
-    return SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO);
+    return SqlLiteral.createCharString(dateFormat, call.getParserPosition());
   }
 
   private void writeOffset(SqlWriter writer, SqlCall call) {
