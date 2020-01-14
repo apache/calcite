@@ -4488,9 +4488,25 @@ public class JdbcTest {
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
-  /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-1824">[CALCITE-1824]
-   * GROUP_ID returns wrong result</a>. */
+  /** Test case for rewriting queries that contain {@code GROUP_ID()} function.
+   * For instance, the query
+   * {@code
+   *    select deptno, group_id() as gid
+   *    from scott.emp
+   *    group by grouping sets(deptno, deptno, deptno, (), ())
+   * }
+   * will be converted into:
+   * {@code
+   *    select deptno, 0 as gid
+   *    from scott.emp group by grouping sets(deptno, ())
+   *    union all
+   *    select deptno, 1 as gid
+   *    from scott.emp group by grouping sets(deptno, ())
+   *    union all
+   *    select deptno, 2 as gid
+   *    from scott.emp group by grouping sets(deptno)
+   * }
+   */
   @Test public void testGroupId() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.SCOTT)

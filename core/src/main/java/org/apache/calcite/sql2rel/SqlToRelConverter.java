@@ -3062,10 +3062,16 @@ public class SqlToRelConverter {
     final List<String> fieldNamesIfNoRewrite = createAggregate(bb, groupSet,
         r.groupSets, aggregateCalls).getRowType().getFieldNames();
 
-    // For every GROUP_ID value, collect its group sets in a map
-    // E.g., GROUPING SETS (a, a, b, c, c, c, c), the map will be
-    // {0 -> (a, b, c), 1 -> (a, c), 2 -> (c), 3 -> (c)},
-    // in which the max GROUP_ID() value is 3
+    // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
+    // function produces values in the range 0 to n-1. For each value,
+    // we need to figure out the corresponding group sets.
+    //
+    // For example, "... GROUPING SETS (a, a, b, c, c, c, c)"
+    // (i) The max value of the GROUP_ID() function returns is 3
+    // (ii) GROUPING SETS (a, b, c) produces value 0,
+    //      GROUPING SETS (a, c) produces value 1,
+    //      GROUPING SETS (c) produces value 2
+    //      GROUPING SETS (c) produces value 3
     final Map<Integer, Set<ImmutableBitSet>> groupIdToGroupSets = new HashMap<>();
     int maxGroupId = 0;
     for (Map.Entry<ImmutableBitSet, Integer> entry: groupSetCount.entrySet()) {
@@ -3080,7 +3086,7 @@ public class SqlToRelConverter {
       }
     }
 
-    // AggregateCalls without GROUP_ID
+    // AggregateCall list without GROUP_ID function
     final List<AggregateCall> aggregateCallsWithoutGroupId = new ArrayList<>();
     for (AggregateCall aggregateCall : aggregateCalls) {
       if (aggregateCall.getAggregation().kind != SqlKind.GROUP_ID) {
@@ -3088,8 +3094,8 @@ public class SqlToRelConverter {
       }
     }
     final List<RelNode> projects = new ArrayList<>();
-    // For each group id, we first construct an Aggregate without GROUP_ID()
-    // function call, and then create a Project node on top of it.
+    // For each group id value , we first construct an Aggregate without
+    // GROUP_ID() function call, and then create a Project node on top of it.
     // The Project adds literal value for group id in right position.
     for (int groupId = 0; groupId <= maxGroupId; groupId++) {
       // Create the Aggregate node without GROUP_ID() call

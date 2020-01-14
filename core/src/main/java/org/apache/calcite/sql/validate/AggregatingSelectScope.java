@@ -30,13 +30,12 @@ import org.apache.calcite.util.Pair;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
@@ -109,22 +108,20 @@ public class AggregatingSelectScope
       groupExprProjection = groupAnalyzer.groupExprProjection;
     }
 
-    final Set<ImmutableBitSet> flatGroupSets =
-        Sets.newTreeSet(ImmutableBitSet.COMPARATOR);
-    final Map<ImmutableBitSet, Integer> groupSetCount = new HashMap<>();
+    final TreeMap<ImmutableBitSet, Integer> flatGroupSetCount =
+        Maps.newTreeMap(ImmutableBitSet.COMPARATOR);
     for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
       final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
-      groupSetCount.put(set, groupSetCount.getOrDefault(set, 0) + 1);
-      flatGroupSets.add(set);
+      flatGroupSetCount.put(set, flatGroupSetCount.getOrDefault(set, 0) + 1);
     }
 
     // For GROUP BY (), we need a singleton grouping set.
-    if (flatGroupSets.isEmpty()) {
-      flatGroupSets.add(ImmutableBitSet.of());
+    if (flatGroupSetCount.isEmpty()) {
+      flatGroupSetCount.put(ImmutableBitSet.of(), 1);
     }
 
-    return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSets,
-        groupSetCount, groupExprProjection);
+    return new Resolved(extraExprs, temporaryGroupExprList, flatGroupSetCount.keySet(),
+        flatGroupSetCount, groupExprProjection);
   }
 
   /**
