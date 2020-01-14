@@ -41,6 +41,9 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -256,10 +259,10 @@ public class ServerTest {
       assertThat(x, is(1));
 
       try (ResultSet r = s.executeQuery("select * from w")) {
-        assertThat(r.next(), is(true));
-        assertThat(r.getInt("i"), is(1));
+        assertTrue(r.next());
+        assertEquals(r.getInt("i"), 1);
         assertArrayEquals(r.getObject("j", Struct.class).getAttributes(), new Object[] {1, 1});
-        assertThat(r.next(), is(false));
+        assertFalse(r.next());
       }
     }
   }
