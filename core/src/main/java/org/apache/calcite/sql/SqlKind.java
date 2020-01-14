@@ -459,11 +459,6 @@ public enum SqlKind {
   REGEXP_SUBSTR,
 
   /**
-   * The "FORMAT_TIMESTAMP" function.
-   */
-  FORMAT_TIMESTAMP,
-
-  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
@@ -834,11 +829,6 @@ public enum SqlKind {
    * The "UNNEST" operator.
    */
   UNNEST,
-
-  /**
-   * The "SYSTEM FUNCTION" operator.
-   */
-  SYSTEM_FUNCTION,
 
   /**
    * The "LATERAL" qualifier to relations in the FROM clause.

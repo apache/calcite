@@ -209,13 +209,6 @@ public abstract class SqlLibraryOperators {
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIGQUERY})
-  public static final SqlFunction FORMAT_TIMESTAMP = new SqlFunction("FORMAT_TIMESTAMP",
-                  SqlKind.FORMAT_TIMESTAMP,
-                  ReturnTypes.ARG0, null,
-                  OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.DATETIME),
-                  SqlFunctionCategory.STRING);
-
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
   @LibraryOperator(libraries = {MYSQL})
