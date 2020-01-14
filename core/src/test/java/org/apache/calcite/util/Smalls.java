@@ -400,7 +400,6 @@ public class Smalls {
 
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */
-
   public static class MyPlusFunction {
     public static final ThreadLocal<AtomicInteger> INSTANCE_COUNT =
         new ThreadLocal<>().withInitial(() -> new AtomicInteger(0));

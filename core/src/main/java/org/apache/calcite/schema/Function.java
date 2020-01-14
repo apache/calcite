@@ -42,6 +42,7 @@ public interface Function {
 
   /**
    * Returns the function is var args or not.
+   *
    * @return Boolean
    */
   default boolean isVarArgs() {

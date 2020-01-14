@@ -121,7 +121,8 @@ public abstract class ReflectiveFunctionBase implements Function {
             }
 
             public RelDataType getType(RelDataTypeFactory typeFactory) {
-              return typeFactory.createJavaType(varArgs ? type.getComponentType() : type);
+              final Class paramType = varArgs ? type.getComponentType() : type;
+              return typeFactory.createJavaType(paramType);
             }
 
             public boolean isOptional() {
@@ -139,7 +140,8 @@ public abstract class ReflectiveFunctionBase implements Function {
       final Class<?>[] types = method.getParameterTypes();
       for (int i = 0; i < types.length; i++) {
         add(types[i], ReflectUtil.getParameterName(method, i),
-            ReflectUtil.isParameterOptional(method, i), ReflectUtil.isParameterVarArgs(method, i));
+            ReflectUtil.isParameterOptional(method, i),
+              ReflectUtil.isParameterVarArgs(method, i));
       }
       return this;
     }

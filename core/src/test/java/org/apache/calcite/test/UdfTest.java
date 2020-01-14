@@ -192,7 +192,22 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunction() throws Exception {
-    final String sql = "select \"adhoc\".var_args(x=>\"deptno\", y=>100) as p\n"
+    final String sql = "select \"adhoc\".var_args(\"deptno\", 100) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=110",
+        "P=120",
+        "P=110",
+        "P=110");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  /** Tests a user-defined function that is defined in terms of a class with
+   * non-static methods. */
+  @Test public void testVarArgsUserDefinedFunctionWithNameParameters() throws Exception {
+    final String sql = "select \"adhoc\".var_args(y=>100, x=>\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
     final int before = c.get();
@@ -977,17 +992,17 @@ public class UdfTest {
   @Test public void testBigDecimalAndLong() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as decimal))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as double))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as decimal))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1 as float))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as float))")
-        .returns("EXPR$0=1.0\n");
+            .returns("EXPR$0=1.0\n");
   }
 
   /** Test case for
@@ -1044,7 +1059,7 @@ public class UdfTest {
           + " EMPLOYEE_SALARY=11500.0; DEPARTMENTS=[1, 2, 3, 10]\n";
 
       try (Statement statement = connection.createStatement();
-          ResultSet resultSet = statement.executeQuery(sql)) {
+           ResultSet resultSet = statement.executeQuery(sql)) {
         assertThat(CalciteAssert.toString(resultSet), is(result));
       }
       connection.close();

@@ -249,8 +249,8 @@ public class EnumUtils {
   }
 
   /**
-   * build expression list.
-   * if varArgs is true, the last targetType will replace by its Component Type.
+   * Build expression list.
+   * If varArgs is true, the last targetType will be replaced by its component type.
    */
   static List<Expression> fromInternal(Class<?>[] targetTypes,
       List<Expression> expressions, boolean varArgs) {
