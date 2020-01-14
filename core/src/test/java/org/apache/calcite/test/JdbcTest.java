@@ -752,7 +752,7 @@ public class JdbcTest {
   /**
    * The example in the README.
    */
-  @Test public void testReadme() throws ClassNotFoundException, SQLException {
+  @Test public void testReadme() throws SQLException {
     Properties info = new Properties();
     info.setProperty("lex", "JAVA");
     Connection connection = DriverManager.getConnection("jdbc:calcite:", info);
@@ -776,8 +776,7 @@ public class JdbcTest {
   }
 
   /** Test for {@link Driver#getPropertyInfo(String, Properties)}. */
-  @Test public void testConnectionProperties() throws ClassNotFoundException,
-      SQLException {
+  @Test public void testConnectionProperties() throws SQLException {
     java.sql.Driver driver = DriverManager.getDriver("jdbc:calcite:");
     final DriverPropertyInfo[] propertyInfo =
         driver.getPropertyInfo("jdbc:calcite:", new Properties());
@@ -793,7 +792,7 @@ public class JdbcTest {
   /**
    * Make sure that the properties look sane.
    */
-  @Test public void testVersion() throws ClassNotFoundException, SQLException {
+  @Test public void testVersion() throws SQLException {
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
         connection.unwrap(CalciteConnection.class);
@@ -846,8 +845,7 @@ public class JdbcTest {
   }
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getColumns}. */
-  @Test public void testMetaDataColumns()
-      throws ClassNotFoundException, SQLException {
+  @Test public void testMetaDataColumns() throws SQLException {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
@@ -867,8 +865,7 @@ public class JdbcTest {
 
   /** Tests driver's implementation of {@link DatabaseMetaData#getPrimaryKeys}.
    * It is empty but it should still have column definitions. */
-  @Test public void testMetaDataPrimaryKeys()
-      throws ClassNotFoundException, SQLException {
+  @Test public void testMetaDataPrimaryKeys() throws SQLException {
     Connection connection = CalciteAssert
         .that(CalciteAssert.Config.REGULAR).connect();
     DatabaseMetaData metaData = connection.getMetaData();
@@ -918,8 +915,7 @@ public class JdbcTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1222">[CALCITE-1222]
    * DatabaseMetaData.getColumnLabel returns null when query has ORDER
    * BY</a>, */
-  @Test public void testResultSetMetaData()
-      throws ClassNotFoundException, SQLException {
+  @Test public void testResultSetMetaData() throws SQLException {
     try (Connection connection =
              CalciteAssert.that(CalciteAssert.Config.REGULAR).connect()) {
       final String sql0 = "select \"empid\", \"deptno\" as x, 1 as y\n"
@@ -946,8 +942,37 @@ public class JdbcTest {
       assertEquals("emps", metaData.getTableName(2));
       assertEquals("Y", metaData.getColumnLabel(3));
       assertEquals("Y", metaData.getColumnName(3));
-      assertEquals(null, metaData.getTableName(3));
+      assertEquals("", metaData.getTableName(3));
     }
+  }
+
+  /**
+   * {@link ResultSetMetaData#getCatalogName(int)},
+   * {@link ResultSetMetaData#getSchemaName(int)},
+   * {@link ResultSetMetaData#getTableName(int)}
+   * should return empty string rather than null when not applicable to map to a value.
+   */
+  @Test public void testResultSetMetadataWhenFailToMapAValue() throws Exception {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART)
+        .doWithConnection(c -> {
+          try {
+            final Statement s = c.createStatement();
+            final String query = ""
+                + "select \"employee_id\", \"employee_id\" + 1\n"
+                + "from \"foodmart\".\"employee\"";
+            final ResultSet rs = s.executeQuery(query);
+            final ResultSetMetaData rsm = rs.getMetaData();
+            assertEquals(rsm.getCatalogName(1), "");
+            assertEquals(rsm.getCatalogName(2), "");
+            assertEquals(rsm.getSchemaName(1), "foodmart");
+            assertEquals(rsm.getSchemaName(2), "");
+            assertEquals(rsm.getTableName(1), "employee");
+            assertEquals(rsm.getTableName(2), "");
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
   }
 
   /** Tests some queries that have expedited processing because connection pools
@@ -1018,8 +1043,7 @@ public class JdbcTest {
         });
   }
 
-  @Test public void testCloneSchema()
-      throws ClassNotFoundException, SQLException {
+  @Test public void testCloneSchema() throws SQLException {
     final Connection connection =
         CalciteAssert.that(CalciteAssert.Config.JDBC_FOODMART).connect();
     final CalciteConnection calciteConnection =

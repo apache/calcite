@@ -29,7 +29,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Test case for CALCITE-542. */
@@ -65,11 +64,11 @@ public class RelMdColumnOriginsTest {
 
     final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
     assertThat(resultSetMetaData.getColumnName(1), equalTo("ID"));
-    assertThat(resultSetMetaData.getTableName(1), nullValue());
-    assertThat(resultSetMetaData.getSchemaName(1), nullValue());
+    assertThat(resultSetMetaData.getTableName(1), equalTo(""));
+    assertThat(resultSetMetaData.getSchemaName(1), equalTo(""));
     assertThat(resultSetMetaData.getColumnName(2), equalTo("ID"));
-    assertThat(resultSetMetaData.getTableName(2), nullValue());
-    assertThat(resultSetMetaData.getSchemaName(2), nullValue());
+    assertThat(resultSetMetaData.getTableName(2), equalTo(""));
+    assertThat(resultSetMetaData.getSchemaName(2), equalTo(""));
     resultSet.close();
     statement.close();
     connection.close();
