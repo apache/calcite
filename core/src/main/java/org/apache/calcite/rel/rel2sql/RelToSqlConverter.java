@@ -52,6 +52,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlCall;
@@ -150,11 +151,10 @@ public class RelToSqlConverter extends SqlImplementor
       joinType = dialect.emulateJoinTypeForCrossJoin();
       condType = JoinConditionType.NONE.symbol(POS);
     } else {
-      sqlCondition = convertConditionToSqlNode(e.getCondition(),
-          leftContext,
-          rightContext,
-          e.getLeft().getRowType().getFieldCount(),
-          dialect);
+      RexNode simplifiedCond =
+          RexUtil.simplify(e.getCluster().getRexBuilder(), e.getCondition());
+      sqlCondition = convertJoinConditionToSqlNode(
+          simplifiedCond, leftContext, rightContext);
     }
     SqlNode join =
         new SqlJoin(POS,

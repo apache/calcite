@@ -175,7 +175,7 @@ public class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
-            + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
+            + "ON \"t0\".\"DEPTNO\" = \"t\".\"DEPTNO\"");
   }
 
   /** Test case for
@@ -198,8 +198,8 @@ public class JdbcAdapterTest {
             + "\"SALGRADE\".\"GRADE\"\nFROM \"SCOTT\".\"SALGRADE\"\n"
             + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
-            + "ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" "
-            + "AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
+            + "ON \"t\".\"SAL\" > \"SALGRADE\".\"LOSAL\" "
+            + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testNonEquiJoinReverseConditionPlan() {
@@ -242,7 +242,7 @@ public class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
-            + "ON \"t\".\"EMPNO\" = \"t0\".\"MGR\" AND \"t\".\"SAL\" < \"t0\".\"SAL\"");
+            + "ON \"t0\".\"MGR\" = \"t\".\"EMPNO\" AND \"t0\".\"SAL\" > \"t\".\"SAL\"");
   }
 
   @Test public void testMixedJoinWithOrPlan() {
@@ -265,8 +265,8 @@ public class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"HIREDATE\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
-            + "ON \"t\".\"EMPNO\" = \"t0\".\"MGR\" "
-            + "AND (\"t\".\"SAL\" < \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" > \"t0\".\"HIREDATE\")");
+            + "ON \"t0\".\"MGR\" = \"t\".\"EMPNO\" "
+            + "AND (\"t0\".\"SAL\" > \"t\".\"SAL\" OR \"t\".\"HIREDATE\" > \"t0\".\"HIREDATE\")");
   }
 
   @Test public void testJoin3TablesPlan() {
@@ -294,7 +294,7 @@ public class JdbcAdapterTest {
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
             + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")"
-            + " ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
+            + " ON \"t\".\"SAL\" > \"SALGRADE\".\"LOSAL\" AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testCrossJoinWithJoinKeyPlan() {

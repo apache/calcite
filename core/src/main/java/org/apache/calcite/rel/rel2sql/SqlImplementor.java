@@ -193,102 +193,12 @@ public abstract class SqlImplementor {
    * @param node            Join condition
    * @param leftContext     Left context
    * @param rightContext    Right context
-   * @param leftFieldCount  Number of fields on left result
    * @return SqlNode that represents the condition
    */
-  public static SqlNode convertConditionToSqlNode(RexNode node,
-      Context leftContext,
-      Context rightContext,
-      int leftFieldCount,
-      SqlDialect dialect) {
-    if (node.isAlwaysTrue()) {
-      return SqlLiteral.createBoolean(true, POS);
-    }
-    if (node.isAlwaysFalse()) {
-      return SqlLiteral.createBoolean(false, POS);
-    }
-    if (node instanceof RexInputRef) {
-      Context joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    }
-    if (!(node instanceof RexCall)) {
-      throw new AssertionError(node);
-    }
-    final List<RexNode> operands;
-    final SqlOperator op;
-    final Context joinContext;
-    switch (node.getKind()) {
-    case AND:
-    case OR:
-      operands = ((RexCall) node).getOperands();
-      op = ((RexCall) node).getOperator();
-      SqlNode sqlCondition = null;
-      for (RexNode operand : operands) {
-        SqlNode x = convertConditionToSqlNode(operand, leftContext,
-            rightContext, leftFieldCount, dialect);
-        if (sqlCondition == null) {
-          sqlCondition = x;
-        } else {
-          sqlCondition = op.createCall(POS, sqlCondition, x);
-        }
-      }
-      return sqlCondition;
-
-    case EQUALS:
-    case IS_NOT_DISTINCT_FROM:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case LESS_THAN:
-    case LESS_THAN_OR_EQUAL:
-    case LIKE:
-      node = stripCastFromString(node, dialect);
-      operands = ((RexCall) node).getOperands();
-      op = ((RexCall) node).getOperator();
-      if (operands.size() == 2
-          && operands.get(0) instanceof RexInputRef
-          && operands.get(1) instanceof RexInputRef) {
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        final RexInputRef op1 = (RexInputRef) operands.get(1);
-
-        if (op0.getIndex() < leftFieldCount
-            && op1.getIndex() >= leftFieldCount) {
-          // Arguments were of form 'op0 = op1'
-          return op.createCall(POS,
-              leftContext.field(op0.getIndex()),
-              rightContext.field(op1.getIndex() - leftFieldCount));
-        }
-        if (op1.getIndex() < leftFieldCount
-            && op0.getIndex() >= leftFieldCount) {
-          // Arguments were of form 'op1 = op0'
-          return reverseOperatorDirection(op).createCall(POS,
-              leftContext.field(op1.getIndex()),
-              rightContext.field(op0.getIndex() - leftFieldCount));
-        }
-      }
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    case IS_NULL:
-    case IS_NOT_NULL:
-      operands = ((RexCall) node).getOperands();
-      if (operands.size() == 1
-          && operands.get(0) instanceof RexInputRef) {
-        op = ((RexCall) node).getOperator();
-        final RexInputRef op0 = (RexInputRef) operands.get(0);
-        if (op0.getIndex() < leftFieldCount) {
-          return op.createCall(POS, leftContext.field(op0.getIndex()));
-        } else {
-          return op.createCall(POS,
-              rightContext.field(op0.getIndex() - leftFieldCount));
-        }
-      }
-      joinContext =
-          leftContext.implementor().joinContext(leftContext, rightContext);
-      return joinContext.toSql(null, node);
-    default:
-      throw new AssertionError(node);
-    }
+  public static SqlNode convertJoinConditionToSqlNode(RexNode node,
+      Context leftContext, Context rightContext) {
+    Context joinContext = leftContext.implementor().joinContext(leftContext, rightContext);
+    return joinContext.toSql(null, node);
   }
 
   /** Removes cast from string.

@@ -724,9 +724,42 @@ public class RelToSqlConverterTest {
     assertThat(sql, isLinux(expectedSql));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3588">[CALCITE-3588]
+   * Support more operators in Join condition when convert RelNode to SqlNode</a>.
+   */
+  @Test public void testJoinConditionWithIsTrue() {
+    String query = ""
+        + "select * from \"product\" join \"sales_fact_1997\"\n"
+        + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "and \"recyclable_package\" is true and \"low_fat\" is not true";
+    String expected = ""
+        + "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\" "
+        + "AND (\"product\".\"recyclable_package\" IS TRUE "
+        + "AND \"product\".\"low_fat\" IS NOT TRUE)";
+    sql(query).ok(expected);
+  }
+
+  @Test public void testJoinConditionWithSimilarTo() {
+    String query = ""
+        + "select * from \"product\" join \"sales_fact_1997\"\n"
+        + "on \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
+        + "and \"brand_name\" similar to 'abc'";
+    String expected = ""
+        + "SELECT *\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "INNER JOIN \"foodmart\".\"sales_fact_1997\" "
+        + "ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\" "
+        + "AND \"product\".\"brand_name\" SIMILAR TO 'abc'";
+    sql(query).ok(expected);
+  }
+
   @Test public void testSelectQueryWithGroupByAndProjectList1() {
     String query =
-        "select count(*)  from \"product\" group by \"product_class_id\", \"product_id\"";
+        "select count(*) from \"product\" group by \"product_class_id\", \"product_id\"";
 
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
@@ -736,7 +769,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testSelectQueryWithGroupByHaving() {
     String query = "select count(*) from \"product\" group by \"product_class_id\","
-        + " \"product_id\"  having \"product_id\"  > 10";
+        + " \"product_id\" having \"product_id\"  > 10";
     final String expected = "SELECT COUNT(*)\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "GROUP BY \"product_class_id\", \"product_id\"\n"
@@ -748,7 +781,7 @@ public class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
    * Aggregates and having cannot be combined</a>. */
   @Test public void testSelectQueryWithGroupByHaving2() {
-    String query = " select \"product\".\"product_id\",\n"
+    String query = "select \"product\".\"product_id\",\n"
         + "    min(\"sales_fact_1997\".\"store_id\")\n"
         + "    from \"product\"\n"
         + "    inner join \"sales_fact_1997\"\n"
@@ -770,7 +803,7 @@ public class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1665">[CALCITE-1665]
    * Aggregates and having cannot be combined</a>. */
   @Test public void testSelectQueryWithGroupByHaving3() {
-    String query = " select * from (select \"product\".\"product_id\",\n"
+    String query = "select * from (select \"product\".\"product_id\",\n"
         + "    min(\"sales_fact_1997\".\"store_id\")\n"
         + "    from \"product\"\n"
         + "    inner join \"sales_fact_1997\"\n"
@@ -828,7 +861,7 @@ public class RelToSqlConverterTest {
 
   @Test public void testSelectQueryWithTwoOrderByClause() {
     String query =
-        "select \"product_id\"  from \"product\" order by \"net_weight\", \"gross_weight\"";
+        "select \"product_id\" from \"product\" order by \"net_weight\", \"gross_weight\"";
     final String expected = "SELECT \"product_id\", \"net_weight\","
         + " \"gross_weight\"\n"
         + "FROM \"foodmart\".\"product\"\n"
@@ -1919,17 +1952,14 @@ public class RelToSqlConverterTest {
         + "on \"t1\".\"product_id\" = \"t3\".\"product_id\" or "
         + "(\"t1\".\"product_id\" is not null or "
         + "\"t3\".\"product_id\" is not null)";
-    // Some of the "IS NULL" and "IS NOT NULL" are reduced to TRUE or FALSE,
+    // Some of the "IS NULL" and "IS NOT NULL" are reduced,
     // but not all.
     String expected = "SELECT *\nFROM \"foodmart\".\"sales_fact_1997\"\n"
         + "INNER JOIN \"foodmart\".\"customer\" "
         + "ON \"sales_fact_1997\".\"customer_id\" = \"customer\".\"customer_id\""
-        + " OR FALSE AND FALSE"
         + " OR \"customer\".\"occupation\" IS NULL\n"
         + "INNER JOIN \"foodmart\".\"product\" "
-        + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
-        + " OR TRUE"
-        + " OR TRUE";
+        + "ON TRUE";
     sql(query).ok(expected);
   }
 
