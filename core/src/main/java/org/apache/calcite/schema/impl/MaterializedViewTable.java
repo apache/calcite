@@ -29,6 +29,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.parser.SqlParser;
 
 import java.lang.reflect.Type;
 import java.sql.DriverManager;
@@ -77,8 +78,17 @@ public class MaterializedViewTable extends ViewTable {
   public static MaterializedViewTableMacro create(final CalciteSchema schema,
       final String viewSql, final List<String> viewSchemaPath, List<String> viewPath,
       final String suggestedTableName, boolean existing) {
-    return new MaterializedViewTableMacro(schema, viewSql, viewSchemaPath, viewPath,
-        suggestedTableName, existing);
+    return create(schema, viewSql, SqlParser.configBuilder().build(),
+        viewSchemaPath, viewPath, suggestedTableName, existing);
+  }
+
+  /** Table macro that returns a materialized view. */
+  public static MaterializedViewTableMacro create(
+      final CalciteSchema schema, final String viewSql, final SqlParser.Config parserConfig,
+      final List<String> viewSchemaPath, List<String> viewPath,
+      final String suggestedTableName, boolean existing) {
+    return new MaterializedViewTableMacro(schema, viewSql, parserConfig,
+        viewSchemaPath, viewPath, suggestedTableName, existing);
   }
 
   @Override public RelNode toRel(RelOptTable.ToRelContext context,
@@ -100,23 +110,24 @@ public class MaterializedViewTable extends ViewTable {
       extends ViewTableMacro {
     private final MaterializationKey key;
 
-    private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
+    private MaterializedViewTableMacro(
+        CalciteSchema schema, String viewSql, SqlParser.Config parserConfig,
         List<String> viewSchemaPath, List<String> viewPath, String suggestedTableName,
         boolean existing) {
-      super(schema, viewSql,
+      super(schema, viewSql, parserConfig,
           viewSchemaPath != null ? viewSchemaPath : schema.path(null), viewPath,
           Boolean.TRUE);
       this.key = Objects.requireNonNull(
           MaterializationService.instance().defineMaterialization(
-              schema, null, viewSql, schemaPath, suggestedTableName, true,
-              existing));
+              schema, null, viewSql, parserConfig, schemaPath, suggestedTableName,
+              new MaterializationService.DefaultTableFactory(), true, existing));
     }
 
     @Override public TranslatableTable apply(List<Object> arguments) {
       assert arguments.isEmpty();
       CalcitePrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,
-              viewSql);
+              viewSql, Schemas.propsFromParserConfig(parserConfig));
       final List<String> schemaPath1 =
           schemaPath != null ? schemaPath : schema.path(null);
       final JavaTypeFactory typeFactory =

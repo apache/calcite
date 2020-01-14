@@ -35,6 +35,7 @@ import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelProtoDataType;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.BuiltInMethod;
@@ -260,13 +261,23 @@ public final class Schemas {
     }
   }
 
+  /** Generate map of properties from parser config. For use within Calcite only. */
+  public static ImmutableMap<CalciteConnectionProperty, String> propsFromParserConfig(
+      SqlParser.Config parserConfig) {
+    return ImmutableMap.of(
+        CalciteConnectionProperty.QUOTED_CASING, parserConfig.quotedCasing().toString(),
+        CalciteConnectionProperty.UNQUOTED_CASING, parserConfig.unquotedCasing().toString(),
+        CalciteConnectionProperty.QUOTING, parserConfig.quoting().toString(),
+        CalciteConnectionProperty.CONFORMANCE, parserConfig.conformance().toString(),
+        CalciteConnectionProperty.CASE_SENSITIVE, String.valueOf(parserConfig.caseSensitive()));
+  }
+
   /** Parses and validates a SQL query. For use within Calcite only. */
   public static CalcitePrepare.ParseResult parse(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql) {
+      final List<String> schemaPath, final String sql,
+      ImmutableMap<CalciteConnectionProperty, String> propValues) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
-    final ImmutableMap<CalciteConnectionProperty, String> propValues =
-        ImmutableMap.of();
     final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, null, propValues);
     CalcitePrepare.Dummy.push(context);
@@ -281,10 +292,9 @@ public final class Schemas {
    * use within Calcite only. */
   public static CalcitePrepare.ConvertResult convert(
       final CalciteConnection connection, final CalciteSchema schema,
-      final List<String> schemaPath, final String sql) {
+      final List<String> schemaPath, final String sql,
+      final ImmutableMap<CalciteConnectionProperty, String> propValues) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
-    final ImmutableMap<CalciteConnectionProperty, String> propValues =
-        ImmutableMap.of();
     final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, null, propValues);
     CalcitePrepare.Dummy.push(context);
@@ -299,10 +309,9 @@ public final class Schemas {
   public static CalcitePrepare.AnalyzeViewResult analyzeView(
       final CalciteConnection connection, final CalciteSchema schema,
       final List<String> schemaPath, final String viewSql,
-      List<String> viewPath, boolean fail) {
+      List<String> viewPath, boolean fail,
+      final ImmutableMap<CalciteConnectionProperty, String> propValues) {
     final CalcitePrepare prepare = CalcitePrepare.DEFAULT_FACTORY.apply();
-    final ImmutableMap<CalciteConnectionProperty, String> propValues =
-        ImmutableMap.of();
     final CalcitePrepare.Context context =
         makeContext(connection, schema, schemaPath, viewPath, propValues);
     CalcitePrepare.Dummy.push(context);

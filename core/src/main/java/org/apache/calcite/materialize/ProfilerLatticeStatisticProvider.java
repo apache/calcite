@@ -22,6 +22,8 @@ import org.apache.calcite.profile.ProfilerImpl;
 import org.apache.calcite.rel.metadata.NullSentinel;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.base.Suppliers;
@@ -58,9 +60,17 @@ class ProfilerLatticeStatisticProvider implements LatticeStatisticProvider {
       final String sql =
           lattice.sql(ImmutableBitSet.range(lattice.columns.size()),
               false, ImmutableList.of());
+      SqlDialect dialect = lattice.dialectUsedToGenerateSqlWhenPopulateTile();
+      SqlParser.Config parserConfig = SqlParser.configBuilder()
+          .setQuotedCasing(dialect.getQuotedCasing())
+          .setUnquotedCasing(dialect.getUnquotedCasing())
+          .setQuoting(dialect.getQuoting())
+          .setCaseSensitive(dialect.isCaseSensitive())
+          .setConformance(dialect.getConformance())
+          .build();
       final Table table =
           new MaterializationService.DefaultTableFactory()
-              .createTable(lattice.rootSchema, sql, ImmutableList.of());
+              .createTable(lattice.rootSchema, sql, parserConfig, ImmutableList.of());
       final ImmutableList<ImmutableBitSet> initialGroups =
           ImmutableList.of();
       final Enumerable<List<Comparable>> rows =

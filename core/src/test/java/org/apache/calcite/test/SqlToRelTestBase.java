@@ -898,9 +898,9 @@ public abstract class SqlToRelTestBase {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath) {
+        SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath) {
       try {
-        SqlNode parsedNode = SqlParser.create(queryString).parseStmt();
+        SqlNode parsedNode = SqlParser.create(queryString, parserConfig).parseStmt();
         SqlNode validatedNode = validator.validate(parsedNode);
         SqlToRelConverter converter = new SqlToRelConverter(
             this, validator, catalogReader, cluster,

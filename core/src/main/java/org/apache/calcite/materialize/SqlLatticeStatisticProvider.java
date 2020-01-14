@@ -18,6 +18,8 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -56,9 +58,17 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
 
   private double cardinality(Lattice lattice, Lattice.Column column) {
     final String sql = lattice.countSql(ImmutableBitSet.of(column.ordinal));
+    SqlDialect dialect = lattice.dialectUsedToGenerateSqlWhenPopulateTile();
+    SqlParser.Config parserConfig = SqlParser.configBuilder()
+        .setQuotedCasing(dialect.getQuotedCasing())
+        .setUnquotedCasing(dialect.getUnquotedCasing())
+        .setQuoting(dialect.getQuoting())
+        .setCaseSensitive(dialect.isCaseSensitive())
+        .setConformance(dialect.getConformance())
+        .build();
     final Table table =
         new MaterializationService.DefaultTableFactory()
-            .createTable(lattice.rootSchema, sql, ImmutableList.of());
+            .createTable(lattice.rootSchema, sql, parserConfig, ImmutableList.of());
     final Object[] values =
         Iterables.getOnlyElement(((ScannableTable) table).scan(null));
     return ((Number) values[0]).doubleValue();

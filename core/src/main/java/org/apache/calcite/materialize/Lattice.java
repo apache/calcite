@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -135,6 +136,12 @@ public class Lattice {
   /** Creates a Lattice. */
   public static Lattice create(CalciteSchema schema, String sql, boolean auto) {
     return builder(schema, sql).auto(auto).build();
+  }
+
+  /** Creates a Lattice. */
+  public static Lattice create(CalciteSchema schema, String sql,
+      SqlParser.Config parserConfig, boolean auto) {
+    return builder(schema, sql, parserConfig).auto(auto).build();
   }
 
   private boolean isValid(Litmus litmus) {
@@ -267,7 +274,7 @@ public class Lattice {
       usedNodes.addAll(rootNode.descendants);
     }
 
-    final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
+    final SqlDialect dialect = dialectUsedToGenerateSqlWhenPopulateTile();
     final StringBuilder buf = new StringBuilder("SELECT ");
     final StringBuilder groupBuf = new StringBuilder("\nGROUP BY ");
     int k = 0;
@@ -382,12 +389,18 @@ public class Lattice {
 
   public static Builder builder(CalciteSchema calciteSchema, String sql) {
     return builder(new LatticeSpace(MapSqlStatisticProvider.INSTANCE),
-        calciteSchema, sql);
+        calciteSchema, sql, SqlParser.configBuilder().build());
+  }
+
+  public static Builder builder(CalciteSchema calciteSchema, String sql,
+      SqlParser.Config parserConfig) {
+    return builder(new LatticeSpace(MapSqlStatisticProvider.INSTANCE),
+        calciteSchema, sql, parserConfig);
   }
 
   static Builder builder(LatticeSpace space, CalciteSchema calciteSchema,
-      String sql) {
-    return new Builder(space, calciteSchema, sql);
+      String sql, SqlParser.Config parserConfig) {
+    return new Builder(space, calciteSchema, sql, parserConfig);
   }
 
   public List<Measure> toMeasures(List<AggregateCall> aggCallList) {
@@ -499,6 +512,11 @@ public class Lattice {
    */
   public boolean isAlwaysMeasure(Column column) {
     return !columnUses.get(column.ordinal).contains(false);
+  }
+
+  /** Specifies the dialect used to generate SQL query when populate tile. */
+  public static SqlDialect dialectUsedToGenerateSqlWhenPopulateTile() {
+    return SqlDialect.DatabaseProduct.CALCITE.getDialect();
   }
 
   /** Edge in the temporary graph. */
@@ -785,11 +803,16 @@ public class Lattice {
         new LinkedHashMap<>();
 
     public Builder(LatticeSpace space, CalciteSchema schema, String sql) {
+      this(space, schema, sql, SqlParser.configBuilder().build());
+    }
+
+    public Builder(LatticeSpace space, CalciteSchema schema, String sql,
+        SqlParser.Config parserConfig) {
       this.rootSchema = Objects.requireNonNull(schema.root());
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       CalcitePrepare.ConvertResult parsed =
           Schemas.convert(MaterializedViewTable.MATERIALIZATION_CONNECTION,
-              schema, schema.path(null), sql);
+              schema, schema.path(null), sql, Schemas.propsFromParserConfig(parserConfig));
 
       // Walk the join tree.
       List<RelNode> relNodes = new ArrayList<>();

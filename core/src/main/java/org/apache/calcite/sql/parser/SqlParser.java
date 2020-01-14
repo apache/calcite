@@ -18,6 +18,7 @@ package org.apache.calcite.sql.parser;
 
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
+import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlNode;
@@ -400,6 +401,21 @@ public class SqlParser {
     public SqlParserImplFactory parserFactory() {
       return parserFactory;
     }
+  }
+
+  /** Build parser config from connection config */
+  public static ConfigBuilder parserConfigFromConnection(CalciteConnectionConfig config) {
+    final SqlParser.ConfigBuilder configBuilder = SqlParser.configBuilder();
+    configBuilder
+        .setQuotedCasing(config.quotedCasing())
+        .setUnquotedCasing(config.unquotedCasing())
+        .setQuoting(config.quoting())
+        .setConformance(config.conformance())
+        .setCaseSensitive(config.caseSensitive());
+    final SqlParserImplFactory parserFactory = config
+        .parserFactory(SqlParserImplFactory.class, SqlParserImpl.FACTORY);
+    configBuilder.setParserFactory(parserFactory);
+    return configBuilder;
   }
 }
 

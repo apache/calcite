@@ -32,6 +32,7 @@ import org.apache.calcite.schema.Path;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.InitializerContext;
 import org.apache.calcite.sql2rel.InitializerExpressionFactory;
 import org.apache.calcite.sql2rel.NullInitializerExpressionFactory;
@@ -60,9 +61,17 @@ public class ModifiableViewTable extends ViewTable
   /** Creates a ModifiableViewTable. */
   public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
       String viewSql, List<String> schemaPath, List<String> viewPath,
-      Table table, Path tablePath, RexNode constraint,
+      Table table, Path tablePath, RexNode constraint, ImmutableIntList columnMapping) {
+    this(elementType, rowType, viewSql, SqlParser.configBuilder().build(),
+        schemaPath, viewPath, table, tablePath, constraint, columnMapping);
+  }
+
+  /** Creates a ModifiableViewTable. */
+  public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
+      String viewSql, SqlParser.Config parserConfig, List<String> schemaPath,
+      List<String> viewPath, Table table, Path tablePath, RexNode constraint,
       ImmutableIntList columnMapping) {
-    super(elementType, rowType, viewSql, schemaPath, viewPath);
+    super(elementType, rowType, viewSql, parserConfig, schemaPath, viewPath);
     this.table = table;
     this.tablePath = tablePath;
     this.constraint = constraint;

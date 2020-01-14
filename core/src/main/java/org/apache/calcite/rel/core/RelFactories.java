@@ -502,7 +502,7 @@ public class RelFactories {
   @Nonnull public static TableScanFactory expandingScanFactory(
       @Nonnull TableScanFactory tableScanFactory) {
     return expandingScanFactory(
-        (rowType, queryString, schemaPath, viewPath) -> {
+        (rowType, queryString, parserConfig, schemaPath, viewPath) -> {
           throw new UnsupportedOperationException("cannot expand view");
         },
         tableScanFactory);

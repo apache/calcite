@@ -73,7 +73,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
    * (essentially a list of strings, like ["hr", "sales"]) into a table object
    * that can be used in the planning process. */
   void populate(Materialization materialization) {
-    SqlParser parser = SqlParser.create(materialization.sql);
+    SqlParser parser = SqlParser.create(materialization.sql, materialization.parserConfig);
     SqlNode node;
     try {
       node = parser.parseStmt();

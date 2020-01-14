@@ -275,14 +275,14 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
 
     public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath) {
-      return PlannerImpl.this.expandView(rowType, queryString, schemaPath,
-          viewPath);
+        SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath) {
+      return PlannerImpl.this.expandView(rowType, queryString, parserConfig,
+          schemaPath, viewPath);
     }
   }
 
   @Override public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
+      SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath) {
     if (planner == null) {
       ready();
     }

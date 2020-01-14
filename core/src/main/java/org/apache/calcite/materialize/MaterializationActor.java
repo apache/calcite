@@ -18,6 +18,7 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.parser.SqlParser;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -54,6 +55,7 @@ class MaterializationActor {
     final CalciteSchema rootSchema;
     CalciteSchema.TableEntry materializedTable;
     final String sql;
+    final SqlParser.Config parserConfig;
     final RelDataType rowType;
     final List<String> viewSchemaPath;
 
@@ -66,12 +68,14 @@ class MaterializationActor {
      *                          May be null when the materialization is created;
      *                          materialization service will change the value as
      * @param sql  Query that is materialized
+     * @param parserConfig  Config used to parse {@code sql}
      * @param rowType Row type
      */
     Materialization(MaterializationKey key,
         CalciteSchema rootSchema,
         CalciteSchema.TableEntry materializedTable,
         String sql,
+        SqlParser.Config parserConfig,
         RelDataType rowType,
         List<String> viewSchemaPath) {
       this.key = key;
@@ -79,6 +83,7 @@ class MaterializationActor {
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
       this.materializedTable = materializedTable; // may be null
       this.sql = sql;
+      this.parserConfig = parserConfig;
       this.rowType = rowType;
       this.viewSchemaPath = viewSchemaPath;
     }

@@ -56,6 +56,7 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
@@ -644,6 +645,8 @@ public abstract class Prepare {
     final CalciteSchema.TableEntry materializedTable;
     /** The query that derives the data. */
     final String sql;
+    /** Config used to parse {@code sql}. */
+    final SqlParser.Config parserConfig;
     /** The schema path for the query. */
     final List<String> viewSchemaPath;
     /** Relational expression for the table. Usually a
@@ -655,11 +658,12 @@ public abstract class Prepare {
     private RelOptTable starRelOptTable;
 
     public Materialization(CalciteSchema.TableEntry materializedTable,
-        String sql, List<String> viewSchemaPath) {
+        String sql, SqlParser.Config parserConfig, List<String> viewSchemaPath) {
       assert materializedTable != null;
       assert sql != null;
       this.materializedTable = materializedTable;
       this.sql = sql;
+      this.parserConfig = parserConfig;
       this.viewSchemaPath = viewSchemaPath;
     }
 

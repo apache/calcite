@@ -1130,7 +1130,7 @@ public class SqlDialect {
   /** Returns the quoting scheme, or null if the combination of
    * {@link #identifierQuoteString} and {@link #identifierEndQuoteString}
    * does not correspond to any known quoting scheme. */
-  protected Quoting getQuoting() {
+  public Quoting getQuoting() {
     if ("\"".equals(identifierQuoteString)
         && "\"".equals(identifierEndQuoteString)) {
       return Quoting.DOUBLE_QUOTE;

@@ -190,7 +190,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             context.getDefaultSchemaPath(),
             typeFactory,
             context.config());
-    SqlParser parser = createParser(sql);
+    SqlParser parser = createParser(sql,
+        createParserConfig(SqlParser.parserConfigFromConnection(context.config())));
     SqlNode sqlNode;
     try {
       sqlNode = parser.parseStmt();
@@ -371,7 +372,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
   /** Factory method for default SQL parser. */
   protected SqlParser createParser(String sql) {
-    return createParser(sql, createParserConfig());
+    return createParser(sql, createParserConfig(SqlParser.configBuilder()));
   }
 
   /** Factory method for SQL parser with a given configuration. */
@@ -381,8 +382,9 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   /** Factory method for SQL parser configuration. */
-  protected SqlParser.ConfigBuilder createParserConfig() {
-    return SqlParser.configBuilder();
+  protected SqlParser.ConfigBuilder createParserConfig(
+      SqlParser.ConfigBuilder parserConfig) {
+    return parserConfig;
   }
 
   /** Factory method for default convertlet table. */
@@ -596,12 +598,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final Meta.StatementType statementType;
     if (query.sql != null) {
       final CalciteConnectionConfig config = context.config();
-      final SqlParser.ConfigBuilder parserConfig = createParserConfig()
-          .setQuotedCasing(config.quotedCasing())
-          .setUnquotedCasing(config.unquotedCasing())
-          .setQuoting(config.quoting())
-          .setConformance(config.conformance())
-          .setCaseSensitive(config.caseSensitive());
+      final SqlParser.ConfigBuilder parserConfig =
+          createParserConfig(SqlParser.parserConfigFromConnection(config));
       final SqlParserImplFactory parserFactory =
           config.parserFactory(SqlParserImplFactory.class, null);
       if (parserFactory != null) {
@@ -1038,10 +1036,16 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath) {
+        SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath) {
       expansionDepth++;
 
-      SqlParser parser = prepare.createParser(queryString);
+      SqlParser parser = prepare.createParser(queryString,
+          prepare.createParserConfig(SqlParser.configBuilder()
+              .setCaseSensitive(parserConfig.caseSensitive())
+              .setQuotedCasing(parserConfig.quotedCasing())
+              .setUnquotedCasing(parserConfig.unquotedCasing())
+              .setQuoting(parserConfig.quoting())
+              .setConformance(parserConfig.conformance())));
       SqlNode sqlNode;
       try {
         sqlNode = parser.parseQuery();

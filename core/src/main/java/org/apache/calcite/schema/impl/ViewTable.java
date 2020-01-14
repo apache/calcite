@@ -32,6 +32,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.parser.SqlParser;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,11 +51,18 @@ public class ViewTable
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
   private final List<String> viewPath;
+  private final SqlParser.Config parserConfig;
 
   public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
       List<String> schemaPath, List<String> viewPath) {
+    this(elementType, rowType, viewSql, SqlParser.configBuilder().build(), schemaPath, viewPath);
+  }
+
+  public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
+      SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath) {
     super(elementType);
     this.viewSql = viewSql;
+    this.parserConfig = parserConfig;
     this.schemaPath = ImmutableList.copyOf(schemaPath);
     this.protoRowType = rowType;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
@@ -83,6 +91,21 @@ public class ViewTable
       List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
         viewPath, modifiable);
+  }
+
+  /** Table macro that returns a view.
+   *
+   * @param schema Schema the view will belong to
+   * @param viewSql SQL query
+   * @param parserConfig Config used to parse {@code viewSql}
+   * @param schemaPath Path of schema
+   * @param modifiable Whether view is modifiable, or null to deduce it
+   */
+  public static ViewTableMacro viewMacro(
+      SchemaPlus schema, String viewSql, SqlParser.Config parserConfig,
+      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+    return new ViewTableMacro(CalciteSchema.from(schema), viewSql, parserConfig,
+        schemaPath, viewPath, modifiable);
   }
 
   /** Returns the view's SQL definition. */
@@ -117,14 +140,15 @@ public class ViewTable
   public RelNode toRel(
       RelOptTable.ToRelContext context,
       RelOptTable relOptTable) {
-    return expandView(context, relOptTable.getRowType(), viewSql).rel;
+    return expandView(
+        context, relOptTable.getRowType(), viewSql, parserConfig).rel;
   }
 
   private RelRoot expandView(RelOptTable.ToRelContext context,
-      RelDataType rowType, String queryString) {
+      RelDataType rowType, String queryString, SqlParser.Config parserConfig) {
     try {
-      final RelRoot root =
-          context.expandView(rowType, queryString, schemaPath, viewPath);
+      final RelRoot root = context.expandView(
+          rowType, queryString, parserConfig, schemaPath, viewPath);
       final RelNode rel = RelOptUtil.createCastRel(root.rel, rowType, true);
       // Expand any views
       final RelNode rel2 = rel.accept(

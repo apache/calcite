@@ -27,6 +27,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Wrapper;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import java.util.List;
@@ -132,12 +133,13 @@ public interface RelOptTable extends Wrapper {
      *
      * @param rowType Row type of the view
      * @param queryString Body of the view
+     * @param parserConfig Config used to parse {@code queryString}
      * @param schemaPath Path of a schema wherein to find referenced tables
      * @param viewPath Path of the view, ending with its name; may be null
      * @return Relational expression
      */
     RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath);
+        SqlParser.Config parserConfig, List<String> schemaPath, List<String> viewPath);
   }
 
   /** Contains the context needed to convert a a table into a relational

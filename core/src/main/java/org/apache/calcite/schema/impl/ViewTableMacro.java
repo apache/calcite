@@ -25,6 +25,7 @@ import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TableMacro;
 import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.parser.SqlParser;
 
 import com.google.common.collect.ImmutableList;
 
@@ -42,6 +43,7 @@ public class ViewTableMacro implements TableMacro {
    * context for validating {@code viewSql}. */
   protected final List<String> schemaPath;
   protected final List<String> viewPath;
+  protected final SqlParser.Config parserConfig;
 
   /**
    * Creates a ViewTableMacro.
@@ -55,7 +57,28 @@ public class ViewTableMacro implements TableMacro {
    */
   public ViewTableMacro(CalciteSchema schema, String viewSql,
       List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+    this(schema, viewSql, SqlParser.configBuilder().build(), schemaPath,
+        viewPath, modifiable);
+  }
+
+  /**
+   * Creates a ViewTableMacro.
+   *
+   * @param schema     Root schema
+   * @param viewSql    SQL defining the view
+   * @param parserConfig Config used to parse the {@code viewSql}
+   * @param schemaPath Schema path relative to the root schema
+   * @param viewPath   View path relative to the schema path
+   * @param modifiable Request that a view is modifiable (dependent on analysis
+   *                   of {@code viewSql})
+   * @param modifiable Request that a view is modifiable (dependent on analysis
+   *                   of {@code viewSql})
+   */
+  public ViewTableMacro(
+      CalciteSchema schema, String viewSql, SqlParser.Config parserConfig,
+      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
     this.viewSql = viewSql;
+    this.parserConfig = parserConfig;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
     this.modifiable = modifiable;
@@ -71,8 +94,9 @@ public class ViewTableMacro implements TableMacro {
     final CalciteConnection connection =
         MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =
-        Schemas.analyzeView(connection, schema, schemaPath, viewSql, viewPath,
-            modifiable != null && modifiable);
+        Schemas.analyzeView(connection, schema, schemaPath, viewSql,
+            viewPath, modifiable != null && modifiable,
+            Schemas.propsFromParserConfig(parserConfig));
     final List<String> schemaPath1 =
         schemaPath != null ? schemaPath : schema.path(null);
     if ((modifiable == null || modifiable)
@@ -92,8 +116,8 @@ public class ViewTableMacro implements TableMacro {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ModifiableViewTable(elementType,
-        RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
-        parsed.table, Schemas.path(schema.root(), parsed.tablePath),
+        RelDataTypeImpl.proto(parsed.rowType), viewSql, parserConfig, schemaPath,
+        viewPath, parsed.table, Schemas.path(schema.root(), parsed.tablePath),
         parsed.constraint, parsed.columnMapping);
   }
 
@@ -103,8 +127,8 @@ public class ViewTableMacro implements TableMacro {
       String viewSql, List<String> schemaPath, List<String> viewPath) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
-    return new ViewTable(elementType,
-        RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath);
+    return new ViewTable(elementType, RelDataTypeImpl.proto(parsed.rowType),
+        viewSql, parserConfig, schemaPath, viewPath);
   }
 }
 

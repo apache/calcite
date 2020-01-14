@@ -33,6 +33,8 @@ import org.apache.calcite.rel.type.RelDataTypeImpl;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -87,15 +89,17 @@ public class MaterializationService {
   public MaterializationKey defineMaterialization(final CalciteSchema schema,
       TileKey tileKey, String viewSql, List<String> viewSchemaPath,
       final String suggestedTableName, boolean create, boolean existing) {
-    return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath,
-        suggestedTableName, tableFactory, create, existing);
+    return defineMaterialization(schema, tileKey, viewSql,
+        SqlParser.configBuilder().build(), viewSchemaPath, suggestedTableName,
+        tableFactory, create, existing);
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final CalciteSchema schema,
-      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      String suggestedTableName, TableFactory tableFactory, boolean create,
-      boolean existing) {
+  public MaterializationKey defineMaterialization(
+      final CalciteSchema schema, TileKey tileKey, String viewSql,
+      SqlParser.Config parserConfig, List<String> viewSchemaPath,
+      String suggestedTableName, TableFactory tableFactory,
+      boolean create, boolean existing) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
     final MaterializationKey existingKey = actor.keyBySql.get(queryKey);
@@ -112,9 +116,10 @@ public class MaterializationService {
     // If the user says the materialization exists, first try to find a table
     // with the name and if none can be found, lookup a view in the schema
     if (existing) {
-      tableEntry = schema.getTable(suggestedTableName, true);
+      tableEntry = schema.getTable(suggestedTableName, parserConfig.caseSensitive());
       if (tableEntry == null) {
-        tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
+        tableEntry = schema.getTableBasedOnNullaryFunction(
+            suggestedTableName, parserConfig.caseSensitive());
       }
     } else {
       tableEntry = null;
@@ -125,7 +130,7 @@ public class MaterializationService {
 
     RelDataType rowType = null;
     if (tableEntry == null) {
-      Table table = tableFactory.createTable(schema, viewSql, viewSchemaPath);
+      Table table = tableFactory.createTable(schema, viewSql, parserConfig, viewSchemaPath);
       final String tableName = Schemas.uniqueTableName(schema,
           Util.first(suggestedTableName, "m"));
       tableEntry = schema.add(tableName, table, ImmutableList.of(viewSql));
@@ -136,13 +141,14 @@ public class MaterializationService {
     if (rowType == null) {
       // If we didn't validate the SQL by populating a table, validate it now.
       final CalcitePrepare.ParseResult parse =
-          Schemas.parse(connection, schema, viewSchemaPath, viewSql);
+          Schemas.parse(connection, schema, viewSchemaPath, viewSql,
+              Schemas.propsFromParserConfig(parserConfig));
       rowType = parse.rowType;
     }
     final MaterializationKey key = new MaterializationKey();
     final MaterializationActor.Materialization materialization =
         new MaterializationActor.Materialization(key, schema.root(),
-            tableEntry, viewSql, rowType, viewSchemaPath);
+            tableEntry, viewSql, parserConfig, rowType, viewSchemaPath);
     actor.keyMap.put(materialization.key, materialization);
     actor.keyBySql.put(queryKey, materialization.key);
     if (tileKey != null) {
@@ -269,8 +275,16 @@ public class MaterializationService {
         new TileKey(lattice, groupSet, ImmutableList.copyOf(measureSet));
 
     final String sql = lattice.sql(groupSet, newTileKey.measures);
+    SqlDialect dialect = lattice.dialectUsedToGenerateSqlWhenPopulateTile();
+    SqlParser.Config parserConfig = SqlParser.configBuilder()
+        .setCaseSensitive(dialect.isCaseSensitive())
+        .setQuotedCasing(dialect.getQuotedCasing())
+        .setUnquotedCasing(dialect.getUnquotedCasing())
+        .setQuoting(dialect.getQuoting())
+        .setConformance(dialect.getConformance())
+        .build();
     materializationKey =
-        defineMaterialization(schema, newTileKey, sql, schema.path(null),
+        defineMaterialization(schema, newTileKey, sql, parserConfig, schema.path(null),
             suggestedTableName, tableFactory, true, false);
     if (materializationKey != null) {
       final CalciteSchema.TableEntry tableEntry =
@@ -315,7 +329,8 @@ public class MaterializationService {
           && materialization.materializedTable != null) {
         list.add(
             new Prepare.Materialization(materialization.materializedTable,
-                materialization.sql, materialization.viewSchemaPath));
+                materialization.sql, materialization.parserConfig,
+                materialization.viewSchemaPath));
       }
     }
     return list;
@@ -351,7 +366,7 @@ public class MaterializationService {
    */
   public interface TableFactory {
     Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath);
+        SqlParser.Config parserConfig, List<String> viewSchemaPath);
   }
 
   /**
@@ -360,12 +375,14 @@ public class MaterializationService {
    */
   public static class DefaultTableFactory implements TableFactory {
     public Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath) {
+        SqlParser.Config parserConfig, List<String> viewSchemaPath) {
       final CalciteConnection connection =
           CalciteMetaImpl.connect(schema.root(), null);
       final ImmutableMap<CalciteConnectionProperty, String> map =
-          ImmutableMap.of(CalciteConnectionProperty.CREATE_MATERIALIZATIONS,
-              "false");
+          ImmutableMap.<CalciteConnectionProperty, String>builder()
+              .put(CalciteConnectionProperty.CREATE_MATERIALIZATIONS, "false")
+              .putAll(Schemas.propsFromParserConfig(parserConfig))
+              .build();
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
       return CloneSchema.createCloneTable(connection.getTypeFactory(),

@@ -40,6 +40,7 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlDialectFactory;
+import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -374,9 +375,9 @@ public class ModelHandler {
       }
       List<String> viewPath = calciteSchema.path(viewName);
       schema.add(viewName,
-          MaterializedViewTable.create(calciteSchema,
-              jsonMaterialization.getSql(), jsonMaterialization.viewSchemaPath, viewPath,
-              jsonMaterialization.table, existing));
+          MaterializedViewTable.create(calciteSchema, jsonMaterialization.getSql(),
+              SqlParser.parserConfigFromConnection(connection.config()).build(),
+              jsonMaterialization.viewSchemaPath, viewPath, jsonMaterialization.table, existing));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonMaterialization,
           e);
@@ -394,7 +395,8 @@ public class ModelHandler {
       }
       CalciteSchema calciteSchema = CalciteSchema.from(schema);
       Lattice.Builder latticeBuilder =
-          Lattice.builder(calciteSchema, jsonLattice.getSql())
+          Lattice.builder(calciteSchema, jsonLattice.getSql(),
+              SqlParser.parserConfigFromConnection(connection.config()).build())
               .auto(jsonLattice.auto)
               .algorithm(jsonLattice.algorithm);
       if (jsonLattice.rowCountEstimate != null) {
@@ -454,9 +456,11 @@ public class ModelHandler {
       final List<String> path = Util.first(jsonView.path, currentSchemaPath());
       final List<String> viewPath = ImmutableList.<String>builder().addAll(path)
           .add(jsonView.name).build();
+      final SqlParser.Config parserConfig =
+          SqlParser.parserConfigFromConnection(connection.config()).build();
       schema.add(jsonView.name,
-          ViewTable.viewMacro(schema, jsonView.getSql(), path, viewPath,
-              jsonView.modifiable));
+          ViewTable.viewMacro(schema, jsonView.getSql(), parserConfig,
+              path, viewPath, jsonView.modifiable));
     } catch (Exception e) {
       throw new RuntimeException("Error instantiating " + jsonView, e);
     }

@@ -46,6 +46,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.function.Function0;
+import org.apache.calcite.materialize.Lattice;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
@@ -75,6 +76,7 @@ import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.schema.impl.TableMacroImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.SqlCall;
@@ -5752,6 +5754,91 @@ public class JdbcTest {
     connection.close();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3549">[CALCITE-3549]
+   * Lex config for view & materialized view & lattice expanding is not supported</a>. */
+  @Test public void testLexConfigForView() throws Exception {
+    CalciteAssert.that()
+        .doWithConnection(conn -> {
+          final SchemaPlus rootSchema = conn.getRootSchema();
+          SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+          schema.add("test_view",
+              ViewTable.viewMacro(schema, "select 1 a, 2 b, 'hello' c",
+                  SqlParser.configBuilder().setLex(Lex.JAVA).build(),
+                  null, Arrays.asList("s", "test_view"), null));
+          try {
+            Statement statement = conn.createStatement();
+            ResultSet rs = statement.executeQuery(
+                "explain plan for SELECT \"a\", \"b\", \"c\" from \"s\".\"test_view\"");
+            rs.next();
+            assertThat(rs.getString(1),
+                isLinux(""
+                  + "EnumerableCalc(expr#0=[{inputs}], expr#1=[1], expr#2=[2], "
+                  + "expr#3=['hello'], a=[$t1], b=[$t2], c=[$t3])\n"
+                  + "  EnumerableValues(tuples=[[{ 0 }]])\n"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  @Test public void testLexConfigForMaterializedView() throws Exception {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED, true)
+        .doWithConnection(conn -> {
+          final SchemaPlus rootSchema = conn.getRootSchema();
+          rootSchema.add("hr", new ReflectiveSchema(new HrSchema()));
+          SchemaPlus schema = rootSchema.add("s", new AbstractSchema());
+          schema.add("test_view",
+              MaterializedViewTable.create(schema.unwrap(CalciteSchema.class),
+                  "select empid from hr.emps where empid > 10",
+                  SqlParser.configBuilder().setLex(Lex.JAVA).build(),
+                  null, Arrays.asList("s", "test_view"), "test_view", true));
+          try {
+            Statement statement = conn.createStatement();
+            ResultSet rs = statement.executeQuery(
+                "explain plan for select \"empid\" from \"hr\".\"emps\" where \"empid\" > 10");
+            rs.next();
+            assertThat(rs.getString(1),
+                isLinux("EnumerableTableScan(table=[[s, test_view]])\n"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
+  @Test public void testLexConfigForLattice() throws Exception {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.MATERIALIZATIONS_ENABLED, true)
+        .doWithConnection(conn -> {
+          final SchemaPlus rootSchema = conn.getRootSchema();
+          SchemaPlus schema = CalciteAssert.addSchema(
+              rootSchema, CalciteAssert.SchemaSpec.JDBC_FOODMART);
+          final String lattice = "select 1\n"
+              + "from foodmart.sales_fact_1997 as s\n"
+              + "join foodmart.product as p using (product_id)\n"
+              + "join foodmart.time_by_day as t using (time_id)\n"
+              + "join foodmart.product_class as pc using (product_class_id)\n";
+          schema.add("lattice",
+              Lattice.create(schema.unwrap(CalciteSchema.class),
+                  lattice, SqlParser.configBuilder().setLex(Lex.JAVA).build(), true));
+          try {
+            Statement stmt = conn.createStatement();
+            String query = "select distinct p.\"brand_name\", s.\"customer_id\"\n"
+                + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+                + "join \"foodmart\".\"product\" as p using (\"product_id\")";
+            ResultSet rs = stmt.executeQuery("explain plan for " + query);
+            rs.next();
+            assertThat(rs.getString(1),
+                isLinux(""
+                  + "EnumerableCalc(expr#0..1=[{inputs}], brand_name=[$t1], customer_id=[$t0])\n"
+                  + "  EnumerableTableScan(table=[[foodmart, m{2, 10}]])\n"));
+          } catch (SQLException e) {
+            throw TestUtil.rethrow(e);
+          }
+        });
+  }
+
   /** Tests that CURRENT_TIMESTAMP gives different values each time a statement
    * is executed. */
   @Test public void testCurrentTimestamp() throws Exception {
@@ -7695,8 +7782,9 @@ public class JdbcTest {
       return new Function0<CalcitePrepare>() {
         @Override public CalcitePrepare apply() {
           return new CalcitePrepareImpl() {
-            @Override protected SqlParser.ConfigBuilder createParserConfig() {
-              return super.createParserConfig().setParserFactory(stream ->
+            @Override protected SqlParser.ConfigBuilder createParserConfig(
+                SqlParser.ConfigBuilder parserConfig) {
+              return super.createParserConfig(parserConfig).setParserFactory(stream ->
                   new SqlParserImpl(stream) {
                     @Override public SqlNode parseSqlStmtEof() {
                       return new SqlCall(SqlParserPos.ZERO) {

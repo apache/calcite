@@ -2845,7 +2845,7 @@ public class RelBuilderTest {
 
   @Test public void testExpandTable() throws SQLException {
     final RelOptTable.ViewExpander viewExpander =
-        (rowType, queryString, schemaPath, viewPath) -> null;
+        (rowType, queryString, parserConfig, schemaPath, viewPath) -> null;
     final RelFactories.TableScanFactory tableScanFactory =
         RelFactories.expandingScanFactory(viewExpander,
             RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
