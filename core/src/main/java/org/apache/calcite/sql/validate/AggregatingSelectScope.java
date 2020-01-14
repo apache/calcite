@@ -35,7 +35,7 @@ import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.SortedMap;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
@@ -108,7 +108,7 @@ public class AggregatingSelectScope
       groupExprProjection = groupAnalyzer.groupExprProjection;
     }
 
-    final TreeMap<ImmutableBitSet, Integer> flatGroupSetCount =
+    final SortedMap<ImmutableBitSet, Integer> flatGroupSetCount =
         Maps.newTreeMap(ImmutableBitSet.COMPARATOR);
     for (List<ImmutableBitSet> groupSet : Linq4j.product(builder.build())) {
       final ImmutableBitSet set = ImmutableBitSet.union(groupSet);
