@@ -1124,15 +1124,21 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       originalRoot.explain(
           new RelWriterImpl(pw, SqlExplainLevel.ALL_ATTRIBUTES, false));
     }
-    if (CalciteSystemProperty.DUMP_SETS.value()) {
-      pw.println();
-      pw.println("Sets:");
-      dumpSets(pw);
-    }
-    if (CalciteSystemProperty.DUMP_GRAPHVIZ.value()) {
-      pw.println();
-      pw.println("Graphviz:");
-      dumpGraphviz(pw);
+
+    try {
+      if (CalciteSystemProperty.DUMP_SETS.value()) {
+        pw.println();
+        pw.println("Sets:");
+        dumpSets(pw);
+      }
+      if (CalciteSystemProperty.DUMP_GRAPHVIZ.value()) {
+        pw.println();
+        pw.println("Graphviz:");
+        dumpGraphviz(pw);
+      }
+    } catch (Exception | AssertionError e) {
+      pw.println("Error when dumping plan state: \n"
+          + e);
     }
   }
 
