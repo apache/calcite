@@ -416,20 +416,35 @@ public abstract class RelOptUtil {
    * <p>This function is experimental and would change without any notes.
    *
    * @param originalRel Original relational expression
-   * @param newRel      New relational expression
+   * @param equiv       New equivalent relational expression
    * @return A copy of {@code newRel} with attached qualified hints from {@code originalRel},
    * or {@code newRel} directly if one of them are not {@link Hintable}
    */
   @Experimental
-  public static RelNode copyEquivalentRelHints(RelNode originalRel, RelNode newRel) {
+  public static RelNode propagateRelHints(RelNode originalRel, RelNode equiv) {
     if (!(originalRel instanceof Hintable)
         || ((Hintable) originalRel).getHints().size() == 0) {
-      return newRel;
+      return equiv;
     }
     final RelShuttle shuttle = new SubTreeHintPropagateShuttle(
         originalRel.getCluster().getHintStrategies(),
         ((Hintable) originalRel).getHints());
-    return newRel.accept(shuttle);
+    return equiv.accept(shuttle);
+  }
+
+  /**
+   * Propagates the relational expression hints from root node to leaf node.
+   *
+   * @param rel   The relational expression
+   * @param reset Flag saying if to reset the existing hints before the propagation
+   * @return New relational expression with hints propagated
+   */
+  public static RelNode propagateRelHints(RelNode rel, boolean reset) {
+    if (reset) {
+      rel = rel.accept(new ResetHintsShuttle());
+    }
+    final RelShuttle shuttle = new RelHintPropagateShuttle(rel.getCluster().getHintStrategies());
+    return rel.accept(shuttle);
   }
 
   /**
@@ -477,21 +492,6 @@ public abstract class RelOptUtil {
       }
     }
     return newRel;
-  }
-
-  /**
-   * Propagates the relational expression hints from root node to leaf node.
-   *
-   * @param rel   The relational expression
-   * @param reset Flag saying if to reset the existing hints before the propagation
-   * @return New relational expression with hints propagated
-   */
-  public static RelNode propagateRelHints(RelNode rel, boolean reset) {
-    if (reset) {
-      rel = rel.accept(new ResetHintsShuttle());
-    }
-    final RelShuttle shuttle = new RelHintPropagateShuttle(rel.getCluster().getHintStrategies());
-    return rel.accept(shuttle);
   }
 
   /**
