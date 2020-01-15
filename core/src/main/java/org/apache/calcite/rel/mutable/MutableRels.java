@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
+import org.apache.calcite.rel.core.Snapshot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
@@ -45,6 +46,7 @@ import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalMatch;
+import org.apache.calcite.rel.logical.LogicalSnapshot;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -278,6 +280,9 @@ public abstract class MutableRels {
     case SAMPLE:
       final MutableSample sample = (MutableSample) node;
       return new Sample(sample.cluster, fromMutable(sample.getInput(), relBuilder), sample.params);
+    case SNAPSHOT:
+      final MutableSnapshot snapshot = (MutableSnapshot) node;
+      return LogicalSnapshot.create(fromMutable(snapshot.getInput(), relBuilder), snapshot.period);
     case TABLE_FUNCTION_SCAN:
       final MutableTableFunctionScan tableFunctionScan = (MutableTableFunctionScan) node;
       return LogicalTableFunctionScan.create(tableFunctionScan.cluster,
@@ -403,6 +408,11 @@ public abstract class MutableRels {
       final Sample sample = (Sample) rel;
       final MutableRel input = toMutable(sample.getInput());
       return MutableSample.of(input, sample.getSamplingParameters());
+    }
+    if (rel instanceof Snapshot) {
+      final Snapshot snapshot = (Snapshot) rel;
+      final MutableRel input = toMutable(snapshot.getInput());
+      return MutableSnapshot.of(input, snapshot.getPeriod());
     }
     if (rel instanceof TableFunctionScan) {
       final TableFunctionScan tableFunctionScan = (TableFunctionScan) rel;

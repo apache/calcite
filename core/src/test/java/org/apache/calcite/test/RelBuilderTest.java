@@ -34,6 +34,8 @@ import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.mutable.MutableRel;
+import org.apache.calcite.rel.mutable.MutableRels;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -315,6 +317,27 @@ public class RelBuilderTest {
     final String expected = "LogicalSnapshot(period=[2011-07-20 12:34:56])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testMutableSnapshotTemporalTable() {
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM products_temporal FOR SYSTEM_TIME AS OF TIMESTAMP '2019-12-05 12:34:56'
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("products_temporal")
+            .snapshot(
+                builder.getRexBuilder().makeTimestampLiteral(
+                    new TimestampString("2019-12-05 12:34:56"), 0))
+            .build();
+    MutableRel snapshot = MutableRels.toMutable(root);
+    final String expected0 = "Snapshot(period: 2019-12-05 12:34:56)\n  Scan(table: [scott, "
+        + "products_temporal])\n";
+    assertThat(snapshot.toString(), is(expected0));
+    RelNode rel = MutableRels.fromMutable(snapshot);
+    final String expected1 = "LogicalSnapshot(period=[2019-12-05 12:34:56])\n"
+        + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    assertThat(rel, hasTree(expected1));
   }
 
   @Test public void testTableFunctionScan() {

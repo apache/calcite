@@ -30,6 +30,7 @@ enum MutableRelType {
   MINUS,
   PROJECT,
   SAMPLE,
+  SNAPSHOT,
   SORT,
   TABLE_FUNCTION_SCAN,
   TABLE_MODIFY,
