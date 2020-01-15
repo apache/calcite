@@ -18,7 +18,6 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -31,7 +30,6 @@ import org.slf4j.Logger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 /**
  * A <code>RelOptRuleCall</code> is an invocation of a {@link RelOptRule} with a
@@ -222,54 +220,71 @@ public abstract class RelOptRuleCall {
    * rel.getTraits()</code> will be copied from <code>
    * this.rels[0].getTraitSet()</code>.
    *
-   * <p>The implementation of this method also guarantees that the original
-   * relational expression (that is, <code>this.rels[0]</code>) has its hints propagated to
-   * the new relational expression (<code>rel</code>). The hints propagation strategy can be
-   * customized through specified {@code handler}.
+   * <p>The hints of the root relational expression of
+   * the rule call(<code>this.rels[0]</code>)
+   * are copied to the new relational expression(<code>rel</code>)
+   * with specified handler {@code handler}.
    *
    * @param rel     Relational expression equivalent to the root relational
    *                expression of the rule call, {@code call.rels(0)}
    * @param equiv   Map of other equivalences
-   * @param handler Handler to customize the relational expression that would
-   *                be registered into the planner, the 1th argument is the
-   *                original expression and the 2th argument is the new relational
-   *                expression
+   * @param handler Handler to customize the relational expression that registers
+   *                into the planner, the first parameter is the root relational expression
+   *                and the second parameter is the new relational expression
    */
   public abstract void transformTo(RelNode rel,
       Map<RelNode, RelNode> equiv,
-      BiFunction<RelNode, RelNode, RelNode> handler);
+      RelHintsPropagator handler);
 
   /**
    * Registers that a rule has produced an equivalent relational expression,
    * with specified equivalences.
    *
-   * <p>The hints are copied fully from the original expression
-   * (that is, <code>this.rels[0]</code>) to the new relational expression
-   * (<code>rel</code>) if both of them are all instances of
-   * {@link Hintable}.
+   * <p>The hints are copied with filter strategies from
+   * the root relational expression of the rule call(<code>this.rels[0]</code>)
+   * to the new relational expression(<code>rel</code>).
    *
    * @param rel   Relational expression equivalent to the root relational
    *              expression of the rule call, {@code call.rels(0)}
    * @param equiv Map of other equivalences
    */
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
-    transformTo(rel, equiv, RelOptUtil::copyEquivalentRelHints);
+    transformTo(rel, equiv, RelOptUtil::propagateRelHints);
   }
 
   /**
    * Registers that a rule has produced an equivalent relational expression,
    * but no other equivalences.
    *
-   * <p>The hints are copied fully from the original expression
-   * (that is, <code>this.rels[0]</code>) to the new relational expression
-   * (<code>rel</code>) if both of them are all instances of
-   * {@link Hintable}.
+   * <p>The hints are copied with filter strategies from
+   * the root relational expression of the rule call(<code>this.rels[0]</code>)
+   * to the new relational expression(<code>rel</code>).
    *
    * @param rel Relational expression equivalent to the root relational
    *            expression of the rule call, {@code call.rels(0)}
    */
   public final void transformTo(RelNode rel) {
     transformTo(rel, ImmutableMap.of());
+  }
+
+  /**
+   * Registers that a rule has produced an equivalent relational expression,
+   * but no other equivalences.
+   *
+   * <p>The hints of the root relational expression of
+   * the rule call(<code>this.rels[0]</code>)
+   * are copied to the new relational expression(<code>rel</code>)
+   * with specified handler {@code handler}.
+   *
+   * @param rel     Relational expression equivalent to the root relational
+   *                expression of the rule call, {@code call.rels(0)}
+   * @param handler Handler to customize the relational expression that registers
+   *                into the planner, the first parameter is the root relational expression
+   *                and the second parameter is the new relational expression
+   *
+   */
+  public final void transformTo(RelNode rel, RelHintsPropagator handler) {
+    transformTo(rel, ImmutableMap.of(), handler);
   }
 
   /** Creates a {@link org.apache.calcite.tools.RelBuilder} to be used by
