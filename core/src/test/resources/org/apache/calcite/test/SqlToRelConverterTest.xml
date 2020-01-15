@@ -3845,6 +3845,36 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testInsertWithSort">
+        <Resource name="sql">
+            <![CDATA[insert into empnullables (empno, ename)
+ select deptno, ename from emp order by ename]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
+    LogicalSort(sort0=[$1], dir0=[ASC])
+      LogicalProject(DEPTNO=[$7], ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertWithLimit">
+        <Resource name="sql">
+            <![CDATA[insert into empnullables (empno, ename)
+ select deptno, ename from emp order by ename limit 10]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], flattened=[true])
+  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[null:VARCHAR(10)], MGR=[null:INTEGER], HIREDATE=[null:TIMESTAMP(0)], SAL=[null:INTEGER], COMM=[null:INTEGER], DEPTNO=[null:INTEGER], SLACKER=[null:BOOLEAN])
+    LogicalSort(sort0=[$1], dir0=[ASC], fetch=[10])
+      LogicalProject(DEPTNO=[$7], ENAME=[$1])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testInsertBindSubset">
         <Resource name="sql">
             <![CDATA[insert into empnullables
