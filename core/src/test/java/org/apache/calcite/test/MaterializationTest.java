@@ -2927,20 +2927,6 @@ public class MaterializationTest {
     sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
-  @Test public void testIntersectToCalcOnIntersect() {
-    final String intersect = ""
-        + "select \"deptno\",\"name\" from \"emps\"\n"
-        + "intersect all\n"
-        + "select \"deptno\",\"name\" from \"depts\"";
-    final String mv = "select \"name\", \"deptno\" from (" + intersect + ")";
-
-    final String query = ""
-        + "select \"name\",\"deptno\" from \"depts\"\n"
-        + "intersect all\n"
-        + "select \"name\",\"deptno\" from \"emps\"";
-    checkMaterialize(mv, query, true);
-  }
-
   private static <E> List<List<List<E>>> list3(E[][][] as) {
     final ImmutableList.Builder<List<List<E>>> builder =
         ImmutableList.builder();
