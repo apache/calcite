@@ -1621,8 +1621,11 @@ public class SubstitutionVisitor {
             }
           }
         }
+
+        List<RexNode> projectExprs = MutableRels.createProjects(target,
+            queryInputExplained0.right);
         final RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, queryInputExplained0.right, queryInputExplained0.left,
+            target.rowType, projectExprs, queryInputExplained0.left,
             query.rowType, rexBuilder);
         final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);

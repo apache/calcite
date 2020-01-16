@@ -290,7 +290,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
     final RelOptCluster cluster = context.getCluster();
     if (Hook.ENABLE_BINDABLE.get(false)) {
-      return LogicalTableScan.create(cluster, this);
+      return LogicalTableScan.create(cluster, this, context.getTableHints());
     }
     if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
         && table instanceof QueryableTable
@@ -301,7 +301,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     if (table instanceof ScannableTable
         || table instanceof FilterableTable
         || table instanceof ProjectableFilterableTable) {
-      return LogicalTableScan.create(cluster, this);
+      return LogicalTableScan.create(cluster, this, context.getTableHints());
     }
     // Some tests rely on the old behavior when tables were immediately converted to
     // EnumerableTableScan
@@ -311,7 +311,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         || EnumerableTableScan.canHandle(this))) {
       return EnumerableTableScan.create(cluster, this);
     }
-    return LogicalTableScan.create(cluster, this);
+    return LogicalTableScan.create(cluster, this, context.getTableHints());
   }
 
   public List<RelCollation> getCollationList() {

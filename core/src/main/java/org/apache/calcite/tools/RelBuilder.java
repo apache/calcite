@@ -53,6 +53,8 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.TableSpool;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.metadata.RelColumnMapping;
@@ -1071,7 +1073,7 @@ public class RelBuilder {
     if (relOptTable == null) {
       throw RESOURCE.tableNotFound(String.join(".", names)).ex();
     }
-    final RelNode scan = scanFactory.createScan(cluster, relOptTable);
+    final RelNode scan = scanFactory.createScan(cluster, relOptTable, ImmutableList.of());
     push(scan);
     rename(relOptTable.getRowType().getFieldNames());
 
@@ -1254,6 +1256,34 @@ public class RelBuilder {
     return project(nodes, fieldNames, false);
   }
 
+  /** Creates a {@link Project} of the given list
+   * of expressions, using the given names.
+   *
+   * <p>Names are deduced as follows:
+   * <ul>
+   *   <li>If the length of {@code fieldNames} is greater than the index of
+   *     the current entry in {@code nodes}, and the entry in
+   *     {@code fieldNames} is not null, uses it; otherwise
+   *   <li>If an expression projects an input field,
+   *     or is a cast an input field,
+   *     uses the input field name; otherwise
+   *   <li>If an expression is a call to
+   *     {@link SqlStdOperatorTable#AS}
+   *     (see {@link #alias}), removes the call but uses the intended alias.
+   * </ul>
+   *
+   * <p>After the field names have been inferred, makes the
+   * field names unique by appending numeric suffixes.
+   *
+   * @param nodes Expressions
+   * @param fieldNames Suggested field names
+   * @param force create project even if it is identity
+   */
+  public RelBuilder project(Iterable<? extends RexNode> nodes,
+      Iterable<String> fieldNames, boolean force) {
+    return project_(nodes, fieldNames, ImmutableList.of(), force);
+  }
+
   /** Creates a {@link Project} of all original fields, plus the given
    * expressions. */
   public RelBuilder projectPlus(RexNode... nodes) {
@@ -1319,11 +1349,13 @@ public class RelBuilder {
    *
    * @param nodes Expressions
    * @param fieldNames Suggested field names
+   * @param hints Hints
    * @param force create project even if it is identity
    */
-  public RelBuilder project(
+  private RelBuilder project_(
       Iterable<? extends RexNode> nodes,
       Iterable<String> fieldNames,
+      Iterable<RelHint> hints,
       boolean force) {
     final Frame frame = stack.peek();
     final RelDataType inputRowType = frame.rel.getRowType();
@@ -1379,7 +1411,10 @@ public class RelBuilder {
         }
       }
       stack.push(new Frame(project.getInput(), ImmutableList.copyOf(fields)));
-      return project(newNodes, fieldNameList, force);
+      final ImmutableSet.Builder<RelHint> mergedHints = ImmutableSet.builder();
+      mergedHints.addAll(project.getHints());
+      mergedHints.addAll(hints);
+      return project_(newNodes, fieldNameList, mergedHints.build(), force);
     }
 
     // Simplify expressions.
@@ -1439,12 +1474,15 @@ public class RelBuilder {
       } else {
         // create "virtual" row type for project only rename fields
         stack.pop();
+        // Ignore the hints.
         stack.push(new Frame(frame.rel, fields.build()));
-        return this;
       }
+      return this;
     }
     final RelNode project =
-        projectFactory.createProject(frame.rel, ImmutableList.copyOf(nodeList),
+        projectFactory.createProject(frame.rel,
+            ImmutableList.copyOf(hints),
+            ImmutableList.copyOf(nodeList),
             fieldNameList);
     stack.pop();
     stack.push(new Frame(project, fields.build()));
@@ -1497,7 +1535,7 @@ public class RelBuilder {
         final Project childProject = (Project) frame.rel;
         final Project newInput = childProject.copy(childProject.getTraitSet(),
             childProject.getInput(), childProject.getProjects(), rowType);
-        stack.push(new Frame(newInput, frame.fields));
+        stack.push(new Frame(newInput.attachHints(childProject.getHints()), frame.fields));
       }
     } else {
       project(nodeList, rowType.getFieldNames(), force);
@@ -1590,7 +1628,7 @@ public class RelBuilder {
             .collect(Collectors.toList()));
   }
 
-  /** Creates an {@link Aggregate} with a list of
+  /** Creates an {@link Aggregate} with multiple
    * calls. */
   public RelBuilder aggregate(GroupKey groupKey, Iterable<AggCall> aggCalls) {
     final Registrar registrar =
@@ -1736,7 +1774,7 @@ public class RelBuilder {
       List<AggregateCall> aggregateCalls, List<RexNode> extraNodes,
       ImmutableList<Field> inFields) {
     final RelNode aggregate = aggregateFactory.createAggregate(input,
-        groupSet, groupSets, aggregateCalls);
+        ImmutableList.of(), groupSet, groupSets, aggregateCalls);
 
     // build field list
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
@@ -1878,7 +1916,7 @@ public class RelBuilder {
         rowType,
         transientTable,
         ImmutableList.of(tableName));
-    RelNode scan = scanFactory.createScan(cluster, relOptTable);
+    RelNode scan = scanFactory.createScan(cluster, relOptTable, ImmutableList.of());
     push(scan);
     rename(rowType.getFieldNames());
     return this;
@@ -1973,7 +2011,7 @@ public class RelBuilder {
     }
   }
 
-  /** Creates a {@link Join}. */
+  /** Creates a {@link Join} with an array of conditions. */
   public RelBuilder join(JoinRelType joinType, RexNode condition0,
       RexNode... conditions) {
     return join(joinType, Lists.asList(condition0, conditions));
@@ -1987,12 +2025,12 @@ public class RelBuilder {
         ImmutableSet.of());
   }
 
+  /** Creates a {@link Join} with one condition. */
   public RelBuilder join(JoinRelType joinType, RexNode condition) {
     return join(joinType, condition, ImmutableSet.of());
   }
 
-  /** Creates a {@link Join} with correlating
-   * variables. */
+  /** Creates a {@link Join} with correlating variables. */
   public RelBuilder join(JoinRelType joinType, RexNode condition,
       Set<CorrelationId> variablesSet) {
     Frame right = stack.pop();
@@ -2032,7 +2070,7 @@ public class RelBuilder {
       join = correlateFactory.createCorrelate(left.rel, right.rel, id,
           requiredColumns, joinType);
     } else {
-      join = joinFactory.createJoin(left.rel, right.rel, condition,
+      join = joinFactory.createJoin(left.rel, right.rel, ImmutableList.of(), condition,
           variablesSet, joinType, false);
     }
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
@@ -2118,8 +2156,13 @@ public class RelBuilder {
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode semiJoin =
-        joinFactory.createJoin(peek(), right.rel,
-            and(conditions), ImmutableSet.of(), JoinRelType.SEMI, false);
+        joinFactory.createJoin(peek(),
+            right.rel,
+            ImmutableList.of(),
+            and(conditions),
+            ImmutableSet.of(),
+            JoinRelType.SEMI,
+            false);
     replaceTop(semiJoin);
     return this;
   }
@@ -2150,8 +2193,13 @@ public class RelBuilder {
   public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode antiJoin =
-        joinFactory.createJoin(peek(), right.rel,
-            and(conditions), ImmutableSet.of(), JoinRelType.ANTI, false);
+        joinFactory.createJoin(peek(),
+            right.rel,
+            ImmutableList.of(),
+            and(conditions),
+            ImmutableSet.of(),
+            JoinRelType.ANTI,
+            false);
     replaceTop(antiJoin);
     return this;
   }
@@ -2431,6 +2479,7 @@ public class RelBuilder {
                     offsetNode, fetchNode);
             replaceTop(
                 projectFactory.createProject(sort,
+                    project.getHints(),
                     project.getProjects(),
                     Pair.right(project.getNamedProjects())));
             return this;
@@ -2553,6 +2602,40 @@ public class RelBuilder {
         partitionBitSet, RelCollations.of(fieldCollations),
         interval);
     stack.push(new Frame(match));
+    return this;
+  }
+
+  /**
+   * Attaches an array of hints to the stack top relational expression.
+   *
+   * <p>The redundant hints would be eliminated.
+   *
+   * @param hints Hints
+   *
+   * @throws AssertionError if the top relational expression does not implement
+   * {@link org.apache.calcite.rel.hint.Hintable}
+   */
+  public RelBuilder hints(RelHint... hints) {
+    return hints(ImmutableList.copyOf(hints));
+  }
+
+  /**
+   * Attaches multiple hints to the stack top relational expression.
+   *
+   * <p>The redundant hints would be eliminated.
+   *
+   * @param hints Hints
+   *
+   * @throws AssertionError if the top relational expression does not implement
+   * {@link org.apache.calcite.rel.hint.Hintable}
+   */
+  public RelBuilder hints(Iterable<RelHint> hints) {
+    Objects.requireNonNull(hints);
+    final Frame frame = peek_();
+    assert frame != null : "There is no relational expression to attach the hints";
+    assert frame.rel instanceof Hintable : "The top relational expression is not a Hintable";
+    Hintable hintable = (Hintable) frame.rel;
+    replaceTop(hintable.attachHints(ImmutableList.copyOf(hints)));
     return this;
   }
 

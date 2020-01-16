@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
@@ -167,10 +166,7 @@ public class RelRoot {
     for (Pair<Integer, String> field : fields) {
       projects.add(rexBuilder.makeInputRef(rel, field.left));
     }
-    return RelOptUtil.copyRelHints(
-        rel,
-        LogicalProject.create(rel, projects, Pair.right(fields)),
-        false);
+    return LogicalProject.create(rel, hints, projects, Pair.right(fields));
   }
 
   public boolean isNameTrivial() {
