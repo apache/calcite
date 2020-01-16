@@ -248,6 +248,11 @@ public class ImmutableBeanTest {
         is("method 'setFoo' should have one parameter, actually has 0"));
   }
 
+  @Test public void testDefaultMethod() {
+    assertThat(ImmutableBeans.create(BeanWithDefault.class)
+        .withChar('a').nTimes(2), is("aa"));
+  }
+
   /** Bean whose default value is not a valid value for the enum;
    * used in {@link #testValidate()}. */
   interface BeanWhoseDefaultIsBadEnumValue {
@@ -429,5 +434,20 @@ public class ImmutableBeanTest {
     RED,
     BLUE,
     GREEN
+  }
+
+  /** Bean interface that has a default method and one property. */
+  interface BeanWithDefault {
+    default String nTimes(int x) {
+      if (x <= 0) {
+        return "";
+      }
+      final char c = getChar();
+      return c + nTimes(x - 1);
+    }
+
+    @ImmutableBeans.Property
+    char getChar();
+    BeanWithDefault withChar(char c);
   }
 }
