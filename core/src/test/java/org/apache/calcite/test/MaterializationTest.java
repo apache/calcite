@@ -3020,7 +3020,7 @@ public class MaterializationTest {
   }
 
   /** Fluent class that contains information necessary to run a test. */
-  private interface Sql {
+  public interface Sql {
     default void ok() {
       that().sameResultWithMaterializationsDisabled();
     }
