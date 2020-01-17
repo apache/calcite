@@ -32,7 +32,7 @@ where t1.x not in (select t2.x from t2);
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[IS NULL($t4)], expr#8=[>=($t2, $t1)], expr#9=[IS NOT NULL($t0)], expr#10=[AND($t7, $t8, $t9)], expr#11=[OR($t6, $t10)], X=[$t0], $condition=[$t11])
+EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], expr#6=[=($t1, $t5)], expr#7=[IS NOT NULL($t0)], expr#8=[IS NULL($t4)], expr#9=[>=($t2, $t1)], expr#10=[AND($t7, $t8, $t9)], expr#11=[OR($t6, $t10)], X=[$t0], $condition=[$t11])
   EnumerableHashJoin(condition=[=($0, $3)], joinType=[left])
     EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
       EnumerableUnion(all=[true])
@@ -623,7 +623,7 @@ where exists (
 !ok
 EnumerableCalc(expr#0..3=[{inputs}], DEPTNO=[$t1], DNAME=[$t2], LOC=[$t3])
   EnumerableHashJoin(condition=[=($0, $1)], joinType=[inner])
-    EnumerableCalc(expr#0..7=[{inputs}], expr#8=['SMITH':VARCHAR(10)], expr#9=[=($t1, $t8)], expr#10=[IS NOT NULL($t7)], expr#11=[AND($t9, $t10)], DEPTNO=[$t7], $condition=[$t11])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[IS NOT NULL($t7)], expr#9=['SMITH':VARCHAR(10)], expr#10=[=($t1, $t9)], expr#11=[AND($t8, $t10)], DEPTNO=[$t7], $condition=[$t11])
       EnumerableTableScan(table=[[scott, EMP]])
     EnumerableTableScan(table=[[scott, DEPT]])
 !plan

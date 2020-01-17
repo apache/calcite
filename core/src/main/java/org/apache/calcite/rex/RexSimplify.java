@@ -47,7 +47,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1369,7 +1369,7 @@ public class RexSimplify {
     final Map<RexNode, RexLiteral> equalityConstantTerms = new HashMap<>();
     final Set<RexNode> negatedTerms = new HashSet<>();
     final Set<RexNode> nullOperands = new HashSet<>();
-    final Set<RexNode> notNullOperands = new LinkedHashSet<>();
+    final Map<RexNode, Integer> notNullOperand2Index = new LinkedHashMap<>();
     final Set<RexNode> comparedOperands = new HashSet<>();
 
     // Add the predicates from the source to the range terms.
@@ -1492,9 +1492,7 @@ public class RexSimplify {
         comparedOperands.add(((RexCall) term).operands.get(1));
         break;
       case IS_NOT_NULL:
-        notNullOperands.add(((RexCall) term).getOperands().get(0));
-        terms.remove(i);
-        --i;
+        notNullOperand2Index.put(((RexCall) term).getOperands().get(0), i);
         break;
       case IS_NULL:
         nullOperands.add(((RexCall) term).getOperands().get(0));
@@ -1533,12 +1531,14 @@ public class RexSimplify {
     // Remove not necessary IS NOT NULL expressions.
     //
     // Example. IS NOT NULL(x) AND x < 5  : x < 5
-    for (RexNode operand : notNullOperands) {
-      if (!comparedOperands.contains(operand)) {
-        terms.add(
-            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, operand));
+    final List<RexNode> toRemoves = new ArrayList<>();
+    for (RexNode operand : notNullOperand2Index.keySet()) {
+      if (comparedOperands.contains(operand)) {
+        int index = notNullOperand2Index.get(operand);
+        toRemoves.add(terms.get(index));
       }
     }
+    terms.removeAll(toRemoves);
     // If one of the not-disjunctions is a disjunction that is wholly
     // contained in the disjunctions list, the expression is not
     // satisfiable.

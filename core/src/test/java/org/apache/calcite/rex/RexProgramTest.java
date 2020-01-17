@@ -1789,6 +1789,17 @@ public class RexProgramTest extends RexProgramTestBase {
     // test simplify operand of redundant cast
     checkSimplify(isNull(cast(i2, intType)), "false");
     checkSimplify(isNotNull(cast(i2, intType)), "true");
+
+    checkSimplifyUnchanged(and(isNotNull(i0), le(i1, one)));
+
+    checkSimplify2(and(isNotNull(i0), le(i0, one)),
+        "AND(IS NOT NULL($0), <=($0, 1))", "<=($0, 1)");
+
+    RexNode isNotNull = isNotNull(i0);
+    checkSimplify2(
+        and(isNotNull, isNotNull, le(i0, one)),
+        "AND(IS NOT NULL($0), <=($0, 1))",
+        "<=($0, 1)");
   }
 
   /** Unit test for
