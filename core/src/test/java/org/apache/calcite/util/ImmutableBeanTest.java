@@ -437,7 +437,7 @@ public class ImmutableBeanTest {
   }
 
   /** Bean interface that has a default method and one property. */
-  interface BeanWithDefault {
+  public interface BeanWithDefault {
     default String nTimes(int x) {
       if (x <= 0) {
         return "";
