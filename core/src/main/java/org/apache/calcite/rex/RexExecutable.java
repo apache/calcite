@@ -56,7 +56,7 @@ public class RexExecutable {
       cbe.setClassName(GENERATED_CLASS_NAME);
       cbe.setExtendedClass(Utilities.class);
       cbe.setImplementedInterfaces(new Class[] {Function1.class, Serializable.class});
-      cbe.setParentClassLoader(RexExecutable.class.getClassLoader());
+      cbe.setParentClassLoader(Thread.currentThread().getContextClassLoader());
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked

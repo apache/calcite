@@ -198,7 +198,7 @@ public class CodeGenerationBenchmark {
             plan.getRowType().getFieldCount() == 1
                 ? new Class[]{Bindable.class, Typed.class}
                 : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(EnumerableInterpretable.class.getClassLoader());
+        cbe.setParentClassLoader(Thread.currentThread().getContextClassLoader());
         info.cbe = cbe;
         planInfos[i] = info;
       }
