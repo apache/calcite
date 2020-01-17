@@ -436,8 +436,9 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
     }
 
     final ISimpleCompiler compiler = compilerFactory.newSimpleCompiler();
-    compiler.setParentClassLoader(Optional.ofNullable(Thread.currentThread().getContextClassLoader())
-        .orElse(JaninoRexCompiler.class.getClassLoader()));
+    compiler.setParentClassLoader(
+        Optional.ofNullable(Thread.currentThread().getContextClassLoader())
+          .orElse(JaninoRexCompiler.class.getClassLoader()));
 
     final String s = "public final class " + className
         + " implements " + def.handlerClass.getCanonicalName() + " {\n"
