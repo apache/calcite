@@ -2766,6 +2766,36 @@ public class SqlFunctions {
     SCALAR, LIST, MAP
   }
 
+  /***
+   * If first operand is not null nvl will return first operand
+   * else it will return second operand.
+   * @param first operand
+   * @param second operand
+   * @return Object
+   */
+  public static Object nvl(Object first, Object second) {
+    if (first != null) {
+      return first;
+    } else {
+      return second;
+    }
+  }
+
+  /***
+   * If first operand is not null ifNull will return first operand
+   * else it will return second operand.
+   * @param first operand
+   * @param second operand
+   * @return Object
+   */
+  public static Object ifNull(Object first, Object second) {
+    if (first != null) {
+      return first;
+    } else {
+      return second;
+    }
+  }
+
 }
 
 // End SqlFunctions.java

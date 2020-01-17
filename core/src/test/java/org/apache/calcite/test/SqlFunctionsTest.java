@@ -36,15 +36,18 @@ import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
+import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
+import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
+import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
@@ -942,6 +945,24 @@ public class SqlFunctionsTest {
     } catch (NullPointerException e) {
       // ok
     }
+  }
+
+  /** Test for {@link SqlFunctions#nvl}. */
+  @Test public void testNvl() {
+    assertThat(nvl("a", "b"), is("a"));
+    assertThat(nvl(null, "b"), is("b"));
+    assertThat(nvl(null, null), nullValue());
+    assertThat(nvl(1, 1), is(1));
+    assertThat(nvl(substring("abc", 1, 1), "b"), is("a"));
+  }
+
+  /** Test for {@link SqlFunctions#ifNull}. */
+  @Test public void testifNull() {
+    assertThat(ifNull("a", "b"), is("a"));
+    assertThat(ifNull(null, "b"), is("b"));
+    assertThat(ifNull(null, null), nullValue());
+    assertThat(ifNull(1, 1), is(1));
+    assertThat(ifNull(substring("abc", 1, 1), "b"), is("a"));
   }
 }
 

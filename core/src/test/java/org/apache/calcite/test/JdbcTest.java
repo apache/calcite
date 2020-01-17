@@ -6243,6 +6243,34 @@ public class JdbcTest {
         .throws_("No match found for function signature NVL(<NUMERIC>, <NUMERIC>)");
   }
 
+  @Test public void testNvl() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .with(CalciteConnectionProperty.FUN, "hive")
+            .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
+            .returnsUnordered("C=-99",
+                    "C=1000",
+                    "C=250",
+                    "C=500");
+
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .with(CalciteConnectionProperty.FUN, "spark")
+            .query("select nvl(\"commission\", -99) as c from \"hr\".\"emps\"")
+            .returnsUnordered("C=-99",
+                    "C=1000",
+                    "C=250",
+                    "C=500");
+  }
+
+  @Test public void testIfNull() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+            .with(CalciteConnectionProperty.FUN, "bigquery")
+            .query("select ifnull(\"commission\", -99) as c from \"hr\".\"emps\"")
+            .returnsUnordered("C=-99",
+                    "C=1000",
+                    "C=250",
+                    "C=500");
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2072">[CALCITE-2072]
    * Enable spatial operator table by adding 'fun=spatial'to JDBC URL</a>. */

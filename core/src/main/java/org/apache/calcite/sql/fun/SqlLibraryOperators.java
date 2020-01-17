@@ -101,9 +101,17 @@ public abstract class SqlLibraryOperators {
           OperandTypes.VARIADIC, SqlFunctionCategory.SYSTEM);
 
   /** The "NVL(value, value)" function. */
-  @LibraryOperator(libraries = {ORACLE})
+  @LibraryOperator(libraries = {ORACLE, HIVE, SPARK})
   public static final SqlFunction NVL =
       new SqlFunction("NVL", SqlKind.NVL,
+          ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
+              SqlTypeTransforms.TO_NULLABLE_ALL),
+          null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);
+
+  /** The "IFNULL(value, value)" function. */
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction IFNULL =
+      new SqlFunction("IFNULL", SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.LEAST_RESTRICTIVE,
               SqlTypeTransforms.TO_NULLABLE_ALL),
           null, OperandTypes.SAME_SAME, SqlFunctionCategory.SYSTEM);

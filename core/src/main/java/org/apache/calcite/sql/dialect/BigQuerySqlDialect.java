@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
@@ -259,6 +260,12 @@ public class BigQuerySqlDialect extends SqlDialect {
       }
       writer.endFunCall(toCodePointsFrame);
       writer.literal("[OFFSET(0)]");
+      break;
+    case NVL:
+      SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), call.operand(1)};
+      SqlCall sqlCall = new SqlBasicCall(IFNULL, extractNodeOperands,
+          SqlParserPos.ZERO);
+      unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

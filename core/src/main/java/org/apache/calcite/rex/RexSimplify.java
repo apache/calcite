@@ -288,6 +288,8 @@ public class RexSimplify {
       return simplifyComparison((RexCall) e, unknownAs);
     case IF:
       return simplifyIf((RexCall) e, unknownAs);
+    case NVL:
+      return simplifyNvl((RexCall) e);
     default:
       if (e.getClass() == RexCall.class) {
         return simplifyGenericNode((RexCall) e);
@@ -2315,6 +2317,26 @@ public class RexSimplify {
       return resultRexNode.get(2);
     }
     return e;
+  }
+
+  /***
+   * Simplifying NVL function, If first operand is not null then return
+   * first operand else return second operand.
+   * And return whole NVL function if first operand is not simplifiable.
+   * @param e RexCall
+   * @return RexNode
+   */
+  private RexNode simplifyNvl(RexCall e) {
+    final List<RexNode> operands = new ArrayList<>(e.operands);
+    simplifyList(operands, UNKNOWN);
+
+    RexNode rexNode = simplifyIsNotNull(operands.get(0));
+    if (rexNode != null && rexNode.isAlwaysTrue()) {
+      return operands.get(0);
+    } else if (rexNode != null && rexNode.isAlwaysFalse()) {
+      return operands.get(1);
+    }
+    return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 }
 
