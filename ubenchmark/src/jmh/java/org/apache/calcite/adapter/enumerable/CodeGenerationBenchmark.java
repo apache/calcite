@@ -66,6 +66,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -198,7 +199,9 @@ public class CodeGenerationBenchmark {
             plan.getRowType().getFieldCount() == 1
                 ? new Class[]{Bindable.class, Typed.class}
                 : new Class[]{ArrayBindable.class});
-        cbe.setParentClassLoader(Thread.currentThread().getContextClassLoader());
+        cbe.setParentClassLoader(
+            Optional.ofNullable(Thread.currentThread().getContextClassLoader())
+              .orElse(EnumerableInterpretable.class.getClassLoader()));
         info.cbe = cbe;
         planInfos[i] = info;
       }

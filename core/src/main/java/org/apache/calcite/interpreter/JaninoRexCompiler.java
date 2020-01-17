@@ -52,6 +52,7 @@ import java.io.StringReader;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Compiles a scalar expression ({@link RexNode}) to an expression that
@@ -168,7 +169,8 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[]{Scalar.class});
-    cbe.setParentClassLoader(Thread.currentThread().getContextClassLoader());
+    cbe.setParentClassLoader(Optional.ofNullable(Thread.currentThread().getContextClassLoader())
+        .orElse(JaninoRexCompiler.class.getClassLoader()));
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);

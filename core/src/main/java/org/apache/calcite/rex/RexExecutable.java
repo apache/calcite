@@ -33,6 +33,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Result of compiling code generated from a {@link RexNode} expression.
@@ -56,7 +57,8 @@ public class RexExecutable {
       cbe.setClassName(GENERATED_CLASS_NAME);
       cbe.setExtendedClass(Utilities.class);
       cbe.setImplementedInterfaces(new Class[] {Function1.class, Serializable.class});
-      cbe.setParentClassLoader(Thread.currentThread().getContextClassLoader());
+      cbe.setParentClassLoader(Optional.of(Thread.currentThread().getContextClassLoader())
+          .orElse(RexExecutable.class.getClassLoader()));
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
