@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
+
+import java.util.function.Consumer;
 
 /**
  * A <code>SqlWriter</code> is the target to construct a SQL statement from a
@@ -70,6 +73,12 @@ public interface SqlWriter {
      * Simple list.
      */
     SIMPLE,
+
+    /**
+     * Comma-separated list surrounded by parentheses.
+     * The parentheses are present even if the list is empty.
+     */
+    PARENTHESES,
 
     /**
      * The SELECT clause of a SELECT statement.
@@ -176,7 +185,7 @@ public interface SqlWriter {
      * <li><code>GROUP BY x, FLOOR(y)</code></li>
      * </ul>
      */
-    SUB_QUERY,
+    SUB_QUERY(true),
 
     /**
      * Set operation.
@@ -221,7 +230,22 @@ public interface SqlWriter {
      * <li><code>"A"."B"."C"</code></li>
      * </ul>
      */
-    IDENTIFIER(false);
+    IDENTIFIER(false),
+
+    /**
+     * Alias ("AS"). No indent.
+     */
+    AS(false),
+
+    /**
+     * CASE expression.
+     */
+    CASE,
+
+    /**
+     * Same behavior as user-defined frame type.
+     */
+    OTHER;
 
     private final boolean needsIndent;
 
@@ -265,6 +289,18 @@ public interface SqlWriter {
       return name();
     }
   }
+
+  /** Comma operator.
+   *
+   * <p>Defined in {@code SqlWriter} because it is only used while converting
+   * {@link SqlNode} to SQL;
+   * see {@link SqlWriter#list(FrameTypeEnum, SqlBinaryOperator, SqlNodeList)}.
+   *
+   * <p>The precedence of the comma operator is low but not zero. For
+   * instance, this ensures parentheses in
+   * {@code select x, (select * from foo order by z), y from t}. */
+  SqlBinaryOperator COMMA =
+      new SqlBinaryOperator(",", SqlKind.OTHER, 2, false, null, null, null);
 
   //~ Methods ----------------------------------------------------------------
 
@@ -340,6 +376,13 @@ public interface SqlWriter {
   void fetchOffset(SqlNode fetch, SqlNode offset);
 
   /**
+   * Prints the TOP(n) clause.
+   *
+   * @see #fetchOffset
+   */
+  void topN(SqlNode fetch, SqlNode offset);
+
+  /**
    * Prints a new line, and indents.
    */
   void newlineAndIndent();
@@ -400,6 +443,7 @@ public interface SqlWriter {
    * Starts a list with no opening string.
    *
    * @param frameType Type of list. For example, a SELECT list will be
+   * governed according to SELECT-list formatting preferences.
    */
   Frame startList(FrameTypeEnum frameType);
 
@@ -420,6 +464,20 @@ public interface SqlWriter {
    * @param frame The frame which was created by {@link #startList}.
    */
   void endList(Frame frame);
+
+  /**
+   * Writes a list.
+   */
+  SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action);
+
+  /**
+   * Writes a list separated by a binary operator
+   * ({@link SqlStdOperatorTable#AND AND},
+   * {@link SqlStdOperatorTable#OR OR}, or
+   * {@link #COMMA COMMA}).
+   */
+  SqlWriter list(FrameTypeEnum frameType, SqlBinaryOperator sepOp,
+      SqlNodeList list);
 
   /**
    * Writes a list separator, unless the separator is "," and this is the
@@ -507,5 +565,3 @@ public interface SqlWriter {
     boolean needsIndent();
   }
 }
-
-// End SqlWriter.java

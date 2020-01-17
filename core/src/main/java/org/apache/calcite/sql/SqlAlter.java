@@ -56,5 +56,3 @@ public abstract class SqlAlter extends SqlCall {
   }
 
 }
-
-// End SqlAlter.java

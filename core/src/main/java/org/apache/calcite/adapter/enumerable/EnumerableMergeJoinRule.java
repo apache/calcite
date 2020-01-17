@@ -106,5 +106,3 @@ class EnumerableMergeJoinRule extends ConverterRule {
     return newRel;
   }
 }
-
-// End EnumerableMergeJoinRule.java

@@ -56,5 +56,3 @@ public class LongSchemaVersion implements SchemaVersion {
     return String.valueOf(value);
   }
 }
-
-// End LongSchemaVersion.java

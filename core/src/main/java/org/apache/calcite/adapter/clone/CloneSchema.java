@@ -163,5 +163,3 @@ public class CloneSchema extends AbstractSchema {
     }
   }
 }
-
-// End CloneSchema.java

@@ -448,5 +448,3 @@ public interface RelNode extends RelOptNode, Cloneable {
     Set<CorrelationId> correlationIds();
   }
 }
-
-// End RelNode.java

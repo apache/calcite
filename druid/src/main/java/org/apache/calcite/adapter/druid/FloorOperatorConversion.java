@@ -76,5 +76,3 @@ public class FloorOperatorConversion implements DruidSqlOperatorConverter {
     }
   }
 }
-
-// End FloorOperatorConversion.java

@@ -62,5 +62,3 @@ public class SqlConvertFunction extends SqlFunction {
     return null;
   }
 }
-
-// End SqlConvertFunction.java

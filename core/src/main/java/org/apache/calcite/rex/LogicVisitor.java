@@ -171,5 +171,3 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(ref, arg);
   }
 }
-
-// End LogicVisitor.java

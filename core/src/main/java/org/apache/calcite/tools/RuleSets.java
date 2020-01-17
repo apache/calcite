@@ -64,5 +64,3 @@ public class RuleSets {
     }
   }
 }
-
-// End RuleSets.java

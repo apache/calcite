@@ -190,5 +190,3 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
     }
   }
 }
-
-// End ReflectiveSqlOperatorTable.java

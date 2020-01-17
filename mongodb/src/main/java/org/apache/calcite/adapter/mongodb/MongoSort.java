@@ -100,5 +100,3 @@ public class MongoSort extends Sort implements MongoRel {
     }
   }
 }
-
-// End MongoSort.java

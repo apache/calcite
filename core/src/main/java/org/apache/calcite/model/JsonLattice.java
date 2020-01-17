@@ -142,5 +142,3 @@ public class JsonLattice {
     }
   }
 }
-
-// End JsonLattice.java

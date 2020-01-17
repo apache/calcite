@@ -138,5 +138,3 @@ public class EnumerableBatchNestedLoopJoinRule extends RelOptRule {
             joinType));
   }
 }
-
-// End EnumerableBatchNestedLoopJoinRule.java

@@ -45,5 +45,3 @@ public class JsonCustomTable extends JsonTable {
     handler.visit(this);
   }
 }
-
-// End JsonCustomTable.java

@@ -60,5 +60,3 @@ public enum SparkMethod {
     return MAP.get(method);
   }
 }
-
-// End SparkMethod.java

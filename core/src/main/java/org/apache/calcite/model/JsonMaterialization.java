@@ -52,5 +52,3 @@ public class JsonMaterialization {
     return JsonLattice.toString(sql);
   }
 }
-
-// End JsonMaterialization.java

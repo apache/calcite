@@ -29,5 +29,3 @@ public interface DimensionSpec extends DruidJson {
   @Nullable ExtractionFunction getExtractionFn();
   String getDimension();
 }
-
-// End DimensionSpec.java

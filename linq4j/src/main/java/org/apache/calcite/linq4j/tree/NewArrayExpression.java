@@ -108,5 +108,3 @@ public class NewArrayExpression extends Expression {
     return result;
   }
 }
-
-// End NewArrayExpression.java

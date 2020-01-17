@@ -46,5 +46,3 @@ public class RecordEnumeratorCursor<E> extends EnumeratorCursor<E> {
     return new FieldGetter(clazz.getFields()[ordinal]);
   }
 }
-
-// End RecordEnumeratorCursor.java

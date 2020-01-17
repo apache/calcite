@@ -330,13 +330,21 @@ public class AggregateCall {
     AggregateCall other = (AggregateCall) o;
     return aggFunction.equals(other.aggFunction)
         && (distinct == other.distinct)
+        && (approximate == other.approximate)
+        && (ignoreNulls == other.ignoreNulls)
         && argList.equals(other.argList)
         && filterArg == other.filterArg
         && Objects.equals(collation, other.collation);
   }
 
   @Override public int hashCode() {
-    return Objects.hash(aggFunction, distinct, argList, filterArg, collation);
+    return Objects.hash(aggFunction,
+            distinct,
+            approximate,
+            ignoreNulls,
+            argList,
+            filterArg,
+            collation);
   }
 
   /**
@@ -413,5 +421,3 @@ public class AggregateCall {
         RelCollations.permute(collation, mapping));
   }
 }
-
-// End AggregateCall.java

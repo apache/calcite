@@ -30,5 +30,3 @@ public class MutableRelVisitor {
     return root;
   }
 }
-
-// End MutableRelVisitor.java

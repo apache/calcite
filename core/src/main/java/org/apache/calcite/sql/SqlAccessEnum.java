@@ -22,5 +22,3 @@ package org.apache.calcite.sql;
 public enum SqlAccessEnum {
   SELECT, UPDATE, INSERT, DELETE;
 }
-
-// End SqlAccessEnum.java

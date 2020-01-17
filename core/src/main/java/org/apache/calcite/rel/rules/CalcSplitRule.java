@@ -62,5 +62,3 @@ public class CalcSplitRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End CalcSplitRule.java

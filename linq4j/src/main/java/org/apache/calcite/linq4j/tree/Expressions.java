@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -3051,6 +3052,15 @@ public abstract class Expressions {
     return new FluentArrayList<>(toList(ts));
   }
 
+  /**
+   * Evaluates an expression and returns the result.
+   */
+  public static Object evaluate(Node node) {
+    Objects.requireNonNull(node);
+    final Evaluator evaluator = new Evaluator();
+    return ((AbstractNode) node).evaluate(evaluator);
+  }
+
   // ~ Private helper methods ------------------------------------------------
 
   private static boolean shouldLift(Expression left, Expression right,
@@ -3285,5 +3295,3 @@ public abstract class Expressions {
     }
   }
 }
-
-// End Expressions.java

@@ -29,6 +29,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 
 import org.apache.pig.data.DataType;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class PigTableScan extends TableScan implements PigRel {
 
   /** Creates a PigTableScan. */
   public PigTableScan(RelOptCluster cluster, RelTraitSet traitSet, RelOptTable table) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     assert getConvention() == PigRel.CONVENTION;
   }
 
@@ -86,5 +88,3 @@ public class PigTableScan extends TableScan implements PigRel {
     planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
   }
 }
-
-// End PigTableScan.java

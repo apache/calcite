@@ -169,5 +169,3 @@ public class SqlNameMatchers {
     }
   }
 }
-
-// End SqlNameMatchers.java

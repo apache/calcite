@@ -21,12 +21,12 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -36,7 +36,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
  * A <code>SqlDialect</code> implementation for the PostgreSQL database.
  */
 public class PostgresqlSqlDialect extends SqlDialect {
-
   /** PostgreSQL type system. */
   private static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
@@ -56,12 +55,13 @@ public class PostgresqlSqlDialect extends SqlDialect {
         }
       };
 
-  public static final SqlDialect DEFAULT =
-      new PostgresqlSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.POSTGRESQL)
-          .withIdentifierQuoteString("\"")
-          .withUnquotedCasing(Casing.TO_LOWER)
-          .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.POSTGRESQL)
+      .withIdentifierQuoteString("\"")
+      .withUnquotedCasing(Casing.TO_LOWER)
+      .withDataTypeSystem(POSTGRESQL_TYPE_SYSTEM);
+
+  public static final SqlDialect DEFAULT = new PostgresqlSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates a PostgresqlSqlDialect. */
   public PostgresqlSqlDialect(Context context) {
@@ -77,18 +77,18 @@ public class PostgresqlSqlDialect extends SqlDialect {
     switch (type.getSqlTypeName()) {
     case TINYINT:
       // Postgres has no tinyint (1 byte), so instead cast to smallint (2 bytes)
-      castSpec = "_smallint";
+      castSpec = "smallint";
       break;
     case DOUBLE:
       // Postgres has a double type but it is named differently
-      castSpec = "_double precision";
+      castSpec = "double precision";
       break;
     default:
       return super.getCastSpec(type);
     }
 
     return new SqlDataTypeSpec(
-        new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
   }
 
@@ -122,5 +122,3 @@ public class PostgresqlSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End PostgresqlSqlDialect.java

@@ -37,5 +37,3 @@ public enum Optionality {
    * it is an error if the instance has the property. */
   FORBIDDEN
 }
-
-// End Optionality.java

@@ -22,14 +22,13 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Interbase database.
  */
 public class InterbaseSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new InterbaseSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.INTERBASE));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.INTERBASE);
+
+  public static final SqlDialect DEFAULT = new InterbaseSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an InterbaseSqlDialect. */
   public InterbaseSqlDialect(Context context) {
     super(context);
   }
 }
-
-// End InterbaseSqlDialect.java

@@ -43,5 +43,3 @@ public class JdbcImplementor extends RelToSqlConverter {
     return dispatch(node);
   }
 }
-
-// End JdbcImplementor.java

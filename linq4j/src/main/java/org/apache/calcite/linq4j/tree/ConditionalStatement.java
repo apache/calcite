@@ -96,5 +96,3 @@ public class ConditionalStatement extends Statement {
     return Objects.hash(nodeType, type, expressionList);
   }
 }
-
-// End ConditionalStatement.java

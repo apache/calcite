@@ -26,5 +26,3 @@ public class ChosenCustomerEmail {
   }
 
 }
-
-// End ChosenCustomerEmail.java

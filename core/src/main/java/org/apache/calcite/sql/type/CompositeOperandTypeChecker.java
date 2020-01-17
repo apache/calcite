@@ -17,16 +17,20 @@
 package org.apache.calcite.sql.type;
 
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -233,6 +237,13 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   public boolean checkOperandTypes(
       SqlCallBinding callBinding,
       boolean throwOnFailure) {
+    // 1. Check eagerly for binary arithmetic expressions.
+    // 2. Check the comparability.
+    // 3. Check if the operands have the right type.
+    if (callBinding.getValidator().isTypeCoercionEnabled()) {
+      final TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+      typeCoercion.binaryArithmeticCoercion(callBinding);
+    }
     if (check(callBinding)) {
       return true;
     }
@@ -281,6 +292,25 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
             callBinding.getCall().operand(ord.i),
             0,
             false)) {
+          if (callBinding.getValidator().isTypeCoercionEnabled()) {
+            // Try type coercion for the call,
+            // collect SqlTypeFamily and data type of all the operands.
+            final List<SqlTypeFamily> families = allowedRules.stream()
+                .filter(r -> r instanceof ImplicitCastOperandTypeChecker)
+                .map(r -> ((ImplicitCastOperandTypeChecker) r).getOperandSqlTypeFamily(0))
+                .collect(Collectors.toList());
+            if (families.size() < allowedRules.size()) {
+              // Not all the checkers are ImplicitCastOperandTypeChecker, returns early.
+              return false;
+            }
+            final List<RelDataType> operandTypes = new ArrayList<>();
+            for (int i = 0; i < callBinding.getOperandCount(); i++) {
+              operandTypes.add(callBinding.getOperandType(i));
+            }
+            TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+            return typeCoercion.builtinFunctionCoercion(callBinding,
+                operandTypes, families);
+          }
           return false;
         }
       }
@@ -298,6 +328,11 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       return true;
 
     case OR:
+      // If there is an ImplicitCastOperandTypeChecker, check it without type coercion first,
+      // if all check fails, try type coercion if it is allowed (default true).
+      if (checkWithoutTypeCoercion(callBinding)) {
+        return true;
+      }
       for (Ord<SqlOperandTypeChecker> ord
           : Ord.<SqlOperandTypeChecker>zip(allowedRules)) {
         SqlOperandTypeChecker rule = ord.e;
@@ -311,6 +346,19 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       throw new AssertionError();
     }
   }
-}
 
-// End CompositeOperandTypeChecker.java
+  private boolean checkWithoutTypeCoercion(SqlCallBinding callBinding) {
+    if (!callBinding.getValidator().isTypeCoercionEnabled()) {
+      return false;
+    }
+    for (SqlOperandTypeChecker rule : allowedRules) {
+      if (rule instanceof ImplicitCastOperandTypeChecker) {
+        ImplicitCastOperandTypeChecker rule1 = (ImplicitCastOperandTypeChecker) rule;
+        if (rule1.checkOperandTypesWithoutTypeCoercion(callBinding, false)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+}

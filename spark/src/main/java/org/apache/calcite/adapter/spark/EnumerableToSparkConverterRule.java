@@ -51,5 +51,3 @@ public class EnumerableToSparkConverterRule extends ConverterRule {
         rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End EnumerableToSparkConverterRule.java

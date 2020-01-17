@@ -16,15 +16,15 @@
  */
 package org.apache.calcite.adapter.file;
 
+import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Ordering;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,13 +40,14 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * System test of the Calcite file adapter, which can also read and parse
  * HTML tables over HTTP.
  */
+@ExtendWith(RequiresNetworkExtension.class)
 public class SqlTest {
   // helper functions
 
@@ -88,7 +89,7 @@ public class SqlTest {
         final List<String> lines = new ArrayList<>();
         SqlTest.collect(lines, resultSet);
         Collections.sort(lines);
-        Assert.assertEquals(expectedLines, lines);
+        assertEquals(expectedLines, lines);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -121,7 +122,7 @@ public class SqlTest {
     try {
       Properties info = new Properties();
       info.put("model",
-          FileReaderTest.file("target/test-classes/" + model + ".json"));
+          Sources.of(SqlTest.class.getResource("/" + model + ".json")).path());
       connection = DriverManager.getConnection("jdbc:calcite:", info);
       statement = connection.createStatement();
       final ResultSet resultSet = statement.executeQuery(sql);
@@ -175,8 +176,7 @@ public class SqlTest {
 
   /** Reads from a local file without table headers &lt;TH&gt; and checks the
    * result. */
-  @Test public void testNoThSelect() throws SQLException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Test @RequiresNetwork public void testNoThSelect() throws SQLException {
     final String sql = "select \"col1\" from T1_NO_TH where \"col0\" like 'R0%'";
     sql("testModel", sql).returns("col1=R0C1").ok();
   }
@@ -189,9 +189,8 @@ public class SqlTest {
   }
 
   /** Reads from a URL and checks the result. */
-  @Ignore("[CALCITE-1789] Wikipedia format change breaks file adapter test")
-  @Test public void testUrlSelect() throws SQLException {
-    Assume.assumeTrue(FileSuite.hazNetwork());
+  @Disabled("[CALCITE-1789] Wikipedia format change breaks file adapter test")
+  @Test @RequiresNetwork public void testUrlSelect() throws SQLException {
     final String sql = "select \"State\", \"Statehood\" from \"States_as_of\"\n"
         + "where \"State\" = 'California'";
     sql("wiki", sql).returns("State=California; Statehood=1850-09-09").ok();
@@ -417,5 +416,3 @@ public class SqlTest {
         .ok();
   }
 }
-
-// End SqlTest.java

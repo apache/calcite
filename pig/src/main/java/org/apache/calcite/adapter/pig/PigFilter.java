@@ -138,5 +138,3 @@ public class PigFilter extends Filter implements PigRel {
     return '\'' + RexLiteral.stringValue(literal) + '\'';
   }
 }
-
-// End PigFilter.java

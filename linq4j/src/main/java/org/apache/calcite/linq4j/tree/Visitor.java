@@ -57,5 +57,3 @@ public interface Visitor<R> {
   R visit(UnaryExpression unaryExpression);
   R visit(WhileStatement whileStatement);
 }
-
-// End Visitor.java

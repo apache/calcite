@@ -27,5 +27,3 @@ public interface Source extends AutoCloseable {
 
   void close();
 }
-
-// End Source.java

@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Tests for {@link org.apache.calcite.linq4j.MemoryEnumerable} */
 public class MemoryEnumerableTest {
@@ -66,5 +66,3 @@ public class MemoryEnumerableTest {
     assertThat(minus.toString(), is("3 mod 5"));
   }
 }
-
-// End MemoryEnumerableTest.java

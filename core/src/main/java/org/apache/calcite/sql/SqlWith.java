@@ -120,5 +120,3 @@ public class SqlWith extends SqlCall {
     }
   }
 }
-
-// End SqlWith.java

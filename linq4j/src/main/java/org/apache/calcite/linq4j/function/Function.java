@@ -23,5 +23,3 @@ package org.apache.calcite.linq4j.function;
  */
 public interface Function<R> {
 }
-
-// End Function.java

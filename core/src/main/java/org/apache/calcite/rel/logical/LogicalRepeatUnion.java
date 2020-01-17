@@ -65,5 +65,3 @@ public class LogicalRepeatUnion extends RepeatUnion {
         inputs.get(0), inputs.get(1), all, iterationLimit);
   }
 }
-
-// End LogicalRepeatUnion.java

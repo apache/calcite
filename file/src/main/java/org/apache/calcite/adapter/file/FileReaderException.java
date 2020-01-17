@@ -27,5 +27,3 @@ class FileReaderException extends Exception {
     super(message, e);
   }
 }
-
-// End FileReaderException.java

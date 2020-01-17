@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apiguardian.api.API;
+
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -90,6 +92,16 @@ public enum SqlKind {
    * SELECT statement or sub-query.
    */
   SELECT,
+
+  /**
+   * Sql Hint statement.
+   */
+  HINT,
+
+  /**
+   * Table reference.
+   */
+  TABLE_REF,
 
   /**
    * JOIN operator or compound FROM clause.
@@ -176,6 +188,9 @@ public enum SqlKind {
 
   /** Item in WITH clause. */
   WITH_ITEM,
+
+  /** Item expression */
+  ITEM,
 
   /**
    * Union
@@ -960,6 +975,9 @@ public enum SqlKind {
   /** The {@code BIT_OR} aggregate function. */
   BIT_OR,
 
+  /** The {@code BIT_XOR} aggregate function. */
+  BIT_XOR,
+
   /** The {@code ROW_NUMBER} window function. */
   ROW_NUMBER,
 
@@ -975,17 +993,21 @@ public enum SqlKind {
   /** The {@code ROW_NUMBER} window function. */
   CUME_DIST,
 
-  // Group functions
+  /** The {@code DESCRIPTOR(column_name, ...)}. */
+  DESCRIPTOR,
 
   /** The {@code TUMBLE} group function. */
   TUMBLE,
 
+  // Group functions
   /** The {@code TUMBLE_START} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_START.
   TUMBLE_START,
 
   /** The {@code TUMBLE_END} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_END.
   TUMBLE_END,
 
   /** The {@code HOP} group function. */
@@ -1139,7 +1161,7 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, LISTAGG);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR, LISTAGG);
 
   /**
    * Category consisting of all DML operators.
@@ -1167,6 +1189,7 @@ public enum SqlKind {
       EnumSet.of(COMMIT, ROLLBACK, ALTER_SESSION,
           CREATE_SCHEMA, CREATE_FOREIGN_SCHEMA, DROP_SCHEMA,
           CREATE_TABLE, ALTER_TABLE, DROP_TABLE,
+          CREATE_FUNCTION, DROP_FUNCTION,
           CREATE_VIEW, ALTER_VIEW, DROP_VIEW,
           CREATE_MATERIALIZED_VIEW, ALTER_MATERIALIZED_VIEW,
           DROP_MATERIALIZED_VIEW,
@@ -1224,7 +1247,7 @@ public enum SqlKind {
                   TIMESTAMP_ADD, TIMESTAMP_DIFF, EXTRACT,
                   LITERAL_CHAIN, JDBC_FN, PRECEDING, FOLLOWING, ORDER_BY,
                   NULLS_FIRST, NULLS_LAST, COLLECTION_TABLE, TABLESAMPLE,
-                  VALUES, WITH, WITH_ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
+                  VALUES, WITH, WITH_ITEM, ITEM, SKIP_TO_FIRST, SKIP_TO_LAST,
                   JSON_VALUE_EXPRESSION),
               AGGREGATE, DML, DDL));
 
@@ -1279,6 +1302,72 @@ public enum SqlKind {
           IN, EQUALS, NOT_EQUALS,
           LESS_THAN, GREATER_THAN,
           GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL);
+
+  /**
+   * Category of binary arithmetic.
+   *
+   * <p>Consists of:
+   * {@link #PLUS}
+   * {@link #MINUS}
+   * {@link #TIMES}
+   * {@link #DIVIDE}
+   * {@link #MOD}.
+   */
+  public static final Set<SqlKind> BINARY_ARITHMETIC =
+      EnumSet.of(PLUS, MINUS, TIMES, DIVIDE, MOD);
+
+  /**
+   * Category of binary equality.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   */
+  public static final Set<SqlKind> BINARY_EQUALITY =
+      EnumSet.of(EQUALS, NOT_EQUALS);
+
+  /**
+   * Category of binary comparison.
+   *
+   * <p>Consists of:
+   * {@link #EQUALS}
+   * {@link #NOT_EQUALS}
+   * {@link #GREATER_THAN}
+   * {@link #GREATER_THAN_OR_EQUAL}
+   * {@link #LESS_THAN}
+   * {@link #LESS_THAN_OR_EQUAL}
+   * {@link #IS_DISTINCT_FROM}
+   * {@link #IS_NOT_DISTINCT_FROM}
+   */
+  public static final Set<SqlKind> BINARY_COMPARISON =
+      EnumSet.of(
+          EQUALS, NOT_EQUALS,
+          GREATER_THAN, GREATER_THAN_OR_EQUAL,
+          LESS_THAN, LESS_THAN_OR_EQUAL,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
+
+  /**
+   * Category of operators that do not depend on the argument order.
+   *
+   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}</p>
+   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types are different</p>
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static final Set<SqlKind> SYMMETRICAL =
+      EnumSet.of(
+          AND, OR, EQUALS, NOT_EQUALS,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
+          GREATEST, LEAST);
+
+  /**
+   * Category of operators that do not depend on the argument order if argument types are equal.
+   *
+   * <p>For instance: {@link #PLUS}, {@link #TIMES}</p>
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
+      EnumSet.of(
+          PLUS, TIMES);
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);
@@ -1419,5 +1508,3 @@ public enum SqlKind {
     return set;
   }
 }
-
-// End SqlKind.java

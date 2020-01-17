@@ -30,5 +30,3 @@ public enum SqlJsonEmptyOrError {
     return String.format(Locale.ROOT, "SqlJsonEmptyOrError[%s]", name());
   }
 }
-
-// End SqlJsonEmptyOrError.java

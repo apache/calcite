@@ -295,5 +295,3 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return validator.newValidationError(call, ex);
   }
 }
-
-// End SqlCallBinding.java

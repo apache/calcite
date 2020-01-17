@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -34,13 +35,17 @@ import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -50,6 +55,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDelete;
 import org.apache.calcite.sql.SqlDialect;
@@ -64,6 +70,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.fun.SqlRowOperator;
 import org.apache.calcite.sql.fun.SqlSingleValueAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -148,7 +155,8 @@ public class RelToSqlConverter extends SqlImplementor
       sqlCondition = convertConditionToSqlNode(e.getCondition(),
           leftContext,
           rightContext,
-          e.getLeft().getRowType().getFieldCount());
+          e.getLeft().getRowType().getFieldCount(),
+          dialect);
     }
     SqlNode join =
         new SqlJoin(POS,
@@ -163,6 +171,30 @@ public class RelToSqlConverter extends SqlImplementor
 
   private boolean isCrossJoin(final Join e) {
     return e.getJoinType() == JoinRelType.INNER && e.getCondition().isAlwaysTrue();
+  }
+
+  /** @see #dispatch */
+  public Result visit(Correlate e) {
+    final Result leftResult =
+        visitChild(0, e.getLeft())
+            .resetAlias(e.getCorrelVariable(), e.getRowType());
+    parseCorrelTable(e, leftResult);
+    final Result rightResult = visitChild(1, e.getRight());
+    final SqlNode rightLateral =
+        SqlStdOperatorTable.LATERAL.createCall(POS, rightResult.node);
+    final SqlNode rightLateralAs =
+        SqlStdOperatorTable.AS.createCall(POS, rightLateral,
+            new SqlIdentifier(rightResult.neededAlias, POS));
+
+    final SqlNode join =
+        new SqlJoin(POS,
+            leftResult.asFrom(),
+            SqlLiteral.createBoolean(false, POS),
+            JoinType.COMMA.symbol(POS),
+            rightLateralAs,
+            JoinConditionType.NONE.symbol(POS),
+            null);
+    return result(join, leftResult, rightResult);
   }
 
   /** @see #dispatch */
@@ -189,6 +221,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Project e) {
+    e.getVariablesSet();
     Result x = visitChild(0, e.getInput());
     parseCorrelTable(e, x);
     if (isStar(e.getChildExps(), e.getInput().getRowType(), e.getRowType())) {
@@ -199,7 +232,45 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> selectList = new ArrayList<>();
     for (RexNode ref : e.getChildExps()) {
       SqlNode sqlExpr = builder.context.toSql(null, ref);
+      if (SqlUtil.isNullLiteral(sqlExpr, false)) {
+        sqlExpr = castNullType(sqlExpr, e.getRowType().getFieldList().get(selectList.size()));
+      }
       addSelect(selectList, sqlExpr, e.getRowType());
+    }
+
+    builder.setSelect(new SqlNodeList(selectList, POS));
+    return builder.result();
+  }
+
+  /**
+   * Wrap the {@code sqlNodeNull} in a CAST operator with target type as {@code field}.
+   * @param sqlNodeNull NULL literal
+   * @param field field description of {@code sqlNodeNull}
+   * @return null literal wrapped in CAST call.
+   */
+  private SqlNode castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
+    return SqlStdOperatorTable.CAST.createCall(POS,
+            sqlNodeNull, dialect.getCastSpec(field.getType()));
+  }
+
+  /** @see #dispatch */
+  public Result visit(Window e) {
+    Result x = visitChild(0, e.getInput());
+    Builder builder = x.builder(e);
+    RelNode input = e.getInput();
+    int inputFieldCount = input.getRowType().getFieldCount();
+    final List<SqlNode> rexOvers = new ArrayList<>();
+    for (Window.Group group: e.groups) {
+      rexOvers.addAll(builder.context.toSql(group, e.constants, inputFieldCount));
+    }
+    final List<SqlNode> selectList = new ArrayList<>();
+
+    for (RelDataTypeField field: input.getRowType().getFieldList()) {
+      addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
+    }
+
+    for (SqlNode rexOver: rexOvers) {
+      addSelect(selectList, rexOver, e.getRowType());
     }
 
     builder.setSelect(new SqlNodeList(selectList, POS));
@@ -224,6 +295,57 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
+    return buildAggregate(e, builder, selectList, groupByList);
+  }
+
+  /**
+   * Gets the {@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for
+   * the given {@link Aggregate} node.
+   *
+   * @param e Aggregate node
+   * @param inputResult Result from the input
+   * @param inputIsProject Whether the input is a Project
+   * @return A SQL builder
+   */
+  protected Builder getAggregateBuilder(Aggregate e, Result inputResult,
+      boolean inputIsProject) {
+    if (inputIsProject) {
+      final Builder builder = inputResult.builder(e);
+      builder.clauses.add(Clause.GROUP_BY);
+      return builder;
+    } else {
+      return inputResult.builder(e, Clause.GROUP_BY);
+    }
+  }
+
+  /**
+   * Builds the group list for an Aggregate node.
+   *
+   * @param e The Aggregate node
+   * @param builder The SQL builder
+   * @param groupByList output group list
+   * @param selectList output select list
+   */
+  protected void buildAggGroupList(Aggregate e, Builder builder,
+      List<SqlNode> groupByList, List<SqlNode> selectList) {
+    for (int group : e.getGroupSet()) {
+      final SqlNode field = builder.context.field(group);
+      addSelect(selectList, field, e.getRowType());
+      groupByList.add(field);
+    }
+  }
+
+  /**
+   * Builds an aggregate query.
+   *
+   * @param e The Aggregate node
+   * @param builder The SQL builder
+   * @param selectList The precomputed group list
+   * @param groupByList The precomputed select list
+   * @return The aggregate query result
+   */
+  protected Result buildAggregate(Aggregate e, Builder builder,
+      List<SqlNode> selectList, List<SqlNode> groupByList) {
     for (AggregateCall aggCall : e.getAggCallList()) {
       SqlNode aggCallSqlNode = builder.context.toSql(aggCall);
       if (aggCall.getAggregation() instanceof SqlSingleValueAggFunction) {
@@ -303,16 +425,7 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(TableScan e) {
-    final SqlIdentifier identifier;
-    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
-    if (jdbcTable != null) {
-      // Use the foreign catalog, schema and table names, if they exist,
-      // rather than the qualified name of the shadow table in Calcite.
-      identifier = jdbcTable.tableName();
-    } else {
-      final List<String> qualifiedName = e.getTable().getQualifiedName();
-      identifier = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
-    }
+    final SqlIdentifier identifier = getSqlTargetTable(e);
     return result(identifier, ImmutableList.of(Clause.FROM), e, null);
   }
 
@@ -389,7 +502,7 @@ public class RelToSqlConverter extends SqlImplementor
             new SqlSelect(POS, null,
                 new SqlNodeList(values2, POS),
                 getDual(), null, null,
-                null, null, null, null, null));
+                null, null, null, null, null, null));
       }
       if (list.isEmpty()) {
         // In this case we need to construct the following query:
@@ -404,19 +517,18 @@ public class RelToSqlConverter extends SqlImplementor
         if (dual == null) {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS), null, null, null, null,
-              null, null, null, null);
+              null, null, null, null, null);
 
           // Wrap "SELECT 1 AS x"
           // as "SELECT * FROM (SELECT 1 AS x) AS t WHERE false"
-          query = new SqlSelect(POS, null,
-              new SqlNodeList(ImmutableList.of(SqlIdentifier.star(POS)), POS),
+          query = new SqlSelect(POS, null, SqlNodeList.SINGLETON_STAR,
               as(query, "t"), createAlwaysFalseCondition(), null, null,
-              null, null, null, null);
+              null, null, null, null, null);
         } else {
           query = new SqlSelect(POS, null,
               new SqlNodeList(nullColumnNames, POS),
               dual, createAlwaysFalseCondition(), null,
-              null, null, null, null, null);
+              null, null, null, null, null, null);
         }
       } else if (list.size() == 1) {
         query = list.get(0);
@@ -456,7 +568,7 @@ public class RelToSqlConverter extends SqlImplementor
                 null, query,
                 createAlwaysFalseCondition(),
                 null, null, null,
-                null, null, null);
+                null, null, null, null);
       }
     }
     return result(query, clauses, e, null);
@@ -521,6 +633,15 @@ public class RelToSqlConverter extends SqlImplementor
     }
     Result x = visitChild(0, e.getInput());
     Builder builder = x.builder(e, Clause.ORDER_BY);
+    if (stack.size() != 1 && builder.select.getSelectList() == null) {
+      // Generates explicit column names instead of start(*) for
+      // non-root order by to avoid ambiguity.
+      final List<SqlNode> selectList = Expressions.list();
+      for (RelDataTypeField field : e.getRowType().getFieldList()) {
+        addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
+      }
+      builder.select.setSelectList(new SqlNodeList(selectList, POS));
+    }
     List<SqlNode> orderByList = Expressions.list();
     for (RelFieldCollation field : e.getCollation().getFieldCollations()) {
       builder.addOrderItem(orderByList, field);
@@ -557,14 +678,28 @@ public class RelToSqlConverter extends SqlImplementor
             fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
+  private SqlIdentifier getSqlTargetTable(RelNode e) {
+    final SqlIdentifier sqlTargetTable;
+    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
+    if (jdbcTable != null) {
+      // Use the foreign catalog, schema and table names, if they exist,
+      // rather than the qualified name of the shadow table in Calcite.
+      sqlTargetTable = jdbcTable.tableName();
+    } else {
+      final List<String> qualifiedName = e.getTable().getQualifiedName();
+      sqlTargetTable = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
+    }
+
+    return sqlTargetTable;
+  }
+
   /** @see #dispatch */
   public Result visit(TableModify modify) {
     final Map<String, RelDataType> pairs = ImmutableMap.of();
     final Context context = aliasContext(pairs, false);
 
     // Target Table Name
-    final SqlIdentifier sqlTargetTable =
-        new SqlIdentifier(modify.getTable().getQualifiedName(), POS);
+    final SqlIdentifier sqlTargetTable = getSqlTargetTable(modify);
 
     switch (modify.getOperation()) {
     case INSERT: {
@@ -575,7 +710,7 @@ public class RelToSqlConverter extends SqlImplementor
 
       final SqlInsert sqlInsert =
           new SqlInsert(POS, SqlNodeList.EMPTY, sqlTargetTable, sqlSource,
-              identifierList(modify.getInput().getRowType().getFieldNames()));
+              identifierList(modify.getTable().getRowType().getFieldNames()));
 
       return result(sqlInsert, ImmutableList.of(), modify, null);
     }
@@ -715,6 +850,65 @@ public class RelToSqlConverter extends SqlImplementor
     return result(matchRecognize, Expressions.list(Clause.FROM), e, null);
   }
 
+  private SqlCall as(SqlNode e, String alias) {
+    return SqlStdOperatorTable.AS.createCall(POS, e,
+        new SqlIdentifier(alias, POS));
+  }
+
+  public Result visit(Uncollect e) {
+    final Result x = visitChild(0, e.getInput());
+    final SqlNode unnestNode = SqlStdOperatorTable.UNNEST.createCall(POS, x.asStatement());
+    final List<SqlNode> operands = createAsFullOperands(e.getRowType(), unnestNode, x.neededAlias);
+    final SqlNode asNode = SqlStdOperatorTable.AS.createCall(POS, operands);
+    return result(asNode, ImmutableList.of(Clause.FROM), e, null);
+  }
+
+  public Result visit(TableFunctionScan e) {
+    final List<SqlNode> inputSqlNodes = new ArrayList<>();
+    final int inputSize = e.getInputs().size();
+    for (int i = 0; i < inputSize; i++) {
+      Result child = visitChild(i, e.getInput(i));
+      inputSqlNodes.add(child.asStatement());
+    }
+    final Context context = tableFunctionScanContext(inputSqlNodes);
+    SqlNode callNode = context.toSql(null, e.getCall());
+    // Convert to table function call, "TABLE($function_name(xxx))"
+    SqlNode tableCall = new SqlBasicCall(
+        SqlStdOperatorTable.COLLECTION_TABLE,
+        new SqlNode[]{callNode},
+        SqlParserPos.ZERO);
+    SqlNode select = new SqlSelect(
+        SqlParserPos.ZERO, null, null, tableCall,
+        null, null, null, null, null, null, null, SqlNodeList.EMPTY);
+    return result(select, ImmutableList.of(Clause.SELECT), e, null);
+  }
+
+  /**
+   * Creates operands for a full AS operator. Format SqlNode AS alias(col_1, col_2,... ,col_n).
+   *
+   * @param rowType Row type of the SqlNode
+   * @param leftOperand SqlNode
+   * @param alias alias
+   */
+  public List<SqlNode> createAsFullOperands(RelDataType rowType, SqlNode leftOperand,
+      String alias) {
+    final List<SqlNode> result = new ArrayList<>();
+    result.add(leftOperand);
+    result.add(new SqlIdentifier(alias, POS));
+    for (int i = 0; i < rowType.getFieldCount(); i++) {
+      final String lowerName = rowType.getFieldNames().get(i).toLowerCase(Locale.ROOT);
+      SqlIdentifier sqlColumn;
+      if (lowerName.startsWith("expr$")) {
+        sqlColumn = new SqlIdentifier("col_" + i, POS);
+        ordinalMap.put(lowerName, sqlColumn);
+      } else {
+        sqlColumn = new SqlIdentifier(rowType.getFieldNames().get(i), POS);
+      }
+      result.add(sqlColumn);
+    }
+    return result;
+  }
+
   @Override public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
@@ -746,5 +940,3 @@ public class RelToSqlConverter extends SqlImplementor
     }
   }
 }
-
-// End RelToSqlConverter.java

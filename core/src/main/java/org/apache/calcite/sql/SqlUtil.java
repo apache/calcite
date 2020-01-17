@@ -19,6 +19,10 @@ package org.apache.calcite.sql;
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.HintStrategyTable;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
@@ -315,6 +319,7 @@ public abstract class SqlUtil {
 
   /**
    * Unparse a SqlIdentifier syntax.
+   *
    * @param writer       Writer
    * @param identifier   SqlIdentifier
    * @param asFunctionID Whether this identifier comes from a SqlFunction
@@ -419,6 +424,8 @@ public abstract class SqlUtil {
    * @param category      whether a function or a procedure. (If a procedure is
    *                      being invoked, the overload rules are simpler.)
    * @param nameMatcher   Whether to look up the function case-sensitively
+   * @param coerce        Whether to allow type coercion when do filter routines
+   *                      by parameter types
    * @return matching routine, or null if none found
    *
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
@@ -426,7 +433,8 @@ public abstract class SqlUtil {
   public static SqlOperator lookupRoutine(SqlOperatorTable opTab,
       SqlIdentifier funcName, List<RelDataType> argTypes,
       List<String> argNames, SqlFunctionCategory category,
-      SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher) {
+      SqlSyntax syntax, SqlKind sqlKind, SqlNameMatcher nameMatcher,
+      boolean coerce) {
     Iterator<SqlOperator> list =
         lookupSubjectRoutines(
             opTab,
@@ -436,7 +444,8 @@ public abstract class SqlUtil {
             syntax,
             sqlKind,
             category,
-            nameMatcher);
+            nameMatcher,
+            coerce);
     if (list.hasNext()) {
       // return first on schema path
       return list.next();
@@ -453,14 +462,16 @@ public abstract class SqlUtil {
   /**
    * Looks up all subject routines matching the given name and argument types.
    *
-   * @param opTab     operator table to search
-   * @param funcName  name of function being invoked
-   * @param argTypes  argument types
-   * @param argNames  argument names, or null if call by position
-   * @param sqlSyntax the SqlSyntax of the SqlOperator being looked up
-   * @param sqlKind   the SqlKind of the SqlOperator being looked up
-   * @param category  Category of routine to look up
+   * @param opTab       operator table to search
+   * @param funcName    name of function being invoked
+   * @param argTypes    argument types
+   * @param argNames    argument names, or null if call by position
+   * @param sqlSyntax   the SqlSyntax of the SqlOperator being looked up
+   * @param sqlKind     the SqlKind of the SqlOperator being looked up
+   * @param category    Category of routine to look up
    * @param nameMatcher Whether to look up the function case-sensitively
+   * @param coerce      Whether to allow type coercion when do filter routine
+   *                    by parameter types
    * @return list of matching routines
    * @see Glossary#SQL99 SQL:1999 Part 2 Section 10.4
    */
@@ -472,7 +483,8 @@ public abstract class SqlUtil {
       SqlSyntax sqlSyntax,
       SqlKind sqlKind,
       SqlFunctionCategory category,
-      SqlNameMatcher nameMatcher) {
+      SqlNameMatcher nameMatcher,
+      boolean coerce) {
     // start with all routines matching by name
     Iterator<SqlOperator> routines =
         lookupSubjectRoutinesByName(opTab, funcName, sqlSyntax, category,
@@ -490,13 +502,14 @@ public abstract class SqlUtil {
 
     // second pass:  eliminate routines which don't accept the given
     // argument types
-    routines = filterRoutinesByParameterType(sqlSyntax, routines, argTypes, argNames);
+    routines = filterRoutinesByParameterType(sqlSyntax, routines, argTypes, argNames, coerce);
 
     // see if we can stop now; this is necessary for the case
-    // of builtin functions where we don't have param type info
+    // of builtin functions where we don't have param type info,
+    // or UDF whose operands can make type coercion.
     final List<SqlOperator> list = Lists.newArrayList(routines);
     routines = list.iterator();
-    if (list.size() < 2) {
+    if (list.size() < 2 || coerce) {
       return routines;
     }
 
@@ -572,7 +585,9 @@ public abstract class SqlUtil {
   private static Iterator<SqlOperator> filterRoutinesByParameterType(
       SqlSyntax syntax,
       final Iterator<SqlOperator> routines,
-      final List<RelDataType> argTypes, final List<String> argNames) {
+      final List<RelDataType> argTypes,
+      final List<String> argNames,
+      final boolean coerce) {
     if (syntax != SqlSyntax.FUNCTION) {
       return routines;
     }
@@ -581,10 +596,10 @@ public abstract class SqlUtil {
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
         function -> {
-          List<RelDataType> paramTypes =
-              Objects.requireNonNull(function).getParamTypes();
+          List<RelDataType> paramTypes = function.getParamTypes();
           if (paramTypes == null) {
-            // no parameter information for builtins; keep for now
+            // no parameter information for builtins; keep for now,
+            // the type coerce will not work here.
             return true;
           }
           final List<RelDataType> permutedArgTypes;
@@ -617,7 +632,7 @@ public abstract class SqlUtil {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
             if (argType != null
-                && !SqlTypeUtil.canCastFrom(paramType, argType, false)) {
+                && !SqlTypeUtil.canCastFrom(paramType, argType, coerce)) {
               return false;
             }
           }
@@ -962,6 +977,68 @@ public abstract class SqlUtil {
     }
   }
 
+  /**
+   * Returns an immutable list of {@link RelHint} from sql hints, with a given
+   * inherit path from the root node.
+   *
+   * <p>The inherit path would be empty list.
+   *
+   * @param hintStrategies The hint strategies to validate the sql hints
+   * @param sqlHints       The sql hints nodes
+   * @return the {@code RelHint} list
+   */
+  public static List<RelHint> getRelHint(HintStrategyTable hintStrategies, SqlNodeList sqlHints) {
+    if (sqlHints == null || sqlHints.size() == 0) {
+      return ImmutableList.of();
+    }
+    final ImmutableList.Builder<RelHint> relHints = ImmutableList.builder();
+    for (SqlNode node : sqlHints) {
+      assert node instanceof SqlHint;
+      final SqlHint sqlHint = (SqlHint) node;
+      final String hintName = sqlHint.getName();
+      final List<Integer> inheritPath = new ArrayList<>();
+      RelHint relHint;
+      switch (sqlHint.getOptionFormat()) {
+      case EMPTY:
+        relHint = RelHint.of(inheritPath, hintName);
+        break;
+      case LITERAL_LIST:
+      case ID_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionList());
+        break;
+      case KV_LIST:
+        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionKVPairs());
+        break;
+      default:
+        throw new AssertionError("Unexpected hint option format");
+      }
+      if (hintStrategies.validateHint(relHint)) {
+        // Skips the hint if the validation fails.
+        relHints.add(relHint);
+      }
+    }
+    return relHints.build();
+  }
+
+  /**
+   * Attach the {@code hints} to {@code rel} with specified hint strategies.
+   *
+   * @param hintStrategies The strategies to filter the hints
+   * @param hints          The original hints to be attached
+   * @return A copy of {@code rel} if there are any hints can be attached given
+   * the hint strategies, or the original node if such hints don't exist
+   */
+  public static RelNode attachRelHint(
+      HintStrategyTable hintStrategies,
+      List<RelHint> hints,
+      Hintable rel) {
+    final List<RelHint> relHints = hintStrategies.apply(hints, (RelNode) rel);
+    if (relHints.size() > 0) {
+      return rel.attachHints(relHints);
+    }
+    return (RelNode) rel;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**
@@ -1070,5 +1147,3 @@ public abstract class SqlUtil {
     }
   }
 }
-
-// End SqlUtil.java

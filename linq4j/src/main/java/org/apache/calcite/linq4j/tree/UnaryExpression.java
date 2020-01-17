@@ -83,5 +83,3 @@ public class UnaryExpression extends Expression {
     return Objects.hash(nodeType, type, expression);
   }
 }
-
-// End UnaryExpression.java

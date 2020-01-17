@@ -145,5 +145,3 @@ public class JsonBuilder {
     buf.append("]");
   }
 }
-
-// End JsonBuilder.java

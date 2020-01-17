@@ -183,5 +183,3 @@ public class DruidSqlCastConverter implements DruidSqlOperatorConverter {
     }
   }
 }
-
-// End DruidSqlCastConverter.java

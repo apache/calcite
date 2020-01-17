@@ -626,5 +626,3 @@ public enum ExpressionType {
     this.rprec = (20 - prec) * 2 + (right ? 0 : 1);
   }
 }
-
-// End ExpressionType.java

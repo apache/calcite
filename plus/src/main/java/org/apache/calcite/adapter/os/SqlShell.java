@@ -75,6 +75,7 @@ public class SqlShell {
             + "from table(\"du\"(true))");
     addView(b, "files", "select * from table(\"files\"('.'))");
     addView(b, "git_commits", "select * from table(\"git_commits\"(true))");
+    addView(b, "jps", "select * from table(\"jps\"(true))");
     addView(b, "ps", "select * from table(\"ps\"(true))");
     addView(b, "stdin", "select * from table(\"stdin\"(true))");
     addView(b, "vmstat", "select * from table(\"vmstat\"(true))");
@@ -83,6 +84,7 @@ public class SqlShell {
     addFunction(b, "du", DuTableFunction.class);
     addFunction(b, "files", FilesTableFunction.class);
     addFunction(b, "git_commits", GitCommitsTableFunction.class);
+    addFunction(b, "jps", JpsTableFunction.class);
     addFunction(b, "ps", PsTableFunction.class);
     addFunction(b, "stdin", StdinTableFunction.class);
     addFunction(b, "vmstat", VmstatTableFunction.class);
@@ -436,5 +438,3 @@ public class SqlShell {
         throws SQLException;
   }
 }
-
-// End SqlShell.java

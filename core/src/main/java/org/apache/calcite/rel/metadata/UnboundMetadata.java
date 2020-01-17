@@ -28,5 +28,3 @@ import org.apache.calcite.rel.RelNode;
 public interface UnboundMetadata<M extends Metadata> {
   M bind(RelNode rel, RelMetadataQuery mq);
 }
-
-// End UnboundMetadata.java

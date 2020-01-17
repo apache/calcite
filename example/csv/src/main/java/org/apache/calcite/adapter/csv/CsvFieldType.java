@@ -74,5 +74,3 @@ enum CsvFieldType {
     return MAP.get(typeString);
   }
 }
-
-// End CsvFieldType.java

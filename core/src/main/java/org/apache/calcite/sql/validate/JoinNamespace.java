@@ -63,5 +63,3 @@ class JoinNamespace extends AbstractNamespace {
     return join;
   }
 }
-
-// End JoinNamespace.java

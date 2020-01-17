@@ -37,8 +37,8 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,10 +60,10 @@ import static org.apache.calcite.plan.volcano.PlannerTests.newCluster;
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
@@ -254,7 +254,7 @@ public class VolcanoPlannerTest {
    * Tests transformation of a single+leaf from NONE to PHYS. In the past,
    * this one didn't work due to the definition of ReformedSingleRule.
    */
-  @Ignore // broken, because ReformedSingleRule matches child traits strictly
+  @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test public void testTransformSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -346,7 +346,7 @@ public class VolcanoPlannerTest {
    * Previously, this didn't work because ReformedRemoveSingleRule uses a
    * pattern which spans calling conventions.
    */
-  @Ignore // broken, because ReformedSingleRule matches child traits strictly
+  @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test public void testRemoveSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.ambitious = true;
@@ -413,7 +413,7 @@ public class VolcanoPlannerTest {
         resultLeaf.label);
   }
 
-  @Ignore("CALCITE-2592 EnumerableMergeJoin is never taken")
+  @Disabled("CALCITE-2592 EnumerableMergeJoin is never taken")
   @Test public void testMergeJoin() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -454,7 +454,7 @@ public class VolcanoPlannerTest {
   /**
    * Tests whether planner correctly notifies listeners of events.
    */
-  @Ignore
+  @Disabled
   @Test public void testListener() {
     TestListener listener = new TestListener();
 
@@ -765,5 +765,3 @@ public class VolcanoPlannerTest {
     }
   }
 }
-
-// End VolcanoPlannerTest.java

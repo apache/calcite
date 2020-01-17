@@ -18,7 +18,7 @@ package org.apache.calcite.util;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import org.junit.ComparisonFailure;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -57,29 +57,13 @@ public abstract class TestUtil {
   public static void assertEqualsVerbose(
       String expected,
       String actual) {
-    if (actual == null) {
-      if (expected == null) {
-        return;
-      } else {
-        String message = "Expected:\n"
+    Assertions.assertEquals(expected, actual,
+        () -> "Expected:\n"
             + expected
-            + "\nActual: null";
-        throw new ComparisonFailure(message, expected, null);
-      }
-    }
-    if ((expected != null) && expected.equals(actual)) {
-      return;
-    }
-    String s = toJavaString(actual);
-
-    String message =
-        "Expected:\n"
-        + expected
-        + "\nActual:\n"
-        + actual
-        + "\nActual java:\n"
-        + s + '\n';
-    throw new ComparisonFailure(message, expected, actual);
+            + "\nActual:\n"
+            + actual
+            + "\nActual java:\n"
+            + toJavaString(actual) + '\n');
   }
 
   /**
@@ -279,5 +263,3 @@ public abstract class TestUtil {
   }
 
 }
-
-// End TestUtil.java

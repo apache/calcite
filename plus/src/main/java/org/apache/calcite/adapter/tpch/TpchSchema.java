@@ -163,5 +163,3 @@ public class TpchSchema extends AbstractSchema {
     }
   }
 }
-
-// End TpchSchema.java

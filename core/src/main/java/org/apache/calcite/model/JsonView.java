@@ -96,5 +96,3 @@ public class JsonView extends JsonTable {
     return JsonLattice.toString(sql);
   }
 }
-
-// End JsonView.java

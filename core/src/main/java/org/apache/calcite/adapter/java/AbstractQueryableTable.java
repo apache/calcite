@@ -45,5 +45,3 @@ public abstract class AbstractQueryableTable extends AbstractTable
     return Schemas.tableExpression(schema, elementType, tableName, clazz);
   }
 }
-
-// End AbstractQueryableTable.java

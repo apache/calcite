@@ -35,5 +35,3 @@ public class WindowNode extends AbstractSingleNode<Window> {
     sink.end();
   }
 }
-
-// End WindowNode.java

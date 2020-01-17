@@ -88,5 +88,3 @@ public class SqlAbstractTimeFunction extends SqlFunction {
     return true;
   }
 }
-
-// End SqlAbstractTimeFunction.java

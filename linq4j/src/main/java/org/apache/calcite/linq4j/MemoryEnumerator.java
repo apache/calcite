@@ -84,5 +84,3 @@ public class MemoryEnumerator<E> implements Enumerator<MemoryFactory.Memory<E>> 
     enumerator.close();
   }
 }
-
-// End MemoryEnumerator.java

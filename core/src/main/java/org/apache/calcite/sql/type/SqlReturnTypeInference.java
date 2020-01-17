@@ -42,5 +42,3 @@ public interface SqlReturnTypeInference {
   RelDataType inferReturnType(
       SqlOperatorBinding opBinding);
 }
-
-// End SqlReturnTypeInference.java

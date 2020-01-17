@@ -23,9 +23,11 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -34,6 +36,8 @@ import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Set;
@@ -51,7 +55,7 @@ import java.util.Set;
  *
  * <ul>
  * <li>{@link FilterToCalcRule} creates this from a {@link LogicalFilter}
- * <li>{@link ProjectToCalcRule} creates this from a {@link LogicalFilter}
+ * <li>{@link ProjectToCalcRule} creates this from a {@link LogicalProject}
  * <li>{@link org.apache.calcite.rel.rules.FilterCalcMergeRule}
  *     merges this with a {@link LogicalFilter}
  * <li>{@link org.apache.calcite.rel.rules.ProjectCalcMergeRule}
@@ -69,9 +73,30 @@ public final class LogicalCalc extends Calc {
   public LogicalCalc(
       RelOptCluster cluster,
       RelTraitSet traitSet,
+      List<RelHint> hints,
       RelNode child,
       RexProgram program) {
-    super(cluster, traitSet, child, program);
+    super(cluster, traitSet, hints, child, program);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public LogicalCalc(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode child,
+      RexProgram program) {
+    this(cluster, traitSet, ImmutableList.of(), child, program);
+  }
+
+  /**
+   * Creates a LogicalCalc by parsing serialized output.
+   */
+  public LogicalCalc(RelInput input) {
+    this(input.getCluster(),
+        input.getTraitSet(),
+        ImmutableList.of(),
+        input.getInput(),
+        RexProgram.create(input));
   }
 
   @Deprecated // to be removed before 2.0
@@ -81,7 +106,7 @@ public final class LogicalCalc extends Calc {
       RelNode child,
       RexProgram program,
       List<RelCollation> collationList) {
-    this(cluster, traitSet, child, program);
+    this(cluster, traitSet, ImmutableList.of(), child, program);
     Util.discard(collationList);
   }
 
@@ -95,14 +120,14 @@ public final class LogicalCalc extends Calc {
             () -> RelMdCollation.calc(mq, input, program))
         .replaceIf(RelDistributionTraitDef.INSTANCE,
             () -> RelMdDistribution.calc(mq, input, program));
-    return new LogicalCalc(cluster, traitSet, input, program);
+    return new LogicalCalc(cluster, traitSet, ImmutableList.of(), input, program);
   }
 
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalCalc copy(RelTraitSet traitSet, RelNode child,
       RexProgram program) {
-    return new LogicalCalc(getCluster(), traitSet, child, program);
+    return new LogicalCalc(getCluster(), traitSet, hints, child, program);
   }
 
   @Override public void collectVariablesUsed(Set<CorrelationId> variableSet) {
@@ -113,6 +138,9 @@ public final class LogicalCalc extends Calc {
     }
     variableSet.addAll(vuv.variables);
   }
-}
 
-// End LogicalCalc.java
+  @Override public RelNode withHints(List<RelHint> hintList) {
+    return new LogicalCalc(getCluster(), traitSet,
+        ImmutableList.copyOf(hintList), input, program);
+  }
+}

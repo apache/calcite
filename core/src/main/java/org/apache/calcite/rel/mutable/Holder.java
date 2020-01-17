@@ -42,5 +42,3 @@ public class Holder extends MutableSingleRel {
     return Holder.of(input.clone());
   }
 }
-
-// End Holder.java

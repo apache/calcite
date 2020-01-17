@@ -162,5 +162,3 @@ public class SqlNodeToRexConverterImpl implements SqlNodeToRexConverter {
     }
   }
 }
-
-// End SqlNodeToRexConverterImpl.java

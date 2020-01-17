@@ -106,5 +106,3 @@ public enum RexUnknownAs {
     }
   }
 }
-
-// End RexUnknownAs.java

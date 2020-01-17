@@ -22,5 +22,3 @@ package org.apache.calcite.rel.type;
  */
 public interface RelDataTypeFamily {
 }
-
-// End RelDataTypeFamily.java

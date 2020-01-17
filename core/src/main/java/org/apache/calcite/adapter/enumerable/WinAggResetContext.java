@@ -31,5 +31,3 @@ package org.apache.calcite.adapter.enumerable;
 public interface WinAggResetContext
     extends AggResetContext, WinAggFrameContext {
 }
-
-// End WinAggResetContext.java

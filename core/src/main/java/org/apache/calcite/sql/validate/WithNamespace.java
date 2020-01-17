@@ -64,5 +64,3 @@ public class WithNamespace extends AbstractNamespace {
     return with;
   }
 }
-
-// End WithNamespace.java

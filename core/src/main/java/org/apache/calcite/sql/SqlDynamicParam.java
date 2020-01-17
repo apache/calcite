@@ -87,5 +87,3 @@ public class SqlDynamicParam extends SqlNode {
     return litmus.succeed();
   }
 }
-
-// End SqlDynamicParam.java

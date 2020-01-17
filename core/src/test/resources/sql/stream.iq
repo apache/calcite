@@ -1,0 +1,46 @@
+# stream.iq - streaming sql tests
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use orinoco
+!set outputformat mysql
+SELECT * FROM TABLE(TUMBLE(TABLE ORDERS, DESCRIPTOR(ROWTIME), INTERVAL '1' MINUTE));
++---------------------+----+---------+-------+---------------------+---------------------+
+| ROWTIME             | ID | PRODUCT | UNITS | window_start        | window_end          |
++---------------------+----+---------+-------+---------------------+---------------------+
+| 2015-02-15 10:15:00 |  1 | paint   |    10 | 2015-02-15 10:15:00 | 2015-02-15 10:16:00 |
+| 2015-02-15 10:24:15 |  2 | paper   |     5 | 2015-02-15 10:24:00 | 2015-02-15 10:25:00 |
+| 2015-02-15 10:24:45 |  3 | brush   |    12 | 2015-02-15 10:24:00 | 2015-02-15 10:25:00 |
+| 2015-02-15 10:58:00 |  4 | paint   |     3 | 2015-02-15 10:58:00 | 2015-02-15 10:59:00 |
+| 2015-02-15 11:10:00 |  5 | paint   |     3 | 2015-02-15 11:10:00 | 2015-02-15 11:11:00 |
++---------------------+----+---------+-------+---------------------+---------------------+
+(5 rows)
+
+!ok
+
+SELECT * FROM TABLE(TUMBLE((SELECT * FROM ORDERS), DESCRIPTOR(ROWTIME), INTERVAL '1' MINUTE));
++---------------------+----+---------+-------+---------------------+---------------------+
+| ROWTIME             | ID | PRODUCT | UNITS | window_start        | window_end          |
++---------------------+----+---------+-------+---------------------+---------------------+
+| 2015-02-15 10:15:00 |  1 | paint   |    10 | 2015-02-15 10:15:00 | 2015-02-15 10:16:00 |
+| 2015-02-15 10:24:15 |  2 | paper   |     5 | 2015-02-15 10:24:00 | 2015-02-15 10:25:00 |
+| 2015-02-15 10:24:45 |  3 | brush   |    12 | 2015-02-15 10:24:00 | 2015-02-15 10:25:00 |
+| 2015-02-15 10:58:00 |  4 | paint   |     3 | 2015-02-15 10:58:00 | 2015-02-15 10:59:00 |
+| 2015-02-15 11:10:00 |  5 | paint   |     3 | 2015-02-15 11:10:00 | 2015-02-15 11:11:00 |
++---------------------+----+---------+-------+---------------------+---------------------+
+(5 rows)
+
+!ok

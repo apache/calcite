@@ -43,5 +43,3 @@ public class MatchRecognizeNamespace extends AbstractNamespace {
     return matchRecognize;
   }
 }
-
-// End MatchRecognizeNamespace.java

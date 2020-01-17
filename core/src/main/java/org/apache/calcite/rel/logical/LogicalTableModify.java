@@ -83,5 +83,3 @@ public final class LogicalTableModify extends TableModify {
         getSourceExpressionList(), isFlattened());
   }
 }
-
-// End LogicalTableModify.java

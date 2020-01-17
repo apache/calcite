@@ -868,5 +868,3 @@ public class LoptMultiJoin {
     }
   }
 }
-
-// End LoptMultiJoin.java

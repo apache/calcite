@@ -146,5 +146,3 @@ public class ListTransientTable extends AbstractQueryableTable
     return TYPE;
   }
 }
-
-// End ListTransientTable.java

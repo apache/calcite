@@ -60,5 +60,3 @@ public class BinaryOperatorConversion implements DruidSqlOperatorConverter {
         .format("(%s %s %s)", druidExpressions.get(0), druidOperator, druidExpressions.get(1));
   }
 }
-
-// End BinaryOperatorConversion.java

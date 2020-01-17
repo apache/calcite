@@ -164,5 +164,3 @@ public class IntPair {
     return Lists.transform(pairs, RIGHT);
   }
 }
-
-// End IntPair.java

@@ -28,5 +28,3 @@ public interface RelOptConnection {
    */
   RelOptSchema getRelOptSchema();
 }
-
-// End RelOptConnection.java

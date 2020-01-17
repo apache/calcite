@@ -74,5 +74,3 @@ public interface SqlOperandTypeChecker {
     LEAST_RESTRICTIVE
   }
 }
-
-// End SqlOperandTypeChecker.java

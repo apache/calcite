@@ -23,5 +23,3 @@
  * Full select SQL operations are available on those tables.
  */
 package org.apache.calcite.adapter.file;
-
-// End package-info.java

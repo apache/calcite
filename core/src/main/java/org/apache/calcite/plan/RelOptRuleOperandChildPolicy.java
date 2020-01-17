@@ -48,5 +48,3 @@ public enum RelOptRuleOperandChildPolicy {
    */
   UNORDERED,
 }
-
-// End RelOptRuleOperandChildPolicy.java

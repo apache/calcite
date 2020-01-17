@@ -25,7 +25,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.math.BigInteger;
@@ -41,7 +41,7 @@ import static org.apache.calcite.linq4j.test.BlockBuilderBase.optimizeExpression
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests factoring out deterministic expressions.
@@ -542,5 +542,3 @@ public class DeterministicTest {
             + "}\n"));
   }
 }
-
-// End DeterministicTest.java

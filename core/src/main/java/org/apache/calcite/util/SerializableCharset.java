@@ -92,5 +92,3 @@ public class SerializableCharset implements Serializable {
     return new SerializableCharset(charset);
   }
 }
-
-// End SerializableCharset.java

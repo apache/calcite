@@ -31,5 +31,3 @@ public interface ScalarFunction extends Function {
    */
   RelDataType getReturnType(RelDataTypeFactory typeFactory);
 }
-
-// End ScalarFunction.java

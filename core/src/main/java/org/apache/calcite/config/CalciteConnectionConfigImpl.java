@@ -37,12 +37,32 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     super(properties);
   }
 
-  /** Returns a copy of this configuration with one property changed. */
+  /** Returns a copy of this configuration with one property changed.
+   *
+   * <p>Does not modify this configuration. */
   public CalciteConnectionConfigImpl set(CalciteConnectionProperty property,
       String value) {
-    final Properties properties1 = new Properties(properties);
-    properties1.setProperty(property.camelName(), value);
-    return new CalciteConnectionConfigImpl(properties1);
+    final Properties newProperties = (Properties) properties.clone();
+    newProperties.setProperty(property.camelName(), value);
+    return new CalciteConnectionConfigImpl(newProperties);
+  }
+
+  /** Returns a copy of this configuration with the value of a property
+   * removed.
+   *
+   * <p>Does not modify this configuration. */
+  public CalciteConnectionConfigImpl unset(CalciteConnectionProperty property) {
+    final Properties newProperties = (Properties) properties.clone();
+    newProperties.remove(property.camelName());
+    return new CalciteConnectionConfigImpl(newProperties);
+  }
+
+  /** Returns whether a given property has been assigned a value.
+   *
+   * <p>If not, the value returned for the property will be its default value.
+   */
+  public boolean isSet(CalciteConnectionProperty property) {
+    return properties.containsKey(property.camelName());
   }
 
   public boolean approximateDistinctCount() {
@@ -169,6 +189,14 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.LOCALE.wrap(properties)
         .getString();
   }
-}
 
-// End CalciteConnectionConfigImpl.java
+  public boolean typeCoercion() {
+    return CalciteConnectionProperty.TYPE_COERCION.wrap(properties)
+        .getBoolean();
+  }
+
+  public boolean lenientOperatorLookup() {
+    return CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP.wrap(properties)
+        .getBoolean();
+  }
+}

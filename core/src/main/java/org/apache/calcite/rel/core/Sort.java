@@ -197,5 +197,3 @@ public abstract class Sort extends SingleRel {
     return pw;
   }
 }
-
-// End Sort.java

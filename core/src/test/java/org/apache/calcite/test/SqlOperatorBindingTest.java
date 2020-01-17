@@ -36,10 +36,10 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.collect.Lists;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Unit tests for {@link RexProgram} and
@@ -50,16 +50,7 @@ public class SqlOperatorBindingTest {
   private RelDataType integerDataType;
   private SqlDataTypeSpec integerType;
 
-  //~ Methods ----------------------------------------------------------------
-
-  /**
-   * Creates a SqlOperatorBindingTest.
-   */
-  public SqlOperatorBindingTest() {
-    super();
-  }
-
-  @Before
+  @BeforeEach
   public void setUp() {
     JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     integerDataType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -122,5 +113,3 @@ public class SqlOperatorBindingTest {
     assertSame(false, RexUtil.isLiteral(castCastLiteral, true));
   }
 }
-
-// End SqlOperatorBindingTest.java

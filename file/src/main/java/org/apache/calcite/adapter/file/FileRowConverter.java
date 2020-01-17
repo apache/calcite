@@ -393,5 +393,3 @@ class FileRowConverter {
     }
   }
 }
-
-// End FileRowConverter.java

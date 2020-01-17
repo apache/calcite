@@ -199,7 +199,7 @@ orderItem:
       expression [ ASC | DESC ] [ NULLS FIRST | NULLS LAST ]
 
 select:
-      SELECT [ STREAM ] [ ALL | DISTINCT ]
+      SELECT [ '/*+' hint [, hint]* '*/' ] [ STREAM ] [ ALL | DISTINCT ]
           { * | projectItem [, projectItem ]* }
       FROM tableExpression
       [ WHERE booleanExpression ]
@@ -234,13 +234,29 @@ tableReference:
 tablePrimary:
       [ [ catalogName . ] schemaName . ] tableName
       '(' TABLE [ [ catalogName . ] schemaName . ] tableName ')'
-  |   tablePrimary [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
+  |   tablePrimary [ '/*+' hint [, hint]* '*/' ] [ EXTEND ] '(' columnDecl [, columnDecl ]* ')'
   |   [ LATERAL ] '(' query ')'
   |   UNNEST '(' expression ')' [ WITH ORDINALITY ]
   |   [ LATERAL ] TABLE '(' [ SPECIFIC ] functionName '(' expression [, expression ]* ')' ')'
 
 columnDecl:
       column type [ NOT NULL ]
+
+hint:
+      hintName
+  |   hintName '(' hintOptions ')'
+
+hintOptions:
+      hintKVOption [, hintKVOption]*
+  |   optionName [, optionName]*
+  |   optionValue [, optionValue]*
+
+hintKVOption:
+      optionName '=' stringLiteral
+
+optionValue:
+      stringLiteral
+  |   numericLiteral
 
 values:
       VALUES expression [, expression ]*
@@ -463,6 +479,7 @@ DATABASE,
 DATETIME_INTERVAL_CODE,
 DATETIME_INTERVAL_PRECISION,
 **DAY**,
+DAYS,
 **DEALLOCATE**,
 **DEC**,
 DECADE,
@@ -563,6 +580,7 @@ GRANTED,
 HIERARCHY,
 **HOLD**,
 **HOUR**,
+HOURS,
 **IDENTITY**,
 IGNORE,
 IMMEDIATE,
@@ -651,11 +669,13 @@ MILLISECOND,
 **MIN**,
 **MINUS**,
 **MINUTE**,
+MINUTES,
 MINVALUE,
 **MOD**,
 **MODIFIES**,
 **MODULE**,
 **MONTH**,
+MONTHS,
 MORE,
 **MULTISET**,
 MUMPS,
@@ -810,6 +830,7 @@ SCOPE_SCHEMA,
 **SCROLL**,
 **SEARCH**,
 **SECOND**,
+SECONDS,
 SECTION,
 SECURITY,
 **SEEK**,
@@ -945,6 +966,7 @@ TRIGGER_SCHEMA,
 **TRIM_ARRAY**,
 **TRUE**,
 **TRUNCATE**,
+TUMBLE,
 TYPE,
 **UESCAPE**,
 UNBOUNDED,
@@ -994,6 +1016,7 @@ WRAPPER,
 WRITE,
 XML,
 **YEAR**,
+YEARS,
 ZONE.
 {% comment %} end {% endcomment %}
 
@@ -1061,6 +1084,10 @@ Note:
   it will rely on the supplied time zone to provide correct semantics.
 * GEOMETRY is allowed only in certain
   [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowGeometry--).
+* Interval literals may only use time units
+  YEAR, MONTH, DAY, HOUR, MINUTE and SECOND. In certain
+  [conformance levels]({{ site.apiRoot }}/org/apache/calcite/sql/validate/SqlConformance.html#allowPluralTimeUnits--),
+  we also allow their plurals, YEARS, MONTHS, DAYS, HOURS, MINUTES and SECONDS.
 
 ### Non-scalar types
 
@@ -1208,6 +1235,7 @@ comp:
 | ASIN(numeric)             | Returns the arc sine of *numeric*
 | ATAN(numeric)             | Returns the arc tangent of *numeric*
 | ATAN2(numeric, numeric)   | Returns the arc tangent of the *numeric* coordinates
+| CBRT(numeric)             | Returns the cube root of *numeric*
 | COS(numeric)              | Returns the cosine of *numeric*
 | COT(numeric)              | Returns the cotangent of *numeric*
 | DEGREES(numeric)          | Converts *numeric* from radians to degrees
@@ -1316,11 +1344,25 @@ Not implemented:
 
 ### Type conversion
 
+Generally an expression cannot contain values of different datatypes. For example, an expression cannot multiply 5 by 10 and then add 'JULIAN'.
+However, Calcite supports both implicit and explicit conversion of values from one datatype to another.
+
+#### Implicit and Explicit Type Conversion
+Calcite recommends that you specify explicit conversions, rather than rely on implicit or automatic conversions, for these reasons:
+
+* SQL statements are easier to understand when you use explicit datatype conversion functions.
+* Implicit datatype conversion can have a negative impact on performance, especially if the datatype of a column value is converted to that of a constant rather than the other way around.
+* Implicit conversion depends on the context in which it occurs and may not work the same way in every case. For example, implicit conversion from a datetime value to a VARCHAR value may return an unexpected format.
+
+Algorithms for implicit conversion are subject to change across Calcite releases. Behavior of explicit conversions is more predictable.
+
+#### Explicit Type Conversion
+
 | Operator syntax | Description
 |:--------------- | :----------
 | CAST(value AS type) | Converts a value to a given type.
 
-Supported data types:
+Supported data types syntax:
 
 {% highlight sql %}
 type:
@@ -1357,9 +1399,9 @@ collectionsTypeName:
 
 rowTypeName:
       ROW '('
-        fieldName1 fieldType1 [ [ NULL | NOT NULL ] ]
-        [ , fieldName2 fieldType2 [ [ NULL | NOT NULL ] ] ]*
-        ')'
+      fieldName1 fieldType1 [ NULL | NOT NULL ]
+      [ , fieldName2 fieldType2 [ NULL | NOT NULL ] ]*
+      ')'
 
 char:
       CHARACTER | CHAR
@@ -1392,6 +1434,85 @@ timeZone:
       WITHOUT TIME ZONE
   |   WITH LOCAL TIME ZONE
 {% endhighlight %}
+
+#### Implicit Type Conversion
+
+Calcite automatically converts a value from one datatype to another
+when such a conversion makes sense. The table below is a matrix of
+Calcite type conversions. The table shows all possible conversions,
+without regard to the context in which it is made. The rules governing
+these details follow the table.
+
+| FROM - TO           | NULL | BOOLEAN | TINYINT | SMALLINT | INT | BIGINT | DECIMAL | FLOAT or REAL | DOUBLE | INTERVAL | DATE | TIME | TIMESTAMP | CHAR or VARCHAR | BINARY or VARBINARY
+|:------------------- |:---- |:------- |:------- |:-------- |:--- |:------ |:------- |:------------- |:------ |:-------- |:---- |:---- |:--------- |:--------------- |:-----------
+| NULL                | i    | i       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
+| BOOLEAN             | x    | i       | e       | e        | e   | e      | e       | e             | e      | x        | x    | x    | x         | i               | x
+| TINYINT             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| SMALLINT            | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| INT                 | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| BIGINT              | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| DECIMAL             | x    | e       | i       | i        | i   | i      | i       | i             | i      | e        | x    | x    | e         | i               | x
+| FLOAT/REAL          | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
+| DOUBLE              | x    | e       | i       | i        | i   | i      | i       | i             | i      | x        | x    | x    | e         | i               | x
+| INTERVAL            | x    | x       | e       | e        | e   | e      | e       | x             | x      | i        | x    | x    | x         | e               | x
+| DATE                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | i    | x    | i         | i               | x
+| TIME                | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | x    | i    | e         | i               | x
+| TIMESTAMP           | x    | x       | e       | e        | e   | e      | e       | e             | e      | x        | i    | e    | i         | i               | x
+| CHAR or VARCHAR     | x    | e       | i       | i        | i   | i      | i       | i             | i      | i        | i    | i    | i         | i               | i
+| BINARY or VARBINARY | x    | x       | x       | x        | x   | x      | x       | x             | x      | x        | e    | e    | e         | i               | i
+
+i: implicit cast / e: explicit cast / x: not allowed
+
+##### Conversion Contexts and Strategies
+
+* Set operation (`UNION`, `EXCEPT`, `INTERSECT`): compare every branch
+  row data type and find the common type of each fields pair;
+* Binary arithmetic expression (`+`, `-`, `&`, `^`, `/`, `%`): promote
+  string operand to data type of the other numeric operand;
+* Binary comparison (`=`, `<`, `<=`, `<>`, `>`, `>=`):
+  if operands are `STRING` and `TIMESTAMP`, promote to `TIMESTAMP`;
+  make `1 = true` and `0 = false` always evaluate to `TRUE`;
+  if there is numeric type operand, find common type for both operands.
+* `IN` sub-query: compare type of LHS and RHS, and find the common type;
+  if it is struct type, find wider type for every field;
+* `IN` expression list: compare every expression to find the common type;
+* `CASE WHEN` expression or `COALESCE`: find the common wider type of the `THEN`
+  and `ELSE` operands;
+* Character + `INTERVAL` or character - `INTERVAL`: promote character to
+  `TIMESTAMP`;
+* Built-in function: look up the type families registered in the checker,
+  find the family default type if checker rules allow it;
+* User-defined function (UDF): coerce based on the declared argument types
+  of the `eval()` method;
+* `INSERT` and `UPDATE`: coerce a source field to counterpart target table
+  field's type if the two fields differ with type name or precision(scale).
+
+Note:
+
+Implicit type coercion of following cases are ignored:
+
+* One of the type is `ANY`;
+* Type coercion within `CHARACTER` types are always ignored,
+  i.e. from `CHAR(20)` to `VARCHAR(30)`;
+* Type coercion from a numeric to another with higher precedence is ignored,
+  i.e. from `INT` to `LONG`.
+
+##### Strategies for Finding Common Type
+
+* If the operator has expected data types, just take them as the
+  desired one. (e.g. the UDF would have `eval()` method which has
+  reflection argument types);
+* If there is no expected data type but the data type families are
+  registered, try to coerce the arguments to the family's default data
+  type, i.e. the String family will have a `VARCHAR` type;
+* If neither expected data type nor families are specified, try to
+  find the tightest common type of the node types, i.e. `INTEGER` and
+  `DOUBLE` will return `DOUBLE`, the numeric precision does not lose
+  for this case;
+* If no tightest common type is found, try to find a wider type,
+  i.e. `VARCHAR` and `INTEGER` will return `INTEGER`,
+  we allow some precision loss when widening decimal to fractional,
+  or promote to `VARCHAR` type.
 
 ### Value constructors
 
@@ -1530,6 +1651,7 @@ period:
 | {fn ASIN(numeric)}                | Returns the arc sine of *numeric*
 | {fn ATAN(numeric)}                | Returns the arc tangent of *numeric*
 | {fn ATAN2(numeric, numeric)}      | Returns the arc tangent of the *numeric* coordinates
+| {fn CBRT(numeric)}                | Returns the cube root of *numeric*
 | {fn CEILING(numeric)}             | Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
 | {fn COS(numeric)}                 | Returns the cosine of *numeric*
 | {fn COT(numeric)}                 | Returns the cotangent of *numeric*
@@ -1651,6 +1773,7 @@ and `LISTAGG`).
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none
+| BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
 | STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
@@ -1733,6 +1856,28 @@ Not implemented:
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
 
+### DESCRIPTOR
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
+
+### Table-valued functions.
+Table-valued functions occur in the `FROM` clause.
+
+#### TUMBLE
+In streaming queries, TUMBLE assigns a window for each row of a relation based on a timestamp column. An assigned window
+is specified by its beginning and ending. All assigned windows have the same length, and that's why tumbling sometimes
+is named as "fixed windowing".
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE(table, DESCRIPTOR(column_name), interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*. Tumbling is applied on table in which there is a watermarked column specified by descriptor.
+
+Here is an example:
+`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
+will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
+watermarked column of table orders that tells data completeness.
+
 ### Grouped window functions
 
 Grouped window functions occur in the `GROUP BY` clause and define a key value
@@ -1781,9 +1926,9 @@ In the following:
 
 In the "C" (for "compatibility") column, "o" indicates that the function
 implements the OpenGIS Simple Features Implementation Specification for SQL,
-[version 1.2.1](http://www.opengeospatial.org/standards/sfs);
+[version 1.2.1](https://www.opengeospatial.org/standards/sfs);
 "p" indicates that the function is a
-[PostGIS](http://www.postgis.net/docs/reference.html) extension to OpenGIS.
+[PostGIS](https://www.postgis.net/docs/reference.html) extension to OpenGIS.
 
 #### Geometry conversion functions (2D)
 
@@ -2177,6 +2322,9 @@ semantics.
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
+| m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
 | m | JSON_DEPTH(jsonValue)                          | Returns an integer value indicating the depth of a *jsonValue*
@@ -2193,6 +2341,7 @@ semantics.
 | m p | MD5(string)                                  | Calculates an MD5 128-bit checksum of *string* and returns it as a hex string
 | m | MONTHNAME(date)                                | Returns the name, in the connection's locale, of the month in *datetime*; for example, it returns '二月' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | NVL(value1, value2)                            | Returns *value1* if *value1* is not null, otherwise *value2*
+| m o | REGEXP_REPLACE(string, regexp, rep, [, pos [, occurrence [, matchType]]]) | Replaces all substrings of *string* that match *regexp* with *rep* at the starting *pos* in expr (if omitted, the default is 1), *occurrence* means which occurrence of a match to search for (if omitted, the default is 1), *matchType* specifies how to perform matching
 | m p | REPEAT(string, integer)                      | Returns a string consisting of *string* repeated of *integer* times; returns an empty string if *integer* is less than 1
 | m | REVERSE(string)                                | Returns *string* with the order of the characters reversed
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
@@ -2200,10 +2349,11 @@ semantics.
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
-| o | SUBSTR(string, position [, substring_length ]) | Returns a portion of *string*, beginning at character *position*, *substring_length* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
 
 Note:
 

@@ -104,6 +104,20 @@ public interface RelDataTypeSystem {
   boolean shouldConvertRaggedUnionTypesToVarying();
 
   /**
+   * Returns whether a decimal multiplication should be implemented by casting
+   * arguments to double values.
+   *
+   * <p>Pre-condition: <code>createDecimalProduct(type1, type2) != null</code>
+   */
+  default boolean shouldUseDoubleMultiplication(
+          RelDataTypeFactory typeFactory,
+          RelDataType type1,
+          RelDataType type2) {
+    assert deriveDecimalMultiplyType(typeFactory, type1, type2) != null;
+    return false;
+  }
+
+  /**
    * Infers the return type of a decimal addition. Decimal addition involves
    * at least one decimal operand and requires both operands to have exact
    * numeric types.
@@ -126,17 +140,25 @@ public interface RelDataTypeSystem {
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
-   * @param typeFactory typeFactory used to create output type
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal addition.
+   * @param typeFactory TypeFactory used to create output type
+   * @param type1       Type of the first operand
+   * @param type2       Type of the second operand
+   * @return Result type for a decimal addition
    */
   default RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
-                                            RelDataType type1, RelDataType type2) {
+      RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -157,20 +179,6 @@ public interface RelDataTypeSystem {
       }
     }
     return null;
-  }
-
-  /**
-   * Returns whether a decimal multiplication should be implemented by casting
-   * arguments to double values.
-   *
-   * <p>Pre-condition: <code>createDecimalProduct(type1, type2) != null</code>
-   */
-  default boolean shouldUseDoubleMultiplication(
-      RelDataTypeFactory typeFactory,
-      RelDataType type1,
-      RelDataType type2) {
-    assert deriveDecimalMultiplyType(typeFactory, type1, type2) != null;
-    return false;
   }
 
   /**
@@ -200,11 +208,11 @@ public interface RelDataTypeSystem {
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
-   * @param typeFactory typeFactory used to create output type
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal multiplication, or null if decimal
-   * multiplication should not be applied to the operands.
+   * @param typeFactory TypeFactory used to create output type
+   * @param type1       Type of the first operand
+   * @param type2       Type of the second operand
+   * @return Result type for a decimal multiplication, or null if decimal
+   * multiplication should not be applied to the operands
    */
   default RelDataType deriveDecimalMultiplyType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
@@ -212,6 +220,14 @@ public interface RelDataTypeSystem {
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -264,11 +280,11 @@ public interface RelDataTypeSystem {
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.26
    *
-   * @param typeFactory typeFactory used to create output type
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal division, or null if decimal
-   * division should not be applied to the operands.
+   * @param typeFactory TypeFactory used to create output type
+   * @param type1       Type of the first operand
+   * @param type2       Type of the second operand
+   * @return Result type for a decimal division, or null if decimal
+   * division should not be applied to the operands
    */
   default RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
@@ -277,6 +293,14 @@ public interface RelDataTypeSystem {
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+            ? typeFactory.decimalOf(type2)
+            : type2;
         int p1 = type1.getPrecision();
         int p2 = type2.getPrecision();
         int s1 = type1.getScale();
@@ -315,19 +339,34 @@ public interface RelDataTypeSystem {
 
   /**
    * Infers the return type of a decimal modulus operation. Decimal modulus
-   * involves at least one decimal operand and requires both operands to have
-   * exact numeric types.
+   * involves at least one decimal operand.
    *
    * <p>The default implementation is SQL:2003 compliant: the declared type of
    * the result is the declared type of the second operand (expression divisor).
    *
    * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
    *
-   * @param typeFactory typeFactory used to create output type
-   * @param type1 type of the first operand
-   * @param type2 type of the second operand
-   * @return the result type for a decimal modulus, or null if decimal
-   * modulus should not be applied to the operands.
+   * <p>Rules:
+   *
+   * <ul>
+   * <li>Let p1, s1 be the precision and scale of the first operand</li>
+   * <li>Let p2, s2 be the precision and scale of the second operand</li>
+   * <li>Let p, s be the precision and scale of the result</li>
+   * <li>Let d be the number of whole digits in the result</li>
+   * <li>Then the result type is a decimal with:
+   *   <ul>
+   *   <li>s = max(s1, s2)</li>
+   *   <li>p = min(p1 - s1, p2 - s2) + max(s1, s2)</li>
+   *   </ul>
+   * </li>
+   * <li>p and s are capped at their maximum values</li>
+   * </ul>
+   *
+   * @param typeFactory TypeFactory used to create output type
+   * @param type1       Type of the first operand
+   * @param type2       Type of the second operand
+   * @return Result type for a decimal modulus, or null if decimal
+   * modulus should not be applied to the operands
    */
   default RelDataType deriveDecimalModType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
@@ -335,12 +374,35 @@ public interface RelDataTypeSystem {
             && SqlTypeUtil.isExactNumeric(type2)) {
       if (SqlTypeUtil.isDecimal(type1)
               || SqlTypeUtil.isDecimal(type2)) {
-        return type2;
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+                ? typeFactory.decimalOf(type1)
+                : type1;
+        type2 = RelDataTypeFactoryImpl.isJavaType(type2)
+                ? typeFactory.decimalOf(type2)
+                : type2;
+        int p1 = type1.getPrecision();
+        int p2 = type2.getPrecision();
+        int s1 = type1.getScale();
+        int s2 = type2.getScale();
+        // Keep consistency with SQL standard.
+        if (s1 == 0 && s2 == 0) {
+          return type2;
+        }
+
+        int scale = Math.max(s1, s2);
+        assert scale <= getMaxNumericScale();
+
+        int precision = Math.min(p1 - s1, p2 - s2) + Math.max(s1, s2);
+        precision = Math.min(precision, getMaxNumericPrecision());
+        assert precision > 0;
+
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
+                precision, scale);
       }
     }
     return null;
   }
 
 }
-
-// End RelDataTypeSystem.java

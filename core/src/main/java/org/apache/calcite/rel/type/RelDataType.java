@@ -242,5 +242,3 @@ public interface RelDataType {
   boolean isDynamicStruct();
 
 }
-
-// End RelDataType.java

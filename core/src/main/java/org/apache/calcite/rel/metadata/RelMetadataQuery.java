@@ -31,11 +31,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-import java.lang.reflect.Proxy;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -74,13 +71,8 @@ import java.util.Set;
  * providers. Then supply that instance to the planner via the appropriate
  * plugin mechanism.
  */
-public class RelMetadataQuery {
-  /** Set of active metadata queries, and cache of previous results. */
-  public final Map<List, Object> map = new HashMap<>();
-
-  public final JaninoRelMetadataProvider metadataProvider;
-
-  protected static final RelMetadataQuery EMPTY = new RelMetadataQuery(false);
+public class RelMetadataQuery extends RelMetadataQueryBase {
+  private static final RelMetadataQuery EMPTY = new RelMetadataQuery(false);
 
   private BuiltInMetadata.Collation.Handler collationHandler;
   private BuiltInMetadata.ColumnOrigin.Handler columnOriginHandler;
@@ -106,60 +98,18 @@ public class RelMetadataQuery {
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
 
-  public static final ThreadLocal<JaninoRelMetadataProvider> THREAD_PROVIDERS =
-      ThreadLocal.withInitial(() -> JaninoRelMetadataProvider.DEFAULT);
-
-  protected RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
-      RelMetadataQuery prototype) {
-    this.metadataProvider = Objects.requireNonNull(metadataProvider);
-    this.collationHandler = prototype.collationHandler;
-    this.columnOriginHandler = prototype.columnOriginHandler;
-    this.expressionLineageHandler = prototype.expressionLineageHandler;
-    this.tableReferencesHandler = prototype.tableReferencesHandler;
-    this.columnUniquenessHandler = prototype.columnUniquenessHandler;
-    this.cumulativeCostHandler = prototype.cumulativeCostHandler;
-    this.distinctRowCountHandler = prototype.distinctRowCountHandler;
-    this.distributionHandler = prototype.distributionHandler;
-    this.explainVisibilityHandler = prototype.explainVisibilityHandler;
-    this.maxRowCountHandler = prototype.maxRowCountHandler;
-    this.minRowCountHandler = prototype.minRowCountHandler;
-    this.memoryHandler = prototype.memoryHandler;
-    this.nonCumulativeCostHandler = prototype.nonCumulativeCostHandler;
-    this.parallelismHandler = prototype.parallelismHandler;
-    this.percentageOriginalRowsHandler = prototype.percentageOriginalRowsHandler;
-    this.populationSizeHandler = prototype.populationSizeHandler;
-    this.predicatesHandler = prototype.predicatesHandler;
-    this.allPredicatesHandler = prototype.allPredicatesHandler;
-    this.nodeTypesHandler = prototype.nodeTypesHandler;
-    this.rowCountHandler = prototype.rowCountHandler;
-    this.selectivityHandler = prototype.selectivityHandler;
-    this.sizeHandler = prototype.sizeHandler;
-    this.uniqueKeysHandler = prototype.uniqueKeysHandler;
-  }
-
-  protected static <H> H initialHandler(Class<H> handlerClass) {
-    return handlerClass.cast(
-        Proxy.newProxyInstance(RelMetadataQuery.class.getClassLoader(),
-            new Class[] {handlerClass}, (proxy, method, args) -> {
-              final RelNode r = (RelNode) args[0];
-              throw new JaninoRelMetadataProvider.NoHandler(r.getClass());
-            }));
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   /**
-   * Returns an instance of RelMetadataQuery. It ensures that cycles do not
-   * occur while computing metadata.
+   * Creates the instance with {@link JaninoRelMetadataProvider} instance
+   * from {@link #THREAD_PROVIDERS} and {@link #EMPTY} as a prototype.
    */
-  public static RelMetadataQuery instance() {
-    return new RelMetadataQuery(THREAD_PROVIDERS.get(), EMPTY);
+  protected RelMetadataQuery() {
+    this(THREAD_PROVIDERS.get(), EMPTY);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
    * all other instances. */
   private RelMetadataQuery(boolean dummy) {
-    this.metadataProvider = null;
+    super(null);
     this.collationHandler = initialHandler(BuiltInMetadata.Collation.Handler.class);
     this.columnOriginHandler = initialHandler(BuiltInMetadata.ColumnOrigin.Handler.class);
     this.expressionLineageHandler = initialHandler(BuiltInMetadata.ExpressionLineage.Handler.class);
@@ -186,11 +136,42 @@ public class RelMetadataQuery {
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
   }
 
-  /** Re-generates the handler for a given kind of metadata, adding support for
-   * {@code class_} if it is not already present. */
-  protected <M extends Metadata, H extends MetadataHandler<M>> H
-      revise(Class<? extends RelNode> class_, MetadataDef<M> def) {
-    return metadataProvider.revise(class_, def);
+  private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
+      RelMetadataQuery prototype) {
+    super(Objects.requireNonNull(metadataProvider));
+    this.collationHandler = prototype.collationHandler;
+    this.columnOriginHandler = prototype.columnOriginHandler;
+    this.expressionLineageHandler = prototype.expressionLineageHandler;
+    this.tableReferencesHandler = prototype.tableReferencesHandler;
+    this.columnUniquenessHandler = prototype.columnUniquenessHandler;
+    this.cumulativeCostHandler = prototype.cumulativeCostHandler;
+    this.distinctRowCountHandler = prototype.distinctRowCountHandler;
+    this.distributionHandler = prototype.distributionHandler;
+    this.explainVisibilityHandler = prototype.explainVisibilityHandler;
+    this.maxRowCountHandler = prototype.maxRowCountHandler;
+    this.minRowCountHandler = prototype.minRowCountHandler;
+    this.memoryHandler = prototype.memoryHandler;
+    this.nonCumulativeCostHandler = prototype.nonCumulativeCostHandler;
+    this.parallelismHandler = prototype.parallelismHandler;
+    this.percentageOriginalRowsHandler = prototype.percentageOriginalRowsHandler;
+    this.populationSizeHandler = prototype.populationSizeHandler;
+    this.predicatesHandler = prototype.predicatesHandler;
+    this.allPredicatesHandler = prototype.allPredicatesHandler;
+    this.nodeTypesHandler = prototype.nodeTypesHandler;
+    this.rowCountHandler = prototype.rowCountHandler;
+    this.selectivityHandler = prototype.selectivityHandler;
+    this.sizeHandler = prototype.sizeHandler;
+    this.uniqueKeysHandler = prototype.uniqueKeysHandler;
+  }
+
+  //~ Methods ----------------------------------------------------------------
+
+  /**
+   * Returns an instance of RelMetadataQuery. It ensures that cycles do not
+   * occur while computing metadata.
+   */
+  public static RelMetadataQuery instance() {
+    return new RelMetadataQuery();
   }
 
   /**
@@ -206,6 +187,8 @@ public class RelMetadataQuery {
         return nodeTypesHandler.getNodeTypes(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         nodeTypesHandler = revise(e.relClass, BuiltInMetadata.NodeTypes.DEF);
+      } catch (CyclicMetadataException e) {
+        return null;
       }
     }
   }
@@ -223,7 +206,7 @@ public class RelMetadataQuery {
     for (;;) {
       try {
         Double result = rowCountHandler.getRowCount(rel, this);
-        return validateResult(result);
+        return RelMdUtil.validateResult(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         rowCountHandler = revise(e.relClass, BuiltInMetadata.RowCount.DEF);
       }
@@ -320,7 +303,7 @@ public class RelMetadataQuery {
       try {
         Double result =
             percentageOriginalRowsHandler.getPercentageOriginalRows(rel, this);
-        return validatePercentage(result);
+        return RelMdUtil.validatePercentage(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         percentageOriginalRowsHandler =
             revise(e.relClass, BuiltInMetadata.PercentageOriginalRows.DEF);
@@ -437,7 +420,7 @@ public class RelMetadataQuery {
     for (;;) {
       try {
         Double result = selectivityHandler.getSelectivity(rel, this, predicate);
-        return validatePercentage(result);
+        return RelMdUtil.validatePercentage(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         selectivityHandler =
             revise(e.relClass, BuiltInMetadata.Selectivity.DEF);
@@ -598,7 +581,7 @@ public class RelMetadataQuery {
       try {
         Double result =
             populationSizeHandler.getPopulationSize(rel, this, groupKey);
-        return validateResult(result);
+        return RelMdUtil.validateResult(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         populationSizeHandler =
             revise(e.relClass, BuiltInMetadata.PopulationSize.DEF);
@@ -773,7 +756,7 @@ public class RelMetadataQuery {
         Double result =
             distinctRowCountHandler.getDistinctRowCount(rel, this, groupKey,
                 predicate);
-        return validateResult(result);
+        return RelMdUtil.validateResult(result);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distinctRowCountHandler =
             revise(e.relClass, BuiltInMetadata.DistinctRowCount.DEF);
@@ -841,72 +824,23 @@ public class RelMetadataQuery {
     }
   }
 
-  private static Double validatePercentage(Double result) {
-    assert isPercentage(result, true);
-    return result;
-  }
-
   /**
    * Returns the
    * {@link BuiltInMetadata.Distribution#distribution()}
    * statistic.
    *
-   * @param rel          the relational expression
+   * @param rel the relational expression
    *
    * @return description of how the rows in the relational expression are
    * physically distributed
    */
   public RelDistribution getDistribution(RelNode rel) {
-    final BuiltInMetadata.Distribution metadata =
-        rel.metadata(BuiltInMetadata.Distribution.class, this);
-    return metadata.distribution();
-  }
-
-  private static boolean isPercentage(Double result, boolean fail) {
-    if (result != null) {
-      final double d = result;
-      if (d < 0.0) {
-        assert !fail;
-        return false;
-      }
-      if (d > 1.0) {
-        assert !fail;
-        return false;
+    for (;;) {
+      try {
+        return distributionHandler.distribution(rel, this);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        distributionHandler = revise(e.relClass, BuiltInMetadata.Distribution.DEF);
       }
     }
-    return true;
   }
-
-  private static boolean isNonNegative(Double result, boolean fail) {
-    if (result != null) {
-      final double d = result;
-      if (d < 0.0) {
-        assert !fail;
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static Double validateResult(Double result) {
-    if (result == null) {
-      return null;
-    }
-
-    // Never let the result go below 1, as it will result in incorrect
-    // calculations if the row-count is used as the denominator in a
-    // division expression.  Also, cap the value at the max double value
-    // to avoid calculations using infinity.
-    if (result.isInfinite()) {
-      result = Double.MAX_VALUE;
-    }
-    assert isNonNegative(result, true);
-    if (result < 1.0) {
-      result = 1.0;
-    }
-    return result;
-  }
-
 }
-
-// End RelMetadataQuery.java

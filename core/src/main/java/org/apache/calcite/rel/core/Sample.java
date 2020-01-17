@@ -86,5 +86,3 @@ public class Sample extends SingleRel {
             params.isRepeatable() ? params.getRepeatableSeed() : "-");
   }
 }
-
-// End Sample.java

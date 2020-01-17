@@ -73,5 +73,3 @@ public class EnumerableUnion extends Union implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableUnion.java

@@ -64,5 +64,3 @@ public enum InterpretableConvention implements Convention {
     return false;
   }
 }
-
-// End InterpretableConvention.java

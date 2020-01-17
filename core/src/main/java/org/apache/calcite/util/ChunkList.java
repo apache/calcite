@@ -415,5 +415,3 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     }
   }
 }
-
-// End ChunkList.java

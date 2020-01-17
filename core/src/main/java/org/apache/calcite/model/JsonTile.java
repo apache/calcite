@@ -52,5 +52,3 @@ public class JsonTile {
     handler.visit(this);
   }
 }
-
-// End JsonTile.java

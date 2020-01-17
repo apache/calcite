@@ -86,5 +86,3 @@ public class CachingSqlStatisticProvider implements SqlStatisticProvider {
     }
   }
 }
-
-// End CachingSqlStatisticProvider.java

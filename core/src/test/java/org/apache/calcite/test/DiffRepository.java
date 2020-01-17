@@ -22,8 +22,12 @@ import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
 
-import org.junit.Assert;
-import org.junit.ComparisonFailure;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
+import org.junit.jupiter.api.Assertions;
+import org.opentest4j.AssertionFailedError;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
@@ -39,10 +43,9 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -161,8 +164,8 @@ public class DiffRepository {
    * the same class to share the same diff-repository: if the repository gets
    * loaded once per test case, then only one diff is recorded.
    */
-  private static final Map<Class, DiffRepository> MAP_CLASS_TO_REPOSITORY =
-      new HashMap<>();
+  private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
+      CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
 
   //~ Instance fields --------------------------------------------------------
 
@@ -172,8 +175,6 @@ public class DiffRepository {
   private final Element root;
   private final File logFile;
   private final Filter filter;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Creates a DiffRepository.
@@ -433,11 +434,8 @@ public class DiffRepository {
             expected2.replace(Util.LINE_SEPARATOR, "\n");
         String actualCanonical =
             actual.replace(Util.LINE_SEPARATOR, "\n");
-        Assert.assertEquals(
-            tag,
-            expected2Canonical,
-            actualCanonical);
-      } catch (ComparisonFailure e) {
+        Assertions.assertEquals(expected2Canonical, actualCanonical, tag);
+      } catch (AssertionFailedError e) {
         amend(expected, actual);
         throw e;
       }
@@ -760,22 +758,11 @@ public class DiffRepository {
    * @param filter    Filters each string returned by the repository
    * @return The diff repository shared between test cases in this class.
    */
-  public static synchronized DiffRepository lookup(
-      Class clazz,
+  public static DiffRepository lookup(Class clazz,
       DiffRepository baseRepository,
       Filter filter) {
-    DiffRepository diffRepository = MAP_CLASS_TO_REPOSITORY.get(clazz);
-    if (diffRepository == null) {
-      final URL refFile = findFile(clazz, ".xml");
-      final File logFile =
-          new File(
-              Sources.of(refFile).file().getAbsolutePath()
-                  .replace("test-classes", "surefire"));
-      diffRepository =
-          new DiffRepository(refFile, logFile, baseRepository, filter);
-      MAP_CLASS_TO_REPOSITORY.put(clazz, diffRepository);
-    }
-    return diffRepository;
+    final Key key = new Key(clazz, baseRepository, filter);
+    return REPOSITORY_CACHE.getUnchecked(key);
   }
 
   /**
@@ -799,6 +786,38 @@ public class DiffRepository {
         String text,
         String expanded);
   }
-}
 
-// End DiffRepository.java
+  /** Cache key. */
+  private static class Key {
+    private final Class clazz;
+    private final DiffRepository baseRepository;
+    private final Filter filter;
+
+    Key(Class clazz, DiffRepository baseRepository, Filter filter) {
+      this.clazz = Objects.requireNonNull(clazz);
+      this.baseRepository = baseRepository;
+      this.filter = filter;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(clazz, baseRepository, filter);
+    }
+
+    @Override public boolean equals(Object obj) {
+      return this == obj
+          || obj instanceof Key
+          && clazz.equals(((Key) obj).clazz)
+          && Objects.equals(baseRepository, ((Key) obj).baseRepository)
+          && Objects.equals(filter, ((Key) obj).filter);
+    }
+
+    DiffRepository toRepo() {
+      final URL refFile = findFile(clazz, ".xml");
+      final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
+      final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
+      final File logFile = new File(logFilePath);
+      assert !refFilePath.equals(logFile.getAbsolutePath());
+      return new DiffRepository(refFile, logFile, baseRepository, filter);
+    }
+  }
+}

@@ -72,14 +72,14 @@ public class Matcher<E> {
     return new Builder<>(automaton);
   }
 
-  public List<List<E>> match(E... rows) {
+  public List<PartialMatch<E>> match(E... rows) {
     return match(Arrays.asList(rows));
   }
 
-  public List<List<E>> match(Iterable<E> rows) {
-    final ImmutableList.Builder<List<E>> resultMatchBuilder =
+  public List<PartialMatch<E>> match(Iterable<E> rows) {
+    final ImmutableList.Builder<PartialMatch<E>> resultMatchBuilder =
         ImmutableList.builder();
-    final Consumer<List<E>> resultMatchConsumer = resultMatchBuilder::add;
+    final Consumer<PartialMatch<E>> resultMatchConsumer = resultMatchBuilder::add;
     final PartitionState<E> partitionState = createPartitionState(0, 0);
     for (E row : rows) {
       partitionState.getMemoryFactory().add(row);
@@ -98,10 +98,10 @@ public class Matcher<E> {
    * This method ignores the symbols that caused a transition.
    */
   protected void matchOne(MemoryFactory.Memory<E> rows,
-      PartitionState<E> partitionState, Consumer<List<E>> resultMatches) {
+      PartitionState<E> partitionState, Consumer<PartialMatch<E>> resultMatches) {
     List<PartialMatch<E>> matches = matchOneWithSymbols(rows, partitionState);
     for (PartialMatch<E> pm : matches) {
-      resultMatches.accept(pm.rows);
+      resultMatches.accept(pm);
     }
   }
 
@@ -349,5 +349,3 @@ public class Matcher<E> {
     }
   }
 }
-
-// End Matcher.java

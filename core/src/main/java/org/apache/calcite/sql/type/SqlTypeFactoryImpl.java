@@ -63,7 +63,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     assertBasic(typeName);
     assert (precision >= 0)
         || (precision == RelDataType.PRECISION_NOT_SPECIFIED);
-    RelDataType newType = new BasicSqlType(typeSystem, typeName, precision);
+    // Does not check precision when typeName is SqlTypeName#NULL.
+    RelDataType newType = precision == RelDataType.PRECISION_NOT_SPECIFIED
+        ? new BasicSqlType(typeSystem, typeName)
+        : new BasicSqlType(typeSystem, typeName, precision);
     newType = SqlTypeUtil.addCharsetAndCollation(newType, this);
     return canonize(newType);
   }
@@ -217,6 +220,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createMultisetType() instead";
     assert typeName != SqlTypeName.ARRAY
         : "use createArrayType() instead";
+    assert typeName != SqlTypeName.MAP
+        : "use createMapType() instead";
     assert typeName != SqlTypeName.ROW
         : "use createStructType() instead";
     assert !SqlTypeName.INTERVAL_TYPES.contains(typeName)
@@ -560,5 +565,3 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     }
   }
 }
-
-// End SqlTypeFactoryImpl.java

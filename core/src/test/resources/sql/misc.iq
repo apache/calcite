@@ -290,8 +290,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
@@ -314,8 +314,8 @@ and e."name" <> d."name";
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t2):VARCHAR], expr#6=[CAST($t4):VARCHAR], expr#7=[<>($t5, $t6)], empid=[$t0], name=[$t4], name0=[$t2], $condition=[$t7])
-  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
+EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
+  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
     EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
       EnumerableTableScan(table=[[hr, emps]])
     EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
@@ -335,14 +335,14 @@ where exists (select 1 from "hr"."emps");
 (3 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t1])
-  EnumerableHashJoin(condition=[true], joinType=[inner])
+EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
       EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
         EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], $f0=[$t5])
           EnumerableTableScan(table=[[hr, emps]])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-      EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Un-correlated NOT EXISTS
@@ -356,7 +356,7 @@ where not exists (select 1 from "hr"."emps");
 
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
-  EnumerableHashJoin(condition=[true], joinType=[left])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
       EnumerableTableScan(table=[[hr, depts]])
     EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
@@ -374,14 +374,14 @@ where exists (select 1 from "hr"."emps" where "empid" < 0);
 (0 rows)
 
 !ok
-EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t1])
-  EnumerableHashJoin(condition=[true], joinType=[inner])
+EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
+    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
+      EnumerableTableScan(table=[[hr, depts]])
     EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], $f0=[$t0], $condition=[$t1])
       EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
         EnumerableCalc(expr#0..4=[{inputs}], expr#5=[true], expr#6=[0], expr#7=[<($t0, $t6)], $f0=[$t5], $condition=[$t7])
           EnumerableTableScan(table=[[hr, emps]])
-    EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
-      EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Un-correlated NOT EXISTS (table empty)
@@ -398,7 +398,7 @@ where not exists (select 1 from "hr"."emps" where "empid" < 0);
 
 !ok
 EnumerableCalc(expr#0..1=[{inputs}], expr#2=[IS NULL($t1)], deptno=[$t0], $condition=[$t2])
-  EnumerableHashJoin(condition=[true], joinType=[left])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..3=[{inputs}], deptno=[$t0])
       EnumerableTableScan(table=[[hr, depts]])
     EnumerableAggregate(group=[{}], agg#0=[MIN($0)])
@@ -556,7 +556,7 @@ select count(*) as c from "hr"."emps", "hr"."depts";
 
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()])
-  EnumerableHashJoin(condition=[true], joinType=[inner])
+  EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
     EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], DUMMY=[$t4])
       EnumerableTableScan(table=[[hr, depts]])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], DUMMY=[$t5])
@@ -639,7 +639,7 @@ select count(*) as c
 from "customer"
 where period ("birthdate", DATE '1970-02-05') contains DATE '1964-01-01';
 EnumerableAggregate(group=[{}], C=[COUNT()])
-  EnumerableCalc(expr#0..28=[{inputs}], expr#29=[1970-02-05], expr#30=[<=($t16, $t29)], expr#31=[CASE($t30, $t16, $t29)], expr#32=[1964-01-01], expr#33=[<=($t31, $t32)], expr#34=[CASE($t30, $t29, $t16)], expr#35=[>=($t34, $t32)], expr#36=[AND($t33, $t35)], proj#0..28=[{exprs}], $condition=[$t36])
+  EnumerableCalc(expr#0..28=[{inputs}], expr#29=[1964-01-01], expr#30=[<=($t16, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
     EnumerableTableScan(table=[[foodmart2, customer]])
 !plan
 +------+
@@ -683,7 +683,7 @@ from "sales_fact_1997" as s
   join "product_class" as pc on p."product_class_id" = pc."product_class_id"
 where c."city" = 'San Francisco'
  and pc."product_department" = 'Snacks';
-EnumerableCalc(expr#0..56=[{inputs}], product_id=[$t20], time_id=[$t21], customer_id=[$t22], promotion_id=[$t23], store_id=[$t24], store_sales=[$t25], store_cost=[$t26], unit_sales=[$t27], customer_id0=[$t28], account_num=[$t29], lname=[$t30], fname=[$t31], mi=[$t32], address1=[$t33], address2=[$t34], address3=[$t35], address4=[$t36], city=[$t37], state_province=[$t38], postal_code=[$t39], country=[$t40], customer_region_id=[$t41], phone1=[$t42], phone2=[$t43], birthdate=[$t44], marital_status=[$t45], yearly_income=[$t46], gender=[$t47], total_children=[$t48], num_children_at_home=[$t49], education=[$t50], date_accnt_opened=[$t51], member_card=[$t52], occupation=[$t53], houseowner=[$t54], num_cars_owned=[$t55], fullname=[$t56], product_class_id=[$t5], product_id0=[$t6], brand_name=[$t7], product_name=[$t8], SKU=[$t9], SRP=[$t10], gross_weight=[$t11], net_weight=[$t12], recyclable_package=[$t13], low_fat=[$t14], units_per_case=[$t15], cases_per_pallet=[$t16], shelf_width=[$t17], shelf_height=[$t18], shelf_depth=[$t19], product_class_id0=[$t0], product_subcategory=[$t1], product_category=[$t2], product_department=[$t3], product_family=[$t4])
+EnumerableCalc(expr#0..56=[{inputs}], product_id0=[$t20], time_id=[$t21], customer_id=[$t22], promotion_id=[$t23], store_id=[$t24], store_sales=[$t25], store_cost=[$t26], unit_sales=[$t27], customer_id0=[$t28], account_num=[$t29], lname=[$t30], fname=[$t31], mi=[$t32], address1=[$t33], address2=[$t34], address3=[$t35], address4=[$t36], city=[$t37], state_province=[$t38], postal_code=[$t39], country=[$t40], customer_region_id=[$t41], phone1=[$t42], phone2=[$t43], birthdate=[$t44], marital_status=[$t45], yearly_income=[$t46], gender=[$t47], total_children=[$t48], num_children_at_home=[$t49], education=[$t50], date_accnt_opened=[$t51], member_card=[$t52], occupation=[$t53], houseowner=[$t54], num_cars_owned=[$t55], fullname=[$t56], product_class_id0=[$t5], product_id=[$t6], brand_name=[$t7], product_name=[$t8], SKU=[$t9], SRP=[$t10], gross_weight=[$t11], net_weight=[$t12], recyclable_package=[$t13], low_fat=[$t14], units_per_case=[$t15], cases_per_pallet=[$t16], shelf_width=[$t17], shelf_height=[$t18], shelf_depth=[$t19], product_class_id=[$t0], product_subcategory=[$t1], product_category=[$t2], product_department=[$t3], product_family=[$t4])
   EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])
     EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])
       EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks':VARCHAR(30)], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
@@ -1123,7 +1123,7 @@ select * from "scott".emp where hiredate < '1981-01-02';
 (1 row)
 
 !ok
-EnumerableCalc(expr#0..7=[{inputs}], expr#8=['1981-01-02'], expr#9=[CAST($t8):DATE NOT NULL], expr#10=[<($t4, $t9)], proj#0..7=[{exprs}], $condition=[$t10])
+EnumerableCalc(expr#0..7=[{inputs}], expr#8=[1981-01-02], expr#9=[<($t4, $t8)], proj#0..7=[{exprs}], $condition=[$t9])
   EnumerableTableScan(table=[[scott, EMP]])
 !plan
 select * from "scott".emp where '1981-01-02' > hiredate;
@@ -1207,14 +1207,14 @@ select * from "scott".emp where empno between '7500' and '07600';
 (2 rows)
 
 !ok
-select * from "scott".emp where deptno between '7369' and '7876';
-+-------+-------+-----+-----+----------+-----+------+--------+
-| EMPNO | ENAME | JOB | MGR | HIREDATE | SAL | COMM | DEPTNO |
-+-------+-------+-----+-----+----------+-----+------+--------+
-+-------+-------+-----+-----+----------+-----+------+--------+
-(0 rows)
 
-!ok
+# BETWEEN follows the PostgreSQL style to coerce STRING operand to type of the other
+# NUMERIC operands, see TypeCoercionImpl#commonTypeForBinaryComparison.
+select * from "scott".emp where deptno between '7369' and '7876';
+
+Caused by: java.lang.NumberFormatException: Value out of range. Value:"7369" Radix:10
+!error
+
 select * from "scott".emp where '7369' between empno and '7876';
 +-------+-------+-------+------+------------+--------+------+--------+
 | EMPNO | ENAME | JOB   | MGR  | HIREDATE   | SAL    | COMM | DEPTNO |

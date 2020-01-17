@@ -18,9 +18,4 @@
 /**
  * Utilities required at runtime.
  */
-@PackageMarker
 package org.apache.calcite.runtime;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

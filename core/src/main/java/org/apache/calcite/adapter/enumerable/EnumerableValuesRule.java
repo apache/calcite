@@ -46,5 +46,3 @@ public class EnumerableValuesRule extends ConverterRule {
         values.getTuples());
   }
 }
-
-// End EnumerableValuesRule.java

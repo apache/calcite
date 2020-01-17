@@ -231,6 +231,11 @@ public abstract class OperandTypes {
   public static final FamilyOperandTypeChecker STRING_STRING_STRING =
       family(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING);
 
+  public static final FamilyOperandTypeChecker STRING_STRING_OPTIONAL_STRING =
+      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          // Third operand optional (operand index 0, 1, 2)
+          number -> number == 2);
+
   public static final SqlSingleOperandTypeChecker CHARACTER =
       family(SqlTypeFamily.CHARACTER);
 
@@ -515,63 +520,79 @@ public abstract class OperandTypes {
    *
    * @see #COLLECTION */
   public static final SqlSingleOperandTypeChecker RECORD_COLLECTION =
-      new SqlSingleOperandTypeChecker() {
-        public boolean checkSingleOperandType(
-            SqlCallBinding callBinding,
-            SqlNode node,
-            int iFormalOperand,
-            boolean throwOnFailure) {
-          assert 0 == iFormalOperand;
-          RelDataType type =
-              callBinding.getValidator().deriveType(
-                  callBinding.getScope(),
-                  node);
-          boolean validationError = false;
-          if (!type.isStruct()) {
-            validationError = true;
-          } else if (type.getFieldList().size() != 1) {
-            validationError = true;
-          } else {
-            SqlTypeName typeName =
-                type.getFieldList().get(0).getType().getSqlTypeName();
-            if (typeName != SqlTypeName.MULTISET
-                && typeName != SqlTypeName.ARRAY) {
-              validationError = true;
-            }
-          }
+      new RecordTypeWithOneFieldChecker(
+          sqlTypeName ->
+              sqlTypeName != SqlTypeName.ARRAY && sqlTypeName != SqlTypeName.MULTISET) {
 
-          if (validationError && throwOnFailure) {
-            throw callBinding.newValidationSignatureError();
-          }
-          return !validationError;
-        }
-
-        public boolean checkOperandTypes(
-            SqlCallBinding callBinding,
-            boolean throwOnFailure) {
-          return checkSingleOperandType(
-              callBinding,
-              callBinding.operand(0),
-              0,
-              throwOnFailure);
-        }
-
-        public SqlOperandCountRange getOperandCountRange() {
-          return SqlOperandCountRanges.of(1);
-        }
-
-        public String getAllowedSignatures(SqlOperator op, String opName) {
+        @Override public String getAllowedSignatures(SqlOperator op, String opName) {
           return "UNNEST(<MULTISET>)";
         }
-
-        public boolean isOptional(int i) {
-          return false;
-        }
-
-        public Consistency getConsistency() {
-          return Consistency.NONE;
-        }
       };
+
+
+  /**
+   * Checker for record just has one field.
+   */
+  private abstract static class RecordTypeWithOneFieldChecker
+      implements SqlSingleOperandTypeChecker {
+
+    private final Predicate<SqlTypeName> typeNamePredicate;
+
+    private RecordTypeWithOneFieldChecker(Predicate<SqlTypeName> predicate) {
+      this.typeNamePredicate = predicate;
+    }
+
+    public boolean checkSingleOperandType(
+        SqlCallBinding callBinding,
+        SqlNode node,
+        int iFormalOperand,
+        boolean throwOnFailure) {
+      assert 0 == iFormalOperand;
+      RelDataType type =
+          callBinding.getValidator().deriveType(
+              callBinding.getScope(),
+              node);
+      boolean validationError = false;
+      if (!type.isStruct()) {
+        validationError = true;
+      } else if (type.getFieldList().size() != 1) {
+        validationError = true;
+      } else {
+        SqlTypeName typeName =
+            type.getFieldList().get(0).getType().getSqlTypeName();
+        if (typeNamePredicate.test(typeName)) {
+          validationError = true;
+        }
+      }
+
+      if (validationError && throwOnFailure) {
+        throw callBinding.newValidationSignatureError();
+      }
+      return !validationError;
+    }
+
+    public boolean checkOperandTypes(
+        SqlCallBinding callBinding,
+        boolean throwOnFailure) {
+      return checkSingleOperandType(
+          callBinding,
+          callBinding.operand(0),
+          0,
+          throwOnFailure);
+    }
+
+    public SqlOperandCountRange getOperandCountRange() {
+      return SqlOperandCountRanges.of(1);
+    }
+
+    public boolean isOptional(int i) {
+      return false;
+    }
+
+    public Consistency getConsistency() {
+      return Consistency.NONE;
+    }
+  }
 
   /** Checker that returns whether a value is a collection (multiset or array)
    * of scalar or record values. */
@@ -579,7 +600,17 @@ public abstract class OperandTypes {
       OperandTypes.or(COLLECTION, RECORD_COLLECTION);
 
   public static final SqlSingleOperandTypeChecker SCALAR_OR_RECORD_COLLECTION_OR_MAP =
-      OperandTypes.or(COLLECTION_OR_MAP, RECORD_COLLECTION);
+      OperandTypes.or(COLLECTION_OR_MAP,
+          new RecordTypeWithOneFieldChecker(
+              sqlTypeName ->
+                  sqlTypeName != SqlTypeName.MULTISET
+                      && sqlTypeName != SqlTypeName.ARRAY
+                      && sqlTypeName != SqlTypeName.MAP) {
+
+          @Override public String getAllowedSignatures(SqlOperator op, String opName) {
+            return "UNNEST(<MULTISET>)\nUNNEST(<ARRAY>)\nUNNEST(<MAP>)";
+          }
+        });
 
   public static final SqlOperandTypeChecker MULTISET_MULTISET =
       new MultisetOperandTypeChecker();
@@ -703,5 +734,3 @@ public abstract class OperandTypes {
     }
   }
 }
-
-// End OperandTypes.java

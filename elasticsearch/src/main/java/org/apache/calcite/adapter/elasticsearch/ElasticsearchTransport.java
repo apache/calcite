@@ -296,5 +296,3 @@ final class ElasticsearchTransport {
     }
   }
 }
-
-// End ElasticsearchTransport.java

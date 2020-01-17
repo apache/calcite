@@ -82,5 +82,3 @@ public class ArrayLengthRecordField implements Types.RecordField {
     return Objects.hash(fieldName, clazz);
   }
 }
-
-// End ArrayLengthRecordField.java

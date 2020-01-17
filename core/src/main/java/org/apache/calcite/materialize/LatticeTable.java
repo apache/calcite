@@ -52,5 +52,3 @@ public class LatticeTable {
     return t.getRowType().getFieldList().get(i);
   }
 }
-
-// End LatticeTable.java

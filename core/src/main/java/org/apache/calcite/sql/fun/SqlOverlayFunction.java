@@ -79,5 +79,3 @@ public class SqlOverlayFunction extends SqlFunction {
     return null;
   }
 }
-
-// End SqlOverlayFunction.java

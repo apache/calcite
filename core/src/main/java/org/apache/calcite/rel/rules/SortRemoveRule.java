@@ -65,5 +65,3 @@ public class SortRemoveRule extends RelOptRule {
     call.transformTo(convert(sort.getInput(), traits));
   }
 }
-
-// End SortRemoveRule.java

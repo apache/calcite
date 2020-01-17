@@ -32,10 +32,9 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -55,14 +54,15 @@ import static org.apache.calcite.test.Matchers.within;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Unit test for lattices.
  */
-@Category(SlowTests.class)
+@Tag("slow")
 public class LatticeTest {
   private static final String SALES_LATTICE = "{\n"
       + "  name: 'star',\n"
@@ -492,8 +492,8 @@ public class LatticeTest {
   /** As {@link #testTileAlgorithm()}, but uses the
    * {@link Lattices#PROFILER} statistics provider. */
   @Test public void testTileAlgorithm3() {
-    Assume.assumeTrue("Yahoo sketches requires JDK 8 or higher",
-        TestUtil.getJavaMajorVersion() >= 8);
+    assumeTrue(TestUtil.getJavaMajorVersion() >= 8,
+        "Yahoo sketches requires JDK 8 or higher");
     final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
         + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#PROFILER",
@@ -683,7 +683,7 @@ public class LatticeTest {
   /** Runs all queries against the Foodmart schema, using a lattice.
    *
    * <p>Disabled for normal runs, because it is slow. */
-  @Ignore
+  @Disabled
   @Test public void testAllFoodmartQueries() throws IOException {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
     final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
@@ -718,31 +718,88 @@ public class LatticeTest {
   /** A tile with no measures should inherit default measure list from the
    * lattice. */
   @Test public void testTileWithNoMeasures() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .query("select count(t.\"the_year\", t.\"quarter\")\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT($0, $1)])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
+        .returnsCount(1);
   }
 
   /** A lattice with no default measure list should get "count(*)" is its
    * default measure. */
   @Test public void testLatticeWithNoMeasures() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .query("select count(*)\n"
+            + "from \"foodmart\".\"sales_fact_1997\" as s\n"
+            + "join \"foodmart\".\"time_by_day\" as t using (\"time_id\")\n")
+        .enableMaterializations(true)
+        .explainContains("EnumerableAggregate(group=[{}], EXPR$0=[COUNT()])\n"
+            + "  EnumerableTableScan(table=[[adhoc, m{32, 36}")
+        .returnsCount(1);
   }
 
   @Test public void testDimensionIsInvalidColumn() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'invalid_column'],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice column 'invalid_column'");
   }
 
   @Test public void testMeasureArgIsInvalidColumn() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "   agg: 'sum',\n"
+        + "   args: 'invalid_column'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice column 'invalid_column'");
   }
 
-  /** It is an error for "customer_id" to be a measure arg, because is not a
-   * unique alias. Both "c" and "t" have "customer_id". */
+  /** It is an error for "time_id" to be a measure arg, because is not a
+   * unique alias. Both "s" and "t" have "time_id". */
   @Test public void testMeasureArgIsNotUniqueAlias() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'count',\n"
+        + "    args: 'time_id'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Lattice column alias 'time_id' is not unique");
   }
 
   @Test public void testMeasureAggIsInvalid() {
-    // TODO
+    foodmartModel(" auto: false,\n"
+        + "  defaultMeasures: [ {\n"
+        + "    agg: 'invalid_count',\n"
+        + "    args: 'customer_id'\n"
+        + "  } ],\n"
+        + "  tiles: [ {\n"
+        + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
+        + "    measures: [ ]\n"
+        + "  } ]\n")
+        .connectThrows("Unknown lattice aggregate function invalid_count");
   }
 
   @Test public void testTwoLattices() {
@@ -828,7 +885,7 @@ public class LatticeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
    * Aggregate recommender blows up if row count estimate is too high</a>. */
-  @Ignore
+  @Disabled
   @Test public void testLatticeWithBadRowCountEstimate() {
     final String lattice =
         INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",
@@ -929,5 +986,3 @@ public class LatticeTest {
     assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
   }
 }
-
-// End LatticeTest.java

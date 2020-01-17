@@ -123,5 +123,3 @@ class FileTable extends AbstractQueryableTable
         relOptTable, (Class) getElementType());
   }
 }
-
-// End FileTable.java

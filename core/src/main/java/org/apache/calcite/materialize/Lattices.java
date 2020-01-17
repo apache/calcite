@@ -34,5 +34,3 @@ public class Lattices {
   public static final LatticeStatisticProvider.Factory PROFILER =
       ProfilerLatticeStatisticProvider.FACTORY;
 }
-
-// End Lattices.java

@@ -39,10 +39,29 @@ import java.util.Objects;
 class Step extends DefaultEdge {
   final List<IntPair> keys;
 
-  Step(LatticeTable source, LatticeTable target, List<IntPair> keys) {
+  /** String representation of {@link #keys}. Computing the string requires a
+   * {@link LatticeSpace}, so we pre-compute it before construction. */
+  final String keyString;
+
+  private Step(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, String keyString) {
     super(source, target);
     this.keys = ImmutableList.copyOf(keys);
+    this.keyString = Objects.requireNonNull(keyString);
     assert IntPair.ORDERING.isStrictlyOrdered(keys); // ordered and unique
+  }
+
+  /** Creates a Step. */
+  static Step create(LatticeTable source, LatticeTable target,
+      List<IntPair> keys, LatticeSpace space) {
+    final StringBuilder b = new StringBuilder();
+    for (IntPair key : keys) {
+      b.append(' ')
+          .append(space.fieldName(source, key.source))
+          .append(':')
+          .append(space.fieldName(target, key.target));
+    }
+    return new Step(source, target, keys, b.toString());
   }
 
   @Override public int hashCode() {
@@ -58,20 +77,7 @@ class Step extends DefaultEdge {
   }
 
   @Override public String toString() {
-    final StringBuilder b = new StringBuilder()
-        .append("Step(")
-        .append(source)
-        .append(", ")
-        .append(target)
-        .append(",");
-    for (IntPair key : keys) {
-      b.append(' ')
-          .append(source().field(key.source).getName())
-          .append(':')
-          .append(target().field(key.target).getName());
-    }
-    return b.append(")")
-        .toString();
+    return "Step(" + source + ", " + target + "," + keyString + ")";
   }
 
   LatticeTable source() {
@@ -87,13 +93,21 @@ class Step extends DefaultEdge {
     final List<Integer> sourceColumns = IntPair.left(keys);
     final RelOptTable targetTable = target().t;
     final List<Integer> targetColumns = IntPair.right(keys);
-    final boolean forwardForeignKey =
-        statisticProvider.isForeignKey(sourceTable, sourceColumns, targetTable,
-            targetColumns)
+    final boolean noDerivedSourceColumns =
+        sourceColumns.stream().allMatch(i ->
+            i < sourceTable.getRowType().getFieldCount());
+    final boolean noDerivedTargetColumns =
+        targetColumns.stream().allMatch(i ->
+            i < targetTable.getRowType().getFieldCount());
+    final boolean forwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(sourceTable, sourceColumns,
+            targetTable, targetColumns)
         && statisticProvider.isKey(targetTable, targetColumns);
-    final boolean backwardForeignKey =
-        statisticProvider.isForeignKey(targetTable, targetColumns, sourceTable,
-            sourceColumns)
+    final boolean backwardForeignKey = noDerivedSourceColumns
+        && noDerivedTargetColumns
+        && statisticProvider.isForeignKey(targetTable, targetColumns,
+            sourceTable, sourceColumns)
         && statisticProvider.isKey(sourceTable, sourceColumns);
     if (backwardForeignKey != forwardForeignKey) {
       return backwardForeignKey;
@@ -124,6 +138,12 @@ class Step extends DefaultEdge {
   /** Creates {@link Step} instances. */
   static class Factory implements AttributedDirectedGraph.AttributedEdgeFactory<
       LatticeTable, Step> {
+    private final LatticeSpace space;
+
+    Factory(LatticeSpace space) {
+      this.space = Objects.requireNonNull(space);
+    }
+
     public Step createEdge(LatticeTable source, LatticeTable target) {
       throw new UnsupportedOperationException();
     }
@@ -132,9 +152,7 @@ class Step extends DefaultEdge {
         Object... attributes) {
       @SuppressWarnings("unchecked") final List<IntPair> keys =
           (List) attributes[0];
-      return new Step(source, target, keys);
+      return Step.create(source, target, keys, space);
     }
   }
 }
-
-// End Step.java

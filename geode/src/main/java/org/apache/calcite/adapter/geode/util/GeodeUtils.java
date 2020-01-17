@@ -103,7 +103,6 @@ public class GeodeUtils {
         .addPoolLocator(locatorHost, locatorPort)
         .setPdxSerializer(new ReflectionBasedAutoSerializer(autoSerializerPackagePath))
         .setPdxReadSerialized(readSerialized)
-        .setPdxPersistent(false)
         .create();
   }
 
@@ -257,12 +256,13 @@ public class GeodeUtils {
       primitive = Primitive.ofBox(clazz);
     }
     if (clazz == null) {
-      // This is in case of nested Objects!
-      if (o instanceof PdxInstance) {
-        return Util.toString(
-            ((PdxInstance) o).getFieldNames(), "PDX[", ",", "]");
-      }
       return o.toString();
+    }
+    if (Map.class.isAssignableFrom(clazz)
+            && o instanceof PdxInstance) {
+      // This is in case of nested Objects!
+      return Util.toString(
+              ((PdxInstance) o).getFieldNames(), "PDX[", ",", "]");
     }
     if (clazz.isInstance(o)) {
       return o;
@@ -321,5 +321,3 @@ public class GeodeUtils {
   }
 
 }
-
-// End GeodeUtils.java

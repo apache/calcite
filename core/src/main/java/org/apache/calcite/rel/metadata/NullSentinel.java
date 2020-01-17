@@ -43,5 +43,3 @@ public enum NullSentinel {
     return value;
   }
 }
-
-// End NullSentinel.java

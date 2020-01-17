@@ -77,5 +77,3 @@ public final class LogicalUnion extends Union {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalUnion.java

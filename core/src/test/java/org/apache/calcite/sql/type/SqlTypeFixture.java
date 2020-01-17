@@ -48,6 +48,8 @@ class SqlTypeFixture {
       typeFactory.createSqlType(SqlTypeName.ANY), false);
   final RelDataType sqlFloat = typeFactory.createTypeWithNullability(
       typeFactory.createSqlType(SqlTypeName.FLOAT), false);
+  final RelDataType sqlTimestamp = typeFactory.createTypeWithNullability(
+      typeFactory.createSqlType(SqlTypeName.TIMESTAMP, 3), false);
   final RelDataType arrayFloat = typeFactory.createTypeWithNullability(
       typeFactory.createArrayType(sqlFloat, -1), false);
   final RelDataType arrayBigInt = typeFactory.createTypeWithNullability(
@@ -71,5 +73,3 @@ class SqlTypeFixture {
           ImmutableList.of(sqlInt, sqlInt),
           ImmutableList.of("i", "j")), true);
 }
-
-// End SqlTypeFixture.java

@@ -20,7 +20,7 @@ import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.io.Resources;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -109,5 +109,3 @@ public class KafkaAdapterTest {
         .failsAtValidation("Cannot convert stream 'MOCKTABLE' to relation");
   }
 }
-
-// End KafkaAdapterTest.java

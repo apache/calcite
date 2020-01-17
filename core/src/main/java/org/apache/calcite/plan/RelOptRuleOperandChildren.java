@@ -51,5 +51,3 @@ public class RelOptRuleOperandChildren {
     this.operands = ImmutableList.copyOf(operands);
   }
 }
-
-// End RelOptRuleOperandChildren.java

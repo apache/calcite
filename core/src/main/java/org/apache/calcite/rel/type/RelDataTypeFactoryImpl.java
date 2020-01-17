@@ -491,6 +491,45 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     return typeSystem.deriveDecimalDivideType(this, type1, type2);
   }
 
+  public RelDataType decimalOf(RelDataType type) {
+    // create decimal type and sync nullability
+    return createTypeWithNullability(decimalOf2(type), type.isNullable());
+  }
+
+  /** Create decimal type equivalent with the given {@code type} while sans nullability. */
+  private RelDataType decimalOf2(RelDataType type) {
+    assert SqlTypeUtil.isNumeric(type) || SqlTypeUtil.isNull(type);
+    SqlTypeName typeName = type.getSqlTypeName();
+    assert typeName != null;
+    switch (typeName) {
+    case DECIMAL:
+      // Fix the precision when the type is JavaType.
+      return RelDataTypeFactoryImpl.isJavaType(type)
+          ? SqlTypeUtil.getMaxPrecisionScaleDecimal(this) : type;
+    case TINYINT:
+      return createSqlType(SqlTypeName.DECIMAL, 3, 0);
+    case SMALLINT:
+      return createSqlType(SqlTypeName.DECIMAL, 5, 0);
+    case INTEGER:
+      return createSqlType(SqlTypeName.DECIMAL, 10, 0);
+    case BIGINT:
+      // the default max precision is 19, so this is actually DECIMAL(19, 0)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 38, 0);
+    case REAL:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case FLOAT:
+      return createSqlType(SqlTypeName.DECIMAL, 14, 7);
+    case DOUBLE:
+      // the default max precision is 19, so this is actually DECIMAL(19, 15)
+      // but derived system can override the max precision/scale.
+      return createSqlType(SqlTypeName.DECIMAL, 30, 15);
+    default:
+      // default precision and scale.
+      return createSqlType(SqlTypeName.DECIMAL);
+    }
+  }
+
   public Charset getDefaultCharset() {
     return Util.getDefaultCharset();
   }
@@ -566,6 +605,32 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       }
     }
 
+    /**
+     * For {@link JavaType} created with {@link Map} class,
+     * we cannot get the key type. Use ANY as key type.
+     */
+    @Override public RelDataType getKeyType() {
+      if (Map.class.isAssignableFrom(clazz)) {
+        // Need to return a SQL type because the type inference needs SqlTypeName.
+        return createSqlType(SqlTypeName.ANY);
+      } else {
+        return null;
+      }
+    }
+
+    /**
+     * For {@link JavaType} created with {@link Map} class,
+     * we cannot get the value type. Use ANY as value type.
+     */
+    @Override public RelDataType getValueType() {
+      if (Map.class.isAssignableFrom(clazz)) {
+        // Need to return a SQL type because the type inference needs SqlTypeName.
+        return createSqlType(SqlTypeName.ANY);
+      } else {
+        return null;
+      }
+    }
+
     public Charset getCharset() {
       return this.charset;
     }
@@ -612,5 +677,3 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
     }
   }
 }
-
-// End RelDataTypeFactoryImpl.java

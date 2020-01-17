@@ -110,5 +110,3 @@ public class SetopNamespace extends AbstractNamespace {
     }
   }
 }
-
-// End SetopNamespace.java

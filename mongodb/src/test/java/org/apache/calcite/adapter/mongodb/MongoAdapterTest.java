@@ -38,12 +38,10 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
-import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -62,6 +60,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 /**
  * Testing mongo adapter functionality. By default runs with
  * <a href="https://github.com/fakemongo/fongo">Fongo</a> unless {@code IT} maven profile is enabled
@@ -77,12 +81,12 @@ public class MongoAdapterTest implements SchemaFactory {
   /** Number of records in local file */
   protected static final int ZIPS_SIZE = 149;
 
-  @ClassRule
+  @RegisterExtension
   public static final MongoDatabasePolicy POLICY = MongoDatabasePolicy.create();
 
   private static MongoSchema schema;
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() throws Exception {
     MongoDatabase database = POLICY.database();
 
@@ -203,7 +207,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', ID: '$_id'}}"));
   }
 
-  @Ignore
+  @Disabled
   @Test public void testFilterSort() {
     // LONGITUDE and LATITUDE are null because of CALCITE-194.
     Util.discard(Bug.CALCITE_194_FIXED);
@@ -249,7 +253,7 @@ public class MongoAdapterTest implements SchemaFactory {
             "CITY=LAWTON; LONGITUDE=null; LATITUDE=null; POP=45542; STATE=OK; ID=73505");
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testUnionPlan() {
     assertModel(MODEL)
         .query("select * from \"sales_fact_1997\"\n"
@@ -268,7 +272,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "product_id=337", "product_id=1512"));
   }
 
-  @Ignore(
+  @Disabled(
       "java.lang.ClassCastException: java.lang.Integer cannot be cast to java.lang.Double")
   @Test public void testFilterUnionPlan() {
     assertModel(MODEL)
@@ -280,22 +284,15 @@ public class MongoAdapterTest implements SchemaFactory {
         .runs();
   }
 
-  /** Tests that we don't generate multiple constraints on the same column.
-   * MongoDB doesn't like it. If there is an '=', it supersedes all other
-   * operators. */
+  /**
+   * Tests that mongo query is empty when filter simplified to false.
+   */
   @Test public void testFilterRedundant() {
     assertModel(MODEL)
         .query(
             "select * from zips where state > 'CA' and state < 'AZ' and state = 'OK'")
         .runs()
-        .queryContains(
-            mongoChecker(
-                "{\n"
-                    + "  \"$match\": {\n"
-                    + "    \"state\": \"OK\"\n"
-                    + "  }\n"
-                    + "}",
-                "{$project: {CITY: '$city', LONGITUDE: '$loc[0]', LATITUDE: '$loc[1]', POP: '$pop', STATE: '$state', ID: '$_id'}}"));
+        .queryContains(mongoChecker());
   }
 
   @Test public void testSelectWhere() {
@@ -470,11 +467,11 @@ public class MongoAdapterTest implements SchemaFactory {
             + "STATE=AL; A=43383; S=130151; C=3\n")
         .queryContains(
             mongoChecker(
-                "{$project: {POP: '$pop', STATE: '$state'}}",
+                "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
-                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}",
-                "{$sort: {STATE: 1}}"));
+                "{$sort: {STATE: 1}}",
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
   }
 
   @Test public void testGroupByHaving() {
@@ -497,7 +494,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$sort: {STATE: 1}}"));
   }
 
-  @Ignore("https://issues.apache.org/jira/browse/CALCITE-270")
+  @Disabled("https://issues.apache.org/jira/browse/CALCITE-270")
   @Test public void testGroupByHaving2() {
     assertModel(MODEL)
         .query("select state, count(*) as c from zips\n"
@@ -556,7 +553,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {C: 1, STATE: 1, CITY: 1}}"));
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testDistinctCount() {
     assertModel(MODEL)
         .query("select state, count(distinct city) as cdc from zips\n"
@@ -608,7 +605,7 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$limit: 5}"));
   }
 
-  @Ignore("broken; [CALCITE-2115] is logged to fix it")
+  @Disabled("broken; [CALCITE-2115] is logged to fix it")
   @Test public void testProject() {
     assertModel(MODEL)
         .query("select state, city, 0 as zero from zips order by state, city")
@@ -719,8 +716,8 @@ public class MongoAdapterTest implements SchemaFactory {
         .query("select count(*) from zips")
         .returns(input -> {
           try {
-            Assert.assertThat(input.next(), CoreMatchers.is(true));
-            Assert.assertThat(input.getInt(1), CoreMatchers.is(ZIPS_SIZE));
+            assertThat(input.next(), is(true));
+            assertThat(input.getInt(1), is(ZIPS_SIZE));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
@@ -737,7 +734,7 @@ public class MongoAdapterTest implements SchemaFactory {
   private static Consumer<List> mongoChecker(final String... expected) {
     return actual -> {
       if (expected == null) {
-        Assert.assertThat("null mongo Query", actual, CoreMatchers.nullValue());
+        assertThat("null mongo Query", actual, nullValue());
         return;
       }
 
@@ -766,14 +763,13 @@ public class MongoAdapterTest implements SchemaFactory {
             .map(b -> b.toJson(settings)).collect(Collectors.joining("\n"));
 
         // used to pretty print Assertion error
-        Assert.assertEquals("expected and actual Mongo queries (pipelines) do not match",
+        assertEquals(
             prettyFn.apply(expectedBsons),
-            prettyFn.apply(actualBsons));
+            prettyFn.apply(actualBsons),
+            "expected and actual Mongo queries (pipelines) do not match");
 
-        Assert.fail("Should have failed previously because expected != actual is known to be true");
+        fail("Should have failed previously because expected != actual is known to be true");
       }
     };
   }
 }
-
-// End MongoAdapterTest.java

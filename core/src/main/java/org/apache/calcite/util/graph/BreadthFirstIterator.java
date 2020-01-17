@@ -80,5 +80,3 @@ public class BreadthFirstIterator<V, E extends DefaultEdge>
     throw new UnsupportedOperationException();
   }
 }
-
-// End BreadthFirstIterator.java

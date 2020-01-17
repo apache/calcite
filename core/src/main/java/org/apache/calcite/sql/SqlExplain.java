@@ -172,7 +172,7 @@ public class SqlExplain extends SqlCall {
    * Returns whether result is to be in JSON format.
    */
   public boolean isJson() {
-    return getFormat() == SqlExplainFormat.XML;
+    return getFormat() == SqlExplainFormat.JSON;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
@@ -216,5 +216,3 @@ public class SqlExplain extends SqlCall {
         writer, getOperator().getLeftPrec(), getOperator().getRightPrec());
   }
 }
-
-// End SqlExplain.java

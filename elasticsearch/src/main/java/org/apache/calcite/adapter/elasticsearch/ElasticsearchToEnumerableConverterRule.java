@@ -50,5 +50,3 @@ public class ElasticsearchToEnumerableConverterRule extends ConverterRule {
     return new ElasticsearchToEnumerableConverter(relNode.getCluster(), newTraitSet, relNode);
   }
 }
-
-// End ElasticsearchToEnumerableConverterRule.java

@@ -29,8 +29,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 
-import static org.apache.calcite.runtime.HttpUtils.post;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -62,6 +60,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.calcite.runtime.HttpUtils.post;
 
 /**
  * Implementation of {@link DruidConnection}.
@@ -748,5 +748,3 @@ class DruidConnectionImpl implements DruidConnection {
     }
   }
 }
-
-// End DruidConnectionImpl.java

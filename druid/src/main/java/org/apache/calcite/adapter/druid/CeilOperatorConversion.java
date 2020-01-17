@@ -77,5 +77,3 @@ public class CeilOperatorConversion implements DruidSqlOperatorConverter {
     }
   }
 }
-
-// End CeilOperatorConversion.java

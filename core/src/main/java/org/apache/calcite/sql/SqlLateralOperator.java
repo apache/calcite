@@ -19,6 +19,10 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 
+import com.google.common.collect.ImmutableSet;
+
+import java.util.Set;
+
 /**
  * An operator describing a LATERAL specification.
  */
@@ -34,10 +38,13 @@ public class SqlLateralOperator extends SqlSpecialOperator {
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
+    final Set<SqlKind> specialOperandKinds = ImmutableSet.of(
+        SqlKind.COLLECTION_TABLE,
+        SqlKind.SELECT,
+        SqlKind.AS);
     if (call.operandCount() == 1
-        && (call.getOperandList().get(0).getKind() == SqlKind.COLLECTION_TABLE
-            || call.getOperandList().get(0).getKind() == SqlKind.SNAPSHOT)) {
-      // do not create ( ) around the following TABLE clause
+        && specialOperandKinds.contains(call.operand(0).getKind())) {
+      // Do not create ( ) around the following TABLE clause.
       writer.keyword(getName());
       call.operand(0).unparse(writer, 0, 0);
     } else {
@@ -45,5 +52,3 @@ public class SqlLateralOperator extends SqlSpecialOperator {
     }
   }
 }
-
-// End SqlLateralOperator.java

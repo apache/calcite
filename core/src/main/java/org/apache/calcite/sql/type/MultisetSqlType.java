@@ -92,5 +92,3 @@ public class MultisetSqlType extends AbstractSqlType {
     };
   }
 }
-
-// End MultisetSqlType.java

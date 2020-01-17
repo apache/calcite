@@ -86,5 +86,3 @@ public class ArraySqlType extends AbstractSqlType {
     };
   }
 }
-
-// End ArraySqlType.java

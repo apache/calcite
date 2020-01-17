@@ -64,5 +64,3 @@ public class RelReferentialConstraintImpl implements RelReferentialConstraint {
   }
 
 }
-
-// End RelReferentialConstraintImpl.java

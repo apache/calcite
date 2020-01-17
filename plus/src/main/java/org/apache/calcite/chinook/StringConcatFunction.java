@@ -26,5 +26,3 @@ public class StringConcatFunction {
   }
 
 }
-
-// End StringConcatFunction.java

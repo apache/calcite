@@ -24,5 +24,3 @@ package org.apache.calcite.plan.volcano;
 public enum VolcanoPlannerPhase {
   PRE_PROCESS_MDR, PRE_PROCESS, OPTIMIZE, CLEANUP,
 }
-
-// End VolcanoPlannerPhase.java

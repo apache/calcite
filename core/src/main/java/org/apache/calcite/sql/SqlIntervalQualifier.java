@@ -1178,5 +1178,3 @@ public class SqlIntervalQualifier extends SqlNode {
             value, type.name() + "(" + precision + ")"));
   }
 }
-
-// End SqlIntervalQualifier.java

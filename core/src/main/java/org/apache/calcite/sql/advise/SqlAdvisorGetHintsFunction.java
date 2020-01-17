@@ -112,5 +112,3 @@ public class SqlAdvisorGetHintsFunction
     return Linq4j.asEnumerable(res).asQueryable();
   }
 }
-
-// End SqlAdvisorGetHintsFunction.java

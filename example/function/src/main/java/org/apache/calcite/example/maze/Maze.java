@@ -347,5 +347,3 @@ class Maze {
     String get(int c);
   }
 }
-
-// End Maze.java

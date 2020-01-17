@@ -55,5 +55,3 @@ public abstract class WinAggAddContextImpl extends WinAggResultContextImpl
     return rowTranslator().translateList(rexArguments());
   }
 }
-
-// End WinAggAddContextImpl.java

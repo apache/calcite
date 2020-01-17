@@ -198,5 +198,3 @@ public interface SqlValidatorNamespace {
    */
   boolean supportsModality(SqlModality modality);
 }
-
-// End SqlValidatorNamespace.java

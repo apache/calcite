@@ -1792,5 +1792,3 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
         input -> druidTable.timestampFieldName.equals(input.getName()));
   }
 }
-
-// End DruidQuery.java

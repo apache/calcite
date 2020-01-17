@@ -131,5 +131,3 @@ public abstract class FilterTableScanRule extends RelOptRule {
             filters.build(), projects));
   }
 }
-
-// End FilterTableScanRule.java

@@ -39,5 +39,3 @@ public interface AggResetContext extends NestedBlockBuilder {
    */
   List<Expression> accumulator();
 }
-
-// End AggResetContext.java

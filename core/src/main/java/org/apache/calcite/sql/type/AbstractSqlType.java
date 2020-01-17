@@ -82,5 +82,3 @@ public abstract class AbstractSqlType
     return super.getPrecedenceList();
   }
 }
-
-// End AbstractSqlType.java

@@ -164,5 +164,3 @@ public enum MapSqlStatisticProvider implements SqlStatisticProvider {
     }
   }
 }
-
-// End MapSqlStatisticProvider.java

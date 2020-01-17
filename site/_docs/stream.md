@@ -1005,7 +1005,7 @@ Partitioning functions:
 # References
 
 * [<a name="ref1">1</a>]
-  <a href="http://ilpubs.stanford.edu:8090/758/">Arvind Arasu, Shivnath Babu,
+  <a href="https://ilpubs.stanford.edu:8090/758/">Arvind Arasu, Shivnath Babu,
   and Jennifer Widom (2003) The CQL Continuous Query
   Language: Semantic Foundations and Query Execution</a>.
 * [<a name="ref2">2</a>]

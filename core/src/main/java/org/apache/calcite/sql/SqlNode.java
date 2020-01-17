@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import javax.annotation.Nonnull;
 
 /**
@@ -122,35 +123,59 @@ public abstract class SqlNode implements Cloneable {
   }
 
   public String toString() {
-    return toSqlString(null).getSql();
+    return toSqlString(c -> c.withDialect(AnsiSqlDialect.DEFAULT)
+        .withAlwaysUseParentheses(false)
+        .withSelectListItemsOnSeparateLines(false)
+        .withUpdateSetListNewline(false)
+        .withIndentation(0)).getSql();
   }
 
   /**
    * Returns the SQL text of the tree of which this <code>SqlNode</code> is
    * the root.
    *
-   * @param dialect     Dialect
-   * @param forceParens wraps all expressions in parentheses; good for parse
-   *                    test, but false by default.
+   * <p>Typical return values are:
    *
-   *                    <p>Typical return values are:</p>
-   *                    <ul>
-   *                    <li>'It''s a bird!'</li>
-   *                    <li>NULL</li>
-   *                    <li>12.3</li>
-   *                    <li>DATE '1969-04-29'</li>
-   *                    </ul>
+   * <ul>
+   * <li>'It''s a bird!'
+   * <li>NULL
+   * <li>12.3
+   * <li>DATE '1969-04-29'
+   * </ul>
+   *
+   * @param transform   Transform that sets desired writer configuration
    */
-  public SqlString toSqlString(SqlDialect dialect, boolean forceParens) {
-    if (dialect == null) {
-      dialect = AnsiSqlDialect.DEFAULT;
-    }
-    SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
-    writer.setAlwaysUseParentheses(forceParens);
-    writer.setSelectListItemsOnSeparateLines(false);
-    writer.setIndentation(0);
+  public SqlString toSqlString(UnaryOperator<SqlWriterConfig> transform) {
+    final SqlWriterConfig config = transform.apply(SqlPrettyWriter.config());
+    SqlPrettyWriter writer = new SqlPrettyWriter(config);
     unparse(writer, 0, 0);
     return writer.toSqlString();
+  }
+
+  /**
+   * Returns the SQL text of the tree of which this <code>SqlNode</code> is
+   * the root.
+   *
+   * <p>Typical return values are:
+   *
+   * <ul>
+   * <li>'It''s a bird!'
+   * <li>NULL
+   * <li>12.3
+   * <li>DATE '1969-04-29'
+   * </ul>
+   *
+   * @param dialect     Dialect (null for ANSI SQL)
+   * @param forceParens Whether to wrap all expressions in parentheses;
+   *                    useful for parse test, but false by default
+   */
+  public SqlString toSqlString(SqlDialect dialect, boolean forceParens) {
+    return toSqlString(c ->
+        c.withDialect(Util.first(dialect, AnsiSqlDialect.DEFAULT))
+            .withAlwaysUseParentheses(forceParens)
+            .withSelectListItemsOnSeparateLines(false)
+            .withUpdateSetListNewline(false)
+            .withIndentation(0));
   }
 
   public SqlString toSqlString(SqlDialect dialect) {
@@ -314,5 +339,3 @@ public abstract class SqlNode implements Cloneable {
     return litmus.succeed();
   }
 }
-
-// End SqlNode.java

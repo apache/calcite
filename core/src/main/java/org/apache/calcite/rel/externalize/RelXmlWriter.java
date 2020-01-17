@@ -157,5 +157,3 @@ public class RelXmlWriter extends RelWriterImpl {
     spacer.subtract(2);
   }
 }
-
-// End RelXmlWriter.java

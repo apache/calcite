@@ -27,7 +27,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlUnnestOperator;
-import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.type.MapSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -146,9 +145,8 @@ public class Uncollect extends SingleRel {
         if (ret.isStruct()) {
           builder.addAll(ret.getFieldList());
         } else {
-          // Element type is not a record. It may be a scalar type, say
-          // "INTEGER". Wrap it in a struct type.
-          builder.add(SqlUtil.deriveAliasFromOrdinal(field.getIndex()), ret);
+          // Element type is not a record, use the field name of the element directly
+          builder.add(field.getName(), ret);
         }
       }
     }
@@ -159,5 +157,3 @@ public class Uncollect extends SingleRel {
     return builder.build();
   }
 }
-
-// End Uncollect.java

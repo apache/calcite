@@ -122,5 +122,3 @@ public class AggregateJoinRemoveRule extends RelOptRule {
     call.transformTo(node);
   }
 }
-
-// End AggregateJoinRemoveRule.java

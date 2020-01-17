@@ -123,5 +123,3 @@ public class SplunkDriver extends org.apache.calcite.jdbc.Driver {
     }
   }
 }
-
-// End SplunkDriver.java

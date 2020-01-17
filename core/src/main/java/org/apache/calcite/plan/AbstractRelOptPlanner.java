@@ -248,7 +248,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @SuppressWarnings("deprecation")
   public RelOptCost getCost(RelNode rel) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
 
@@ -422,5 +422,3 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return Util.filter(classes, clazz::isAssignableFrom);
   }
 }
-
-// End AbstractRelOptPlanner.java

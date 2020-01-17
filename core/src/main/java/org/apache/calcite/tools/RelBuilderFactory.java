@@ -37,5 +37,3 @@ public interface RelBuilderFactory {
   /** Creates a RelBuilder. */
   RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
 }
-
-// End RelBuilderFactory.java

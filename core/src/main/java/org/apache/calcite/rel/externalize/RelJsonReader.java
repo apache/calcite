@@ -275,17 +275,18 @@ public class RelJsonReader {
   private AggregateCall toAggCall(RelInput relInput, Map<String, Object> jsonAggCall) {
     final Map<String, Object> aggMap = (Map) jsonAggCall.get("agg");
     final SqlAggFunction aggregation =
-        relJson.toAggregation(relInput, (String) aggMap.get("name"), aggMap);
+        relJson.toAggregation(aggMap);
     final Boolean distinct = (Boolean) jsonAggCall.get("distinct");
     @SuppressWarnings("unchecked")
     final List<Integer> operands = (List<Integer>) jsonAggCall.get("operands");
     final Integer filterOperand = (Integer) jsonAggCall.get("filter");
     final RelDataType type =
         relJson.toType(cluster.getTypeFactory(), jsonAggCall.get("type"));
+    final String name = (String) jsonAggCall.get("name");
     return AggregateCall.create(aggregation, distinct, false, false, operands,
         filterOperand == null ? -1 : filterOperand,
         RelCollations.EMPTY,
-        type, null);
+        type, name);
   }
 
   private RelNode lookupInput(String jsonInput) {
@@ -297,5 +298,3 @@ public class RelJsonReader {
     return node;
   }
 }
-
-// End RelJsonReader.java

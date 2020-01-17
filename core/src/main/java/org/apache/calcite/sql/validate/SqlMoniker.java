@@ -61,5 +61,3 @@ public interface SqlMoniker {
 
   String id();
 }
-
-// End SqlMoniker.java

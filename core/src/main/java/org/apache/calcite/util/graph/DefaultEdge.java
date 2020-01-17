@@ -45,5 +45,3 @@ public class DefaultEdge {
     return DefaultEdge::new;
   }
 }
-
-// End DefaultEdge.java

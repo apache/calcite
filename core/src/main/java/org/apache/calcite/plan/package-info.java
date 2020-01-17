@@ -19,9 +19,4 @@
  * Defines interfaces for constructing rule-based optimizers of
  * relational expressions.
  */
-@PackageMarker
 package org.apache.calcite.plan;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

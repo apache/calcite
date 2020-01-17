@@ -53,13 +53,12 @@ several important concepts:
 
 ## Download and build
 
-You need Java (version 8, 9 or 10) and git.
+You need Java (version 8, 9 or 10) and Git.
 
 {% highlight bash %}
 $ git clone https://github.com/apache/calcite.git
-$ cd calcite
-$ ./mvnw install -DskipTests -Dcheckstyle.skip=true
-$ cd example/csv
+$ cd calcite/example/csv
+$ ./sqlline
 {% endhighlight %}
 
 ## First queries
@@ -70,7 +69,7 @@ that is included in this project.
 
 {% highlight bash %}
 $ ./sqlline
-sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
+sqlline> !connect jdbc:calcite:model=src/test/resources/model.json admin admin
 {% endhighlight %}
 
 (If you are running Windows, the command is `sqlline.bat`.)
@@ -103,7 +102,7 @@ system tables are always present in Calcite, but the other tables are
 provided by the specific implementation of the schema; in this case,
 the <code>EMPS</code> and <code>DEPTS</code> tables are based on the
 <code>EMPS.csv</code> and <code>DEPTS.csv</code> files in the
-<code>target/test-classes</code> directory.
+<code>resources/sales</code> directory.
 
 Let's execute some queries on those tables, to show that Calcite is providing
 a full implementation of SQL. First, a table scan:
@@ -179,7 +178,7 @@ format. Here is the model:
       type: 'custom',
       factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
       operand: {
-        directory: 'target/test-classes/sales'
+        directory: 'sales'
       }
     }
   ]
@@ -280,7 +279,7 @@ private Table createTable(File file) {
 
 The schema scans the directory and finds all files whose name ends
 with ".csv" and creates tables for them. In this case, the directory
-is <code>target/test-classes/sales</code> and contains files
+is <code>sales</code> and contains files
 <code>EMPS.csv</code> and <code>DEPTS.csv</code>, which these become
 the tables <code>EMPS</code> and <code>DEPTS</code>.
 
@@ -314,7 +313,7 @@ Here is a schema that defines a view:
       type: 'custom',
       factory: 'org.apache.calcite.adapter.csv.CsvSchemaFactory',
       operand: {
-        directory: 'target/test-classes/sales'
+        directory: 'sales'
       },
       tables: [
         {
@@ -379,7 +378,7 @@ There is an example in <code>model-with-custom-table.json</code>:
           type: 'custom',
           factory: 'org.apache.calcite.adapter.csv.CsvTableFactory',
           operand: {
-            file: 'target/test-classes/sales/EMPS.csv.gz',
+            file: 'sales/EMPS.csv.gz',
             flavor: "scannable"
           }
         }
@@ -392,7 +391,7 @@ There is an example in <code>model-with-custom-table.json</code>:
 We can query the table in the usual way:
 
 {% highlight sql %}
-sqlline> !connect jdbc:calcite:model=target/test-classes/model-with-custom-table.json admin admin
+sqlline> !connect jdbc:calcite:model=src/test/resources/model-with-custom-table.json admin admin
 sqlline> SELECT empno, name FROM custom_table.emps;
 +--------+--------+
 | EMPNO  |  NAME  |
@@ -476,7 +475,7 @@ a subset of columns from a CSV file. Let's run the same query against two very
 similar schemas:
 
 {% highlight sql %}
-sqlline> !connect jdbc:calcite:model=target/test-classes/model.json admin admin
+sqlline> !connect jdbc:calcite:model=src/test/resources/model.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
@@ -484,7 +483,7 @@ sqlline> explain plan for select name from emps;
 | EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
 |   EnumerableTableScan(table=[[SALES, EMPS]])        |
 +-----------------------------------------------------+
-sqlline> !connect jdbc:calcite:model=target/test-classes/smart.json admin admin
+sqlline> !connect jdbc:calcite:model=src/test/resources/smart.json admin admin
 sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
@@ -721,4 +720,3 @@ initial implementations.
 
 There are many other ways to extend Calcite not yet described in this tutorial.
 The [adapter specification](adapter.html) describes the APIs involved.
-

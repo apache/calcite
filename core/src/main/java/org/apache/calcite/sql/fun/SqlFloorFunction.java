@@ -116,5 +116,3 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
     SqlUtil.unparseFunctionSyntax(func, writer, call1);
   }
 }
-
-// End SqlFloorFunction.java

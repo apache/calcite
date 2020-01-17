@@ -52,5 +52,3 @@ public class MutableValues extends MutableLeafRel {
     return MutableValues.of((Values) rel);
   }
 }
-
-// End MutableValues.java

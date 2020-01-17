@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.hep;
 
+import org.apache.calcite.plan.RelHintsPropagator;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -52,16 +53,16 @@ public class HepRuleCall extends RelOptRuleCall {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRuleCall
-  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+      RelHintsPropagator handler) {
     final RelNode rel0 = rels[0];
     RelOptUtil.verifyTypeEquivalence(rel0, rel, rel0);
+    rel = handler.propagate(rel0, rel);
     results.add(rel);
-    rel(0).getCluster().invalidateMetadataQuery();
+    rel0.getCluster().invalidateMetadataQuery();
   }
 
   List<RelNode> getResults() {
     return results;
   }
 }
-
-// End HepRuleCall.java

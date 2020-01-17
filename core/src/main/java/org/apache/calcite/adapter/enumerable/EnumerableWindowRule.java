@@ -44,5 +44,3 @@ class EnumerableWindowRule extends ConverterRule {
         winAgg.getConstants(), winAgg.getRowType(), winAgg.groups);
   }
 }
-
-// End EnumerableWindowRule.java

@@ -22,12 +22,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
@@ -90,6 +92,9 @@ public class RelMdRowCount
         return null;
       }
       rowCount += partialRowCount;
+    }
+    if (!rel.all) {
+      rowCount *= 0.5;
     }
     return rowCount;
   }
@@ -209,6 +214,12 @@ public class RelMdRowCount
   public Double getRowCount(Values rel, RelMetadataQuery mq) {
     return rel.estimateRowCount(mq);
   }
-}
 
-// End RelMdRowCount.java
+  public Double getRowCount(Exchange rel, RelMetadataQuery mq) {
+    return mq.getRowCount(rel.getInput());
+  }
+
+  public Double getRowCount(TableModify rel, RelMetadataQuery mq) {
+    return mq.getRowCount(rel.getInput());
+  }
+}

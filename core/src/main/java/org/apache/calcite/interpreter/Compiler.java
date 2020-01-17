@@ -66,5 +66,3 @@ public interface Compiler {
   Context createContext();
 
 }
-
-// End Compiler.java

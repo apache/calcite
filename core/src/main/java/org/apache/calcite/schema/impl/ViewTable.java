@@ -146,5 +146,3 @@ public class ViewTable
     }
   }
 }
-
-// End ViewTable.java

@@ -19,6 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
@@ -332,25 +333,40 @@ public abstract class SqlOperator {
     getSyntax().unparse(writer, this, call, leftPrec, rightPrec);
   }
 
-  // REVIEW jvs 9-June-2006: See http://issues.eigenbase.org/browse/FRG-149
-  // for why this method exists.
+  @Deprecated // to be removed before 2.0
   protected void unparseListClause(SqlWriter writer, SqlNode clause) {
-    unparseListClause(writer, clause, null);
+    final SqlNodeList nodeList =
+        clause instanceof SqlNodeList
+            ? (SqlNodeList) clause
+            : SqlNodeList.of(clause);
+    writer.list(SqlWriter.FrameTypeEnum.SIMPLE, SqlWriter.COMMA, nodeList);
   }
 
+  @Deprecated // to be removed before 2.0
   protected void unparseListClause(
       SqlWriter writer,
       SqlNode clause,
       SqlKind sepKind) {
-    if (clause instanceof SqlNodeList) {
-      if (sepKind != null) {
-        ((SqlNodeList) clause).andOrList(writer, sepKind);
-      } else {
-        ((SqlNodeList) clause).commaList(writer);
-      }
+    final SqlNodeList nodeList =
+        clause instanceof SqlNodeList
+            ? (SqlNodeList) clause
+            : SqlNodeList.of(clause);
+    final SqlBinaryOperator sepOp;
+    if (sepKind == null) {
+      sepOp = SqlWriter.COMMA;
     } else {
-      clause.unparse(writer, 0, 0);
+      switch (sepKind) {
+      case AND:
+        sepOp = SqlStdOperatorTable.AND;
+        break;
+      case OR:
+        sepOp = SqlStdOperatorTable.OR;
+        break;
+      default:
+        throw new AssertionError();
+      }
     }
+    writer.list(SqlWriter.FrameTypeEnum.SIMPLE, sepOp, nodeList);
   }
 
   // override Object
@@ -507,10 +523,12 @@ public abstract class SqlOperator {
     final List<RelDataType> argTypes = constructArgTypeList(validator, scope,
         call, args, false);
 
+    // Always disable type coercion for builtin operator operands,
+    // they are handled by the TypeCoercion specifically.
     final SqlOperator sqlOperator =
         SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
             argTypes, null, null, getSyntax(), getKind(),
-            validator.getCatalogReader().nameMatcher());
+            validator.getCatalogReader().nameMatcher(), false);
 
     ((SqlBasicCall) call).setOperator(sqlOperator);
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
@@ -906,7 +924,7 @@ public abstract class SqlOperator {
   }
 
   /**
-   * @return true iff a call to this operator is guaranteed to always return
+   * Returns whether a call to this operator is guaranteed to always return
    * the same result given the same operands; true is assumed by default
    */
   public boolean isDeterministic() {
@@ -914,7 +932,7 @@ public abstract class SqlOperator {
   }
 
   /**
-   * @return true iff it is unsafe to cache query plans referencing this
+   * Returns whether it is unsafe to cache query plans referencing this
    * operator; false is assumed by default
    */
   public boolean isDynamicFunction() {
@@ -944,5 +962,3 @@ public abstract class SqlOperator {
     return true;
   }
 }
-
-// End SqlOperator.java

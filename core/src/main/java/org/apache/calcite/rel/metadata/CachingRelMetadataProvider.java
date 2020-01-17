@@ -143,5 +143,3 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     }
   }
 }
-
-// End CachingRelMetadataProvider.java

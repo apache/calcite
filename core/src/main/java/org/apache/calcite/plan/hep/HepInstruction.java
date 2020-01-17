@@ -195,5 +195,3 @@ abstract class HepInstruction {
     }
   }
 }
-
-// End HepInstruction.java

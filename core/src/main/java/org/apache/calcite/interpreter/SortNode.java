@@ -109,5 +109,3 @@ public class SortNode extends AbstractSingleNode<Sort> {
     }
   }
 }
-
-// End SortNode.java

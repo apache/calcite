@@ -143,5 +143,3 @@ public class MultiJoinProjectTransposeRule extends JoinProjectTransposeRule {
     return RelOptUtil.projectMultiJoin(multiJoin, project);
   }
 }
-
-// End MultiJoinProjectTransposeRule.java

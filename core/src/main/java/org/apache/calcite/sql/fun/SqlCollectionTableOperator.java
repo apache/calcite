@@ -47,5 +47,3 @@ public class SqlCollectionTableOperator extends SqlFunctionalOperator {
     return modality;
   }
 }
-
-// End SqlCollectionTableOperator.java

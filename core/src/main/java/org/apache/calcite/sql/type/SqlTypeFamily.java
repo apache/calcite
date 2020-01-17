@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.sql.type;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -57,6 +61,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   STRING,
   APPROXIMATE_NUMERIC,
   EXACT_NUMERIC,
+  DECIMAL,
   INTEGER,
   DATETIME,
   DATETIME_INTERVAL,
@@ -129,6 +134,8 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
       return SqlTypeName.BINARY_TYPES;
     case NUMERIC:
       return SqlTypeName.NUMERIC_TYPES;
+    case DECIMAL:
+      return ImmutableList.of(SqlTypeName.DECIMAL);
     case DATE:
       return ImmutableList.of(SqlTypeName.DATE);
     case TIME:
@@ -174,9 +181,64 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
     }
   }
 
+  /**
+   * @return Default {@link RelDataType} belongs to this family.
+   */
+  public RelDataType getDefaultConcreteType(RelDataTypeFactory factory) {
+    switch (this) {
+    case CHARACTER:
+      return factory.createSqlType(SqlTypeName.VARCHAR);
+    case BINARY:
+      return factory.createSqlType(SqlTypeName.VARBINARY);
+    case NUMERIC:
+      return SqlTypeUtil.getMaxPrecisionScaleDecimal(factory);
+    case DATE:
+      return factory.createSqlType(SqlTypeName.DATE);
+    case TIME:
+      return factory.createSqlType(SqlTypeName.TIME);
+    case TIMESTAMP:
+      return factory.createSqlType(SqlTypeName.TIMESTAMP);
+    case BOOLEAN:
+      return factory.createSqlType(SqlTypeName.BOOLEAN);
+    case STRING:
+      return factory.createSqlType(SqlTypeName.VARCHAR);
+    case APPROXIMATE_NUMERIC:
+      return factory.createSqlType(SqlTypeName.DOUBLE);
+    case EXACT_NUMERIC:
+      return SqlTypeUtil.getMaxPrecisionScaleDecimal(factory);
+    case INTEGER:
+      return factory.createSqlType(SqlTypeName.BIGINT);
+    case DECIMAL:
+      return factory.createSqlType(SqlTypeName.DECIMAL);
+    case DATETIME:
+      return factory.createSqlType(SqlTypeName.TIMESTAMP);
+    case INTERVAL_DAY_TIME:
+      return factory.createSqlIntervalType(
+          new SqlIntervalQualifier(TimeUnit.DAY, TimeUnit.SECOND, SqlParserPos.ZERO));
+    case INTERVAL_YEAR_MONTH:
+      return factory.createSqlIntervalType(
+          new SqlIntervalQualifier(TimeUnit.YEAR, TimeUnit.MONTH, SqlParserPos.ZERO));
+    case GEO:
+      return factory.createSqlType(SqlTypeName.GEOMETRY);
+    case MULTISET:
+      return factory.createMultisetType(factory.createSqlType(SqlTypeName.ANY), -1);
+    case ARRAY:
+      return factory.createArrayType(factory.createSqlType(SqlTypeName.ANY), -1);
+    case MAP:
+      return factory.createMapType(factory.createSqlType(SqlTypeName.ANY),
+          factory.createSqlType(SqlTypeName.ANY));
+    case NULL:
+      return factory.createSqlType(SqlTypeName.NULL);
+    case CURSOR:
+      return factory.createSqlType(SqlTypeName.CURSOR);
+    case COLUMN_LIST:
+      return factory.createSqlType(SqlTypeName.COLUMN_LIST);
+    default:
+      return null;
+    }
+  }
+
   public boolean contains(RelDataType type) {
     return SqlTypeUtil.isOfSameTypeName(getTypeNames(), type);
   }
 }
-
-// End SqlTypeFamily.java

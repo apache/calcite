@@ -85,5 +85,3 @@ public class CassandraSort extends Sort implements CassandraRel {
     }
   }
 }
-
-// End CassandraSort.java

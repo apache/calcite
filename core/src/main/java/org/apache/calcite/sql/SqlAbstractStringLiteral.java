@@ -46,5 +46,3 @@ abstract class SqlAbstractStringLiteral extends SqlLiteral {
   protected abstract SqlAbstractStringLiteral concat1(
       List<SqlLiteral> literals);
 }
-
-// End SqlAbstractStringLiteral.java

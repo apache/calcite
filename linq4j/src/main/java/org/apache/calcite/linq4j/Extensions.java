@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * Contains what, in LINQ.NET, would be extension methods.
  *
- * <h3>Notes on mapping from LINQ.NET to Java</h3>
+ * <h2>Notes on mapping from LINQ.NET to Java</h2>
  *
  * <p>We have preserved most of the API. But we've changed a few things, so that
  * the API is more typical Java API:</p>
@@ -174,5 +174,3 @@ public abstract class Extensions {
     return Comparable::compareTo;
   }
 }
-
-// End Extensions.java

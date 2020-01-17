@@ -92,5 +92,3 @@ class SqlRollupOperator extends SqlInternalOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlRollupOperator.java

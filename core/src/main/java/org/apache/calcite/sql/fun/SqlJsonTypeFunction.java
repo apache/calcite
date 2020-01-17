@@ -61,5 +61,3 @@ public class SqlJsonTypeFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 }
-
-// End SqlJsonTypeFunction.java

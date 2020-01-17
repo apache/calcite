@@ -417,5 +417,3 @@ public class OptimizeShuttle extends Shuttle {
                 == ((ConstantExpression) b).value);
   }
 }
-
-// End OptimizeShuttle.java

@@ -47,5 +47,3 @@ class EnumerableFilterRule extends ConverterRule {
         filter.getCondition());
   }
 }
-
-// End EnumerableFilterRule.java

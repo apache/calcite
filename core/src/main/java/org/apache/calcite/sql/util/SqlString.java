@@ -103,5 +103,3 @@ public class SqlString {
     return dialect;
   }
 }
-
-// End SqlString.java

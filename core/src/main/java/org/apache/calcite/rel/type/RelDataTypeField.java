@@ -85,5 +85,3 @@ public interface RelDataTypeField extends Map.Entry<String, RelDataType> {
    */
   boolean isDynamicStar();
 }
-
-// End RelDataTypeField.java

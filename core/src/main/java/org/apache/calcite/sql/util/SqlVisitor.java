@@ -99,5 +99,3 @@ public interface SqlVisitor<R> {
    */
   R visit(SqlIntervalQualifier intervalQualifier);
 }
-
-// End SqlVisitor.java

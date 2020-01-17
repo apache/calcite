@@ -703,5 +703,3 @@ public abstract class DateRangeRules {
     }
   }
 }
-
-// End DateRangeRules.java

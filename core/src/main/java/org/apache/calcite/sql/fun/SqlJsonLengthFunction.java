@@ -38,5 +38,3 @@ public class SqlJsonLengthFunction extends SqlFunction {
         SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlJsonLengthFunction.java

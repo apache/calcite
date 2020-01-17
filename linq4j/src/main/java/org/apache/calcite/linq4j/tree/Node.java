@@ -26,5 +26,3 @@ public interface Node {
 
   void accept(ExpressionWriter expressionWriter);
 }
-
-// End Node.java

@@ -48,7 +48,7 @@ import java.util.List;
  * {@link SqlValidatorNamespace} when resolving 'name', and
  * as a {@link SqlValidatorScope} when resolving 'gender'.</p>
  *
- * <h3>Scopes</h3>
+ * <h2>Scopes</h2>
  *
  * <p>In the query</p>
  *
@@ -72,7 +72,7 @@ import java.util.List;
  * defined in the SELECT clause</li>
  * </ul>
  *
- * <h3>Namespaces</h3>
+ * <h2>Namespaces</h2>
  *
  * <p>In the above query, there are 4 namespaces:</p>
  *
@@ -224,5 +224,3 @@ public class SelectScope extends ListScope {
     expandedSelectList = selectList;
   }
 }
-
-// End SelectScope.java

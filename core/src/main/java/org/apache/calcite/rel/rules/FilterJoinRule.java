@@ -185,7 +185,8 @@ public abstract class FilterJoinRule extends RelOptRule {
     // If no filter got pushed after validate, reset filterPushed flag
     if (leftFilters.isEmpty()
         && rightFilters.isEmpty()
-        && joinFilters.size() == origJoinFilters.size()) {
+        && joinFilters.size() == origJoinFilters.size()
+        && aboveFilters.size() == origAboveFilters.size()) {
       if (Sets.newHashSet(joinFilters)
           .equals(Sets.newHashSet(origJoinFilters))) {
         filterPushed = false;
@@ -329,7 +330,8 @@ public abstract class FilterJoinRule extends RelOptRule {
     final Iterator<RexNode> filterIter = joinFilters.iterator();
     while (filterIter.hasNext()) {
       RexNode exp = filterIter.next();
-      if (!predicate.apply(join, joinType, exp)) {
+      // Do not pull up filter conditions for semi/anti join.
+      if (!predicate.apply(join, joinType, exp) && joinType.projectsRight()) {
         aboveFilters.add(exp);
         filterIter.remove();
       }
@@ -391,5 +393,3 @@ public abstract class FilterJoinRule extends RelOptRule {
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
   }
 }
-
-// End FilterJoinRule.java

@@ -334,5 +334,3 @@ public class JdbcToEnumerableConverter
     return result.asStatement().toSqlString(dialect);
   }
 }
-
-// End JdbcToEnumerableConverter.java

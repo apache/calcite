@@ -50,5 +50,3 @@ interface ElasticsearchConstants {
   }
 
 }
-
-// End ElasticsearchConstants.java

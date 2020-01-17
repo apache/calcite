@@ -159,5 +159,3 @@ public enum SqlSyntax {
       int leftPrec,
       int rightPrec);
 }
-
-// End SqlSyntax.java

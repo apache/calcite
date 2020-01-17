@@ -36,5 +36,3 @@ public interface Enumerable<T>
   Queryable<T> asQueryable();
 
 }
-
-// End Enumerable.java

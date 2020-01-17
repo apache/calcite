@@ -73,6 +73,7 @@ public interface RelOptNode {
    * @return String which describes the relational expression and, unlike
    *   {@link #getDigest()}, also includes the identity
    */
+  @Deprecated // to be removed before 2.0
   String getDescription();
 
   /**
@@ -90,5 +91,3 @@ public interface RelOptNode {
    */
   RelOptCluster getCluster();
 }
-
-// End RelOptNode.java

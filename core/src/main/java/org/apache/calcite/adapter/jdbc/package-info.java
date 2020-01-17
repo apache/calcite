@@ -18,9 +18,4 @@
 /**
  * Query provider based on a JDBC data source.
  */
-@PackageMarker
 package org.apache.calcite.adapter.jdbc;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

@@ -66,5 +66,3 @@ public enum NullCollation {
     }
   }
 }
-
-// End NullCollation.java

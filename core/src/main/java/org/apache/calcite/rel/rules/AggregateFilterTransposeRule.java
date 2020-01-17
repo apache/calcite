@@ -155,5 +155,3 @@ public class AggregateFilterTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End AggregateFilterTransposeRule.java

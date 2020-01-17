@@ -52,5 +52,3 @@ abstract class CalcitePreparedStatement extends AvaticaPreparedStatement {
     return (CalciteConnectionImpl) super.getConnection();
   }
 }
-
-// End CalcitePreparedStatement.java

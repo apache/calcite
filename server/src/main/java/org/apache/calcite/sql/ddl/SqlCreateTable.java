@@ -164,8 +164,8 @@ public class SqlCreateTable extends SqlCreate
     final ImmutableList.Builder<ColumnDef> b = ImmutableList.builder();
     final RelDataTypeFactory.Builder builder = typeFactory.builder();
     final RelDataTypeFactory.Builder storedBuilder = typeFactory.builder();
-    // REVIEW 2019-08-19 Danny Chan: Should we implement the #validate(SqlValidator)
-    // to get the SqlValidator instance ?
+    // REVIEW 2019-08-19 Danny Chan: Should we implement the
+    // #validate(SqlValidator) to get the SqlValidator instance?
     final SqlValidator validator = SqlDdlNodes.validator(context, true);
     for (Ord<SqlNode> c : Ord.zip(columnList)) {
       if (c.e instanceof SqlColumnDeclaration) {
@@ -207,7 +207,12 @@ public class SqlCreateTable extends SqlCreate
               int iColumn, InitializerContext context) {
             final ColumnDef c = columns.get(iColumn);
             if (c.expr != null) {
-              return context.convertExpression(c.expr);
+              // REVIEW Danny 2019-10-09: Should we support validation for DDL nodes?
+              final SqlNode validated = context.validateExpression(storedRowType, c.expr);
+              // The explicit specified type should have the same nullability
+              // with the column expression inferred type,
+              // actually they should be exactly the same.
+              return context.convertExpression(validated);
             }
             return super.newColumnDefaultValue(table, iColumn, context);
           }
@@ -338,5 +343,3 @@ public class SqlCreateTable extends SqlCreate
     }
   }
 }
-
-// End SqlCreateTable.java

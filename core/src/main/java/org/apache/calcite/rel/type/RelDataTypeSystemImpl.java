@@ -253,5 +253,3 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
   }
 
 }
-
-// End RelDataTypeSystemImpl.java

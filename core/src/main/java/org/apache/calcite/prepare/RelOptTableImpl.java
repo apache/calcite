@@ -114,6 +114,16 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         c -> expression, null);
   }
 
+  public static RelOptTableImpl create(
+      RelOptSchema schema,
+      RelDataType rowType,
+      List<String> names,
+      Table table,
+      Expression expression) {
+    return new RelOptTableImpl(schema, rowType, names, table,
+        c -> expression, table.getStatistic().getRowCount());
+  }
+
   public static RelOptTableImpl create(RelOptSchema schema, RelDataType rowType,
       Table table, Path path) {
     final SchemaPlus schemaPlus = MySchemaPlus.create(path);
@@ -135,6 +145,15 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   public RelOptTableImpl copy(RelDataType newRowType) {
     return new RelOptTableImpl(this.schema, newRowType, this.names, this.table,
         this.expressionFunction, this.rowCount);
+  }
+
+  @Override public String toString() {
+    return "RelOptTableImpl{"
+        + "schema=" + schema
+        + ", names= " + names
+        + ", table=" + table
+        + ", rowType=" + rowType
+        + '}';
   }
 
   private static Function<Class, Expression> getClassExpressionFunction(
@@ -271,21 +290,28 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
     final RelOptCluster cluster = context.getCluster();
     if (Hook.ENABLE_BINDABLE.get(false)) {
-      return LogicalTableScan.create(cluster, this);
+      return LogicalTableScan.create(cluster, this, context.getTableHints());
     }
     if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
-        && table instanceof QueryableTable) {
+        && table instanceof QueryableTable
+        && (expressionFunction != null
+        || EnumerableTableScan.canHandle(this))) {
       return EnumerableTableScan.create(cluster, this);
     }
     if (table instanceof ScannableTable
         || table instanceof FilterableTable
         || table instanceof ProjectableFilterableTable) {
-      return LogicalTableScan.create(cluster, this);
+      return LogicalTableScan.create(cluster, this, context.getTableHints());
     }
-    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
+    // Some tests rely on the old behavior when tables were immediately converted to
+    // EnumerableTableScan
+    // Note: EnumerableTableScanRule can convert LogicalTableScan to EnumerableTableScan
+    if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()
+        && ((table == null && expressionFunction != null)
+        || EnumerableTableScan.canHandle(this))) {
       return EnumerableTableScan.create(cluster, this);
     }
-    throw new AssertionError();
+    return LogicalTableScan.create(cluster, this, context.getTableHints());
   }
 
   public List<RelCollation> getCollationList() {
@@ -307,6 +333,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return table.getStatistic().isKey(columns);
     }
     return false;
+  }
+
+  public List<ImmutableBitSet> getKeys() {
+    return table.getStatistic().getKeys();
   }
 
   public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -524,5 +554,3 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     }
   }
 }
-
-// End RelOptTableImpl.java

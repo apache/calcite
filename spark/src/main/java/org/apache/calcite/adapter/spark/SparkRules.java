@@ -436,5 +436,3 @@ public abstract class SparkRules {
             .toString());
   }
 }
-
-// End SparkRules.java

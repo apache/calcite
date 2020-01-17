@@ -227,5 +227,3 @@ public abstract class ListScope extends DelegatingScope {
   }
 
 }
-
-// End ListScope.java

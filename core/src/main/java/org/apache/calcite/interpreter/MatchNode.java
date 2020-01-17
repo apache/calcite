@@ -35,5 +35,3 @@ public class MatchNode extends AbstractSingleNode<Match> {
     sink.end();
   }
 }
-
-// End MatchNode.java

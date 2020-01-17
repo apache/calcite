@@ -31,5 +31,3 @@ public abstract class AbstractEnumerable2<T> extends DefaultEnumerable<T> {
     return new Linq4j.IterableEnumerator<>(this);
   }
 }
-
-// End AbstractEnumerable2.java

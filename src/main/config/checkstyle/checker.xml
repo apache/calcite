@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to you under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 
 <!--
   This version of checkstyle is based on the Apache Giraph checkstyle
@@ -32,12 +32,14 @@ limitations under the License.
 <module name="Checker">
   <property name="localeLanguage" value="en"/>
 
+  <property name="cacheFile" value="${cache_file}"/>
+
   <!-- Checks for headers -->
   <!-- See http://checkstyle.sf.net/config_header.html -->
     <!-- Verify that EVERY source file has the appropriate license -->
   <module name="Header">
     <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.java.txt"/>
-    <property name="fileExtensions" value="cql,java,jj,json,kt"/>
+    <property name="fileExtensions" value="cql,jj,json"/>
   </module>
   <module name="Header">
     <property name="headerFile" value="${base_dir}/src/main/config/checkstyle/header.properties.txt"/>
@@ -65,9 +67,16 @@ limitations under the License.
     <!-- No tabs allowed! -->
   <module name="FileTabCharacter"/>
 
-  <module name="TreeWalker">
-    <property name="cacheFile" value="target/checkstyle-cachefile"/>
+  <!-- Checks for Size Violations.                    -->
+  <!-- See http://checkstyle.sf.net/config_sizes.html -->
+  <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
+       or strings (possibly preceded by '+' and followed by say '),'. -->
+  <module name="LineLength">
+    <property name="max" value="100"/>
+    <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
+  </module>
 
+  <module name="TreeWalker">
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
       <!-- No empty blocks (i.e. catch); must contain at least a comment -->
@@ -129,13 +138,6 @@ limitations under the License.
       <property name="processJavadoc" value="true"/>
     </module>
     <module name="IllegalImport" />
-    <module name="AvoidStarImport" />
-    <module name="ImportOrder">
-      <property name="groups" value="org.apache.calcite,org.apache,au.com.,com.,io.,mondrian.,net.,org.,scala.,/^javax?\./"/>
-      <property name="ordered" value="true"/>
-      <property name="separated" value="true"/>
-      <property name="option" value="bottom"/>
-    </module>
 
     <!-- Checks for Javadoc comments (tree walker).       -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
@@ -213,27 +215,31 @@ limitations under the License.
       <property name="message" value="developers names should be in pom file"/>
     </module>
 
+    <module name="Regexp">
+      <property name="format" value="@param ++([^ ]++) *+[\r\n]"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="@param with no description. Please add description"/>
+    </module>
+
+    <module name="Regexp">
+      <property name="format" value="\{@link[^\r\n}]++[\r\n]"/>
+      <property name="illegalPattern" value="true"/>
+      <property name="message" value="split @link. Please ensure {@link ..} is on a single line"/>
+    </module>
+
     <!-- No multi-line C-style comments except at start of line. -->
     <module name="Regexp">
-      <property name="format" value="^ +/\*[^*][^/]$"/>
+      <property name="format" value="^ ++/\*[^*][^/]$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
     </module>
 
     <module name="Regexp">
-      <property name="format" value="^ +/\*$"/>
+      <property name="format" value="^ ++/\*$"/>
       <property name="illegalPattern" value="true"/>
       <property name="message" value="C-style comment"/>
     </module>
 
-    <!-- Checks for Size Violations.                    -->
-    <!-- See http://checkstyle.sf.net/config_sizes.html -->
-    <!-- Lines cannot exceed 80 chars, except if they are hyperlinks
-         or strings (possibly preceded by '+' and followed by say '),'. -->
-    <module name="LineLength">
-      <property name="max" value="100"/>
-      <property name="ignorePattern" value="^import|@see|@link|@BaseMessage|href|^[ +]*&quot;.*&quot;[);,]*$"/>
-    </module>
       <!-- Over time, we will revise this down -->
     <module name="MethodLength">
       <property name="max" value="370"/>
@@ -261,28 +267,27 @@ limitations under the License.
       <!-- No extra whitespace around types -->
     <module name="GenericWhitespace"/>
 
-    <!-- Required for SuppressionCommentFilter below -->
-    <module name="FileContentsHolder"/>
+    <!-- Setup special comments to suppress specific checks from source files -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
+      <property name="onCommentFormat"  value="CHECKSTYLE\: resume ([\w\|]+)"/>
+      <property name="checkFormat"      value="$1"/>
+    </module>
+
+    <!-- Turn off all checks between OFF and ON -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE\: OFF"/>
+      <property name="onCommentFormat"  value="CHECKSTYLE\: ON"/>
+    </module>
+
+    <!-- Turn off checks for the next N lines. -->
+    <module name="SuppressWithNearbyCommentFilter">
+      <property name="commentFormat" value="CHECKSTYLE: +IGNORE (\d+)"/>
+      <property name="influenceFormat" value="$1"/>
+    </module>
   </module>
 
-  <!-- Setup special comments to suppress specific checks from source files -->
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CHECKSTYLE\: stop ([\w\|]+)"/>
-    <property name="onCommentFormat"  value="CHECKSTYLE\: resume ([\w\|]+)"/>
-    <property name="checkFormat"      value="$1"/>
+  <module name="SuppressionFilter">
+    <property name="file" value="${base_dir}/src/main/config/checkstyle/suppressions.xml"/>
   </module>
-
-  <!-- Turn off all checks between OFF and ON -->
-  <module name="SuppressionCommentFilter">
-    <property name="offCommentFormat" value="CHECKSTYLE\: OFF"/>
-    <property name="onCommentFormat"  value="CHECKSTYLE\: ON"/>
-  </module>
-
-  <!-- Turn off checks for the next N lines. -->
-  <module name="SuppressWithNearbyCommentFilter">
-    <property name="commentFormat" value="CHECKSTYLE: +IGNORE (\d+)"/>
-    <property name="influenceFormat" value="$1"/>
-  </module>
-
-  <module name="net.hydromatic.toolbox.checkstyle.HydromaticFileSetCheck"/>
 </module>

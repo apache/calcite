@@ -80,7 +80,7 @@ public final class LogicalCorrelate extends Correlate {
   public LogicalCorrelate(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
-        new CorrelationId((Integer) input.get("correlationId")),
+        new CorrelationId((Integer) input.get("correlation")),
         input.getBitSet("requiredColumns"),
         input.getEnum("joinType", JoinRelType.class));
   }
@@ -109,5 +109,3 @@ public final class LogicalCorrelate extends Correlate {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalCorrelate.java

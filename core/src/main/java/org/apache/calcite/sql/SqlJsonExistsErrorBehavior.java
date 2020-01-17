@@ -25,5 +25,3 @@ public enum SqlJsonExistsErrorBehavior {
   UNKNOWN,
   ERROR
 }
-
-// End SqlJsonExistsErrorBehavior.java

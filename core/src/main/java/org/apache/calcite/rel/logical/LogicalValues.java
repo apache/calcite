@@ -118,5 +118,3 @@ public class LogicalValues extends Values {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalValues.java

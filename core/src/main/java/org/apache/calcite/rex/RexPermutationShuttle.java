@@ -45,5 +45,3 @@ public class RexPermutationShuttle extends RexShuttle {
         local.getType());
   }
 }
-
-// End RexPermutationShuttle.java

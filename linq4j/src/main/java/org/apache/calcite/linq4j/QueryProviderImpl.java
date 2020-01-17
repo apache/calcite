@@ -65,5 +65,3 @@ public abstract class QueryProviderImpl implements QueryProvider {
     }
   }
 }
-
-// End QueryProviderImpl.java

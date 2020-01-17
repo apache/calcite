@@ -21,8 +21,8 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -37,7 +37,7 @@ import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test of the Calcite adapter for Splunk.
@@ -243,7 +243,7 @@ public class SplunkAdapterTest {
         });
   }
 
-  @Ignore("cannot plan due to CAST in ON clause")
+  @Disabled("cannot plan due to CAST in ON clause")
   @Test public void testJoinToJdbc() throws SQLException {
     checkSql(
         "select p.\"product_name\", /*s.\"product_id\",*/ s.\"action\"\n"
@@ -291,5 +291,3 @@ public class SplunkAdapterTest {
     }
   }
 }
-
-// End SplunkAdapterTest.java

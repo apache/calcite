@@ -47,5 +47,3 @@ public class SqlAdvisorHint {
     type = id.getType().name();
   }
 }
-
-// End SqlAdvisorHint.java

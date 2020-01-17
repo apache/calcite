@@ -69,5 +69,3 @@ public class JoinPushExpressionsRule extends RelOptRule {
     call.transformTo(newJoin);
   }
 }
-
-// End JoinPushExpressionsRule.java

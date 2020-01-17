@@ -58,5 +58,3 @@ public class UnarySuffixOperatorConversion implements DruidSqlOperatorConverter 
             Iterables.getOnlyElement(druidExpressions), druidOperator);
   }
 }
-
-// End UnarySuffixOperatorConversion.java

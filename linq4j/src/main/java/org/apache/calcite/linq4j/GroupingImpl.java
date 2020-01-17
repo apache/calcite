@@ -75,5 +75,3 @@ class GroupingImpl<K, V> extends AbstractEnumerable<V>
     return Linq4j.enumerator(values);
   }
 }
-
-// End GroupingImpl.java

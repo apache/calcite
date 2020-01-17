@@ -152,6 +152,14 @@ public abstract class Bug {
    * Decorrelate sub-queries in Project and Join</a> is fixed. */
   public static final boolean CALCITE_1045_FIXED = false;
 
+  /**
+   * Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2223">[CALCITE-2223]
+   * ProjectMergeRule is infinitely matched when is applied after ProjectReduceExpressions Rule</a>
+   * is fixed.
+   */
+  public static final boolean CALCITE_2223_FIXED = false;
+
   /** Whether
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2400">[CALCITE-2400]
    * Allow standards-compliant column ordering for NATURAL JOIN and JOIN USING
@@ -173,6 +181,11 @@ public abstract class Bug {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2869">[CALCITE-2869]
    * JSON data type support</a> is fixed. */
   public static final boolean CALCITE_2869_FIXED = false;
+
+  /** Whether
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3243">[CALCITE-3243]
+   * Incomplete validation of operands in JSON functions</a> is fixed. */
+  public static final boolean CALCITE_3243_FIXED = false;
 
   /**
    * Use this to flag temporary code.
@@ -211,5 +224,3 @@ public abstract class Bug {
     return false;
   }
 }
-
-// End Bug.java

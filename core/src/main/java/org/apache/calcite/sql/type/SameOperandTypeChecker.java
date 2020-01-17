@@ -113,7 +113,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
    * interface, and cannot throw an error.
    */
   public boolean checkOperandTypes(
-      SqlOperatorBinding operatorBinding) {
+      SqlOperatorBinding operatorBinding, SqlCallBinding callBinding) {
     return checkOperandTypesImpl(operatorBinding, false, null);
   }
 
@@ -148,5 +148,3 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     throw new UnsupportedOperationException(); // TODO:
   }
 }
-
-// End SameOperandTypeChecker.java

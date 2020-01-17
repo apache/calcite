@@ -229,5 +229,3 @@ public class JethroDataSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End JethroDataSqlDialect.java

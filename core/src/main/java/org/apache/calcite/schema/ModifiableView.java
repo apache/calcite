@@ -65,5 +65,3 @@ public interface ModifiableView extends Table {
   /** Returns the full path of the underlying table. */
   Path getTablePath();
 }
-
-// End ModifiableView.java

@@ -79,5 +79,3 @@ public class IndexExpression extends Expression {
     return Objects.hash(nodeType, type, array, indexExpressions);
   }
 }
-
-// End IndexExpression.java

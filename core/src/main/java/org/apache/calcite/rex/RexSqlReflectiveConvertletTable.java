@@ -82,5 +82,3 @@ public class RexSqlReflectiveConvertletTable implements RexSqlConvertletTable {
     map.put(op, convertlet);
   }
 }
-
-// End RexSqlReflectiveConvertletTable.java

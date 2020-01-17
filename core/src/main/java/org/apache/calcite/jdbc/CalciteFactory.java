@@ -58,5 +58,3 @@ public abstract class CalciteFactory implements AvaticaFactory {
       AvaticaFactory factory, String url, Properties info,
       CalciteSchema rootSchema, JavaTypeFactory typeFactory);
 }
-
-// End CalciteFactory.java

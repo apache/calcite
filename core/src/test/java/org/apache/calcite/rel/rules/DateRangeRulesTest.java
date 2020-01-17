@@ -29,13 +29,13 @@ import com.google.common.collect.ImmutableSet;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
 public class DateRangeRulesTest {
@@ -700,9 +700,9 @@ public class DateRangeRulesTest {
   private void checkDateRange(Fixture f, RexNode e, String timeZone,
       Matcher<String> matcher, Matcher<String> simplifyMatcher) {
     e = DateRangeRules.replaceTimeUnits(f.rexBuilder, e, timeZone);
-    assertThat(e.toString(), matcher);
+    assertThat(e.toStringRaw(), matcher);
     final RexNode e2 = f.simplify.simplify(e);
-    assertThat(e2.toString(), simplifyMatcher);
+    assertThat(e2.toStringRaw(), simplifyMatcher);
   }
 
   /** Common expressions across tests. */
@@ -768,5 +768,3 @@ public class DateRangeRulesTest {
     }
   }
 }
-
-// End DateRangeRulesTest.java

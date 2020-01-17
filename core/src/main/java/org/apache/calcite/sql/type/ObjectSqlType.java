@@ -91,5 +91,3 @@ public class ObjectSqlType extends AbstractSqlType {
     sb.append(")");
   }
 }
-
-// End ObjectSqlType.java

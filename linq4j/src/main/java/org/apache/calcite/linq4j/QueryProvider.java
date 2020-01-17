@@ -88,5 +88,3 @@ public interface QueryProvider {
    */
   <T> Enumerator<T> executeQuery(Queryable<T> queryable);
 }
-
-// End QueryProvider.java

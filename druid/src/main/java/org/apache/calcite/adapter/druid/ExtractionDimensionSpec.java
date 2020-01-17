@@ -103,5 +103,3 @@ public class ExtractionDimensionSpec implements DimensionSpec {
   }
 
 }
-
-// End ExtractionDimensionSpec.java

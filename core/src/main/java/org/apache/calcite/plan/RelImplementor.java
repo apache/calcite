@@ -29,5 +29,3 @@ public interface RelImplementor {
   /** Returns the desired SQL conformance. */
   SqlConformance getConformance();
 }
-
-// End RelImplementor.java

@@ -50,7 +50,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>NUMERIC FUNCTIONS</h3>
+ * <h2>NUMERIC FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -72,6 +72,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td>ATAN2(float1, float2)</td>
  * <td>Arctangent, in radians, of float2 / float1</td>
+ * </tr>
+ * <tr>
+ * <td>CBRT(number)</td>
+ * <td>The cube root of number</td>
  * </tr>
  * <tr>
  * <td>CEILING(number)</td>
@@ -107,7 +111,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </tr>
  * <tr>
  * <td>MOD(integer1, integer2)</td>
- * <td>Rh3ainder for integer1 / integer2</td>
+ * <td>Remainder for integer1 / integer2</td>
  * </tr>
  * <tr>
  * <td>PI()</td>
@@ -153,7 +157,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>STRING FUNCTIONS</h3>
+ * <h2>STRING FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -202,7 +206,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * </tr>
  * <tr>
  * <td>LTRIM(string)</td>
- * <td>Characters of string with leading blank spaces rh3oved</td>
+ * <td>Characters of string with leading blank spaces removed</td>
  * </tr>
  * <tr>
  * <td>REPEAT(string, count)</td>
@@ -246,7 +250,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>TIME and DATE FUNCTIONS</h3>
+ * <h2>TIME and DATE FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -331,7 +335,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>SYSTEM FUNCTIONS</h3>
+ * <h2>SYSTEM FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -349,7 +353,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <tr>
  * <td colspan="2"><br>
  *
- * <h3>CONVERSION FUNCTIONS</h3>
+ * <h2>CONVERSION FUNCTIONS</h2>
  * </td>
  * </tr>
  * <tr>
@@ -366,7 +370,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all numeric function names defined by JDBC. */
   private static final String NUMERIC_FUNCTIONS = constructFuncList(
-      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
+      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CBRT", "CEILING", "COS", "COT",
       "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
       "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
       "TAN", "TRUNCATE");
@@ -676,6 +680,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("ASIN", simple(SqlStdOperatorTable.ASIN));
       map.put("ATAN", simple(SqlStdOperatorTable.ATAN));
       map.put("ATAN2", simple(SqlStdOperatorTable.ATAN2));
+      map.put("CBRT", simple(SqlStdOperatorTable.CBRT));
       map.put("CEILING", simple(SqlStdOperatorTable.CEIL));
       map.put("COS", simple(SqlStdOperatorTable.COS));
       map.put("COT", simple(SqlStdOperatorTable.COT));
@@ -790,5 +795,3 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     }
   }
 }
-
-// End SqlJdbcFunctionCall.java

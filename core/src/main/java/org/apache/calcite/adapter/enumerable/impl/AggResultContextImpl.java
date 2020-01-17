@@ -65,5 +65,3 @@ public class AggResultContextImpl extends AggResetContextImpl
     return call;
   }
 }
-
-// End AggResultContextImpl.java

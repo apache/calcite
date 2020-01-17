@@ -1,0 +1,222 @@
+# set-op.iq - Queries involving INTERESECT, EXCEPT and UNION
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+!use blank
+!set outputformat mysql
+
+# Intersect all
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+intersect all
+(select x, y from (values (1, 'a'), (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | a |
++---+---+
+(2 rows)
+
+!ok
+
+# Intersect
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+intersect
+(select x, y from (values (1, 'a'), (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
++---+---+
+(1 row)
+
+!ok
+
+# Intersect all with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+intersect all
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
+
++---+---+
+| X | Y |
++---+---+
+|   |   |
+|   |   |
++---+---+
+(2 rows)
+
+!ok
+
+# Intersect with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+intersect
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
+
++---+---+
+| X | Y |
++---+---+
+|   |   |
++---+---+
+(1 row)
+
+!ok
+
+# Union all
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+union all
+(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | a |
+| 1 | a |
+| 2 | b |
+| 2 | c |
+| 3 | c |
+| 4 | x |
++---+---+
+(7 rows)
+
+!ok
+
+# Union
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+union
+(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 2 | b |
+| 2 | c |
+| 3 | c |
+| 4 | x |
++---+---+
+(5 rows)
+
+!ok
+
+# Union all with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+union all
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+|   |   |
+|   |   |
+|   |   |
+|   |   |
+|   |   |
++---+---+
+(5 rows)
+
+!ok
+
+# Union with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+union
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+|   |   |
++---+---+
+(1 row)
+
+!ok
+
+# Except all
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+except all
+(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 1 | a |
+| 1 | a |
+| 2 | b |
+| 3 | c |
++---+---+
+(4 rows)
+
+!ok
+
+# Except
+select * from
+(select x, y from (values (1, 'a'), (1, 'a'), (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y))
+except
+(select x, y from (values (1, 'a'), (2, 'c'), (4, 'x')) as t2(x, y));
++---+---+
+| X | Y |
++---+---+
+| 2 | b |
+| 3 | c |
++---+---+
+(2 rows)
+
+!ok
+
+# Except all with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+except all
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
+
++---+---+
+| X | Y |
++---+---+
+|   |   |
++---+---+
+(1 row)
+
+!ok
+
+# Except with null value rows
+select * from
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1))), (cast(NULL as int), cast(NULL as varchar(1)))) as t(x, y))
+except
+(select x, y from (values (cast(NULL as int), cast(NULL as varchar(1))),
+  (cast(NULL as int), cast(NULL as varchar(1)))) as t2(x, y));
+
++---+---+
+| X | Y |
++---+---+
++---+---+
+(0 rows)
+
+!ok

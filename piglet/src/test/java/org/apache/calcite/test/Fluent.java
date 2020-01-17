@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Fluent API to perform Piglet test actions. */
 class Fluent {
@@ -104,5 +104,3 @@ class Fluent {
     return this;
   }
 }
-
-// End Fluent.java

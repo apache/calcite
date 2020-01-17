@@ -299,5 +299,3 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     return bytesValue;
   }
 }
-
-// End NlsString.java

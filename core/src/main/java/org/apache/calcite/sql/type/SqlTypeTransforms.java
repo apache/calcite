@@ -137,6 +137,8 @@ public abstract class SqlTypeTransforms {
             return SqlTypeName.VARBINARY;
           case ANY:
             return SqlTypeName.ANY;
+          case NULL:
+            return SqlTypeName.NULL;
           default:
             throw Util.unexpected(sqlTypeName);
           }
@@ -174,5 +176,3 @@ public abstract class SqlTypeTransforms {
         return fields.get(0).getType();
       };
 }
-
-// End SqlTypeTransforms.java

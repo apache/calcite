@@ -16,20 +16,19 @@
  */
 package org.apache.calcite.adapter.elasticsearch;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Basic tests for parsing ES version in different formats
  */
 public class ElasticsearchVersionTest {
 
-  @Test
-  public void versions() {
+  @Test public void versions() {
     assertEquals(ElasticsearchVersion.fromString("2.3.4"), ElasticsearchVersion.ES2);
     assertEquals(ElasticsearchVersion.fromString("2.0.0"), ElasticsearchVersion.ES2);
     assertEquals(ElasticsearchVersion.fromString("5.6.1"), ElasticsearchVersion.ES5);
@@ -62,5 +61,3 @@ public class ElasticsearchVersionTest {
     }
   }
 }
-
-// End ElasticsearchVersionTest.java

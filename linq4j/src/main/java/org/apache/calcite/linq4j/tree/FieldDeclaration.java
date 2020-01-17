@@ -89,5 +89,3 @@ public class FieldDeclaration extends MemberDeclaration {
     return Objects.hash(modifier, parameter, initializer);
   }
 }
-
-// End FieldDeclaration.java

@@ -51,5 +51,3 @@ public class MatchRule extends RelOptRule {
     call.transformTo(match);
   }
 }
-
-// End MatchRule.java

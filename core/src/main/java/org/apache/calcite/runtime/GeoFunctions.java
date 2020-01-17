@@ -656,5 +656,3 @@ public class GeoFunctions {
     }
   }
 }
-
-// End GeoFunctions.java

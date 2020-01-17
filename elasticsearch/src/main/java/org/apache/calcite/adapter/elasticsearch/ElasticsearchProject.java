@@ -28,6 +28,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +41,7 @@ import java.util.stream.Collectors;
 public class ElasticsearchProject extends Project implements ElasticsearchRel {
   ElasticsearchProject(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() == ElasticsearchRel.CONVENTION;
     assert getConvention() == input.getConvention();
   }
@@ -122,5 +124,3 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     implementor.add("{" + query.toString() + "}");
   }
 }
-
-// End ElasticsearchProject.java

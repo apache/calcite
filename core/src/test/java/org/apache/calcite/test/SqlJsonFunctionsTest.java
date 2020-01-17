@@ -33,7 +33,7 @@ import com.jayway.jsonpath.PathNotFoundException;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,8 +48,8 @@ import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for the methods in {@link SqlFunctions} that implement JSON processing functions.
@@ -918,5 +918,3 @@ public class SqlJsonFunctionsTest {
     };
   }
 }
-
-// End SqlJsonFunctionsTest.java

@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -146,7 +147,7 @@ public class ConstantExpression extends Expression {
       try {
         final int scale = bigDecimal.scale();
         final long exact = bigDecimal.scaleByPowerOfTen(scale).longValueExact();
-        writer.append("new java.math.BigDecimal(").append(exact).append("L");
+        writer.append("java.math.BigDecimal.valueOf(").append(exact).append("L");
         if (scale != 0) {
           writer.append(", ").append(scale);
         }
@@ -185,6 +186,10 @@ public class ConstantExpression extends Expression {
     if (value instanceof Map) {
       return writeMap(writer, (Map) value);
     }
+    if (value instanceof Set) {
+      return writeSet(writer, (Set) value);
+    }
+
     Constructor constructor = matchingConstructor(value);
     if (constructor != null) {
       writer.append("new ").append(value.getClass());
@@ -240,6 +245,31 @@ public class ConstantExpression extends Expression {
       write(writer, entry.getKey(), null);
       writer.append(", ");
       write(writer, entry.getValue(), null);
+      comma = true;
+    }
+    return writer.append(end);
+  }
+
+  private static ExpressionWriter writeSet(ExpressionWriter writer, Set set) {
+    writer.append("com.google.common.collect.ImmutableSet.");
+    if (set.isEmpty()) {
+      return writer.append("of()");
+    }
+    if (set.size() < 5) {
+      return set(writer, set, "of(", ",", ")");
+    }
+    return set(writer, set, "builder().add(", ")\n.add(", ").build()");
+  }
+
+  private static ExpressionWriter set(ExpressionWriter writer, Set set,
+                                      String begin, String entrySep, String end) {
+    writer.append(begin);
+    boolean comma = false;
+    for (Object o : set.toArray()) {
+      if (comma) {
+        writer.append(entrySep).indent();
+      }
+      write(writer, o, null);
       comma = true;
     }
     return writer.append(end);
@@ -324,5 +354,3 @@ public class ConstantExpression extends Expression {
     return Objects.hash(nodeType, type, value);
   }
 }
-
-// End ConstantExpression.java

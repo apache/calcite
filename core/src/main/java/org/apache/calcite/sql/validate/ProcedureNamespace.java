@@ -75,5 +75,3 @@ public class ProcedureNamespace extends AbstractNamespace {
     return call;
   }
 }
-
-// End ProcedureNamespace.java

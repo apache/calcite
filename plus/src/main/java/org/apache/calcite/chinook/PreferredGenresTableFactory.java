@@ -71,5 +71,3 @@ public class PreferredGenresTableFactory implements TableFactory<AbstractQueryab
     }
   }
 }
-
-// End PreferredGenresTableFactory.java

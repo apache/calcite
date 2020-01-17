@@ -18,6 +18,10 @@ package org.apache.calcite.sql.fun;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlKind;
@@ -37,6 +41,8 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.Iterables;
@@ -124,9 +130,6 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public class SqlCaseOperator extends SqlOperator {
   public static final SqlCaseOperator INSTANCE = new SqlCaseOperator();
 
-  private static final SqlWriter.FrameType FRAME_TYPE =
-      SqlWriter.FrameTypeEnum.create("CASE");
-
   //~ Constructors -----------------------------------------------------------
 
   private SqlCaseOperator() {
@@ -204,7 +207,7 @@ public class SqlCaseOperator extends SqlOperator {
     if (!foundNotNull) {
       // according to the sql standard we can not have all of the THEN
       // statements and the ELSE returning null
-      if (throwOnFailure) {
+      if (throwOnFailure && !callBinding.getValidator().isTypeCoercionEnabled()) {
         throw callBinding.newError(RESOURCE.mustNotNullInElse());
       }
       return false;
@@ -216,9 +219,7 @@ public class SqlCaseOperator extends SqlOperator {
       SqlOperatorBinding opBinding) {
     // REVIEW jvs 4-June-2005:  can't these be unified?
     if (!(opBinding instanceof SqlCallBinding)) {
-      return inferTypeFromOperands(
-          opBinding.getTypeFactory(),
-          opBinding.collectOperandTypes());
+      return inferTypeFromOperands(opBinding);
     }
     return inferTypeFromValidator((SqlCallBinding) opBinding);
   }
@@ -229,14 +230,29 @@ public class SqlCaseOperator extends SqlOperator {
     SqlNodeList thenList = caseCall.getThenOperands();
     ArrayList<SqlNode> nullList = new ArrayList<>();
     List<RelDataType> argTypes = new ArrayList<>();
-    for (SqlNode node : thenList) {
-      argTypes.add(
-          callBinding.getValidator().deriveType(
-              callBinding.getScope(), node));
+
+    final SqlNodeList whenOperands = caseCall.getWhenOperands();
+    final RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+
+    final int size = thenList.getList().size();
+    for (int i = 0; i < size; i++) {
+      SqlNode node = thenList.get(i);
+      RelDataType type = callBinding.getValidator().deriveType(
+          callBinding.getScope(), node);
+      SqlNode operand = whenOperands.get(i);
+      if (operand.getKind() == SqlKind.IS_NOT_NULL && type.isNullable()) {
+        SqlBasicCall call = (SqlBasicCall) operand;
+        if (call.getOperandList().get(0).equalsDeep(node, Litmus.IGNORE)) {
+          // We're sure that the type is not nullable if the kind is IS NOT NULL.
+          type = typeFactory.createTypeWithNullability(type, false);
+        }
+      }
+      argTypes.add(type);
       if (SqlUtil.isNullLiteral(node, false)) {
         nullList.add(node);
       }
     }
+
     SqlNode elseOp = caseCall.getElseOperand();
     argTypes.add(
         callBinding.getValidator().deriveType(
@@ -245,9 +261,27 @@ public class SqlCaseOperator extends SqlOperator {
       nullList.add(elseOp);
     }
 
-    RelDataType ret = callBinding.getTypeFactory().leastRestrictive(argTypes);
+    RelDataType ret = typeFactory.leastRestrictive(argTypes);
     if (null == ret) {
-      throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+      boolean coerced = false;
+      if (callBinding.getValidator().isTypeCoercionEnabled()) {
+        TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+        RelDataType commonType = typeCoercion.getWiderTypeFor(argTypes, true);
+        // commonType is always with nullability as false, we do not consider the
+        // nullability when deducing the common type. Use the deduced type
+        // (with the correct nullability) in SqlValidator
+        // instead of the commonType as the return type.
+        if (null != commonType) {
+          coerced = typeCoercion.caseWhenCoercion(callBinding);
+          if (coerced) {
+            ret = callBinding.getValidator()
+                .deriveType(callBinding.getScope(), callBinding.getCall());
+          }
+        }
+      }
+      if (!coerced) {
+        throw callBinding.newValidationError(RESOURCE.illegalMixingOfTypes());
+      }
     }
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) callBinding.getValidator();
@@ -257,15 +291,29 @@ public class SqlCaseOperator extends SqlOperator {
     return ret;
   }
 
-  private RelDataType inferTypeFromOperands(
-      RelDataTypeFactory typeFactory,
-      List<RelDataType> argTypes) {
+  private RelDataType inferTypeFromOperands(SqlOperatorBinding opBinding) {
+    final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    final List<RelDataType> argTypes = opBinding.collectOperandTypes();
     assert (argTypes.size() % 2) == 1 : "odd number of arguments expected: "
         + argTypes.size();
-    assert argTypes.size() > 1 : argTypes.size();
+    assert argTypes.size() > 1 : "CASE must have more than 1 argument. Given "
+      + argTypes.size() + ", " + argTypes;
     List<RelDataType> thenTypes = new ArrayList<>();
     for (int j = 1; j < (argTypes.size() - 1); j += 2) {
-      thenTypes.add(argTypes.get(j));
+      RelDataType argType = argTypes.get(j);
+      if (opBinding instanceof RexCallBinding) {
+        final RexCallBinding rexCallBinding = (RexCallBinding) opBinding;
+        final RexNode whenNode = rexCallBinding.operands().get(j - 1);
+        final RexNode thenNode = rexCallBinding.operands().get(j);
+        if (whenNode.getKind() == SqlKind.IS_NOT_NULL && argType.isNullable()) {
+          // Type is not nullable if the kind is IS NOT NULL.
+          final RexCall isNotNullCall = (RexCall) whenNode;
+          if (isNotNullCall.getOperands().get(0).equals(thenNode)) {
+            argType = typeFactory.createTypeWithNullability(argType, false);
+          }
+        }
+      }
+      thenTypes.add(argType);
     }
 
     thenTypes.add(Iterables.getLast(argTypes));
@@ -294,7 +342,7 @@ public class SqlCaseOperator extends SqlOperator {
       int rightPrec) {
     SqlCase kase = (SqlCase) call_;
     final SqlWriter.Frame frame =
-        writer.startList(FRAME_TYPE, "CASE", "END");
+        writer.startList(SqlWriter.FrameTypeEnum.CASE, "CASE", "END");
     assert kase.whenList.size() == kase.thenList.size();
     if (kase.value != null) {
       kase.value.unparse(writer, 0, 0);
@@ -311,5 +359,3 @@ public class SqlCaseOperator extends SqlOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlCaseOperator.java

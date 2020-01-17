@@ -343,5 +343,3 @@ class CachingCalciteSchema extends CalciteSchema {
     }
   }
 }
-
-// End CachingCalciteSchema.java

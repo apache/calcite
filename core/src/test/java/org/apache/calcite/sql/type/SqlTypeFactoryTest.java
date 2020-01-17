@@ -25,16 +25,17 @@ import org.apache.calcite.rel.type.RelRecordType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test for {@link SqlTypeFactoryImpl}.
@@ -136,8 +137,7 @@ public class SqlTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
    * Allow to set nullability for columns of structured types</a>. */
-  @Test
-  public void createStructTypeWithNullability() {
+  @Test public void createStructTypeWithNullability() {
     SqlTypeFixture f = new SqlTypeFixture();
     RelDataTypeFactory typeFactory = f.typeFactory;
     List<RelDataTypeField> fields = new ArrayList<>();
@@ -153,6 +153,21 @@ public class SqlTypeFactoryTest {
     assertTrue(copyRecordType.isNullable());
   }
 
-}
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3429">[CALCITE-3429]
+   * AssertionError thrown for user-defined table function with map argument</a>. */
+  @Test public void testCreateTypeWithJavaMapType() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    RelDataType relDataType = f.typeFactory.createJavaType(Map.class);
+    assertThat(relDataType.getSqlTypeName(), is(SqlTypeName.MAP));
+    assertThat(relDataType.getKeyType().getSqlTypeName(), is(SqlTypeName.ANY));
 
-// End SqlTypeFactoryTest.java
+    try {
+      f.typeFactory.createSqlType(SqlTypeName.MAP);
+      fail();
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), is("use createMapType() instead"));
+    }
+  }
+
+}

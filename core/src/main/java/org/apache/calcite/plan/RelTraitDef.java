@@ -186,5 +186,3 @@ public abstract class RelTraitDef<T extends RelTrait> {
    */
   public abstract T getDefault();
 }
-
-// End RelTraitDef.java

@@ -81,5 +81,3 @@ public class RelMdParallelism
     return 1;
   }
 }
-
-// End RelMdParallelism.java

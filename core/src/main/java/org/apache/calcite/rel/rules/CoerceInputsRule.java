@@ -109,5 +109,3 @@ public class CoerceInputsRule extends RelOptRule {
     call.transformTo(newConsumerRel);
   }
 }
-
-// End CoerceInputsRule.java

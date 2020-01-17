@@ -74,5 +74,3 @@ class CaseInsensitiveComparator implements Comparator {
     return s1.compareTo(s2);
   }
 }
-
-// End CaseInsensitiveComparator.java

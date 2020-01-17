@@ -64,5 +64,3 @@ public class JsonFunction {
     handler.visit(this);
   }
 }
-
-// End JsonFunction.java

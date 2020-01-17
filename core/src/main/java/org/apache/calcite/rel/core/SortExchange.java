@@ -108,5 +108,3 @@ public abstract class SortExchange extends Exchange {
         .item("collation", collation);
   }
 }
-
-// End SortExchange.java

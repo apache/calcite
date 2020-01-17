@@ -92,5 +92,3 @@ public class EnumerableSort extends Sort implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableSort.java

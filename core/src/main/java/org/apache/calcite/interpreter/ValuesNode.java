@@ -66,5 +66,3 @@ public class ValuesNode implements Node {
     sink.end();
   }
 }
-
-// End ValuesNode.java

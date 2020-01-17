@@ -31,5 +31,3 @@ public interface AggregateFunction extends Function {
    */
   RelDataType getReturnType(RelDataTypeFactory typeFactory);
 }
-
-// End AggregateFunction.java
