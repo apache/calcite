@@ -31,6 +31,17 @@ select cbrt(-8);
 
 !ok
 
+# STRCMP
+select strcmp('mytesttext', 'mytesttext');
++--------+
+| EXPR$0 |
++--------+
+|      0 |
++--------+
+(1 row)
+
+!ok
+
 # XML Functions
 
 SELECT ExtractValue('<a>c</a>', '//a');

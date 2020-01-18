@@ -4460,6 +4460,16 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkNull("SPACE(cast(null as integer))");
   }
 
+  @Test public void testStrcmpFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.STRCMP);
+    tester1.checkString("STRCMP('mytesttext', 'mytesttext')", "0", "INTEGER NOT NULL");
+    tester1.checkString("STRCMP('mytesttext', 'mytest_text')", "-1", "INTEGER NOT NULL");
+    tester1.checkString("STRCMP('mytest_text', 'mytesttext')", "1", "INTEGER NOT NULL");
+    tester1.checkNull("STRCMP('mytesttext', cast(null as varchar(1)))");
+    tester1.checkNull("STRCMP(cast(null as varchar(1)), 'mytesttext')");
+  }
+
   @Test public void testSoundexFunc() {
     final SqlTester tester1 = oracleTester();
     tester1.setFor(SqlLibraryOperators.SOUNDEX);

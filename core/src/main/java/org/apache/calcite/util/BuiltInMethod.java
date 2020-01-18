@@ -314,6 +314,7 @@ public enum BuiltInMethod {
   REPEAT(SqlFunctions.class, "repeat", String.class, int.class),
   SPACE(SqlFunctions.class, "space", int.class),
   SOUNDEX(SqlFunctions.class, "soundex", String.class),
+  STRCMP(SqlFunctions.class, "strcmp", String.class, String.class),
   DIFFERENCE(SqlFunctions.class, "difference", String.class, String.class),
   REVERSE(SqlFunctions.class, "reverse", String.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),

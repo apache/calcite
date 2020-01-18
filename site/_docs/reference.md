@@ -2351,6 +2351,7 @@ semantics.
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller the first one.
 | o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
