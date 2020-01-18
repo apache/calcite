@@ -26,8 +26,10 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -58,7 +60,9 @@ public class PigRelFactories {
 
     public static final PigTableScanFactory INSTANCE = new PigTableScanFactory();
 
-    @Override public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
+    @Override public RelNode createScan(RelOptCluster cluster,
+        RelOptTable table, List<RelHint> hints) {
+      Util.discard(hints);
       return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), table);
     }
   }
@@ -92,8 +96,10 @@ public class PigRelFactories {
     public static final PigAggregateFactory INSTANCE = new PigAggregateFactory();
 
     @Override public RelNode createAggregate(RelNode input,
+        List<RelHint> hints,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
+      Util.discard(hints);
       return new PigAggregate(input.getCluster(), input.getTraitSet(), input,
           groupSet, groupSets, aggCalls);
     }
@@ -108,8 +114,12 @@ public class PigRelFactories {
 
     public static final PigJoinFactory INSTANCE = new PigJoinFactory();
 
-    @Override public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        Set<CorrelationId> variablesSet, JoinRelType joinType, boolean semiJoinDone) {
+    @Override public RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
+        boolean semiJoinDone) {
+      Util.discard(hints);
+      Util.discard(variablesSet);
+      Util.discard(semiJoinDone);
       return new PigJoin(left.getCluster(), left.getTraitSet(), left, right, condition, joinType);
     }
 

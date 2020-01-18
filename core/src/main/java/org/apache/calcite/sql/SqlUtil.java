@@ -1006,10 +1006,10 @@ public abstract class SqlUtil {
    * @return the {@code RelHint} list
    */
   public static List<RelHint> getRelHint(HintStrategyTable hintStrategies, SqlNodeList sqlHints) {
-    final List<RelHint> relHints = new ArrayList<>();
     if (sqlHints == null || sqlHints.size() == 0) {
-      return relHints;
+      return ImmutableList.of();
     }
+    final ImmutableList.Builder<RelHint> relHints = ImmutableList.builder();
     for (SqlNode node : sqlHints) {
       assert node instanceof SqlHint;
       final SqlHint sqlHint = (SqlHint) node;
@@ -1035,7 +1035,7 @@ public abstract class SqlUtil {
         relHints.add(relHint);
       }
     }
-    return ImmutableList.copyOf(relHints);
+    return relHints.build();
   }
 
   /**

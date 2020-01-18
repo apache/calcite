@@ -48,6 +48,8 @@ import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
+import com.google.common.collect.ImmutableList;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
@@ -102,7 +104,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
         return ((TranslatableTable) table).toRel(translator.toRelContext(),
             relOptTable);
       } else {
-        return LogicalTableScan.create(translator.cluster, relOptTable);
+        return LogicalTableScan.create(translator.cluster, relOptTable, ImmutableList.of());
       }
     }
     return translator.translate(queryable.getExpression());
@@ -536,7 +538,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     RelNode child = toRel(source);
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
-        LogicalProject.create(child, nodes, (List<String>)  null));
+        LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null));
     return null;
   }
 

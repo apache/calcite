@@ -107,8 +107,8 @@ public class RelToSqlConverterTest {
   /** Initiates a test case with a given SQL query. */
   private Sql sql(String sql) {
     return new Sql(CalciteAssert.SchemaSpec.JDBC_FOODMART, sql,
-        CalciteSqlDialect.DEFAULT, DEFAULT_REL_CONFIG,
-        ImmutableList.of());
+        CalciteSqlDialect.DEFAULT, SqlParser.Config.DEFAULT,
+        DEFAULT_REL_CONFIG, ImmutableList.of());
   }
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
@@ -347,6 +347,53 @@ public class RelToSqlConverterTest {
         .ok(expected)
         .withMysql()
         .ok(expectedMySql);
+  }
+
+  /** Tests a query with GROUP BY and a sub-query which is also with GROUP BY.
+   * If we flatten sub-queries, the number of rows going into AVG becomes
+   * incorrect. */
+  @Test public void testSelectQueryWithGroupBySubQuery1() {
+    final String query = "select \"product_class_id\", avg(\"product_id\")\n"
+        + "from (select \"product_class_id\", \"product_id\", avg(\"product_class_id\")\n"
+        + "from \"product\"\n"
+        + "group by \"product_class_id\", \"product_id\") as t\n"
+        + "group by \"product_class_id\"";
+    final String expected = "SELECT \"product_class_id\", AVG(\"product_id\")\n"
+        + "FROM (SELECT \"product_class_id\", \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"\n"
+        + "GROUP BY \"product_class_id\"";
+    sql(query).ok(expected);
+  }
+
+  /** Tests query without GROUP BY but an aggregate function
+   * and a sub-query which is with GROUP BY. */
+  @Test public void testSelectQueryWithGroupBySubQuery2() {
+    final String query = "select sum(\"product_id\")\n"
+        + "from (select \"product_class_id\", \"product_id\"\n"
+        + "from \"product\"\n"
+        + "group by \"product_class_id\", \"product_id\") as t";
+    final String expected = "SELECT SUM(\"product_id\")\n"
+        + "FROM (SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_class_id\", \"product_id\") AS \"t1\"";
+    final String expectedMysql = "SELECT SUM(`product_id`)\n"
+        + "FROM (SELECT `product_id`\n"
+        + "FROM `foodmart`.`product`\n"
+        + "GROUP BY `product_class_id`, `product_id`) AS `t1`";
+    sql(query)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMysql);
+
+    // Equivalent sub-query that uses SELECT DISTINCT
+    final String query2 = "select sum(\"product_id\")\n"
+        + "from (select distinct \"product_class_id\", \"product_id\"\n"
+        + "    from \"product\") as t";
+    sql(query2)
+        .ok(expected)
+        .withMysql()
+        .ok(expectedMysql);
   }
 
   /** CUBE of one column is equivalent to ROLLUP, and Calcite recognizes
@@ -961,7 +1008,7 @@ public class RelToSqlConverterTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3663">[CALCITE-3663]
-   * Support for TRIM function in Bigquery dialect</a>. */
+   * Support for TRIM function in BigQuery dialect</a>. */
 
   @Test public void testHiveAndBqTrim() {
     final String query = "SELECT TRIM(' str ')\n"
@@ -4676,37 +4723,72 @@ public class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3593">[CALCITE-3593]
+   * RelToSqlConverter changes target of ambiguous HAVING clause with a Project
+   * on Filter on Aggregate</a>. */
+  @Test public void testBigQueryHaving() {
+    final String sql = ""
+        + "SELECT \"DEPTNO\" - 10 \"DEPTNO\"\n"
+        + "FROM \"EMP\"\n"
+        + "GROUP BY \"DEPTNO\"\n"
+        + "HAVING \"DEPTNO\" > 0";
+    final String expected = ""
+        + "SELECT DEPTNO - 10 AS DEPTNO\n"
+        + "FROM (SELECT DEPTNO\n"
+        + "FROM SCOTT.EMP\n"
+        + "GROUP BY DEPTNO\n"
+        + "HAVING DEPTNO > 0) AS t1";
+
+    // Parse the input SQL with PostgreSQL dialect,
+    // in which "isHavingAlias" is false.
+    final SqlParser.Config parserConfig =
+        PostgresqlSqlDialect.DEFAULT.configureParser(SqlParser.configBuilder())
+            .build();
+
+    // Convert rel node to SQL with BigQuery dialect,
+    // in which "isHavingAlias" is true.
+    sql(sql)
+        .parserConfig(parserConfig)
+        .schema(CalciteAssert.SchemaSpec.JDBC_SCOTT)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
     private final String sql;
     private final SqlDialect dialect;
     private final List<Function<RelNode, RelNode>> transforms;
+    private final SqlParser.Config parserConfig;
     private final SqlToRelConverter.Config config;
 
     Sql(CalciteAssert.SchemaSpec schemaSpec, String sql, SqlDialect dialect,
-        SqlToRelConverter.Config config,
+        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
       final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
       this.schema = CalciteAssert.addSchema(rootSchema, schemaSpec);
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
+      this.parserConfig = parserConfig;
       this.config = config;
     }
 
     Sql(SchemaPlus schema, String sql, SqlDialect dialect,
-        SqlToRelConverter.Config config,
+        SqlParser.Config parserConfig, SqlToRelConverter.Config config,
         List<Function<RelNode, RelNode>> transforms) {
       this.schema = schema;
       this.sql = sql;
       this.dialect = dialect;
       this.transforms = ImmutableList.copyOf(transforms);
+      this.parserConfig = parserConfig;
       this.config = config;
     }
 
     Sql dialect(SqlDialect dialect) {
-      return new Sql(schema, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, parserConfig, config, transforms);
     }
 
     Sql withCalcite() {
@@ -4819,12 +4901,16 @@ public class RelToSqlConverterTest {
       return dialect(oracleSqlDialect);
     }
 
+    Sql parserConfig(SqlParser.Config parserConfig) {
+      return new Sql(schema, sql, dialect, parserConfig, config, transforms);
+    }
+
     Sql config(SqlToRelConverter.Config config) {
-      return new Sql(schema, sql, dialect, config, transforms);
+      return new Sql(schema, sql, dialect, parserConfig, config, transforms);
     }
 
     Sql optimize(final RuleSet ruleSet, final RelOptPlanner relOptPlanner) {
-      return new Sql(schema, sql, dialect, config,
+      return new Sql(schema, sql, dialect, parserConfig, config,
           FlatLists.append(transforms, r -> {
             Program program = Programs.of(ruleSet);
             final RelOptPlanner p =
@@ -4855,7 +4941,7 @@ public class RelToSqlConverterTest {
 
     String exec() {
       final Planner planner =
-          getPlanner(null, SqlParser.Config.DEFAULT, schema, config);
+          getPlanner(null, parserConfig, schema, config);
       try {
         SqlNode parse = planner.parse(sql);
         SqlNode validate = planner.validate(parse);
@@ -4870,7 +4956,7 @@ public class RelToSqlConverterTest {
     }
 
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
-      return new Sql(schemaSpec, sql, dialect, config, transforms);
+      return new Sql(schemaSpec, sql, dialect, parserConfig, config, transforms);
     }
   }
 }

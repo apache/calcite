@@ -2377,7 +2377,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         return registerFrom(parentScope, usingScope, register, node,
             enclosingNode, alias, extendList, forceNullable, true);
       }
-      // fall through
+    // fall through
     case SELECT:
     case UNION:
     case INTERSECT:
@@ -2843,7 +2843,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       registerOperandSubQueries(parentScope, call, 0);
       scopes.put(node, parentScope);
       break;
-
     case OTHER_FUNCTION:
       call = (SqlCall) node;
       ProcedureNamespace procNs =

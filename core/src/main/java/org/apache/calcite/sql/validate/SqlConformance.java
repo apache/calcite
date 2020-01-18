@@ -74,6 +74,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
@@ -98,6 +99,7 @@ public interface SqlConformance {
    * <p>Among the built-in conformance levels, true in
    * {@link SqlConformanceEnum#BABEL},
    * {@link SqlConformanceEnum#LENIENT},
+   * {@link SqlConformanceEnum#BIG_QUERY},
    * {@link SqlConformanceEnum#MYSQL_5};
    * false otherwise.
    */
@@ -410,19 +412,24 @@ public interface SqlConformance {
   boolean allowPluralTimeUnits();
 
   /**
-   * Whether to allow qualifying common column in NATURAL join
-   * or USING clause.
+   * Whether to allow a qualified common column in a query that has a
+   * NATURAL join or a join with a USING clause.
    *
-   * <p>For example, consider the query
+   * <p>For example, in the query
    *
-   * <blockquote><pre>SELECT emp.deptno emp join dept using (deptno)</pre></blockquote>
+   * <blockquote><pre>SELECT emp.deptno
+   * FROM emp
+   * JOIN dept USING (deptno)</pre></blockquote>
    *
-   * <p> {@code deptno} is the common column. Qualifying common column,
+   * <p>{@code deptno} is the common column. A qualified common column
    * such as {@code emp.deptno} is not allowed in Oracle, but is allowed
    * in PostgreSQL.
    *
    * <p>Among the built-in conformance levels, false in
-   * {@link SqlConformanceEnum#ORACLE_10};
+   * {@link SqlConformanceEnum#STRICT_92},
+   * {@link SqlConformanceEnum#STRICT_99},
+   * {@link SqlConformanceEnum#STRICT_2003},
+   * {@link SqlConformanceEnum#ORACLE_10},
    * {@link SqlConformanceEnum#ORACLE_12};
    * true otherwise.
    */

@@ -120,15 +120,7 @@ public class XmlFunctions {
       XPath xPath = XPATH_FACTORY.get().newXPath();
 
       if (namespace != null) {
-        if (!VALID_NAMESPACE_PATTERN.matcher(namespace).find()) {
-          throw new IllegalArgumentException("Invalid namespace " + namespace);
-        }
-        Map<String, String> namespaceMap = new HashMap<>();
-        Matcher matcher = EXTRACT_NAMESPACE_PATTERN.matcher(namespace);
-        while (matcher.find()) {
-          namespaceMap.put(matcher.group(1), matcher.group(3));
-        }
-        xPath.setNamespaceContext(new SimpleNamespaceContext(namespaceMap));
+        xPath.setNamespaceContext(extractNamespaceContext(namespace));
       }
 
       XPathExpression xpathExpression = xPath.compile(xpath);
@@ -149,6 +141,53 @@ public class XmlFunctions {
     } catch (IllegalArgumentException | XPathExpressionException | TransformerException ex) {
       throw RESOURCE.invalidInputForExtractXml(xpath, namespace).ex();
     }
+  }
+
+  public static Integer existsNode(String xml, String xpath) {
+    return existsNode(xml, xpath, null);
+  }
+
+  public static Integer existsNode(String xml, String xpath, String namespace) {
+    if (xml == null || xpath == null) {
+      return null;
+    }
+    try {
+      XPath xPath = XPATH_FACTORY.get().newXPath();
+      if (namespace != null) {
+        xPath.setNamespaceContext(extractNamespaceContext(namespace));
+      }
+
+      XPathExpression xpathExpression = xPath.compile(xpath);
+      try {
+        NodeList nodes = (NodeList) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
+        if (nodes != null && nodes.getLength() > 0) {
+          return 1;
+        }
+        return 0;
+      } catch (XPathExpressionException e) {
+        Node node = (Node) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODE);
+        if (node != null) {
+          return 1;
+        }
+        return 0;
+      }
+    } catch (IllegalArgumentException | XPathExpressionException ex) {
+      throw RESOURCE.invalidInputForExistsNode(xpath, namespace).ex();
+    }
+  }
+
+  private static SimpleNamespaceContext extractNamespaceContext(String namespace) {
+    if (!VALID_NAMESPACE_PATTERN.matcher(namespace).find()) {
+      throw new IllegalArgumentException("Invalid namespace " + namespace);
+    }
+    Map<String, String> namespaceMap = new HashMap<>();
+    Matcher matcher = EXTRACT_NAMESPACE_PATTERN.matcher(namespace);
+    while (matcher.find()) {
+      namespaceMap.put(matcher.group(1), matcher.group(3));
+    }
+    return new SimpleNamespaceContext(namespaceMap);
   }
 
   private static String convertNodeToString(Node node) throws TransformerException {

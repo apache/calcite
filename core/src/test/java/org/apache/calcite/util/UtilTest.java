@@ -86,6 +86,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
 
@@ -918,6 +920,57 @@ public class UtilTest {
       x += pair.right;
     }
     assertEquals(5825, x);
+  }
+
+  /**
+   * Unit test for {@link Pair#forEach(Iterable, Iterable, BiConsumer)}.
+   */
+  @Test public void testPairForEach() {
+    List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
+    List<Integer> integers = Arrays.asList(1942, 1943, 1940);
+
+    // shorter list on the right
+    final AtomicInteger size = new AtomicInteger();
+    Pair.forEach(strings, integers, (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(3));
+
+    // shorter list on the left
+    size.set(0);
+    Pair.forEach(integers, strings, (i, s) -> size.incrementAndGet());
+    assertThat(size.get(), is(3));
+
+    // same on left and right
+    size.set(0);
+    Pair.forEach(strings, strings, (s1, s2) -> size.incrementAndGet());
+    assertThat(size.get(), is(4));
+
+    // empty on left
+    size.set(0);
+    Pair.forEach(strings, ImmutableList.of(), (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
+    // empty on right
+    size.set(0);
+    Pair.forEach(strings, ImmutableList.of(), (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
+    // empty on right
+    size.set(0);
+    Pair.forEach(ImmutableList.<String>of(), integers,
+        (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
+    // both empty
+    size.set(0);
+    Pair.forEach(ImmutableList.<String>of(), ImmutableList.<Integer>of(),
+        (s, i) -> size.incrementAndGet());
+    assertThat(size.get(), is(0));
+
+    // build a string
+    final StringBuilder b = new StringBuilder();
+    Pair.forEach(strings, integers,
+        (s, i) -> b.append(s).append(":").append(i).append(";"));
+    assertThat(b.toString(), is("paul:1942;george:1943;john:1940;"));
   }
 
   /**

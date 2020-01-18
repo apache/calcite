@@ -152,15 +152,37 @@ public final class LogicalJoin extends Join {
         ImmutableList.of());
   }
 
+  /** Creates a LogicalJoin. */
+  public static LogicalJoin create(RelNode left, RelNode right, List<RelHint> hints,
+      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
+    return create(left, right, hints, condition, variablesSet, joinType, false,
+        ImmutableList.of());
+  }
+
   /** Creates a LogicalJoin, flagged with whether it has been translated to a
    * semi-join. */
-  public static LogicalJoin create(RelNode left, RelNode right,
+  public static LogicalJoin create(RelNode left, RelNode right, List<RelHint> hints,
       RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
       boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
     final RelOptCluster cluster = left.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalJoin(cluster, traitSet, ImmutableList.of(), left, right, condition,
+    return new LogicalJoin(cluster, traitSet, hints, left, right, condition,
         variablesSet, joinType, semiJoinDone, systemFieldList);
+  }
+
+  @Deprecated // to be removed before 1.23
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
+    return create(left, right, ImmutableList.of(), condition, variablesSet,
+        joinType, false, ImmutableList.of());
+  }
+
+  @Deprecated // to be removed before 1.23
+  public static LogicalJoin create(RelNode left, RelNode right,
+      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
+      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
+    return create(left, right, ImmutableList.of(), condition, variablesSet,
+        joinType, semiJoinDone, systemFieldList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -169,13 +191,6 @@ public final class LogicalJoin extends Join {
       boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
     return create(left, right, condition, CorrelationId.setOf(variablesStopped),
         joinType, semiJoinDone, systemFieldList);
-  }
-
-  /** Creates a LogicalJoin. */
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    return create(left, right, condition, variablesSet, joinType, false,
-        ImmutableList.of());
   }
 
   @Deprecated // to be removed before 2.0

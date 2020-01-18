@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -83,6 +84,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
 
+import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
 
 import static org.hamcrest.CoreMatchers.allOf;
@@ -1088,8 +1090,9 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of())),
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of())),
                 builder.count()
                     .filter(
                         builder.call(SqlStdOperatorTable.GREATER_THAN,
@@ -1209,8 +1212,9 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(ImmutableBitSet.of(7),
-                      ImmutableList.of(ImmutableBitSet.of(4),
-                          ImmutableBitSet.of())))
+                      (Iterable<ImmutableBitSet>)
+                          ImmutableList.of(ImmutableBitSet.of(4),
+                              ImmutableBitSet.of())))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1225,9 +1229,10 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7, 6),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of(6),
-                        ImmutableBitSet.of(7))))
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of(6),
+                            ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
@@ -3047,5 +3052,92 @@ public class RelBuilderTest {
         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  @Test public void testHints() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    final RelHint propsHint = RelHint.of(Collections.singletonList(0),
+        "PROPERTIES",
+        ImmutableMap.of("parallelism", "3", "mem", "20Mb"));
+    final RelHint noHashJoinHint = RelHint.of(Collections.singletonList(0),
+        "NO_HASH_JOIN");
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp /*+ INDEX(_idx1, _idx2) */
+    final RelNode root = builder
+            .scan("EMP")
+            .hints(indexHint)
+            .build();
+    assertThat(root,
+        hasHints("[[INDEX inheritPath:[] options:[_idx1, _idx2]]]"));
+    // Equivalent SQL:
+    //   SELECT /*+  PROPERTIES(parallelism='3', mem='20Mb') */
+    //   *
+    //   FROM emp /*+ INDEX(_idx1, _idx2) */
+    final RelNode root1 = builder
+            .scan("EMP")
+            .hints(indexHint, propsHint)
+            .build();
+    assertThat(root1,
+        hasHints("[[INDEX inheritPath:[] options:[_idx1, _idx2]], "
+            + "[PROPERTIES inheritPath:[0] options:{parallelism=3, mem=20Mb}]]"));
+    // Equivalent SQL:
+    //   SELECT /*+ NO_HASH_JOIN */
+    //   *
+    //   FROM emp
+    //     join dept
+    //     on emp.deptno = dept.deptno
+    final RelNode root2 = builder
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .hints(noHashJoinHint)
+        .build();
+    assertThat(root2, hasHints("[[NO_HASH_JOIN inheritPath:[0]]]"));
+  }
+
+  @Test public void testHintsOnEmptyStack() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    // Attach hints on empty stack.
+    final AssertionError error = assertThrows(
+        AssertionError.class,
+        () -> RelBuilder.create(config().build()).hints(indexHint),
+        "hints() should fail on empty stack");
+    assertThat(error.getMessage(),
+        containsString("There is no relational expression to attach the hints"));
+  }
+
+  @Test public void testHintsOnNonHintable() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    // Attach hints on non hintable.
+    final AssertionError error1 = assertThrows(
+        AssertionError.class,
+        () -> {
+          final RelBuilder builder = RelBuilder.create(config().build());
+          // Equivalent SQL:
+          //   SELECT *
+          //   FROM emp
+          //   WHERE EMPNO = 124
+          builder
+              .scan("EMP")
+              .filter(
+                  builder.equals(
+                      builder.field("EMPNO"),
+                      builder.literal(124)))
+              .hints(indexHint);
+        },
+        "hints() should fail on non Hintable relational expression");
+    assertThat(error1.getMessage(),
+        containsString("The top relational expression is not a Hintable"));
   }
 }

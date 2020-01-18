@@ -221,11 +221,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
 
-    /**
-     * If the trimmed character is non space character then add it to the target sql.
-     * eg: TRIM(BOTH 'A' from 'ABCD'
-     * Output Query: TRIM('ABC', 'A')
-     * */
+    // If the trimmed character is a non-space character, add it to the target SQL.
+    // eg: TRIM(BOTH 'A' from 'ABCD'
+    // Output Query: TRIM('ABC', 'A')
     if (!valueToTrim.toValue().matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);

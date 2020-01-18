@@ -45,6 +45,7 @@ import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -165,6 +166,16 @@ public class RexToLixTranslator {
         null, null)
         .setCorrelates(correlates)
         .translateList(program.getProjectList(), storageTypes);
+  }
+
+  public static Expression translateTableValuedFunction(JavaTypeFactory typeFactory,
+      SqlConformance conformance, BlockBuilder blockBuilder,
+      Expression root, RexCall rexCall, Expression inputEnumerable,
+      PhysType inputPhysType, PhysType outputPhysType) {
+    return new RexToLixTranslator(null, typeFactory, root, null,
+        blockBuilder, Collections.emptyMap(), new RexBuilder(typeFactory), conformance,
+        null, null)
+        .translateTableValuedFunction(rexCall, inputEnumerable, inputPhysType, outputPhysType);
   }
 
   /** Creates a translator for translating aggregate functions. */
@@ -933,6 +944,18 @@ public class RexToLixTranslator {
       }
     }
     return list;
+  }
+
+  private Expression translateTableValuedFunction(RexCall rexCall, Expression inputEnumerable,
+      PhysType inputPhysType, PhysType outputPhysType) {
+    assert rexCall.getOperator() instanceof SqlWindowTableFunction;
+    TableValuedFunctionCallImplementor implementor =
+        RexImpTable.INSTANCE.get((SqlWindowTableFunction) rexCall.getOperator());
+    if (implementor == null) {
+      throw Util.needToImplement("implementor of " + rexCall.getOperator().getName());
+    }
+    return implementor.implement(
+        this, inputEnumerable, rexCall, inputPhysType, outputPhysType);
   }
 
   public static Expression translateCondition(RexProgram program,

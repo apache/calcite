@@ -398,7 +398,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testNotPushExpression() {
-    final String sql = "select 1 from emp inner join dept \n"
+    final String sql = "select 1 from emp inner join dept\n"
         + "on emp.deptno=dept.deptno and emp.ename is not null";
     sql(sql).withRule(JoinPushExpressionsRule.INSTANCE)
         .checkUnchanged();
@@ -1482,6 +1482,35 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  @Test public void testDistinctWithFilterWithoutGroupBy() {
+    final String sql = "SELECT SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
+        + "FROM emp";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testDistinctWithDiffFiltersAndSameGroupSet() {
+    final String sql = "SELECT COUNT(DISTINCT c) FILTER (WHERE d),\n"
+        + "COUNT(DISTINCT d) FILTER (WHERE c)\n"
+        + "FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp)";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testDistinctWithFilterAndGroupBy() {
+    final String sql = "SELECT deptno, SUM(comm), COUNT(DISTINCT sal) FILTER (WHERE sal > 1000)\n"
+        + "FROM emp\n"
+        + "GROUP BY deptno";
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(AggregateExpandDistinctAggregatesRule.INSTANCE)
+        .build();
+    sql(sql).with(program).check();
+  }
+
   @Test public void testPushProjectPastFilter() {
     final String sql = "select empno + deptno from emp where sal = 10 * comm\n"
         + "and upper(ename) = 'FOO'";
@@ -2413,7 +2442,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   }
 
   @Test public void testReduceConstants2() throws Exception {
-    final String sql = "select p1 is not distinct from p0 \n"
+    final String sql = "select p1 is not distinct from p0\n"
         + "from (values (2, cast(null as integer))) as t(p0, p1)";
     sql(sql).withRule(ReduceExpressionsRule.PROJECT_INSTANCE,
         ReduceExpressionsRule.FILTER_INSTANCE,
@@ -2728,7 +2757,7 @@ public class RelOptRulesTest extends RelOptTestBase {
   @Test public void testReduceValuesUnderProjectFilter() throws Exception {
     // Plan should be same as for
     // select * from (values (11, 1, 10), (23, 3, 20)) as t(x, b, a)");
-    final String sql = "select a + b as x, b, a \n"
+    final String sql = "select a + b as x, b, a\n"
         + "from (values (10, 1), (30, 7), (20, 3)) as t(a, b)\n"
         + "where a - b < 21";
     sql(sql).withRule(FilterProjectTransposeRule.INSTANCE,
@@ -5821,7 +5850,7 @@ public class RelOptRulesTest extends RelOptTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2744">[CALCITE-2744]
    * RelDecorrelator use wrong output map for LogicalAggregate decorrelate</a>. */
   @Test public void testDecorrelateAggWithConstantGroupKey() {
-    final String sql = "SELECT * FROM emp A where sal in \n"
+    final String sql = "SELECT * FROM emp A where sal in\n"
         + "(SELECT max(sal) FROM emp B where A.mgr = B.empno group by deptno, 'abc')";
     sql(sql)
         .withLateDecorrelation(true)

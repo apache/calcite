@@ -24,6 +24,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1240,22 +1241,7 @@ public abstract class SqlImplementor {
      * @return A builder
      */
     public Builder builder(RelNode rel, Clause... clauses) {
-      final Clause maxClause = maxClause();
-      boolean needNew = false;
-      // If old and new clause are equal and belong to below set,
-      // then new SELECT wrap is not required
-      Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
-      for (Clause clause : clauses) {
-        if (maxClause.ordinal() > clause.ordinal()
-            || (maxClause == clause && !nonWrapSet.contains(clause))) {
-          needNew = true;
-        }
-      }
-      if (rel instanceof Aggregate
-          && !dialect.supportsNestedAggregations()
-          && hasNestedAggregations((Aggregate) rel)) {
-        needNew = true;
-      }
+      final boolean needNew = needNewSubQuery(rel, clauses);
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
@@ -1327,6 +1313,43 @@ public abstract class SqlImplementor {
           needNew ? null : aliases);
     }
 
+    /** Returns whether a new sub-query is required. */
+    private boolean needNewSubQuery(RelNode rel, Clause[] clauses) {
+      final Clause maxClause = maxClause();
+      // If old and new clause are equal and belong to below set,
+      // then new SELECT wrap is not required
+      final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
+      for (Clause clause : clauses) {
+        if (maxClause.ordinal() > clause.ordinal()
+            || (maxClause == clause
+                && !nonWrapSet.contains(clause))) {
+          return true;
+        }
+      }
+
+      if (rel instanceof Project
+          && this.clauses.contains(Clause.HAVING)
+          && dialect.getConformance().isHavingAlias()) {
+        return true;
+      }
+
+      if (rel instanceof Aggregate) {
+        final Aggregate agg = (Aggregate) rel;
+        final boolean hasNestedAgg = hasNestedAggregations(agg);
+        if (!dialect.supportsNestedAggregations()
+            && hasNestedAgg) {
+          return true;
+        }
+
+        if (this.clauses.contains(Clause.GROUP_BY)) {
+          // Avoid losing the distinct attribute of inner aggregate.
+          return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
+        }
+      }
+
+      return false;
+    }
+
     private boolean hasNestedAggregations(Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
@@ -1352,8 +1375,7 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    // make private?
-    public Clause maxClause() {
+    private Clause maxClause() {
       Clause maxClause = null;
       for (Clause clause : clauses) {
         if (maxClause == null || clause.ordinal() > maxClause.ordinal()) {
