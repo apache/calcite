@@ -370,6 +370,11 @@ public class SqlFunctions {
     return repeat(" ", n);
   }
 
+  /** SQL STRCMP(String,String) function. */
+  public static int strcmp(String s0, String s1) {
+    return (int) Math.signum(s1.compareTo(s0));
+  }
+
   /** SQL SOUNDEX(string) function. */
   public static String soundex(String s) {
     return SOUNDEX.soundex(s);
