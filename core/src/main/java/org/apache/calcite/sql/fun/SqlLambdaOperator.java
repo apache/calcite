@@ -51,7 +51,7 @@ public class SqlLambdaOperator extends SqlOperator {
    */
   SqlLambdaOperator() {
     super(
-        "LAMBDA",
+        "->",
         SqlKind.LAMBDA,
         32,
         false,

@@ -898,19 +898,19 @@ public class SqlParserTest {
   }
 
 
-/*  @Test public void testLambdaExpr() {
+  @Test public void testLambdaExpr() {
     expr("(a)-> a")
-        .ok("((`A`) LAMBDA `A`)");
+        .ok("((`A`) -> `A`)");
     expr("(a)-> a * 2")
-        .ok("((`A`) LAMBDA (`A` * 2))");
+        .ok("((`A`) -> (`A` * 2))");
 
     expr("(a, b)-> a * b")
-        .ok("((`A`, `B`) LAMBDA (`A` * `B`))");
+        .ok("((`A`, `B`) -> (`A` * `B`))");
 
     expr("(a, b, c)-> a * b * c")
-        .ok("((`A`, `B`, `C`) LAMBDA ((`A` * `B`) * `C`))");
+        .ok("((`A`, `B`, `C`) -> ((`A` * `B`) * `C`))");
 
-  }*/
+  }
 
   @Test public void testIsBooleans() {
     String[] inOuts = {"NULL", "TRUE", "FALSE", "UNKNOWN"};
