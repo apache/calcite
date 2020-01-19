@@ -36,13 +36,13 @@
  * propagate efficiently, every hint referenced in the sql statement needs to
  * register the propagation rules.
  *
- * <p>We support two kinds of matching rules for rule registration:
+ * <p>Two kinds of matching rules are supported for rule registration:
  *
  * <ol>
- *   <li>One is {@link org.apache.calcite.rel.hint.NodeTypeHintStrategy}, this rule matches a
+ *   <li>{@link org.apache.calcite.rel.hint.NodeTypeHintStrategy} matches a
  *   relational expression by the relational node type.</li>
- *   <li>Another is {@link org.apache.calcite.rel.hint.ExplicitHintStrategy},
- *   this rule's matching logic can be totally customized.</li>
+ *   <li>{@link org.apache.calcite.rel.hint.ExplicitHintStrategy} matches a
+ *   relational expression with totally customized matching rule.</li>
  * </ol>
  *
  * <p>Here is the code snippet to illustrate how to config the strategies:
@@ -59,11 +59,11 @@
  *                   ...
  *                 })))
  *         .build();
- *      // Config the strategies in the config.
- *      SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
- *          .withHintStrategyTable(strategies)
- *          .build();
- *      // Use the config to initialize the SqlToRelConverter.
+ *       // Config the strategies in the config.
+ *       SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()
+ *         .withHintStrategyTable(strategies)
+ *         .build();
+ *       // Use the config to initialize the SqlToRelConverter.
  *   ...
  * </pre>
  *
@@ -76,7 +76,8 @@
  *   propagated recursively with a {@code RelShuttle}, see
  *   RelOptUtil#RelHintPropagateShuttle for how it works.</li>
  *   <li>During rule planning, in the transforming phrase of a {@code RelOptRule},
- *   you <strong>should not</strong> copy the hints by hand;
+ *   you <strong>should not</strong> copy the hints by hand. To ensure correctness,
+ *   the hints copy work within planner rule is taken care of by Calcite;
  *   We make some effort to make the thing easier: right before the new relational expression
  *   was registered into the planner, the hints of the old relational expression was
  *   copied into the new expression sub-tree(by "new" we mean, the node was created

@@ -57,7 +57,7 @@ public class CompositeHintStrategy implements HintStrategy {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean supportsRel(RelHint hint, RelNode rel) {
+  @Override public boolean canApply(RelHint hint, RelNode rel) {
     return supportsRel(composition, hint, rel);
   }
 
@@ -65,7 +65,7 @@ public class CompositeHintStrategy implements HintStrategy {
     switch (composition) {
     case AND:
       for (HintStrategy hintStrategy: strategies) {
-        if (!hintStrategy.supportsRel(hint, rel)) {
+        if (!hintStrategy.canApply(hint, rel)) {
           return false;
         }
       }
@@ -73,7 +73,7 @@ public class CompositeHintStrategy implements HintStrategy {
     case OR:
     default:
       for (HintStrategy hintStrategy: strategies) {
-        if (hintStrategy.supportsRel(hint, rel)) {
+        if (hintStrategy.canApply(hint, rel)) {
           return true;
         }
       }

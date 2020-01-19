@@ -43,7 +43,7 @@ public class ExplicitHintStrategy implements HintStrategy {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean supportsRel(RelHint hint, RelNode rel) {
+  @Override public boolean canApply(RelHint hint, RelNode rel) {
     return this.matcher.matches(hint, rel);
   }
 }

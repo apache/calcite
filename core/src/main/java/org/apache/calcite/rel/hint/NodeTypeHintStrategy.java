@@ -79,9 +79,9 @@ public class NodeTypeHintStrategy implements HintStrategy {
     this.nodeType = nodeType;
   }
 
-  @Override public boolean supportsRel(RelHint hint, RelNode rel) {
+  @Override public boolean canApply(RelHint hint, RelNode rel) {
     switch (this.nodeType) {
-    // The SET_VAR type never propagate any hints.
+    // Hints of SET_VAR type never propagate.
     case SET_VAR:
       return false;
     default:
