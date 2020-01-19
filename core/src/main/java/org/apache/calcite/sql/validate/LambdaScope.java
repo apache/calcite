@@ -21,8 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlLambda;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.ArrayList;

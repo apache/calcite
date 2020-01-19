@@ -17,8 +17,8 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.fun.SqlLambda;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 /**
