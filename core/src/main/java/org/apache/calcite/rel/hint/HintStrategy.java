@@ -42,5 +42,5 @@ public interface HintStrategy {
    * @param rel  The relational expression
    * @return True if the {@code hint} can be applied to the {@code rel}
    */
-  boolean supportsRel(RelHint hint, RelNode rel);
+  boolean canApply(RelHint hint, RelNode rel);
 }
