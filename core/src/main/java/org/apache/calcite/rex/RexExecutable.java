@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.javac.JavaCompilerArgsFactory;
 
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
@@ -33,7 +34,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Result of compiling code generated from a {@link RexNode} expression.
@@ -57,8 +57,8 @@ public class RexExecutable {
       cbe.setClassName(GENERATED_CLASS_NAME);
       cbe.setExtendedClass(Utilities.class);
       cbe.setImplementedInterfaces(new Class[] {Function1.class, Serializable.class});
-      cbe.setParentClassLoader(Optional.ofNullable(Thread.currentThread().getContextClassLoader())
-          .orElse(RexExecutable.class.getClassLoader()));
+      cbe.setParentClassLoader(
+          JavaCompilerArgsFactory.getDefaultJavaCompilerArgs().getClassLoader());
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
