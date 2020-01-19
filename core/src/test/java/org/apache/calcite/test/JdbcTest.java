@@ -7253,6 +7253,16 @@ public class JdbcTest {
             + "}\n");
   }
 
+
+  @Test public void testMapFilter() {
+    CalciteAssert.that()
+        .with(CalciteConnectionProperty.FUN, "mysql")
+        .query("SELECT map_filter(v, (a,b)->a='a') AS c1\n"
+            + "FROM (VALUES (MAP['a', 1, 'baz', 2])) as t(v)\n"
+            + "limit 10")
+        .returns("C1={a=1}\n");
+  }
+
   @Test public void testJsonKeys() {
     CalciteAssert.that()
         .query("SELECT JSON_KEYS(v) AS c1\n"

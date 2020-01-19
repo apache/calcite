@@ -21,8 +21,15 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlLambda;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+/**
+ * Namespace whose contents are defined by the enclosing lambda
+ */
 class LambdaNamespace extends AbstractNamespace {
+  //~ Instance fields --------------------------------------------------------
+
   private final SqlLambda lambda;
+
+  //~ Constructors -----------------------------------------------------------
 
   LambdaNamespace(SqlValidatorImpl validator, SqlLambda lambda,
       SqlNode enclosingNode) {
@@ -30,43 +37,14 @@ class LambdaNamespace extends AbstractNamespace {
     this.lambda = lambda;
   }
 
+  //~ Methods ----------------------------------------------------------------
+
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
-   /* final SqlValidatorNamespace childNs =
-        validator.getNamespace(withItem.query);
-    final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    if (withItem.columnList == null) {
-      return rowType;
-    }
-    final RelDataTypeFactory.Builder builder =
-        validator.getTypeFactory().builder();
-    for (Pair<SqlNode, RelDataTypeField> pair
-        : Pair.zip(withItem.columnList, rowType.getFieldList())) {
-      builder.add(((SqlIdentifier) pair.left).getSimple(),
-          pair.right.getType());
-    }
-    return builder.build();*/
-   return validator.typeFactory.createSqlType(SqlTypeName.LAMBDA);
+    return validator.typeFactory.createSqlType(SqlTypeName.LAMBDA);
   }
 
   public SqlNode getNode() {
     return lambda;
   }
 
-  @Override public String translate(String name) {
-    /*if (withItem.columnList == null) {
-      return name;
-    }
-    final RelDataType underlyingRowType =
-          validator.getValidatedNodeType(withItem.query);
-    int i = 0;
-    for (RelDataTypeField field : rowType.getFieldList()) {
-      if (field.getName().equals(name)) {
-        return underlyingRowType.getFieldList().get(i).getName();
-      }
-      ++i;
-    }
-    throw new AssertionError("unknown field '" + name
-        + "' in rowtype " + underlyingRowType);*/
-    return null;
-  }
 }

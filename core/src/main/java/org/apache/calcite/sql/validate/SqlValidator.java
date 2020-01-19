@@ -771,6 +771,8 @@ public interface SqlValidator {
 
   SqlValidatorScope getWithScope(SqlNode withItem);
 
+  SqlValidatorScope getLambdaScope(SqlNode lambda);
+
   /**
    * Sets whether this validator should be lenient upon encountering an unknown
    * function.

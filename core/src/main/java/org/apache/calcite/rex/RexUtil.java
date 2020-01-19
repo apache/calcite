@@ -502,6 +502,10 @@ public class RexUtil {
       return false;
     }
 
+    @Override public Boolean visitLambdaRef(RexLambdaRef localRef) {
+      return false;
+    }
+
     public Boolean visitOver(RexOver over) {
       return false;
     }
@@ -518,8 +522,7 @@ public class RexUtil {
       return false;
     }
 
-    @Override
-    public Boolean visitLambda(RexLambda lambda) {
+    @Override public Boolean visitLambda(RexLambda lambda) {
       return false;
     }
 

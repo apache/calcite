@@ -96,8 +96,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return fieldRef;
   }
 
-  @Override
-  public RexNode visitLambda(RexLambda lambda) {
+  @Override public RexNode visitLambda(RexLambda lambda) {
     return lambda;
   }
 
@@ -217,6 +216,10 @@ public class RexShuttle implements RexVisitor<RexNode> {
   }
 
   public RexNode visitLocalRef(RexLocalRef localRef) {
+    return localRef;
+  }
+
+  @Override public RexNode visitLambdaRef(RexLambdaRef localRef) {
     return localRef;
   }
 

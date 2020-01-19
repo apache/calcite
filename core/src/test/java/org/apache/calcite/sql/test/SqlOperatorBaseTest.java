@@ -4569,17 +4569,49 @@ public abstract class SqlOperatorBaseTest {
         });
   }
 
-  @Test
-  public void testLambda() {
-//    tester.setFor(SqlStdOperatorTable.LAMBDA);
-    final SqlTester tester = tester(SqlLibrary.MYSQL);
+  @Test public void testLambda() {
     tester.checkType("(a)->2+2*a", "LAMBDA NOT NULL");
-//    tester.checkString("map_filter((a)->a*2+2)","4","VARCHAR(2000)");
-    tester.checkString("map_filter((a)->2+2*a)", "8", "INTEGER");
+    tester.checkType("(a,b)->a+b", "LAMBDA NOT NULL");
+    tester.checkType("(a,b,c)->2*a+b+c", "LAMBDA NOT NULL");
   }
 
-  @Test
-  public void testRegexpReplaceFunc() {
+  @Test public void testMapFilterFunc() {
+    final SqlTester tester = tester(SqlLibrary.MYSQL);
+//    tester.checkNull("map_filter(null, (a,b)->a>b)");
+    /* tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
+        "{1=2, 3=4}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->false)",
+        "{}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+
+    tester.checkString("map_filter(map[1, 2, 3, 4], (a)->a>1)",
+        "{}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+
+    tester.checkString("map_filter(map[1, 2, 3, 4], ()->true)",
+        "{}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+
+       tester.checkString("map_filter(map[1, 2, 3, 4], (a,b,c)->true)",
+        "{}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+        */
+
+/*    tester.checkString("map_filter(map[], (a,b)->a>b)",
+        "{5=4}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");*/
+
+    tester.checkType("map_filter(null, (a,b)->a>b)", "NULL");
+    tester.checkString("map_filter(map[1, 2, 5, 4], (a,b)->a>b)",
+        "{5=4}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    tester.checkString("map_filter(map[1, 'a', 3, 'b'], (a,b)->b='b')",
+        "{3=b}",
+        "(INTEGER NOT NULL, CHAR(1) NOT NULL) MAP NOT NULL");
+  }
+
+  @Test public void testRegexpReplaceFunc() {
     Stream.of(SqlLibrary.MYSQL, SqlLibrary.ORACLE)
         .map(this::tester)
         .forEach(t -> {

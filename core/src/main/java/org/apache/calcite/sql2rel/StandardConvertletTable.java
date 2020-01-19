@@ -26,11 +26,9 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.rex.RexVariable;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
@@ -224,19 +222,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
                       call.operand(2), call.operand(3), call.operand(4), call.operand(5), null),
               call.operand(6));
           return cx.convertExpression(expanded);
-        });
-
-    // Lambda Operator
-    registerOp(SqlStdOperatorTable.LAMBDA,
-        (cx, call) -> {
-          RexNode expr = cx.convertExpression(call.operand(1));
-          SqlNodeList vars = call.operand(0);
-          List<RexVariable> variables = new ArrayList<>();
-          for (SqlNode var : vars) {
-            RelDataType sqlType = cx.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-            variables.add(new RexLocalRef(0, sqlType));
-          }
-          return cx.getRexBuilder().makeLambdaCall(expr, variables);
         });
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a

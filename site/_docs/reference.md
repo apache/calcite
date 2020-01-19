@@ -1334,6 +1334,16 @@ Not implemented:
 | CURRENT_ROLE    | Returns the current active role
 | CURRENT_SCHEMA  | Returns the current schema
 
+
+## Lambda Expressions
+Calcite supports Lambda expressions which written with ->:
+
+LAMBDA Expressions Examples :
+
+    x -> x + 1
+    (x, y) -> x + y
+
+
 ### Conditional functions and operators
 
 | Operator syntax | Description
@@ -1542,6 +1552,14 @@ Implicit type coercion of following cases are ignored:
 | multiset MULTISET UNION [ ALL &#124; DISTINCT ] multiset2 | Returns the union *multiset* and *multiset2*, eliminating duplicates if DISTINCT is specified (ALL is the default).
 | multiset MULTISET INTERSECT [ ALL &#124; DISTINCT ] multiset2 | Returns the intersection of *multiset* and *multiset2*, eliminating duplicates if DISTINCT is specified (ALL is the default).
 | multiset MULTISET EXCEPT [ ALL &#124; DISTINCT ] multiset2 | Returns the difference of *multiset* and *multiset2*, eliminating duplicates if DISTINCT is specified (ALL is the default).
+
+
+### Lambda Expressions
+
+| Operator syntax | Description
+|:--------------- |:-----------
+| LAMBDA          | Lambda Expressions
+
 
 See also: the UNNEST relational operator converts a collection to a relation.
 
@@ -2341,6 +2359,7 @@ semantics.
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
+| m | MAP_FILTER(map, function(K, V, boolean))       | Constructs a map from those entries of map for which function returns true.
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string
 | m | FROM_BASE64(string)                            | Returns the decoded result of a base-64 *string* as a string
 | o | LTRIM(string)                                  | Returns *string* with all blanks removed from the start

@@ -129,6 +129,10 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(localRef, arg);
   }
 
+  @Override public Logic visitLambdaRef(RexLambdaRef lambdaRef, Logic arg) {
+    return end(lambdaRef, arg);
+  }
+
   public Logic visitLiteral(RexLiteral literal, Logic arg) {
     return end(literal, arg);
   }
@@ -171,8 +175,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(ref, arg);
   }
 
-  @Override
-  public Logic visitLambda(RexLambda ref, Logic arg) {
+  @Override public Logic visitLambda(RexLambda ref, Logic arg) {
     return end(ref, arg);
   }
 }

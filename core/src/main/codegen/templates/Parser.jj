@@ -3546,6 +3546,12 @@ SqlNode Expression3(ExprContext exprContext) :
     Span rowSpan = null;
 }
 {
+
+   LOOKAHEAD( ParenthesizedSimpleIdentifierList() <LAMBDA_OPERATOR>)
+   e = LambdaExpression(){
+        return e;
+   }
+|
     LOOKAHEAD(2)
     e = AtomicRowExpression()
     {
@@ -3751,8 +3757,6 @@ SqlNode AtomicRowExpression() :
         e = JdbcFunctionCall()
     |
         e = MultisetConstructor()
-    |
-        e = LambdaExpression()
     |
         e = ArrayConstructor()
     |
@@ -5263,22 +5267,14 @@ SqlNode CursorExpression(ExprContext exprContext) :
  */
 SqlNode LambdaExpression() :
 {
-    List<SqlNode> args = new ArrayList<SqlNode>();
+    SqlNodeList args;
     final SqlNode e;
     final Span s;
     SqlNode arg;
 }
 {
     (
-        <LPAREN>
-        [
-            arg = SimpleIdentifier() { args.add(arg); }
-            (
-                <COMMA>
-                arg = SimpleIdentifier() { args.add(arg); }
-            )*
-        ]
-        <RPAREN>
+        args = ParenthesizedSimpleIdentifierList()
         <LAMBDA_OPERATOR> { s = span(); }
         e = Expression(ExprContext.ACCEPT_NON_QUERY)
         {

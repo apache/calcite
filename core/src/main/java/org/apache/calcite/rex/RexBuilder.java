@@ -845,6 +845,12 @@ public class RexBuilder {
     return new RexInputRef(i, type);
   }
 
+
+  public RexNode makeLambdaRef(RelDataType type, int i) {
+    type = SqlTypeUtil.addCharsetAndCollation(type, typeFactory);
+    return new RexLambdaRef(i, type);
+  }
+
   /**
    * Creates a reference to a given field of the input relational expression.
    *

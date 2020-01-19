@@ -666,6 +666,13 @@ public enum SqlKind {
   INPUT_REF,
 
   /**
+   * Reference to an lambda parameter.
+   *
+   * <p>(Only used at the RexNode level.)</p>
+   */
+  LAMBDA_REF,
+
+  /**
    * Reference to an input field, with a qualified name and an identifier
    *
    * <p>(Only used at the RexNode level.)</p>

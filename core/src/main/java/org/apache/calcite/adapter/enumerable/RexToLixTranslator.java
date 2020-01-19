@@ -38,6 +38,7 @@ import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
@@ -688,6 +689,10 @@ public class RexToLixTranslator {
 
       Expression input = list.append("inp" + index + "_", x); // safe to share
       return handleNullUnboxingIfNecessary(input, nullAs, storageType);
+    }
+    case LAMBDA_REF: {
+      final String name = ((RexLambdaRef) expr).getName();
+      return Expressions.parameter(typeFactory.getJavaClass(expr.getType()), name);
     }
     case LOCAL_REF:
       return translate(

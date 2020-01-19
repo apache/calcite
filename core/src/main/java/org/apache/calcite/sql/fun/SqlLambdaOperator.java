@@ -65,8 +65,7 @@ public class SqlLambdaOperator extends SqlOperator {
     return SqlOperandCountRanges.any();
   }
 
-  @Override
-  public SqlSyntax getSyntax() {
+  @Override public SqlSyntax getSyntax() {
     return SqlSyntax.SPECIAL;
   }
 
@@ -89,8 +88,7 @@ public class SqlLambdaOperator extends SqlOperator {
     writer.endList(frame);
   }
 
-  @Override
-  public void validateCall(SqlCall call, SqlValidator validator,
+  @Override public void validateCall(SqlCall call, SqlValidator validator,
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
     SqlLambda lambda = (SqlLambda) call;
@@ -106,14 +104,12 @@ public class SqlLambdaOperator extends SqlOperator {
     return new SqlLambda(pos, (SqlNodeList) operands[0], operands[1]);
   }
 
-  @Override
-  public RelDataType deriveType(
+  @Override public RelDataType deriveType(
       SqlValidator validator, SqlValidatorScope scope, SqlCall call) {
     return validateOperands(validator, scope, call);
   }
 
-  @Override
-  public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     return opBinding.getTypeFactory().createSqlType(SqlTypeName.LAMBDA);
   }
 }

@@ -67,6 +67,17 @@ SELECT COMPRESS('sample');
 !ok
 
 
+SELECT map_filter(v, (a,b)->a='a') AS c1 FROM (VALUES (MAP['a', 1, 'baz', 2])) as t(v);
++-------+
+| C1    |
++-------+
+| {a=1} |
++-------+
+(1 row)
+
+!ok
+
+
 !use oraclefunc
 
 # COSH

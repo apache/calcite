@@ -309,7 +309,7 @@ public enum BuiltInMethod {
       Object.class, int.class, int.class, Function1.class, Comparator.class),
   ARRAY_ITEM(SqlFunctions.class, "arrayItemOptional", List.class, int.class),
   MAP_ITEM(SqlFunctions.class, "mapItemOptional", Map.class, Object.class),
-  MAP_FILTER(SqlFunctions.class, "map_filter", Function1.class),
+  MAP_FILTER(SqlFunctions.class, "mapFilter", Map.class, Predicate2.class),
   ANY_ITEM(SqlFunctions.class, "itemOptional", Object.class, Object.class),
   UPPER(SqlFunctions.class, "upper", String.class),
   LOWER(SqlFunctions.class, "lower", String.class),

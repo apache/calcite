@@ -32,6 +32,8 @@ public interface RexBiVisitor<R, P> {
 
   R visitLocalRef(RexLocalRef localRef, P arg);
 
+  R visitLambdaRef(RexLambdaRef lambdaRef, P arg);
+
   R visitLiteral(RexLiteral literal, P arg);
 
   R visitCall(RexCall call, P arg);

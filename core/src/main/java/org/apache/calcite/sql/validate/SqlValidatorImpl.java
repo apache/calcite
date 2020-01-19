@@ -2703,18 +2703,20 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       break;
     case LAMBDA:
       call = (SqlCall) node;
-      LambdaScope lambdaScope = new LambdaScope(parentScope, (SqlLambda)call);
+      LambdaScope lambdaScope = new LambdaScope((SqlLambda) call, parentScope);
       scopes.put(call, lambdaScope);
-      final LambdaNamespace tableConstructorNamespace2 =
-          new LambdaNamespace(this,(SqlLambda)call,node);
+
+      final LambdaNamespace lambdaNamespace =
+          new LambdaNamespace(this, (SqlLambda) call, node);
       registerNamespace(
           usingScope,
           alias,
-          tableConstructorNamespace2,
+          lambdaNamespace,
           forceNullable);
+
       operands = call.getOperandList();
       for (int i = 1; i < operands.size(); ++i) {
-        registerOperandSubQueries(parentScope, call, i);
+        registerOperandSubQueries(lambdaScope, call, i);
       }
       break;
 
@@ -3980,6 +3982,11 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   public SqlValidatorScope getWithScope(SqlNode withItem) {
     assert withItem.getKind() == SqlKind.WITH_ITEM;
     return scopes.get(withItem);
+  }
+
+  public SqlValidatorScope getLambdaScope(SqlNode lambda) {
+    assert lambda.getKind() == SqlKind.LAMBDA;
+    return scopes.get(lambda);
   }
 
   public SqlValidator setLenientOperatorLookup(boolean lenient) {

@@ -16,12 +16,11 @@
  */
 package org.apache.calcite.rex;
 
-import java.util.Objects;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
+import java.util.Objects;
 
 public class RexLambda extends RexNode {
   //~ Instance fields --------------------------------------------------------
@@ -38,8 +37,7 @@ public class RexLambda extends RexNode {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public RelDataType getType() {
+  @Override public RelDataType getType() {
     return expression.getType();
   }
 
@@ -66,8 +64,7 @@ public class RexLambda extends RexNode {
     return variables;
   }
 
-  @Override
-  public boolean equals(Object o) {
+  @Override public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -75,12 +72,11 @@ public class RexLambda extends RexNode {
       return false;
     }
     RexLambda rexLambda = (RexLambda) o;
-    return Objects.equals(expression, rexLambda.expression) &&
-        Objects.equals(variables, rexLambda.variables);
+    return Objects.equals(expression, rexLambda.expression)
+        && Objects.equals(variables, rexLambda.variables);
   }
 
-  @Override
-  public int hashCode() {
+  @Override public int hashCode() {
     return Objects.hash(expression, variables);
   }
 }

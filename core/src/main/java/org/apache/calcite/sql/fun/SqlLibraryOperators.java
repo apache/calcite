@@ -309,9 +309,9 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction MAP_FILTER =
       new SqlFunction("MAP_FILTER",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.cascade(ReturnTypes.INTEGER, SqlTypeTransforms.FORCE_NULLABLE),
+          ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE),
           null,
-          OperandTypes.family(SqlTypeFamily.LAMBDA),
+          OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.LAMBDA),
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MYSQL})

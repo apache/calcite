@@ -16,10 +16,6 @@
  */
 package org.apache.calcite.sql.fun;
 
-import com.google.common.collect.ImmutableMap;
-
-import java.util.Map;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
@@ -27,18 +23,20 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.List;
+import java.util.Map;
 
 /**
- * A <code>SqlLambda</code> is a node of a parse tree which represents a lambda statement. It warrants
- * its own node type just because we have a lot of methods to put somewhere.
+ * A <code>SqlLambda</code> is a node of a parse tree which represents a lambda statement. It
+ * warrants * its own node type just because we have a lot of methods to put somewhere.
  */
 public class SqlLambda extends SqlCall {
 
@@ -58,18 +56,16 @@ public class SqlLambda extends SqlCall {
   /**
    * Creates a call to the lambda operator
    *
-   * <blockquote><code>LAMBDA<br>
+   * <br>LAMBDA<br>
    */
-  public static SqlLambda createLambda(SqlParserPos pos, List<SqlNode> parameters,
+  public static SqlLambda createLambda(SqlParserPos pos, SqlNodeList parameters,
       SqlNode expression) {
-    SqlNodeList nodes = new SqlNodeList(parameters, pos);
-    return new SqlLambda(pos, nodes, expression);
+    return new SqlLambda(pos, parameters, expression);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override
-  public SqlKind getKind() {
+  @Override public SqlKind getKind() {
     return SqlKind.LAMBDA;
   }
 
@@ -81,8 +77,7 @@ public class SqlLambda extends SqlCall {
     return UnmodifiableArrayList.of(parameters, expression);
   }
 
-  @Override
-  public void setOperand(int i, SqlNode operand) {
+  @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
       parameters = (SqlNodeList) operand;
@@ -103,12 +98,11 @@ public class SqlLambda extends SqlCall {
     return expression;
   }
 
-  @Override
-  public void validate(SqlValidator validator,
+  @Override public void validate(SqlValidator validator,
       SqlValidatorScope scope) {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     Map<String, RelDataType> varMap = ImmutableMap.of("A", intType);
-   // validator.validateParameterizedExpression(expression, varMap);
+    // validator.validateParameterizedExpression(expression, varMap);
   }
 }
