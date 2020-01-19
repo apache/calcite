@@ -36,7 +36,7 @@ import org.apache.calcite.runtime.Bindable;
 import org.apache.calcite.runtime.Typed;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.javac.JavaCompilerArgsFactory;
+import org.apache.calcite.util.javac.CalciteCompilerArgsFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -200,7 +200,7 @@ public class CodeGenerationBenchmark {
                 ? new Class[]{Bindable.class, Typed.class}
                 : new Class[]{ArrayBindable.class});
         cbe.setParentClassLoader(
-            JavaCompilerArgsFactory.getDefaultJavaCompilerArgs().getClassLoader());
+            CalciteCompilerArgsFactory.getCompilerArgs().getClassLoader());
         info.cbe = cbe;
         planInfos[i] = info;
       }

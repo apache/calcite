@@ -52,7 +52,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.javac.JavaCompilerArgsFactory;
+import org.apache.calcite.util.javac.CalciteCompilerArgsFactory;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -436,7 +436,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
 
     final ISimpleCompiler compiler = compilerFactory.newSimpleCompiler();
     compiler.setParentClassLoader(
-        JavaCompilerArgsFactory.getDefaultJavaCompilerArgs().getClassLoader());
+        CalciteCompilerArgsFactory.getCompilerArgs().getClassLoader());
 
     final String s = "public final class " + className
         + " implements " + def.handlerClass.getCanonicalName() + " {\n"

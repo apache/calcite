@@ -17,22 +17,28 @@
 package org.apache.calcite.util.javac;
 
 /**
- * A <code>JavaCompilerArgsFactory</code> holds an instance of {@link JavaCompilerArgs}.
+ * A <code>CalciteCompilerArgsFactory</code> holds an instance of {@link CalciteCompilerArgs}.
+ * <p>Caution that we should reset CompilerArgs after we run out if we customize the parameters
+ * of {@link CalciteCompilerArgs},
  */
-public class JavaCompilerArgsFactory {
+public class CalciteCompilerArgsFactory {
 
-  private JavaCompilerArgsFactory() {}
+  private CalciteCompilerArgsFactory() {}
 
-  private static final ThreadLocal<JavaCompilerArgs> DEFAULT_COMPILER_ARGS =
-      ThreadLocal.withInitial(() -> new JavaCompilerArgs());
+  private static final ThreadLocal<CalciteCompilerArgs> COMPILER_ARGS = ThreadLocal.withInitial(
+      () -> new CalciteCompilerArgs());
 
   /**
-   * Return the default compiler args.
+   * Return the compiler args.
    *
-   * @return {@link JavaCompilerArgs}
+   * @return {@link CalciteCompilerArgs}
    */
-  public static JavaCompilerArgs getDefaultJavaCompilerArgs() {
-    return DEFAULT_COMPILER_ARGS.get();
+  public static CalciteCompilerArgs getCompilerArgs() {
+    return COMPILER_ARGS.get();
+  }
+
+  public static void resetCompilerArgs() {
+    COMPILER_ARGS.set(new CalciteCompilerArgs());
   }
 
 }
