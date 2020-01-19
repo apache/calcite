@@ -24,7 +24,7 @@ package org.apache.calcite.util.javac;
 public class CalciteCompilerArgs {
 
   private ClassLoader classLoader = CalciteCompilerArgs.class.getClassLoader();
-  
+
   public void setClassLoader(ClassLoader classLoader) {
     if (classLoader != null) {
       this.classLoader = classLoader;
