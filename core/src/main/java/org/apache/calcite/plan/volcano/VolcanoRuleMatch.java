@@ -17,7 +17,6 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -143,18 +142,18 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
         new StringBuilder("rule [" + getRule() + "] rels [");
     for (int i = 0; i < rels.length; i++) {
       if (i > 0) {
-        buf.append(", ");
+        buf.append(',');
       }
-      RelOptUtil.appendRelDescription(buf, rels[i]);
+      buf.append('#').append(rels[i].getId());
     }
-    buf.append("]");
+    buf.append(']');
     return buf.toString();
   }
 
   /**
-   * Recomputes the digest of this VolcanoRuleMatch. It is necessary when sets
-   * have merged since the match was created.
+   * Recomputes the digest of this VolcanoRuleMatch.
    */
+  @Deprecated // to be removed before 2.0
   public void recomputeDigest() {
     digest = computeDigest();
   }
