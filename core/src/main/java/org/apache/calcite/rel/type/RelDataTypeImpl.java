@@ -182,13 +182,21 @@ public abstract class RelDataTypeImpl
   @Override public boolean equals(Object obj) {
     if (obj instanceof RelDataTypeImpl) {
       final RelDataTypeImpl that = (RelDataTypeImpl) obj;
-      return this.digest.equals(that.digest);
+      boolean result = this.digest.equals(that.digest);
+      if (result && this.fieldList != null) {
+        result = this.fieldList.equals(that.fieldList);
+      }
+      return result;
     }
     return false;
   }
 
   @Override public int hashCode() {
-    return digest.hashCode();
+    int hash = digest.hashCode();
+    if (fieldList != null) {
+      hash += 31 * fieldList.hashCode();
+    }
+    return hash;
   }
 
   public String getFullTypeString() {
