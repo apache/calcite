@@ -50,4 +50,5 @@ nb-configuration.xml
 
 .mvn/wrapper/maven-wrapper.jar
 
-# End .gitignore
+# Local configuration file (sdk path, etc)
+local.properties
