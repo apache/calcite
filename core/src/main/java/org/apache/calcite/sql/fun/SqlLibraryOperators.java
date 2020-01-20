@@ -311,7 +311,9 @@ public abstract class SqlLibraryOperators {
           SqlKind.OTHER_FUNCTION,
           ReturnTypes.cascade(ReturnTypes.ARG0, SqlTypeTransforms.TO_NULLABLE),
           null,
-          OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.LAMBDA),
+          OperandTypes.sequence("MAP_FILTER(<ANY>, <LAMBDA(BOOLEAN, ANY, ANY)>)",
+              OperandTypes.family(SqlTypeFamily.MAP),
+              OperandTypes.lambda(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY)),
           SqlFunctionCategory.SYSTEM);
 
   @LibraryOperator(libraries = {MYSQL})

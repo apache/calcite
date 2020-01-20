@@ -4577,32 +4577,31 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testMapFilterFunc() {
     final SqlTester tester = tester(SqlLibrary.MYSQL);
-//    tester.checkNull("map_filter(null, (a,b)->a>b)");
-    /* tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
-        "{1=2, 3=4}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
-    tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->false)",
-        "{}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
 
-    tester.checkString("map_filter(map[1, 2, 3, 4], (a)->a>1)",
-        "{}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
-
-    tester.checkString("map_filter(map[1, 2, 3, 4], ()->true)",
-        "{}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
-
-       tester.checkString("map_filter(map[1, 2, 3, 4], (a,b,c)->true)",
-        "{}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
-        */
-
-/*    tester.checkString("map_filter(map[], (a,b)->a>b)",
-        "{5=4}",
-        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");*/
+//    Failing test cases
+//    tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
+//        "{1=2, 3=4}",
+//        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
 
     tester.checkType("map_filter(null, (a,b)->a>b)", "NULL");
+    tester.checkFails("^map_filter(map[1, 2, 3, 4], (a,b)->2)^",
+        "Cannot apply 'MAP_FILTER' to arguments of type "
+            + "'MAP_FILTER\\(\\<\\(INTEGER, INTEGER\\) MAP\\>, <LAMBDA>\\)'. "
+            + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
+        false);
+
+    tester.checkFails("^map_filter(map[1, 2, 3, 4], (a)->true)^",
+        "Cannot apply 'MAP_FILTER' to arguments of type "
+            + "'MAP_FILTER\\(\\<\\(INTEGER, INTEGER\\) MAP\\>, <LAMBDA>\\)'. "
+            + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
+        false);
+
+    tester.checkFails("^map_filter(map[1, 2, 3, 4], (a, b, c)->true)^",
+        "Cannot apply 'MAP_FILTER' to arguments of type "
+            + "'MAP_FILTER\\(\\<\\(INTEGER, INTEGER\\) MAP\\>, <LAMBDA>\\)'. "
+            + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
+        false);
+
     tester.checkString("map_filter(map[1, 2, 5, 4], (a,b)->a>b)",
         "{5=4}",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");

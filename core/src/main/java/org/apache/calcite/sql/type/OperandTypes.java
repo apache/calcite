@@ -81,6 +81,14 @@ public abstract class OperandTypes {
   }
 
   /**
+   * Creates a checker that passes if each operand is a member of a
+   * corresponding family.
+   */
+  public static LambdaOperandTypeChecker lambda(SqlTypeFamily... families) {
+    return new LambdaOperandTypeChecker(ImmutableList.copyOf(families));
+  }
+
+  /**
    * Creates a checker that passes if any one of the rules passes.
    */
   public static SqlOperandTypeChecker or(SqlOperandTypeChecker... rules) {

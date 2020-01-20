@@ -16,19 +16,13 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
-import com.google.common.collect.ImmutableMap;
-
 import java.util.List;
-import java.util.Map;
 
 /**
  * A <code>SqlLambda</code> is a node of a parse tree which represents a lambda statement. It
@@ -96,9 +90,14 @@ public class SqlLambda extends SqlCall {
 
   @Override public void validate(SqlValidator validator,
       SqlValidatorScope scope) {
+    super.validate(validator, scope);
+    /*SqlValidatorScope lambdaScope = validator.getLambdaScope(this);
+    validator.validateCall(this,lambdaScope);
+    RelDataType relDataType = validator.deriveType(lambdaScope, getExpression());
+
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     Map<String, RelDataType> varMap = ImmutableMap.of("A", intType);
-    // validator.validateParameterizedExpression(expression, varMap);
+    // validator.validateParameterizedExpression(expression, varMap);*/
   }
 }
