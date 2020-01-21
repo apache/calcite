@@ -1414,8 +1414,6 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   public static final SqlCaseOperator CASE = SqlCaseOperator.INSTANCE;
 
-  public static final SqlLambdaOperator LAMBDA = SqlLambdaOperator.INSTANCE;
-
   public static final SqlOperator PROCEDURE_CALL =
       new SqlProcedureCallOperator();
 

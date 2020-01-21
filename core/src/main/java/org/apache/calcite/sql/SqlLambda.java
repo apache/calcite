@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlLambdaOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -60,7 +60,7 @@ public class SqlLambda extends SqlCall {
   }
 
   public SqlOperator getOperator() {
-    return SqlStdOperatorTable.LAMBDA;
+    return SqlLambdaOperator.INSTANCE;
   }
 
   public List<SqlNode> getOperandList() {
