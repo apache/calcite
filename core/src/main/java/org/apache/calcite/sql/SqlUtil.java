@@ -960,6 +960,20 @@ public abstract class SqlUtil {
     return node;
   }
 
+  /** Modifies a list of nodes, removing AS from each if present.
+   *
+   * @see #stripAs */
+  public static SqlNodeList stripListAs(SqlNodeList nodeList) {
+    for (int i = 0; i < nodeList.size(); i++) {
+      SqlNode n = nodeList.get(i);
+      SqlNode n2 = stripAs(n);
+      if (n != n2) {
+        nodeList.set(i, n2);
+      }
+    }
+    return nodeList;
+  }
+
   /** Returns a list of ancestors of {@code predicate} within a given
    * {@code SqlNode} tree.
    *

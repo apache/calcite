@@ -27,6 +27,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -72,8 +73,10 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -98,6 +101,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.IntFunction;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * State for generating a SQL statement.
@@ -112,7 +116,6 @@ public abstract class SqlImplementor {
 
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
-  protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
@@ -120,7 +123,23 @@ public abstract class SqlImplementor {
     this.dialect = Objects.requireNonNull(dialect);
   }
 
-  public abstract Result visitChild(int i, RelNode e);
+  /** Visits an input of the current relational expression,
+   * deducing {@code anon} using {@link #isAnon()}. */
+  public final Result visitChild(int i, RelNode e) {
+    return visitChild(i, e, isAnon());
+  }
+
+  /** Visits {@code e}, the {@code i}th input of the current relational
+   * expression.
+   *
+   * @param i Ordinal of input within its consumer
+   * @param e Relational expression
+   * @param anon Whether to remove trivial aliases such as "EXPR$0"
+   * @return Result
+   *
+   * @see #isAnon()
+   */
+  public abstract Result visitChild(int i, RelNode e, boolean anon);
 
   public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
@@ -378,11 +397,12 @@ public abstract class SqlImplementor {
     final String alias4 =
         SqlValidatorUtil.uniquify(
             alias3, aliasSet, SqlValidatorUtil.EXPR_SUGGESTER);
+    final RelDataType rowType = adjustedRowType(rel, node);
     if (aliases != null
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
           || aliases.size() > 1)) {
-      return new Result(node, clauses, alias4, rel.getRowType(), aliases);
+      return new Result(node, clauses, alias4, rowType, aliases);
     }
     final String alias5;
     if (alias2 == null
@@ -392,8 +412,25 @@ public abstract class SqlImplementor {
     } else {
       alias5 = null;
     }
-    return new Result(node, clauses, alias5, rel.getRowType(),
-        ImmutableMap.of(alias4, rel.getRowType()));
+    return new Result(node, clauses, alias5, rowType,
+        ImmutableMap.of(alias4, rowType), isAnon());
+  }
+
+  /** Returns the row type of {@code rel}, adjusting the field names if
+   * {@code node} is "(query) as tableAlias (fieldAlias, ...)". */
+  private RelDataType adjustedRowType(RelNode rel, SqlNode node) {
+    final RelDataType rowType = rel.getRowType();
+    if (node.getKind() == SqlKind.AS) {
+      final List<SqlNode> operandList = ((SqlCall) node).getOperandList();
+      if (operandList.size() > 2) {
+        final RelDataTypeFactory.Builder builder = rel.getCluster().getTypeFactory().builder();
+        Pair.forEach(Util.skip(operandList, 2),
+            rowType.getFieldList(),
+            (operand, field) -> builder.add(operand.toString(), field.getType()));
+        return builder.build();
+      }
+    }
+    return rowType;
   }
 
   /** Creates a result based on a join. (Each join could contain one or more
@@ -419,6 +456,40 @@ public abstract class SqlImplementor {
       assert alias != null;
       builder.put(alias, aliases.next());
     }
+  }
+
+  /** Returns whether to remove trivial aliases such as "EXPR$0"
+   * when converting the current relational expression into a SELECT.
+   *
+   * <p>For example, INSERT does not care about field names;
+   * we would prefer to generate without the "EXPR$0" alias:
+   *
+   * <pre>{@code INSERT INTO t1 SELECT x, y + 1 FROM t2}</pre>
+   *
+   * rather than with it:
+   *
+   * <pre>{@code INSERT INTO t1 SELECT x, y + 1 AS EXPR$0 FROM t2}</pre>
+   *
+   * <p>But JOIN does care about field names; we have to generate the "EXPR$0"
+   * alias:
+   *
+   * <pre>{@code SELECT *
+   * FROM emp AS e
+   * JOIN (SELECT x, y + 1 AS EXPR$0) AS d
+   * ON e.deptno = d.EXPR$0}
+   * </pre>
+   *
+   * <p>because if we omit "AS EXPR$0" we do not know the field we are joining
+   * to, and the following is invalid:
+   *
+   * <pre>{@code SELECT *
+   * FROM emp AS e
+   * JOIN (SELECT x, y + 1) AS d
+   * ON e.deptno = d.EXPR$0}
+   * </pre>
+   */
+  protected boolean isAnon() {
+    return false;
   }
 
   /** Wraps a node in a SELECT statement that has no clauses:
@@ -652,7 +723,8 @@ public abstract class SqlImplementor {
       case SCALAR_QUERY:
         subQuery = (RexSubQuery) rex;
         sqlSubQuery =
-            implementor().visitChild(0, subQuery.rel).asQueryOrValues();
+            implementor().visitChild(0, subQuery.rel)
+                .asQueryOrValues();
         return subQuery.getOperator().createCall(POS, sqlSubQuery);
 
       case NOT:
@@ -1149,11 +1221,6 @@ public abstract class SqlImplementor {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
-          final SqlNode mappedSqlNode =
-              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
-          if (mappedSqlNode != null) {
-            return mappedSqlNode;
-          }
           return new SqlIdentifier(!qualified
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
@@ -1210,14 +1277,22 @@ public abstract class SqlImplementor {
     private final RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final Expressions.FluentList<Clause> clauses;
+    private final boolean anon;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases) {
+      this(node, clauses, neededAlias, neededType, aliases, false);
+    }
+
+    private Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
+        RelDataType neededType, Map<String, RelDataType> aliases,
+        boolean anon) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
       this.aliases = aliases;
       this.clauses = Expressions.list(clauses);
+      this.anon = anon;
     }
 
     /** Once you have a Result of implementing a child relational expression,
@@ -1242,7 +1317,6 @@ public abstract class SqlImplementor {
      */
     public Builder builder(RelNode rel, Clause... clauses) {
       final boolean needNew = needNewSubQuery(rel, clauses);
-
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1300,8 +1374,8 @@ public abstract class SqlImplementor {
         // if our aliases map has a single element:  <neededAlias, rowType>,
         // then we don't need to rewrite the alias but otherwise, it should be updated.
         if (needNew
-                && neededAlias != null
-                && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
+            && neededAlias != null
+            && (aliases.size() != 1 || !aliases.containsKey(neededAlias))) {
           final Map<String, RelDataType> newAliases =
               ImmutableMap.of(neededAlias, rel.getInput(0).getRowType());
           newContext = aliasContext(newAliases, qualified);
@@ -1309,7 +1383,7 @@ public abstract class SqlImplementor {
           newContext = aliasContext(aliases, qualified);
         }
       }
-      return new Builder(rel, clauseList, select, newContext,
+      return new Builder(rel, clauseList, select, newContext, isAnon(),
           needNew ? null : aliases);
     }
 
@@ -1414,6 +1488,51 @@ public abstract class SqlImplementor {
       return wrapSelect(node);
     }
 
+    public void stripTrivialAliases(SqlNode node) {
+      switch (node.getKind()) {
+      case SELECT:
+        final SqlSelect select = (SqlSelect) node;
+        final SqlNodeList nodeList = select.getSelectList();
+        if (nodeList != null) {
+          for (int i = 0; i < nodeList.size(); i++) {
+            final SqlNode n = nodeList.get(i);
+            if (n.getKind() == SqlKind.AS) {
+              final SqlCall call = (SqlCall) n;
+              final SqlIdentifier identifier = call.operand(1);
+              if (identifier.getSimple().toLowerCase(Locale.ROOT)
+                  .startsWith("expr$")) {
+                nodeList.set(i, call.operand(0));
+              }
+            }
+          }
+        }
+        break;
+
+      case UNION:
+      case INTERSECT:
+      case EXCEPT:
+      case INSERT:
+      case UPDATE:
+      case DELETE:
+      case MERGE:
+        final SqlCall call = (SqlCall) node;
+        for (SqlNode operand : call.getOperandList()) {
+          if (operand != null) {
+            stripTrivialAliases(operand);
+          }
+        }
+        break;
+      }
+    }
+
+    /** Strips trivial aliases if anon. */
+    private SqlNode maybeStrip(SqlNode node) {
+      if (anon) {
+        stripTrivialAliases(node);
+      }
+      return node;
+    }
+
     /** Converts a non-query node into a SELECT node. Set operators (UNION,
      * INTERSECT, EXCEPT) and DML operators (INSERT, UPDATE, DELETE, MERGE)
      * remain as is. */
@@ -1426,9 +1545,9 @@ public abstract class SqlImplementor {
       case UPDATE:
       case DELETE:
       case MERGE:
-        return node;
+        return maybeStrip(node);
       default:
-        return asSelect();
+        return maybeStrip(asSelect());
       }
     }
 
@@ -1440,9 +1559,9 @@ public abstract class SqlImplementor {
       case INTERSECT:
       case EXCEPT:
       case VALUES:
-        return node;
+        return maybeStrip(node);
       default:
-        return asSelect();
+        return maybeStrip(asSelect());
       }
     }
 
@@ -1476,6 +1595,12 @@ public abstract class SqlImplementor {
       return new Result(node, clauses, alias, neededType,
           ImmutableMap.of(alias, type));
     }
+
+    /** Returns a copy of this Result, overriding the value of {@code anon}. */
+    Result withAnon(boolean anon) {
+      return anon == this.anon ? this
+          : new Result(node, clauses, neededAlias, neededType, aliases, anon);
+    }
   }
 
   /** Builder. */
@@ -1484,14 +1609,17 @@ public abstract class SqlImplementor {
     final List<Clause> clauses;
     final SqlSelect select;
     public final Context context;
+    final boolean anon;
     private final Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
-        Context context, Map<String, RelDataType> aliases) {
-      this.rel = rel;
-      this.clauses = clauses;
-      this.select = select;
-      this.context = context;
+        Context context, boolean anon,
+        @Nullable Map<String, RelDataType> aliases) {
+      this.rel = Objects.requireNonNull(rel);
+      this.clauses = Objects.requireNonNull(clauses);
+      this.select = Objects.requireNonNull(select);
+      this.context = Objects.requireNonNull(context);
+      this.anon = anon;
       this.aliases = aliases;
     }
 
@@ -1535,7 +1663,8 @@ public abstract class SqlImplementor {
     }
 
     public Result result() {
-      return SqlImplementor.this.result(select, clauses, rel, aliases);
+      return SqlImplementor.this.result(select, clauses, rel, aliases)
+          .withAnon(anon);
     }
   }
 

@@ -179,8 +179,8 @@ public class JdbcAdapterTest {
 
   @Test public void testPushDownSort() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select ename \n"
-            + "from scott.emp \n"
+        .query("select ename\n"
+            + "from scott.emp\n"
             + "order by empno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcSort(sort0=[$1], dir0=[ASC])\n"
@@ -191,6 +191,32 @@ public class JdbcAdapterTest {
         .planHasSql("SELECT \"ENAME\", \"EMPNO\"\n"
             + "FROM \"SCOTT\".\"EMP\"\n"
             + "ORDER BY \"EMPNO\" NULLS LAST");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3751">[CALCITE-3751]
+   * JDBC adapter wrongly pushes ORDER BY into sub-query</a>. */
+  @Test public void testOrderByPlan() {
+    final String sql = "select deptno, job, sum(sal)\n"
+        + "from \"EMP\"\n"
+        + "group by deptno, job\n"
+        + "order by 1, 2";
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
+        + "    JdbcSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])\n"
+        + "      JdbcAggregate(group=[{2, 7}], EXPR$2=[SUM($5)])\n"
+        + "        JdbcTableScan(table=[[SCOTT, EMP]])";
+    final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", \"EXPR$2\"\n"
+        + "FROM (SELECT \"JOB\", \"DEPTNO\", SUM(\"SAL\") AS \"EXPR$2\"\n"
+        + "FROM \"SCOTT\".\"EMP\"\n"
+        + "GROUP BY \"JOB\", \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST) AS \"t0\"";
+    CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .query(sql)
+        .explainContains(explain)
+        .runs()
+        .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
+        .planHasSql(sqlHsqldb);
   }
 
   /** Test case for
@@ -821,8 +847,11 @@ public class JdbcAdapterTest {
         + "        JdbcValues(tuples=[[{ 0 }]])\n\n";
     final String jdbcSql = "INSERT INTO \"foodmart\".\"expense_fact\" (\"store_id\", "
         + "\"account_id\", \"exp_date\", \"time_id\", \"category_id\", \"currency_id\","
-        + " \"amount\")\nSELECT 666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
-        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\nUNION ALL\nSELECT 666, 777, "
+        + " \"amount\")\n"
+        + "SELECT 666, 666, TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
+        + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")\n"
+        + "UNION ALL\n"
+        + "SELECT 666, 777, "
         + "TIMESTAMP '1997-01-01 00:00:00', 666, '666', 666, 666\n"
         + "FROM (VALUES  (0)) AS \"t\" (\"ZERO\")";
     final AssertThat that =
