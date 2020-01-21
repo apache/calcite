@@ -78,6 +78,18 @@ SELECT map_filter(v, (a,b)->a='a') AS c1 FROM (VALUES (MAP['a', 1, 'baz', 2])) a
 !ok
 
 
+SELECT map_filter(MAP['a', 1, 'b', 2], (a,b)->a=v) AS c1 FROM (VALUES ('a'), ('b')) as t(v);
++-------+
+| C1    |
++-------+
+| {a=1} |
+| {b=2} |
++-------+
+(2 rows)
+
+!ok
+
+
 !use oraclefunc
 
 # COSH

@@ -1948,7 +1948,8 @@ public class SqlToRelConverter {
     }
 
     final Blackboard lambdaBb = createBlackboard(scope, nameToNodeMap, false);
-//    lambdaBb.setRoot(bb.inputs);
+    lambdaBb.setRoot(bb.inputs);
+    lambdaBb.isLambdaScope = true;
     RexNode expr = lambdaBb.convertExpression(call.getExpression());
     return rexBuilder.makeLambdaCall(expr, variables);
   }
@@ -4295,6 +4296,7 @@ public class SqlToRelConverter {
         new HashMap<>();
 
     private boolean isPatternVarRef = false;
+    private boolean isLambdaScope = false;
 
     final List<RelNode> cursors = new ArrayList<>();
 
@@ -4534,10 +4536,13 @@ public class SqlToRelConverter {
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
-          throw new AssertionError("Unknown identifier '" + qualified.identifier
-              + "' encountered while expanding expression");
+          if (!isLambdaScope) {
+            throw new AssertionError("Unknown identifier '" + qualified.identifier
+                + "' encountered while expanding expression");
+          }
+        } else {
+          return Pair.of(node, null);
         }
-        return Pair.of(node, null);
       }
       final SqlNameMatcher nameMatcher =
           scope.getValidator().getCatalogReader().nameMatcher();
@@ -4555,7 +4560,7 @@ public class SqlToRelConverter {
       // preserved.
       final SqlValidatorScope ancestorScope = resolve.scope;
       boolean isParent = ancestorScope != scope;
-      if ((inputs != null) && !isParent) {
+      if ((inputs != null) && (!isParent || isLambdaScope)) {
         final LookupContext rels =
             new LookupContext(this, inputs, systemFieldList.size());
         final RexNode node = lookup(resolve.path.steps().get(0).i, rels);

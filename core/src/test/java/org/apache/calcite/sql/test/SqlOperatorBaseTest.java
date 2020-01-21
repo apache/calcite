@@ -4579,9 +4579,9 @@ public abstract class SqlOperatorBaseTest {
     final SqlTester tester = tester(SqlLibrary.MYSQL);
 
 //    Failing test cases
-//    tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
-//        "{1=2, 3=4}",
-//        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
+    tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
+        "{1=2, 3=4}",
+        "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
 
     tester.checkType("map_filter(null, (a,b)->a>b)", "NULL");
     tester.checkFails("^map_filter(map[1, 2, 3, 4], (a,b)->2)^",
