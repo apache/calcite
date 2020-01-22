@@ -478,6 +478,20 @@ public abstract class SqlLibraryOperators {
                 }
               }),
           SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction RPAD =
+      new SqlFunction("RPAD", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction LPAD =
+      new SqlFunction("LPAD", SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java
