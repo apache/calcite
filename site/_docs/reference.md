@@ -1553,14 +1553,6 @@ Implicit type coercion of following cases are ignored:
 | multiset MULTISET INTERSECT [ ALL &#124; DISTINCT ] multiset2 | Returns the intersection of *multiset* and *multiset2*, eliminating duplicates if DISTINCT is specified (ALL is the default).
 | multiset MULTISET EXCEPT [ ALL &#124; DISTINCT ] multiset2 | Returns the difference of *multiset* and *multiset2*, eliminating duplicates if DISTINCT is specified (ALL is the default).
 
-
-### Lambda Expressions
-
-| Operator syntax | Description
-|:--------------- |:-----------
-| LAMBDA          | Lambda Expressions
-
-
 See also: the UNNEST relational operator converts a collection to a relation.
 
 ### Period predicates

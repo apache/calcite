@@ -19,8 +19,11 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class RexLambda extends RexNode {
   //~ Instance fields --------------------------------------------------------
@@ -78,5 +81,17 @@ public class RexLambda extends RexNode {
 
   @Override public int hashCode() {
     return Objects.hash(expression, variables);
+  }
+
+  @Override public String toString() {
+    if (digest == null) {
+      digest = new StringBuilder().append("(")
+          .append(StringUtils
+              .join(
+                  variables.stream().map(s -> s.getType().getSqlTypeName().getName()).collect(
+                  Collectors.toList()), ','))
+          .append(")->").append(getType().getSqlTypeName().getName()).toString();
+    }
+    return digest;
   }
 }

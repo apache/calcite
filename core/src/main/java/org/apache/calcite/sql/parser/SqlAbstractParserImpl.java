@@ -307,8 +307,6 @@ public abstract class SqlAbstractParserImpl {
      */
     ACCEPT_NON_QUERY,
 
-    ACCEPT_SUB_QUERY_WITH_LAMBDA,
-
     /**
      * Accept only parenthesized queries or non-query expressions in this
      * context.

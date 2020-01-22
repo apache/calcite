@@ -4578,7 +4578,6 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testMapFilterFunc() {
     final SqlTester tester = tester(SqlLibrary.MYSQL);
 
-//    Failing test cases
     tester.checkString("map_filter(map[1, 2, 3, 4], (a,b)->true)",
         "{1=2, 3=4}",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
