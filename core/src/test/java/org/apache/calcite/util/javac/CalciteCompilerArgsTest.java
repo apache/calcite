@@ -40,7 +40,5 @@ public class CalciteCompilerArgsTest {
     assertEquals(CalciteCompilerArgs.class.getClassLoader(), compilerArgs.getClassLoader());
     compilerArgs.setClassLoader(Thread.currentThread().getContextClassLoader());
     assertEquals(Thread.currentThread().getContextClassLoader(), compilerArgs.getClassLoader());
-    CalciteCompilerArgsFactory.resetCompilerArgs();
-    assertEquals(CalciteCompilerArgs.class.getClassLoader(), compilerArgs.getClassLoader());
   }
 }

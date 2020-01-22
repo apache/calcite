@@ -25,8 +25,7 @@ public class CalciteCompilerArgsFactory {
 
   private CalciteCompilerArgsFactory() {}
 
-  private static final ThreadLocal<CalciteCompilerArgs> COMPILER_ARGS = ThreadLocal.withInitial(
-      () -> new CalciteCompilerArgs());
+  private static final CalciteCompilerArgs COMPILER_ARGS = new CalciteCompilerArgs();
 
   /**
    * Return the compiler args.
@@ -34,11 +33,7 @@ public class CalciteCompilerArgsFactory {
    * @return {@link CalciteCompilerArgs}
    */
   public static CalciteCompilerArgs getCompilerArgs() {
-    return COMPILER_ARGS.get();
-  }
-
-  public static void resetCompilerArgs() {
-    COMPILER_ARGS.set(new CalciteCompilerArgs());
+    return COMPILER_ARGS;
   }
 
 }
