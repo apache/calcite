@@ -156,8 +156,8 @@ public class JdbcAdapterTest {
 
   @Test public void testEquiJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, e.deptno, dname \n"
-            + "from scott.emp e inner join scott.dept d \n"
+        .query("select empno, ename, e.deptno, dname\n"
+            + "from scott.emp e inner join scott.dept d\n"
             + "on e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DEPTNO=[$4], DNAME=[$1])\n"
@@ -198,8 +198,8 @@ public class JdbcAdapterTest {
    * Push theta joins down to JDBC adapter</a>. */
   @Test public void testNonEquiJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, grade \n"
-            + "from scott.emp e inner join scott.salgrade s \n"
+        .query("select empno, ename, grade\n"
+            + "from scott.emp e inner join scott.salgrade s\n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
@@ -219,8 +219,8 @@ public class JdbcAdapterTest {
 
   @Test public void testNonEquiJoinReverseConditionPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, grade \n"
-            + "from scott.emp e inner join scott.salgrade s \n"
+        .query("select empno, ename, grade\n"
+            + "from scott.emp e inner join scott.salgrade s\n"
             + "on s.losal <= e.sal and s.hisal >= e.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
@@ -239,8 +239,8 @@ public class JdbcAdapterTest {
 
   @Test public void testMixedJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select e.empno, e.ename, e.empno, e.ename  \n"
-            + "from scott.emp e inner join scott.emp m on  \n"
+        .query("select e.empno, e.ename, e.empno, e.ename\n"
+            + "from scott.emp e inner join scott.emp m on\n"
             + "e.mgr = m.empno and e.sal > m.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$2], ENAME=[$3], EMPNO0=[$2], ENAME0=[$3])\n"
@@ -262,8 +262,8 @@ public class JdbcAdapterTest {
 
   @Test public void testMixedJoinWithOrPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select e.empno, e.ename, e.empno, e.ename  \n"
-            + "from scott.emp e inner join scott.emp m on  \n"
+        .query("select e.empno, e.ename, e.empno, e.ename\n"
+            + "from scott.emp e inner join scott.emp m on\n"
             + "e.mgr = m.empno and (e.sal > m.sal or m.hiredate > e.hiredate)")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$3], ENAME=[$4], EMPNO0=[$3], ENAME0=[$4])\n"
@@ -286,10 +286,10 @@ public class JdbcAdapterTest {
 
   @Test public void testJoin3TablesPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select  empno, ename, dname, grade \n"
-            + "from scott.emp e inner join scott.dept d \n"
-            + "on e.deptno = d.deptno \n"
-            + "inner join scott.salgrade s \n"
+        .query("select  empno, ename, dname, grade\n"
+            + "from scott.emp e inner join scott.dept d\n"
+            + "on e.deptno = d.deptno\n"
+            + "inner join scott.salgrade s\n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$3], ENAME=[$4], DNAME=[$8], GRADE=[$0])\n"
@@ -314,8 +314,8 @@ public class JdbcAdapterTest {
 
   @Test public void testCrossJoinWithJoinKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, d.deptno, dname \n"
-            + "from scott.emp e,scott.dept d \n"
+        .query("select empno, ename, d.deptno, dname\n"
+            + "from scott.emp e,scott.dept d\n"
             + "where e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"
@@ -336,7 +336,7 @@ public class JdbcAdapterTest {
   // JdbcJoin not used for this
   @Test public void testCartesianJoinWithoutKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, d.deptno, dname \n"
+        .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d")
         .explainContains("PLAN=EnumerableNestedLoopJoin(condition=[true], "
             + "joinType=[inner])\n"
@@ -352,9 +352,9 @@ public class JdbcAdapterTest {
 
   @Test public void testCrossJoinWithJoinKeyAndFilterPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
-        .query("select empno, ename, d.deptno, dname \n"
-            + "from scott.emp e,scott.dept d \n"
-            + "where e.deptno = d.deptno \n"
+        .query("select empno, ename, d.deptno, dname\n"
+            + "from scott.emp e,scott.dept d\n"
+            + "where e.deptno = d.deptno\n"
             + "and e.deptno=20")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
             + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"

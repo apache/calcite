@@ -93,7 +93,7 @@ public class StreamTest {
       + "           stream: true\n"
       + "         },\n"
       + "         factory: '" + OrdersStreamTableFactory.class.getName() + "'\n"
-      + "       }, \n"
+      + "       },\n"
       + "       {\n"
       + "         type: 'custom',\n"
       + "         name: 'PRODUCTS',\n"

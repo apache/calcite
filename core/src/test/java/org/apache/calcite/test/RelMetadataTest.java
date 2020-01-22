@@ -992,11 +992,11 @@ public class RelMetadataTest extends SqlToRelTestBase {
   }
 
   @Test public void testFullOuterJoinUniqueness1() {
-    final String sql = "select e.empno, d.deptno \n"
+    final String sql = "select e.empno, d.deptno\n"
         + "from (select cast(null as int) empno from sales.emp "
-        + " where empno = 10 group by cast(null as int)) as e \n"
+        + " where empno = 10 group by cast(null as int)) as e\n"
         + "full outer join (select cast (null as int) deptno from sales.dept "
-        + "group by cast(null as int)) as d on e.empno = d.deptno \n"
+        + "group by cast(null as int)) as d on e.empno = d.deptno\n"
         + "group by e.empno, d.deptno";
     RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
@@ -2344,10 +2344,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testExpressionLineageMultiUnion() {
     // empno is column 0 in catalog.sales.emp
     // sal is column 5 in catalog.sales.emp
-    final RelNode rel = convertSql("select a.empno + b.sal from \n"
+    final RelNode rel = convertSql("select a.empno + b.sal from\n"
         + " (select empno, ename from emp,dept) a join "
-        + " (select * from emp union all select * from emp) b \n"
-        + " on a.empno = b.empno \n"
+        + " (select * from emp union all select * from emp) b\n"
+        + " on a.empno = b.empno\n"
         + " where b.deptno = 10");
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
 
@@ -2474,7 +2474,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testAllPredicatesAggregate2() {
     final String sql = "select * from (select a, max(b) from (\n"
         + "  select empno as a, sal as b from emp)subq\n"
-        + "group by a) \n"
+        + "group by a)\n"
         + "where a = 5";
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
@@ -2493,7 +2493,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
   @Test public void testAllPredicatesAggregate3() {
     final String sql = "select * from (select a, max(b) as b from (\n"
         + "  select empno as a, sal as b from emp)subq\n"
-        + "group by a) \n"
+        + "group by a)\n"
         + "where b = 5";
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();

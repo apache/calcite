@@ -1529,7 +1529,7 @@ public class JdbcTest {
   @Test public void testExtractMonthFromTimestamp() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(month from \"birth_date\") as c \n"
+        .query("select extract(month from \"birth_date\") as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         .returns("C=8\n");
   }
@@ -1537,7 +1537,7 @@ public class JdbcTest {
   @Test public void testExtractYearFromTimestamp() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(year from \"birth_date\") as c \n"
+        .query("select extract(year from \"birth_date\") as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         .returns("C=1961\n");
   }
@@ -1545,7 +1545,7 @@ public class JdbcTest {
   @Test public void testExtractFromInterval() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(month from interval '2-3' year to month) as c \n"
+        .query("select extract(month from interval '2-3' year to month) as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         // disable for MySQL, H2; cannot handle EXTRACT yet
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
@@ -1580,7 +1580,7 @@ public class JdbcTest {
   @Test public void testFloorDate() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c \n"
+        .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c\n"
             + "from \"foodmart\".\"employee\" limit 1")
         // disable for MySQL; birth_date suffers timezone shift
         // disable for H2; Calcite generates incorrect FLOOR syntax
@@ -3837,16 +3837,16 @@ public class JdbcTest {
 
   @Test public void testNestedWin() {
     CalciteAssert.hr()
-        .query("select \n"
-            + " lag(a2, 1, 0) over (partition by \"deptno\" order by a1) as lagx \n"
-            + "from \n"
+        .query("select\n"
+            + " lag(a2, 1, 0) over (partition by \"deptno\" order by a1) as lagx\n"
+            + "from\n"
             + " (\n"
-            + "  select \n"
-            + "   \"deptno\", \n"
-            + "   \"salary\" / \"commission\" as a1, \n"
+            + "  select\n"
+            + "   \"deptno\",\n"
+            + "   \"salary\" / \"commission\" as a1,\n"
             + "   sum(\"commission\") over ( partition by \"deptno\" order by \"salary\" / "
-            + "\"commission\") / sum(\"commission\") over (partition by \"deptno\") as a2 \n"
-            + "  from \n"
+            + "\"commission\") / sum(\"commission\") over (partition by \"deptno\") as a2\n"
+            + "  from\n"
             + "   \"hr\".\"emps\"\n"
             + " )\n")
         .typeIs(

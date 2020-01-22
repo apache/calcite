@@ -1341,9 +1341,9 @@ public class PlannerTest {
     final SchemaPlus schema = Frameworks.createRootSchema(true)
         .add("tpch", new ReflectiveSchema(new TpchSchema()));
 
-    String query = "select t.psPartkey from \n"
-        + "(select ps.psPartkey from `tpch`.`partsupp` ps \n"
-        + "order by ps.psPartkey, ps.psSupplyCost) t \n"
+    String query = "select t.psPartkey from\n"
+        + "(select ps.psPartkey from `tpch`.`partsupp` ps\n"
+        + "order by ps.psPartkey, ps.psSupplyCost) t\n"
         + "order by t.psPartkey";
 
     List<RelTraitDef> traitDefs = new ArrayList<>();

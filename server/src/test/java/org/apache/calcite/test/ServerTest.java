@@ -173,7 +173,7 @@ public class ServerTest {
       boolean b = s.execute("create schema s");
       assertThat(b, is(false));
       try {
-        boolean f = s.execute("create function if not exists s.t \n"
+        boolean f = s.execute("create function if not exists s.t\n"
                 + "as 'org.apache.calcite.udf.TableFun.demoUdf'\n"
                 + "using jar 'file:/path/udf/udf-0.0.1-SNAPSHOT.jar'");
       } catch (SQLException e) {
