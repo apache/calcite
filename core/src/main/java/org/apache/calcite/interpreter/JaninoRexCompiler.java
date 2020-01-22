@@ -39,7 +39,7 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
-import org.apache.calcite.util.javac.CalciteCompilerArgsFactory;
+import org.apache.calcite.util.javac.CalciteCompilerArgs;
 
 import com.google.common.collect.ImmutableList;
 
@@ -169,8 +169,7 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     IClassBodyEvaluator cbe = compilerFactory.newClassBodyEvaluator();
     cbe.setClassName(expr.name);
     cbe.setImplementedInterfaces(new Class[]{Scalar.class});
-    cbe.setParentClassLoader(
-        CalciteCompilerArgsFactory.getCompilerArgs().getClassLoader());
+    cbe.setParentClassLoader(CalciteCompilerArgs.DEFAULT.getClassLoader());
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       cbe.setDebuggingInformation(true, true, true);

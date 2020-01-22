@@ -23,6 +23,8 @@ package org.apache.calcite.util.javac;
  */
 public class CalciteCompilerArgs {
 
+  public static final CalciteCompilerArgs DEFAULT = new CalciteCompilerArgs();
+
   private ClassLoader classLoader = CalciteCompilerArgs.class.getClassLoader();
 
   public void setClassLoader(ClassLoader classLoader) {

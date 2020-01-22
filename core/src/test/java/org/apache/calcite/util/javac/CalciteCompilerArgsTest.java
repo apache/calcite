@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit test for CalciteCompilerArgs.
  *
  * @see CalciteCompilerArgs
- * @see CalciteCompilerArgsFactory
  */
 public class CalciteCompilerArgsTest {
 
@@ -34,7 +33,7 @@ public class CalciteCompilerArgsTest {
   }
 
   @Test public void testCompilerArgs() {
-    CalciteCompilerArgs compilerArgs = CalciteCompilerArgsFactory.getCompilerArgs();
+    CalciteCompilerArgs compilerArgs = CalciteCompilerArgs.DEFAULT;
     assertTrue(compilerArgs.getClassLoader() != null);
     compilerArgs.setClassLoader(null);
     assertEquals(CalciteCompilerArgs.class.getClassLoader(), compilerArgs.getClassLoader());
