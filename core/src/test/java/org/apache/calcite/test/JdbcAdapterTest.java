@@ -318,19 +318,19 @@ public class JdbcAdapterTest {
             + "from scott.emp e,scott.dept d \n"
             + "where e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DEPTNO=[$0], DNAME=[$1])\n"
-            + "    JdbcJoin(condition=[=($4, $0)], joinType=[inner])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"
+            + "    JdbcJoin(condition=[=($2, $3)], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
-            + "\"t\".\"DEPTNO\", \"t\".\"DNAME\"\n"
-            + "FROM (SELECT \"DEPTNO\", \"DNAME\"\nFROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
+            + "\"t0\".\"DEPTNO\", \"t0\".\"DNAME\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\nFROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
   // JdbcJoin not used for this
@@ -357,20 +357,22 @@ public class JdbcAdapterTest {
             + "where e.deptno = d.deptno \n"
             + "and e.deptno=20")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DEPTNO=[$0], DNAME=[$1])\n"
-            + "    JdbcJoin(condition=[=($4, $0)], joinType=[inner])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$3], DNAME=[$4])\n"
+            + "    JdbcJoin(condition=[=($2, $3)], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
             + "        JdbcFilter(condition=[=(CAST($7):INTEGER, 20)])\n"
-            + "          JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t1\".\"EMPNO\", \"t1\".\"ENAME\", \"t\".\"DEPTNO\", \"t\".\"DNAME\"\n"
-            + "FROM (SELECT \"DEPTNO\", \"DNAME\"\nFROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\"\nWHERE CAST(\"DEPTNO\" AS INTEGER) = 20) "
-            + "AS \"t1\" ON \"t\".\"DEPTNO\" = \"t1\".\"DEPTNO\"");
+        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
+            + "\"t1\".\"DEPTNO\", \"t1\".\"DNAME\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "WHERE CAST(\"DEPTNO\" AS INTEGER) = 20) AS \"t0\"\n"
+            + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t1\" ON \"t0\".\"DEPTNO\" = \"t1\".\"DEPTNO\"");
   }
 
   /** Test case for
