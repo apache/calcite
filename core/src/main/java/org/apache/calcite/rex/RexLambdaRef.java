@@ -29,7 +29,7 @@ import java.util.List;
  * <p>Fields of the input are 0-based. If there is more than one input, they are
  * numbered consecutively. For example</p>
  *
- * (a,b)->{expression}
+ * (a,b)-&gt;{expression}
  *
  * <p>then the fields are:</p>
  *

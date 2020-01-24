@@ -32,7 +32,7 @@ import java.util.Map;
  * The name-resolution context for expression inside a LAMBDA clause. The objects visible are the
  * lambda paramters, and those inherited from the parent scope.
  *
- * <p>Consider "SELECT lambdaExp((x)->A.a+x) FROM A
+ * <p>Consider "SELECT lambdaExp((x)-&gt;A.a+x) FROM A
  * resolved in the lambda scope for "Lambda Parameters and Table columns of A"</p>
  */
 public class LambdaScope extends ListScope {
