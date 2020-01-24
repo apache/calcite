@@ -50,5 +50,3 @@ public class JsonScannableTable extends JsonTable
     };
   }
 }
-
-// End JsonScannableTable.java

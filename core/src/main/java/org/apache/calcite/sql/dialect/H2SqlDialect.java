@@ -41,5 +41,3 @@ public class H2SqlDialect extends SqlDialect {
     return false;
   }
 }
-
-// End H2SqlDialect.java

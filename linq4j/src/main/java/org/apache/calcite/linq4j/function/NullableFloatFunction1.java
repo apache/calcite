@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
  */
 public interface NullableFloatFunction1<T0> extends Function1<T0, Float> {
 }
-
-// End NullableFloatFunction1.java

@@ -34,6 +34,7 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
@@ -48,8 +49,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -61,20 +62,15 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.core.Is.isA;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
  */
 public class SqlToRelConverterTest extends SqlToRelTestBase {
-  //~ Methods ----------------------------------------------------------------
-
-  public SqlToRelConverterTest() {
-    super();
-  }
-
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlToRelConverterTest.class);
   }
@@ -137,9 +133,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /** Test case for:
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2468">[CALCITE-2468]
-   * struct type alias should not cause IOOBE.</a>.
+   * struct type alias should not cause IndexOutOfBoundsException</a>.
    */
   @Test public void testStructTypeAlias() {
     final String sql = "select t.r AS myRow\n"
@@ -147,8 +143,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test
-  public void testJoinUsingDynamicTable() {
+  @Test public void testJoinUsingDynamicTable() {
     final String sql = "select * from SALES.NATION t1\n"
         + "join SALES.NATION t2\n"
         + "using (n_nationkey)";
@@ -172,11 +167,9 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  /**
-   * Test case for
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-245">[CALCITE-245]
-   * Off-by-one translation of ON clause of JOIN</a>.
-   */
+   * Off-by-one translation of ON clause of JOIN</a>. */
   @Test public void testConditionOffByOne() {
     // Bug causes the plan to contain
     //   LogicalJoin(condition=[=($9, $9)], joinType=[inner])
@@ -242,8 +235,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-801">[CALCITE-801]
-   * NullPointerException using USING on table alias with column
-   * aliases</a>. */
+   * NullPointerException using USING on table alias with column aliases</a>. */
   @Test public void testValuesUsing() {
     final String sql = "select d.deptno, min(e.empid) as empid\n"
         + "from (values (100, 'Bill', 1)) as e(empid, name, deptno)\n"
@@ -267,6 +259,58 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "SELECT *\n"
         + "FROM emp\n"
         + "NATURAL JOIN (SELECT deptno, name AS ename FROM dept) AS d";
+    sql(sql).ok();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3387">[CALCITE-3387]
+   * Query with GROUP BY and JOIN ... USING wrongly fails with
+   * "Column 'DEPTNO' is ambiguous"</a>. */
+  @Test public void testJoinUsingWithUnqualifiedCommonColumn() {
+    final String sql = "SELECT deptno, name\n"
+        + "FROM emp JOIN dept using (deptno)";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but with nested common column. */
+  @Test public void testJoinUsingWithUnqualifiedNestedCommonColumn() {
+    final String sql =
+        "select (coord).x from\n"
+            + "customer.contact_peek t1\n"
+            + "join customer.contact_peek t2\n"
+            + "using (coord)";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but with aggregate. */
+  @Test public void testJoinUsingWithAggregate() {
+    final String sql = "select deptno, count(*)\n"
+        + "from emp\n"
+        + "full join dept using (deptno)\n"
+        + "group by deptno";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but with grouping sets. */
+  @Test public void testJoinUsingWithGroupingSets() {
+    final String sql = "select deptno, grouping(deptno),\n"
+        + "grouping(deptno, job), count(*)\n"
+        + "from emp\n"
+        + "join dept using (deptno)\n"
+        + "group by grouping sets ((deptno), (deptno, job))";
+    sql(sql).ok();
+  }
+
+  /** Similar to {@link #testJoinUsingWithUnqualifiedCommonColumn()},
+   * but with multiple join. */
+  @Test public void testJoinUsingWithMultipleJoin() {
+    final String sql = "SELECT deptno, ename\n"
+        + "FROM emp "
+        + "JOIN dept using (deptno)\n"
+        + "JOIN (values ('Calcite', 200)) as s(ename, salary) using (ename)";
     sql(sql).ok();
   }
 
@@ -800,8 +844,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-439">[CALCITE-439]
-   * SqlValidatorUtil.uniquify() may not terminate under some
-   * conditions</a>. */
+   * SqlValidatorUtil.uniquify() may not terminate under some conditions</a>. */
   @Test public void testGroupAlias() {
     final String sql = "select \"$f2\", max(x), max(x + 1)\n"
         + "from (values (1, 2)) as t(\"$f2\", x)\n"
@@ -1045,7 +1088,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   @Test public void testUpdateExtendedColumnModifiableViewUnderlyingCollision() {
     sql("update EMP_MODIFIABLEVIEW3(extra BOOLEAN, comm INTEGER)"
-        + " set empno = 20, comm = true, extra = true"
+        + " set empno = 20, comm = 123, extra = true"
         + " where ename = 'Bob'").with(getExtendedTester()).ok();
   }
 
@@ -1702,6 +1745,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  // In generated plan, the first parameter of TUMBLE function will always be the last field
+  // of it's input. There isn't a way to give the first operand a proper type.
+  @Test public void testTableValuedFunctionTumble() {
+    final String sql = "select *\n"
+        + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE))";
+    sql(sql).ok();
+  }
+
+  // In generated plan, the first parameter of TUMBLE function will always be the last field
+  // of it's input. There isn't a way to give the first operand a proper type.
+  @Test public void testTableValuedFunctionTumbleWithSubQueryParam() {
+    final String sql = "select *\n"
+        + "from table(tumble((select * from Shipments), descriptor(rowtime), INTERVAL '1' MINUTE))";
+    sql(sql).ok();
+  }
+
   @Test public void testNotNotIn() {
     final String sql = "select * from EMP where not (ename not in ('Fred') )";
     sql(sql).ok();
@@ -1945,7 +2004,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3183">[CALCITE-3183]
-   * Trimming method for Filter rel uses wrong traitSet </a> */
+   * Trimming method for Filter rel uses wrong traitSet</a>. */
   @Test public void testFilterAndSortWithTrim() {
     // Create a customized test with RelCollation trait in the test cluster.
     Tester tester = new TesterImpl(getDiffRepos(),
@@ -1994,6 +2053,22 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     assertTrue(filterCollation.satisfies(sortCollation));
   }
 
+  @Test public void testRelShuttleForLogicalTableModify() {
+    final String sql = "insert into emp select * from emp";
+    final LogicalTableModify rel = (LogicalTableModify) tester.convertSqlToRel(sql).rel;
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalTableModify modify) {
+        RelNode visitedRel = super.visit(modify);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    visitor.visit(rel);
+    assertThat(rels.size(), is(1));
+    assertThat(rels.get(0), isA(LogicalTableModify.class));
+  }
+
   @Test public void testOffset0() {
     final String sql = "select * from emp offset 0";
     sql(sql).ok();
@@ -2040,8 +2115,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
    *
    * <p>Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-551">[CALCITE-551]
-   * Sub-query inside aggregate function</a>.
-   */
+   * Sub-query inside aggregate function</a>. */
   @Test public void testAggCaseInSubQuery() {
     final String sql = "SELECT SUM(\n"
         + "  CASE WHEN deptno IN (SELECT deptno FROM dept) THEN 1 ELSE 0 END)\n"
@@ -2260,21 +2334,21 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1708")
+  @Disabled("CALCITE-1708")
   @Test public void testUpdateBindExtendedColumn() {
     final String sql = "update emp(test INT)"
         + " set test = ?, sal = sal + 5000 where slacker = false";
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-1708")
+  @Disabled("CALCITE-1708")
   @Test public void testUpdateBindExtendedColumnModifiableView() {
     final String sql = "update EMP_MODIFIABLEVIEW2(test INT)"
         + " set test = ?, sal = sal + 5000 where slacker = false";
     sql(sql).ok();
   }
 
-  @Ignore("CALCITE-985")
+  @Disabled("CALCITE-985")
   @Test public void testMerge() {
     final String sql = "merge into emp as target\n"
         + "using (select * from emp where deptno = 30) as source\n"
@@ -3562,6 +3636,36 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3456">[CALCITE-3456]
+   * AssertionError throws when aggregation same digest in sub-query in same
+   * scope</a>.
+   */
+  @Test public void testAggregateWithSameDigestInSubQueries() {
+    final String sql = "select\n"
+        + "  CASE WHEN job IN ('810000', '820000') THEN job\n"
+        + "  ELSE 'error'\n"
+        + "  END AS job_name,\n"
+        + "  count(empno)\n"
+        + "FROM emp\n"
+        + "where job <> '' or job IN ('810000', '820000')\n"
+        + "GROUP by deptno, job";
+    sql(sql).ok();
+  }
+
+  @Test public void testPushDownJoinConditionWithProjectMerge() {
+    final String sql = "select * from\n"
+        + " (select empno, deptno from emp) a\n"
+        + " join dept b\n"
+        + "on a.deptno + 20 = b.deptno";
+    sql(sql).ok();
+  }
+
+  @Test public void testCoalesceOnNullableField() {
+    final String sql = "select coalesce(mgr, 0) from emp";
+    sql(sql).ok();
+  }
+
   /**
    * Visitor that checks that every {@link RelNode} in a tree is valid.
    *
@@ -3659,5 +3763,3 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     }
   }
 }
-
-// End SqlToRelConverterTest.java

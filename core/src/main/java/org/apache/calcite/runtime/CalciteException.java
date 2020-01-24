@@ -65,5 +65,3 @@ public class CalciteException extends RuntimeException {
     }
   }
 }
-
-// End CalciteException.java

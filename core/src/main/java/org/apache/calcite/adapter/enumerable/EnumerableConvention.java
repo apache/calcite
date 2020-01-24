@@ -65,5 +65,3 @@ public enum EnumerableConvention implements Convention {
     return false;
   }
 }
-
-// End EnumerableConvention.java

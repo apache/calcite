@@ -55,5 +55,3 @@ public class ExplicitReturnTypeInference implements SqlReturnTypeInference {
     return protoType.apply(opBinding.getTypeFactory());
   }
 }
-
-// End ExplicitReturnTypeInference.java

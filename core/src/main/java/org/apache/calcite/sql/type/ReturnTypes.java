@@ -818,5 +818,3 @@ public abstract class ReturnTypes {
     }
   };
 }
-
-// End ReturnTypes.java

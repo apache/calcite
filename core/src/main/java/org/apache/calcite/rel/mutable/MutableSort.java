@@ -77,5 +77,3 @@ public class MutableSort extends MutableSingleRel {
     return MutableSort.of(input.clone(), collation, offset, fetch);
   }
 }
-
-// End MutableSort.java

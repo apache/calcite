@@ -29,5 +29,3 @@ import org.apache.calcite.linq4j.function.Experimental;
 public interface SqlExecutableStatement {
   void execute(CalcitePrepare.Context context);
 }
-
-// End SqlExecutableStatement.java

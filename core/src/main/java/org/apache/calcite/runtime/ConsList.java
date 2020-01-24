@@ -143,5 +143,3 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().lastIndexOf(o);
   }
 }
-
-// End ConsList.java

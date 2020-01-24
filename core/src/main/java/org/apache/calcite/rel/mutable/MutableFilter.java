@@ -59,5 +59,3 @@ public class MutableFilter extends MutableSingleRel {
     return MutableFilter.of(input.clone(), condition);
   }
 }
-
-// End MutableFilter.java

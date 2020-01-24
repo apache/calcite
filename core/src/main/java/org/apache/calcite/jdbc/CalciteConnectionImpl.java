@@ -626,5 +626,3 @@ abstract class CalciteConnectionImpl
   }
 
 }
-
-// End CalciteConnectionImpl.java

@@ -192,5 +192,3 @@ public class Enumerables {
         Consumer<TResult> consumer);
   }
 }
-
-// End Enumerables.java

@@ -67,5 +67,3 @@ public class Stacks {
     return stack.remove(stack.size() - 1);
   }
 }
-
-// End Stacks.java

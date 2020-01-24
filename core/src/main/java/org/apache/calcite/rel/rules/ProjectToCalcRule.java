@@ -72,5 +72,3 @@ public class ProjectToCalcRule extends RelOptRule {
     call.transformTo(calc);
   }
 }
-
-// End ProjectToCalcRule.java

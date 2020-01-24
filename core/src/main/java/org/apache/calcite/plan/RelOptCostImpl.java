@@ -149,5 +149,3 @@ public class RelOptCostImpl implements RelOptCost {
     }
   }
 }
-
-// End RelOptCostImpl.java

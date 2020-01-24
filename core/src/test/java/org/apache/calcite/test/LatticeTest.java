@@ -32,10 +32,9 @@ import org.apache.calcite.util.TestUtil;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assume;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -55,14 +54,15 @@ import static org.apache.calcite.test.Matchers.within;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Unit test for lattices.
  */
-@Category(SlowTests.class)
+@Tag("slow")
 public class LatticeTest {
   private static final String SALES_LATTICE = "{\n"
       + "  name: 'star',\n"
@@ -492,8 +492,8 @@ public class LatticeTest {
   /** As {@link #testTileAlgorithm()}, but uses the
    * {@link Lattices#PROFILER} statistics provider. */
   @Test public void testTileAlgorithm3() {
-    Assume.assumeTrue("Yahoo sketches requires JDK 8 or higher",
-        TestUtil.getJavaMajorVersion() >= 8);
+    assumeTrue(TestUtil.getJavaMajorVersion() >= 8,
+        "Yahoo sketches requires JDK 8 or higher");
     final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
         + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 27, 31, 32, 36, 37}]";
     checkTileAlgorithm(Lattices.class.getCanonicalName() + "#PROFILER",
@@ -683,7 +683,7 @@ public class LatticeTest {
   /** Runs all queries against the Foodmart schema, using a lattice.
    *
    * <p>Disabled for normal runs, because it is slow. */
-  @Ignore
+  @Disabled
   @Test public void testAllFoodmartQueries() throws IOException {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
     final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
@@ -885,7 +885,7 @@ public class LatticeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
    * Aggregate recommender blows up if row count estimate is too high</a>. */
-  @Ignore
+  @Disabled
   @Test public void testLatticeWithBadRowCountEstimate() {
     final String lattice =
         INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",
@@ -986,5 +986,3 @@ public class LatticeTest {
     assertThat(Lattice.getRowCount(1, 3, 5, 13, 4831), within(1D, 0.01D));
   }
 }
-
-// End LatticeTest.java

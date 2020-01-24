@@ -44,5 +44,3 @@ class ScopeChild {
     this.nullable = nullable;
   }
 }
-
-// End ScopeChild.java

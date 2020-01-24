@@ -158,5 +158,3 @@ public class JavaCompilerArgs {
     return classLoader;
   }
 }
-
-// End JavaCompilerArgs.java

@@ -313,9 +313,4 @@
  *         </ul>
  *
  */
-@PackageMarker
 package org.apache.calcite.test.concurrent;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

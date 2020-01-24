@@ -124,5 +124,3 @@ public class IntersectToDistinctRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End IntersectToDistinctRule.java

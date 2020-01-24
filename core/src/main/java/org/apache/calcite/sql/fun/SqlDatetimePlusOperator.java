@@ -71,5 +71,3 @@ public class SqlDatetimePlusOperator extends SqlSpecialOperator {
     return SqlStdOperatorTable.PLUS.getMonotonicity(call);
   }
 }
-
-// End SqlDatetimePlusOperator.java

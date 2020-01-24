@@ -32,6 +32,7 @@ import org.apache.calcite.rel.rules.ProjectCalcMergeRule;
 import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
+import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
@@ -201,6 +202,7 @@ public abstract class RelOptMaterializations {
             .addRuleInstance(ProjectMergeRule.INSTANCE)
             .addRuleInstance(ProjectRemoveRule.INSTANCE)
             .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+            .addRuleInstance(ProjectSetOpTransposeRule.INSTANCE)
             .addRuleInstance(FilterToCalcRule.INSTANCE)
             .addRuleInstance(ProjectToCalcRule.INSTANCE)
             .addRuleInstance(FilterCalcMergeRule.INSTANCE)
@@ -238,5 +240,3 @@ public abstract class RelOptMaterializations {
     return false;
   }
 }
-
-// End RelOptMaterializations.java

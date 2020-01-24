@@ -127,5 +127,3 @@ public class RelOptQuery {
     mapCorrelToRel.put(name, rel);
   }
 }
-
-// End RelOptQuery.java

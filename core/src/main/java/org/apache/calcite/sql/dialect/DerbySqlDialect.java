@@ -32,5 +32,3 @@ public class DerbySqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End DerbySqlDialect.java

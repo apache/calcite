@@ -210,5 +210,3 @@ public class TileSuggester {
     }
   }
 }
-
-// End TileSuggester.java

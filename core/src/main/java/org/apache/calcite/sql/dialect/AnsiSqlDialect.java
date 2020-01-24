@@ -39,5 +39,3 @@ public class AnsiSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End AnsiSqlDialect.java

@@ -85,5 +85,3 @@ public class SqlDropSchema extends SqlDrop
     }
   }
 }
-
-// End SqlDropSchema.java

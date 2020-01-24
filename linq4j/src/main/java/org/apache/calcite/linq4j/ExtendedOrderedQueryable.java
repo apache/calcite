@@ -57,5 +57,3 @@ public interface ExtendedOrderedQueryable<T> extends Queryable<T> {
       FunctionExpression<Function1<T, TKey>> keySelector,
       Comparator<TKey> comparator);
 }
-
-// End ExtendedOrderedQueryable.java

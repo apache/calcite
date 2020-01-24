@@ -40,5 +40,3 @@ class EnumerableUnionRule extends ConverterRule {
         convertList(union.getInputs(), out), union.all);
   }
 }
-
-// End EnumerableUnionRule.java

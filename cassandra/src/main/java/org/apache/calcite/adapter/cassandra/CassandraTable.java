@@ -254,5 +254,3 @@ public class CassandraTable extends AbstractQueryableTable
     }
   }
 }
-
-// End CassandraTable.java

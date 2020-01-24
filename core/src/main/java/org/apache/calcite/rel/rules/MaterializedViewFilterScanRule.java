@@ -93,5 +93,3 @@ public class MaterializedViewFilterScanRule extends RelOptRule {
     }
   }
 }
-
-// End MaterializedViewFilterScanRule.java

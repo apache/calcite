@@ -141,5 +141,3 @@ public class EnumerableRules {
     return ENUMERABLE_RULES;
   }
 }
-
-// End EnumerableRules.java

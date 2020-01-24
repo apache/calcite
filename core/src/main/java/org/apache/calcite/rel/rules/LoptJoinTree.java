@@ -212,5 +212,3 @@ public class LoptJoinTree {
     }
   }
 }
-
-// End LoptJoinTree.java

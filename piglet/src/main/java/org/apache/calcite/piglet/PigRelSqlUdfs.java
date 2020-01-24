@@ -357,5 +357,3 @@ public class PigRelSqlUdfs {
     return projectedMultiset;
   }
 }
-
-// End PigRelSqlUdfs.java

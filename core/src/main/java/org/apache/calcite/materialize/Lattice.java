@@ -1167,5 +1167,3 @@ public class Lattice {
     }
   }
 }
-
-// End Lattice.java

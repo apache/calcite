@@ -81,5 +81,3 @@ public class ExtractOperatorConversion implements DruidSqlOperatorConverter {
     return DruidExpressions.applyTimeExtract(input, druidUnit, tz);
   }
 }
-
-// End ExtractOperatorConversion.java

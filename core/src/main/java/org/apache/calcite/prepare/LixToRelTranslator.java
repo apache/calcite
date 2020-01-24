@@ -88,6 +88,7 @@ class LixToRelTranslator {
       case SELECT:
         input = translate(call.targetExpression);
         return LogicalProject.create(input,
+            ImmutableList.of(),
             toRex(input, (FunctionExpression) call.expressions.get(0)),
             (List<String>) null);
 
@@ -103,7 +104,8 @@ class LixToRelTranslator {
                     Types.toClass(
                         Types.getElementType(call.targetExpression.getType()))),
                 ImmutableList.of(),
-                call.targetExpression));
+                call.targetExpression),
+            ImmutableList.of());
 
       case SCHEMA_GET_TABLE:
         return LogicalTableScan.create(cluster,
@@ -111,7 +113,8 @@ class LixToRelTranslator {
                 typeFactory.createJavaType((Class)
                     ((ConstantExpression) call.expressions.get(1)).value),
                 ImmutableList.of(),
-                call.targetExpression));
+                call.targetExpression),
+            ImmutableList.of());
 
       default:
         throw new UnsupportedOperationException(
@@ -176,5 +179,3 @@ class LixToRelTranslator {
         .toRex(expression.body);
   }
 }
-
-// End LixToRelTranslator.java

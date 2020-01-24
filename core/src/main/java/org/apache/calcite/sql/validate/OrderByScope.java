@@ -125,5 +125,3 @@ public class OrderByScope extends DelegatingScope {
     parent.validateExpr(expanded);
   }
 }
-
-// End OrderByScope.java

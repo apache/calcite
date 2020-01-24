@@ -123,5 +123,3 @@ public class ProjectMergeRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End ProjectMergeRule.java

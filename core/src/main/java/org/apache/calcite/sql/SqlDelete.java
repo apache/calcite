@@ -145,5 +145,3 @@ public class SqlDelete extends SqlCall {
     this.sourceSelect = sourceSelect;
   }
 }
-
-// End SqlDelete.java

@@ -22,5 +22,3 @@ public class Babel {
   // This class is currently a place-holder. Javadoc gets upset
   // if there are no classes in babel/java/main.
 }
-
-// End Babel.java

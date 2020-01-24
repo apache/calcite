@@ -94,5 +94,3 @@ public class DeduplicateCorrelateVariables extends RelHomogeneousShuttle {
     }
   }
 }
-
-// End DeduplicateCorrelateVariables.java

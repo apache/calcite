@@ -73,5 +73,3 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 }
-
-// End NullInitializerExpressionFactory.java

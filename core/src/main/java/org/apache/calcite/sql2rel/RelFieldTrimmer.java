@@ -885,7 +885,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(newGroupSet, newGroupSets);
+        relBuilder.groupKey(newGroupSet,
+            (Iterable<ImmutableBitSet>) newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
     return result(relBuilder.build(), mapping);
@@ -1115,5 +1116,3 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
   }
 }
-
-// End RelFieldTrimmer.java

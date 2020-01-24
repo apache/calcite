@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql;
 
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -71,7 +72,8 @@ public class SqlSelectOperator extends SqlOperator {
         (SqlNodeList) operands[6],
         (SqlNodeList) operands[7],
         operands[8],
-        operands[9]);
+        operands[9],
+        (SqlNodeList) operands[10]);
   }
 
   /**
@@ -104,6 +106,7 @@ public class SqlSelectOperator extends SqlOperator {
       SqlNodeList orderBy,
       SqlNode offset,
       SqlNode fetch,
+      SqlNodeList hints,
       SqlParserPos pos) {
     return new SqlSelect(
         pos,
@@ -116,7 +119,8 @@ public class SqlSelectOperator extends SqlOperator {
         windowDecls,
         orderBy,
         offset,
-        fetch);
+        fetch,
+        hints);
   }
 
   public <R> void acceptCall(
@@ -130,6 +134,7 @@ public class SqlSelectOperator extends SqlOperator {
     }
   }
 
+  @SuppressWarnings("deprecation")
   public void unparse(
       SqlWriter writer,
       SqlCall call,
@@ -139,19 +144,25 @@ public class SqlSelectOperator extends SqlOperator {
     final SqlWriter.Frame selectFrame =
         writer.startList(SqlWriter.FrameTypeEnum.SELECT);
     writer.sep("SELECT");
+
+    if (select.hasHints()) {
+      writer.sep("/*+");
+      select.hints.unparse(writer, leftPrec, rightPrec);
+      writer.print("*/");
+      writer.newlineAndIndent();
+    }
+
     for (int i = 0; i < select.keywordList.size(); i++) {
       final SqlNode keyword = select.keywordList.get(i);
       keyword.unparse(writer, 0, 0);
     }
     writer.topN(select.fetch, select.offset);
-    SqlNode selectClause = select.selectList;
-    if (selectClause == null) {
-      selectClause = SqlIdentifier.star(SqlParserPos.ZERO);
-    }
-    final SqlWriter.Frame selectListFrame =
-        writer.startList(SqlWriter.FrameTypeEnum.SELECT_LIST);
-    unparseListClause(writer, selectClause);
-    writer.endList(selectListFrame);
+    final SqlNodeList selectClause =
+        select.selectList != null
+            ? select.selectList
+            : SqlNodeList.of(SqlIdentifier.star(SqlParserPos.ZERO));
+    writer.list(SqlWriter.FrameTypeEnum.SELECT_LIST, SqlWriter.COMMA,
+        selectClause);
 
     if (select.from != null) {
       // Calcite SQL requires FROM but MySQL does not.
@@ -176,15 +187,15 @@ public class SqlSelectOperator extends SqlOperator {
         SqlNode node = select.where;
 
         // decide whether to split on ORs or ANDs
-        SqlKind whereSepKind = SqlKind.AND;
+        SqlBinaryOperator whereSep = SqlStdOperatorTable.AND;
         if ((node instanceof SqlCall)
             && node.getKind() == SqlKind.OR) {
-          whereSepKind = SqlKind.OR;
+          whereSep = SqlStdOperatorTable.OR;
         }
 
         // unroll whereClause
         final List<SqlNode> list = new ArrayList<>(0);
-        while (node.getKind() == whereSepKind) {
+        while (node.getKind() == whereSep.kind) {
           assert node instanceof SqlCall;
           final SqlCall call1 = (SqlCall) node;
           list.add(0, call1.operand(1));
@@ -192,32 +203,20 @@ public class SqlSelectOperator extends SqlOperator {
         }
         list.add(0, node);
 
-        // unparse in a WhereList frame
-        final SqlWriter.Frame whereFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.WHERE_LIST);
-        unparseListClause(
-            writer,
-            new SqlNodeList(
-                list,
-                select.where.getParserPosition()),
-            whereSepKind);
-        writer.endList(whereFrame);
+        // unparse in a WHERE_LIST frame
+        writer.list(SqlWriter.FrameTypeEnum.WHERE_LIST, whereSep,
+            new SqlNodeList(list, select.where.getParserPosition()));
       } else {
         select.where.unparse(writer, 0, 0);
       }
     }
     if (select.groupBy != null) {
       writer.sep("GROUP BY");
-      final SqlWriter.Frame groupFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
-      if (select.groupBy.getList().isEmpty()) {
-        final SqlWriter.Frame frame =
-            writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
-        writer.endList(frame);
-      } else {
-        unparseListClause(writer, select.groupBy);
-      }
-      writer.endList(groupFrame);
+      final SqlNodeList groupBy =
+          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+              : select.groupBy;
+      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
+          groupBy);
     }
     if (select.having != null) {
       writer.sep("HAVING");
@@ -225,20 +224,13 @@ public class SqlSelectOperator extends SqlOperator {
     }
     if (select.windowDecls.size() > 0) {
       writer.sep("WINDOW");
-      final SqlWriter.Frame windowFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST);
-      for (SqlNode windowDecl : select.windowDecls) {
-        writer.sep(",");
-        windowDecl.unparse(writer, 0, 0);
-      }
-      writer.endList(windowFrame);
+      writer.list(SqlWriter.FrameTypeEnum.WINDOW_DECL_LIST, SqlWriter.COMMA,
+          select.windowDecls);
     }
     if (select.orderBy != null && select.orderBy.size() > 0) {
       writer.sep("ORDER BY");
-      final SqlWriter.Frame orderFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
-      unparseListClause(writer, select.orderBy);
-      writer.endList(orderFrame);
+      writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
+          select.orderBy);
     }
     writer.fetchOffset(select.fetch, select.offset);
     writer.endList(selectFrame);
@@ -248,5 +240,3 @@ public class SqlSelectOperator extends SqlOperator {
     return ordinal == SqlSelect.WHERE_OPERAND;
   }
 }
-
-// End SqlSelectOperator.java

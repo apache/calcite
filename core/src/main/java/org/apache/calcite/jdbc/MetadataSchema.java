@@ -70,5 +70,3 @@ class MetadataSchema extends AbstractSchema {
     return TABLE_MAP;
   }
 }
-
-// End MetadataSchema.java

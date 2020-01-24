@@ -57,5 +57,3 @@ public class TileKey {
     return "dimensions: " + dimensions + ", measures: " + measures;
   }
 }
-
-// End TileKey.java

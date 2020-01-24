@@ -47,5 +47,3 @@ public class EnumerableProjectToCalcRule extends RelOptRule {
     call.transformTo(calc);
   }
 }
-
-// End EnumerableProjectToCalcRule.java

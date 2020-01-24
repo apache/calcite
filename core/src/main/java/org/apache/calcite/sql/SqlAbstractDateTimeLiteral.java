@@ -85,5 +85,3 @@ public abstract class SqlAbstractDateTimeLiteral extends SqlLiteral {
     writer.literal(this.toString());
   }
 }
-
-// End SqlAbstractDateTimeLiteral.java

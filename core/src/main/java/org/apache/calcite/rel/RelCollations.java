@@ -207,5 +207,3 @@ public class RelCollations {
             fc -> fc.withFieldIndex(mapping.getTarget(fc.getFieldIndex()))));
   }
 }
-
-// End RelCollations.java

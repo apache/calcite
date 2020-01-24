@@ -38,6 +38,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that permutes the inputs to a
@@ -67,7 +68,13 @@ public class JoinCommuteRule extends RelOptRule {
    */
   public JoinCommuteRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory, boolean swapOuter) {
-    super(operand(clazz, any()), relBuilderFactory, null);
+    // FIXME Enable this rule for joins with system fields
+    super(
+        operandJ(clazz, null,
+            (Predicate<Join>) j -> j.getLeft().getId() != j.getRight().getId()
+                && j.getSystemFieldList().isEmpty(),
+            any()),
+        relBuilderFactory, null);
     this.swapOuter = swapOuter;
   }
 
@@ -142,11 +149,6 @@ public class JoinCommuteRule extends RelOptRule {
 
   public void onMatch(final RelOptRuleCall call) {
     Join join = call.rel(0);
-
-    if (!join.getSystemFieldList().isEmpty()) {
-      // FIXME Enable this rule for joins with system fields
-      return;
-    }
 
     final RelNode swapped = swap(join, this.swapOuter, call.builder());
     if (swapped == null) {
@@ -235,5 +237,3 @@ public class JoinCommuteRule extends RelOptRule {
     }
   }
 }
-
-// End JoinCommuteRule.java

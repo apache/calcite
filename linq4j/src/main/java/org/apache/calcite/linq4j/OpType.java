@@ -22,5 +22,3 @@ package org.apache.calcite.linq4j;
 public enum OpType {
   WHERE,
 }
-
-// End OpType.java

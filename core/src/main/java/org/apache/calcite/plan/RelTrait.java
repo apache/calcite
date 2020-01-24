@@ -86,5 +86,3 @@ public interface RelTrait {
    */
   void register(RelOptPlanner planner);
 }
-
-// End RelTrait.java

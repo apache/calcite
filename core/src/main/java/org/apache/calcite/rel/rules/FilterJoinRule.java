@@ -185,7 +185,8 @@ public abstract class FilterJoinRule extends RelOptRule {
     // If no filter got pushed after validate, reset filterPushed flag
     if (leftFilters.isEmpty()
         && rightFilters.isEmpty()
-        && joinFilters.size() == origJoinFilters.size()) {
+        && joinFilters.size() == origJoinFilters.size()
+        && aboveFilters.size() == origAboveFilters.size()) {
       if (Sets.newHashSet(joinFilters)
           .equals(Sets.newHashSet(origJoinFilters))) {
         filterPushed = false;
@@ -392,5 +393,3 @@ public abstract class FilterJoinRule extends RelOptRule {
     boolean apply(Join join, JoinRelType joinType, RexNode exp);
   }
 }
-
-// End FilterJoinRule.java

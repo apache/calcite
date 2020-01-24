@@ -145,5 +145,3 @@ public class SqlOverOperator extends SqlBinaryOperator {
     }
   }
 }
-
-// End SqlOverOperator.java

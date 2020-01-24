@@ -40,5 +40,3 @@ public class CalciteSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End CalciteSqlDialect.java

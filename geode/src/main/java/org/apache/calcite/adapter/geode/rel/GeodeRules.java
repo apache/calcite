@@ -370,5 +370,3 @@ public class GeodeRules {
     }
   }
 }
-
-// End GeodeRules.java

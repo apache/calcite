@@ -108,6 +108,9 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
         type = typeFactory.createMultisetType(
             typeFactory.createSqlType(SqlTypeName.ANY),
             -1);
+      } else if (typeName == SqlTypeName.MAP) {
+        RelDataType anyType = typeFactory.createSqlType(SqlTypeName.ANY);
+        type = typeFactory.createMapType(anyType, anyType);
       } else {
         type = typeFactory.createSqlType(typeName);
       }
@@ -266,5 +269,3 @@ public class GeodeTable extends AbstractQueryableTable implements TranslatableTa
     }
   }
 }
-
-// End GeodeTable.java

@@ -70,5 +70,3 @@ public abstract class SparkRuntime {
       org.apache.calcite.linq4j.function.Function {
   }
 }
-
-// End SparkRuntime.java

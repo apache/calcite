@@ -26,6 +26,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexNode;
@@ -94,7 +95,9 @@ public class Nodes {
     public void visit(Collect collect) {
       node = new CollectNode(this, collect);
     }
+
+    public void visit(Uncollect uncollect) {
+      node = new UncollectNode(this, uncollect);
+    }
   }
 }
-
-// End Nodes.java

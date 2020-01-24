@@ -117,5 +117,3 @@ public class BlockStatement extends Statement {
     return result;
   }
 }
-
-// End BlockStatement.java

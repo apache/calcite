@@ -51,5 +51,3 @@ class EnumerableAggregateRule extends ConverterRule {
     }
   }
 }
-
-// End EnumerableAggregateRule.java

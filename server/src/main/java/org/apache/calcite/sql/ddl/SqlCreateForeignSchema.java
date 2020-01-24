@@ -188,5 +188,3 @@ public class SqlCreateForeignSchema extends SqlCreate
     };
   }
 }
-
-// End SqlCreateForeignSchema.java

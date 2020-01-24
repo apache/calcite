@@ -126,5 +126,3 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
   }
 
 }
-
-// End EnumerableUncollect.java

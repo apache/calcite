@@ -47,6 +47,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlString;
@@ -58,7 +59,6 @@ import com.google.common.collect.Lists;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -141,14 +141,14 @@ public class JdbcTable extends AbstractQueryableTable
   }
 
   SqlString generateSql() {
-    final SqlNodeList selectList =
-        new SqlNodeList(
-            Collections.singletonList(SqlIdentifier.star(SqlParserPos.ZERO)),
-            SqlParserPos.ZERO);
+    final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
     SqlSelect node =
         new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY, selectList,
-            tableName(), null, null, null, null, null, null, null);
-    final SqlPrettyWriter writer = new SqlPrettyWriter(jdbcSchema.dialect);
+            tableName(), null, null, null, null, null, null, null, null);
+    final SqlWriterConfig config = SqlPrettyWriter.config()
+        .withAlwaysUseParentheses(true)
+        .withDialect(jdbcSchema.dialect);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(config);
     node.unparse(writer, 0, 0);
     return writer.toSqlString();
   }
@@ -227,5 +227,3 @@ public class JdbcTable extends AbstractQueryableTable
     }
   }
 }
-
-// End JdbcTable.java

@@ -61,5 +61,3 @@ public class MutableCollect extends MutableSingleRel {
     return MutableCollect.of(rowType, input.clone(), fieldName);
   }
 }
-
-// End MutableCollect.java

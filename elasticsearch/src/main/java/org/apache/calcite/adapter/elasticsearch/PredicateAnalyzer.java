@@ -166,6 +166,7 @@ class PredicateAnalyzer {
       switch (syntax) {
       case BINARY:
         switch (call.getKind()) {
+        case CONTAINS:
         case AND:
         case OR:
         case LIKE:
@@ -232,6 +233,8 @@ class PredicateAnalyzer {
         case CAST:
           return toCastExpression(call);
         case LIKE:
+          return binary(call);
+        case CONTAINS:
           return binary(call);
         default:
           // manually process ITEM($0, 'foo') which in our case will be named attribute
@@ -349,6 +352,8 @@ class PredicateAnalyzer {
       }
 
       switch (call.getKind()) {
+      case CONTAINS:
+        return QueryExpression.create(pair.getKey()).contains(pair.getValue());
       case LIKE:
         throw new UnsupportedOperationException("LIKE not yet supported");
       case EQUALS:
@@ -541,6 +546,8 @@ class PredicateAnalyzer {
       return false;
     }
 
+    public abstract QueryExpression contains(LiteralExpression literal);
+
     /**
      * Negate {@code this} QueryExpression (not the next one).
      */
@@ -641,6 +648,11 @@ class PredicateAnalyzer {
           + "cannot be applied to a compound expression");
     }
 
+    @Override public QueryExpression contains(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("SqlOperatorImpl ['contains'] "
+              + "cannot be applied to a compound expression");
+    }
+
     @Override public QueryExpression notExists() {
       throw new PredicateAnalyzerException("SqlOperatorImpl ['notExists'] "
           + "cannot be applied to a compound expression");
@@ -738,6 +750,11 @@ class PredicateAnalyzer {
 
     @Override public QueryExpression like(LiteralExpression literal) {
       builder = regexpQuery(getFieldReference(), literal.stringValue());
+      return this;
+    }
+
+    @Override public QueryExpression contains(LiteralExpression literal) {
+      builder = QueryBuilders.matchQuery(getFieldReference(), literal.value());
       return this;
     }
 
@@ -978,5 +995,3 @@ class PredicateAnalyzer {
     }
   }
 }
-
-// End PredicateAnalyzer.java

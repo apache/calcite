@@ -70,5 +70,3 @@ public class RandomFunction {
   }
 
 }
-
-// End RandomFunction.java

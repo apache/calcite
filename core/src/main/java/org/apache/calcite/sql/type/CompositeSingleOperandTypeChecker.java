@@ -115,5 +115,3 @@ public class CompositeSingleOperandTypeChecker
     return ret;
   }
 }
-
-// End CompositeSingleOperandTypeChecker.java

@@ -83,5 +83,3 @@ public class SqlInternalOperator extends SqlSpecialOperator {
     return validateOperands(validator, scope, call);
   }
 }
-
-// End SqlInternalOperator.java

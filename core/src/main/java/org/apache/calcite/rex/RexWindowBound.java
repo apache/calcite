@@ -256,5 +256,3 @@ public abstract class RexWindowBound {
     }
   }
 }
-
-// End RexWindowBound.java

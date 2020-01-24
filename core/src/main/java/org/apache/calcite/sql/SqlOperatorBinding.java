@@ -248,5 +248,3 @@ public abstract class SqlOperatorBinding {
   public abstract CalciteException newError(
       Resources.ExInst<SqlValidatorException> e);
 }
-
-// End SqlOperatorBinding.java

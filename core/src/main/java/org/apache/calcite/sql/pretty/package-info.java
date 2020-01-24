@@ -18,9 +18,4 @@
 /**
  * Provides a pretty-printer for SQL statements.
  */
-@PackageMarker
 package org.apache.calcite.sql.pretty;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

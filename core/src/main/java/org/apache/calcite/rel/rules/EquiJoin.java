@@ -42,5 +42,3 @@ public abstract class EquiJoin extends org.apache.calcite.rel.core.EquiJoin {
         CorrelationId.setOf(variablesStopped), joinType);
   }
 }
-
-// End EquiJoin.java

@@ -21,16 +21,21 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
+import org.apache.calcite.rel.core.Correlate;
+import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Match;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Util;
 
@@ -134,6 +139,31 @@ public class RelMdNodeTypes
     return getNodeTypes(rel, TableModify.class, mq);
   }
 
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Exchange rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Exchange.class, mq);
+  }
+
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Sample rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Sample.class, mq);
+  }
+
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Correlate rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Correlate.class, mq);
+  }
+
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Window rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Window.class, mq);
+  }
+
+  public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Match rel,
+      RelMetadataQuery mq) {
+    return getNodeTypes(rel, Match.class, mq);
+  }
+
   private static Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelNode rel,
       Class<? extends RelNode> c, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> nodeTypeCount = ArrayListMultimap.create();
@@ -150,5 +180,3 @@ public class RelMdNodeTypes
   }
 
 }
-
-// End RelMdNodeTypes.java

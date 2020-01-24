@@ -329,5 +329,3 @@ public class SqlFunction extends SqlOperator {
     return false;
   }
 }
-
-// End SqlFunction.java

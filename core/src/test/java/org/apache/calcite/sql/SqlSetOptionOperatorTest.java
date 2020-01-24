@@ -19,11 +19,11 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Test for {@link SqlSetOption}.
@@ -72,5 +72,3 @@ public class SqlSetOptionOperatorTest {
   }
 
 }
-
-// End SqlSetOptionOperatorTest.java

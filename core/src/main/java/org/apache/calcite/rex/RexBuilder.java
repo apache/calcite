@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -669,16 +670,9 @@ public class RexBuilder {
     final TimeUnit endUnit = exp.getType().getSqlTypeName().getEndUnit();
     final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
     final BigDecimal multiplier = baseUnit.multiplier;
-    final int scale = 0;
-    BigDecimal divider = endUnit.multiplier.scaleByPowerOfTen(-scale);
+    final BigDecimal divider = endUnit.multiplier;
     RexNode value = multiplyDivide(decodeIntervalOrDecimal(exp),
         multiplier, divider);
-    if (scale > 0) {
-      RelDataType decimalType =
-          typeFactory.createSqlType(SqlTypeName.DECIMAL,
-              scale + exp.getType().getPrecision(), scale);
-      value = encodeIntervalOrDecimal(value, decimalType, false);
-    }
     return ensureType(toType, value, false);
   }
 
@@ -932,13 +926,6 @@ public class RexBuilder {
       }
       break;
     case TIME:
-      assert o instanceof TimeString;
-      p = type.getPrecision();
-      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
-        p = 0;
-      }
-      o = ((TimeString) o).round(p);
-      break;
     case TIME_WITH_LOCAL_TIME_ZONE:
       assert o instanceof TimeString;
       p = type.getPrecision();
@@ -948,13 +935,6 @@ public class RexBuilder {
       o = ((TimeString) o).round(p);
       break;
     case TIMESTAMP:
-      assert o instanceof TimestampString;
-      p = type.getPrecision();
-      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
-        p = 0;
-      }
-      o = ((TimestampString) o).round(p);
-      break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert o instanceof TimestampString;
       p = type.getPrecision();
@@ -962,6 +942,7 @@ public class RexBuilder {
         p = 0;
       }
       o = ((TimestampString) o).round(p);
+      break;
     }
     return new RexLiteral(o, type, typeName);
   }
@@ -1374,7 +1355,8 @@ public class RexBuilder {
     value = clean(value, type);
     RexLiteral literal;
     final List<RexNode> operands;
-    switch (type.getSqlTypeName()) {
+    final SqlTypeName sqlTypeName = type.getSqlTypeName();
+    switch (sqlTypeName) {
     case CHAR:
       return makeCharLiteral(padRight((NlsString) value, type.getPrecision()));
     case VARCHAR:
@@ -1468,7 +1450,7 @@ public class RexBuilder {
         return makeCall(SqlStdOperatorTable.MULTISET_VALUE, operands);
       } else {
         return new RexLiteral((Comparable) FlatLists.of(operands), type,
-            type.getSqlTypeName());
+            sqlTypeName);
       }
     case ROW:
       operands = new ArrayList<>();
@@ -1481,11 +1463,12 @@ public class RexBuilder {
         operands.add(e);
       }
       return new RexLiteral((Comparable) FlatLists.of(operands), type,
-          type.getSqlTypeName());
+          sqlTypeName);
     case ANY:
       return makeLiteral(value, guessType(value), allowCast);
     default:
-      throw Util.unexpected(type.getSqlTypeName());
+      throw new IllegalArgumentException(
+          "Cannot create literal for type '" + sqlTypeName + "'");
     }
   }
 
@@ -1517,6 +1500,11 @@ public class RexBuilder {
       if (o instanceof BigDecimal) {
         return o;
       }
+      assert !(o instanceof Float || o instanceof Double)
+          : String.format(Locale.ROOT,
+              "%s is not compatible with %s, try to use makeExactLiteral",
+              o.getClass().getCanonicalName(),
+              type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
     case FLOAT:
       if (o instanceof BigDecimal) {
@@ -1641,5 +1629,3 @@ public class RexBuilder {
     return new ByteString(Arrays.copyOf(s.getBytes(), length));
   }
 }
-
-// End RexBuilder.java

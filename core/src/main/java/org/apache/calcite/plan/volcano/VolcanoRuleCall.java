@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.RelHintsPropagator;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -87,7 +88,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRuleCall
-  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+      RelHintsPropagator handler) {
+    rel = handler.propagate(rels[0], rel);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
           equiv.isEmpty() ? "" : " with equivalences " + equiv);
@@ -372,5 +375,3 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     }
   }
 }
-
-// End VolcanoRuleCall.java

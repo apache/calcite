@@ -31,5 +31,3 @@ public enum SqlJsonValueEmptyOrErrorBehavior {
         "SqlJsonValueEmptyOrErrorBehavior[%s]", name());
   }
 }
-
-// End SqlJsonValueEmptyOrErrorBehavior.java

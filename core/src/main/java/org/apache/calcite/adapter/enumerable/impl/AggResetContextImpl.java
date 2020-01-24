@@ -52,5 +52,3 @@ public abstract class AggResetContextImpl extends NestedBlockBuilderImpl
     throw new UnsupportedOperationException();
   }
 }
-
-// End AggResetContextImpl.java

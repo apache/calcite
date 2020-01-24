@@ -77,5 +77,3 @@ public class JpsTableFunction {
   }
 
 }
-
-// End JpsTableFunction.java

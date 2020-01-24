@@ -186,5 +186,3 @@ public class SqlDotOperator extends SqlSpecialOperator {
     }
   }
 }
-
-// End SqlDotOperator.java

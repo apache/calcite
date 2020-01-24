@@ -75,5 +75,3 @@ public class TraitMatchingRule extends RelOptRule {
     }
   }
 }
-
-// End TraitMatchingRule.java

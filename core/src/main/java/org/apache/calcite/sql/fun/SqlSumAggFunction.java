@@ -84,5 +84,3 @@ public class SqlSumAggFunction extends SqlAggFunction {
     return super.unwrap(clazz);
   }
 }
-
-// End SqlSumAggFunction.java

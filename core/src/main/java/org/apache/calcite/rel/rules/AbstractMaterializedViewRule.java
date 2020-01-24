@@ -157,6 +157,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
     this.fastBailOut = fastBailOut;
   }
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    return !call.getPlanner().getMaterializations().isEmpty();
+  }
+
   /**
    * Rewriting logic is based on "Optimizing Queries Using Materialized Views:
    * A Practical, Scalable Solution" by Goldstein and Larson.
@@ -508,6 +512,11 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
               RexNode newPred =
                   simplify.simplifyUnknownAsFalse(viewCompensationPred);
               viewWithFilter = builder.push(view).filter(newPred).build();
+              // No need to do anything if it's a leaf node.
+              if (viewWithFilter.getInputs().isEmpty()) {
+                call.transformTo(viewWithFilter);
+                return;
+              }
               // We add (and push) the filter to the view plan before triggering the rewriting.
               // This is useful in case some of the columns can be folded to same value after
               // filter is added.
@@ -1861,6 +1870,10 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   private static boolean isValidRelNodePlan(RelNode node, RelMetadataQuery mq) {
     final Multimap<Class<? extends RelNode>, RelNode> m =
             mq.getNodeTypes(node);
+    if (m == null) {
+      return false;
+    }
+
     for (Entry<Class<? extends RelNode>, Collection<RelNode>> e : m.asMap().entrySet()) {
       Class<? extends RelNode> c = e.getKey();
       if (!TableScan.class.isAssignableFrom(c)
@@ -2617,5 +2630,3 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
   }
 
 }
-
-// End AbstractMaterializedViewRule.java

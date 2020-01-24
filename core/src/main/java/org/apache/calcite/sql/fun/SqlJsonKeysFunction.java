@@ -37,5 +37,3 @@ public class SqlJsonKeysFunction extends SqlFunction {
           SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlJsonKeysFunction.java

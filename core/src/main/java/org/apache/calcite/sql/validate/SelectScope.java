@@ -224,5 +224,3 @@ public class SelectScope extends ListScope {
     expandedSelectList = selectList;
   }
 }
-
-// End SelectScope.java

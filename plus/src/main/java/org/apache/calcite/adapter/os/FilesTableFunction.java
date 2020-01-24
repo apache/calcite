@@ -279,5 +279,3 @@ public class FilesTableFunction {
   }
 
 }
-
-// End FilesTableFunction.java

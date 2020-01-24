@@ -112,5 +112,3 @@ public class KafkaStreamTable implements ScannableTable, StreamableTable {
     return Schema.TableType.STREAM;
   }
 }
-
-// End KafkaStreamTable.java

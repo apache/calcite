@@ -79,5 +79,3 @@ public class SqlUserDefinedFunction extends SqlFunction {
         FunctionParameter::getName);
   }
 }
-
-// End SqlUserDefinedFunction.java

@@ -90,21 +90,38 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
   }
 
   @Override public Queryable<T> intersect(Enumerable<T> source1) {
-    return factory.intersect(getThis(), source1);
+    return intersect(source1, false);
+  }
+
+  @Override public Queryable<T> intersect(Enumerable<T> source1, boolean all) {
+    return factory.intersect(getThis(), source1, all);
   }
 
   @Override public Queryable<T> intersect(Enumerable<T> source1,
       EqualityComparer<T> comparer) {
-    return factory.intersect(getThis(), source1, comparer);
+    return intersect(source1, comparer, false);
+  }
+
+  @Override public Queryable<T> intersect(Enumerable<T> source1,
+      EqualityComparer<T> comparer, boolean all) {
+    return factory.intersect(getThis(), source1, comparer, all);
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return factory.except(getThis(), enumerable1, comparer);
+    return except(enumerable1, comparer, false);
+  }
+  @Override public Queryable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return factory.except(getThis(), enumerable1, comparer, all);
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1) {
-    return factory.except(getThis(), enumerable1);
+    return except(enumerable1, false);
+  }
+
+  @Override public Queryable<T> except(Enumerable<T> enumerable1, boolean all) {
+    return factory.except(getThis(), enumerable1, all);
   }
 
   @Override public Queryable<T> take(int count) {
@@ -510,5 +527,3 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
     return factory.zip(getThis(), source1, resultSelector);
   }
 }
-
-// End DefaultQueryable.java

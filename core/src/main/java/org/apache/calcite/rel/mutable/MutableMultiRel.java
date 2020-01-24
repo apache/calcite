@@ -61,5 +61,3 @@ abstract class MutableMultiRel extends MutableRel {
     return Lists.transform(inputs, MutableRel::clone);
   }
 }
-
-// End MutableMultiRel.java

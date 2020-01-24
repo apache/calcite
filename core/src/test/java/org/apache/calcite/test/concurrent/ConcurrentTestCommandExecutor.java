@@ -29,8 +29,6 @@ import java.util.Properties;
  * {@link ConcurrentTestCommand commands} on a JDBC connection.
  */
 class ConcurrentTestCommandExecutor extends Thread {
-  //~ Instance fields --------------------------------------------------------
-
   /**
    * The id for this thread.
    */
@@ -85,8 +83,6 @@ class ConcurrentTestCommandExecutor extends Thread {
    * Command throwing error *
    */
   private ConcurrentTestCommand errorCommand;
-
-  //~ Constructors -----------------------------------------------------------
 
   /**
    * Constructs a ConcurrentTestCommandExecutor with the given thread
@@ -301,5 +297,3 @@ class ConcurrentTestCommandExecutor extends Thread {
     }
   }
 }
-
-// End ConcurrentTestCommandExecutor.java

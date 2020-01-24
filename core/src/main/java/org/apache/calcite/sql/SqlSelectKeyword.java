@@ -34,5 +34,3 @@ public enum SqlSelectKeyword {
     return SqlLiteral.createSymbol(this, pos);
   }
 }
-
-// End SqlSelectKeyword.java

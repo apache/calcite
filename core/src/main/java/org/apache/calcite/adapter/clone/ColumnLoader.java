@@ -451,5 +451,3 @@ class ColumnLoader<T> {
     }
   }
 }
-
-// End ColumnLoader.java

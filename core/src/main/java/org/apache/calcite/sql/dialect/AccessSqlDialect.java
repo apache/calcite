@@ -37,5 +37,3 @@ public class AccessSqlDialect extends SqlDialect {
     return false;
   }
 }
-
-// End AccessSqlDialect.java

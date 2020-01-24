@@ -34,5 +34,3 @@ public class TeradataSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End TeradataSqlDialect.java

@@ -61,5 +61,3 @@ public abstract class Intersect extends SetOp {
     return dRows;
   }
 }
-
-// End Intersect.java

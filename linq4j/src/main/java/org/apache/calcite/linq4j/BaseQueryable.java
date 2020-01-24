@@ -63,5 +63,3 @@ public abstract class BaseQueryable<TSource>
     return provider.executeQuery(this);
   }
 }
-
-// End BaseQueryable.java

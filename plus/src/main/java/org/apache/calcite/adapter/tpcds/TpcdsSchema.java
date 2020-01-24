@@ -221,5 +221,3 @@ public class TpcdsSchema extends AbstractSchema {
     }
   }
 }
-
-// End TpcdsSchema.java

@@ -43,5 +43,3 @@ public class JdbcToEnumerableConverterRule extends ConverterRule {
     return new JdbcToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End JdbcToEnumerableConverterRule.java

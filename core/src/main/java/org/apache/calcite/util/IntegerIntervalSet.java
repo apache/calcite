@@ -146,5 +146,3 @@ public class IntegerIntervalSet extends AbstractSet<Integer> {
     void range(int start, int end, boolean exclude);
   }
 }
-
-// End IntegerIntervalSet.java

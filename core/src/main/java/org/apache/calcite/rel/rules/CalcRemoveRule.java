@@ -67,5 +67,3 @@ public class CalcRemoveRule extends RelOptRule {
             calc.getTraitSet()));
   }
 }
-
-// End CalcRemoveRule.java

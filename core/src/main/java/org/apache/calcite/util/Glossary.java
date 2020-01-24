@@ -581,5 +581,3 @@ public interface Glossary {
    */
   Glossary SQL2003 = null;
 }
-
-// End Glossary.java

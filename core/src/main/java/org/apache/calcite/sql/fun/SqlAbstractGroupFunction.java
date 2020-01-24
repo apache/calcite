@@ -98,5 +98,3 @@ public class SqlAbstractGroupFunction extends SqlAggFunction {
     return false;
   }
 }
-
-// End SqlAbstractGroupFunction.java

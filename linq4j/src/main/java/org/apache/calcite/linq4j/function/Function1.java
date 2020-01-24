@@ -32,5 +32,3 @@ public interface Function1<T0, R> extends Function<R> {
 
   R apply(T0 a0);
 }
-
-// End Function1.java

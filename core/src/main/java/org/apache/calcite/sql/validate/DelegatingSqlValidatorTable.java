@@ -53,5 +53,3 @@ public abstract class DelegatingSqlValidatorTable implements SqlValidatorTable {
     return table.getAllowedAccess();
   }
 }
-
-// End DelegatingSqlValidatorTable.java

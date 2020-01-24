@@ -44,5 +44,3 @@ abstract class MutableLeafRel extends MutableRel {
     // no children - nothing to do
   }
 }
-
-// End MutableLeafRel.java

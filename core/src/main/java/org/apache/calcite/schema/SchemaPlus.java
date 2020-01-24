@@ -86,5 +86,3 @@ public interface SchemaPlus extends Schema {
 
   boolean isCacheEnabled();
 }
-
-// End SchemaPlus.java

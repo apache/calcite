@@ -112,5 +112,3 @@ public class LogicalMatch extends Match {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalMatch.java

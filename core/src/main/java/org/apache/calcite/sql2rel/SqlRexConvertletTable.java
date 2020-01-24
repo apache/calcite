@@ -29,5 +29,3 @@ public interface SqlRexConvertletTable {
    */
   SqlRexConvertlet get(SqlCall call);
 }
-
-// End SqlRexConvertletTable.java

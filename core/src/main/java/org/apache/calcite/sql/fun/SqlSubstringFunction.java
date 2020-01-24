@@ -173,5 +173,3 @@ public class SqlSubstringFunction extends SqlFunction {
     return super.getMonotonicity(call);
   }
 }
-
-// End SqlSubstringFunction.java

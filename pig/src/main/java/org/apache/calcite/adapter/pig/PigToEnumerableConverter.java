@@ -80,5 +80,3 @@ public class PigToEnumerableConverter
     return implementor.result(physType, list.toBlock());
   }
 }
-
-// End PigToEnumerableConverter.java

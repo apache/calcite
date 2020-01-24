@@ -40,5 +40,3 @@ public abstract class SqlDrop extends SqlDdl {
   }
 
 }
-
-// End SqlDrop.java

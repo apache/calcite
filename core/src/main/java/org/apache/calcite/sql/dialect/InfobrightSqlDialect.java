@@ -38,5 +38,3 @@ public class InfobrightSqlDialect extends SqlDialect {
   }
 
 }
-
-// End InfobrightSqlDialect.java

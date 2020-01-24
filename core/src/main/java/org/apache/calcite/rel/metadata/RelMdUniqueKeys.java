@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.rel.metadata;
 
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -25,14 +28,21 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Permutation;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,8 +83,26 @@ public class RelMdUniqueKeys
     return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
+  public Set<ImmutableBitSet> getUniqueKeys(TableModify rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
+  }
+
   public Set<ImmutableBitSet> getUniqueKeys(Project rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
+    return getProjectUniqueKeys(rel, mq, ignoreNulls, rel.getProjects());
+  }
+
+  public Set<ImmutableBitSet> getUniqueKeys(Calc rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    RexProgram program = rel.getProgram();
+    Permutation permutation = program.getPermutation();
+    return getProjectUniqueKeys(rel, mq, ignoreNulls,
+        Lists.transform(program.getProjectList(), program::expandLocalRef));
+  }
+
+  private Set<ImmutableBitSet> getProjectUniqueKeys(SingleRel rel, RelMetadataQuery mq,
+      boolean ignoreNulls, List<RexNode> projExprs) {
     // LogicalProject maps a set of rows to a different set;
     // Without knowledge of the mapping function(whether it
     // preserves uniqueness), it is only safe to derive uniqueness
@@ -82,50 +110,58 @@ public class RelMdUniqueKeys
     //
     // Further more, the unique bitset coming from the child needs
     // to be mapped to match the output of the project.
-    final Map<Integer, Integer> mapInToOutPos = new HashMap<>();
-    final List<RexNode> projExprs = rel.getProjects();
-    final Set<ImmutableBitSet> projUniqueKeySet = new HashSet<>();
+
+    // Single input can be mapped to multiple outputs
+    ImmutableMultimap.Builder<Integer, Integer> inToOutPosBuilder = ImmutableMultimap.builder();
+    ImmutableBitSet.Builder mappedInColumnsBuilder = ImmutableBitSet.builder();
 
     // Build an input to output position map.
     for (int i = 0; i < projExprs.size(); i++) {
       RexNode projExpr = projExprs.get(i);
       if (projExpr instanceof RexInputRef) {
-        mapInToOutPos.put(((RexInputRef) projExpr).getIndex(), i);
+        int inputIndex = ((RexInputRef) projExpr).getIndex();
+        inToOutPosBuilder.put(inputIndex, i);
+        mappedInColumnsBuilder.set(inputIndex);
       }
     }
+    ImmutableBitSet inColumnsUsed = mappedInColumnsBuilder.build();
 
-    if (mapInToOutPos.isEmpty()) {
+    if (inColumnsUsed.isEmpty()) {
       // if there's no RexInputRef in the projected expressions
       // return empty set.
-      return projUniqueKeySet;
+      return ImmutableSet.of();
     }
 
     Set<ImmutableBitSet> childUniqueKeySet =
         mq.getUniqueKeys(rel.getInput(), ignoreNulls);
 
-    if (childUniqueKeySet != null) {
-      // Now add to the projUniqueKeySet the child keys that are fully
-      // projected.
-      for (ImmutableBitSet colMask : childUniqueKeySet) {
-        ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
-        boolean completeKeyProjected = true;
-        for (int bit : colMask) {
-          if (mapInToOutPos.containsKey(bit)) {
-            tmpMask.set(mapInToOutPos.get(bit));
-          } else {
-            // Skip the child unique key if part of it is not
-            // projected.
-            completeKeyProjected = false;
-            break;
-          }
-        }
-        if (completeKeyProjected) {
-          projUniqueKeySet.add(tmpMask.build());
-        }
-      }
+    if (childUniqueKeySet == null) {
+      return ImmutableSet.of();
     }
 
-    return projUniqueKeySet;
+    Map<Integer, ImmutableBitSet> mapInToOutPos =
+        Maps.transformValues(inToOutPosBuilder.build().asMap(), ImmutableBitSet::of);
+
+    ImmutableSet.Builder<ImmutableBitSet> resultBuilder = ImmutableSet.builder();
+    // Now add to the projUniqueKeySet the child keys that are fully
+    // projected.
+    for (ImmutableBitSet colMask : childUniqueKeySet) {
+      ImmutableBitSet.Builder tmpMask = ImmutableBitSet.builder();
+      if (!inColumnsUsed.contains(colMask)) {
+        // colMask contains a column that is not projected as RexInput => the key is not unique
+        continue;
+      }
+      // colMask is mapped to output project, however, the column can be mapped more than once:
+      // select id, id, id, unique2, unique2
+      // the resulting unique keys would be {{0},{3}}, {{0},{4}}, {{0},{1},{4}}, ...
+
+      Iterable<List<ImmutableBitSet>> product = Linq4j.product(
+          Iterables.transform(colMask,
+              in -> Iterables.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
+
+      resultBuilder.addAll(Iterables.transform(product, ImmutableBitSet::union));
+    }
+    return resultBuilder.build();
   }
 
   public Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,
@@ -220,6 +256,15 @@ public class RelMdUniqueKeys
     return ImmutableSet.of();
   }
 
+  public Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
+      boolean ignoreNulls) {
+    final List<ImmutableBitSet> keys = rel.getTable().getKeys();
+    for (ImmutableBitSet key : keys) {
+      assert rel.getTable().isKey(key);
+    }
+    return ImmutableSet.copyOf(keys);
+  }
+
   // Catch-all rule when none of the others apply.
   public Set<ImmutableBitSet> getUniqueKeys(RelNode rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
@@ -227,5 +272,3 @@ public class RelMdUniqueKeys
     return null;
   }
 }
-
-// End RelMdUniqueKeys.java

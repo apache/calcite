@@ -143,5 +143,3 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     return super.unwrap(clazz);
   }
 }
-
-// End SqlMinMaxAggFunction.java

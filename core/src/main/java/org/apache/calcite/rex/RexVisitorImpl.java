@@ -162,5 +162,3 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     return false;
   }
 }
-
-// End RexVisitorImpl.java

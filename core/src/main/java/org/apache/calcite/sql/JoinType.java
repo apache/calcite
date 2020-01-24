@@ -91,5 +91,3 @@ public enum JoinType {
     return SqlLiteral.createSymbol(this, pos);
   }
 }
-
-// End JoinType.java

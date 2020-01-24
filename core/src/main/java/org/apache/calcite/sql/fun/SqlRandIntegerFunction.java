@@ -55,5 +55,3 @@ public class SqlRandIntegerFunction extends SqlFunction {
     return true;
   }
 }
-
-// End SqlRandIntegerFunction.java

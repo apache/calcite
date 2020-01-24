@@ -63,5 +63,3 @@ public class EnumerableTableModifyRule extends ConverterRule {
         modify.isFlattened());
   }
 }
-
-// End EnumerableTableModifyRule.java

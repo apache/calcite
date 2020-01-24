@@ -295,5 +295,3 @@ public class RelFieldCollation {
     }
   }
 }
-
-// End RelFieldCollation.java

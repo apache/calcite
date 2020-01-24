@@ -33,5 +33,3 @@ public class LucidDbSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End LucidDbSqlDialect.java

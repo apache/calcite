@@ -1313,5 +1313,3 @@ public class ReduceDecimalsRule extends RelOptRule {
     }
   }
 }
-
-// End ReduceDecimalsRule.java

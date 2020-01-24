@@ -376,5 +376,3 @@ public class ElasticsearchTable extends AbstractQueryableTable implements Transl
 
   }
 }
-
-// End ElasticsearchTable.java

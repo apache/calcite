@@ -98,5 +98,3 @@ public class SqlPositionFunction extends SqlFunction {
     }
   }
 }
-
-// End SqlPositionFunction.java

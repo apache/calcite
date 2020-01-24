@@ -128,5 +128,3 @@ public class FilterCorrelateRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End FilterCorrelateRule.java

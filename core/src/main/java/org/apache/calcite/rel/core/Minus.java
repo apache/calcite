@@ -53,5 +53,3 @@ public abstract class Minus extends SetOp {
     return RelMdUtil.getMinusRowCount(mq, this);
   }
 }
-
-// End Minus.java

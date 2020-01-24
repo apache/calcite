@@ -26,7 +26,8 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSetOption;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.SqlWriterConfig;
+import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTests;
@@ -48,9 +49,8 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -71,10 +72,11 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A <code>SqlParserTest</code> is a unit-test for
@@ -85,8 +87,6 @@ import static org.junit.Assume.assumeTrue;
  * implementation.
  */
 public class SqlParserTest {
-  //~ Static fields/initializers ---------------------------------------------
-
   /**
    * List of reserved keywords.
    *
@@ -569,19 +569,17 @@ public class SqlParserTest {
   private static final ThreadLocal<boolean[]> LINUXIFY =
       ThreadLocal.withInitial(() -> new boolean[] {true});
 
+  private static final SqlWriterConfig SQL_WRITER_CONFIG =
+      SqlPrettyWriter.config()
+          .withAlwaysUseParentheses(true)
+          .withUpdateSetListNewline(false)
+          .withFromFolding(SqlWriterConfig.LineFolding.TALL)
+          .withIndentation(0);
+
   Quoting quoting = Quoting.DOUBLE_QUOTE;
   Casing unquotedCasing = Casing.TO_UPPER;
   Casing quotedCasing = Casing.UNCHANGED;
   SqlConformance conformance = SqlConformanceEnum.DEFAULT;
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlParserTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  // Helper functions -------------------------------------------------------
 
   protected Tester getTester() {
     return new TesterImpl();
@@ -796,19 +794,19 @@ public class SqlParserTest {
     sql(sql).ok(expected);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testDerivedColumnListNoAs() {
     sql("select * from emp e (empno, gender) where true").ok("foo");
   }
 
   // jdbc syntax
-  @Ignore
+  @Disabled
   @Test public void testEmbeddedCall() {
     expr("{call foo(?, ?)}")
         .ok("foo");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testEmbeddedFunction() {
     expr("{? = call bar (?, ?)}")
         .ok("foo");
@@ -1143,6 +1141,37 @@ public class SqlParserTest {
     assumeFalse(isUnparserTest());
     conformance = SqlConformanceEnum.SQL_SERVER_2008;
     sql(whereRow2).sansCarets().ok(whereExpected);
+  }
+
+  @Test public void testRowValueExpression() {
+    final String expected0 = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (ROW(1, 'Fred')),\n"
+            + "(ROW(2, 'Eric'))";
+    String sql = "insert into emps values (1,'Fred'),(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.CALCITE.getDialect())
+         .ok(expected0);
+
+    final String expected1 = "INSERT INTO `emps`\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.MYSQL.getDialect())
+        .ok(expected1);
+
+    final String expected2 = "INSERT INTO \"EMPS\"\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.ORACLE.getDialect())
+        .ok(expected2);
+
+    final String expected3 = "INSERT INTO [EMPS]\n"
+            + "VALUES (1, 'Fred'),\n"
+            + "(2, 'Eric')";
+    sql(sql)
+        .withDialect(SqlDialect.DatabaseProduct.MSSQL.getDialect())
+        .ok(expected3);
   }
 
   /** Whether this is a sub-class that tests un-parsing as well as parsing. */
@@ -2470,7 +2499,7 @@ public class SqlParserTest {
         .fails("(?s).*Encountered \"inner outer\" at line 1, column 17.*");
   }
 
-  @Ignore
+  @Disabled
   @Test public void testJoinAssociativity() {
     // joins are left-associative
     // 1. no parens needed
@@ -3407,6 +3436,18 @@ public class SqlParserTest {
             + "FROM TABLE(`RAMP`(3, 4))");
   }
 
+  @Test public void testDescriptor() {
+    sql("select * from table(ramp(descriptor(column_name)))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME`)))");
+    sql("select * from table(ramp(descriptor(\"COLUMN_NAME\")))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME`)))");
+    sql("select * from table(ramp(descriptor(column_name1, column_name2, column_name3)))")
+        .ok("SELECT *\n"
+            + "FROM TABLE(`RAMP`(DESCRIPTOR(`COLUMN_NAME1`, `COLUMN_NAME2`, `COLUMN_NAME3`)))");
+  }
+
   @Test public void testCollectionTableWithCursorParam() {
     sql("select * from table(dedup(cursor(select * from emps),'name'))")
         .ok("SELECT *\n"
@@ -3456,6 +3497,54 @@ public class SqlParserTest {
         .ok(expected2 + " AS `T`");
     sql("select * from lateral (select * from emp) as t(x)")
         .ok(expected2 + " AS `T` (`X`)");
+  }
+
+  @Test public void testTemporalTable() {
+    final String sql0 = "select stream * from orders, products\n"
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    final String expected0 = "SELECT STREAM *\n"
+        + "FROM `ORDERS`,\n"
+        + "`PRODUCTS` FOR SYSTEM_TIME AS OF TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql0).ok(expected0);
+
+    // Can not use explicit LATERAL keyword.
+    final String sql1 = "select stream * from orders, LATERAL ^products_temporal^\n"
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    final String error = "(?s)Encountered \"products_temporal\" at line .*";
+    sql(sql1).fails(error);
+
+    // Inner join with a specific timestamp
+    final String sql2 = "select stream * from orders join products_temporal\n"
+        + "for system_time as of timestamp '2011-01-02 00:00:00'\n"
+        + "on orders.productid = products_temporal.productid";
+    final String expected2 = "SELECT STREAM *\n"
+        + "FROM `ORDERS`\n"
+        + "INNER JOIN `PRODUCTS_TEMPORAL` "
+        + "FOR SYSTEM_TIME AS OF TIMESTAMP '2011-01-02 00:00:00' "
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS_TEMPORAL`.`PRODUCTID`)";
+    sql(sql2).ok(expected2);
+
+    // Left join with a timestamp field
+    final String sql3 = "select stream * from orders left join products_temporal\n"
+        + "for system_time as of orders.rowtime "
+        + "on orders.productid = products_temporal.productid";
+    final String expected3 = "SELECT STREAM *\n"
+        + "FROM `ORDERS`\n"
+        + "LEFT JOIN `PRODUCTS_TEMPORAL` "
+        + "FOR SYSTEM_TIME AS OF `ORDERS`.`ROWTIME` "
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS_TEMPORAL`.`PRODUCTID`)";
+    sql(sql3).ok(expected3);
+
+    // Left join with a timestamp expression
+    final String sql4 = "select stream * from orders left join products_temporal\n"
+        + "for system_time as of orders.rowtime - INTERVAL '3' DAY "
+        + "on orders.productid = products_temporal.productid";
+    final String expected4 = "SELECT STREAM *\n"
+        + "FROM `ORDERS`\n"
+        + "LEFT JOIN `PRODUCTS_TEMPORAL` "
+        + "FOR SYSTEM_TIME AS OF (`ORDERS`.`ROWTIME` - INTERVAL '3' DAY) "
+        + "ON (`ORDERS`.`PRODUCTID` = `PRODUCTS_TEMPORAL`.`PRODUCTID`)";
+    sql(sql4).ok(expected4);
   }
 
   @Test public void testCollectionTableWithLateral() {
@@ -3701,10 +3790,10 @@ public class SqlParserTest {
 
   @Test public void testUpdateExtendedColumnList() {
     final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`EXTRA` BOOLEAN, `NOTE` VARCHAR)"
-        + " SET `DEPTNO` = 1\n"
-        + ", `EXTRA` = TRUE\n"
-        + ", `EMPNO` = 20\n"
-        + ", `ENAME` = 'Bob'\n"
+        + " SET `DEPTNO` = 1"
+        + ", `EXTRA` = TRUE"
+        + ", `EMPNO` = 20"
+        + ", `ENAME` = 'Bob'"
         + ", `NOTE` = 'legion'\n"
         + "WHERE (`DEPTNO` = 10)";
     sql("update empdefaults(extra BOOLEAN, note VARCHAR)"
@@ -3716,10 +3805,10 @@ public class SqlParserTest {
 
   @Test public void testUpdateCaseSensitiveExtendedColumnList() {
     final String expected = "UPDATE `EMPDEFAULTS` EXTEND (`extra` BOOLEAN, `NOTE` VARCHAR)"
-        + " SET `DEPTNO` = 1\n"
-        + ", `extra` = TRUE\n"
-        + ", `EMPNO` = 20\n"
-        + ", `ENAME` = 'Bob'\n"
+        + " SET `DEPTNO` = 1"
+        + ", `extra` = TRUE"
+        + ", `EMPNO` = 20"
+        + ", `ENAME` = 'Bob'"
         + ", `NOTE` = 'legion'\n"
         + "WHERE (`DEPTNO` = 10)";
     sql("update empdefaults(\"extra\" BOOLEAN, note VARCHAR)"
@@ -3799,7 +3888,7 @@ public class SqlParserTest {
 
   @Test public void testUpdate() {
     sql("update emps set empno = empno + 1, sal = sal - 1 where empno=12")
-        .ok("UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)\n"
+        .ok("UPDATE `EMPS` SET `EMPNO` = (`EMPNO` + 1)"
             + ", `SAL` = (`SAL` - 1)\n"
             + "WHERE (`EMPNO` = 12)");
   }
@@ -3817,8 +3906,8 @@ public class SqlParserTest {
         + "FROM `TEMPEMPS`\n"
         + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-        + ", `DEPTNO` = `T`.`DEPTNO`\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`"
+        + ", `DEPTNO` = `T`.`DEPTNO`"
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
@@ -3840,8 +3929,8 @@ public class SqlParserTest {
         + "FROM `TEMPEMPS`\n"
         + "WHERE (`DEPTNO` IS NULL)) AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
-        + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`"
+        + ", `E`.`DEPTNO` = `T`.`DEPTNO`"
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
@@ -3860,8 +3949,8 @@ public class SqlParserTest {
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING `TEMPEMPS` AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`\n"
-        + ", `DEPTNO` = `T`.`DEPTNO`\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`"
+        + ", `DEPTNO` = `T`.`DEPTNO`"
         + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
@@ -3880,8 +3969,8 @@ public class SqlParserTest {
     final String expected = "MERGE INTO `EMPS` AS `E`\n"
         + "USING `TEMPEMPS` AS `T`\n"
         + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
-        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`\n"
-        + ", `E`.`DEPTNO` = `T`.`DEPTNO`\n"
+        + "WHEN MATCHED THEN UPDATE SET `E`.`NAME` = `T`.`NAME`"
+        + ", `E`.`DEPTNO` = `T`.`DEPTNO`"
         + ", `E`.`SALARY` = (`T`.`SALARY` * 0.1)\n"
         + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
         + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
@@ -7219,7 +7308,7 @@ public class SqlParserTest {
    * non-reserved keyword list in the parser.
    */
   @Test public void testNoUnintendedNewReservedKeywords() {
-    assumeTrue("don't run this test for sub-classes", isNotSubclass());
+    assumeTrue(isNotSubclass(), "don't run this test for sub-classes");
     final SqlAbstractParserImpl.Metadata metadata =
         getSqlParser("").getMetadata();
 
@@ -7394,11 +7483,11 @@ public class SqlParserTest {
     SqlNode node = getSqlParser("alter system set schema = true").parseStmt();
     SqlSetOption opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo("SYSTEM"));
-    SqlPrettyWriter writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+    SqlPrettyWriter writer = new SqlPrettyWriter();
     assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
-    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+    writer = new SqlPrettyWriter();
     assertThat(writer.format(opt.getValue()), equalTo("TRUE"));
-    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+    writer = new SqlPrettyWriter();
     assertThat(writer.format(opt),
         equalTo("ALTER SYSTEM SET \"SCHEMA\" = TRUE"));
 
@@ -7426,10 +7515,10 @@ public class SqlParserTest {
     node = getSqlParser("reset schema").parseStmt();
     opt = (SqlSetOption) node;
     assertThat(opt.getScope(), equalTo(null));
-    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+    writer = new SqlPrettyWriter();
     assertThat(writer.format(opt.getName()), equalTo("\"SCHEMA\""));
     assertThat(opt.getValue(), equalTo(null));
-    writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT);
+    writer = new SqlPrettyWriter();
     assertThat(writer.format(opt),
         equalTo("RESET \"SCHEMA\""));
 
@@ -8577,6 +8666,127 @@ public class SqlParserTest {
     sql(sql2).ok(expected);
   }
 
+  @Test public void testQueryHint() {
+    final String sql = "select "
+        + "/*+ properties(k1='v1', k2='v2'), "
+        + "no_hash_join, Index(idx1, idx2), "
+        + "repartition(3) */ "
+        + "empno, ename, deptno from emps";
+    final String expected = "SELECT\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`NO_HASH_JOIN`, "
+        + "`INDEX`(`IDX1`, `IDX2`), "
+        + "`REPARTITION`(3) */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInQuery() {
+    final String hint = "/*+ PROPERTIES(K1 ='v1', K2 ='v2'), INDEX(IDX0, IDX1) */";
+    final String sql1 = String.format(Locale.ROOT, "select * from t %s", hint);
+    final String expected1 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */";
+    sql(sql1).ok(expected1);
+    final String sql2 = String.format(Locale.ROOT, "select * from\n"
+        + "(select * from t %s union all select * from t %s )", hint, hint);
+    final String expected2 = "SELECT *\n"
+        + "FROM (SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "UNION ALL\n"
+        + "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */)";
+    sql(sql2).ok(expected2);
+    final String sql3 = String.format(Locale.ROOT, "select * from t %s join t %s", hint, hint);
+    final String expected3 = "SELECT *\n"
+        + "FROM `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "INNER JOIN `T`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */";
+    sql(sql3).ok(expected3);
+  }
+
+  @Test public void testTableHintsInInsert() {
+    final String sql = "insert into emps\n"
+        + "/*+ PROPERTIES(k1='v1', k2='v2'), INDEX(idx0, idx1) */\n"
+        + "select * from emps";
+    final String expected = "INSERT INTO `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX0`, `IDX1`) */\n"
+        + "(SELECT *\n"
+        + "FROM `EMPS`)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInDelete() {
+    final String sql = "delete from emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */\n"
+        + "where empno=12";
+    final String expected = "DELETE FROM `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), `INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */\n"
+        + "WHERE (`EMPNO` = 12)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInUpdate() {
+    final String sql = "update emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */\n"
+        + "set empno = empno + 1, sal = sal - 1 \n"
+        + "where empno=12";
+    final String expected = "UPDATE `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */ "
+        + "SET `EMPNO` = (`EMPNO` + 1)"
+        + ", `SAL` = (`SAL` - 1)\n"
+        + "WHERE (`EMPNO` = 12)";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testTableHintsInMerge() {
+    final String sql = "merge into emps\n"
+        + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */ e\n"
+        + "using tempemps as t\n"
+        + "on e.empno = t.empno\n"
+        + "when matched then update\n"
+        + "set name = t.name, deptno = t.deptno, salary = t.salary * .1\n"
+        + "when not matched then insert (name, dept, salary)\n"
+        + "values(t.name, 10, t.salary * .15)";
+    final String expected = "MERGE INTO `EMPS`\n"
+        + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "
+        + "`INDEX`(`IDX1`, `IDX2`), `NO_HASH_JOIN` */ "
+        + "AS `E`\n"
+        + "USING `TEMPEMPS` AS `T`\n"
+        + "ON (`E`.`EMPNO` = `T`.`EMPNO`)\n"
+        + "WHEN MATCHED THEN UPDATE SET `NAME` = `T`.`NAME`"
+        + ", `DEPTNO` = `T`.`DEPTNO`"
+        + ", `SALARY` = (`T`.`SALARY` * 0.1)\n"
+        + "WHEN NOT MATCHED THEN INSERT (`NAME`, `DEPT`, `SALARY`) "
+        + "(VALUES (ROW(`T`.`NAME`, 10, (`T`.`SALARY` * 0.15))))";
+    sql(sql).ok(expected);
+  }
+
+  @Test public void testInvalidHintFormat() {
+    final String sql1 = "select "
+        + "/*+ properties(^k1^=123, k2='v2'), no_hash_join() */ "
+        + "empno, ename, deptno from emps";
+    sql(sql1).fails("(?s).*Encountered \"k1 = 123\" at .*");
+    final String sql2 = "select "
+        + "/*+ properties(k1, k2^=^'v2'), no_hash_join */ "
+        + "empno, ename, deptno from emps";
+    sql(sql2).fails("(?s).*Encountered \"=\" at line 1, column 29.\n.*");
+    final String sql3 = "select "
+        + "/*+ no_hash_join() */ "
+        + "empno, ename, deptno from emps";
+    // Allow empty options.
+    final String expected3 = "SELECT\n"
+        + "/*+ `NO_HASH_JOIN` */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`";
+    sql(sql3).ok(expected3);
+  }
+
   //~ Inner Interfaces -------------------------------------------------------
 
   /**
@@ -8608,8 +8818,9 @@ public class SqlParserTest {
         SqlNode sqlNode,
         SqlDialect dialect,
         String expected) {
-      // no dialect, always parenthesize
-      final String actual = sqlNode.toSqlString(dialect, true).getSql();
+      final SqlDialect dialect2 = Util.first(dialect, AnsiSqlDialect.DEFAULT);
+      final SqlWriterConfig c2 = SQL_WRITER_CONFIG.withDialect(dialect2);
+      final String actual = sqlNode.toSqlString(c -> c2).getSql();
       TestUtil.assertEqualsVerbose(expected, linux(actual));
     }
 
@@ -8745,21 +8956,64 @@ public class SqlParserTest {
    * unparsing a query are consistent with the original query.
    */
   public class UnparsingTesterImpl extends TesterImpl {
+    private UnaryOperator<SqlWriterConfig> simple() {
+      return c -> c.withSelectListItemsOnSeparateLines(false)
+          .withUpdateSetListNewline(false)
+          .withIndentation(0)
+          .withFromFolding(SqlWriterConfig.LineFolding.TALL);
+    }
 
-    private String toSqlString(SqlNodeList sqlNodeList) {
-      List<String> sqls = sqlNodeList.getList().stream()
-          .map(it -> it.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql())
-          .collect(Collectors.toList());
-      return String.join(";", sqls);
+    private UnaryOperator<SqlWriterConfig> simpleWithParens() {
+      return simple().andThen(withParens())::apply;
+    }
+
+    private UnaryOperator<SqlWriterConfig> simpleWithParensAnsi() {
+      return simpleWithParens().andThen(withAnsi())::apply;
+    }
+
+    private UnaryOperator<SqlWriterConfig> withParens() {
+      return c -> c.withAlwaysUseParentheses(true);
+    }
+
+    private UnaryOperator<SqlWriterConfig> withAnsi() {
+      return c -> c.withDialect(AnsiSqlDialect.DEFAULT);
+    }
+
+    private UnaryOperator<SqlWriterConfig> randomize(Random random) {
+      return c -> c.withFoldLength(random.nextInt(5) * 20 + 3)
+          .withHavingFolding(nextLineFolding(random))
+          .withWhereFolding(nextLineFolding(random))
+          .withSelectFolding(nextLineFolding(random))
+          .withFromFolding(nextLineFolding(random))
+          .withGroupByFolding(nextLineFolding(random))
+          .withClauseStartsLine(random.nextBoolean())
+          .withClauseEndsLine(random.nextBoolean());
+    }
+
+    private String toSqlString(SqlNodeList sqlNodeList,
+        UnaryOperator<SqlWriterConfig> transform) {
+      return sqlNodeList.getList().stream()
+          .map(node -> node.toSqlString(transform).getSql())
+          .collect(Collectors.joining(";"));
+    }
+
+    private SqlWriterConfig.LineFolding nextLineFolding(Random random) {
+      return nextEnum(random, SqlWriterConfig.LineFolding.class);
+    }
+
+    private <E extends Enum<E>> E nextEnum(Random random, Class<E> enumClass) {
+      final E[] constants = enumClass.getEnumConstants();
+      return constants[random.nextInt(constants.length)];
     }
 
     private void checkList(SqlNodeList sqlNodeList, List<String> expected) {
-      Assert.assertEquals(expected.size(), sqlNodeList.size());
+      assertThat(sqlNodeList.size(), is(expected.size()));
 
       for (int i = 0; i < sqlNodeList.size(); i++) {
         SqlNode sqlNode = sqlNodeList.get(i);
         // Unparse with no dialect, always parenthesize.
-        final String actual = sqlNode.toSqlString(null, true).getSql();
+        final String actual =
+            sqlNode.toSqlString(simpleWithParensAnsi()).getSql();
         assertEquals(expected.get(i), linux(actual));
       }
     }
@@ -8771,7 +9025,7 @@ public class SqlParserTest {
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
-      final String sql1 = toSqlString(sqlNodeList);
+      final String sql1 = toSqlString(sqlNodeList, simple());
 
       // Parse and unparse again.
       SqlNodeList sqlNodeList2;
@@ -8782,7 +9036,7 @@ public class SqlParserTest {
       } finally {
         quoting = q;
       }
-      final String sql2 = toSqlString(sqlNodeList2);
+      final String sql2 = toSqlString(sqlNodeList2, simple());
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);
@@ -8791,6 +9045,10 @@ public class SqlParserTest {
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
       checkList(sqlNodeList2, expected);
+
+      final Random random = new Random();
+      final String sql3 = toSqlString(sqlNodeList, randomize(random));
+      assertThat(sql3, notNullValue());
     }
 
     @Override public void check(String sql, SqlDialect dialect, String expected,
@@ -8800,13 +9058,15 @@ public class SqlParserTest {
           parserChecker);
 
       // Unparse with the given dialect, always parenthesize.
-      final String actual = sqlNode.toSqlString(dialect, true).getSql();
+      final SqlDialect dialect2 = Util.first(dialect, AnsiSqlDialect.DEFAULT);
+      final UnaryOperator<SqlWriterConfig> transform =
+          simpleWithParens().andThen(c -> c.withDialect(dialect2))::apply;
+      final String actual = sqlNode.toSqlString(transform).getSql();
       assertEquals(expected, linux(actual));
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
-      final String sql1 =
-          sqlNode.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
+      final String sql1 = sqlNode.toSqlString(simple()).getSql();
 
       // Parse and unparse again.
       SqlNode sqlNode2;
@@ -8817,8 +9077,7 @@ public class SqlParserTest {
       } finally {
         quoting = q;
       }
-      final String sql2 =
-          sqlNode2.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
+      final String sql2 = sqlNode2.toSqlString(simple()).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);
@@ -8826,8 +9085,23 @@ public class SqlParserTest {
       // Now unparse again in the given dialect.
       // If the unparser is not including sufficient parens to override
       // precedence, the problem will show up here.
-      final String actual2 = sqlNode2.toSqlString(dialect, true).getSql();
+      final String actual2 = sqlNode.toSqlString(transform).getSql();
       assertEquals(expected, linux(actual2));
+
+      // Now unparse with a randomly configured SqlPrettyWriter.
+      // (This is a much a test for SqlPrettyWriter as for the parser.)
+      final Random random = new Random();
+      final String sql3 = sqlNode.toSqlString(randomize(random)).getSql();
+      assertThat(sql3, notNullValue());
+      SqlNode sqlNode4;
+      try {
+        quoting = Quoting.DOUBLE_QUOTE;
+        sqlNode4 = parseStmtAndHandleEx(sql1, b -> b, parser -> { });
+      } finally {
+        quoting = q;
+      }
+      final String sql4 = sqlNode4.toSqlString(simple()).getSql();
+      assertEquals(sql1, sql4);
     }
 
     @Override public void checkExp(String sql, String expected,
@@ -8835,13 +9109,15 @@ public class SqlParserTest {
       SqlNode sqlNode = parseExpressionAndHandleEx(sql, parserChecker);
 
       // Unparse with no dialect, always parenthesize.
-      final String actual = sqlNode.toSqlString(null, true).getSql();
+      final UnaryOperator<SqlWriterConfig> transform = c ->
+          simpleWithParens().apply(c).withDialect(AnsiSqlDialect.DEFAULT);
+      final String actual = sqlNode.toSqlString(transform).getSql();
       assertEquals(expected, linux(actual));
 
       // Unparse again in Calcite dialect (which we can parse), and
       // minimal parentheses.
       final String sql1 =
-          sqlNode.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
+          sqlNode.toSqlString(UnaryOperator.identity()).getSql();
 
       // Parse and unparse again.
       // (Turn off parser checking, and use double-quotes.)
@@ -8854,7 +9130,7 @@ public class SqlParserTest {
         quoting = q;
       }
       final String sql2 =
-          sqlNode2.toSqlString(CalciteSqlDialect.DEFAULT, false).getSql();
+          sqlNode2.toSqlString(UnaryOperator.identity()).getSql();
 
       // Should be the same as we started with.
       assertEquals(sql1, sql2);
@@ -8993,5 +9269,3 @@ public class SqlParserTest {
     }
   }
 }
-
-// End SqlParserTest.java

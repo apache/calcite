@@ -18,7 +18,4 @@
 /**
  * Language-integrated query for Java (linq4j) main package.
  */
-@PackageMarker
 package org.apache.calcite.linq4j;
-
-// End package-info.java

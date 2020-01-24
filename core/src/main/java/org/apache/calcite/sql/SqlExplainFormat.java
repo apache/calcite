@@ -39,5 +39,3 @@ public enum SqlExplainFormat {
     return SqlLiteral.createSymbol(this, pos);
   }
 }
-
-// End SqlExplainFormat.java

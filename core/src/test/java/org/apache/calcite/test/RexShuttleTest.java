@@ -32,10 +32,10 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit tests for {@link RexShuttle}
@@ -45,8 +45,7 @@ public class RexShuttleTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3165">[CALCITE-3165]
    * Project#accept(RexShuttle shuttle) does not update rowType</a>. */
-  @Test
-  public void testProjectUpdatesRowType() {
+  @Test public void testProjectUpdatesRowType() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
 
     // Equivalent SQL: SELECT deptno, sal FROM emp
@@ -80,8 +79,7 @@ public class RexShuttleTest {
     assertThat(type, is(type2));
   }
 
-  @Test
-  public void testCalcUpdatesRowType() {
+  @Test public void testCalcUpdatesRowType() {
     final RelBuilder builder = RelBuilder.create(RelBuilderTest.config().build());
 
     // Equivalent SQL: SELECT deptno, sal, sal + 20 FROM emp
@@ -132,5 +130,3 @@ public class RexShuttleTest {
     assertThat(calcWithCastViaRexShuttle.getRowType(), is(rootWithCast.getRowType()));
   }
 }
-
-// End RexShuttleTest.java

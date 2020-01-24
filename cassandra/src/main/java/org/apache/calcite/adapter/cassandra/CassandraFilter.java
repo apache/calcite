@@ -280,5 +280,3 @@ public class CassandraFilter extends Filter implements CassandraRel {
     }
   }
 }
-
-// End CassandraFilter.java

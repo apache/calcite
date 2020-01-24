@@ -86,5 +86,3 @@ public class ListSqlOperatorTable implements SqlOperatorTable {
     return operatorList;
   }
 }
-
-// End ListSqlOperatorTable.java

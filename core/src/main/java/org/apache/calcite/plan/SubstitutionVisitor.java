@@ -27,6 +27,7 @@ import org.apache.calcite.rel.mutable.Holder;
 import org.apache.calcite.rel.mutable.MutableAggregate;
 import org.apache.calcite.rel.mutable.MutableCalc;
 import org.apache.calcite.rel.mutable.MutableFilter;
+import org.apache.calcite.rel.mutable.MutableIntersect;
 import org.apache.calcite.rel.mutable.MutableJoin;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRelVisitor;
@@ -74,6 +75,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -131,9 +133,10 @@ public class SubstitutionVisitor {
           JoinOnRightCalcToJoinUnifyRule.INSTANCE,
           JoinOnCalcsToJoinUnifyRule.INSTANCE,
           AggregateToAggregateUnifyRule.INSTANCE,
-          AggregateOnCalcToAggUnifyRule.INSTANCE,
+          AggregateOnCalcToAggregateUnifyRule.INSTANCE,
           UnionToUnionUnifyRule.INSTANCE,
-          UnionOnCalcsToUnionUnifyRule.INSTANCE);
+          UnionOnCalcsToUnionUnifyRule.INSTANCE,
+          IntersectToIntersectUnifyRule.INSTANCE);
 
   /**
    * Factory for a builder for relational expressions.
@@ -612,7 +615,7 @@ public class SubstitutionVisitor {
       return litmus.fail("Mismatch for column count: [{}]", Pair.of(rel0, rel1));
     }
     for (Pair<RelDataTypeField, RelDataTypeField> pair
-        : Pair.zip(rel0.rowType.getFieldList(), rel0.rowType.getFieldList())) {
+        : Pair.zip(rel0.rowType.getFieldList(), rel1.rowType.getFieldList())) {
       if (!pair.left.getType().equals(pair.right.getType())) {
         return litmus.fail("Mismatch for column type: [{}]", Pair.of(rel0, rel1));
       }
@@ -1152,8 +1155,8 @@ public class SubstitutionVisitor {
 
     private JoinOnLeftCalcToJoinUnifyRule() {
       super(
-        operand(MutableJoin.class, operand(MutableCalc.class, query(0)), query(1)),
-        operand(MutableJoin.class, target(0), target(1)), 2);
+          operand(MutableJoin.class, operand(MutableCalc.class, query(0)), query(1)),
+          operand(MutableJoin.class, target(0), target(1)), 2);
     }
 
     @Override protected UnifyResult apply(UnifyRuleCall call) {
@@ -1169,8 +1172,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1255,8 +1258,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1346,8 +1349,8 @@ public class SubstitutionVisitor {
       final RexBuilder rexBuilder = call.getCluster().getRexBuilder();
 
       // Try pulling up MutableCalc only when:
-      // 1. it's inner join;
-      // 2. it's outer join but no filttering condition from MutableCalc.
+      // 1. it's inner join.
+      // 2. it's outer join but no filtering condition from MutableCalc.
       final JoinRelType joinRelType = sameJoinType(query.joinType, target.joinType);
       if (joinRelType == null) {
         return null;
@@ -1411,12 +1414,12 @@ public class SubstitutionVisitor {
    * We try to pull up the {@link MutableCalc} to top of {@link MutableAggregate},
    * then match the {@link MutableAggregate} in query to {@link MutableAggregate} in target.
    */
-  private static class AggregateOnCalcToAggUnifyRule extends AbstractUnifyRule {
+  private static class AggregateOnCalcToAggregateUnifyRule extends AbstractUnifyRule {
 
-    public static final AggregateOnCalcToAggUnifyRule INSTANCE =
-        new AggregateOnCalcToAggUnifyRule();
+    public static final AggregateOnCalcToAggregateUnifyRule INSTANCE =
+        new AggregateOnCalcToAggregateUnifyRule();
 
-    private AggregateOnCalcToAggUnifyRule() {
+    private AggregateOnCalcToAggregateUnifyRule() {
       super(operand(MutableAggregate.class, operand(MutableCalc.class, query(0))),
           operand(MutableAggregate.class, target(0)), 1);
     }
@@ -1475,11 +1478,13 @@ public class SubstitutionVisitor {
       if (!Mappings.keepsOrdering(mapping)) {
         final List<Integer> posList = new ArrayList<>();
         final int fieldCount = aggregate2.rowType.getFieldCount();
-        for (int group: aggregate2.groupSet) {
-          if (inverseMapping.getTargetOpt(group) != -1) {
-            posList.add(inverseMapping.getTarget(group));
-          }
+        final List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        final List<Integer> groupings = aggregate2.groupSet.toList();
+        for (int i = 0; i < groupings.size(); i++) {
+          pairs.add(Pair.of(mapping.getTarget(groupings.get(i)), i));
         }
+        Collections.sort(pairs);
+        pairs.forEach(pair -> posList.add(pair.right));
         for (int i = posList.size(); i < fieldCount; i++) {
           posList.add(i);
         }
@@ -1616,13 +1621,42 @@ public class SubstitutionVisitor {
             }
           }
         }
+
+        List<RexNode> projectExprs = MutableRels.createProjects(target,
+            queryInputExplained0.right);
         final RexProgram compenRexProgram = RexProgram.create(
-            target.rowType, queryInputExplained0.right, queryInputExplained0.left,
+            target.rowType, projectExprs, queryInputExplained0.left,
             query.rowType, rexBuilder);
         final MutableCalc compenCalc = MutableCalc.of(target, compenRexProgram);
         return tryMergeParentCalcAndGenResult(call, compenCalc);
       }
 
+      return null;
+    }
+  }
+
+  /**
+   * A {@link SubstitutionVisitor.UnifyRule} that matches a
+   * {@link MutableIntersect} to a {@link MutableIntersect} where the query and target
+   * have the same inputs but might not have the same order.
+   */
+  private static class IntersectToIntersectUnifyRule extends AbstractUnifyRule {
+    public static final IntersectToIntersectUnifyRule INSTANCE =
+        new IntersectToIntersectUnifyRule();
+
+    private IntersectToIntersectUnifyRule() {
+      super(any(MutableIntersect.class), any(MutableIntersect.class), 0);
+    }
+
+    public UnifyResult apply(UnifyRuleCall call) {
+      final MutableIntersect query = (MutableIntersect) call.query;
+      final MutableIntersect target = (MutableIntersect) call.target;
+      final List<MutableRel> queryInputs = new ArrayList<>(query.getInputs());
+      final List<MutableRel> targetInputs = new ArrayList<>(target.getInputs());
+      if (query.isAll() == target.isAll()
+          && sameRelCollectionNoOrderConsidered(queryInputs, targetInputs)) {
+        return call.result(target);
+      }
       return null;
     }
   }
@@ -2053,5 +2087,3 @@ public class SubstitutionVisitor {
     }
   }
 }
-
-// End SubstitutionVisitor.java

@@ -243,5 +243,3 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   }
 
 }
-
-// End CalciteConnectionProperty.java

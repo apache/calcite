@@ -402,5 +402,3 @@ public class SqlParser {
     }
   }
 }
-
-// End SqlParser.java

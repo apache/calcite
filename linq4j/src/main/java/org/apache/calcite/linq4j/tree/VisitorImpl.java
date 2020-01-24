@@ -210,5 +210,3 @@ public class VisitorImpl<R> implements Visitor<R> {
   }
 
 }
-
-// End VisitorImpl.java

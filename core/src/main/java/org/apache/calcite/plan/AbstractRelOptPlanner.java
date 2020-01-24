@@ -422,5 +422,3 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return Util.filter(classes, clazz::isAssignableFrom);
   }
 }
-
-// End AbstractRelOptPlanner.java

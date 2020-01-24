@@ -74,6 +74,10 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * <td>Arctangent, in radians, of float2 / float1</td>
  * </tr>
  * <tr>
+ * <td>CBRT(number)</td>
+ * <td>The cube root of number</td>
+ * </tr>
+ * <tr>
  * <td>CEILING(number)</td>
  * <td>Smallest integer &gt;= number</td>
  * </tr>
@@ -366,7 +370,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
   /** List of all numeric function names defined by JDBC. */
   private static final String NUMERIC_FUNCTIONS = constructFuncList(
-      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CEILING", "COS", "COT",
+      "ABS", "ACOS", "ASIN", "ATAN", "ATAN2", "CBRT", "CEILING", "COS", "COT",
       "DEGREES", "EXP", "FLOOR", "LOG", "LOG10", "MOD", "PI",
       "POWER", "RADIANS", "RAND", "ROUND", "SIGN", "SIN", "SQRT",
       "TAN", "TRUNCATE");
@@ -676,6 +680,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       map.put("ASIN", simple(SqlStdOperatorTable.ASIN));
       map.put("ATAN", simple(SqlStdOperatorTable.ATAN));
       map.put("ATAN2", simple(SqlStdOperatorTable.ATAN2));
+      map.put("CBRT", simple(SqlStdOperatorTable.CBRT));
       map.put("CEILING", simple(SqlStdOperatorTable.CEIL));
       map.put("COS", simple(SqlStdOperatorTable.COS));
       map.put("COT", simple(SqlStdOperatorTable.COT));
@@ -790,5 +795,3 @@ public class SqlJdbcFunctionCall extends SqlFunction {
     }
   }
 }
-
-// End SqlJdbcFunctionCall.java

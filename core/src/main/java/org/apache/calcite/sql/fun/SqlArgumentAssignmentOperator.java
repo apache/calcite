@@ -48,5 +48,3 @@ class SqlArgumentAssignmentOperator extends SqlAsOperator {
     call.operand(0).unparse(writer, getRightPrec(), rightPrec);
   }
 }
-
-// End SqlArgumentAssignmentOperator.java

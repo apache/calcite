@@ -29,11 +29,11 @@ import org.apache.commons.lang3.time.FastDateFormat;
 import au.com.bytecode.opencsv.CSVReader;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -162,8 +162,8 @@ class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   public static CSVReader openCsv(Source source) throws IOException {
-    final Reader fileReader = source.reader();
-    return new CSVReader(fileReader);
+    Objects.requireNonNull(source, "source");
+    return new CSVReader(source.reader());
   }
 
   public E current() {
@@ -375,5 +375,3 @@ class CsvEnumerator<E> implements Enumerator<E> {
     }
   }
 }
-
-// End CsvEnumerator.java

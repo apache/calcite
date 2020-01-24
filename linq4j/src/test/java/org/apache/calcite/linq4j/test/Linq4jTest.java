@@ -42,7 +42,7 @@ import com.example.Linq4jExample;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -62,15 +62,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests for LINQ4J.
@@ -577,8 +577,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test
-  public void testSingleOrDefaultPredicate1() {
+  @Test public void testSingleOrDefaultPredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -830,20 +829,20 @@ public class Linq4jTest {
   }
 
   @Test public void testConcat() {
-    assertEquals(
-        5,
+    assertThat(
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
-            .count());
+            .count(),
+        is(5));
   }
 
   @Test public void testUnion() {
-    assertEquals(
-        5,
+    assertThat(
         Linq4j.asEnumerable(emps)
             .union(Linq4j.asEnumerable(badEmps))
             .union(Linq4j.asEnumerable(emps))
-            .count());
+            .count(),
+        is(5));
   }
 
   @Test public void testIntersect() {
@@ -851,11 +850,25 @@ public class Linq4jTest {
         new Employee(150, "Theodore", 10),
         emps[3],
     };
-    assertEquals(
-        1,
+    assertThat(
         Linq4j.asEnumerable(emps)
-            .intersect(Linq4j.asEnumerable(emps2))
-            .count());
+            .intersect(Linq4j.asEnumerable(emps2), false)
+            .count(),
+        is(1));
+  }
+
+  @Test public void testIntersectAll() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        emps[3],
+        emps[3],
+        emps[3]
+    };
+    assertThat(
+        Linq4j.asEnumerable(emps2)
+            .intersect(Linq4j.asEnumerable(emps), true)
+            .count(),
+        is(1));
   }
 
   @Test public void testExcept() {
@@ -863,11 +876,25 @@ public class Linq4jTest {
         new Employee(150, "Theodore", 10),
         emps[3],
     };
-    assertEquals(
-        3,
+    assertThat(
         Linq4j.asEnumerable(emps)
-            .except(Linq4j.asEnumerable(emps2))
-            .count());
+            .except(Linq4j.asEnumerable(emps2), false)
+            .count(),
+        is(3));
+  }
+
+  @Test public void testExceptAll() {
+    final Employee[] emps2 = {
+        new Employee(150, "Theodore", 10),
+        new Employee(150, "Theodore", 10),
+        emps[0],
+        emps[1]
+    };
+    assertThat(
+        Linq4j.asEnumerable(emps2)
+            .except(Linq4j.asEnumerable(emps), true)
+            .count(),
+        is(2));
   }
 
   @Test public void testDistinct() {
@@ -877,11 +904,11 @@ public class Linq4jTest {
         emps[0],
         emps[3],
     };
-    assertEquals(
-        3,
+    assertThat(
         Linq4j.asEnumerable(emps2)
             .distinct()
-            .count());
+            .count(),
+        is(3));
   }
 
   @Test public void testDistinctWithEqualityComparer() {
@@ -1069,6 +1096,38 @@ public class Linq4jTest {
             + "Janet works in Sales, "
             + "null works in HR]",
         s);
+  }
+
+  @Test public void cartesianProductWithReset() {
+    Enumerator<List<Integer>> product =
+        Linq4j.product(
+            Arrays.asList(
+                Linq4j.enumerator(Arrays.asList(1, 2)),
+                Linq4j.enumerator(Arrays.asList(3, 4))));
+
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product");
+    product.reset();
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product after .reset()");
+    product.moveNext();
+    product.reset();
+    assertEquals(
+        "[[1, 3], [1, 4], [2, 3], [2, 4]]",
+        contentsOf(product).toString(),
+        "cartesian product after .moveNext(); .reset()");
+  }
+
+  private <T> List<T> contentsOf(Enumerator<T> enumerator) {
+    List<T> result = new ArrayList<>();
+    while (enumerator.moveNext()) {
+      result.add(enumerator.current());
+    }
+    return result;
   }
 
   @Test public void testJoinCartesianProduct() {
@@ -1298,8 +1357,7 @@ public class Linq4jTest {
 
               public boolean apply(Department v1, Integer v2) {
                 // Make sure we're passed the correct indices
-                assertEquals(
-                    "Invalid index passed to function", index++, (int) v2);
+                assertEquals(index++, (int) v2, "Invalid index passed to function");
                 return 20 != v1.deptno;
               }
             }).toList();
@@ -1337,8 +1395,7 @@ public class Linq4jTest {
           int index = 0;
           public boolean apply(Department v1, Integer v2) {
             // Make sure we're passed the correct indices
-            assertEquals(
-                "Invalid index passed to function", index++, (int) v2);
+            assertEquals(index++, (int) v2, "Invalid index passed to function");
             return v2 < 2;
           }
         };
@@ -1931,8 +1988,10 @@ public class Linq4jTest {
   @Test public void testGroupByWithKeySelectorAndResultSelector() {
     String s =
         Linq4j.asEnumerable(emps)
-            .groupBy(EMP_DEPTNO_SELECTOR, (key, group) -> String.format(Locale.ROOT, "%s: %s", key,
-                stringJoin("+", group.select(element -> element.name))))
+            .groupBy(
+                EMP_DEPTNO_SELECTOR,
+                (key, group) -> String.format(Locale.ROOT, "%s: %s", key,
+                    stringJoin("+", group.select(element -> element.name))))
             .toList()
             .toString();
     assertEquals(
@@ -2170,5 +2229,3 @@ public class Linq4jTest {
       new Department("Marketing", 30, ImmutableList.of(emps[1])),
   };
 }
-
-// End Linq4jTest.java

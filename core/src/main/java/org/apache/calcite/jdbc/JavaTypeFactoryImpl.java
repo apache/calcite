@@ -255,19 +255,33 @@ public class JavaTypeFactoryImpl
       SqlTypeName sqlTypeName = type.getSqlTypeName();
       final RelDataType relDataType;
       if (SqlTypeUtil.isArray(type)) {
-        final RelDataType elementType = type.getComponentType() == null
-                // type.getJavaClass() is collection with erased generic type
-                ? typeFactory.createSqlType(SqlTypeName.ANY)
-                // elementType returned by JavaType is also of JavaType,
-                // and needs conversion using typeFactory
-                : toSql(typeFactory, type.getComponentType());
+        // Transform to sql type, take care for two cases:
+        // 1. type.getJavaClass() is collection with erased generic type
+        // 2. ElementType returned by JavaType is also of JavaType,
+        // and needs conversion using typeFactory
+        final RelDataType elementType = toSqlTypeWithNullToAny(
+            typeFactory, type.getComponentType());
         relDataType = typeFactory.createArrayType(elementType, -1);
+      } else if (SqlTypeUtil.isMap(type)) {
+        final RelDataType keyType = toSqlTypeWithNullToAny(
+            typeFactory, type.getKeyType());
+        final RelDataType valueType = toSqlTypeWithNullToAny(
+            typeFactory, type.getValueType());
+        relDataType = typeFactory.createMapType(keyType, valueType);
       } else {
         relDataType = typeFactory.createSqlType(sqlTypeName);
       }
       return typeFactory.createTypeWithNullability(relDataType, type.isNullable());
     }
     return type;
+  }
+
+  private static RelDataType toSqlTypeWithNullToAny(
+      final RelDataTypeFactory typeFactory, RelDataType type) {
+    if (type == null) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
+    }
+    return toSql(typeFactory, type);
   }
 
   public Type createSyntheticType(List<Type> types) {
@@ -411,5 +425,3 @@ public class JavaTypeFactoryImpl
     }
   }
 }
-
-// End JavaTypeFactoryImpl.java

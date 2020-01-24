@@ -30,7 +30,6 @@ import org.apache.calcite.statistic.MapSqlStatisticProvider;
 import org.apache.calcite.statistic.QuerySqlStatisticProvider;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.FoodMartQuerySet;
-import org.apache.calcite.test.SlowTests;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
@@ -45,8 +44,8 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,12 +57,11 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-@Category(SlowTests.class)
 public class LatticeSuggesterTest {
 
   /** Some basic query patterns on the Scott schema with "EMP" and "DEPT"
@@ -243,6 +241,7 @@ public class LatticeSuggesterTest {
     };
   }
 
+  @Tag("slow")
   @Test public void testSharedSnowflake() throws Exception {
     final Tester t = new Tester().foodmart();
     // foodmart query 5827 (also 5828, 5830, 5832) uses the "region" table
@@ -394,10 +393,12 @@ public class LatticeSuggesterTest {
     }
   }
 
+  @Tag("slow")
   @Test public void testFoodMartAll() throws Exception {
     checkFoodMartAll(false);
   }
 
+  @Tag("slow")
   @Test public void testFoodMartAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
@@ -669,12 +670,12 @@ public class LatticeSuggesterTest {
     t.addQuery(q0);
     assertThat(t.s.latticeMap.size(), is(1));
     assertThat(t.s.latticeMap.keySet().iterator().next(),
-        is("sales_fact_1997 (customer:+($2, 2)):[MIN(customer.fname)]"));
+        is("sales_fact_1997 (customer:+(2, $2)):[MIN(customer.fname)]"));
     assertThat(t.s.space.g.toString(),
         is("graph(vertices: [[foodmart, customer],"
             + " [foodmart, sales_fact_1997]], "
             + "edges: [Step([foodmart, sales_fact_1997],"
-            + " [foodmart, customer], +($2, 2):+($0, 1))])"));
+            + " [foodmart, customer], +(2, $2):+(1, $0))])"));
   }
 
   /** Tests that we can run the suggester against non-JDBC schemas.
@@ -854,5 +855,3 @@ public class LatticeSuggesterTest {
     }
   }
 }
-
-// End LatticeSuggesterTest.java

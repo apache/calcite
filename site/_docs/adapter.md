@@ -38,6 +38,7 @@ presenting the data as tables within a schema.
 * MongoDB adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/mongodb/package-summary.html">calcite-mongodb</a>)
 * [OS adapter](os_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/os/package-summary.html">calcite-os</a>)
 * [Pig adapter](pig_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/pig/package-summary.html">calcite-pig</a>)
+* [Redis adapter](redis_adapter.html) (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/redis/package-summary.html">calcite-redis</a>)
 * Solr cloud adapter (<a href="https://github.com/bluejoe2008/solr-sql">solr-sql</a>)
 * Spark adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/spark/package-summary.html">calcite-spark</a>)
 * Splunk adapter (<a href="{{ site.apiRoot }}/org/apache/calcite/adapter/splunk/package-summary.html">calcite-splunk</a>)
@@ -614,4 +615,3 @@ While preparing a query Calcite combines all of the applicable metadata
 providers and maintains a cache so that a given piece of metadata (for example
 the selectivity of the condition `x > 10` in a particular `Filter` operator)
 is computed only once.
-

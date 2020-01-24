@@ -196,5 +196,3 @@ public class SqlJsonValueFunction extends SqlFunction {
     return false;
   }
 }
-
-// End SqlJsonValueFunction.java

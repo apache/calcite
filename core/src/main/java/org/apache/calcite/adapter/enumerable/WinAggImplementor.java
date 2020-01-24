@@ -61,5 +61,3 @@ public interface WinAggImplementor extends AggImplementor {
 
   boolean needCacheWhenFrameIntact();
 }
-
-// End WinAggImplementor.java

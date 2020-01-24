@@ -71,5 +71,3 @@ public abstract class ConcurrentTestPlugin {
   public void preSetupFor(String name, String params) {
   }
 }
-
-// End ConcurrentTestPlugin.java

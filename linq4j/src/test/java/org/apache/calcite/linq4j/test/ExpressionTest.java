@@ -38,7 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -60,9 +60,9 @@ import java.util.TreeSet;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.ONE;
 import static org.apache.calcite.linq4j.test.BlockBuilderBase.TWO;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Unit test for {@link org.apache.calcite.linq4j.tree.Expression}
@@ -320,6 +320,88 @@ public class ExpressionTest {
     // arg => (arg +2)
     // 3.0
     assertEquals(3.0f, n, 0f);
+  }
+
+  @Test public void testLambdaCallsBinaryOpMixType() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Long.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds (int)10 to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(10)),
+        Arrays.asList(paramExpr));
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public long apply(long arg) {\n"
+            + "    return arg + 10;\n"
+            + "  }\n"
+            + "  public Object apply(Long arg) {\n"
+            + "    return apply(\n"
+            + "      arg.longValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Long) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 5L.
+    long n = (Long) lambdaExpr.compile().dynamicInvoke(5L);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +10)
+    // 15
+    assertEquals(15L, n, 0d);
+  }
+
+  @Test public void testLambdaCallsBinaryOpMixDoubleType() {
+    // A parameter for the lambda expression.
+    ParameterExpression paramExpr =
+        Expressions.parameter(Double.TYPE, "arg");
+
+    // This expression represents a lambda expression
+    // that adds 10.1d to the parameter value.
+    FunctionExpression lambdaExpr = Expressions.lambda(
+        Expressions.add(
+            paramExpr,
+            Expressions.constant(10.1d)),
+        Arrays.asList(paramExpr));
+    // Print out the expression.
+    String s = Expressions.toString(lambdaExpr);
+    assertEquals(
+        "new org.apache.calcite.linq4j.function.Function1() {\n"
+            + "  public double apply(double arg) {\n"
+            + "    return arg + 10.1D;\n"
+            + "  }\n"
+            + "  public Object apply(Double arg) {\n"
+            + "    return apply(\n"
+            + "      arg.doubleValue());\n"
+            + "  }\n"
+            + "  public Object apply(Object arg) {\n"
+            + "    return apply(\n"
+            + "      (Double) arg);\n"
+            + "  }\n"
+            + "}\n",
+        s);
+
+    // Compile and run the lambda expression.
+    // The value of the parameter is 5.0f.
+    double n = (Double) lambdaExpr.compile().dynamicInvoke(5.0f);
+
+    // This code example produces the following output:
+    //
+    // arg => (arg +10.1d)
+    // 15.1d
+    assertEquals(15.1d, n, 0d);
   }
 
   @Test public void testLambdaPrimitiveTwoArgs() {
@@ -1654,5 +1736,3 @@ public class ExpressionTest {
     }
   }
 }
-
-// End ExpressionTest.java

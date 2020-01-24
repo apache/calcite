@@ -60,10 +60,11 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Holder for various classes and functions used in tests as user-defined
@@ -74,6 +75,8 @@ public class Smalls {
       Types.lookupMethod(Smalls.class, "generateStrings", Integer.class);
   public static final Method GENERATE_STRINGS_OF_INPUT_SIZE_METHOD =
       Types.lookupMethod(Smalls.class, "generateStringsOfInputSize", List.class);
+  public static final Method GENERATE_STRINGS_OF_INPUT_MAP_SIZE_METHOD =
+      Types.lookupMethod(Smalls.class, "generateStringsOfInputMapSize", Map.class);
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -186,6 +189,9 @@ public class Smalls {
 
   public static QueryableTable generateStringsOfInputSize(final List<Integer> list) {
     return generateStrings(list.size());
+  }
+  public static QueryableTable generateStringsOfInputMapSize(final Map<Integer, Integer> map) {
+    return generateStrings(map.size());
   }
 
   /** A function that generates multiplication table of {@code ncol} columns x
@@ -1126,5 +1132,3 @@ public class Smalls {
     }
   }
 }
-
-// End Smalls.java

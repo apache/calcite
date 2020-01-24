@@ -58,5 +58,3 @@ public class NoneConverter extends ConverterImpl {
     Util.discard(planner);
   }
 }
-
-// End NoneConverter.java

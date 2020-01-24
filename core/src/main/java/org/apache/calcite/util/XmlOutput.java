@@ -676,6 +676,3 @@ public class XmlOutput {
     }
   }
 }
-
-
-// End XmlOutput.java

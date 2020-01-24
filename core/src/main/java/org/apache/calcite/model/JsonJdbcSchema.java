@@ -73,5 +73,3 @@ public class JsonJdbcSchema extends JsonSchema {
     handler.visit(this);
   }
 }
-
-// End JsonJdbcSchema.java

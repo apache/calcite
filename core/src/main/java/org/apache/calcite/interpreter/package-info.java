@@ -22,9 +22,4 @@
  * preparation time is less, and so the total prepare + execute time is
  * competitive for queries over small data sets.
  */
-@PackageMarker
 package org.apache.calcite.interpreter;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

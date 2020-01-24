@@ -81,5 +81,3 @@ public class SqlCharStringLiteral extends SqlAbstractStringLiteral {
         literals.get(0).getParserPosition());
   }
 }
-
-// End SqlCharStringLiteral.java

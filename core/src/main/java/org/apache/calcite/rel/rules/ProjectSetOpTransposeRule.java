@@ -122,5 +122,3 @@ public class ProjectSetOpTransposeRule extends RelOptRule {
     call.transformTo(node);
   }
 }
-
-// End ProjectSetOpTransposeRule.java

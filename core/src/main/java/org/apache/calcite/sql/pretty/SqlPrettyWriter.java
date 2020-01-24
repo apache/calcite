@@ -17,12 +17,16 @@
 package org.apache.calcite.sql.pretty;
 
 import org.apache.calcite.avatica.util.Spaces;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.util.SqlString;
-import org.apache.calcite.util.Unsafe;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteLogger;
 
@@ -32,7 +36,6 @@ import com.google.common.collect.ImmutableList;
 import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
@@ -44,6 +47,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Consumer;
+import javax.annotation.Nonnull;
 
 /**
  * Pretty printer for SQL statements.
@@ -57,69 +62,189 @@ import java.util.Set;
  * <th>Description</th>
  * <th>Default</th>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setSelectListItemsOnSeparateLines SelectListItemsOnSeparateLines}
- * </td>
- * <td>Whether each item in the select clause is on its own line</td>
+ * <td>{@link SqlWriterConfig#clauseStartsLine()} ClauseStartsLine}</td>
+ * <td>Whether a clause ({@code FROM}, {@code WHERE}, {@code GROUP BY},
+ * {@code HAVING}, {@code WINDOW}, {@code ORDER BY}) starts a new line.
+ * {@code SELECT} is always at the start of a line.</td>
+ * <td>true</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#clauseEndsLine ClauseEndsLine}</td>
+ * <td>Whether a clause ({@code SELECT}, {@code FROM}, {@code WHERE},
+ * {@code GROUP BY}, {@code HAVING}, {@code WINDOW}, {@code ORDER BY}) is
+ * followed by a new line.</td>
  * <td>false</td>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setCaseClausesOnNewLines CaseClausesOnNewLines}</td>
+ * <td>{@link SqlWriterConfig#caseClausesOnNewLines CaseClausesOnNewLines}</td>
  * <td>Whether the WHEN, THEN and ELSE clauses of a CASE expression appear at
  * the start of a new line.</td>
  * <td>false</td>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setIndentation Indentation}</td>
+ * <td>{@link SqlWriterConfig#indentation Indentation}</td>
  * <td>Number of spaces to indent</td>
  * <td>4</td>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setKeywordsLowerCase KeywordsLowerCase}</td>
+ * <td>{@link SqlWriterConfig#keywordsLowerCase KeywordsLowerCase}</td>
  * <td>Whether to print keywords (SELECT, AS, etc.) in lower-case.</td>
  * <td>false</td>
  * </tr>
- * <tr>
- * <td>{@link #isAlwaysUseParentheses ParenthesizeAllExprs}</td>
- * <td>Whether to enclose all expressions in parentheses, even if the operator
- * has high enough precedence that the parentheses are not required.
  *
- * <p>For example, the parentheses are required in the expression <code>(a + b)
- * c</code> because the '*' operator has higher precedence than the '+'
- * operator, and so without the parentheses, the expression would be equivalent
- * to <code>a + (b * c)</code>. The fully-parenthesized expression, <code>((a +
- * b) * c)</code> is unambiguous even if you don't know the precedence of every
- * operator.</td>
- * <td></td>
- * </tr>
  * <tr>
- * <td>{@link #setQuoteAllIdentifiers QuoteAllIdentifiers}</td>
+ * <td>{@link SqlWriterConfig#alwaysUseParentheses AlwaysUseParentheses}</td>
+ * <td><p>Whether to enclose all expressions in parentheses, even if the
+ * operator has high enough precedence that the parentheses are not required.
+ *
+ * <p>For example, the parentheses are required in the expression
+ * {@code (a + b) * c} because the '*' operator has higher precedence than the
+ * '+' operator, and so without the parentheses, the expression would be
+ * equivalent to {@code a + (b * c)}. The fully-parenthesized expression,
+ * {@code ((a + b) * c)} is unambiguous even if you don't know the precedence
+ * of every operator.</td>
+ * <td>false</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#quoteAllIdentifiers QuoteAllIdentifiers}</td>
  * <td>Whether to quote all identifiers, even those which would be correct
  * according to the rules of the {@link SqlDialect} if quotation marks were
  * omitted.</td>
  * <td>true</td>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setSelectListItemsOnSeparateLines SelectListItemsOnSeparateLines}
- * </td>
- * <td>Whether each item in the select clause is on its own line.</td>
- * <td>false</td>
- * </tr>
- * <tr>
- * <td>{@link #setSubQueryStyle SubQueryStyle}</td>
+ * <td>{@link SqlWriterConfig#subQueryStyle SubQueryStyle}</td>
  * <td>Style for formatting sub-queries. Values are:
  * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde},
  * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#BLACK Black}.</td>
  *
  * <td>{@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE Hyde}</td>
  * </tr>
+ *
  * <tr>
- * <td>{@link #setLineLength LineLength}</td>
- * <td>Set the desired maximum length for lines (to look nice in editors,
+ * <td>{@link SqlWriterConfig#lineLength LineLength}</td>
+ * <td>The desired maximum length for lines (to look nice in editors,
  * printouts, etc.).</td>
- * <td>0</td>
+ * <td>-1 (no maximum)</td>
  * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#foldLength FoldLength}</td>
+ * <td>The line length at which lines are folded or chopped down
+ * (see {@code LineFolding}). Only has an effect if clauses are marked
+ * {@link SqlWriterConfig.LineFolding#CHOP CHOP} or
+ * {@link SqlWriterConfig.LineFolding#FOLD FOLD}.</td>
+ * <td>80</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#lineFolding LineFolding}</td>
+ * <td>How long lines are to be handled. Options are lines are
+ * WIDE (do not wrap),
+ * FOLD (wrap if long),
+ * CHOP (chop down if long),
+ * and TALL (wrap always).</td>
+ * <td>WIDE</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#selectFolding() SelectFolding}</td>
+ * <td>How the {@code SELECT} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#fromFolding FromFolding}</td>
+ * <td>How the {@code FROM} clause and nested {@code JOIN} clauses are to be
+ * folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#whereFolding WhereFolding}</td>
+ * <td>How the {@code WHERE} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#groupByFolding GroupByFolding}</td>
+ * <td>How the {@code GROUP BY} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#havingFolding HavingFolding}</td>
+ * <td>How the {@code HAVING} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#orderByFolding OrderByFolding}</td>
+ * <td>How the {@code ORDER BY} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#windowFolding WindowFolding}</td>
+ * <td>How the {@code WINDOW} clause is to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#overFolding OverFolding}</td>
+ * <td>How window declarations in the {@code WINDOW} clause
+ * and in the {@code OVER} clause of aggregate functions are to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#valuesFolding ValuesFolding}</td>
+ * <td>How lists of values in the {@code VALUES} clause are to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
+ * <tr>
+ * <td>{@link SqlWriterConfig#updateSetFolding UpdateSetFolding}</td>
+ * <td>How assignments in the {@code SET} clause of an {@code UPDATE} statement
+ * are to be folded.</td>
+ * <td>{@code LineFolding}</td>
+ * </tr>
+ *
  * </table>
+ *
+ * <p>The following options exist for backwards compatibility. They are
+ * used if {@link SqlWriterConfig#lineFolding LineFolding} and clause-specific
+ * options such as {@link SqlWriterConfig#selectFolding SelectFolding} are not
+ * specified:
+ *
+ * <ul>
+ *
+ * <li>{@link SqlWriterConfig#selectListItemsOnSeparateLines SelectListItemsOnSeparateLines}
+ * replaced by {@link SqlWriterConfig#selectFolding SelectFolding},
+ * {@link SqlWriterConfig#groupByFolding GroupByFolding}, and
+ * {@link SqlWriterConfig#orderByFolding OrderByFolding};
+ *
+ * <li>{@link SqlWriterConfig#updateSetListNewline UpdateSetListNewline}
+ * replaced by {@link SqlWriterConfig#updateSetFolding UpdateSetFolding};
+ *
+ * <li>{@link SqlWriterConfig#windowDeclListNewline WindowDeclListNewline}
+ * replaced by {@link SqlWriterConfig#windowFolding WindowFolding};
+ *
+ * <li>{@link SqlWriterConfig#windowNewline WindowNewline}
+ * replaced by {@link SqlWriterConfig#overFolding OverFolding};
+ *
+ * <li>{@link SqlWriterConfig#valuesListNewline ValuesListNewline}
+ * replaced by {@link SqlWriterConfig#valuesFolding ValuesFolding}.
+ *
+ * </ul>
  */
 public class SqlPrettyWriter implements SqlWriter {
   //~ Static fields/initializers ---------------------------------------------
@@ -132,96 +257,133 @@ public class SqlPrettyWriter implements SqlWriter {
    * Bean holding the default property values.
    */
   private static final Bean DEFAULT_BEAN =
-      new SqlPrettyWriter(AnsiSqlDialect.DEFAULT).getBean();
+      new SqlPrettyWriter(SqlPrettyWriter.config()
+          .withDialect(AnsiSqlDialect.DEFAULT)).getBean();
   protected static final String NL = System.getProperty("line.separator");
 
   //~ Instance fields --------------------------------------------------------
 
   private final SqlDialect dialect;
-  private final StringWriter sw = new StringWriter();
-  protected final PrintWriter pw;
+  private final StringBuilder buf;
   private final Deque<FrameImpl> listStack = new ArrayDeque<>();
   private ImmutableList.Builder<Integer> dynamicParameters;
   protected FrameImpl frame;
   private boolean needWhitespace;
   protected String nextWhitespace;
-  protected boolean alwaysUseParentheses;
-  private boolean keywordsLowerCase;
+  private SqlWriterConfig config;
   private Bean bean;
-  private boolean quoteAllIdentifiers;
-  private int indentation;
-  private boolean clauseStartsLine;
-  private boolean selectListItemsOnSeparateLines;
-  private boolean selectListExtraIndentFlag;
   private int currentIndent;
-  private boolean windowDeclListNewline;
-  private boolean updateSetListNewline;
-  private boolean windowNewline;
-  private SubQueryStyle subQueryStyle;
-  private boolean whereListItemsOnSeparateLines;
 
-  private boolean caseClausesOnNewLines;
-  private int lineLength;
-  private int charCount;
+  private int lineStart;
 
   //~ Constructors -----------------------------------------------------------
 
+  private SqlPrettyWriter(SqlWriterConfig config,
+      StringBuilder buf, boolean ignore) {
+    this.buf = Objects.requireNonNull(buf);
+    this.dialect = Objects.requireNonNull(config.dialect());
+    this.config = Objects.requireNonNull(config);
+    lineStart = 0;
+    reset();
+  }
+
+  /** Creates a writer with the given configuration
+   * and a given buffer to write to. */
+  public SqlPrettyWriter(@Nonnull SqlWriterConfig config,
+      @Nonnull StringBuilder buf) {
+    this(config, Objects.requireNonNull(buf), false);
+  }
+
+  /** Creates a writer with the given configuration and dialect,
+   * and a given print writer (or a private print writer if it is null). */
+  public SqlPrettyWriter(
+      SqlDialect dialect,
+      SqlWriterConfig config,
+      StringBuilder buf) {
+    this(config.withDialect(Objects.requireNonNull(dialect)), buf);
+  }
+
+  /** Creates a writer with the given configuration
+   * and a private print writer. */
+  @Deprecated
+  public SqlPrettyWriter(SqlDialect dialect, SqlWriterConfig config) {
+    this(config.withDialect(Objects.requireNonNull(dialect)));
+  }
+
+  @Deprecated
   public SqlPrettyWriter(
       SqlDialect dialect,
       boolean alwaysUseParentheses,
       PrintWriter pw) {
-    if (pw == null) {
-      pw = new PrintWriter(sw);
-    }
-    this.pw = pw;
-    this.dialect = dialect;
-    this.alwaysUseParentheses = alwaysUseParentheses;
-    resetSettings();
-    reset();
+    // NOTE that 'pw' is ignored; there is no place for it in the new API
+    this(config().withDialect(Objects.requireNonNull(dialect))
+        .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
+  @Deprecated
   public SqlPrettyWriter(
       SqlDialect dialect,
       boolean alwaysUseParentheses) {
-    this(dialect, alwaysUseParentheses, null);
+    this(config().withDialect(Objects.requireNonNull(dialect))
+        .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
+  /** Creates a writer with a given dialect, the default configuration
+   * and a private print writer. */
+  @Deprecated
   public SqlPrettyWriter(SqlDialect dialect) {
-    this(dialect, true);
+    this(config().withDialect(Objects.requireNonNull(dialect)));
+  }
+
+  /** Creates a writer with the given configuration,
+   * and a private builder. */
+  public SqlPrettyWriter(@Nonnull SqlWriterConfig config) {
+    this(config, new StringBuilder(), true);
+  }
+
+  /** Creates a writer with the default configuration.
+   *
+   * @see #config() */
+  public SqlPrettyWriter() {
+    this(config());
+  }
+
+  /** Creates a {@link SqlWriterConfig} with Calcite's SQL dialect. */
+  public static SqlWriterConfig config() {
+    return ImmutableBeans.create(SqlWriterConfig.class)
+        .withDialect(CalciteSqlDialect.DEFAULT);
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * Sets whether the WHEN, THEN and ELSE clauses of a CASE expression appear
-   * at the start of a new line. The default is false.
-   */
+  @Deprecated
   public void setCaseClausesOnNewLines(boolean caseClausesOnNewLines) {
-    this.caseClausesOnNewLines = caseClausesOnNewLines;
+    this.config = config.withCaseClausesOnNewLines(caseClausesOnNewLines);
   }
 
-  /**
-   * Sets the sub-query style. Default is
-   * {@link org.apache.calcite.sql.SqlWriter.SubQueryStyle#HYDE}.
-   */
+  @Deprecated
   public void setSubQueryStyle(SubQueryStyle subQueryStyle) {
-    this.subQueryStyle = subQueryStyle;
+    this.config = config.withSubQueryStyle(subQueryStyle);
   }
 
+  @Deprecated
   public void setWindowNewline(boolean windowNewline) {
-    this.windowNewline = windowNewline;
+    this.config = config.withWindowNewline(windowNewline);
   }
 
+  @Deprecated
   public void setWindowDeclListNewline(boolean windowDeclListNewline) {
-    this.windowDeclListNewline = windowDeclListNewline;
+    this.config = config.withWindowDeclListNewline(windowDeclListNewline);
   }
 
+  @Deprecated
   public int getIndentation() {
-    return indentation;
+    return config.indentation();
   }
 
+  @Deprecated
   public boolean isAlwaysUseParentheses() {
-    return alwaysUseParentheses;
+    return config.alwaysUseParentheses();
   }
 
   public boolean inQuery() {
@@ -231,55 +393,49 @@ public class SqlPrettyWriter implements SqlWriter {
         || (frame.frameType == FrameTypeEnum.SETOP);
   }
 
+  @Deprecated
   public boolean isQuoteAllIdentifiers() {
-    return quoteAllIdentifiers;
+    return config.quoteAllIdentifiers();
   }
 
+  @Deprecated
   public boolean isClauseStartsLine() {
-    return clauseStartsLine;
+    return config.clauseStartsLine();
   }
 
+  @Deprecated
   public boolean isSelectListItemsOnSeparateLines() {
-    return selectListItemsOnSeparateLines;
+    return config.selectListItemsOnSeparateLines();
   }
 
+  @Deprecated
   public boolean isWhereListItemsOnSeparateLines() {
-    return whereListItemsOnSeparateLines;
+    return config.whereListItemsOnSeparateLines();
   }
 
+  @Deprecated
   public boolean isSelectListExtraIndentFlag() {
-    return selectListExtraIndentFlag;
+    return config.selectListExtraIndentFlag();
   }
 
+  @Deprecated
   public boolean isKeywordsLowerCase() {
-    return keywordsLowerCase;
+    return config.keywordsLowerCase();
   }
 
+  @Deprecated
   public int getLineLength() {
-    return lineLength;
+    return config.lineLength();
   }
 
   public void resetSettings() {
     reset();
-    indentation = 4;
-    clauseStartsLine = true;
-    selectListItemsOnSeparateLines = false;
-    selectListExtraIndentFlag = true;
-    keywordsLowerCase = false;
-    quoteAllIdentifiers = true;
-    windowDeclListNewline = true;
-    updateSetListNewline = true;
-    windowNewline = false;
-    subQueryStyle = SubQueryStyle.HYDE;
-    alwaysUseParentheses = false;
-    whereListItemsOnSeparateLines = false;
-    lineLength = 0;
-    charCount = 0;
+    config = config();
   }
 
   public void reset() {
-    pw.flush();
-    Unsafe.clear(sw);
+    buf.setLength(0);
+    lineStart = 0;
     dynamicParameters = null;
     setNeedWhitespace(false);
     nextWhitespace = " ";
@@ -295,13 +451,9 @@ public class SqlPrettyWriter implements SqlWriter {
     return bean;
   }
 
-  /**
-   * Sets the number of spaces indentation.
-   *
-   * @see #getIndentation()
-   */
+  @Deprecated
   public void setIndentation(int indentation) {
-    this.indentation = indentation;
+    this.config = config.withIndentation(indentation);
   }
 
   /**
@@ -343,78 +495,47 @@ public class SqlPrettyWriter implements SqlWriter {
     }
   }
 
-  /**
-   * Sets whether a clause (FROM, WHERE, GROUP BY, HAVING, WINDOW, ORDER BY)
-   * starts a new line. Default is true. SELECT is always at the start of a
-   * line.
-   */
+  @Deprecated
   public void setClauseStartsLine(boolean clauseStartsLine) {
-    this.clauseStartsLine = clauseStartsLine;
+    this.config = config.withClauseStartsLine(clauseStartsLine);
   }
 
-  /**
-   * Sets whether each item in a SELECT list, GROUP BY list, or ORDER BY list
-   * is on its own line. Default false.
-   */
+  @Deprecated
   public void setSelectListItemsOnSeparateLines(boolean b) {
-    this.selectListItemsOnSeparateLines = b;
+    this.config = config.withSelectListItemsOnSeparateLines(b);
   }
 
-  /**
-   * Sets whether to use a fix for SELECT list indentations.
-   *
-   * <ul>
-   * <li>If set to "false":
-   *
-   * <blockquote><pre>
-   * SELECT
-   *     A as A
-   *         B as B
-   *         C as C
-   *     D
-   * </pre></blockquote>
-   *
-   * <li>If set to "true":
-   *
-   * <blockquote><pre>
-   * SELECT
-   *     A as A
-   *     B as B
-   *     C as C
-   *     D
-   * </pre></blockquote>
-   * </ul>
-   */
-  public void setSelectListExtraIndentFlag(boolean b) {
-    this.selectListExtraIndentFlag = b;
+  @Deprecated
+  public void setSelectListExtraIndentFlag(boolean selectListExtraIndentFlag) {
+    this.config =
+        config.withSelectListExtraIndentFlag(selectListExtraIndentFlag);
   }
 
-  /**
-   * Sets whether to print keywords (SELECT, AS, etc.) in lower-case. The
-   * default is false: keywords are printed in upper-case.
-   */
-  public void setKeywordsLowerCase(boolean b) {
-    this.keywordsLowerCase = b;
+  @Deprecated
+  public void setKeywordsLowerCase(boolean keywordsLowerCase) {
+    this.config = config.withKeywordsLowerCase(keywordsLowerCase);
   }
 
-  /**
-   * Sets whether to print a newline before each AND or OR (whichever is
-   * higher level) in WHERE clauses. NOTE: <i>Ignored when
-   * alwaysUseParentheses is set to true.</i>
-   */
-
-  public void setWhereListItemsOnSeparateLines(boolean b) {
-    this.whereListItemsOnSeparateLines = b;
+  @Deprecated
+  public void setWhereListItemsOnSeparateLines(
+      boolean whereListItemsOnSeparateLines) {
+    this.config =
+        config.withWhereListItemsOnSeparateLines(whereListItemsOnSeparateLines);
   }
 
-  public void setAlwaysUseParentheses(boolean b) {
-    this.alwaysUseParentheses = b;
+  @Deprecated
+  public void setAlwaysUseParentheses(boolean alwaysUseParentheses) {
+    this.config = config.withAlwaysUseParentheses(alwaysUseParentheses);
   }
 
   public void newlineAndIndent() {
-    pw.println();
-    charCount = 0;
-    indent(currentIndent);
+    newlineAndIndent(currentIndent);
+  }
+
+  public void newlineAndIndent(int indent) {
+    buf.append(NL);
+    lineStart = buf.length();
+    indent(indent);
     setNeedWhitespace(false); // no further whitespace necessary
   }
 
@@ -422,19 +543,12 @@ public class SqlPrettyWriter implements SqlWriter {
     if (indent < 0) {
       throw new IllegalArgumentException("negative indent " + indent);
     }
-    Spaces.append(pw, indent);
-    charCount += indent;
+    Spaces.append(buf, indent);
   }
 
-  /**
-   * Sets whether to quote all identifiers, even those which would be correct
-   * according to the rules of the {@link SqlDialect} if quotation marks were
-   * omitted.
-   *
-   * <p>Default true.
-   */
-  public void setQuoteAllIdentifiers(boolean b) {
-    this.quoteAllIdentifiers = b;
+  @Deprecated
+  public void setQuoteAllIdentifiers(boolean quoteAllIdentifiers) {
+    this.config = config.withQuoteAllIdentifiers(quoteAllIdentifiers);
   }
 
   /**
@@ -454,283 +568,265 @@ public class SqlPrettyWriter implements SqlWriter {
       String keyword,
       String open,
       String close) {
-    int indentation = getIndentation();
-    if (frameType instanceof FrameTypeEnum) {
-      FrameTypeEnum frameTypeEnum = (FrameTypeEnum) frameType;
-
-      switch (frameTypeEnum) {
-      case WINDOW_DECL_LIST:
-      case VALUES:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            false,
-            indentation,
-            windowDeclListNewline,
-            false,
-            false);
-
-      case UPDATE_SET_LIST:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            updateSetListNewline,
-            indentation,
-            false,
-            false,
-            false);
-
-      case SELECT_LIST:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            selectListExtraIndentFlag ? indentation : 0,
-            selectListItemsOnSeparateLines,
-            false,
-            indentation,
-            selectListItemsOnSeparateLines,
-            false,
-            false);
-
-      case ORDER_BY_LIST:
-      case GROUP_BY_LIST:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            selectListItemsOnSeparateLines,
-            false,
-            indentation,
-            selectListItemsOnSeparateLines,
-            false,
-            false);
-
-      case SUB_QUERY:
-        switch (subQueryStyle) {
-        case BLACK:
-
-          // Generate, e.g.:
-          //
-          // WHERE foo = bar IN
-          // (   SELECT ...
-          open = Spaces.padRight("(", indentation);
-          return new FrameImpl(
-              frameType,
-              keyword,
-              open,
-              close,
-              0,
-              false,
-              true,
-              indentation,
-              false,
-              false,
-              false) {
-            protected void _before() {
-              newlineAndIndent();
-            }
-          };
-        case HYDE:
-
-          // Generate, e.g.:
-          //
-          // WHERE foo IN (
-          //     SELECT ...
-          return new FrameImpl(
-              frameType,
-              keyword,
-              open,
-              close,
-              0,
-              false,
-              true,
-              0,
-              false,
-              false,
-              false) {
-            protected void _before() {
-              nextWhitespace = NL;
-            }
-          };
-        default:
-          throw Util.unexpected(subQueryStyle);
-        }
-
-      case ORDER_BY:
-      case OFFSET:
-      case FETCH:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            0,
-            false,
-            true,
-            0,
-            false,
-            false,
-            false);
-
-      case SELECT:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            isClauseStartsLine(), // newline before FROM, WHERE etc.
-            0, // all clauses appear below SELECT
-            false,
-            false,
-            false);
-
-      case SETOP:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            isClauseStartsLine(), // newline before UNION, EXCEPT
-            0, // all clauses appear below SELECT
-            isClauseStartsLine(), // newline after UNION, EXCEPT
-            false,
-            false);
-
-      case WINDOW:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            windowNewline,
-            0,
-            false,
-            false,
-            false);
-
-      case FUN_CALL:
-        setNeedWhitespace(false);
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            false,
-            indentation,
-            false,
-            false,
-            false);
-
-      case IDENTIFIER:
-      case SIMPLE:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            false,
-            indentation,
-            false,
-            false,
-            false);
-
-      case WHERE_LIST:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            whereListItemsOnSeparateLines,
-            0,
-            false,
-            false,
-            false);
-
-      case FROM_LIST:
-      case JOIN:
-        return new FrameImpl(
-            frameType,
-            keyword,
-            open,
-            close,
-            indentation,
-            false,
-            isClauseStartsLine(), // newline before UNION, EXCEPT
-            0, // all clauses appear below SELECT
-            isClauseStartsLine(), // newline after UNION, EXCEPT
-            false,
-            false) {
-          protected void sep(boolean printFirst, String sep) {
-            boolean newlineBefore =
-                newlineBeforeSep
-                    && !sep.equals(",");
-            boolean newlineAfter =
-                newlineAfterSep && sep.equals(",");
-            if ((itemCount > 0) || printFirst) {
-              if (newlineBefore && (itemCount > 0)) {
-                pw.println();
-                charCount = 0;
-                indent(currentIndent + sepIndent);
-                setNeedWhitespace(false);
-              }
-              keyword(sep);
-              nextWhitespace = newlineAfter ? NL : " ";
-            }
-            ++itemCount;
-          }
-        };
-      default:
-        // fall through
-      }
-    }
+    final FrameTypeEnum frameTypeEnum =
+        frameType instanceof FrameTypeEnum ? (FrameTypeEnum) frameType
+            : FrameTypeEnum.OTHER;
+    final int indentation = config.indentation();
     boolean newlineAfterOpen = false;
     boolean newlineBeforeSep = false;
+    boolean newlineAfterSep = false;
     boolean newlineBeforeClose = false;
+    int left = column();
     int sepIndent = indentation;
-    if (frameType.getName().equals("CASE")) {
-      if (caseClausesOnNewLines) {
-        newlineAfterOpen = true;
+    int extraIndent = 0;
+    final SqlWriterConfig.LineFolding fold = fold(frameTypeEnum);
+    final boolean newline = fold == SqlWriterConfig.LineFolding.TALL;
+
+    switch (frameTypeEnum) {
+    case SELECT:
+      extraIndent = indentation;
+      newlineAfterOpen = false;
+      newlineBeforeSep = config.clauseStartsLine(); // newline before FROM, WHERE etc.
+      newlineAfterSep = false;
+      sepIndent = 0; // all clauses appear below SELECT
+      break;
+
+    case SETOP:
+      extraIndent = 0;
+      newlineAfterOpen = false;
+      newlineBeforeSep = config.clauseStartsLine(); // newline before UNION, EXCEPT
+      newlineAfterSep = config.clauseStartsLine(); // newline after UNION, EXCEPT
+      sepIndent = 0; // all clauses appear below SELECT
+      break;
+
+    case SELECT_LIST:
+    case FROM_LIST:
+    case JOIN:
+    case GROUP_BY_LIST:
+    case ORDER_BY_LIST:
+    case WINDOW_DECL_LIST:
+    case VALUES:
+      if (config.selectListExtraIndentFlag()) {
+        extraIndent = indentation;
+      }
+      left = frame == null ? 0 : frame.left;
+      newlineAfterOpen = config.clauseEndsLine()
+          && (fold == SqlWriterConfig.LineFolding.TALL
+              || fold == SqlWriterConfig.LineFolding.STEP);
+      newlineBeforeSep = false;
+      newlineAfterSep = newline;
+      if (config.leadingComma() && newline) {
         newlineBeforeSep = true;
-        newlineBeforeClose = true;
-        sepIndent = 0;
+        newlineAfterSep = false;
+        sepIndent = -", ".length();
+      }
+      break;
+
+    case WHERE_LIST:
+    case WINDOW:
+      extraIndent = indentation;
+      newlineAfterOpen = newline && config.clauseEndsLine();
+      newlineBeforeSep = newline;
+      sepIndent = 0;
+      newlineAfterSep = false;
+      break;
+
+    case ORDER_BY:
+    case OFFSET:
+    case FETCH:
+      newlineAfterOpen = false;
+      newlineBeforeSep = true;
+      sepIndent = 0;
+      newlineAfterSep = false;
+      break;
+
+    case UPDATE_SET_LIST:
+      extraIndent = indentation;
+      newlineAfterOpen = newline;
+      newlineBeforeSep = false;
+      sepIndent = 0;
+      newlineAfterSep = newline;
+      break;
+
+    case CASE:
+      newlineAfterOpen = newline;
+      newlineBeforeSep = newline;
+      newlineBeforeClose = newline;
+      sepIndent = 0;
+      break;
+    }
+
+    final int chopColumn;
+    final SqlWriterConfig.LineFolding lineFolding;
+    if (config.lineFolding() == null) {
+      lineFolding = SqlWriterConfig.LineFolding.WIDE;
+      chopColumn = -1;
+    } else {
+      lineFolding = config.lineFolding();
+      if (config.foldLength() > 0
+          && (lineFolding == SqlWriterConfig.LineFolding.CHOP
+              || lineFolding == SqlWriterConfig.LineFolding.FOLD
+              || lineFolding == SqlWriterConfig.LineFolding.STEP)) {
+        chopColumn = left + config.foldLength();
+      } else {
+        chopColumn = -1;
       }
     }
-    return new FrameImpl(
-        frameType,
-        keyword,
-        open,
-        close,
-        indentation,
-        newlineAfterOpen,
-        newlineBeforeSep,
-        sepIndent,
-        false,
-        newlineBeforeClose,
-        false);
+
+    switch (frameTypeEnum) {
+    case UPDATE_SET_LIST:
+    case WINDOW_DECL_LIST:
+    case VALUES:
+    case SELECT:
+    case SETOP:
+    case SELECT_LIST:
+    case WHERE_LIST:
+    case ORDER_BY_LIST:
+    case GROUP_BY_LIST:
+    case WINDOW:
+    case ORDER_BY:
+    case OFFSET:
+    case FETCH:
+      return new FrameImpl(frameType, keyword, open, close,
+          left, extraIndent, chopColumn, lineFolding, newlineAfterOpen,
+          newlineBeforeSep, sepIndent, newlineAfterSep, false, false);
+
+    case SUB_QUERY:
+      switch (config.subQueryStyle()) {
+      case BLACK:
+        // Generate, e.g.:
+        //
+        // WHERE foo = bar IN
+        // (   SELECT ...
+        open = Spaces.padRight("(", indentation - 1);
+        return new FrameImpl(frameType, keyword, open, close,
+            left, 0, chopColumn, lineFolding, false, true, indentation,
+            false, false, false) {
+          protected void _before() {
+            newlineAndIndent();
+          }
+        };
+
+      case HYDE:
+        // Generate, e.g.:
+        //
+        // WHERE foo IN (
+        //     SELECT ...
+        return new FrameImpl(frameType, keyword, open, close, left, 0,
+            chopColumn, lineFolding, false, true, 0, false, false, false) {
+          protected void _before() {
+            nextWhitespace = NL;
+          }
+        };
+
+      default:
+        throw Util.unexpected(config.subQueryStyle());
+      }
+
+    case FUN_CALL:
+      setNeedWhitespace(false);
+      return new FrameImpl(frameType, keyword, open, close,
+          left, indentation, chopColumn, lineFolding, false, false,
+          indentation, false, false, false);
+
+    case PARENTHESES:
+      open = "(";
+      close = ")";
+      // fall through
+    case IDENTIFIER:
+    case SIMPLE:
+      return new FrameImpl(frameType, keyword, open, close,
+          left, indentation, chopColumn, lineFolding, false, false,
+          indentation, false, false, false);
+
+    case FROM_LIST:
+    case JOIN:
+      newlineBeforeSep = newline;
+      sepIndent = 0; // all clauses appear below SELECT
+      newlineAfterSep = false;
+      final boolean newlineBeforeComma = config.leadingComma() && newline;
+      final boolean newlineAfterComma = !config.leadingComma() && newline;
+      return new FrameImpl(frameType, keyword, open, close, left,
+          indentation, chopColumn, lineFolding, newlineAfterOpen,
+          newlineBeforeSep, sepIndent, newlineAfterSep, false, false) {
+        protected void sep(boolean printFirst, String sep) {
+          final boolean newlineBeforeSep;
+          final boolean newlineAfterSep;
+          if (sep.equals(",")) {
+            newlineBeforeSep = newlineBeforeComma;
+            newlineAfterSep = newlineAfterComma;
+          } else {
+            newlineBeforeSep = this.newlineBeforeSep;
+            newlineAfterSep = this.newlineAfterSep;
+          }
+          if (itemCount == 0) {
+            if (newlineAfterOpen) {
+              newlineAndIndent(currentIndent);
+            }
+          } else {
+            if (newlineBeforeSep) {
+              newlineAndIndent(currentIndent + sepIndent);
+            }
+          }
+          if ((itemCount > 0) || printFirst) {
+            keyword(sep);
+            nextWhitespace = newlineAfterSep ? NL : " ";
+          }
+          ++itemCount;
+        }
+      };
+
+    default:
+    case OTHER:
+      return new FrameImpl(frameType, keyword, open, close, left, indentation,
+          chopColumn, lineFolding, newlineAfterOpen, newlineBeforeSep,
+          sepIndent, newlineAfterSep, newlineBeforeClose, false);
+    }
+  }
+
+  private SqlWriterConfig.LineFolding fold(FrameTypeEnum frameType) {
+    switch (frameType) {
+    case SELECT_LIST:
+      return f3(config.selectFolding(), config.lineFolding(),
+          config.selectListItemsOnSeparateLines());
+    case GROUP_BY_LIST:
+      return f3(config.groupByFolding(), config.lineFolding(),
+          config.selectListItemsOnSeparateLines());
+    case ORDER_BY_LIST:
+      return f3(config.orderByFolding(), config.lineFolding(),
+          config.selectListItemsOnSeparateLines());
+    case UPDATE_SET_LIST:
+      return f3(config.updateSetFolding(), config.lineFolding(),
+          config.updateSetListNewline());
+    case WHERE_LIST:
+      return f3(config.whereFolding(), config.lineFolding(),
+          config.whereListItemsOnSeparateLines());
+    case WINDOW_DECL_LIST:
+      return f3(config.windowFolding(), config.lineFolding(),
+          config.clauseStartsLine() && config.windowDeclListNewline());
+    case WINDOW:
+      return f3(config.overFolding(), config.lineFolding(),
+          config.windowNewline());
+    case VALUES:
+      return f3(config.valuesFolding(), config.lineFolding(),
+          config.valuesListNewline());
+    case FROM_LIST:
+    case JOIN:
+      return f3(config.fromFolding(), config.lineFolding(),
+          config.caseClausesOnNewLines());
+    case CASE:
+      return f3(null, null, config.caseClausesOnNewLines());
+    default:
+      return SqlWriterConfig.LineFolding.WIDE;
+    }
+  }
+
+  private SqlWriterConfig.LineFolding f3(SqlWriterConfig.LineFolding folding0,
+      SqlWriterConfig.LineFolding folding1, boolean opt) {
+    return folding0 != null ? folding0
+        : folding1 != null ? folding1
+            : opt ? SqlWriterConfig.LineFolding.TALL
+                : SqlWriterConfig.LineFolding.WIDE;
   }
 
   /**
@@ -749,16 +845,19 @@ public class SqlPrettyWriter implements SqlWriter {
       String close) {
     assert frameType != null;
     if (frame != null) {
-      ++frame.itemCount;
+      if (frame.itemCount++ == 0 && frame.newlineAfterOpen) {
+        newlineAndIndent();
+      } else if (frameType == FrameTypeEnum.SUB_QUERY
+          && config.subQueryStyle() == SubQueryStyle.BLACK) {
+        newlineAndIndent(currentIndent - frame.extraIndent);
+      }
 
       // REVIEW jvs 9-June-2006:  This is part of the fix for FRG-149
       // (extra frame for identifier was leading to extra indentation,
       // causing select list to come out raggedy with identifiers
       // deeper than literals); are there other frame types
       // for which extra indent should be suppressed?
-      if (frameType.needsIndent()) {
-        currentIndent += frame.extraIndent;
-      }
+      currentIndent += frame.extraIndent(frameType);
       assert !listStack.contains(frame);
       listStack.push(frame);
     }
@@ -793,9 +892,7 @@ public class SqlPrettyWriter implements SqlWriter {
       assert currentIndent == 0 : currentIndent;
     } else {
       this.frame = listStack.pop();
-      if (endedFrame.frameType.needsIndent()) {
-        currentIndent -= this.frame.extraIndent;
-      }
+      currentIndent -= this.frame.extraIndent(endedFrame.frameType);
     }
   }
 
@@ -807,8 +904,7 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public String toString() {
-    pw.flush();
-    return sw.toString();
+    return buf.toString();
   }
 
   public SqlString toSqlString() {
@@ -828,11 +924,10 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void keyword(String s) {
     maybeWhitespace(s);
-    pw.print(
+    buf.append(
         isKeywordsLowerCase()
             ? s.toLowerCase(Locale.ROOT)
             : s.toUpperCase(Locale.ROOT));
-    charCount += s.length();
     if (!s.equals("")) {
       setNeedWhitespace(needWhitespaceAfter(s));
     }
@@ -864,19 +959,24 @@ public class SqlPrettyWriter implements SqlWriter {
       if (nextWhitespace.equals(NL)) {
         newlineAndIndent();
       } else {
-        pw.print(nextWhitespace);
-        charCount += nextWhitespace.length();
+        buf.append(nextWhitespace);
       }
       nextWhitespace = " ";
       setNeedWhitespace(false);
     }
   }
 
+  /** Returns the number of characters appended since the last newline. */
+  private int column() {
+    return buf.length() - lineStart;
+  }
+
   protected boolean tooLong(String s) {
+    final int lineLength = config.lineLength();
     boolean result =
         lineLength > 0
-            && (charCount > currentIndent)
-            && ((charCount + s.length()) >= lineLength);
+            && (column() > currentIndent)
+            && ((column() + s.length()) >= lineLength);
     if (result) {
       nextWhitespace = NL;
     }
@@ -886,14 +986,12 @@ public class SqlPrettyWriter implements SqlWriter {
 
   public void print(String s) {
     maybeWhitespace(s);
-    pw.print(s);
-    charCount += s.length();
+    buf.append(s);
   }
 
   public void print(int x) {
     maybeWhitespace("0");
-    pw.print(x);
-    charCount += String.valueOf(x).length();
+    buf.append(x);
   }
 
   public void identifier(String name, boolean quoted) {
@@ -904,8 +1002,7 @@ public class SqlPrettyWriter implements SqlWriter {
       qName = dialect.quoteIdentifier(name);
     }
     maybeWhitespace(qName);
-    pw.print(qName);
-    charCount += qName.length();
+    buf.append(qName);
     setNeedWhitespace(true);
   }
 
@@ -956,6 +1053,23 @@ public class SqlPrettyWriter implements SqlWriter {
     return startList(frameType, null, open, close);
   }
 
+  public SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action) {
+    final SqlWriter.Frame selectListFrame =
+        startList(SqlWriter.FrameTypeEnum.SELECT_LIST);
+    final SqlWriter w = this;
+    action.accept(w);
+    endList(selectListFrame);
+    return this;
+  }
+
+  public SqlWriter list(FrameTypeEnum frameType, SqlBinaryOperator sepOp,
+      SqlNodeList list) {
+    final SqlWriter.Frame frame = startList(frameType);
+    ((FrameImpl) frame).list(list, sepOp);
+    endList(frame);
+    return this;
+  }
+
   public void sep(String sep) {
     sep(sep, !(sep.equals(",") || sep.equals(".")));
   }
@@ -974,8 +1088,9 @@ public class SqlPrettyWriter implements SqlWriter {
     this.needWhitespace = needWhitespace;
   }
 
+  @Deprecated
   public void setLineLength(int lineLength) {
-    this.lineLength = lineLength;
+    this.config = config.withLineLength(lineLength);
   }
 
   public void setFormatOptions(SqlFormatOptions options) {
@@ -1008,6 +1123,7 @@ public class SqlPrettyWriter implements SqlWriter {
     final String open;
     final String close;
 
+    private final int left;
     /**
      * Indent of sub-frame with respect to this one.
      */
@@ -1033,33 +1149,40 @@ public class SqlPrettyWriter implements SqlWriter {
      * Whether to print a newline after each separator.
      */
     public final boolean newlineAfterSep;
-    private final boolean newlineBeforeClose;
-    private final boolean newlineAfterClose;
-    private final boolean newlineAfterOpen;
+    protected final boolean newlineBeforeClose;
+    protected final boolean newlineAfterClose;
+    protected final boolean newlineAfterOpen;
 
-    FrameImpl(
-        FrameType frameType,
-        String keyword,
-        String open,
-        String close,
-        int extraIndent,
-        boolean newlineAfterOpen,
-        boolean newlineBeforeSep,
-        int sepIndent,
-        boolean newlineAfterSep,
-        boolean newlineBeforeClose,
-        boolean newlineAfterClose) {
+    /** Character count after which we should move an item to the
+     * next line. Or {@link Integer#MAX_VALUE} if we are not chopping. */
+    private final int chopLimit;
+
+    /** How lines are to be folded. */
+    private final SqlWriterConfig.LineFolding lineFolding;
+
+    FrameImpl(FrameType frameType, String keyword, String open, String close,
+        int left, int extraIndent, int chopLimit,
+        SqlWriterConfig.LineFolding lineFolding, boolean newlineAfterOpen,
+        boolean newlineBeforeSep, int sepIndent, boolean newlineAfterSep,
+        boolean newlineBeforeClose, boolean newlineAfterClose) {
       this.frameType = frameType;
       this.keyword = keyword;
       this.open = open;
       this.close = close;
+      this.left = left;
       this.extraIndent = extraIndent;
+      this.chopLimit = chopLimit;
+      this.lineFolding = lineFolding;
       this.newlineAfterOpen = newlineAfterOpen;
       this.newlineBeforeSep = newlineBeforeSep;
       this.newlineAfterSep = newlineAfterSep;
       this.newlineBeforeClose = newlineBeforeClose;
       this.newlineAfterClose = newlineAfterClose;
       this.sepIndent = sepIndent;
+      assert chopLimit >= 0
+          == (lineFolding == SqlWriterConfig.LineFolding.CHOP
+          || lineFolding == SqlWriterConfig.LineFolding.FOLD
+          || lineFolding == SqlWriterConfig.LineFolding.STEP);
     }
 
     protected void before() {
@@ -1072,15 +1195,164 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     protected void sep(boolean printFirst, String sep) {
-      if ((newlineBeforeSep && (itemCount > 0))
-          || (newlineAfterOpen && (itemCount == 0))) {
-        newlineAndIndent();
+      if (itemCount == 0) {
+        if (newlineAfterOpen) {
+          newlineAndIndent(currentIndent);
+        }
+      } else {
+        if (newlineBeforeSep) {
+          newlineAndIndent(currentIndent + sepIndent);
+        }
       }
       if ((itemCount > 0) || printFirst) {
         keyword(sep);
         nextWhitespace = newlineAfterSep ? NL : " ";
       }
       ++itemCount;
+    }
+
+    /** Returns the extra indent required for a given type of sub-frame. */
+    int extraIndent(FrameType subFrameType) {
+      if (this.frameType == FrameTypeEnum.ORDER_BY
+          && subFrameType == FrameTypeEnum.ORDER_BY_LIST) {
+        return config.indentation();
+      }
+      if (subFrameType.needsIndent()) {
+        return extraIndent;
+      }
+      return 0;
+    }
+
+    void list(SqlNodeList list, SqlBinaryOperator sepOp) {
+      final Save save;
+      switch (lineFolding) {
+      case CHOP:
+      case FOLD:
+        save = new Save();
+        if (!list2(list, sepOp)) {
+          save.restore();
+          final boolean newlineAfterOpen = config.clauseEndsLine();
+          final SqlWriterConfig.LineFolding lineFolding;
+          final int chopLimit;
+          if (this.lineFolding == SqlWriterConfig.LineFolding.CHOP) {
+            lineFolding = SqlWriterConfig.LineFolding.TALL;
+            chopLimit = -1;
+          } else {
+            lineFolding = SqlWriterConfig.LineFolding.FOLD;
+            chopLimit = this.chopLimit;
+          }
+          final boolean newline =
+              lineFolding == SqlWriterConfig.LineFolding.TALL;
+          final boolean newlineBeforeSep;
+          final boolean newlineAfterSep;
+          final int sepIndent;
+          if (config.leadingComma() && newline) {
+            newlineBeforeSep = true;
+            newlineAfterSep = false;
+            sepIndent = -", ".length();
+          } else if (newline) {
+            newlineBeforeSep = false;
+            newlineAfterSep = true;
+            sepIndent = this.sepIndent;
+          } else {
+            newlineBeforeSep = false;
+            newlineAfterSep = false;
+            sepIndent = this.sepIndent;
+          }
+          final FrameImpl frame2 =
+              new FrameImpl(frameType, keyword, open, close, left, extraIndent,
+                  chopLimit, lineFolding, newlineAfterOpen, newlineBeforeSep,
+                  sepIndent, newlineAfterSep, newlineBeforeClose,
+                  newlineAfterClose);
+          frame2.list2(list, sepOp);
+        }
+        break;
+      default:
+        list2(list, sepOp);
+      }
+    }
+
+    /** Tries to write a list. If the line runs too long, returns false,
+     * indicating to retry. */
+    private boolean list2(SqlNodeList list, SqlBinaryOperator sepOp) {
+      // The precedence pulling on the LHS of a node is the
+      // right-precedence of the separator operator. Similarly RHS.
+      //
+      // At the start and end of the list precedence should be 0, but non-zero
+      // precedence is useful, because it forces parentheses around
+      // sub-queries and empty lists, e.g. "SELECT a, (SELECT * FROM t), b",
+      // "GROUP BY ()".
+      final int lprec = sepOp.getRightPrec();
+      final int rprec = sepOp.getLeftPrec();
+      if (chopLimit < 0) {
+        for (int i = 0; i < list.size(); i++) {
+          SqlNode node = list.get(i);
+          sep(false, sepOp.getName());
+          node.unparse(SqlPrettyWriter.this, lprec, rprec);
+        }
+      } else if (newlineBeforeSep) {
+        for (int i = 0; i < list.size(); i++) {
+          SqlNode node = list.get(i);
+          sep(false, sepOp.getName());
+          final Save prevSize = new Save();
+          node.unparse(SqlPrettyWriter.this, lprec, rprec);
+          if (column() > chopLimit) {
+            if (lineFolding == SqlWriterConfig.LineFolding.CHOP
+                || lineFolding == SqlWriterConfig.LineFolding.TALL) {
+              return false;
+            }
+            prevSize.restore();
+            newlineAndIndent();
+            node.unparse(SqlPrettyWriter.this, lprec, rprec);
+          }
+        }
+      } else {
+        for (int i = 0; i < list.size(); i++) {
+          SqlNode node = list.get(i);
+          if (i == 0) {
+            sep(false, sepOp.getName());
+          }
+          final Save save = new Save();
+          node.unparse(SqlPrettyWriter.this, lprec, rprec);
+          if (i + 1 < list.size()) {
+            sep(false, sepOp.getName());
+          }
+          if (column() > chopLimit) {
+            switch (lineFolding) {
+            case CHOP:
+              return false;
+            case FOLD:
+              if (newlineAfterOpen != config.clauseEndsLine()) {
+                return false;
+              }
+            }
+            save.restore();
+            newlineAndIndent();
+            node.unparse(SqlPrettyWriter.this, lprec, rprec);
+            if (i + 1 < list.size()) {
+              sep(false, sepOp.getName());
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    /** Remembers the state of the current frame and writer.
+     *
+     * <p>You can call {@link #restore} to restore to that state, or just
+     * continue. It is useful if you wish to re-try with different options
+     * (for example, with lines wrapped). */
+    class Save {
+      final int bufLength;
+
+      Save() {
+        this.bufLength = buf.length();
+      }
+
+      void restore() {
+        buf.setLength(bufLength);
+      }
     }
   }
 
@@ -1160,6 +1432,5 @@ public class SqlPrettyWriter implements SqlWriter {
       return names.toArray(new String[0]);
     }
   }
-}
 
-// End SqlPrettyWriter.java
+}

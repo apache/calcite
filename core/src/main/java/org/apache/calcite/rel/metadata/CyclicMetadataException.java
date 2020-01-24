@@ -27,5 +27,3 @@ public class CyclicMetadataException extends RuntimeException {
     super();
   }
 }
-
-// End CyclicMetadataException.java

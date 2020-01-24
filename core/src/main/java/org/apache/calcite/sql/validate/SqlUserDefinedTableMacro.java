@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -147,6 +147,8 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
         builder2.put(getValue(key), getValue(value));
       }
       return builder2.build();
+    case CAST:
+      return getValue(((SqlCall) right).operand(0));
     default:
       if (SqlUtil.isNullLiteral(right, true)) {
         return null;
@@ -175,8 +177,8 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     if (clazz.isAssignableFrom(o.getClass())) {
       return o;
     }
-    if (clazz == String.class && o instanceof NlsString) {
-      return ((NlsString) o).getValue();
+    if (o instanceof NlsString) {
+      return coerce(((NlsString) o).getValue(), type);
     }
     // We need optimization here for constant folding.
     // Not all the expressions can be interpreted (e.g. ternary), so
@@ -184,7 +186,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
     // expressions.
     BlockBuilder bb = new BlockBuilder();
     final Expression expr =
-        RexToLixTranslator.convert(Expressions.constant(o), clazz);
+        EnumUtils.convert(Expressions.constant(o), clazz);
     bb.add(Expressions.return_(null, expr));
     final FunctionExpression convert =
         Expressions.lambda(bb.toBlock(), Collections.emptyList());
@@ -196,5 +198,3 @@ public class SqlUserDefinedTableMacro extends SqlFunction {
   private static class NonLiteralException extends Exception {
   }
 }
-
-// End SqlUserDefinedTableMacro.java

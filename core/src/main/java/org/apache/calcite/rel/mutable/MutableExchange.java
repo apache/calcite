@@ -58,5 +58,3 @@ public class MutableExchange extends MutableSingleRel {
     return MutableExchange.of(input.clone(), distribution);
   }
 }
-
-// End MutableExchange.java

@@ -35,7 +35,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
@@ -76,8 +76,6 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   private RelDataType charType;
   private RelDataType varcharType;
   private RelDataType varchar20Type;
-
-  //~ Constructors -----------------------------------------------------------
 
   public TypeCoercionTest() {
     // tool tester impl.
@@ -781,8 +779,8 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     shouldNotCast(checkedType15, SqlTypeFamily.INTEGER);
   }
 
-  /** Test case for {@link AbstractTypeCoercion#implicitCast}. */
-  @Test  public void testBuiltinFunctionCoercion() {
+  /** Test case for {@link TypeCoercion#builtinFunctionCoercion}. */
+  @Test public void testBuiltinFunctionCoercion() {
     // concat
     expr("'ab'||'cde'")
         .columnType("CHAR(5) NOT NULL");
@@ -804,6 +802,34 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
     // date timestamp
     expr("select t1_timestamp||t1_date from t1")
         .columnType("VARCHAR");
+  }
+
+  /** Test case for {@link TypeCoercion#querySourceCoercion}. */
+  @Test public void testQuerySourceCoercion() {
+    final String expectRowType = "RecordType("
+        + "VARCHAR(20) NOT NULL t1_varchar20, "
+        + "SMALLINT NOT NULL t1_smallint, "
+        + "INTEGER NOT NULL t1_int, "
+        + "BIGINT NOT NULL t1_bigint, "
+        + "FLOAT NOT NULL t1_float, "
+        + "DOUBLE NOT NULL t1_double, "
+        + "DECIMAL(19, 0) NOT NULL t1_decimal, "
+        + "TIMESTAMP(0) NOT NULL t1_timestamp, "
+        + "DATE NOT NULL t1_date, "
+        + "BINARY(1) NOT NULL t1_binary, "
+        + "BOOLEAN NOT NULL t1_boolean) NOT NULL";
+
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+        + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
+    sql(sql).type(expectRowType);
+
+    final String sql1 = "insert into ^t1^(t1_varchar20, t1_date, t1_int)\n"
+        + "select t2_smallint, t2_timestamp, t2_float from t2";
+    sql(sql1).fails("(?s).*Column 't1_smallint' has no default value and does not allow NULLs.*");
+
+    final String sql2 = "update t1 set t1_varchar20=123, "
+        + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
+    sql(sql2).type(expectRowType);
   }
 
   //~ Inner Class ------------------------------------------------------------
@@ -859,5 +885,3 @@ public class TypeCoercionTest extends SqlValidatorTestCase {
   }
 
 }
-
-// End TypeCoercionTest.java

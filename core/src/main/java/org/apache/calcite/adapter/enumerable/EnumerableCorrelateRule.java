@@ -51,5 +51,3 @@ public class EnumerableCorrelateRule extends ConverterRule {
         c.getJoinType());
   }
 }
-
-// End EnumerableCorrelateRule.java

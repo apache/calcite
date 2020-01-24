@@ -71,7 +71,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode input,
       RexProgram program) {
-    super(cluster, traitSet, input, program);
+    super(cluster, traitSet, ImmutableList.of(), input, program);
     assert getConvention() instanceof EnumerableConvention;
     assert !program.containsAggs();
   }
@@ -136,7 +136,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
                 Enumerator.class, inputJavaType),
             "inputEnumerator");
     Expression input =
-        RexToLixTranslator.convert(
+        EnumUtils.convert(
             Expressions.call(
                 inputEnumerator,
                 BuiltInMethod.ENUMERATOR_CURRENT.method),
@@ -269,5 +269,3 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return program;
   }
 }
-
-// End EnumerableCalc.java

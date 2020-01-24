@@ -126,5 +126,3 @@ public class MaterializedViewTable extends ViewTable {
     }
   }
 }
-
-// End MaterializedViewTable.java

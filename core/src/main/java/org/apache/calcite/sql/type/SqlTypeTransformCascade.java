@@ -63,5 +63,3 @@ public class SqlTypeTransformCascade implements SqlReturnTypeInference {
     return ret;
   }
 }
-
-// End SqlTypeTransformCascade.java

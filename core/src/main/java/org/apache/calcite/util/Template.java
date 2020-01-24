@@ -277,5 +277,3 @@ public class Template extends MessageFormat {
     return parameterNames;
   }
 }
-
-// End Template.java

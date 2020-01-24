@@ -50,5 +50,3 @@ public enum HepMatchOrder {
    */
   DEPTH_FIRST
 }
-
-// End HepMatchOrder.java

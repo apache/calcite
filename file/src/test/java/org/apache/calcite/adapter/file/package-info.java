@@ -23,5 +23,3 @@
  * tables.
  */
 package org.apache.calcite.adapter.file;
-
-// End package-info.java

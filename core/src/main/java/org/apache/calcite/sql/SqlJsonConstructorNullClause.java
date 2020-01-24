@@ -29,5 +29,3 @@ public enum SqlJsonConstructorNullClause {
     this.sql = sql;
   }
 }
-
-// End SqlJsonConstructorNullClause.java

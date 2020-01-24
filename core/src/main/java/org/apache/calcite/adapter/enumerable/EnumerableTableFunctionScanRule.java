@@ -52,9 +52,7 @@ public class EnumerableTableFunctionScanRule extends ConverterRule {
         rel.getTraitSet().replace(EnumerableConvention.INSTANCE);
     LogicalTableFunctionScan tbl = (LogicalTableFunctionScan) rel;
     return new EnumerableTableFunctionScan(rel.getCluster(), traitSet,
-        tbl.getInputs(), tbl.getElementType(), tbl.getRowType(),
+        convertList(tbl.getInputs(), traitSet.getTrait(0)), tbl.getElementType(), tbl.getRowType(),
         tbl.getCall(), tbl.getColumnMappings());
   }
 }
-
-// End EnumerableTableFunctionScanRule.java

@@ -18,6 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelHintsPropagator;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
@@ -233,10 +234,9 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
     }
 
     // implement RelOptRuleCall
-    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+    public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+        RelHintsPropagator handler) {
       transformationResult = rel;
     }
   }
 }
-
-// End MockRelOptPlanner.java

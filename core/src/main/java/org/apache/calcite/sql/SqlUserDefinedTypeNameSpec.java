@@ -26,9 +26,6 @@ import org.apache.calcite.util.Litmus;
  *
  * <p>Usually you should register the UDT into the {@link org.apache.calcite.jdbc.CalciteSchema}
  * first before referencing it in the sql statement.
- *
- * <p>Internally we may new the {@code SqlUserDefinedTypeNameSpec} instance directly
- * for some sql dialects during rel-to-sql conversion.
  */
 public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
 
@@ -53,15 +50,7 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    final String name = getTypeName().names.get(0);
-    if (name.startsWith("_")) {
-      // We're generating a type for an alien system. For example,
-      // UNSIGNED is a built-in type in MySQL.
-      // (Need a more elegant way than '_' of flagging this.)
-      writer.keyword(name.substring(1));
-    } else {
-      getTypeName().unparse(writer, leftPrec, rightPrec);
-    }
+    getTypeName().unparse(writer, leftPrec, rightPrec);
   }
 
   @Override public boolean equalsDeep(SqlTypeNameSpec spec, Litmus litmus) {
@@ -75,5 +64,3 @@ public class SqlUserDefinedTypeNameSpec extends SqlTypeNameSpec {
     return litmus.succeed();
   }
 }
-
-// End SqlUserDefinedTypeNameSpec.java

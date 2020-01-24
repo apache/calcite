@@ -36,5 +36,3 @@ public class SnowflakeSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End SnowflakeSqlDialect.java

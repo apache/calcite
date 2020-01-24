@@ -74,5 +74,3 @@ public class HepProgram {
     }
   }
 }
-
-// End HepProgram.java

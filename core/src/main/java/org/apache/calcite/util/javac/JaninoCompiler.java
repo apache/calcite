@@ -192,5 +192,3 @@ public class JaninoCompiler implements JavaCompiler {
     }
   }
 }
-
-// End JaninoCompiler.java

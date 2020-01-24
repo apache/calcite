@@ -264,5 +264,3 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     }
   }
 }
-
-// End SqlBasicTypeNameSpec.java

@@ -116,5 +116,3 @@ public class SqlJsonQueryFunction extends SqlFunction {
     return (E) ((SqlLiteral) operand).getValue();
   }
 }
-
-// End SqlJsonQueryFunction.java

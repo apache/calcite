@@ -142,5 +142,3 @@ public class CompositeList<T> extends AbstractList<T> {
     return n;
   }
 }
-
-// End CompositeList.java

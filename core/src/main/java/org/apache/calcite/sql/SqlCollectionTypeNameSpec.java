@@ -124,5 +124,3 @@ public class SqlCollectionTypeNameSpec extends SqlTypeNameSpec {
     }
   }
 }
-
-// End SqlCollectionTypeNameSpec.java

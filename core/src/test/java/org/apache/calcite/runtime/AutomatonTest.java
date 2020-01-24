@@ -21,16 +21,15 @@ import org.apache.calcite.test.Matchers;
 
 import com.google.common.collect.ImmutableList;
 
-import org.hamcrest.Factory;
 import org.hamcrest.core.Is;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.AbstractList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /** Unit tests for {@link Automaton}. */
 public class AutomatonTest {
@@ -38,7 +37,6 @@ public class AutomatonTest {
   /** Creates a Matcher that matches a list of
    * {@link org.apache.calcite.runtime.Matcher.PartialMatch} if they
    * a formatted to a given string. */
-  @Factory
   private static <E> org.hamcrest.Matcher<List<Matcher.PartialMatch<E>>>
       isMatchList(final String value) {
     return Matchers.compose(Is.is(value),
@@ -247,5 +245,3 @@ public class AutomatonTest {
     };
   }
 }
-
-// End AutomatonTest.java

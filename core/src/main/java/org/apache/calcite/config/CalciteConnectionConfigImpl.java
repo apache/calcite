@@ -200,5 +200,3 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 }
-
-// End CalciteConnectionConfigImpl.java

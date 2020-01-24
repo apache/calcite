@@ -196,5 +196,3 @@ class PigTypes {
     return new DynamicTupleRecordType(TYPE_FACTORY);
   }
 }
-
-// End PigTypes.java

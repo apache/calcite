@@ -110,5 +110,3 @@ public interface InitializerExpressionFactory {
       List<RexNode> constructorArgs,
       InitializerContext context);
 }
-
-// End InitializerExpressionFactory.java

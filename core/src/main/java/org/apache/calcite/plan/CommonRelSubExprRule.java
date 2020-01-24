@@ -34,5 +34,3 @@ public abstract class CommonRelSubExprRule extends RelOptRule {
     super(operand);
   }
 }
-
-// End CommonRelSubExprRule.java

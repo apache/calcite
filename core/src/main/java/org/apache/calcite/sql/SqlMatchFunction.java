@@ -29,5 +29,3 @@ public class SqlMatchFunction extends SqlFunction {
     super(name, kind, returnTypeInference, operandTypeInference, operandTypeChecker, category);
   }
 }
-
-// End SqlMatchFunction.java

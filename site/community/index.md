@@ -26,11 +26,7 @@ limitations under the License.
 
 # Upcoming talks
 
-## Fast federated SQL with Apache Calcite (Chris Baynes)
-
-At [ApacheCon Europe 2019](https://aceu19.apachecon.com/), Berlin, Germany, October 24, 2019;
-[[summary](https://aceu19.apachecon.com/session/fast-federated-sql-apache-calcite)].
-
+There are no upcoming talks at the moment. Stay tuned!
 
 # Project Members
 
@@ -90,6 +86,13 @@ Want to learn more about Calcite?
 
 Watch some presentations and read through some slide decks about
 Calcite, or attend one of the [upcoming talks](#upcoming-talks).
+
+## Fast federated SQL with Apache Calcite
+
+At [ApacheCon Europe 2019](https://aceu19.apachecon.com/), Berlin, Germany, October 24, 2019;
+[[summary](https://aceu19.apachecon.com/session/fast-federated-sql-apache-calcite)],
+[[video](https://youtu.be/4JAOkLKrcYE)].
+
 
 ## One SQL to Rule Them All - an Efficient and Syntactically Idiomatic Approach to Management of Streams and Tables
 

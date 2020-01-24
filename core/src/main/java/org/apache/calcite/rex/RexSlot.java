@@ -102,5 +102,3 @@ public abstract class RexSlot extends RexVariable {
     }
   }
 }
-
-// End RexSlot.java

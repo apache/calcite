@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.rel;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,7 +24,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
@@ -96,5 +96,3 @@ public class RelCollationTest {
     return RelCollations.of(list);
   }
 }
-
-// End RelCollationTest.java

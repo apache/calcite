@@ -17,22 +17,24 @@
 package org.apache.calcite.sql.validate.implicit;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.sql.validate.SqlUserDefinedTableMacro;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -101,7 +103,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       return true;
     case WITH:
       SqlNode body = ((SqlWith) query).body;
-      return rowTypeCoercion(validator.getWithScope(query), body, columnIndex, targetType);
+      return rowTypeCoercion(validator.getOverScope(query), body, columnIndex, targetType);
     case UNION:
     case INTERSECT:
     case EXCEPT:
@@ -563,11 +565,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final List<RelDataType> paramTypes = function.getParamTypes();
     assert paramTypes != null;
     boolean coerced = false;
-    // User defined table macro only allows literals.
-    // we should support this in the future.
-    if (function instanceof SqlUserDefinedTableMacro) {
-      return false;
-    }
     for (int i = 0; i < call.operandCount(); i++) {
       SqlNode operand = call.operand(i);
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
@@ -586,6 +583,65 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     }
     return coerced;
   }
-}
 
-// End TypeCoercionImpl.java
+  public boolean querySourceCoercion(SqlValidatorScope scope,
+      RelDataType sourceRowType, RelDataType targetRowType, SqlNode query) {
+    final List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
+    final List<RelDataTypeField> targetFields = targetRowType.getFieldList();
+    final int sourceCount = sourceFields.size();
+    for (int i = 0; i < sourceCount; i++) {
+      RelDataType sourceType = sourceFields.get(i).getType();
+      RelDataType targetType = targetFields.get(i).getType();
+      if (!SqlTypeUtil.equalSansNullability(validator.getTypeFactory(), sourceType, targetType)
+          && !SqlTypeUtil.canCastFrom(targetType, sourceType, true)) {
+        // Returns early if types not equals and can not do type coercion.
+        return false;
+      }
+    }
+    boolean coerced = false;
+    for (int i = 0; i < sourceFields.size(); i++) {
+      RelDataType targetType = targetFields.get(i).getType();
+      coerced = coerceSourceRowType(scope, query, i, targetType) || coerced;
+    }
+    return coerced;
+  }
+
+  /**
+   * Coerces the field expression at index {@code columnIndex} of source
+   * in an INSERT or UPDATE query to target type.
+   *
+   * @param sourceScope  Query source scope
+   * @param query        Query
+   * @param columnIndex  Source column index to coerce type
+   * @param targetType   Target type
+   *
+   * @return True if any type coercion happens
+   */
+  private boolean coerceSourceRowType(
+      SqlValidatorScope sourceScope,
+      SqlNode query,
+      int columnIndex,
+      RelDataType targetType) {
+    switch (query.getKind()) {
+    case INSERT:
+      SqlInsert insert = (SqlInsert) query;
+      return coerceSourceRowType(sourceScope,
+          insert.getSource(),
+          columnIndex,
+          targetType);
+    case UPDATE:
+      SqlUpdate update = (SqlUpdate) query;
+      if (update.getSourceExpressionList() != null) {
+        final SqlNodeList sourceExpressionList = update.getSourceExpressionList();
+        return coerceColumnType(sourceScope, sourceExpressionList, columnIndex, targetType);
+      } else {
+        return coerceSourceRowType(sourceScope,
+            update.getSourceSelect(),
+            columnIndex,
+            targetType);
+      }
+    default:
+      return rowTypeCoercion(sourceScope, query, columnIndex, targetType);
+    }
+  }
+}

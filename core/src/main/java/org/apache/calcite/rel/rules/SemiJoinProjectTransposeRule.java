@@ -36,6 +36,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
@@ -83,7 +84,11 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
     RexNode newCondition = adjustCondition(project, semiJoin);
 
     LogicalJoin newSemiJoin =
-        LogicalJoin.create(project.getInput(), semiJoin.getRight(), newCondition,
+        LogicalJoin.create(project.getInput(),
+            semiJoin.getRight(),
+            // No need to copy the hints, the framework would try to do that.
+            ImmutableList.of(),
+            newCondition,
             ImmutableSet.of(), JoinRelType.SEMI);
 
     // Create the new projection.  Note that the projection expressions
@@ -177,5 +182,3 @@ public class SemiJoinProjectTransposeRule extends RelOptRule {
         mergedProgram.getCondition());
   }
 }
-
-// End SemiJoinProjectTransposeRule.java

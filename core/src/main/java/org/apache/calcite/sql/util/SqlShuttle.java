@@ -140,5 +140,3 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
     }
   }
 }
-
-// End SqlShuttle.java

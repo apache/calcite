@@ -26,5 +26,3 @@ public interface ArrayBindable extends Bindable<Object[]>, Typed {
   // override
   Class<Object[]> getElementType();
 }
-
-// End ArrayBindable.java

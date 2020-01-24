@@ -87,5 +87,3 @@ public class MutableCorrelate extends MutableBiRel {
         right.clone(), correlationId, requiredColumns, joinType);
   }
 }
-
-// End MutableCorrelate.java

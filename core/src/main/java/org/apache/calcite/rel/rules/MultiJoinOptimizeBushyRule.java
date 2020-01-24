@@ -387,5 +387,3 @@ public class MultiJoinOptimizeBushyRule extends RelOptRule {
     }
   }
 }
-
-// End MultiJoinOptimizeBushyRule.java

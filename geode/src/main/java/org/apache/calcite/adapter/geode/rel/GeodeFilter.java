@@ -392,5 +392,3 @@ public class GeodeFilter extends Filter implements GeodeRel {
     }
   }
 }
-
-// End GeodeFilter.java

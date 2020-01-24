@@ -78,5 +78,3 @@ public interface Litmus {
    */
   boolean check(boolean condition, String message, Object... args);
 }
-
-// End Litmus.java

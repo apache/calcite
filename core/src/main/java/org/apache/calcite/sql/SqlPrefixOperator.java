@@ -102,5 +102,3 @@ public class SqlPrefixOperator extends SqlOperator {
     return litmus.succeed();
   }
 }
-
-// End SqlPrefixOperator.java

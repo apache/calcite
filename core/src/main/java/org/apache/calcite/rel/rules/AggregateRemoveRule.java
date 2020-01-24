@@ -126,5 +126,3 @@ public class AggregateRemoveRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End AggregateRemoveRule.java

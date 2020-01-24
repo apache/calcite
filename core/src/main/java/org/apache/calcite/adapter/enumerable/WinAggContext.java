@@ -23,5 +23,3 @@ package org.apache.calcite.adapter.enumerable;
  */
 public interface WinAggContext extends AggContext {
 }
-
-// End WinAggContext.java

@@ -89,5 +89,3 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction {
     return getFunction().getElementType(arguments);
   }
 }
-
-// End SqlUserDefinedTableFunction.java

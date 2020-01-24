@@ -105,5 +105,3 @@ public class SqlCreateType extends SqlCreate
     }
   }
 }
-
-// End SqlCreateType.java

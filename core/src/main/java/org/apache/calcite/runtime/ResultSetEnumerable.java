@@ -446,5 +446,3 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
     void enrich(PreparedStatement statement) throws SQLException;
   }
 }
-
-// End ResultSetEnumerable.java

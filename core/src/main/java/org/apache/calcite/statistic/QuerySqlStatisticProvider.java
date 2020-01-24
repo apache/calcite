@@ -217,5 +217,3 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
         RelBuilder relBuilder);
   }
 }
-
-// End QuerySqlStatisticProvider.java

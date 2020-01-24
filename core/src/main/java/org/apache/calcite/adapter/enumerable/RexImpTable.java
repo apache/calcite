@@ -37,6 +37,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPatternFieldRef;
@@ -49,6 +50,7 @@ import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction;
 import org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -97,6 +99,9 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
@@ -117,6 +122,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.AND;
@@ -128,9 +134,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ATAN2;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_AND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_OR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.BIT_XOR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CARDINALITY;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CBRT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CEIL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHARACTER_LENGTH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CHAR_LENGTH;
@@ -263,6 +271,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE_TVF;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
@@ -292,6 +301,8 @@ public class RexImpTable {
       new HashMap<>();
   private final Map<SqlMatchFunction, Supplier<? extends MatchImplementor>> matchMap =
       new HashMap<>();
+  private final Map<SqlOperator, Supplier<? extends TableValuedFunctionCallImplementor>>
+      tvfImplementorMap = new HashMap<>();
 
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
@@ -388,6 +399,7 @@ public class RexImpTable {
     defineMethod(ASIN, "asin", NullPolicy.STRICT);
     defineMethod(ATAN, "atan", NullPolicy.STRICT);
     defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
+    defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
     defineMethod(COS, "cos", NullPolicy.STRICT);
     defineMethod(COT, "cot", NullPolicy.STRICT);
     defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
@@ -526,6 +538,12 @@ public class RexImpTable {
     defineMethod(CURRENT_VALUE, BuiltInMethod.SEQUENCE_CURRENT_VALUE.method, NullPolicy.STRICT);
     defineMethod(NEXT_VALUE, BuiltInMethod.SEQUENCE_NEXT_VALUE.method, NullPolicy.STRICT);
 
+    // Xml Operators
+    defineMethod(EXTRACT_VALUE, BuiltInMethod.EXTRACT_VALUE.method, NullPolicy.ARG0);
+    defineMethod(XML_TRANSFORM, BuiltInMethod.XML_TRANSFORM.method, NullPolicy.ARG0);
+    defineMethod(EXTRACT_XML, BuiltInMethod.EXTRACT_XML.method, NullPolicy.ARG0);
+    defineMethod(EXISTS_NODE, BuiltInMethod.EXISTS_NODE.method, NullPolicy.ARG0);
+
     // Json Operators
     defineMethod(JSON_VALUE_EXPRESSION,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
@@ -604,6 +622,7 @@ public class RexImpTable {
     final Supplier<BitOpImplementor> bitop = constructorSupplier(BitOpImplementor.class);
     aggMap.put(BIT_AND, bitop);
     aggMap.put(BIT_OR, bitop);
+    aggMap.put(BIT_XOR, bitop);
     aggMap.put(SINGLE_VALUE, constructorSupplier(SingleValueImplementor.class));
     aggMap.put(COLLECT, constructorSupplier(CollectImplementor.class));
     aggMap.put(LISTAGG, constructorSupplier(ListaggImplementor.class));
@@ -630,6 +649,7 @@ public class RexImpTable {
     matchMap.put(CLASSIFIER, ClassifierImplementor::new);
     matchMap.put(LAST, LastImplementor::new);
     map.put(PREV, new PrevImplementor());
+    tvfImplementorMap.put(TUMBLE_TVF, TumbleImplementor::new);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -924,6 +944,16 @@ public class RexImpTable {
     }
   }
 
+  public TableValuedFunctionCallImplementor get(final SqlWindowTableFunction operator) {
+    final Supplier<? extends TableValuedFunctionCallImplementor> supplier =
+        tvfImplementorMap.get(operator);
+    if (supplier != null) {
+      return supplier.get();
+    } else {
+      throw new IllegalStateException("Supplier should not be null");
+    }
+  }
+
   static Expression maybeNegate(boolean negate, Expression expression) {
     if (!negate) {
       return expression;
@@ -1096,7 +1126,7 @@ public class RexImpTable {
       final Expression ifTrue;
       switch (nullAs) {
       case NULL:
-        ifTrue = RexToLixTranslator.convert(NULL_EXPR, box.getType());
+        ifTrue = EnumUtils.convert(NULL_EXPR, box.getType());
         break;
       case IS_NULL:
         ifTrue = TRUE_EXPR;
@@ -1246,7 +1276,7 @@ public class RexImpTable {
       case BOX:
         switch (this) {
         case NOT_POSSIBLE:
-          return RexToLixTranslator.convert(
+          return EnumUtils.convert(
               x,
               Primitive.ofBox(x.getType()).primitiveClass);
         }
@@ -1379,7 +1409,7 @@ public class RexImpTable {
         next = Expressions.call(acc, "add", add.arguments().get(0));
       } else {
         next = Expressions.add(acc,
-            RexToLixTranslator.convert(add.arguments().get(0), acc.type));
+            EnumUtils.convert(add.arguments().get(0), acc.type));
       }
       accAdvance(add, acc, next);
     }
@@ -1457,7 +1487,7 @@ public class RexImpTable {
 
     public Expression implementResult(AggContext info,
         AggResultContext result) {
-      return RexToLixTranslator.convert(result.accumulator().get(1),
+      return EnumUtils.convert(result.accumulator().get(1),
           info.returnType());
     }
   }
@@ -1531,7 +1561,7 @@ public class RexImpTable {
     }
   }
 
-  /** Implementor for the {@code BIT_AND} and {@code BIT_OR} aggregate function. */
+  /** Implementor for the {@code BIT_AND}, {@code BIT_OR} and {@code BIT_XOR} aggregate function. */
   static class BitOpImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
@@ -1548,9 +1578,23 @@ public class RexImpTable {
       Expression acc = add.accumulator().get(0);
       Expression arg = add.arguments().get(0);
       SqlAggFunction aggregation = info.aggregation();
-      final Method method = (aggregation == BIT_AND
-          ? BuiltInMethod.BIT_AND
-          : BuiltInMethod.BIT_OR).method;
+
+      final BuiltInMethod builtInMethod;
+      switch (aggregation.kind) {
+      case BIT_AND:
+        builtInMethod = BuiltInMethod.BIT_AND;
+        break;
+      case BIT_OR:
+        builtInMethod = BuiltInMethod.BIT_OR;
+        break;
+      case BIT_XOR:
+        builtInMethod = BuiltInMethod.BIT_XOR;
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown " + aggregation.getName()
+            + ". Only support bit_and, bit_or and bit_xor for bit aggregation function");
+      }
+      final Method method = builtInMethod.method;
       Expression next = Expressions.call(
           method.getDeclaringClass(),
           method.getName(),
@@ -2199,8 +2243,8 @@ public class RexImpTable {
     private Expression call(Expression operand, Type type,
         TimeUnit timeUnit) {
       return Expressions.call(SqlFunctions.class, methodName,
-          RexToLixTranslator.convert(operand, type),
-          RexToLixTranslator.convert(
+          EnumUtils.convert(operand, type),
+          EnumUtils.convert(
               Expressions.constant(timeUnit.multiplier), type));
     }
   }
@@ -2218,16 +2262,17 @@ public class RexImpTable {
         RexCall call,
         List<Expression> translatedOperands) {
       final Expression expression;
+      Class clazz = method.getDeclaringClass();
       if (Modifier.isStatic(method.getModifiers())) {
-        expression = Expressions.call(method, translatedOperands);
+        expression = EnumUtils.call(clazz, method.getName(), translatedOperands);
       } else {
-        expression = Expressions.call(translatedOperands.get(0), method,
-            Util.skip(translatedOperands, 1));
+        expression = EnumUtils.call(clazz, method.getName(),
+            Util.skip(translatedOperands, 1), translatedOperands.get(0));
       }
 
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
-      return RexToLixTranslator.convert(expression, returnType);
+      return EnumUtils.convert(expression, returnType);
     }
   }
 
@@ -2246,7 +2291,7 @@ public class RexImpTable {
         RexToLixTranslator translator,
         RexCall call,
         List<Expression> translatedOperands) {
-      return Expressions.call(
+      return EnumUtils.call(
           SqlFunctions.class,
           methodName,
           translatedOperands);
@@ -2273,6 +2318,12 @@ public class RexImpTable {
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             SqlStdOperatorTable.GREATER_THAN,
             SqlStdOperatorTable.GREATER_THAN_OR_EQUAL);
+
+    private static final List<SqlBinaryOperator> EQUALS_OPERATORS =
+        ImmutableList.of(
+            SqlStdOperatorTable.EQUALS,
+            SqlStdOperatorTable.NOT_EQUALS);
+
     public static final String METHOD_POSTFIX_FOR_ANY_TYPE = "Any";
 
     private final ExpressionType expressionType;
@@ -2319,11 +2370,21 @@ public class RexImpTable {
           return Expressions.call(SqlFunctions.class, backupMethodName,
               expressions);
         }
+        // When checking equals or not equals on two primitive boxing classes
+        // (i.e. Long x, Long y), we should fall back to call `SqlFunctions.eq(x, y)`
+        // or `SqlFunctions.ne(x, y)`, rather than `x == y`
+        final Primitive boxPrimitive0 = Primitive.ofBox(type0);
+        final Primitive boxPrimitive1 = Primitive.ofBox(type1);
+        if (EQUALS_OPERATORS.contains(op)
+            && boxPrimitive0 != null && boxPrimitive1 != null) {
+          return Expressions.call(SqlFunctions.class, backupMethodName,
+              expressions);
+        }
       }
 
       final Type returnType =
           translator.typeFactory.getJavaClass(call.getType());
-      return RexToLixTranslator.convert(
+      return EnumUtils.convert(
           Expressions.makeBinary(expressionType, expressions.get(0),
               expressions.get(1)),
           returnType);
@@ -2596,10 +2657,10 @@ public class RexImpTable {
     private Expression implementRecurse(RexToLixTranslator translator,
         List<RexNode> operands, NullAs nullAs) {
       if (operands.size() == 1) {
-        return translator.translate(operands.get(0));
+        return translator.translate(operands.get(0), nullAs);
       } else {
         return Expressions.condition(
-            translator.translate(operands.get(0), NullAs.IS_NULL),
+            translator.translate(operands.get(0), NullAs.IS_NOT_NULL),
             translator.translate(operands.get(0), nullAs),
             implementRecurse(translator, Util.skip(operands), nullAs));
       }
@@ -2940,7 +3001,7 @@ public class RexImpTable {
     @Override public Expression implement(RexToLixTranslator translator, RexCall call,
         ParameterExpression row, ParameterExpression rows,
         ParameterExpression symbols, ParameterExpression i) {
-      return RexToLixTranslator.convert(
+      return EnumUtils.convert(
           Expressions.call(symbols, BuiltInMethod.LIST_GET.method, i),
           String.class);
     }
@@ -3004,6 +3065,31 @@ public class RexImpTable {
       return translator.translate(node, nullAs);
     }
   }
-}
 
-// End RexImpTable.java
+  /** Implements tumbling. */
+  private static class TumbleImplementor implements TableValuedFunctionCallImplementor {
+    @Override public Expression implement(RexToLixTranslator translator,
+        Expression inputEnumerable,
+        RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
+      Expression intervalExpression = translator.translate(call.getOperands().get(2));
+      RexCall descriptor = (RexCall) call.getOperands().get(1);
+      List<Expression> translatedOperands = new ArrayList<>();
+      final ParameterExpression parameter =
+          Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
+      Expression wmColExpr = inputPhysType.fieldReference(
+          parameter, ((RexInputRef) descriptor.getOperands().get(0)).getIndex(),
+          outputPhysType.getJavaFieldType(inputPhysType.getRowType().getFieldCount()));
+      translatedOperands.add(wmColExpr);
+      translatedOperands.add(intervalExpression);
+
+      return Expressions.call(
+          BuiltInMethod.TUMBLING.method,
+          inputEnumerable,
+          EnumUtils.windowSelector(
+              inputPhysType,
+              outputPhysType,
+              translatedOperands.get(0),
+              translatedOperands.get(1)));
+    }
+  }
+}

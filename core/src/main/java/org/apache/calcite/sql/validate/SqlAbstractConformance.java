@@ -106,6 +106,9 @@ public abstract class SqlAbstractConformance implements SqlConformance {
   public boolean allowPluralTimeUnits() {
     return SqlConformanceEnum.DEFAULT.allowPluralTimeUnits();
   }
-}
 
-// End SqlAbstractConformance.java
+  public boolean allowQualifyingCommonColumn() {
+    return SqlConformanceEnum.DEFAULT.allowQualifyingCommonColumn();
+  }
+
+}

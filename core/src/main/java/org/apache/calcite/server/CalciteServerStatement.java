@@ -40,5 +40,3 @@ public interface CalciteServerStatement {
 
   void setResultSet(Iterator<Object> resultSet);
 }
-
-// End CalciteServerStatement.java

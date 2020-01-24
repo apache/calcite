@@ -111,5 +111,3 @@ public class ProjectCalcMergeRule extends RelOptRule {
     call.transformTo(newCalc);
   }
 }
-
-// End ProjectCalcMergeRule.java

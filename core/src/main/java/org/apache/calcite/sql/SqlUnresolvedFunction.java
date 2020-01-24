@@ -69,5 +69,3 @@ public class SqlUnresolvedFunction extends SqlFunction {
         typeFactory.createSqlType(SqlTypeName.ANY), true);
   }
 }
-
-// End SqlUnresolvedFunction.java

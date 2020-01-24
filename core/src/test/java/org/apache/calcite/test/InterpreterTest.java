@@ -20,8 +20,12 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.interpreter.Interpreter;
 import org.apache.calcite.linq4j.QueryProvider;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -29,9 +33,9 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +43,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit tests for {@link org.apache.calcite.interpreter.Interpreter}.
@@ -125,7 +129,7 @@ public class InterpreterTest {
     return new Sql(sql, dataContext, planner, false);
   }
 
-  @Before public void setUp() {
+  private void reset() {
     rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
@@ -136,7 +140,11 @@ public class InterpreterTest {
     dataContext = new MyDataContext(planner);
   }
 
-  @After public void tearDown() {
+  @BeforeEach public void setUp() {
+    reset();
+  }
+
+  @AfterEach public void tearDown() {
     rootSchema = null;
     planner = null;
     dataContext = null;
@@ -360,6 +368,125 @@ public class InterpreterTest {
     sql(sql).returnsRows();
   }
 
-}
+  @Test public void testInterpretInnerJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "join\n"
+        + "(select x, y from (values (1, 'd'), (2, 'c')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows("[1, a, 1, d]", "[2, b, 2, c]");
+  }
 
-// End InterpreterTest.java
+  @Test public void testInterpretLeftOutJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "left join\n"
+        + "(select x, y from (values (1, 'd')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows("[1, a, 1, d]", "[2, b, null, null]", "[3, c, null, null]");
+  }
+
+  @Test public void testInterpretRightOutJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'd')) as t2(x, y)) t2\n"
+        + "right join\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "on t2.x = t.x";
+    sql(sql).returnsRows("[1, d, 1, a]", "[null, null, 2, b]", "[null, null, 3, c]");
+  }
+
+  @Test public void testInterpretSemanticSemiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x in\n"
+        + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
+    sql(sql).returnsRows("[1, a]", "[3, c]");
+  }
+
+  @Test public void testInterpretSemiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x in\n"
+        + "(select x from (values (1, 'd'), (3, 'g')) as t2(x, y))";
+    SqlNode validate = planner.validate(planner.parse(sql));
+    RelNode convert = planner.rel(validate).rel;
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SemiJoinRule.PROJECT)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(convert);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final Interpreter interpreter = new Interpreter(dataContext, relNode);
+    assertRows(interpreter, true, "[1, a]", "[3, c]");
+  }
+
+  @Test public void testInterpretAntiJoin() throws Exception {
+    final String sql = "select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)\n"
+        + "where x not in \n"
+        + "(select x from (values (1, 'd')) as t2(x, y))";
+    sql(sql).returnsRows("[2, b]", "[3, c]");
+  }
+
+  @Test public void testInterpretFullJoin() throws Exception {
+    final String sql = "select * from\n"
+        + "(select x, y from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(x, y)) t\n"
+        + "full join\n"
+        + "(select x, y from (values (1, 'd'), (2, 'c'), (4, 'x')) as t2(x, y)) t2\n"
+        + "on t.x = t2.x";
+    sql(sql).returnsRows(
+        "[1, a, 1, d]",
+        "[2, b, 2, c]",
+        "[3, c, null, null]",
+        "[null, null, 4, x]");
+  }
+
+  @Test public void testInterpretDecimalAggregate() throws Exception {
+    final String sql = "select x, min(y), max(y), sum(y), avg(y)\n"
+        + "from (values ('a', -1.2), ('a', 2.3), ('a', 15)) as t(x, y)\n"
+        + "group by x";
+    sql(sql).returnsRows("[a, -1.2, 15.0, 16.1, 5.366666666666667]");
+  }
+
+  @Test public void testInterpretUnnest() throws Exception {
+    sql("select * from unnest(array[1, 2])").returnsRows("[1]", "[2]");
+
+    reset();
+    sql("select * from unnest(multiset[1, 2])").returnsRowsUnordered("[1]", "[2]");
+
+    reset();
+    sql("select * from unnest(map['a', 12])").returnsRows("[a, 12]");
+
+    reset();
+    sql("select * from unnest(\n"
+        + "select * from (values array[10, 20], array[30, 40]))\n"
+        + "with ordinality as t(i, o)")
+        .returnsRows("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
+
+    reset();
+    sql("select * from unnest(map['a', 12, 'b', 13]) with ordinality as t(a, b, o)")
+        .returnsRows("[a, 12, 1]", "[b, 13, 2]");
+
+    reset();
+    sql("select * from unnest(\n"
+        + "select * from (values multiset[10, 20], multiset[30, 40]))\n"
+        + "with ordinality as t(i, o)")
+        .returnsRows("[10, 1]", "[20, 2]", "[30, 1]", "[40, 2]");
+
+    reset();
+    sql("select * from unnest(array[cast(null as integer), 10])")
+        .returnsRows("[null]", "[10]");
+
+    reset();
+    sql("select * from unnest(map[cast(null as integer), 10, 10, cast(null as integer)])")
+        .returnsRowsUnordered("[null, 10]", "[10, null]");
+
+    reset();
+    sql("select * from unnest(multiset[cast(null as integer), 10])")
+        .returnsRowsUnordered("[null]", "[10]");
+
+    try {
+      reset();
+      sql("select * from unnest(cast(null as int array))").returnsRows("");
+    } catch (NullPointerException e) {
+      assertThat(e.getMessage(), equalTo("NULL value for unnest."));
+    }
+  }
+}

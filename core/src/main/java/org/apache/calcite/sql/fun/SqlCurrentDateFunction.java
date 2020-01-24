@@ -56,5 +56,3 @@ public class SqlCurrentDateFunction extends SqlFunction {
     return true;
   }
 }
-
-// End SqlCurrentDateFunction.java

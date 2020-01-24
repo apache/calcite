@@ -83,5 +83,3 @@ public class ConditionalExpression extends AbstractNode {
     return Objects.hash(nodeType, type, expressionList);
   }
 }
-
-// End ConditionalExpression.java

@@ -52,5 +52,3 @@ public interface RelOptSchema {
    */
   void registerRules(RelOptPlanner planner) throws Exception;
 }
-
-// End RelOptSchema.java

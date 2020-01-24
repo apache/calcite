@@ -82,5 +82,3 @@ public class TableConstructorNamespace extends AbstractNamespace {
     return modality == SqlModality.RELATION;
   }
 }
-
-// End TableConstructorNamespace.java

@@ -81,5 +81,3 @@ public class MongoSchemaFactory implements SchemaFactory {
         + authMechanismName);
   }
 }
-
-// End MongoSchemaFactory.java

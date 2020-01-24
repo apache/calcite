@@ -80,5 +80,3 @@ public abstract class ConverterImpl extends SingleRel
   }
 
 }
-
-// End ConverterImpl.java

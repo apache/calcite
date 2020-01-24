@@ -17,13 +17,13 @@
 package org.apache.calcite.test;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests the generated implementation of
@@ -31,13 +31,6 @@ import static org.junit.Assert.assertThat;
  * the resource-generation infrastructure).
  */
 public class CalciteResourceTest {
-  //~ Constructors -----------------------------------------------------------
-
-  public CalciteResourceTest() {
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
   /**
    * Verifies that resource properties such as SQLSTATE are available at
    * runtime.
@@ -48,5 +41,3 @@ public class CalciteResourceTest {
     assertThat(props.get("SQLSTATE"), CoreMatchers.equalTo("42000"));
   }
 }
-
-// End CalciteResourceTest.java

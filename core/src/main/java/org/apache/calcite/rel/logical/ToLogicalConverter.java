@@ -28,7 +28,9 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Intersect;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableScan;
@@ -37,6 +39,7 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 
 /**
  * Shuttle to convert any rel plan to a plan with all logical nodes.
@@ -49,7 +52,7 @@ public class ToLogicalConverter extends RelShuttleImpl {
   }
 
   @Override public RelNode visit(TableScan scan) {
-    return LogicalTableScan.create(scan.getCluster(), scan.getTable());
+    return LogicalTableScan.create(scan.getCluster(), scan.getTable(), scan.getHints());
   }
 
   @Override public RelNode visit(RelNode relNode) {
@@ -57,7 +60,8 @@ public class ToLogicalConverter extends RelShuttleImpl {
       final Aggregate agg = (Aggregate) relNode;
       return relBuilder.push(visit(agg.getInput()))
           .aggregate(
-              relBuilder.groupKey(agg.getGroupSet(), agg.groupSets),
+              relBuilder.groupKey(agg.getGroupSet(),
+                  (Iterable<ImmutableBitSet>) agg.groupSets),
               agg.getAggCallList())
           .build();
     }
@@ -87,6 +91,24 @@ public class ToLogicalConverter extends RelShuttleImpl {
       }
       return relBuilder.union(union.all, union.getInputs().size())
           .build();
+    }
+
+    if (relNode instanceof Intersect) {
+      final Intersect intersect = (Intersect) relNode;
+      for (RelNode rel : intersect.getInputs()) {
+        relBuilder.push(visit(rel));
+      }
+      return relBuilder.intersect(intersect.all, intersect.getInputs().size())
+        .build();
+    }
+
+    if (relNode instanceof Minus) {
+      final Minus minus = (Minus) relNode;
+      for (RelNode rel : minus.getInputs()) {
+        relBuilder.push(visit(rel));
+      }
+      return relBuilder.minus(minus.all, minus.getInputs().size())
+        .build();
     }
 
     if (relNode instanceof Join) {
@@ -158,5 +180,3 @@ public class ToLogicalConverter extends RelShuttleImpl {
         + relNode.getClass().getName());
   }
 }
-
-// End ToLogicalConverter.java

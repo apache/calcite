@@ -176,5 +176,3 @@ public class JaninoRexCompiler implements Interpreter.ScalarCompiler {
     return (Scalar) cbe.createInstance(new StringReader(s));
   }
 }
-
-// End JaninoRexCompiler.java

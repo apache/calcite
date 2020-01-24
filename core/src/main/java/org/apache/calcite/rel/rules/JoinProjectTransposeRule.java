@@ -405,5 +405,3 @@ public class JoinProjectTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End JoinProjectTransposeRule.java

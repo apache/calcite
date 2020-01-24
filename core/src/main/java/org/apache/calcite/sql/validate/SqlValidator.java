@@ -42,6 +42,7 @@ import org.apache.calcite.sql.SqlUpdate;
 import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
+import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
 import java.util.List;
@@ -814,6 +815,17 @@ public interface SqlValidator {
 
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
-}
 
-// End SqlValidator.java
+  /**
+   * Sets the {@link SqlTypeCoercionRule} instance which defines the type conversion matrix
+   * for the explicit type coercion.
+   *
+   * <p>The {@code typeCoercionRules} setting should be thread safe.
+   * In the default implementation,
+   * the {@code typeCoercionRules} is set to a ThreadLocal variable.
+   *
+   * @param typeCoercionRules The {@link SqlTypeCoercionRule} instance, see its documentation
+   *                          for how to customize the rules.
+   */
+  void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules);
+}

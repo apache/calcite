@@ -53,5 +53,3 @@ public interface TableFunction extends Function {
    */
   Type getElementType(List<Object> arguments);
 }
-
-// End TableFunction.java

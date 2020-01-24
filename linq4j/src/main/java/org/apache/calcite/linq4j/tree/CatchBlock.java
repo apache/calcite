@@ -56,5 +56,3 @@ public class CatchBlock {
     return Objects.hash(parameter, body);
   }
 }
-
-// End CatchBlock.java

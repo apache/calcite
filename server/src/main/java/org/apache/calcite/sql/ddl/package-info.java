@@ -27,9 +27,4 @@
  * the parser and its supporting classes into your own module, rather than try
  * to extend this one.
  */
-@PackageMarker
 package org.apache.calcite.sql.ddl;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

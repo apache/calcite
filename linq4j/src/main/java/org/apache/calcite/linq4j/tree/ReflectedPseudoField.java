@@ -71,5 +71,3 @@ public class ReflectedPseudoField implements PseudoField {
     return field.hashCode();
   }
 }
-
-// End ReflectedPseudoField.java

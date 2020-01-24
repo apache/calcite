@@ -353,5 +353,3 @@ public class Shuttle {
             body);
   }
 }
-
-// End Shuttle.java

@@ -54,5 +54,3 @@ public class SqlBaseContextVariable extends SqlFunction {
     return true;
   }
 }
-
-// End SqlBaseContextVariable.java

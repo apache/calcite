@@ -87,7 +87,9 @@ public class StreamRules {
       final Project project = call.rel(1);
       final LogicalDelta newDelta = LogicalDelta.create(project.getInput());
       final LogicalProject newProject =
-          LogicalProject.create(newDelta, project.getProjects(),
+          LogicalProject.create(newDelta,
+              project.getHints(),
+              project.getProjects(),
               project.getRowType().getFieldNames());
       call.transformTo(newProject);
     }
@@ -142,7 +144,7 @@ public class StreamRules {
       final LogicalDelta newDelta =
           LogicalDelta.create(aggregate.getInput());
       final LogicalAggregate newAggregate =
-          LogicalAggregate.create(newDelta, aggregate.getGroupSet(),
+          LogicalAggregate.create(newDelta, aggregate.getHints(), aggregate.getGroupSet(),
               aggregate.groupSets, aggregate.getAggCallList());
       call.transformTo(newAggregate);
     }
@@ -241,7 +243,7 @@ public class StreamRules {
                     .addAll(relOptTable.getQualifiedName())
                     .add("(STREAM)").build());
         final LogicalTableScan newScan =
-            LogicalTableScan.create(cluster, relOptTable2);
+            LogicalTableScan.create(cluster, relOptTable2, scan.getHints());
         call.transformTo(newScan);
       }
     }
@@ -336,5 +338,3 @@ public class StreamRules {
     }
   }
 }
-
-// End StreamRules.java

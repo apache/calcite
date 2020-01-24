@@ -51,5 +51,3 @@ public class SqlMultisetSetOperator extends SqlBinaryOperator {
     this.all = all;
   }
 }
-
-// End SqlMultisetSetOperator.java

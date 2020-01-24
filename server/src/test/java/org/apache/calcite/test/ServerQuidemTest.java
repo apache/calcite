@@ -20,9 +20,7 @@ import org.apache.calcite.materialize.MaterializationService;
 
 import net.hydromatic.quidem.Quidem;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.Connection;
 import java.util.Collection;
@@ -30,14 +28,7 @@ import java.util.Collection;
 /**
  * Unit tests for server and DDL.
  */
-@RunWith(Parameterized.class)
 public class ServerQuidemTest extends QuidemTest {
-  /** Creates a ServerQuidemTest. Public per {@link Parameterized}. */
-  @SuppressWarnings("WeakerAccess")
-  public ServerQuidemTest(String path) {
-    super(path);
-  }
-
   /** Runs a test from the command line.
    *
    * <p>For example:
@@ -47,17 +38,16 @@ public class ServerQuidemTest extends QuidemTest {
    * </blockquote> */
   public static void main(String[] args) throws Exception {
     for (String arg : args) {
-      new ServerQuidemTest(arg).test();
+      new ServerQuidemTest().test(arg);
     }
   }
 
-  @Override @Test public void test() throws Exception {
+  @BeforeEach
+  public void setup() {
     MaterializationService.setThreadLocal();
-    super.test();
   }
 
-  /** For {@link Parameterized} runner. */
-  @Parameterized.Parameters(name = "{index}: quidem({0})")
+  /** For {@link QuidemTest#test(String)} parameters. */
   public static Collection<Object[]> data() {
     // Start with a test file we know exists, then find the directory and list
     // its files.
@@ -78,5 +68,3 @@ public class ServerQuidemTest extends QuidemTest {
     };
   }
 }
-
-// End ServerQuidemTest.java

@@ -79,5 +79,3 @@ public class EnumerableCollect extends Collect implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableCollect.java

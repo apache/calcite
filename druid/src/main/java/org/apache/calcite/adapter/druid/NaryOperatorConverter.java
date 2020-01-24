@@ -54,5 +54,3 @@ public class NaryOperatorConverter implements DruidSqlOperatorConverter {
     return DruidExpressions.nAryOperatorCall(druidOperatorName, druidExpressions);
   }
 }
-
-// End NaryOperatorConverter.java

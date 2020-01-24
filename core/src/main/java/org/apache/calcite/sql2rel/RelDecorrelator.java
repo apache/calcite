@@ -215,6 +215,9 @@ public class RelDecorrelator implements ReflectiveVisitor {
       newRootRel = decorrelator.decorrelate(newRootRel);
     }
 
+    // Re-propagate the hints.
+    newRootRel = RelOptUtil.propagateRelHints(newRootRel, true);
+
     return newRootRel;
   }
 
@@ -531,6 +534,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
 
+    newProject = RelOptUtil.copyRelHints(newInput, newProject);
+
     // update mappings:
     // oldInput ----> newInput
     //
@@ -558,14 +563,16 @@ public class RelDecorrelator implements ReflectiveVisitor {
     List<AggregateCall> newAggCalls = new ArrayList<>();
     List<AggregateCall> oldAggCalls = rel.getAggCallList();
 
-    ImmutableList<ImmutableBitSet> newGroupSets = null;
-    if (rel.getGroupType() != Aggregate.Group.SIMPLE) {
+    final Iterable<ImmutableBitSet> newGroupSets;
+    if (rel.getGroupType() == Aggregate.Group.SIMPLE) {
+      newGroupSets = null;
+    } else {
       final ImmutableBitSet addedGroupSet =
           ImmutableBitSet.range(oldGroupKeyCount, newGroupKeyCount);
-      final Iterable<ImmutableBitSet> tmpGroupSets =
-          Iterables.transform(rel.getGroupSets(),
-              bitSet -> bitSet.union(addedGroupSet));
-      newGroupSets = ImmutableBitSet.ORDERING.immutableSortedCopy(tmpGroupSets);
+      newGroupSets =
+          ImmutableBitSet.ORDERING.immutableSortedCopy(
+              Iterables.transform(rel.getGroupSets(),
+                  bitSet -> bitSet.union(addedGroupSet)));
     }
 
     int oldInputOutputFieldCount = rel.getGroupSet().cardinality();
@@ -599,8 +606,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           newInputOutputFieldCount + i);
     }
 
-    relBuilder.push(newProject).aggregate(
-        relBuilder.groupKey(newGroupSet, newGroupSets), newAggCalls);
+    relBuilder.push(newProject)
+        .aggregate(newGroupSets == null
+                ? relBuilder.groupKey(newGroupSet)
+                : relBuilder.groupKey(newGroupSet, newGroupSets),
+            newAggCalls);
 
     if (!omittedConstants.isEmpty()) {
       final List<RexNode> postProjects = new ArrayList<>(relBuilder.fields());
@@ -617,17 +627,20 @@ public class RelDecorrelator implements ReflectiveVisitor {
       relBuilder.project(postProjects);
     }
 
+    RelNode newRel = RelOptUtil.copyRelHints(rel, relBuilder.build());
+
     // Aggregate does not change input ordering so corVars will be
     // located at the same position as the input newProject.
-    return register(rel, relBuilder.build(), outputMap, corDefOutputs);
+    return register(rel, newRel, outputMap, corDefOutputs);
   }
 
   /**
    * Shift the mapping to fixed offset from the {@code startIndex}.
-   * @param mapping    the original mapping
-   * @param startIndex any output whose index equals with or bigger than the starting index
+   *
+   * @param mapping    The original mapping
+   * @param startIndex Any output whose index equals with or bigger than the starting index
    *                   would be shift
-   * @param offset     shift offset
+   * @param offset     Shift offset
    */
   private static void shiftMapping(Map<Integer, Integer> mapping, int startIndex, int offset) {
     for (Map.Entry<Integer, Integer> entry : mapping.entrySet()) {
@@ -715,6 +728,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
     RelNode newProject = relBuilder.push(frame.r)
         .projectNamed(Pair.left(projects), Pair.right(projects), true)
         .build();
+
+    newProject = RelOptUtil.copyRelHints(rel, newProject);
 
     return register(rel, newProject, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1168,7 +1183,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
     final RexNode condition =
         RexUtil.composeConjunction(relBuilder.getRexBuilder(), conditions);
     RelNode newJoin = relBuilder.push(leftFrame.r).push(rightFrame.r)
-        .join(rel.getJoinType(), condition, ImmutableSet.of()).build();
+        .join(rel.getJoinType(), condition).build();
 
     return register(rel, newJoin, mapOldToNewOutputs, corDefOutputs);
   }
@@ -1202,11 +1217,13 @@ public class RelDecorrelator implements ReflectiveVisitor {
       return null;
     }
 
-    final RelNode newJoin = relBuilder
+    RelNode newJoin = relBuilder
         .push(leftFrame.r)
         .push(rightFrame.r)
-        .join(rel.getJoinType(), decorrelateExpr(currentRel, map, cm, rel.getCondition()),
+        .join(rel.getJoinType(),
+            decorrelateExpr(currentRel, map, cm, rel.getCondition()),
             ImmutableSet.of())
+        .hints(rel.getHints())
         .build();
 
     // Create the mapping between the output of the old correlation rel
@@ -1931,7 +1948,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, right,
             rightJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              rightJoinKeys.toString(), right.toString());
+              rightJoinKeys, right);
           return;
         }
 
@@ -2147,7 +2164,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
         if (!RelMdUtil.areColumnsDefinitelyUniqueWhenNullsFiltered(mq, left,
             correlatedInputRefJoinKeys)) {
           SQL2REL_LOGGER.debug("{} are not unique keys for {}",
-              correlatedJoinKeys.toString(), left.toString());
+              correlatedJoinKeys, left);
           return;
         }
 
@@ -2282,8 +2299,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
                       "nullIndicator")));
 
       Join join =
-          (Join) relBuilder.push(left).push(right)
-              .join(joinType, joinCond, ImmutableSet.of()).build();
+          (Join) relBuilder.push(left).push(right).join(joinType, joinCond).build();
 
       // To the consumer of joinOutputProjRel, nullIndicator is located
       // at the end
@@ -2354,7 +2370,8 @@ public class RelDecorrelator implements ReflectiveVisitor {
 
       ImmutableBitSet groupSet =
           ImmutableBitSet.range(groupCount);
-      builder.push(joinOutputProject).aggregate(builder.groupKey(groupSet, null), newAggCalls);
+      builder.push(joinOutputProject)
+          .aggregate(builder.groupKey(groupSet), newAggCalls);
       List<RexNode> newAggOutputProjectList = new ArrayList<>();
       for (int i : groupSet) {
         newAggOutputProjectList.add(
@@ -2395,11 +2412,11 @@ public class RelDecorrelator implements ReflectiveVisitor {
           flavor
               ? operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Project.class,
-                          operand(Aggregate.class, any())))
+                  operand(Project.class,
+                      operand(Aggregate.class, any())))
               : operand(Correlate.class,
                   operand(RelNode.class, any()),
-                      operand(Aggregate.class, any())),
+                  operand(Aggregate.class, any())),
           relBuilderFactory, null);
       this.flavor = flavor;
     }
@@ -2815,5 +2832,3 @@ public class RelDecorrelator implements ReflectiveVisitor {
     }
   }
 }
-
-// End RelDecorrelator.java

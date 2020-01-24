@@ -73,5 +73,3 @@ abstract class MutableBiRel extends MutableRel {
     visitor.visit(right);
   }
 }
-
-// End MutableBiRel.java

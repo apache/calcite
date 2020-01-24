@@ -29,5 +29,3 @@ import org.apache.calcite.linq4j.function.Experimental;
 @Experimental
 public interface TransientTable extends Table {
 }
-
-// End TransientTable.java

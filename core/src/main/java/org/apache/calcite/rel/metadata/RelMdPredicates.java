@@ -35,6 +35,7 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
@@ -466,6 +467,13 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(Sort sort, RelMetadataQuery mq) {
     RelNode input = sort.getInput();
     return mq.getPulledUpPredicates(input);
+  }
+
+  /**
+   * Infers predicates for a TableModify.
+   */
+  public RelOptPredicateList getPredicates(TableModify tableModify, RelMetadataQuery mq) {
+    return mq.getPulledUpPredicates(tableModify.getInput());
   }
 
   /**
@@ -903,5 +911,3 @@ public class RelMdPredicates
     }
   }
 }
-
-// End RelMdPredicates.java

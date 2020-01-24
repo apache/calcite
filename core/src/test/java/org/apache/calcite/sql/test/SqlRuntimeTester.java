@@ -22,7 +22,7 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.function.UnaryOperator;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Tester of {@link SqlValidator} and runtime execution of the input SQL.
@@ -93,5 +93,3 @@ public class SqlRuntimeTester extends AbstractSqlTester {
     SqlTests.checkEx(thrown, expectedMsgPattern, sap, stage);
   }
 }
-
-// End SqlRuntimeTester.java

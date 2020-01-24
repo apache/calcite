@@ -35,6 +35,7 @@ import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Program;
@@ -221,11 +222,13 @@ public class PigConverter extends PigServer {
    */
   public List<String> pigToSql(String pigQuery, SqlDialect sqlDialect)
       throws IOException {
-    final SqlPrettyWriter writer = new SqlPrettyWriter(sqlDialect);
-    writer.setQuoteAllIdentifiers(false);
-    writer.setAlwaysUseParentheses(false);
-    writer.setSelectListItemsOnSeparateLines(false);
-    writer.setIndentation(2);
+    final SqlWriterConfig config = SqlPrettyWriter.config()
+        .withQuoteAllIdentifiers(false)
+        .withAlwaysUseParentheses(false)
+        .withSelectListItemsOnSeparateLines(false)
+        .withIndentation(2)
+        .withDialect(sqlDialect);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(config);
     return pigToSql(pigQuery, writer);
   }
 
@@ -284,5 +287,3 @@ public class PigConverter extends PigServer {
     }
   }
 }
-
-// End PigConverter.java

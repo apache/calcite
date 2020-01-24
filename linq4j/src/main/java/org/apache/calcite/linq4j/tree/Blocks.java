@@ -77,5 +77,3 @@ public final class Blocks {
     throw new AssertionError("not a simple block: " + block);
   }
 }
-
-// End Blocks.java

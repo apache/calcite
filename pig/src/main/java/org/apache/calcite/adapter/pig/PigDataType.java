@@ -64,5 +64,3 @@ public enum PigDataType {
     throw new IllegalArgumentException("SQL data type " + sqlType + " is not supported");
   }
 }
-
-// End PigDataType.java

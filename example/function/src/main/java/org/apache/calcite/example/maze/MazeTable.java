@@ -107,5 +107,3 @@ public class MazeTable extends AbstractTable implements ScannableTable {
     };
   }
 }
-
-// End MazeTable.java

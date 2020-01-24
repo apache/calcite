@@ -22,6 +22,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
@@ -35,7 +36,6 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -133,7 +133,10 @@ public class MysqlSqlDialect extends SqlDialect {
     case INTEGER:
     case BIGINT:
       return new SqlDataTypeSpec(
-          new SqlUserDefinedTypeNameSpec("_SIGNED", SqlParserPos.ZERO),
+          new SqlAlienSystemTypeNameSpec(
+              "SIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
           SqlParserPos.ZERO);
     }
     return super.getCastSpec(type);
@@ -143,7 +146,8 @@ public class MysqlSqlDialect extends SqlDialect {
     final SqlNode operand = ((SqlBasicCall) aggCall).operand(0);
     final SqlLiteral nullLiteral = SqlLiteral.createNull(SqlParserPos.ZERO);
     final SqlNode unionOperand = new SqlSelect(SqlParserPos.ZERO, SqlNodeList.EMPTY,
-        SqlNodeList.of(nullLiteral), null, null, null, null, SqlNodeList.EMPTY, null, null, null);
+        SqlNodeList.of(nullLiteral), null, null, null, null,
+        SqlNodeList.EMPTY, null, null, null, SqlNodeList.EMPTY);
     // For MySQL, generate
     //   CASE COUNT(*)
     //   WHEN 0 THEN NULL
@@ -297,5 +301,3 @@ public class MysqlSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End MysqlSqlDialect.java

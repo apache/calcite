@@ -74,5 +74,3 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
   }
 
 }
-
-// End SqlDelegatingConformance.java

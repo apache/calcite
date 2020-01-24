@@ -60,5 +60,3 @@ public class MutableCalc extends MutableSingleRel {
     return MutableCalc.of(input.clone(), program);
   }
 }
-
-// End MutableCalc.java

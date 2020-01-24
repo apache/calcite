@@ -43,5 +43,3 @@ public enum SqlNullSemantics {
    */
   NULL_MATCHES_ANYTHING
 }
-
-// End SqlNullSemantics.java

@@ -43,5 +43,3 @@ public class CollectNode extends AbstractSingleNode<Collect> {
     sink.send(row);
   }
 }
-
-// End CollectNode.java

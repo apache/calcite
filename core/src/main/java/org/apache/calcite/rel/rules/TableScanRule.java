@@ -57,5 +57,3 @@ public class TableScanRule extends RelOptRule {
     call.transformTo(newRel);
   }
 }
-
-// End TableScanRule.java

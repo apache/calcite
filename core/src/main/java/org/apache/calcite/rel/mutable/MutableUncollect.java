@@ -63,5 +63,3 @@ public class MutableUncollect extends MutableSingleRel {
     return MutableUncollect.of(rowType, input.clone(), withOrdinality);
   }
 }
-
-// End MutableUncollect.java

@@ -40,16 +40,16 @@ user-friendly.
 
 ## Download source, build, and run tests
 
-Prerequisites are git, maven (3.5.2 or later)
-and Java (JDK 8 or later, 9 preferred) on your path.
+Prerequisites are Git,
+and Java (JDK 8 or later, 13 preferred) on your path.
 
-Create a local copy of the git repository, `cd` to its root directory,
-then build using maven:
+Create a local copy of the Git repository, `cd` to its root directory,
+then build using Gradle:
 
 {% highlight bash %}
 $ git clone git://github.com/apache/calcite.git
 $ cd calcite
-$ mvn install
+$ ./gradlew build
 {% endhighlight %}
 
 The HOWTO describes how to
@@ -130,13 +130,13 @@ the contributor(s) involved in the discussion should:
 Fork the GitHub repository, and create a branch for your feature.
 
 Develop your feature and test cases, and make sure that
-`mvn install` succeeds. (Run extra tests if your change warrants it.)
+`./gradlew build` succeeds. (Run extra tests if your change warrants it.)
 
 Commit your change to your branch, and use a comment that starts with
 the JIRA case number, like this:
 
 {% highlight text %}
-[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
+[CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal (FirstName LastName)
 {% endhighlight %}
 
 If your change had multiple commits, use `git rebase -i master` to
@@ -218,4 +218,3 @@ We value all contributions that help to build a vibrant community, not just code
 You can contribute by testing the code, helping verify a release,
 writing documentation or the web site,
 or just by answering questions on the list.
-

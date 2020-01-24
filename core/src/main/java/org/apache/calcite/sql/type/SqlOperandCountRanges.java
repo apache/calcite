@@ -65,5 +65,3 @@ public abstract class SqlOperandCountRanges {
     }
   }
 }
-
-// End SqlOperandCountRanges.java

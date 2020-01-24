@@ -92,23 +92,41 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   }
 
   @Override public Queryable<T> intersect(Enumerable<T> source1) {
-    return EnumerableDefaults.intersect(getThis(), source1).asQueryable();
+    return intersect(source1, false);
+  }
+
+  @Override public Queryable<T> intersect(Enumerable<T> source1, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), source1, all).asQueryable();
   }
 
   @Override public Queryable<T> intersect(Enumerable<T> source1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.intersect(getThis(), source1, comparer)
+    return intersect(source1, comparer, false);
+  }
+
+  @Override public Queryable<T> intersect(Enumerable<T> source1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.intersect(getThis(), source1, comparer, all)
         .asQueryable();
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1,
       EqualityComparer<T> comparer) {
-    return EnumerableDefaults.except(getThis(), enumerable1, comparer)
+    return except(enumerable1, comparer, false);
+  }
+
+  @Override public Queryable<T> except(Enumerable<T> enumerable1,
+      EqualityComparer<T> comparer, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, comparer, all)
         .asQueryable();
   }
 
   @Override public Queryable<T> except(Enumerable<T> enumerable1) {
-    return EnumerableDefaults.except(getThis(), enumerable1).asQueryable();
+    return except(enumerable1, false);
+  }
+
+  @Override public Queryable<T> except(Enumerable<T> enumerable1, boolean all) {
+    return EnumerableDefaults.except(getThis(), enumerable1, all).asQueryable();
   }
 
   public Queryable<T> take(int count) {
@@ -550,5 +568,3 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.aggregate(getThis(), seed, func, selector);
   }
 }
-
-// End EnumerableQueryable.java

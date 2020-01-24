@@ -79,5 +79,3 @@ public class SplunkQuery<T> extends AbstractEnumerable<T> {
     return args;
   }
 }
-
-// End SplunkQuery.java

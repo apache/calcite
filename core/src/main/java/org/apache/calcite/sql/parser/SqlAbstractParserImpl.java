@@ -710,5 +710,3 @@ public abstract class SqlAbstractParserImpl {
     }
   }
 }
-
-// End SqlAbstractParserImpl.java

@@ -48,5 +48,3 @@ public class JavaRecordType extends RelRecordType {
     return Objects.hash(fieldList, clazz);
   }
 }
-
-// End JavaRecordType.java

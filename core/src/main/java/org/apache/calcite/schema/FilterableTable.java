@@ -40,5 +40,3 @@ public interface FilterableTable extends Table {
    * operator. */
   Enumerable<Object[]> scan(DataContext root, List<RexNode> filters);
 }
-
-// End FilterableTable.java

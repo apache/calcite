@@ -92,5 +92,3 @@ public class MutableAggregate extends MutableSingleRel {
     return MutableAggregate.of(input.clone(), groupSet, groupSets, aggCalls);
   }
 }
-
-// End MutableAggregate.java

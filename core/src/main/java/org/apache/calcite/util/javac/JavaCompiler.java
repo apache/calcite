@@ -32,5 +32,3 @@ public interface JavaCompiler {
 
   int getTotalByteCodeSize();
 }
-
-// End JavaCompiler.java

@@ -60,5 +60,3 @@ public class ConnectionFactory implements Quidem.ConnectionFactory {
   }
 
 }
-
-// End ConnectionFactory.java

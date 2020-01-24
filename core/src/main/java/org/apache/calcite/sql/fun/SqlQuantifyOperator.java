@@ -60,5 +60,3 @@ public class SqlQuantifyOperator extends SqlInOperator {
         || kind == SqlKind.ALL);
   }
 }
-
-// End SqlQuantifyOperator.java

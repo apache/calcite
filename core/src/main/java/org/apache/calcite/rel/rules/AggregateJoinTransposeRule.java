@@ -374,7 +374,8 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     if (!aggConvertedToProjects) {
       relBuilder.aggregate(
           relBuilder.groupKey(Mappings.apply(mapping, aggregate.getGroupSet()),
-              Mappings.apply2(mapping, aggregate.getGroupSets())),
+              (Iterable<ImmutableBitSet>)
+                  Mappings.apply2(mapping, aggregate.getGroupSets())),
           newAggCalls);
     }
 
@@ -448,5 +449,3 @@ public class AggregateJoinTransposeRule extends RelOptRule {
     boolean aggregate;
   }
 }
-
-// End AggregateJoinTransposeRule.java

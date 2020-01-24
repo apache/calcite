@@ -90,5 +90,3 @@ public class SqlRowOperator extends SqlSpecialOperator {
     return false;
   }
 }
-
-// End SqlRowOperator.java

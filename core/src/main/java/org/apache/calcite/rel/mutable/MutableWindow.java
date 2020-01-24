@@ -69,5 +69,3 @@ public class MutableWindow extends MutableSingleRel {
     return MutableWindow.of(rowType, input.clone(), groups, constants);
   }
 }
-
-// End MutableWindow.java

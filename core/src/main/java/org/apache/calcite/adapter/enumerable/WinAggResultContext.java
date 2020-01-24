@@ -50,5 +50,3 @@ public interface WinAggResultContext extends AggResultContext,
    */
   List<Expression> arguments(Expression rowIndex);
 }
-
-// End WinAggResultContext.java

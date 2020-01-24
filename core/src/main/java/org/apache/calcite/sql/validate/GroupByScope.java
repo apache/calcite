@@ -62,5 +62,3 @@ public class GroupByScope extends DelegatingScope {
     parent.validateExpr(expanded);
   }
 }
-
-// End GroupByScope.java

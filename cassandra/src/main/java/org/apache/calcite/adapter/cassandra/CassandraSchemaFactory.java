@@ -52,5 +52,3 @@ public class CassandraSchemaFactory implements SchemaFactory {
     }
   }
 }
-
-// End CassandraSchemaFactory.java

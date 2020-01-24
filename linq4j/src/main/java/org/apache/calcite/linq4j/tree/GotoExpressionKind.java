@@ -51,5 +51,3 @@ public enum GotoExpressionKind {
     this.prefix = prefix;
   }
 }
-
-// End GotoExpressionKind.java

@@ -34,5 +34,3 @@ public class JsonColumn {
     handler.visit(this);
   }
 }
-
-// End JsonColumn.java

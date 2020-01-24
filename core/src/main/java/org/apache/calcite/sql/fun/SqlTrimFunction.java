@@ -170,5 +170,3 @@ public class SqlTrimFunction extends SqlFunction {
     }
   }
 }
-
-// End SqlTrimFunction.java

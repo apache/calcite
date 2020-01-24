@@ -125,5 +125,3 @@ public interface Enumerator<T> extends AutoCloseable {
    */
   void close();
 }
-
-// End Enumerator.java

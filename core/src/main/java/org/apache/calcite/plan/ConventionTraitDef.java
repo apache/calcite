@@ -241,5 +241,3 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     }
   }
 }
-
-// End ConventionTraitDef.java

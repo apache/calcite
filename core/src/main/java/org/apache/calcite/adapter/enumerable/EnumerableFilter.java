@@ -69,5 +69,3 @@ public class EnumerableFilter
     throw new UnsupportedOperationException();
   }
 }
-
-// End EnumerableFilter.java

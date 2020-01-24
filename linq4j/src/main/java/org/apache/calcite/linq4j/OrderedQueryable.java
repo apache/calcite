@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j;
 public interface OrderedQueryable<T>
     extends Queryable<T>, ExtendedOrderedQueryable<T> {
 }
-
-// End OrderedQueryable.java

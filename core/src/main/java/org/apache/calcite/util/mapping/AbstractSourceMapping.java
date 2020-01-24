@@ -95,5 +95,3 @@ public abstract class AbstractSourceMapping
 
   public abstract int getSourceOpt(int source);
 }
-
-// End AbstractSourceMapping.java

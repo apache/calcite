@@ -71,5 +71,3 @@ public interface ExtendedOrderedEnumerable<T> extends Enumerable<T> {
   <TKey> OrderedEnumerable<T> thenByDescending(Function1<T, TKey> keySelector,
       Comparator<TKey> comparator);
 }
-
-// End ExtendedOrderedEnumerable.java

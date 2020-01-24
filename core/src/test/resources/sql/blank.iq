@@ -41,6 +41,22 @@ select * from foo;
 
 !ok
 
+create table bar as select i, i + j as k from foo;
+(0 rows modified)
+
+!update
+
+select * from bar;
++---+---+
+| I | K |
++---+---+
+| 0 | 2 |
+| 1 | 1 |
++---+---+
+(2 rows)
+
+!ok
+
 # Correlated non-equi IN
 select * from foo as f where i in (
   select j from foo where i > f.i);

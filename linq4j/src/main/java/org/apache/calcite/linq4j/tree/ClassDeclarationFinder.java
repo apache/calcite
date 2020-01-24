@@ -278,5 +278,3 @@ public class ClassDeclarationFinder extends Shuttle {
     return childFactory.apply(this);
   }
 }
-
-// End ClassDeclarationFinder.java

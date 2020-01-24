@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
@@ -82,7 +82,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals("select case when 1 > 0 then t2_bigint else t2_decimal end from t2");
   }
 
-  @Test  public void testBuiltinFunctionCoercion() {
+  @Test public void testBuiltinFunctionCoercion() {
     checkPlanEquals("select 1||'a' from (values true)");
   }
 
@@ -102,9 +102,19 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals(sql);
   }
 
+  @Test public void testInsertQuerySourceCoercion() {
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+        + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
+    checkPlanEquals(sql);
+  }
+
+  @Test public void testUpdateQuerySourceCoercion() {
+    final String sql = "update t1 set t1_varchar20=123, "
+        + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
+    checkPlanEquals(sql);
+  }
+
   private void checkPlanEquals(String sql) {
     tester.assertConvertsTo(sql, "${plan}");
   }
 }
-
-// End TypeCoercionConverterTest.java

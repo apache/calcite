@@ -299,18 +299,34 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set difference of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
    */
   Enumerable<TSource> except(Enumerable<TSource> enumerable1);
 
   /**
    * Produces the set difference of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  Enumerable<TSource> except(Enumerable<TSource> enumerable1, boolean all);
+
+  /**
+   * Produces the set difference of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Enumerable<TSource> except(Enumerable<TSource> enumerable1,
       EqualityComparer<TSource> comparer);
+
+  /**
+   * Produces the set difference of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Enumerable<TSource> except(Enumerable<TSource> enumerable1,
+      EqualityComparer<TSource> comparer, boolean all);
 
   /**
    * Returns the first element of a sequence. (Defined
@@ -466,19 +482,34 @@ public interface ExtendedEnumerable<TSource> {
 
   /**
    * Produces the set intersection of two sequences by
-   * using the default equality comparer to compare values. (Defined
-   * by Enumerable.)
+   * using the default equality comparer to compare values,
+   * eliminate duplicates. (Defined by Enumerable.)
    */
   Enumerable<TSource> intersect(Enumerable<TSource> enumerable1);
 
   /**
    * Produces the set intersection of two sequences by
+   * using the default equality comparer to compare values,
+   * using {@code all} to indicate whether to eliminate duplicates.
+   * (Defined by Enumerable.)
+   */
+  Enumerable<TSource> intersect(Enumerable<TSource> enumerable1, boolean all);
+
+  /**
+   * Produces the set intersection of two sequences by
    * using the specified {@code EqualityComparer<TSource>} to compare
-   * values.
+   * values, eliminate duplicates.
    */
   Enumerable<TSource> intersect(Enumerable<TSource> enumerable1,
       EqualityComparer<TSource> comparer);
 
+  /**
+   * Produces the set intersection of two sequences by
+   * using the specified {@code EqualityComparer<TSource>} to compare
+   * values, using {@code all} to indicate whether to eliminate duplicates.
+   */
+  Enumerable<TSource> intersect(Enumerable<TSource> enumerable1,
+      EqualityComparer<TSource> comparer, boolean all);
   /**
    * Copies the contents of this sequence into a collection.
    */
@@ -1137,5 +1168,3 @@ public interface ExtendedEnumerable<TSource> {
   <T1, TResult> Enumerable<TResult> zip(Enumerable<T1> source1,
       Function2<TSource, T1, TResult> resultSelector);
 }
-
-// End ExtendedEnumerable.java

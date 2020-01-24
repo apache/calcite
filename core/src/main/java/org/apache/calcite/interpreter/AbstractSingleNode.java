@@ -34,5 +34,3 @@ abstract class AbstractSingleNode<T extends SingleRel> implements Node {
     this.sink = compiler.sink(rel);
   }
 }
-
-// End AbstractSingleNode.java

@@ -96,5 +96,3 @@ void InfixCast(List<Object> list, ExprContext exprContext, Span s) :
         list.add(dt);
     }
 }
-
-// End parserImpls.ftl

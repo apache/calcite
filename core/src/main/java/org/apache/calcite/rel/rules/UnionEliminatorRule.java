@@ -59,5 +59,3 @@ public class UnionEliminatorRule extends RelOptRule {
     call.transformTo(union.getInputs().get(0));
   }
 }
-
-// End UnionEliminatorRule.java

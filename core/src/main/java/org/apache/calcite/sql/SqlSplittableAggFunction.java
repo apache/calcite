@@ -356,5 +356,3 @@ public interface SqlSplittableAggFunction {
     }
   }
 }
-
-// End SqlSplittableAggFunction.java

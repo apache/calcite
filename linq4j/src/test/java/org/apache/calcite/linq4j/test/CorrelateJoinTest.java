@@ -26,12 +26,12 @@ import org.apache.calcite.linq4j.function.Function2;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 /**
  * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}
@@ -109,5 +109,3 @@ public class CorrelateJoinTest {
     assertArrayEquals(expected, actual);
   }
 }
-
-// End CorrelateJoinTest.java

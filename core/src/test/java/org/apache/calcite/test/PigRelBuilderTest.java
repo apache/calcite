@@ -22,10 +22,10 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.PigRelBuilder;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test for {@link PigRelBuilder}.
@@ -154,5 +154,3 @@ public class PigRelBuilderTest {
   @Test public void testStore() {}
   @Test public void testUnion() {}
 }
-
-// End PigRelBuilderTest.java

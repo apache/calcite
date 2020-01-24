@@ -42,5 +42,3 @@ public interface RelReferentialConstraint {
   List<IntPair> getColumnPairs();
 
 }
-
-// End RelReferentialConstraint.java

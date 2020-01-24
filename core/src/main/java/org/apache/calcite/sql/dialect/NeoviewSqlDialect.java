@@ -32,5 +32,3 @@ public class NeoviewSqlDialect extends SqlDialect {
     super(context);
   }
 }
-
-// End NeoviewSqlDialect.java

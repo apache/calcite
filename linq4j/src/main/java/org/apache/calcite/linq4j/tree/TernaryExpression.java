@@ -91,5 +91,3 @@ public class TernaryExpression extends Expression {
     return Objects.hash(nodeType, type, expression0, expression1, expression2);
   }
 }
-
-// End TernaryExpression.java

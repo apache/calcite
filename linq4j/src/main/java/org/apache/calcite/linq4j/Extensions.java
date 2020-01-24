@@ -174,5 +174,3 @@ public abstract class Extensions {
     return Comparable::compareTo;
   }
 }
-
-// End Extensions.java

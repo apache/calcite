@@ -148,5 +148,3 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
     throw new UnsupportedOperationException(); // TODO:
   }
 }
-
-// End SameOperandTypeChecker.java

@@ -53,5 +53,3 @@ public interface SqlOperatorTable {
    */
   List<SqlOperator> getOperatorList();
 }
-
-// End SqlOperatorTable.java

@@ -51,5 +51,3 @@ public abstract class TableSpool extends Spool {
     return pw.item("table", table.getQualifiedName());
   }
 }
-
-// End TableSpool.java

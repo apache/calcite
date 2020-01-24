@@ -35,6 +35,7 @@ import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
@@ -51,6 +52,7 @@ import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
 import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -68,7 +70,6 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
 import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import com.google.common.collect.ImmutableList;
@@ -79,6 +80,7 @@ import com.google.common.collect.Lists;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import org.apiguardian.api.API;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -112,18 +114,22 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.Util.toLinux;
+
+import static org.apache.commons.lang3.StringUtils.countMatches;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Fluid DSL for testing Calcite connections and queries.
@@ -253,24 +259,23 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkException(final String expected) {
     return p0 -> {
-      assertNotNull(
-          "expected exception but none was thrown", p0);
+      assertNotNull(p0, "expected exception but none was thrown");
       String stack = TestUtil.printStackTrace(p0);
-      assertTrue(stack, stack.contains(expected));
+      assertThat(stack, containsString(expected));
     };
   }
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
       @Override public void accept(@Nullable Throwable throwable) {
-        assertNotNull("Nothing was thrown", throwable);
+        assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);
 
-        assertTrue("Expected to fail at validation, but did not", exception != null);
+        assertNotNull(exception, "Expected to fail at validation, but did not");
         if (expected != null) {
           String stack = TestUtil.printStackTrace(exception);
-          assertTrue(stack, stack.contains(expected));
+          assertThat(stack, containsString(expected));
         }
       }
 
@@ -438,9 +443,8 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertTrue(
-            actual + " should have " + count + " occurrence of " + expected,
-            StringUtils.countMatches(actual, expected) == count);
+        assertEquals(count, countMatches(actual, expected),
+            () -> actual + " should have " + count + " occurrence of " + expected);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -672,7 +676,7 @@ public class CalciteAssert {
   }
 
   /** Converts a {@link ResultSet} to a string. */
-  static String toString(ResultSet resultSet) throws SQLException {
+  public static String toString(ResultSet resultSet) throws SQLException {
     return new ResultSetFormatter().resultSet(resultSet).string();
   }
 
@@ -972,7 +976,7 @@ public class CalciteAssert {
    * they are considered equal.
    *
    * <p>This method produces more user-friendly error messages than
-   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   * {@link org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)}
    *
    * @param message the identifying message for the {@link AssertionError} (<code>null</code>
    * okay)
@@ -981,7 +985,7 @@ public class CalciteAssert {
    */
   public static void assertArrayEqual(
       String message, Object[] expected, Object[] actual) {
-    assertEquals(message, str(expected), str(actual));
+    assertEquals(str(expected), str(actual), message);
   }
 
   private static String str(Object[] objects) {
@@ -1604,6 +1608,105 @@ public class CalciteAssert {
       return explainMatches("", checkResultContains(expected));
     }
 
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(String)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(String expectedPlan) {
+      return explainHookContains(SqlExplainLevel.EXPPLAN_ATTRIBUTES, expectedPlan);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(SqlExplainLevel, Matcher)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(SqlExplainLevel sqlExplainLevel, String expectedPlan) {
+      return explainHookMatches(sqlExplainLevel, containsString(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(String expectedPlan) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, is(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(Matcher<String> planMatcher) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, planMatcher);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(SqlExplainLevel sqlExplainLevel,
+        Matcher<String> planMatcher) {
+      return withHook(Hook.PLAN_BEFORE_IMPLEMENTATION,
+          (RelRoot root) ->
+              assertThat(
+                  "Execution plan for sql " + sql,
+                  RelOptUtil.toString(root.rel, sqlExplainLevel),
+                  compose(planMatcher, Util::toLinux)));
+    }
+
     public final AssertQuery explainMatches(String extra,
         Consumer<ResultSet> checker) {
       return returns("explain plan " + extra + "for " + sql, checker);
@@ -1611,11 +1714,9 @@ public class CalciteAssert {
 
     public AssertQuery planContains(String expected) {
       ensurePlan(null);
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 
@@ -1626,11 +1727,9 @@ public class CalciteAssert {
           .replace("\"", "\\\"")
           .replaceAll("\n", "\\\\n")
           + "\"";
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
+      assertTrue(toLinux(plan)
               .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+              .contains(expected), "Plan [" + plan + "] contains [" + expected + "]");
       return this;
     }
 
@@ -1731,7 +1830,16 @@ public class CalciteAssert {
     }
 
     /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
-     * will be used instead of the SQL string. */
+     * will be used instead of the SQL string.
+     *
+     * <p>Note: if you want to assert the optimized plan, consider using {@code explainHook...}
+     * methods like {@link #explainHookMatches(String)}</p>
+     *
+     * @param relFn a custom factory that creates a RelNode instead of regular sql to rel
+     * @return updated AssertQuery
+     * @see #explainHookContains(String)
+     * @see #explainHookMatches(String)
+     **/
     public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
@@ -2032,5 +2140,3 @@ public class CalciteAssert {
     void accept(PreparedStatement statement) throws SQLException;
   }
 }
-
-// End CalciteAssert.java

@@ -20,8 +20,10 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Correlate;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
@@ -33,6 +35,7 @@ import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
@@ -41,12 +44,14 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -145,6 +150,12 @@ public class RelMdColumnUniqueness
     return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
   }
 
+  public Boolean areColumnsUnique(TableModify rel, RelMetadataQuery mq,
+      ImmutableBitSet columns, boolean ignoreNulls) {
+    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
+    return mq.areColumnsUnique(rel.getInput(), columns, ignoreNulls);
+  }
+
   public Boolean areColumnsUnique(Exchange rel, RelMetadataQuery mq,
       ImmutableBitSet columns, boolean ignoreNulls) {
     columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
@@ -199,7 +210,22 @@ public class RelMdColumnUniqueness
     // Also need to map the input column set to the corresponding child
     // references
 
-    List<RexNode> projExprs = rel.getProjects();
+    return areProjectColumnsUnique(rel, mq, columns, ignoreNulls, rel.getProjects());
+  }
+
+  public Boolean areColumnsUnique(Calc rel, RelMetadataQuery mq,
+      ImmutableBitSet columns, boolean ignoreNulls) {
+    columns = decorateWithConstantColumnsFromPredicates(columns, rel, mq);
+    RexProgram program = rel.getProgram();
+
+    return areProjectColumnsUnique(rel, mq, columns, ignoreNulls,
+        Lists.transform(program.getProjectList(), program::expandLocalRef));
+  }
+
+  private Boolean areProjectColumnsUnique(
+      SingleRel rel, RelMetadataQuery mq,
+      ImmutableBitSet columns, boolean ignoreNulls, List<RexNode> projExprs) {
+    RelDataTypeFactory typeFactory = rel.getCluster().getTypeFactory();
     ImmutableBitSet.Builder childColumns = ImmutableBitSet.builder();
     for (int bit : columns) {
       RexNode projExpr = projExprs.get(bit);
@@ -219,8 +245,6 @@ public class RelMdColumnUniqueness
         if (!(castOperand instanceof RexInputRef)) {
           continue;
         }
-        RelDataTypeFactory typeFactory =
-            rel.getCluster().getTypeFactory();
         RelDataType castType =
             typeFactory.createTypeWithNullability(
                 projExpr.getType(), true);
@@ -373,6 +397,7 @@ public class RelMdColumnUniqueness
       if (rel2 instanceof Aggregate
           || rel2 instanceof Filter
           || rel2 instanceof Values
+          || rel2 instanceof Sort
           || rel2 instanceof TableScan
           || simplyProjects(rel2, columns)) {
         try {
@@ -451,5 +476,3 @@ public class RelMdColumnUniqueness
     return checkingColumns;
   }
 }
-
-// End RelMdColumnUniqueness.java

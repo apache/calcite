@@ -343,5 +343,3 @@ public interface SqlValidatorScope {
     }
   }
 }
-
-// End SqlValidatorScope.java

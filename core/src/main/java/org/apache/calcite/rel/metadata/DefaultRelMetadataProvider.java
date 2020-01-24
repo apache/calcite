@@ -64,5 +64,3 @@ public class DefaultRelMetadataProvider extends ChainedRelMetadataProvider {
             RelMdCollation.SOURCE));
   }
 }
-
-// End DefaultRelMetadataProvider.java

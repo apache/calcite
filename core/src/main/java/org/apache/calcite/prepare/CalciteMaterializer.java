@@ -21,8 +21,8 @@ import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.BindableConvention;
 import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptMaterialization;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -40,6 +40,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
@@ -63,9 +64,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
   CalciteMaterializer(CalcitePrepareImpl prepare,
       CalcitePrepare.Context context,
       CatalogReader catalogReader, CalciteSchema schema,
-      RelOptPlanner planner, SqlRexConvertletTable convertletTable) {
+      RelOptCluster cluster, SqlRexConvertletTable convertletTable) {
     super(prepare, context, catalogReader, catalogReader.getTypeFactory(),
-        schema, EnumerableRel.Prefer.ANY, planner, BindableConvention.INSTANCE,
+        schema, EnumerableRel.Prefer.ANY, cluster, BindableConvention.INSTANCE,
         convertletTable);
   }
 
@@ -99,7 +100,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
 
     RelOptTable table =
         this.catalogReader.getTable(materialization.materializedTable.path());
-    materialization.tableRel = sqlToRelConverter2.toRel(table);
+    materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
   /** Converts a relational expression to use a
@@ -191,6 +192,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     public RelNode visit(LogicalExchange exchange) {
       return exchange;
     }
+    public RelNode visit(LogicalTableModify modify) {
+      return modify;
+    }
     public RelNode visit(RelNode other) {
       return other;
     }
@@ -211,5 +215,3 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
   }
 }
-
-// End CalciteMaterializer.java

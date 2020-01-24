@@ -21,6 +21,7 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.sql.SqlCollation;
@@ -31,6 +32,7 @@ import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlLibrary;
 import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
@@ -44,16 +46,15 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.test.catalog.CountingFactory;
+import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +64,10 @@ import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -73,11 +76,12 @@ import static org.apache.calcite.sql.parser.SqlParser.configBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Concrete child class of {@link SqlValidatorTestCase}, containing lots of unit
@@ -87,6 +91,7 @@ import static org.junit.Assert.fail;
  * derived class whose {@link #getTester} returns a different implementation of
  * {@link org.apache.calcite.sql.test.SqlTester}.
  */
+@LocaleEnUs
 public class SqlValidatorTest extends SqlValidatorTestCase {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -140,20 +145,6 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
 
   private static final String RANK_REQUIRES_ORDER_BY = "RANK or DENSE_RANK "
       + "functions require ORDER BY clause in window specification";
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlValidatorTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
-
-  @BeforeClass public static void setUSLocale() {
-    // This ensures numbers in exceptions are printed as in asserts.
-    // For example, 1,000 vs 1 000
-    Locale.setDefault(Locale.US);
-  }
 
   private static String cannotConvertToStream(String name) {
     return "Cannot convert table '" + name + "' to stream";
@@ -565,6 +556,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "WHEN 2 THEN INTERVAL '12 3:4:5.6' DAY TO SECOND(9)\n"
         + "END")
         .columnType("INTERVAL DAY TO SECOND(9)");
+
+    sql("select\n"
+        + "CASE WHEN job is not null THEN mgr\n"
+        + "ELSE 5 end as mgr\n"
+        + "from EMP")
+        .columnType("INTEGER");
   }
 
   @Test public void testCaseExpressionFails() {
@@ -615,6 +612,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     expr("coalesce('a','b')").ok();
     expr("coalesce('a','b','c')")
         .columnType("CHAR(1) NOT NULL");
+
+    sql("select COALESCE(mgr, 12) as m from EMP")
+        .columnType("INTEGER NOT NULL");
   }
 
   @Test public void testCoalesceFails() {
@@ -1473,8 +1473,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     wholeExpr("mod(123)")
         .fails("Invalid number of arguments to function 'MOD'. "
             + "Was expecting 2 arguments");
-    Assume.assumeTrue("test case for [CALCITE-3326], disabled til it is fixed",
-        false);
+    assumeTrue(false,
+        "test case for [CALCITE-3326], disabled til it is fixed");
     sql("select foo()")
         .withTypeCoercion(false)
         .fails("No match found for function signature FOO..");
@@ -4699,6 +4699,12 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from " + emps + " as e,\n"
         + " (select 1, ^e^.deptno from (values(true))) as d")
         .fails("Table 'E' not found");
+
+    // fail: deptno is ambiguous
+    sql("select ^deptno^, name from " + depts + "as d\n"
+        + "join " + emps +  "as e\n"
+        + "on d.deptno = e.deptno")
+        .fails("Column 'DEPTNO' is ambiguous");
   }
 
   @Test public void testNestedFrom() {
@@ -5113,8 +5119,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
    * <p>Make sure table name of GROUP BY item with nested field could be
    * properly validated.
    */
-  @Test
-  public void testInvalidGroupByWithInvalidTableName() {
+  @Test public void testInvalidGroupByWithInvalidTableName() {
     final String sql =
         "select\n"
             + "  coord.x,\n"
@@ -5618,6 +5623,47 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from dept where exists (\n"
         + "select 1 from emp join bonus using (^deptno^))")
         .fails("Column 'DEPTNO' not found in any table");
+
+    // cannot qualify common column in Oracle.
+    sql("select ^emp.deptno^ from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select ^emp.deptno^ from emp natural join dept")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select count(^emp.deptno^) from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'")
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .fails("Cannot qualify common column 'EMP.DEPTNO'");
+
+    sql("select emp.deptno from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.MYSQL_5)
+        .ok();
+
+    sql("select emp.empno from emp natural join dept")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .ok();
+
+    sql("select emp.empno from emp join dept using (deptno)")
+        .withConformance(SqlConformanceEnum.DEFAULT)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_10)
+        .ok()
+        .withConformance(SqlConformanceEnum.ORACLE_12)
+        .ok();
   }
 
   @Test public void testCrossJoinOnFails() {
@@ -5769,7 +5815,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("ambig");
   }
 
-  @Ignore("bug: should fail if sub-query does not have alias")
+  @Disabled("bug: should fail if sub-query does not have alias")
   @Test public void testJoinSubQuery() {
     // Sub-queries require alias
     sql("select * from (select 1 as uno from emp)\n"
@@ -7995,9 +8041,19 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "for system_time as of timestamp '2011-01-02 00:00:00' "
         + "on orders.productid = products_temporal.productid").ok();
 
-    // verify left join with a timestamp expression
+    // verify left join with a timestamp field
     sql("select stream * from orders left join products_temporal "
         + "for system_time as of orders.rowtime "
+        + "on orders.productid = products_temporal.productid").ok();
+
+    // verify left join with a timestamp expression
+    sql("select stream * from orders left join products_temporal\n"
+        + "for system_time as of orders.rowtime - INTERVAL '3' DAY\n"
+        + "on orders.productid = products_temporal.productid").ok();
+
+    // verify left join with a datetime value function
+    sql("select stream * from orders left join products_temporal\n"
+        + "for system_time as of CURRENT_TIMESTAMP\n"
         + "on orders.productid = products_temporal.productid").ok();
   }
 
@@ -8026,7 +8082,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from emp where (select true from dept)").ok();
   }
 
-  @Ignore("not supported")
+  @Disabled("not supported")
   @Test public void testSubQueryInOnClause() {
     // Currently not supported. Should give validator error, but gives
     // internal error.
@@ -8305,7 +8361,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             ? expected1 : expected2);
   }
 
-  @Ignore
+  @Disabled
   @Test public void testValuesWithAggFuncs() {
     sql("values(^count(1)^)")
         .fails("Call to xxx is invalid\\. Direct calls to aggregate "
@@ -9315,7 +9371,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "^values(1, '2', 'abc')^";
     final String error4 = "(?s).*Cannot assign to target field 'B' of type BIGINT "
         + "from source field 'EXPR\\$1' of type CHAR\\(1\\).*";
-    s.sql(sql4).fails(error4);
+    s.sql(sql4).withTypeCoercion(false).fails(error4);
+    s.sql(sql4).ok();
   }
 
   @Test public void testInsertFailNullability() {
@@ -10073,6 +10130,36 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'F0\\.C1\\.NOTFOUND' not found in table '" + table + "'");
   }
 
+  @Test public void testDescriptor() {
+    sql("select * from table(tumble(table orders, descriptor(rowtime), interval '2' hour))").ok();
+    sql("select * from table(tumble(table orders, descriptor(^column_not_exist^), "
+        + "interval '2' hour))")
+        .fails("Unknown identifier 'COLUMN_NOT_EXIST'");
+  }
+
+  @Test public void testTumbleTableValuedFunction() {
+    sql("select * from table(\n"
+        + "^tumble(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
+        .fails("Invalid number of arguments to function 'TUMBLE'. Was expecting 3 arguments");
+    sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
+        + "tumble(table orders, descriptor(rowtime), interval '2' hour))").ok();
+    sql("select * from table(\n"
+        + "^tumble(table orders, descriptor(rowtime), 'test')^)")
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+            + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>,"
+            + " <CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
+            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval\\)");
+    sql("select * from table(\n"
+        + "^tumble(table orders, 'test', interval '2' hour)^)")
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+            + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\"
+            + "(4\\)>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
+            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval\\)");
+    sql("select * from table(\n"
+        + "tumble(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour))")
+        .fails("Object 'TABLER_NOT_EXIST' not found");
+  }
+
   @Test public void testStreamTumble() {
     // TUMBLE
     sql("select stream tumble_end(rowtime, interval '2' hour) as rowtime\n"
@@ -10081,7 +10168,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select stream ^tumble(rowtime, interval '2' hour)^ as rowtime\n"
         + "from orders\n"
         + "group by tumble(rowtime, interval '2' hour), productId")
-        .fails("Group function 'TUMBLE' can only appear in GROUP BY clause");
+        .fails("Group function '\\$TUMBLE' can only appear in GROUP BY clause");
     // TUMBLE with align argument
     sql("select stream\n"
         + "  tumble_end(rowtime, interval '2' hour, time '00:12:00') as rowtime\n"
@@ -10093,14 +10180,14 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by floor(rowtime to hour)")
         .fails("Call to auxiliary group function 'TUMBLE_END' must have "
-            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+            + "matching call to group function '\\$TUMBLE' in GROUP BY clause");
     // Arguments to TUMBLE_END are slightly different to arguments to TUMBLE
     sql("select stream\n"
         + "  ^tumble_start(rowtime, interval '2' hour, time '00:13:00')^ as rowtime\n"
         + "from orders\n"
         + "group by tumble(rowtime, interval '2' hour, time '00:12:00')")
         .fails("Call to auxiliary group function 'TUMBLE_START' must have "
-            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+            + "matching call to group function '\\$TUMBLE' in GROUP BY clause");
     // Even though align defaults to TIME '00:00:00', we need structural
     // equivalence, not semantic equivalence.
     sql("select stream\n"
@@ -10108,7 +10195,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + "from orders\n"
         + "group by tumble(rowtime, interval '2' hour)")
         .fails("Call to auxiliary group function 'TUMBLE_END' must have "
-            + "matching call to group function 'TUMBLE' in GROUP BY clause");
+            + "matching call to group function '\\$TUMBLE' in GROUP BY clause");
     // TUMBLE query produces no monotonic column - OK
     sql("select stream productId\n"
         + "from orders\n"
@@ -10269,20 +10356,33 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testInsertFailDataType() {
     sql("insert into empnullables ^values ('5', 'bob')^")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
             + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    sql("insert into empnullables values ('5', 'bob')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
     sql("insert into empnullables (^empno^, ename) values ('5', 'bob')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EMPNO' of type INTEGER"
             + " from source field 'EXPR\\$0' of type CHAR\\(1\\)");
+    sql("insert into empnullables (empno, ename) values ('5', 'bob')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
     sql("insert into empnullables(extra BOOLEAN)"
         + " (empno, ename, ^extra^) values (5, 'bob', 'true')")
         .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'EXTRA' of type BOOLEAN"
             + " from source field 'EXPR\\$2' of type CHAR\\(4\\)");
+    sql("insert into empnullables(extra BOOLEAN)"
+        + " (empno, ename, ^extra^) values (5, 'bob', 'true')")
+        .withConformance(SqlConformanceEnum.PRAGMATIC_2003)
+        .ok();
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateFailDataType() {
     sql("update emp"
         + " set ^empNo^ = '5', deptno = 1, ename = 'Bob'"
@@ -10296,7 +10396,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
             + " from source field 'EXPR$0' of type CHAR(1)");
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateFailCaseSensitivity() {
     sql("update empdefaults"
         + " set empNo = '5', deptno = 1, ename = 'Bob'"
@@ -10388,7 +10488,7 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql(sql).fails(expected);
   }
 
-  @Ignore("CALCITE-1727")
+  @Disabled("CALCITE-1727")
   @Test public void testUpdateExtendedColumnFailCollision2() {
     final String sql = "update empdefaults(^\"deptno\"^ BOOLEAN)\n"
         + "set \"deptno\" = 1, empno = 1, ename = 'Bob'\n"
@@ -10480,13 +10580,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^comm^)\n"
         + "values (1, 'Arthur', 'clown', true)")
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'COMM' of type INTEGER"
             + " from source field 'EXPR\\$3' of type BOOLEAN");
     sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, comm)\n"
+        + "values (1, 'Arthur', 'clown', true)")
+        .ok();
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
         + " (empno, ename, job, ^\"comm\"^)\n"
         + "values (1, 'Arthur', 'clown', 1)")
+        .withTypeCoercion(false)
         .fails("Cannot assign to target field 'comm' of type BOOLEAN"
             + " from source field 'EXPR\\$3' of type INTEGER");
+    sql("insert into EMPDEFAULTS(\"comm\" BOOLEAN)"
+        + " (empno, ename, job, \"comm\")\n"
+        + "values (1, 'Arthur', 'clown', 1)")
+        .ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailCollision() {
@@ -10501,14 +10611,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^slacker^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'SLACKER' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).fails(error1);
+    s.sql(sql1).withTypeCoercion(false).fails(error1);
+    s.sql(sql1).ok();
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"slacker\" INTEGER)"
         + " (empno, ename, job, ^\"slacker\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
     final String error2 = "Cannot assign to target field 'slacker' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql2).fails(error2);
+    s.sql(sql2).withTypeCoercion(false).fails(error2);
+    s.sql(sql2).ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailExtendedCollision() {
@@ -10523,14 +10635,23 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^extra^) values (1, 'Arthur', 'clown', 1)";
     final String error1 = "Cannot assign to target field 'EXTRA' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql1).fails(error1);
+    s.sql(sql1).withTypeCoercion(false).fails(error1);
 
     final String sql2 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+        + " (empno, ename, job, extra) values (1, 'Arthur', 'clown', 1)";
+    s.sql(sql2).ok();
+
+    final String sql3 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
         + " (empno, ename, job, ^\"extra\"^)\n"
         + "values (1, 'Arthur', 'clown', true)";
-    final String error2 = "Cannot assign to target field 'extra' of type"
+    final String error3 = "Cannot assign to target field 'extra' of type"
         + " INTEGER from source field 'EXPR\\$3' of type BOOLEAN";
-    s.sql(sql2).fails(error2);
+    s.sql(sql3).withTypeCoercion(false).fails(error3);
+
+    final String sql4 = "insert into EMP_MODIFIABLEVIEW2(\"extra\" INTEGER)"
+        + " (empno, ename, job, \"extra\")\n"
+        + "values (1, 'Arthur', 'clown', true)";
+    s.sql(sql4).ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableViewFailUnderlyingCollision() {
@@ -10551,7 +10672,8 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         + " (empno, ename, job, ^\"comm\"^) values (1, 'Arthur', 'clown', 1)";
     final String error2 = "Cannot assign to target field 'comm' of type"
         + " BOOLEAN from source field 'EXPR\\$3' of type INTEGER";
-    s.sql(sql2).fails(error2);
+    s.sql(sql2).withTypeCoercion(false).fails(error2);
+    s.sql(sql2).ok();
   }
 
   @Test public void testDelete() {
@@ -11206,6 +11328,21 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     }
   }
 
-}
+  @Test public void testValidateParameterizedExpression() throws SqlParseException {
+    final SqlParser.Config config = configBuilder().build();
+    final SqlValidator validator = tester.getValidator();
+    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
+    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType intTypeNull = typeFactory.createTypeWithNullability(intType, true);
+    final Map<String, RelDataType> nameToTypeMap = new HashMap<>();
+    nameToTypeMap.put("A", intType);
+    nameToTypeMap.put("B", intTypeNull);
+    final String expr = "a + b";
+    final SqlParser parser = SqlParser.create(expr, config);
+    final SqlNode sqlNode = parser.parseExpression();
+    final SqlNode validated = validator.validateParameterizedExpression(sqlNode, nameToTypeMap);
+    final RelDataType resultType = validator.getValidatedNodeType(validated);
+    assertThat(resultType.toString(), is("INTEGER"));
+  }
 
-// End SqlValidatorTest.java
+}

@@ -43,5 +43,3 @@ class EnumerableUncollectRule extends ConverterRule {
         uncollect.withOrdinality);
   }
 }
-
-// End EnumerableUncollectRule.java

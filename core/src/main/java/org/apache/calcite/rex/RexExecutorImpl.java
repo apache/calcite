@@ -17,6 +17,7 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.EnumUtils;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator.InputGetter;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -151,7 +152,7 @@ public class RexExecutorImpl implements RexExecutor {
           BuiltInMethod.DATA_CONTEXT_GET.method,
           Expressions.constant("inputRecord"));
       Expression recFromCtxCasted =
-          RexToLixTranslator.convert(recFromCtx, Object[].class);
+          EnumUtils.convert(recFromCtx, Object[].class);
       IndexExpression recordAccess = Expressions.arrayIndex(recFromCtxCasted,
           Expressions.constant(index));
       if (storageType == null) {
@@ -159,9 +160,7 @@ public class RexExecutorImpl implements RexExecutor {
             rowType.getFieldList().get(index).getType();
         storageType = ((JavaTypeFactory) typeFactory).getJavaClass(fieldType);
       }
-      return RexToLixTranslator.convert(recordAccess, storageType);
+      return EnumUtils.convert(recordAccess, storageType);
     }
   }
 }
-
-// End RexExecutorImpl.java

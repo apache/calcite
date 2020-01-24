@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -48,6 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.math.IntMath;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,7 +73,9 @@ import java.util.Set;
  * <li>{@link org.apache.calcite.rel.rules.AggregateReduceFunctionsRule}.
  * </ul>
  */
-public abstract class Aggregate extends SingleRel {
+public abstract class Aggregate extends SingleRel implements Hintable {
+
+  protected final ImmutableList<RelHint> hints;
 
   public static boolean isSimple(Aggregate aggregate) {
     return aggregate.getGroupType() == Group.SIMPLE;
@@ -130,6 +135,7 @@ public abstract class Aggregate extends SingleRel {
    *
    * @param cluster  Cluster
    * @param traitSet Trait set
+   * @param hints    Hints of this relational expression
    * @param input    Input relational expression
    * @param groupSet Bit set of grouping fields
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
@@ -138,11 +144,13 @@ public abstract class Aggregate extends SingleRel {
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
+      List<RelHint> hints,
       RelNode input,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, input);
+    this.hints = ImmutableList.copyOf(hints);
     this.aggCalls = ImmutableList.copyOf(aggCalls);
     this.groupSet = Objects.requireNonNull(groupSet);
     if (groupSets == null) {
@@ -163,9 +171,17 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 
-  /**
-   * Creates an Aggregate.
-   */
+  @Deprecated // to be removed before 2.0
+  protected Aggregate(
+      RelOptCluster cluster,
+      RelTraitSet traitSet,
+      RelNode input,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    this(cluster, traitSet, new ArrayList<>(), input, groupSet, groupSets, aggCalls);
+  }
+
   @Deprecated // to be removed before 2.0
   protected Aggregate(
       RelOptCluster cluster,
@@ -175,7 +191,7 @@ public abstract class Aggregate extends SingleRel {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    this(cluster, traits, child, groupSet, groupSets, aggCalls);
+    this(cluster, traits, ImmutableList.of(), child, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
@@ -199,9 +215,9 @@ public abstract class Aggregate extends SingleRel {
    * Creates an Aggregate by parsing serialized output.
    */
   protected Aggregate(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getBitSet("group"), input.getBitSetList("groups"),
-        input.getAggregateCalls("aggs"));
+    this(input.getCluster(), input.getTraitSet(), new ArrayList<>(),
+        input.getInput(), input.getBitSet("group"),
+        input.getBitSetList("groups"), input.getAggregateCalls("aggs"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -452,6 +468,10 @@ public abstract class Aggregate extends SingleRel {
     return false;
   }
 
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
+  }
+
   /**
    * Returns the type of roll-up.
    *
@@ -601,5 +621,3 @@ public abstract class Aggregate extends SingleRel {
     }
   }
 }
-
-// End Aggregate.java

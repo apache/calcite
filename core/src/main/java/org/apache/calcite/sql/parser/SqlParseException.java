@@ -171,5 +171,3 @@ public class SqlParseException extends Exception
         getClass().getName() + ": " + getMessage());
   }
 }
-
-// End SqlParseException.java

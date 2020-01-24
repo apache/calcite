@@ -71,5 +71,3 @@ public final class LogicalExchange extends Exchange {
     return shuttle.visit(this);
   }
 }
-
-// End LogicalExchange.java

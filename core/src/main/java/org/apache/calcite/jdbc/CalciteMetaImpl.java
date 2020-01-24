@@ -823,5 +823,3 @@ public class CalciteMetaImpl extends MetaImpl {
     }
   }
 }
-
-// End CalciteMetaImpl.java

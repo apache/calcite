@@ -138,5 +138,3 @@ public class EnumerableLimit extends SingleRel implements EnumerableRel {
     }
   }
 }
-
-// End EnumerableLimit.java

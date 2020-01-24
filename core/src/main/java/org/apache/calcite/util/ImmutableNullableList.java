@@ -277,5 +277,3 @@ public class ImmutableNullableList<E> extends AbstractList<E> {
     }
   }
 }
-
-// End ImmutableNullableList.java

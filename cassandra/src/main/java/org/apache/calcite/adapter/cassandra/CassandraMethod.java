@@ -47,5 +47,3 @@ public enum CassandraMethod {
     this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
   }
 }
-
-// End CassandraMethod.java

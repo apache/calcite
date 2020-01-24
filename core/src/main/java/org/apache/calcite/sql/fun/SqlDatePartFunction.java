@@ -83,5 +83,3 @@ public class SqlDatePartFunction extends SqlFunction {
     return OperandTypes.DATETIME.checkOperandTypes(callBinding, throwOnFailure);
   }
 }
-
-// End SqlDatePartFunction.java

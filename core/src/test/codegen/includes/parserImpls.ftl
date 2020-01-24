@@ -40,10 +40,20 @@ SqlCreate SqlCreateTable(Span s, boolean replace) :
 {
     final SqlIdentifier id;
     final SqlNodeList columnList;
+    final SqlNode query;
 }
 {
-    <TABLE> id = CompoundIdentifier() columnList = ExtendList() {
-        return new SqlCreateTable(s.end(columnList), id, columnList);
+    <TABLE> id = CompoundIdentifier()
+    (
+        columnList = ExtendList()
+    |   { columnList = null; }
+    )
+    (
+        <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+    |   { query = null; }
+    )
+    {
+        return new SqlCreateTable(s.end(this), id, columnList, query);
     }
 }
 
@@ -55,5 +65,3 @@ SqlNode SqlDescribeSpacePower() :
         return null;
     }
 }
-
-// End parserImpls.ftl

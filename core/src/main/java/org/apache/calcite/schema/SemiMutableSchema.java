@@ -22,5 +22,3 @@ package org.apache.calcite.schema;
  */
 public interface SemiMutableSchema extends Schema {
 }
-
-// End SemiMutableSchema.java

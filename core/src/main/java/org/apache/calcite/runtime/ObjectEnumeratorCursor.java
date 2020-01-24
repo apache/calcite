@@ -52,5 +52,3 @@ public class ObjectEnumeratorCursor extends PositionedCursor<Object> {
     enumerator.close();
   }
 }
-
-// End ObjectEnumeratorCursor.java

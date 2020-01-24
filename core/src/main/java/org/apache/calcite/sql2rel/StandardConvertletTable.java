@@ -1518,5 +1518,3 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
   }
 }
-
-// End StandardConvertletTable.java

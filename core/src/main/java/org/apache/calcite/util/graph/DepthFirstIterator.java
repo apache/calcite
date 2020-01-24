@@ -87,5 +87,3 @@ public class DepthFirstIterator<V, E extends DefaultEdge>
     throw new UnsupportedOperationException();
   }
 }
-
-// End DepthFirstIterator.java

@@ -72,7 +72,7 @@ public class SqlAsOperator extends SqlSpecialOperator {
     assert call.operandCount() >= 2;
     final SqlWriter.Frame frame =
         writer.startList(
-            SqlWriter.FrameTypeEnum.SIMPLE);
+            SqlWriter.FrameTypeEnum.AS);
     call.operand(0).unparse(writer, leftPrec, getLeftPrec());
     final boolean needsSpace = true;
     writer.setNeedWhitespace(needsSpace);
@@ -139,5 +139,3 @@ public class SqlAsOperator extends SqlSpecialOperator {
     return call.getOperandMonotonicity(0);
   }
 }
-
-// End SqlAsOperator.java

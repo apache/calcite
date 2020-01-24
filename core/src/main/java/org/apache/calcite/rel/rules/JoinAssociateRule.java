@@ -154,5 +154,3 @@ public class JoinAssociateRule extends RelOptRule {
     call.transformTo(newTopJoin);
   }
 }
-
-// End JoinAssociateRule.java

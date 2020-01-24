@@ -68,5 +68,3 @@ public class SqlJsonRemoveFunction extends SqlFunction {
         SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
   }
 }
-
-// End SqlJsonRemoveFunction.java

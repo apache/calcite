@@ -56,5 +56,3 @@ public interface ConcurrentTestPluginCommand {
    */
   void execute(TestContext testContext) throws IOException;
 }
-
-// End ConcurrentTestPluginCommand.java

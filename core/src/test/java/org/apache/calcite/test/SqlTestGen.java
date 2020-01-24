@@ -178,5 +178,3 @@ public class SqlTestGen {
     }
   }
 }
-
-// End SqlTestGen.java

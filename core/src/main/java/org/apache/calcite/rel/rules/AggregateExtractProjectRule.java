@@ -130,5 +130,3 @@ public class AggregateExtractProjectRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End AggregateExtractProjectRule.java

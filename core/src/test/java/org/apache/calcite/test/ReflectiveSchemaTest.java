@@ -39,12 +39,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -63,9 +63,10 @@ import static org.apache.calcite.test.JdbcTest.Employee;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit tests for {@link ReflectiveSchema}.
@@ -163,7 +164,7 @@ public class ReflectiveSchemaTest {
    * Tests a relation that is accessed via method syntax.
    * The function returns a {@link org.apache.calcite.linq4j.Queryable}.
    */
-  @Ignore
+  @Disabled
   @Test public void testOperator() throws SQLException, ClassNotFoundException {
     Connection connection =
         DriverManager.getConnection("jdbc:calcite:");
@@ -291,8 +292,8 @@ public class ReflectiveSchemaTest {
             + "primitiveBoolean=true\n");
     with.query("select * from \"s\".\"everyTypes\"")
         .returns(""
-            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1\n"
-            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null\n");
+            + "primitiveBoolean=false; primitiveByte=0; primitiveChar=\u0000; primitiveShort=0; primitiveInt=0; primitiveLong=0; primitiveFloat=0.0; primitiveDouble=0.0; wrapperBoolean=false; wrapperByte=0; wrapperCharacter=\u0000; wrapperShort=0; wrapperInteger=0; wrapperLong=0; wrapperFloat=0.0; wrapperDouble=0.0; sqlDate=1970-01-01; sqlTime=00:00:00; sqlTimestamp=1970-01-01 00:00:00; utilDate=1970-01-01 00:00:00; string=1; bigDecimal=0\n"
+            + "primitiveBoolean=true; primitiveByte=127; primitiveChar=\uffff; primitiveShort=32767; primitiveInt=2147483647; primitiveLong=9223372036854775807; primitiveFloat=3.4028235E38; primitiveDouble=1.7976931348623157E308; wrapperBoolean=null; wrapperByte=null; wrapperCharacter=null; wrapperShort=null; wrapperInteger=null; wrapperLong=null; wrapperFloat=null; wrapperDouble=null; sqlDate=null; sqlTime=null; sqlTimestamp=null; utilDate=null; string=null; bigDecimal=null\n");
   }
 
   /**
@@ -466,6 +467,8 @@ public class ReflectiveSchemaTest {
       return input.getTime(1);
     case java.sql.Types.TIMESTAMP:
       return input.getTimestamp(1);
+    case java.sql.Types.DECIMAL:
+      return input.getBigDecimal(1);
     default:
       throw new AssertionError(type);
     }
@@ -514,7 +517,7 @@ public class ReflectiveSchemaTest {
         return;
       }
     }
-    Assert.fail("column not found: " + columnName);
+    fail("column not found: " + columnName);
   }
 
   @Test public void testJavaBoolean() throws Exception {
@@ -587,6 +590,14 @@ public class ReflectiveSchemaTest {
             "return inp13_ == null ? (Long) null "
                 + ": Long.valueOf(inp13_.longValue() / current.primitiveLong);")
         .returns("C=null\n");
+  }
+
+  @Test public void testDivideDoubleBigDecimal() {
+    final CalciteAssert.AssertThat with =
+        CalciteAssert.that().withSchema("s", CATCHALL);
+    with.query("select \"wrapperDouble\" / \"bigDecimal\" as c\n"
+        + " from \"s\".\"everyTypes\"")
+        .runs();
   }
 
   @Test public void testDivideWraperWrapper() throws Exception {
@@ -731,7 +742,7 @@ public class ReflectiveSchemaTest {
   /** If a method returns a
    * {@link ViewTable}.{@code ViewTableMacro}, then it
    * should be expanded. */
-  @Ignore
+  @Disabled
   @Test public void testTableMacroIsView() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
@@ -742,7 +753,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Finds a table-macro using reflection. */
-  @Ignore
+  @Disabled
   @Test public void testTableMacro() throws Exception {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
@@ -753,7 +764,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Table with single field as Integer[] */
-  @Ignore(
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfBoxedPrimitives() {
     CalciteAssert.that()
@@ -763,7 +774,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** Table with single field as int[] */
-  @Ignore(
+  @Disabled(
       "java.lang.AssertionError RelDataTypeImpl.getFieldList(RelDataTypeImpl.java:99)")
   @Test public void testArrayOfPrimitives() {
     CalciteAssert.that()
@@ -807,7 +818,42 @@ public class ReflectiveSchemaTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-281">[CALCITE-1919]
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3512">[CALCITE-3512]
+   * Query fails when comparing Time/TimeStamp types</a>. */
+  @Test public void testTimeCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTime\") a,"
+        + "    (select \"sqlTime\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTime\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=00:00:00");
+  }
+
+  @Test public void testTimestampCanCompare() {
+    final String sql = "select a.v\n"
+        + "from (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\" "
+        + "  group by \"sqlTimestamp\") a,"
+        + "    (select \"sqlTimestamp\" v\n"
+        + "  from \"s\".\"everyTypes\"\n"
+        + "  group by \"sqlTimestamp\") b\n"
+        + "where a.v >= b.v\n"
+        + "group by a.v";
+    CalciteAssert.that()
+        .withSchema("s", CATCHALL)
+        .query(sql)
+        .returnsUnordered("V=1970-01-01 00:00:00");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-1919">[CALCITE-1919]
    * NPE when target in ReflectiveSchema belongs to the unnamed package</a>. */
   @Test public void testReflectiveSchemaInUnnamedPackage() throws Exception {
     final Driver driver = new Driver();
@@ -863,6 +909,7 @@ public class ReflectiveSchemaTest {
     public final Timestamp sqlTimestamp;
     public final Date utilDate;
     public final String string;
+    public final BigDecimal bigDecimal;
 
     public EveryType(
         boolean primitiveBoolean,
@@ -885,7 +932,8 @@ public class ReflectiveSchemaTest {
         Time sqlTime,
         Timestamp sqlTimestamp,
         Date utilDate,
-        String string) {
+        String string,
+        BigDecimal bigDecimal) {
       this.primitiveBoolean = primitiveBoolean;
       this.primitiveByte = primitiveByte;
       this.primitiveChar = primitiveChar;
@@ -907,6 +955,7 @@ public class ReflectiveSchemaTest {
       this.sqlTimestamp = sqlTimestamp;
       this.utilDate = utilDate;
       this.string = string;
+      this.bigDecimal = bigDecimal;
     }
 
     static Enumerable<Field> fields() {
@@ -958,13 +1007,13 @@ public class ReflectiveSchemaTest {
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             false, (byte) 0, (char) 0, (short) 0, 0, 0L, 0F, 0D,
             new java.sql.Date(0), new Time(0), new Timestamp(0),
-            new Date(0), "1"),
+            new Date(0), "1", BigDecimal.ZERO),
         new EveryType(
             true, Byte.MAX_VALUE, Character.MAX_VALUE, Short.MAX_VALUE,
             Integer.MAX_VALUE, Long.MAX_VALUE, Float.MAX_VALUE,
             Double.MAX_VALUE,
             null, null, null, null, null, null, null, null,
-            null, null, null, null, null),
+            null, null, null, null, null, null),
     };
 
     public final AllPrivate[] allPrivates = { new AllPrivate() };
@@ -1016,8 +1065,7 @@ public class ReflectiveSchemaTest {
   }
 
   /** CALCITE-2611 unknown on one side of an or may lead to uncompilable code */
-  @Test
-  public void testUnknownInOr() {
+  @Test public void testUnknownInOr() {
     CalciteAssert.that()
         .withSchema("s", CATCHALL)
         .query("select (\"value\" = 3 and unknown) or ( \"value\"  = 3 ) "
@@ -1025,5 +1073,3 @@ public class ReflectiveSchemaTest {
         .returnsUnordered("EXPR$0=false\nEXPR$0=false\nEXPR$0=true");
   }
 }
-
-// End ReflectiveSchemaTest.java

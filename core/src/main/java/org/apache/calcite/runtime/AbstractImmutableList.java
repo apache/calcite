@@ -103,5 +103,3 @@ abstract class AbstractImmutableList<E> implements List<E> {
     throw new UnsupportedOperationException();
   }
 }
-
-// End AbstractImmutableList.java

@@ -68,5 +68,3 @@ public class ThrowStatement extends Statement {
     return Objects.hash(nodeType, type, expression);
   }
 }
-
-// End ThrowStatement.java

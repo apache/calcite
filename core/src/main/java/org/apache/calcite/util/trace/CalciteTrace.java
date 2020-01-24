@@ -119,6 +119,14 @@ public abstract class CalciteTrace {
   }
 
   /**
+   * The tracers report important/useful information related with the execution
+   * of unit tests.
+   */
+  public static Logger getTestTracer(Class<?> testClass) {
+    return LoggerFactory.getLogger(testClass.getName());
+  }
+
+  /**
    * Thread-local handler that is called with dynamically generated Java code.
    * It exists for unit-testing.
    * The handler is never null; the default handler does nothing.
@@ -127,5 +135,3 @@ public abstract class CalciteTrace {
     return DYNAMIC_HANDLER;
   }
 }
-
-// End CalciteTrace.java

@@ -88,5 +88,3 @@ public class EnumerableToSparkConverter
     return implementor.result(physType, list.toBlock());
   }
 }
-
-// End EnumerableToSparkConverter.java
