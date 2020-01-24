@@ -17,16 +17,16 @@
 package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLambda;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The name-resolution context for expression inside a LAMBDA clause. The objects visible are the
@@ -40,7 +40,7 @@ public class LambdaScope extends ListScope {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlLambda lambda;
-  private List<RelDataTypeField> parameters;
+  private Map<String, RelDataType> parameterTypes = new LinkedHashMap<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -52,18 +52,12 @@ public class LambdaScope extends ListScope {
       SqlValidatorScope parent) {
     super(parent);
     this.lambda = lambda;
-    parameters = createParameters(lambda);
-  }
 
-  private List<RelDataTypeField> createParameters(SqlLambda lambda) {
-    List<RelDataTypeField> parameters = new ArrayList<>();
     for (int i = 0; i < lambda.getParameters().size(); i++) {
       SqlIdentifier identifier = (SqlIdentifier) lambda.getParameters().get(i);
-      parameters.add(
-          new RelDataTypeFieldImpl(identifier.getSimple(), i,
-          validator.typeFactory.createSqlType(SqlTypeName.ANY)));
+      parameterTypes.put(identifier.getSimple(),
+          validator.typeFactory.createSqlType(SqlTypeName.ANY));
     }
-    return parameters;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -73,7 +67,7 @@ public class LambdaScope extends ListScope {
   }
 
   public SqlQualified fullyQualify(SqlIdentifier identifier) {
-    if (findParameter(identifier.getSimple()) != null) {
+    if (parameterTypes.containsKey(identifier.getSimple())) {
       return SqlQualified.create(this, 1, null, identifier);
     } else {
       return parent.fullyQualify(identifier);
@@ -81,25 +75,31 @@ public class LambdaScope extends ListScope {
   }
 
   @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
-    RelDataTypeField relDataTypeField = findParameter(name);
-    if (relDataTypeField != null) {
-      return relDataTypeField.getType();
+    RelDataType parameterType = parameterTypes.get(name);
+    if (parameterType != null) {
+      return parameterType;
     } else {
       return parent.resolveColumn(name, ctx);
     }
   }
 
-  private RelDataTypeField findParameter(String name) {
-    return parameters.stream().filter(s -> s.getName()
-        .equals(name)).findFirst().orElse(null);
+  public void setParameterType(int i, SqlTypeFamily typeFamily) {
+    SqlIdentifier identifier = (SqlIdentifier) lambda.getParameters().get(i);
+    if (typeFamily == SqlTypeFamily.ANY) {
+      parameterTypes.put(identifier.getSimple(),
+          validator.typeFactory.createSqlType(SqlTypeName.ANY));
+    } else {
+      parameterTypes.put(identifier.getSimple(),
+          typeFamily.getDefaultConcreteType(validator.typeFactory));
+    }
   }
 
-  public List<RelDataTypeField> getParameters() {
-    return parameters;
+  public Map<String, RelDataType> getParameters() {
+    return parameterTypes;
   }
 
   @Override public SqlValidatorNamespace getTableNamespace(List<String> names) {
-    if (names.size() == 1 && findParameter(names.get(0)) != null) {
+    if (names.size() == 1 && parameterTypes.containsKey(names.get(0))) {
       return validator.getNamespace(lambda);
     }
     return parent.getTableNamespace(names);
@@ -107,7 +107,7 @@ public class LambdaScope extends ListScope {
 
   @Override public void resolveTable(List<String> names,
       SqlNameMatcher nameMatcher, Path path, Resolved resolved) {
-    if (names.size() == 1 && findParameter(names.get(0)) != null) {
+    if (names.size() == 1 && parameterTypes.containsKey(names.get(0))) {
       final SqlValidatorNamespace ns = validator.getNamespace(lambda);
       final Step path2 = path
           .plus(ns.getRowType(), 0, names.get(0), StructKind.FULLY_QUALIFIED);
@@ -119,7 +119,7 @@ public class LambdaScope extends ListScope {
 
   @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
       boolean deep, Resolved resolved) {
-    if (names.size() == 1 && findParameter(names.get(0)) != null) {
+    if (names.size() == 1 && parameterTypes.containsKey(names.get(0))) {
       final SqlValidatorNamespace ns = validator.getNamespace(lambda);
       final Step path = Path.EMPTY.plus(ns.getRowType(), 0, names.get(0),
           StructKind.FULLY_QUALIFIED);

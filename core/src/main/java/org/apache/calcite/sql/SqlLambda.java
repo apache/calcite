@@ -18,8 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.fun.SqlLambdaOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
 import java.util.List;
@@ -86,18 +84,5 @@ public class SqlLambda extends SqlCall {
 
   public SqlNode getExpression() {
     return expression;
-  }
-
-  @Override public void validate(SqlValidator validator,
-      SqlValidatorScope scope) {
-    super.validate(validator, scope);
-    /*SqlValidatorScope lambdaScope = validator.getLambdaScope(this);
-    validator.validateCall(this,lambdaScope);
-    RelDataType relDataType = validator.deriveType(lambdaScope, getExpression());
-
-    final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
-    Map<String, RelDataType> varMap = ImmutableMap.of("A", intType);
-    // validator.validateParameterizedExpression(expression, varMap);*/
   }
 }

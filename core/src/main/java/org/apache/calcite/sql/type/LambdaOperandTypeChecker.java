@@ -23,7 +23,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
+import org.apache.calcite.sql.validate.LambdaScope;
 
 import java.util.List;
 
@@ -72,6 +72,7 @@ public class LambdaOperandTypeChecker implements SqlSingleOperandTypeChecker {
 
     assert node instanceof SqlLambda;
     SqlLambda sqlLambda = (SqlLambda) node;
+    LambdaScope lambdaScope = (LambdaScope) callBinding.getValidator().getLambdaScope(node);
 
     if (sqlLambda.getParameters().size() != argFamilies.size() - 1) {
       if (throwOnFailure) {
@@ -81,14 +82,14 @@ public class LambdaOperandTypeChecker implements SqlSingleOperandTypeChecker {
     }
 
     for (int i = 1; i < argFamilies.size(); i++) {
+      lambdaScope.setParameterType(i - 1, argFamilies.get(i));
+      RelDataType type = callBinding.getValidator().getTypeFactory().createSqlType(SqlTypeName.ANY);
       if (argFamilies.get(i) != SqlTypeFamily.ANY) {
-        callBinding.getValidator().setValidatedNodeType(sqlLambda.getParameters().get(i - 1),
-            argFamilies.get(i).getDefaultConcreteType(callBinding.getTypeFactory()));
+        type = argFamilies.get(i)
+            .getDefaultConcreteType(callBinding.getTypeFactory());
       }
+      callBinding.getValidator().setValidatedNodeType(sqlLambda.getParameters().get(i - 1), type);
     }
-
-    SqlValidatorScope lambdaScope = callBinding.getValidator()
-        .getLambdaScope(node);
 
     RelDataType relDataType = callBinding.getValidator()
         .deriveType(lambdaScope, sqlLambda.getExpression());

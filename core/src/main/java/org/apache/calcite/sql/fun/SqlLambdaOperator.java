@@ -92,8 +92,7 @@ public class SqlLambdaOperator extends SqlOperator {
   @Override public void validateCall(SqlCall call, SqlValidator validator,
       SqlValidatorScope scope,
       SqlValidatorScope operandScope) {
-    SqlLambda lambda = (SqlLambda) call;
-   // lambda.expression.validateExpr(validator, operandScope);
+    validateOperands(validator, scope, call);
   }
 
   public SqlCall createCall(

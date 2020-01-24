@@ -203,6 +203,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -1939,17 +1940,17 @@ public class SqlToRelConverter {
 
     Map<String, RexNode> nameToNodeMap = new HashMap<>();
     List<RexVariable> variables = new ArrayList<>();
-    List<RelDataTypeField> parameters = scope.getParameters();
+    Map<String, RelDataType> parameters = scope.getParameters();
 
-    for (int i = 0; i < call.getParameters().size(); i++) {
-      variables.add(new RexLambdaRef(i, parameters.get(i).getValue()));
-      nameToNodeMap.put(parameters.get(i).getKey(),
-          rexBuilder.makeLambdaRef(parameters.get(i).getValue(), i));
+    int i = 0;
+    for (Entry<String, RelDataType> entry : parameters.entrySet()) {
+      variables.add(new RexLambdaRef(i, entry.getValue()));
+      nameToNodeMap.put(entry.getKey(), rexBuilder.makeLambdaRef(entry.getValue(), i));
+      i++;
     }
 
     final Blackboard lambdaBb = createBlackboard(scope, nameToNodeMap, false);
     lambdaBb.setRoot(bb.inputs);
-    lambdaBb.isLambdaScope = true;
     RexNode expr = lambdaBb.convertExpression(call.getExpression());
     return rexBuilder.makeLambdaCall(expr, variables);
   }
@@ -4296,7 +4297,6 @@ public class SqlToRelConverter {
         new HashMap<>();
 
     private boolean isPatternVarRef = false;
-    private boolean isLambdaScope = false;
 
     final List<RelNode> cursors = new ArrayList<>();
 
@@ -4533,6 +4533,7 @@ public class SqlToRelConverter {
      * not found
      */
     Pair<RexNode, Map<String, Integer>> lookupExp(SqlQualified qualified) {
+      boolean isLambdaScope = scope instanceof LambdaScope;
       if (nameToNodeMap != null && qualified.prefixLength == 1) {
         RexNode node = nameToNodeMap.get(qualified.identifier.names.get(0));
         if (node == null) {
