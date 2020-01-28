@@ -124,7 +124,7 @@ public abstract class FilterTableScanRule extends RelOptRule {
     final Mapping mapping = Mappings.target(projects,
         scan.getTable().getRowType().getFieldCount());
     filters.add(
-        RexUtil.apply(mapping, filter.getCondition()));
+        RexUtil.apply(mapping.inverse(), filter.getCondition()));
 
     call.transformTo(
         Bindables.BindableTableScan.create(scan.getCluster(), scan.getTable(),
