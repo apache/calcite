@@ -1844,9 +1844,9 @@ SELECT "REGEXP_REPLACE"('DonecFri@semperpretiumneque.com', '@.*\\.(org|gov|com)$
 
 # REGEXP_SUBSTR ( source_string, pattern [, position [, occurrence
 # [, parameters ] ] ] )
-select regexp_substr('Suspendisse.tristique@nonnisiAenean.edu','@[^.]*');
-SELECT "REGEXP_SUBSTR"('Suspendisse.tristique@nonnisiAenean.edu', '@[^.]*')
-!explain-validated-on calcite
+#select regexp_substr('Suspendisse.tristique@nonnisiAenean.edu','@[^.]*');
+#SELECT REGEXP_SUBSTR('Suspendisse.tristique@nonnisiAenean.edu', '@[^.]*')
+#!explain-validated-on calcite
 
 # REPEAT
 select repeat('ba', 3);

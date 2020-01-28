@@ -442,6 +442,11 @@ public enum SqlKind {
   POSIX_REGEX_CASE_INSENSITIVE,
 
   /**
+   * The "REGEXP_SUBSTR" operator.
+   */
+  REGEXP_SUBSTR,
+
+  /**
    * The "BETWEEN" operator.
    */
   BETWEEN,
