@@ -27,6 +27,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.ScannableTable;
@@ -38,6 +39,7 @@ import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert.ConnectionPostProcessor;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
@@ -115,7 +117,7 @@ public class ScannableTableTest {
             "i=4; j=Paul; k=1942");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=4"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>"));
   }
 
   /** A filter on a {@link FilterableTable} with two columns (noncooperative). */
@@ -150,7 +152,7 @@ public class ScannableTableTest {
             "j=Paul");
     // Only 2 rows came out of the table. If the value is 4, it means that the
     // planner did not pass the filter down.
-    assertThat(buf.toString(), is("returnCount=2, filter=4, projects=[1]"));
+    assertThat(buf.toString(), is("returnCount=2, filter=<0, 4>, projects=[1]"));
   }
 
   @Test void testProjectableFilterableNonCooperative() throws Exception {
@@ -183,7 +185,7 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; j=John",
             "k=1942; j=Paul");
     assertThat(buf.toString(),
-        is("returnCount=2, filter=4, projects=[2, 1]"));
+        is("returnCount=2, filter=<0, 4>, projects=[2, 1]"));
   }
 
   /** A filter on a {@link org.apache.calcite.schema.ProjectableFilterableTable}
@@ -279,7 +281,7 @@ public class ScannableTableTest {
         .returnsUnordered("k=1940; C=2");
   }
 
-  private static Integer getFilter(boolean cooperative, List<RexNode> filters) {
+  private static Pair<Integer, Object> getFilter(boolean cooperative, List<RexNode> filters) {
     final Iterator<RexNode> filterIter = filters.iterator();
     while (filterIter.hasNext()) {
       final RexNode node = filterIter.next();
@@ -287,12 +289,17 @@ public class ScannableTableTest {
           && node instanceof RexCall
           && ((RexCall) node).getOperator() == SqlStdOperatorTable.EQUALS
           && ((RexCall) node).getOperands().get(0) instanceof RexInputRef
-          && ((RexInputRef) ((RexCall) node).getOperands().get(0)).getIndex()
-          == 0
           && ((RexCall) node).getOperands().get(1) instanceof RexLiteral) {
-        final RexNode op1 = ((RexCall) node).getOperands().get(1);
         filterIter.remove();
-        return ((BigDecimal) ((RexLiteral) op1).getValue()).intValue();
+        final int pos = ((RexInputRef) ((RexCall) node).getOperands().get(0)).getIndex();
+        final RexLiteral op1 = (RexLiteral) ((RexCall) node).getOperands().get(1);
+        switch (pos) {
+        case 0:
+        case 2:
+          return Pair.of(pos, ((BigDecimal) op1.getValue()).intValue());
+        case 1:
+          return Pair.of(pos, ((NlsString) op1.getValue()).getValue());
+        }
       }
     }
     return null;
@@ -456,6 +463,26 @@ public class ScannableTableTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3758">[CALCITE-3758]
+   * FilterTableScanRule generate wrong mapping for filter condition
+   * when underlying is BindableTableScan</a>. */
+  @Test public void testPFTableInBindableConvention() {
+    final StringBuilder buf = new StringBuilder();
+    final Table table = new BeatlesProjectableFilterableTable(buf, true);
+    try (Hook.Closeable ignored = Hook.ENABLE_BINDABLE.addThread(Hook.propertyJ(true))) {
+      final String explain = "PLAN="
+          + "BindableTableScan(table=[[s, beatles]], filters=[[=($1, 'John')]], projects=[[1]])";
+      CalciteAssert.that()
+          .with(newSchema("s", Pair.of("beatles", table)))
+          .query("select \"j\" from \"s\".\"beatles\" where \"j\" = 'John'")
+          .explainContains(explain)
+          .returnsUnordered("j=John");
+      assertThat(buf.toString(),
+          is("returnCount=1, filter=<1, John>, projects=[1]"));
+    }
+  }
+
   protected ConnectionPostProcessor newSchema(final String schemaName,
       Pair<String, Table>... tables) {
     return connection -> {
@@ -529,7 +556,7 @@ public class ScannableTableTest {
     }
 
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
-      final Integer filter = getFilter(cooperative, filters);
+      final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(buf, filter, null);
@@ -561,7 +588,7 @@ public class ScannableTableTest {
 
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
         final int[] projects) {
-      final Integer filter = getFilter(cooperative, filters);
+      final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(buf, filter, projects);
@@ -606,7 +633,7 @@ public class ScannableTableTest {
   };
 
   private static Enumerator<Object[]> beatles(final StringBuilder buf,
-      final Integer filter, final int[] projects) {
+      final Pair<Integer, Object> filter, final int[] projects) {
     return new Enumerator<Object[]>() {
       int row = -1;
       int returnCount = 0;
@@ -619,7 +646,7 @@ public class ScannableTableTest {
       public boolean moveNext() {
         while (++row < 4) {
           Object[] current = BEATLES[row % 4];
-          if (filter == null || filter.equals(current[0])) {
+          if (filter == null || filter.right.equals(current[filter.left])) {
             if (projects == null) {
               this.current = current;
             } else {
