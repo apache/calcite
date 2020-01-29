@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
+import com.github.vlsi.gradle.properties.dsl.props
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     java
     `kotlin-dsl` apply false
     id("com.github.autostyle")
+    id("com.github.vlsi.gradle-extensions")
 }
 
 repositories {
@@ -28,7 +30,9 @@ repositories {
     gradlePluginPortal()
 }
 
-subprojects {
+val skipAutostyle by props()
+
+allprojects {
     repositories {
         jcenter()
         gradlePluginPortal()
@@ -52,17 +56,19 @@ fun Project.applyKotlinProjectConventions() {
             jvmTarget = "1.8"
         }
     }
-    apply(plugin = "com.github.autostyle")
-    autostyle {
-        kotlin {
-            ktlint()
-            trimTrailingWhitespace()
-            endWithNewline()
-        }
-        kotlinGradle {
-            ktlint()
-            trimTrailingWhitespace()
-            endWithNewline()
+    if (!skipAutostyle) {
+        apply(plugin = "com.github.autostyle")
+        autostyle {
+            kotlin {
+                ktlint()
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
+            kotlinGradle {
+                ktlint()
+                trimTrailingWhitespace()
+                endWithNewline()
+            }
         }
     }
 }
