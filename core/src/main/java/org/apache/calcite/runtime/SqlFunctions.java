@@ -1170,6 +1170,14 @@ public class SqlFunctions {
     return mod(BigDecimal.valueOf(b0), b1);
   }
 
+  public static BigDecimal mod(long b0, BigDecimal b1) {
+    return mod(BigDecimal.valueOf(b0), b1);
+  }
+
+  public static BigDecimal mod(BigDecimal b0, long b1) {
+    return mod(b0, BigDecimal.valueOf(b1));
+  }
+
   public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
     final BigDecimal[] bigDecimals = b0.divideAndRemainder(b1);
     return bigDecimals[1];

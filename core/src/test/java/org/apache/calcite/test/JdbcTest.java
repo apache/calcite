@@ -3601,6 +3601,15 @@ public class JdbcTest {
             + "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
   }
 
+  @Test public void testFunctionImplementations() {
+    CalciteAssert.that()
+        .query("SELECT mod(12.5, cast(3 as bigint))")
+        .returns("EXPR$0=0.5\n");
+    CalciteAssert.that()
+        .query("SELECT mod(cast(5 as bigint), 1.2)")
+        .returns("EXPR$0=0.2\n");
+  }
+
   /** Tests windowed aggregation. */
   @Test public void testWinAgg() {
     CalciteAssert.hr()
