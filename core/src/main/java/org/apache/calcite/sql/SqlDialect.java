@@ -291,6 +291,8 @@ public class SqlDialect {
       return DatabaseProduct.ORACLE;
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
+    case "PRESTO":
+      return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
     case "MYSQL":
@@ -921,6 +923,11 @@ public class SqlDialect {
   protected final void unparseFetchUsingLimit(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     Preconditions.checkArgument(fetch != null || offset != null);
+    unparseLimit(writer, fetch);
+    unparseOffset(writer, offset);
+  }
+
+  protected final void unparseLimit(SqlWriter writer, SqlNode fetch) {
     if (fetch != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame fetchFrame =
@@ -929,6 +936,9 @@ public class SqlDialect {
       fetch.unparse(writer, -1, -1);
       writer.endList(fetchFrame);
     }
+  }
+
+  protected final void unparseOffset(SqlWriter writer, SqlNode offset) {
     if (offset != null) {
       writer.newlineAndIndent();
       final SqlWriter.Frame offsetFrame =
@@ -1245,6 +1255,7 @@ public class SqlDialect {
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
+    PRESTO("Presto", "\"", NullCollation.LOW),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),

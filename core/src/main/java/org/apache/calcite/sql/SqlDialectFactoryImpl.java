@@ -43,6 +43,7 @@ import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.dialect.ParaccelSqlDialect;
 import org.apache.calcite.sql.dialect.PhoenixSqlDialect;
 import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
+import org.apache.calcite.sql.dialect.PrestoSqlDialect;
 import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.dialect.SnowflakeSqlDialect;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
@@ -289,6 +290,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
       return PhoenixSqlDialect.DEFAULT;
     case POSTGRESQL:
       return PostgresqlSqlDialect.DEFAULT;
+    case PRESTO:
+      return PrestoSqlDialect.DEFAULT;
     case REDSHIFT:
       return RedshiftSqlDialect.DEFAULT;
     case SYBASE:

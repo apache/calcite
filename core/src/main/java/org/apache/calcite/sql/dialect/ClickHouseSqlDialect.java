@@ -25,10 +25,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
@@ -36,6 +34,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.base.Preconditions;
 
@@ -49,24 +48,6 @@ public class ClickHouseSqlDialect extends SqlDialect {
       .withNullCollation(NullCollation.LOW);
 
   public static final SqlDialect DEFAULT = new ClickHouseSqlDialect(DEFAULT_CONTEXT);
-
-  private static final SqlSpecialOperator CLICKHOUSE_SUBSTRING =
-      new SqlSpecialOperator("substring", SqlKind.OTHER_FUNCTION) {
-        public void unparse(
-            SqlWriter writer,
-            SqlCall call,
-            int leftPrec,
-            int rightPrec) {
-          writer.print(getName());
-          final SqlWriter.Frame frame =
-              writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
-          for (SqlNode operand : call.getOperandList()) {
-            writer.sep(",");
-            operand.unparse(writer, 0, 0);
-          }
-          writer.endList(frame);
-        }
-      };
 
   /** Creates a ClickHouseSqlDialect. */
   public ClickHouseSqlDialect(Context context) {
@@ -166,7 +147,8 @@ public class ClickHouseSqlDialect extends SqlDialect {
   @Override public void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
     if (call.getOperator() == SqlStdOperatorTable.SUBSTRING) {
-      CLICKHOUSE_SUBSTRING.unparse(writer, call, 0, 0);
+      RelToSqlConverterUtil.specialOperatorByName("substring")
+          .unparse(writer, call, 0, 0);
     } else {
       switch (call.getKind()) {
       case FLOOR:
