@@ -291,6 +291,8 @@ public class SqlDialect {
       return DatabaseProduct.ORACLE;
     case "PHOENIX":
       return DatabaseProduct.PHOENIX;
+    case "PRESTO":
+      return DatabaseProduct.PRESTO;
     case "MYSQL (INFOBRIGHT)":
       return DatabaseProduct.INFOBRIGHT;
     case "MYSQL":
@@ -1245,6 +1247,7 @@ public class SqlDialect {
     INTERBASE("Interbase", null, NullCollation.HIGH),
     PHOENIX("Phoenix", "\"", NullCollation.HIGH),
     POSTGRESQL("PostgreSQL", "\"", NullCollation.HIGH),
+    PRESTO("Presto", "\"", NullCollation.LOW),
     NETEZZA("Netezza", "\"", NullCollation.HIGH),
     INFOBRIGHT("Infobright", "`", NullCollation.HIGH),
     NEOVIEW("Neoview", null, NullCollation.HIGH),

@@ -173,6 +173,8 @@ class RelToSqlConverterTest {
             SqlDialect.DatabaseProduct.ORACLE)
         .put(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect(),
             SqlDialect.DatabaseProduct.POSTGRESQL)
+        .put(DatabaseProduct.PRESTO.getDialect(),
+            DatabaseProduct.PRESTO)
         .build();
   }
 
@@ -263,14 +265,20 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedMySql = "SELECT COUNT(*)\n"
         + "FROM `foodmart`.`product`";
+    final String expectedPresto = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"";
     sql(sql0)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
     sql(sql1)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   @Test void testSelectQueryWithGroupByEmpty2() {
@@ -281,10 +289,15 @@ class RelToSqlConverterTest {
     final String expectedMySql = "SELECT 42 AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY ()";
+    final String expectedPresto = "SELECT 42 AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ()";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   /** Test case for
@@ -416,10 +429,17 @@ class RelToSqlConverterTest {
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "ORDER BY `product_class_id` IS NULL, `product_class_id`,"
         + " COUNT(*) IS NULL, COUNT(*)";
+    final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "ORDER BY \"product_class_id\" IS NULL, \"product_class_id\", "
+        + "COUNT(*) IS NULL, COUNT(*)";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   /** As {@link #testSelectQueryWithSingletonCube()}, but no ORDER BY
@@ -434,10 +454,15 @@ class RelToSqlConverterTest {
     final String expectedMySql = "SELECT `product_class_id`, COUNT(*) AS `C`\n"
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP";
+    final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   /** Cannot rewrite if ORDER BY contains a column not in GROUP BY (in this
@@ -482,10 +507,16 @@ class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "GROUP BY `product_class_id` WITH ROLLUP\n"
         + "LIMIT 5";
+    final String expectedPresto = "SELECT \"product_class_id\", COUNT(*) AS \"C\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_class_id\")\n"
+        + "LIMIT 5";
     sql(query)
         .ok(expected)
         .withMysql()
-        .ok(expectedMySql);
+        .ok(expectedMySql)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   @Test void testSelectQueryWithMinAggregateFunction() {
@@ -2086,6 +2117,15 @@ class RelToSqlConverterTest {
         .ok(expected)
         .withClickHouse()
         .ok(expectedClickHouse);
+
+    final String expectedPresto = "SELECT \"product_id\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "OFFSET 10\n"
+        + "LIMIT 100";
+    sql(query)
+        .ok(expected)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   @Test void testSelectQueryWithLimitOffsetClause() {
@@ -2833,6 +2873,14 @@ class RelToSqlConverterTest {
         .ok(expected);
   }
 
+  @Test public void testFloorPresto() {
+    String query = "SELECT floor(\"hire_date\" TO MINUTE) FROM \"employee\"";
+    String expected = "SELECT DATE_TRUNC('MINUTE', \"hire_date\")\nFROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withPresto()
+        .ok(expected);
+  }
+
   @Test void testFloorMssqlWeek() {
     String query = "SELECT floor(\"hire_date\" TO WEEK) FROM \"employee\"";
     String expected = "SELECT CONVERT(DATETIME, CONVERT(VARCHAR(10), "
@@ -3093,6 +3141,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2)\n"
+        + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2)\n"
@@ -3104,6 +3154,8 @@ class RelToSqlConverterTest {
         .ok(expectedOracle)
         .withPostgresql()
         .ok(expectedPostgresql)
+        .withPresto()
+        .ok(expectedPresto)
         .withSnowflake()
         .ok(expectedSnowflake)
         .withRedshift()
@@ -3124,6 +3176,8 @@ class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     final String expectedPostgresql = "SELECT SUBSTRING(\"brand_name\" FROM 2 FOR 3)\n"
         + "FROM \"foodmart\".\"product\"";
+    final String expectedPresto = "SELECT SUBSTR(\"brand_name\", 2, 3)\n"
+        + "FROM \"foodmart\".\"product\"";
     final String expectedSnowflake = expectedPostgresql;
     final String expectedRedshift = expectedPostgresql;
     final String expectedMysql = "SELECT SUBSTRING(`brand_name` FROM 2 FOR 3)\n"
@@ -3137,6 +3191,8 @@ class RelToSqlConverterTest {
         .ok(expectedOracle)
         .withPostgresql()
         .ok(expectedPostgresql)
+        .withPresto()
+        .ok(expectedPresto)
         .withSnowflake()
         .ok(expectedSnowflake)
         .withRedshift()
@@ -4651,7 +4707,7 @@ class RelToSqlConverterTest {
     sql(query).ok(expected);
   }
 
-  @Test void testCubeInSpark() {
+  @Test public void testCubeWithGroupBy() {
     final String query = "select count(*) "
         + "from \"foodmart\".\"product\" "
         + "group by cube(\"product_id\",\"product_class_id\")";
@@ -4661,13 +4717,18 @@ class RelToSqlConverterTest {
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_id, product_class_id WITH CUBE";
+    final String expectedPresto = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY CUBE(\"product_id\", \"product_class_id\")";
     sql(query)
         .ok(expected)
         .withSpark()
-        .ok(expectedInSpark);
+        .ok(expectedInSpark)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
-  @Test void testRollupInSpark() {
+  @Test public void testRollupWithGroupBy() {
     final String query = "select count(*) "
         + "from \"foodmart\".\"product\" "
         + "group by rollup(\"product_id\",\"product_class_id\")";
@@ -4677,10 +4738,15 @@ class RelToSqlConverterTest {
     final String expectedInSpark = "SELECT COUNT(*)\n"
         + "FROM foodmart.product\n"
         + "GROUP BY product_id, product_class_id WITH ROLLUP";
+    final String expectedPresto = "SELECT COUNT(*)\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY ROLLUP(\"product_id\", \"product_class_id\")";
     sql(query)
         .ok(expected)
         .withSpark()
-        .ok(expectedInSpark);
+        .ok(expectedInSpark)
+        .withPresto()
+        .ok(expectedPresto);
   }
 
   @Test void testJsonType() {
@@ -5225,6 +5291,10 @@ class RelToSqlConverterTest {
 
     Sql withPostgresql() {
       return dialect(SqlDialect.DatabaseProduct.POSTGRESQL.getDialect());
+    }
+
+    Sql withPresto() {
+      return dialect(DatabaseProduct.PRESTO.getDialect());
     }
 
     Sql withRedshift() {
