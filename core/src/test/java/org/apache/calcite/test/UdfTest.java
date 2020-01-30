@@ -31,6 +31,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -49,6 +50,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -1017,6 +1020,68 @@ public class UdfTest {
   }
 
   /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3760">[CALCITE-3760]
+   * Rewriting non-deterministic function can break query semantics</a>.
+   */
+  @Test public void testNonDeterministicUDF() throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      final SchemaPlus subSchema = rootSchema.add("s", new AbstractSchema());
+      subSchema.add("non_deterministic_udf",
+          ScalarFunctionImpl.create(NonDeterministicUDF.class, "eval"));
+      final String sql = "explain plan for\n"
+          + "select coalesce(\"s\".\"non_deterministic_udf\"(), 1)";
+
+      try (Statement statement = connection.createStatement();
+           ResultSet resultSet = statement.executeQuery(sql)) {
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getString(1),
+            isLinux(""
+                + "EnumerableCalc(expr#0=[{inputs}], expr#1=[non_deterministic_udf()], "
+                + "expr#2=[1], expr#3=[COALESCE($t1, $t2)], EXPR$0=[$t3])\n"
+                + "  EnumerableValues(tuples=[[{ 0 }]])\n"));
+      }
+      connection.close();
+    }
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3760">[CALCITE-3760]
+   * Rewriting non-deterministic function can break query semantics</a>.
+   */
+  @Test public void testNonDeterministicUDAF() throws Exception {
+    try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
+      final CalciteConnection calciteConnection =
+          connection.unwrap(CalciteConnection.class);
+      final SchemaPlus rootSchema = calciteConnection.getRootSchema();
+      rootSchema.add("hr", new ReflectiveSchema(new JdbcTest.HrSchema()));
+
+      final SchemaPlus subSchema = rootSchema.add("s", new AbstractSchema());
+      subSchema.add("non_deterministic_udaf",
+          AggregateFunctionImpl.create(NonDeterministicUDAF.class));
+      final String sql = "explain plan for\n"
+          + "select nullif(\"s\".\"non_deterministic_udaf\"(\"empid\"), 1024)\n"
+          + "from \"hr\".\"emps\"";
+
+      try (Statement statement = connection.createStatement();
+           ResultSet resultSet = statement.executeQuery(sql)) {
+        assertThat(resultSet.next(), is(true));
+        assertThat(resultSet.getString(1),
+            isLinux(""
+                + "EnumerableCalc(expr#0=[{inputs}], expr#1=[1024], expr#2=[NULLIF($t0, $t1)], "
+                + "EXPR$0=[$t2])\n"
+                + "  EnumerableAggregate(group=[{}], agg#0=[non_deterministic_udaf($0)])\n"
+                + "    EnumerableTableScan(table=[[hr, emps]])\n"));
+      }
+      connection.close();
+    }
+  }
+
+  /**
    * Base class for functions that append arrays.
    */
   private abstract static class ArrayAppendScalarFunction
@@ -1091,4 +1156,29 @@ public class UdfTest {
     }
   }
 
+  public static class NonDeterministicUDF {
+    public Integer eval() {
+      return 0;
+    }
+
+    public boolean isDeterministic() {
+      return false;
+    }
+  }
+
+  public static class NonDeterministicUDAF {
+    public int init() {
+      return 0;
+    }
+
+    public void add(int x, int y) { }
+
+    public int result() {
+      return 0;
+    }
+
+    public boolean isDeterministic() {
+      return false;
+    }
+  }
 }

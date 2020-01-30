@@ -102,4 +102,8 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public RelDataType getReturnType(RelDataTypeFactory typeFactory) {
     return function.getReturnType(typeFactory);
   }
+
+  @Override public boolean isDeterministic() {
+    return function.isDeterministic();
+  }
 }

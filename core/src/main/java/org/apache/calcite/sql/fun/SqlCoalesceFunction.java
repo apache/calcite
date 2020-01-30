@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -63,6 +64,10 @@ public class SqlCoalesceFunction extends SqlFunction {
     if (operands.size() == 1) {
       // No CASE needed
       return operands.get(0);
+    }
+
+    if (!SqlUtil.isDeterministic(call)) {
+      return call;
     }
 
     SqlParserPos pos = call.getParserPosition();

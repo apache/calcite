@@ -27,6 +27,7 @@ import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -139,5 +140,20 @@ public class AggregateFunctionImpl implements AggregateFunction,
 
   public AggImplementor getImplementor(boolean windowContext) {
     return new RexImpTable.UserDefinedAggReflectiveImplementor(this);
+  }
+
+  @Override public boolean isDeterministic() {
+    try {
+      final Class clazz = initMethod.getDeclaringClass();
+      final Method isDeterministicMethod =
+          ReflectiveFunctionBase.findMethod(clazz, "isDeterministic");
+      if (isDeterministicMethod == null) {
+        return true;
+      } else {
+        return (boolean) isDeterministicMethod.invoke(clazz.newInstance());
+      }
+    } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

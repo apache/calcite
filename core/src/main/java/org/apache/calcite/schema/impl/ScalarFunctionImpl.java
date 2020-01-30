@@ -30,6 +30,7 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableMultimap;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -62,6 +63,9 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       }
       if (!Modifier.isStatic(method.getModifiers())
           && !classHasPublicZeroArgsConstructor(clazz)) {
+        continue;
+      }
+      if (method.getName().equals("isDeterministic")) {
         continue;
       }
       final ScalarFunction function = create(method);
@@ -166,5 +170,20 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
       return typeFactory.createTypeWithNullability(returnType, true);
     }
     return returnType;
+  }
+
+  @Override public boolean isDeterministic() {
+    try {
+      final Class clazz = method.getDeclaringClass();
+      final Method isDeterministicMethod =
+          ReflectiveFunctionBase.findMethod(clazz, "isDeterministic");
+      if (isDeterministicMethod == null) {
+        return true;
+      } else {
+        return (boolean) isDeterministicMethod.invoke(clazz.newInstance());
+      }
+    } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

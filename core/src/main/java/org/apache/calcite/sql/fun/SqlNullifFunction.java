@@ -23,6 +23,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -54,6 +55,10 @@ public class SqlNullifFunction extends SqlFunction {
 
   // override SqlOperator
   public SqlNode rewriteCall(SqlValidator validator, SqlCall call) {
+    if (!SqlUtil.isDeterministic(call)) {
+      return call;
+    }
+
     List<SqlNode> operands = call.getOperandList();
     SqlParserPos pos = call.getParserPosition();
 

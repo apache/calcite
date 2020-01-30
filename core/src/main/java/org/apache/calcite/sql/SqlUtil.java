@@ -43,6 +43,7 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.Util.FoundOne;
 
 import com.google.common.base.Predicates;
 import com.google.common.base.Utf8;
@@ -1037,6 +1038,28 @@ public abstract class SqlUtil {
       return rel.attachHints(relHints);
     }
     return (RelNode) rel;
+  }
+
+  /**
+   * Check whether the {@code sqlNode} is deterministic -- returns the same result
+   * each time it is invoked with a particular input. Certain optimizations or
+   * rewrittings should not be applied if the determinism cannot be guaranteed.
+   */
+  public static boolean isDeterministic(SqlNode sqlNode) {
+    try {
+      sqlNode.accept(
+          new SqlBasicVisitor<Void>() {
+            @Override public Void visit(SqlCall call) {
+              if (!call.getOperator().isDeterministic()) {
+                throw FoundOne.NULL;
+              }
+              return super.visit(call);
+            }
+          });
+    } catch (Util.FoundOne e) {
+      return false;
+    }
+    return true;
   }
 
   //~ Inner Classes ----------------------------------------------------------

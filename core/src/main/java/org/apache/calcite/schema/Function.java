@@ -39,4 +39,13 @@ public interface Function {
    * @return Parameters; never null
    */
   List<FunctionParameter> getParameters();
+
+  /**
+   * Returns whether this function is deterministic. {@code true} means this
+   * function returns the same result each time it is invoked with a particular input.
+   * Certain optimizations or rewrittings should not be applied for a non-deterministic function.
+   */
+  default boolean isDeterministic() {
+    return true;
+  }
 }
