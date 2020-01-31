@@ -963,12 +963,12 @@ public class JdbcTest {
                 + "from \"foodmart\".\"employee\"";
             final ResultSet rs = s.executeQuery(query);
             final ResultSetMetaData rsm = rs.getMetaData();
-            assertEquals(rsm.getCatalogName(1), "");
-            assertEquals(rsm.getCatalogName(2), "");
-            assertEquals(rsm.getSchemaName(1), "foodmart");
-            assertEquals(rsm.getSchemaName(2), "");
-            assertEquals(rsm.getTableName(1), "employee");
-            assertEquals(rsm.getTableName(2), "");
+            assertThat(rsm.getCatalogName(1), equalTo(""));
+            assertThat(rsm.getCatalogName(2), equalTo(""));
+            assertThat(rsm.getSchemaName(1), equalTo("foodmart"));
+            assertThat(rsm.getSchemaName(2), equalTo(""));
+            assertThat(rsm.getTableName(1), equalTo("employee"));
+            assertThat(rsm.getTableName(2), equalTo(""));
           } catch (SQLException e) {
             throw TestUtil.rethrow(e);
           }
