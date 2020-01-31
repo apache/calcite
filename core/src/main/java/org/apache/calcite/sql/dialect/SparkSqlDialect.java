@@ -40,11 +40,13 @@ import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.ToNumberUtils;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -208,6 +210,14 @@ public class SparkSqlDialect extends SqlDialect {
       case TRIM:
         unparseTrim(writer, call, leftPrec, rightPrec);
         break;
+      case OTHER_FUNCTION:
+        if (call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())
+            && ((SqlBasicCall) call).getOperands().length > 0) {
+          unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+        } else {
+          super.unparseCall(writer, call, leftPrec, rightPrec);
+        }
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -254,6 +264,14 @@ public class SparkSqlDialect extends SqlDialect {
     default:
       throw new AssertionError(call.operand(1).getKind() + " is not valid");
     }
+  }
+
+  private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call,
+                                       int leftPrec, int rightPrec) {
+    CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
+    SqlCall dateFormatCall = timestampHandler.makeDateFormatCall(call);
+    SqlCall castCall = timestampHandler.makeCastCall(dateFormatCall);
+    unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
   private void unparseIntervalOperandCall(

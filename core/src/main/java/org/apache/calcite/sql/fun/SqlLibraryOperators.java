@@ -194,6 +194,10 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
+  public static final SqlFunction CURRENT_TIMESTAMP = new SqlCurrentTimestampFunction(
+          "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
    * that matches the regex_pattern. Returns NULL if there is no match.
@@ -216,6 +220,20 @@ public abstract class SqlLibraryOperators {
           SqlTypeTransforms.TO_NULLABLE),
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction FORMAT_TIMESTAMP = new SqlFunction("FORMAT_TIMESTAMP",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE, null,
+      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE})
+  public static final SqlFunction DATE_FORMAT = new SqlFunction("DATE_FORMAT",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE, null,
+      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+      SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
