@@ -47,6 +47,18 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - uses: actions/cache@v1
+      with:
+        path: '%USER_HOME%\.gradle\caches'
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**\*.gradle.*') }}-${{ hashFiles('**\gradle.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    - uses: actions/cache@v1
+      with:
+        path: '%USER_HOME%\.gradle\wrapper'
+        key: ${{ runner.os }}-gradle-${{ hashFiles('gradle\wrapper\gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-wrapper-
     - name: 'Test'
       shell: cmd
       run: |
@@ -61,6 +73,18 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
+    - uses: actions/cache@v1
+      with:
+        path: ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.*') }}-${{ hashFiles('**/gradle.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-wrapper-
     - name: 'Install Avatica to Maven Local repository'
       run: |
         git clone --branch master --depth 100 https://github.com/apache/calcite-avatica.git ../calcite-avatica
@@ -85,6 +109,18 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 13
+      - uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.*') }}-${{ hashFiles('**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - uses: actions/cache@v1
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
       - name: 'Test'
         run: |
           ./gradlew --no-parallel --no-daemon build javadoc
@@ -103,6 +139,18 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 8
+      - uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.*') }}-${{ hashFiles('**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - uses: actions/cache@v1
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
       - name: 'Test'
         run: |
           ./gradlew --no-parallel --no-daemon testSlow
