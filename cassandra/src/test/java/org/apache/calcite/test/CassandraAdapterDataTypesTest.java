@@ -153,6 +153,7 @@ public class CassandraAdapterDataTypesTest extends AbstractCassandraAdapterTest 
             + ", EXPR$4 TIMESTAMP]");
   }
 
+  // ignored as tuple elements returns 'null' when accessed in the select statement
   @Ignore
   @Test public void testCollectionsInnerValues() {
     CalciteAssert.that()

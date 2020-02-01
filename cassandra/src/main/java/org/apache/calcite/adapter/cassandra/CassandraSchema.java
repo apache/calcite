@@ -172,23 +172,28 @@ public class CassandraSchema extends AbstractSchema {
       final SqlTypeName typeName =
           CQL_TO_SQL_TYPE.lookup(column.getType().getName());
 
-      if ("ARRAY".equals(typeName.getName())) {
-        final SqlTypeName innerType = CQL_TO_SQL_TYPE.lookup(
+      switch (typeName) {
+      case ARRAY:
+        final SqlTypeName arrayInnerType = CQL_TO_SQL_TYPE.lookup(
             column.getType().getTypeArguments().get(0).getName());
 
         fieldInfo.add(column.getName(),
             typeFactory.createArrayType(
-                typeFactory.createSqlType(innerType), -1))
+                typeFactory.createSqlType(arrayInnerType), -1))
             .nullable(true);
-      } else if ("MULTISET".equals(typeName.getName())) {
-        final SqlTypeName innerType = CQL_TO_SQL_TYPE.lookup(
+
+        break;
+      case MULTISET:
+        final SqlTypeName multiSetInnerType = CQL_TO_SQL_TYPE.lookup(
             column.getType().getTypeArguments().get(0).getName());
 
         fieldInfo.add(column.getName(),
             typeFactory.createMultisetType(
-                typeFactory.createSqlType(innerType), -1)
+                typeFactory.createSqlType(multiSetInnerType), -1)
         ).nullable(true);
-      } else if ("MAP".equals(typeName.getName())) {
+
+        break;
+      case MAP:
         final List<DataType> types = column.getType().getTypeArguments();
         final SqlTypeName keyType =
             CQL_TO_SQL_TYPE.lookup(types.get(0).getName());
@@ -200,25 +205,31 @@ public class CassandraSchema extends AbstractSchema {
                 typeFactory.createSqlType(keyType),
                 typeFactory.createSqlType(valueType))
         ).nullable(true);
-      } else if ("STRUCTURED".equals(typeName.getName())) {
+
+        break;
+      case STRUCTURED:
         assert DataType.Name.TUPLE == column.getType().getName();
 
         final List<DataType> typeArgs =
             ((TupleType) column.getType()).getComponentTypes();
         final List<Map.Entry<String, RelDataType>> typesList =
             IntStream.range(0, typeArgs.size())
-            .mapToObj(
-                i -> new Pair<>(
-                Integer.toString(i + 1), // 1 indexed (as ARRAY)
-                typeFactory.createSqlType(
-                    CQL_TO_SQL_TYPE.lookup(typeArgs.get(i).getName()))))
-            .collect(Collectors.toList());
+                .mapToObj(
+                    i -> new Pair<>(
+                        Integer.toString(i + 1), // 1 indexed (as ARRAY)
+                        typeFactory.createSqlType(
+                            CQL_TO_SQL_TYPE.lookup(typeArgs.get(i).getName()))))
+                .collect(Collectors.toList());
 
         fieldInfo.add(column.getName(),
             typeFactory.createStructType(typesList))
             .nullable(true);
-      } else {
+
+        break;
+      default:
         fieldInfo.add(column.getName(), typeName).nullable(true);
+
+        break;
       }
     }
 
