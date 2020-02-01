@@ -1307,6 +1307,42 @@ group by deptno;
 
 !ok
 
+# Convert CASE to FILTER
+select count(case x when 0 then null else -1 end) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Same, expressed as FILTER
+select count(*) filter (where (x = 0) is not true) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Similar, not quite the same
+select count(*) filter (where (x = 0) is false) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
+
+!ok
+
 # [CALCITE-1293] Bad code generated when argument to COUNT(DISTINCT) is a
 # GROUP BY column
 select count(distinct deptno) as cd, count(*) as c
