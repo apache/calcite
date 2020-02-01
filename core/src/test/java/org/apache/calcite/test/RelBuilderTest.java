@@ -81,8 +81,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
-import java.util.function.Function;
-import javax.annotation.Nonnull;
+import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
@@ -90,6 +89,7 @@ import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -164,12 +164,10 @@ public class RelBuilderTest {
     return Frameworks.newConfigBuilder().defaultSchema(root);
   }
 
-  @Nonnull static RelBuilder createBuilder(
-      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform) {
+  static RelBuilder createBuilder(UnaryOperator<RelBuilder.Config> transform) {
     final Frameworks.ConfigBuilder configBuilder = config();
     configBuilder.context(
-        Contexts.of(transform.apply(RelBuilder.Config.builder())
-            .build()));
+        Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
     return RelBuilder.create(configBuilder.build());
   }
 
@@ -396,19 +394,18 @@ public class RelBuilderTest {
   /** Tests that {@link RelBuilder#project} simplifies expressions if and only if
    * {@link RelBuilder.Config#simplify}. */
   @Test public void testSimplify() {
-    checkSimplify(configBuilder -> configBuilder.withSimplify(true),
+    checkSimplify(c -> c.withSimplify(true),
         hasTree("LogicalProject($f0=[true])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
-    checkSimplify(configBuilder -> configBuilder,
+    checkSimplify(c -> c,
         hasTree("LogicalProject($f0=[true])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
-    checkSimplify(configBuilder -> configBuilder.withSimplify(false),
+    checkSimplify(c -> c.withSimplify(false),
         hasTree("LogicalProject($f0=[IS NOT NULL($0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  private void checkSimplify(
-      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform,
+  private void checkSimplify(UnaryOperator<RelBuilder.Config> transform,
       Matcher<RelNode> matcher) {
     final RelBuilder builder = createBuilder(transform);
     final RelNode root =
@@ -728,7 +725,7 @@ public class RelBuilderTest {
     assertTrue(root instanceof Project);
     Project project = (Project) root;
     Mappings.TargetMapping mapping = project.getMapping();
-    assertTrue(mapping == null);
+    assertThat(mapping, nullValue());
   }
 
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
@@ -999,30 +996,27 @@ public class RelBuilderTest {
   /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
    * calls and creates a {@code Project} to compensate. */
   @Test public void testAggregateEliminatesDuplicateCalls() {
-    final RelBuilder builder =
-        createBuilder(configBuilder ->
-            configBuilder.withDedupAggregateCalls(true));
     final String expected = ""
         + "LogicalProject(S1=[$0], C=[$1], S2=[$2], S1b=[$0])\n"
         + "  LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(buildRelWithDuplicateAggregates(builder), hasTree(expected));
+    assertThat(
+        buildRelWithDuplicateAggregates(c -> c.withDedupAggregateCalls(true)),
+        hasTree(expected));
 
     // Now, disable the rewrite
-    final RelBuilder builder2 =
-        createBuilder(configBuilder ->
-            configBuilder.withDedupAggregateCalls(false));
     final String expected2 = ""
         + "LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)], S1b=[SUM($1)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(buildRelWithDuplicateAggregates(builder2), hasTree(expected2));
+    assertThat(
+        buildRelWithDuplicateAggregates(c -> c.withDedupAggregateCalls(false)),
+        hasTree(expected2));
   }
 
   /** As {@link #testAggregateEliminatesDuplicateCalls()} but with a
    * single-column GROUP BY clause. */
   @Test public void testAggregateEliminatesDuplicateCalls2() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root = buildRelWithDuplicateAggregates(builder, 0);
+    RelNode root = buildRelWithDuplicateAggregates(c -> c, 0);
     final String expected = ""
         + "LogicalProject(EMPNO=[$0], S1=[$1], C=[$2], S2=[$3], S1b=[$1])\n"
         + "  LogicalAggregate(group=[{0}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
@@ -1033,8 +1027,7 @@ public class RelBuilderTest {
   /** As {@link #testAggregateEliminatesDuplicateCalls()} but with a
    * multi-column GROUP BY clause. */
   @Test public void testAggregateEliminatesDuplicateCalls3() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root = buildRelWithDuplicateAggregates(builder, 2, 0, 4, 3);
+    RelNode root = buildRelWithDuplicateAggregates(c -> c, 2, 0, 4, 3);
     final String expected = ""
         + "LogicalProject(EMPNO=[$0], JOB=[$1], MGR=[$2], HIREDATE=[$3], S1=[$4], C=[$5], S2=[$6], S1b=[$4])\n"
         + "  LogicalAggregate(group=[{0, 2, 3, 4}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
@@ -1042,8 +1035,10 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  private RelNode buildRelWithDuplicateAggregates(RelBuilder builder,
+  private RelNode buildRelWithDuplicateAggregates(
+      UnaryOperator<RelBuilder.Config> transform,
       int... groupFieldOrdinals) {
+    final RelBuilder builder = createBuilder(transform);
     return builder.scan("EMP")
         .aggregate(builder.groupKey(groupFieldOrdinals),
             builder.sum(builder.field(1)).as("S1"),
