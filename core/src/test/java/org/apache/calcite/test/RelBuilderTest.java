@@ -81,6 +81,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.hasHints;
@@ -901,8 +902,7 @@ public class RelBuilderTest {
     //   SELECT COUNT(*) AS c, SUM(mgr + 1) AS s
     //   FROM emp
     //   GROUP BY ename, hiredate + mgr
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> f = builder ->
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field(1),
@@ -916,10 +916,20 @@ public class RelBuilderTest {
                         builder.literal(1))).as("S"))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{1, 8}], C=[COUNT()], S=[SUM($9)])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)], $f9=[+($3, 1)])\n"
+        + "LogicalAggregate(group=[{0, 1}], C=[COUNT()], S=[SUM($2)])\n"
+        + "  LogicalProject(ENAME=[$1], $f8=[+($4, $3)], $f9=[+($3, 1)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now without pruning
+    final String expected2 = ""
+        + "LogicalAggregate(group=[{1, 8}], C=[COUNT()], S=[SUM($9)])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($4, $3)], "
+        + "$f9=[+($3, 1)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
   }
 
   /** Test case for
@@ -1080,8 +1090,7 @@ public class RelBuilderTest {
     //   SELECT deptno, COUNT(*) FILTER (WHERE empno > 100) AS c
     //   FROM emp
     //   GROUP BY ROLLUP(deptno)
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> f = builder ->
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
@@ -1095,10 +1104,19 @@ public class RelBuilderTest {
                     .as("C"))
             .build();
     final String expected = ""
-        + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
+        + "LogicalAggregate(group=[{0}], groups=[[{0}, {}]], C=[COUNT() FILTER $1])\n"
+        + "  LogicalProject(DEPTNO=[$7], $f8=[>($0, 100)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now without pruning
+    final String expected2 = ""
+        + "LogicalAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT() FILTER $8])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[>($0, 100)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
   }
 
   @Test public void testAggregateFilterFails() {
@@ -1128,8 +1146,7 @@ public class RelBuilderTest {
     //   SELECT deptno, SUM(sal) FILTER (WHERE comm < 100) AS c
     //   FROM emp
     //   GROUP BY deptno
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> f = builder ->
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(builder.field("DEPTNO")),
@@ -1140,10 +1157,18 @@ public class RelBuilderTest {
                     .as("C"))
             .build();
     final String expected = ""
+        + "LogicalAggregate(group=[{1}], C=[SUM($0) FILTER $2])\n"
+        + "  LogicalProject(SAL=[$5], DEPTNO=[$7], $f8=[IS TRUE(<($6, 100))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now without pruning
+    final String expected2 = ""
         + "LogicalAggregate(group=[{7}], C=[SUM($5) FILTER $8])\n"
         + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[IS TRUE(<($6, 100))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
   }
 
   /** Test case for
@@ -1169,8 +1194,7 @@ public class RelBuilderTest {
   }
 
   @Test public void testAggregateProjectWithExpression() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> f = builder ->
         builder.scan("EMP")
             .project(builder.field("DEPTNO"))
             .aggregate(
@@ -1181,10 +1205,105 @@ public class RelBuilderTest {
                         "d3")))
             .build();
     final String expected = ""
+        + "LogicalAggregate(group=[{0}])\n"
+        + "  LogicalProject(d3=[+($7, 3)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now without pruning
+    final String expected2 = ""
         + "LogicalAggregate(group=[{1}])\n"
         + "  LogicalProject(DEPTNO=[$7], d3=[+($7, 3)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
+  }
+
+  /** Tests that {@link RelBuilder#aggregate} on top of a {@link Project} prunes
+   * away expressions that are not used.
+   *
+   * @see RelBuilder.Config#pruneInputOfAggregate */
+  @Test public void testAggregateProjectPrune() {
+    // SELECT deptno, SUM(sal) FILTER (WHERE b)
+    // FROM (
+    //   SELECT deptno, empno + 10, sal, job = 'CLERK' AS b
+    //   FROM emp)
+    // GROUP BY deptno
+    //   -->
+    // SELECT deptno, SUM(sal) FILTER (WHERE b)
+    // FROM (
+    //   SELECT deptno, sal, job = 'CLERK' AS b
+    //   FROM emp)
+    // GROUP BY deptno
+    final Function<RelBuilder, RelNode> f = builder ->
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"),
+                builder.call(SqlStdOperatorTable.PLUS,
+                    builder.field("EMPNO"), builder.literal(10)),
+                builder.field("SAL"),
+                builder.field("JOB"))
+            .aggregate(
+                builder.groupKey(builder.field("DEPTNO")),
+                    builder.sum(builder.field("SAL"))
+                .filter(
+                    builder.call(SqlStdOperatorTable.EQUALS,
+                        builder.field("JOB"), builder.literal("CLERK"))))
+            .build();
+    final String expected = ""
+        + "LogicalAggregate(group=[{0}], agg#0=[SUM($1) FILTER $2])\n"
+        + "  LogicalProject(DEPTNO=[$7], SAL=[$5], $f4=[IS TRUE(=($2, 'CLERK'))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)),
+        hasTree(expected));
+
+    // now with pruning disabled
+    final String expected2 = ""
+        + "LogicalAggregate(group=[{0}], agg#0=[SUM($2) FILTER $4])\n"
+        + "  LogicalProject(DEPTNO=[$7], $f1=[+($0, 10)], SAL=[$5], JOB=[$2], "
+        + "$f4=[IS TRUE(=($2, 'CLERK'))])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
+  }
+
+  /** Tests that (a) if the input is a project and no fields are used
+   * we remove the project (rather than projecting zero fields, which
+   * would be wrong), and (b) if the same aggregate function is used
+   * twice, we add a project on top. */
+  @Test public void testAggregateProjectPruneEmpty() {
+    // SELECT COUNT(*) AS C, COUNT(*) AS C2 FROM (
+    //  SELECT deptno, empno + 10, sal, job = 'CLERK' AS b
+    //  FROM emp)
+    //   -->
+    // SELECT C, C AS C2 FROM (
+    //   SELECT COUNT(*) AS c
+    //   FROM emp)
+    final Function<RelBuilder, RelNode> f = builder ->
+        builder.scan("EMP")
+            .project(builder.field("DEPTNO"),
+                builder.call(SqlStdOperatorTable.PLUS,
+                    builder.field("EMPNO"), builder.literal(10)),
+                builder.field("SAL"),
+                builder.field("JOB"))
+            .aggregate(
+                builder.groupKey(),
+                    builder.countStar("C"),
+                    builder.countStar("C2"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(C=[$0], C2=[$0])\n"
+        + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now with pruning disabled
+    final String expected2 = ""
+        + "LogicalProject(C=[$0], C2=[$0])\n"
+        + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
+        + "    LogicalProject(DEPTNO=[$7], $f1=[+($0, 10)], SAL=[$5], JOB=[$2])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
   }
 
   @Test public void testAggregateGroupingKeyOutOfRangeFails() {
@@ -1317,8 +1436,7 @@ public class RelBuilderTest {
     // but applying "select ... group by ()" to it would change the result.
     // In theory, we could omit the distinct if we know there is precisely one
     // row, but we don't currently.
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root =
+    final Function<RelBuilder, RelNode> f = builder ->
         builder.scan("EMP")
             .filter(
                 builder.call(SqlStdOperatorTable.IS_NULL,
@@ -1327,10 +1445,18 @@ public class RelBuilderTest {
             .distinct()
             .build();
     final String expected = "LogicalAggregate(group=[{}])\n"
+        + "  LogicalFilter(condition=[IS NULL($6)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+
+    // now without pruning
+    // (The empty LogicalProject is dubious, but it's what we've always done)
+    final String expected2 = "LogicalAggregate(group=[{}])\n"
         + "  LogicalProject\n"
         + "    LogicalFilter(condition=[IS NULL($6)])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(root, hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withPruneInputOfAggregate(false))),
+        hasTree(expected2));
   }
 
   @Test public void testUnion() {

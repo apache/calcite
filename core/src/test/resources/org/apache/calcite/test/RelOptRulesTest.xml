@@ -40,8 +40,8 @@ LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], COUNT_DISTINCT_CLERK=[COUNT(DIST
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(SUM_SAL=[$0], COUNT_DISTINCT_CLERK=[$1], SUM_SAL_D10=[$2], SUM_SAL_D20=[$3], COUNT_D30=[CAST($4):INTEGER], COUNT_D40=[$5], COUNT_D20=[$6])
-  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], COUNT_DISTINCT_CLERK=[COUNT(DISTINCT $7) FILTER $8], SUM_SAL_D10=[SUM($9) FILTER $10], SUM_SAL_D20=[SUM($11) FILTER $12], COUNT_D30=[COUNT() FILTER $13], COUNT_D40=[COUNT() FILTER $14], COUNT_D20=[COUNT() FILTER $15])
-    LogicalProject(SAL=[$5], $f1=[CASE(=($2, 'CLERK'), $7, null:INTEGER)], $f2=[CASE(=($7, 10), $5, null:INTEGER)], $f3=[CASE(=($7, 20), $5, 0)], $f4=[CASE(=($7, 30), 1, 0)], $f5=[CASE(=($7, 40), 'x', null:CHAR(1))], $f6=[CASE(=($7, 20), 1, null:INTEGER)], DEPTNO=[$7], $f8=[=($2, 'CLERK')], SAL0=[$5], $f10=[=($7, 10)], SAL1=[$5], $f12=[=($7, 20)], $f13=[=($7, 30)], $f14=[=($7, 40)], $f15=[=($7, 20)])
+  LogicalAggregate(group=[{}], SUM_SAL=[SUM($0)], COUNT_DISTINCT_CLERK=[COUNT(DISTINCT $1) FILTER $2], SUM_SAL_D10=[SUM($3) FILTER $4], SUM_SAL_D20=[SUM($5) FILTER $6], COUNT_D30=[COUNT() FILTER $7], COUNT_D40=[COUNT() FILTER $8], COUNT_D20=[COUNT() FILTER $9])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f8=[=($2, 'CLERK')], SAL0=[$5], $f10=[=($7, 10)], SAL1=[$5], $f12=[=($7, 20)], $f13=[=($7, 30)], $f14=[=($7, 40)], $f15=[=($7, 20)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -717,7 +717,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], $f1=[true])
       LogicalAggregate(group=[{0}])
-        LogicalProject(DEPTNO=[$7], i=[true])
+        LogicalProject(DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -782,11 +782,11 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
         LogicalProject(DEPTNO=[$0], $f1=[true])
           LogicalAggregate(group=[{0}])
-            LogicalProject(DEPTNO=[$7], i=[true])
+            LogicalProject(DEPTNO=[$7])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
       LogicalProject(JOB=[$0], $f1=[true])
         LogicalAggregate(group=[{0}])
-          LogicalProject(JOB=[$2], i=[true])
+          LogicalProject(JOB=[$2])
             LogicalFilter(condition=[=($5, 34)])
               LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -843,7 +843,7 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(DEPTNO=[$0], $f1=[true])
       LogicalAggregate(group=[{0}])
-        LogicalProject(DEPTNO=[$7], i=[true])
+        LogicalProject(DEPTNO=[$7])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1167,8 +1167,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($0)], EXPR$1=[COUNT(DISTINCT $1) FILTER
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[MIN($2) FILTER $4], EXPR$1=[COUNT($0) FILTER $3])
-  LogicalProject(SAL=[$0], $f2=[$1], EXPR$0=[$2], $g_0_f_1=[AND(=($3, 0), IS TRUE($1))], $g_3=[=($3, 3)])
+LogicalAggregate(group=[{}], EXPR$0=[MIN($1) FILTER $3], EXPR$1=[COUNT($0) FILTER $2])
+  LogicalProject(SAL=[$0], EXPR$0=[$2], $g_0_f_1=[AND(=($3, 0), IS TRUE($1))], $g_3=[=($3, 3)])
     LogicalAggregate(group=[{1, 2}], groups=[[{1, 2}, {}]], EXPR$0=[SUM($0)], $g=[GROUPING($1, $2)])
       LogicalProject(COMM=[$6], SAL=[$5], $f2=[>($5, 1000)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1179,7 +1179,7 @@ LogicalAggregate(group=[{}], EXPR$0=[MIN($2) FILTER $4], EXPR$1=[COUNT($0) FILTE
         <Resource name="sql">
             <![CDATA[SELECT COUNT(DISTINCT c) FILTER (WHERE d),
 COUNT(DISTINCT d) FILTER (WHERE c)
-FROM (select sal > 1000 is true as c, sal < 500 is true as d from emp)]]>
+FROM (select sal > 1000 is true as c, sal < 500 is true as d, comm from emp)]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
@@ -1214,8 +1214,8 @@ LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)], EXPR$2=[COUNT(DISTINCT $2) FILTE
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[CAST($1):INTEGER NOT NULL], EXPR$2=[$2])
-  LogicalAggregate(group=[{0}], EXPR$1=[MIN($3) FILTER $5], EXPR$2=[COUNT($1) FILTER $4])
-    LogicalProject(DEPTNO=[$0], SAL=[$1], $f3=[$2], EXPR$1=[$3], $g_0_f_2=[AND(=($4, 0), IS TRUE($2))], $g_3=[=($4, 3)])
+  LogicalAggregate(group=[{0}], EXPR$1=[MIN($2) FILTER $4], EXPR$2=[COUNT($1) FILTER $3])
+    LogicalProject(DEPTNO=[$0], SAL=[$1], EXPR$1=[$3], $g_0_f_2=[AND(=($4, 0), IS TRUE($2))], $g_3=[=($4, 3)])
       LogicalAggregate(group=[{0, 2, 3}], groups=[[{0, 2, 3}, {0}]], EXPR$1=[SUM($1)], $g=[GROUPING($0, $2, $3)])
         LogicalProject(DEPTNO=[$7], COMM=[$6], SAL=[$5], $f3=[>($5, 1000)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -1489,29 +1489,27 @@ LogicalProject(EXPR$0=[1])
     </TestCase>
     <TestCase name="testPushAboveFiltersIntoInnerJoinCondition">
         <Resource name="sql">
-            <![CDATA[
-select * from sales.dept d inner join sales.emp e
+            <![CDATA[select * from sales.dept d inner join sales.emp e
 on d.deptno = e.deptno and d.deptno > e.mgr
-where d.deptno > e.mgr
-]]>
+where d.deptno > e.mgr]]>
         </Resource>
-    <Resource name="planBefore">
-        <![CDATA[
+        <Resource name="planBefore">
+            <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalFilter(condition=[>($0, $5)])
     LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
       LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
-    <Resource name="planAfter">
-        <![CDATA[
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
 LogicalProject(DEPTNO=[$0], NAME=[$1], EMPNO=[$2], ENAME=[$3], JOB=[$4], MGR=[$5], HIREDATE=[$6], SAL=[$7], COMM=[$8], DEPTNO0=[$9], SLACKER=[$10])
   LogicalJoin(condition=[AND(=($0, $9), >($0, $5))], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
-    </Resource>
+        </Resource>
     </TestCase>
     <TestCase name="testPushFilterThroughSemiJoin">
         <Resource name="sql">
@@ -3331,8 +3329,8 @@ LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalAggregate(group=[{0, 1}])
       LogicalProject(EXPR$0=[$2], EMPNO=[$1])
-        LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($3)])
-          LogicalProject(DEPTNO=[$7], EMPNO=[$0], $f1=['abc'], SAL=[$5])
+        LogicalAggregate(group=[{0, 1}], EXPR$0=[MAX($2)])
+          LogicalProject(DEPTNO=[$7], EMPNO=[$0], SAL=[$5])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4805,8 +4803,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-  LogicalProject(DEPTNO=[$7], FOUR=[4], MGR=[$3])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4827,8 +4825,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{0}], EXPR$1=[MAX($2)])
-  LogicalProject(DEPTNO=[$7], FOUR=[4], ENAME=[$1])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4850,8 +4848,8 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$4])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$2])
-  LogicalAggregate(group=[{0, 3}], EXPR$1=[MAX($4)])
-    LogicalProject(DEPTNO=[$7], FOUR=[4], TWO_PLUS_THREE=[+(2, 3)], DEPTNO42=[+($7, 42)], MGR=[$3])
+  LogicalAggregate(group=[{0, 1}], EXPR$1=[MAX($2)])
+    LogicalProject(DEPTNO=[$7], DEPTNO42=[+($7, 42)], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4872,8 +4870,8 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{1}], EXPR$1=[MAX($2)])
-  LogicalProject(FOUR=[4], DEPTNO=[$7], MGR=[$3])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4894,8 +4892,8 @@ LogicalProject(DEPTNO=[$1], EXPR$1=[$2])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{1}], EXPR$1=[MAX($2)])
-  LogicalProject($f0=[+(42, 24)], DEPTNO=[$7], MGR=[$3])
+LogicalAggregate(group=[{0}], EXPR$1=[MAX($1)])
+  LogicalProject(DEPTNO=[$7], MGR=[$3])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4916,8 +4914,8 @@ LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($2)])
-    LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], MGR=[$3])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], MGR=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4938,8 +4936,8 @@ LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($2)])
-    LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], FIVE=[5])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], FIVE=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4960,8 +4958,8 @@ LogicalAggregate(group=[{0, 1}], EXPR$2=[MAX($2)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[$0], EXPR$1=[+(2, 3)], EXPR$2=[$1])
-  LogicalAggregate(group=[{0}], EXPR$2=[MAX($2)])
-    LogicalProject(EXPR$0=[4], EXPR$1=[+(2, 3)], $f2=[5])
+  LogicalAggregate(group=[{0}], EXPR$2=[MAX($1)])
+    LogicalProject(EXPR$0=[4], $f2=[5])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6715,7 +6713,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
   LogicalJoin(condition=[=($0, $2)], joinType=[inner])
     LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
     LogicalAggregate(group=[{0}])
-      LogicalProject(DEPTNO=[$7], $f0=[true])
+      LogicalProject(DEPTNO=[$7])
         LogicalFilter(condition=[>($5, 100)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -6724,7 +6722,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
             <![CDATA[
 LogicalJoin(condition=[=($0, $2)], joinType=[semi])
   LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
-  LogicalProject(DEPTNO=[$7], $f0=[true])
+  LogicalProject(DEPTNO=[$7])
     LogicalFilter(condition=[>($5, 100)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -7837,8 +7835,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($9)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[SUM($3)])
-  LogicalProject(SAL=[$0], $f1=[$1], SAL0=[$2], $f3=[CAST(*($1, $2)):INTEGER])
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f3=[CAST(*($1, $2)):INTEGER])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{5}], agg#0=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -7870,8 +7868,8 @@ LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(JOB=[$0], MGR0=[$2], DEPTNO=[$1], HIREDATE1=[$3], COMM1=[$4])
-  LogicalAggregate(group=[{0, 2, 4}], HIREDATE1=[MAX($6)], COMM1=[SUM($8)])
-    LogicalProject(JOB=[$0], SAL=[$1], DEPTNO=[$2], $f3=[$3], MGR=[$4], SAL0=[$5], HIREDATE1=[$6], COMM1=[$7], $f8=[CAST(*($3, $7)):INTEGER NOT NULL])
+  LogicalAggregate(group=[{0, 1, 2}], HIREDATE1=[MAX($3)], COMM1=[SUM($4)])
+    LogicalProject(JOB=[$0], DEPTNO=[$2], MGR=[$4], HIREDATE1=[$6], $f8=[CAST(*($3, $7)):INTEGER NOT NULL])
       LogicalJoin(condition=[=($1, $5)], joinType=[inner])
         LogicalAggregate(group=[{2, 5, 7}], agg#0=[COUNT()])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -7930,8 +7928,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[SUM($4)])
-  LogicalProject(JOB=[$0], EXPR$0=[$1], NAME=[$2], $f1=[$3], $f4=[CAST(*($1, $3)):INTEGER])
+LogicalAggregate(group=[{}], EXPR$0=[SUM($0)])
+  LogicalProject($f4=[CAST(*($1, $3)):INTEGER])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$0=[SUM($5)])
         LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -7961,8 +7959,8 @@ LogicalAggregate(group=[{}], EXPR$0=[SUM($5)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[CASE(=($1, 0), null:INTEGER, $0)])
-  LogicalAggregate(group=[{}], EXPR$0=[$SUM0($5)], agg#1=[$SUM0($6)])
-    LogicalProject(JOB=[$0], EXPR$0=[$1], $f2=[$2], NAME=[$3], $f1=[$4], $f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
+  LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)], agg#1=[$SUM0($1)])
+    LogicalProject($f5=[CAST(*($1, $4)):INTEGER NOT NULL], $f6=[*($2, $4)])
       LogicalJoin(condition=[=($0, $3)], joinType=[inner])
         LogicalAggregate(group=[{2}], EXPR$0=[$SUM0($5)], agg#1=[COUNT()])
           LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
@@ -8579,8 +8577,8 @@ LogicalAggregate(group=[{}], EXPR$0=[COUNT()])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], EXPR$0=[$SUM0($4)])
-  LogicalProject(JOB=[$0], EXPR$0=[$1], NAME=[$2], EXPR$00=[$3], $f4=[*($1, $3)])
+LogicalAggregate(group=[{}], EXPR$0=[$SUM0($0)])
+  LogicalProject($f4=[*($1, $3)])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalAggregate(group=[{2}], EXPR$0=[COUNT()])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -8605,8 +8603,8 @@ LogicalAggregate(group=[{}], VOLUME=[COUNT()], C1_SUM_SAL=[SUM($0)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalAggregate(group=[{}], VOLUME=[$SUM0($3)], C1_SUM_SAL=[SUM($4)])
-  LogicalProject(ENAME=[$0], SAL=[$1], ENAME0=[$2], VOLUME=[$3], $f4=[CAST(*($1, $3)):INTEGER])
+LogicalAggregate(group=[{}], VOLUME=[$SUM0($0)], C1_SUM_SAL=[SUM($1)])
+  LogicalProject(VOLUME=[$3], $f4=[CAST(*($1, $3)):INTEGER])
     LogicalJoin(condition=[=($0, $2)], joinType=[inner])
       LogicalProject(ENAME=[$1], SAL=[$0])
         LogicalProject(SAL=[$5], ENAME=[$1])
@@ -10887,8 +10885,8 @@ LogicalProject(C=[$2])
             <![CDATA[
 LogicalProject(C=[$2])
   LogicalProject(DEPTNO=[10], SAL=[$0], C=[$1])
-    LogicalAggregate(group=[{1}], C=[COUNT()])
-      LogicalProject(DEPTNO=[$7], SAL=[$5])
+    LogicalAggregate(group=[{0}], C=[COUNT()])
+      LogicalProject(SAL=[$5])
         LogicalFilter(condition=[=($7, 10)])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -10944,7 +10942,7 @@ LogicalProject(JOB=[$1])
   LogicalFilter(condition=[>($2, 3)])
     LogicalProject(SAL=[$0], JOB=['Clerk':VARCHAR(10)], $f2=[$1])
       LogicalAggregate(group=[{0}], agg#0=[COUNT()])
-        LogicalProject(SAL=[$5], JOB=[$2])
+        LogicalProject(SAL=[$5])
           LogicalFilter(condition=[AND(IS NULL($5), =($2, 'Clerk'))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -10974,7 +10972,7 @@ LogicalProject(HIREDATE=[$1])
   LogicalFilter(condition=[>($2, 3)])
     LogicalProject(SAL=[$0], HIREDATE=[CURRENT_TIMESTAMP], $f2=[$1])
       LogicalAggregate(group=[{0}], agg#0=[COUNT()])
-        LogicalProject(SAL=[$5], HIREDATE=[$4])
+        LogicalProject(SAL=[$5])
           LogicalFilter(condition=[AND(IS NULL($5), =($4, CURRENT_TIMESTAMP))])
             LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -11333,8 +11331,8 @@ LogicalAggregate(group=[{0, 1, 2}], S=[SUM($2)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(JOB=[$0], EMPNO=[10], SAL=[$1], S=[$2])
-  LogicalAggregate(group=[{0, 2}], S=[SUM($2)])
-    LogicalProject(JOB=[$2], EMPNO=[$0], SAL=[$5])
+  LogicalAggregate(group=[{0, 1}], S=[SUM($1)])
+    LogicalProject(JOB=[$2], SAL=[$5])
       LogicalFilter(condition=[=($0, 10)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>

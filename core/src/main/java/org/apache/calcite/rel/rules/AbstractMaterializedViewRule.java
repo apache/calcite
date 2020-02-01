@@ -506,7 +506,7 @@ public abstract class AbstractMaterializedViewRule extends RelOptRule {
             // Then, we trigger the unifying method. This method will either create a
             // Project or an Aggregate operator on top of the view. It will also compute
             // the output expressions for the query.
-            RelBuilder builder = call.builder();
+            RelBuilder builder = call.builder().transform(c -> c.withPruneInputOfAggregate(false));
             RelNode viewWithFilter;
             if (!viewCompensationPred.isAlwaysTrue()) {
               RexNode newPred =

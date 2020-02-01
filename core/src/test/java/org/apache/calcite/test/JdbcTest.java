@@ -3428,12 +3428,11 @@ public class JdbcTest {
       CalciteAssert.hr()
           .query("select count(*) c from \"hr\".\"emps\", \"hr\".\"depts\"")
           .convertContains("LogicalAggregate(group=[{}], C=[COUNT()])\n"
-              + "  LogicalProject(DUMMY=[0])\n"
-              + "    LogicalJoin(condition=[true], joinType=[inner])\n"
-              + "      LogicalProject(DUMMY=[0])\n"
-              + "        EnumerableTableScan(table=[[hr, emps]])\n"
-              + "      LogicalProject(DUMMY=[0])\n"
-              + "        EnumerableTableScan(table=[[hr, depts]])");
+              + "  LogicalJoin(condition=[true], joinType=[inner])\n"
+              + "    LogicalProject(DUMMY=[0])\n"
+              + "      EnumerableTableScan(table=[[hr, emps]])\n"
+              + "    LogicalProject(DUMMY=[0])\n"
+              + "      EnumerableTableScan(table=[[hr, depts]])");
     }
   }
 

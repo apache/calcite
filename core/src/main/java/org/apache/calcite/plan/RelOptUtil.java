@@ -627,7 +627,8 @@ public abstract class RelOptUtil {
    * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
    * statements.
    *
-   * @see org.apache.calcite.sql2rel.SqlToRelConverter#convertExists
+   * @see org.apache.calcite.sql2rel.SqlToRelConverter
+   * SqlToRelConverter#convertExists
    *
    * @param seekRel    A query rel, for example the resulting rel from 'select *
    *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
@@ -898,9 +899,15 @@ public abstract class RelOptUtil {
 
   /** Gets all fields in an aggregate. */
   public static Set<Integer> getAllFields(Aggregate aggregate) {
+    return getAllFields2(aggregate.getGroupSet(), aggregate.getAggCallList());
+  }
+
+  /** Gets all fields in an aggregate. */
+  public static Set<Integer> getAllFields2(ImmutableBitSet groupSet,
+      List<AggregateCall> aggCallList) {
     final Set<Integer> allFields = new TreeSet<>();
-    allFields.addAll(aggregate.getGroupSet().asList());
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+    allFields.addAll(groupSet.asList());
+    for (AggregateCall aggregateCall : aggCallList) {
       allFields.addAll(aggregateCall.getArgList());
       if (aggregateCall.filterArg >= 0) {
         allFields.add(aggregateCall.filterArg);

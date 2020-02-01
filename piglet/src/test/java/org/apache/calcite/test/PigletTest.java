@@ -135,8 +135,8 @@ public class PigletTest {
     final String s = "A = LOAD 'EMP';\n"
         + "B = GROUP A BY DEPTNO;";
     final String expected = ""
-        + "LogicalAggregate(group=[{7}], A=[COLLECT($8)])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
+        + "LogicalAggregate(group=[{0}], A=[COLLECT($1)])\n"
+        + "  LogicalProject(DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     pig(s).explainContains(expected);
   }

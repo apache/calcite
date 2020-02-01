@@ -1050,8 +1050,8 @@ public class PigRelOpTest extends PigRelTestBase {
         + "        LogicalTableScan(table=[[scott, DEPT]])\n";
     final String optimizedPlan = ""
         + "LogicalProject($f0=[$1])\n"
-        + "  LogicalAggregate(group=[{0}], agg#0=[COLLECT($2)])\n"
-        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], $f2=[ROW($0, $1)])\n"
+        + "  LogicalAggregate(group=[{0}], agg#0=[COLLECT($1)])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f2=[ROW($0, $1)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     final String result = ""
         + "({(20,RESEARCH)})\n"

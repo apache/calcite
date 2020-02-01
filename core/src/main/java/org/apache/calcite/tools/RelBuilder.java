@@ -110,6 +110,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -1584,7 +1585,7 @@ public class RelBuilder {
     final Registrar registrar =
         new Registrar(fields(), peek().getRowType().getFieldNames());
     final GroupKeyImpl groupKey_ = (GroupKeyImpl) groupKey;
-    final ImmutableBitSet groupSet =
+    ImmutableBitSet groupSet =
         ImmutableBitSet.of(registrar.registerExpressions(groupKey_.nodes));
   label:
     if (Iterables.isEmpty(aggCalls)) {
@@ -1610,7 +1611,7 @@ public class RelBuilder {
         return project(fields(groupSet));
       }
     }
-    final ImmutableList<ImmutableBitSet> groupSets;
+    ImmutableList<ImmutableBitSet> groupSets;
     if (groupKey_.nodeLists != null) {
       final int sizeBefore = registrar.extraNodes.size();
       final SortedSet<ImmutableBitSet> groupSetSet =
@@ -1646,7 +1647,7 @@ public class RelBuilder {
     project(registrar.extraNodes);
     rename(registrar.names);
     final Frame frame = stack.pop();
-    final RelNode r = frame.rel;
+    RelNode r = frame.rel;
     final List<AggregateCall> aggregateCalls = new ArrayList<>();
     for (AggCall aggCall : aggCalls) {
       final AggregateCall aggregateCall;
@@ -1683,6 +1684,49 @@ public class RelBuilder {
     assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
     for (ImmutableBitSet set : groupSets) {
       assert groupSet.contains(set);
+    }
+
+    if (config.pruneInputOfAggregate()
+        && r instanceof Project) {
+      final Set<Integer> fieldsUsed =
+          RelOptUtil.getAllFields2(groupSet, aggregateCalls);
+      // Some parts of the system can't handle rows with zero fields, so
+      // pretend that one field is used.
+      if (fieldsUsed.isEmpty()) {
+        r = ((Project) r).getInput();
+      } else if (fieldsUsed.size() < r.getRowType().getFieldCount()) {
+        // Some fields are computed but not used. Prune them.
+        final Map<Integer, Integer> map = new HashMap<>();
+        for (int source : fieldsUsed) {
+          map.put(source, map.size());
+        }
+
+        groupSet = groupSet.permute(map);
+        groupSets =
+            ImmutableBitSet.ORDERING.immutableSortedCopy(
+                ImmutableBitSet.permute(groupSets, map));
+
+        final Mappings.TargetMapping targetMapping =
+            Mappings.target(map, r.getRowType().getFieldCount(),
+                fieldsUsed.size());
+        final List<AggregateCall> oldAggregateCalls =
+            new ArrayList<>(aggregateCalls);
+        aggregateCalls.clear();
+        for (AggregateCall aggregateCall : oldAggregateCalls) {
+          aggregateCalls.add(aggregateCall.transform(targetMapping));
+        }
+
+        final Project project = (Project) r;
+        final List<RexNode> newProjects = new ArrayList<>();
+        final RelDataTypeFactory.Builder builder =
+            cluster.getTypeFactory().builder();
+        for (int i : fieldsUsed) {
+          newProjects.add(project.getProjects().get(i));
+          builder.add(project.getRowType().getFieldList().get(i));
+        }
+        r = project.copy(r.getTraitSet(), project.getInput(), newProjects,
+            builder.build());
+      }
     }
 
     if (!config.dedupAggregateCalls() || Util.isDistinct(aggregateCalls)) {
@@ -2724,10 +2768,17 @@ public class RelBuilder {
       if (distinct) {
         b.append("DISTINCT ");
       }
-      b.append(operands)
-          .append(')');
+      final int iMax = operands.size() - 1;
+      for (int i = 0; ; i++) {
+        b.append(operands.get(i));
+        if (i == iMax) {
+          break;
+        }
+        b.append(", ");
+      }
+      b.append(')');
       if (filter != null) {
-        b.append(" FILTER (WHERE" + filter + ")");
+        b.append(" FILTER (WHERE ").append(filter).append(')');
       }
       return b.toString();
     }
@@ -3010,6 +3061,15 @@ public class RelBuilder {
 
     /** Sets {@link #dedupAggregateCalls}. */
     Config withDedupAggregateCalls(boolean dedupAggregateCalls);
+
+    /** Whether {@link RelBuilder#aggregate} should prune unused
+     * input columns; default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean pruneInputOfAggregate();
+
+    /** Sets {@link #pruneInputOfAggregate}. */
+    Config withPruneInputOfAggregate(boolean pruneInputOfAggregate);
 
     /** Whether to simplify expressions; default true. */
     @ImmutableBeans.Property
