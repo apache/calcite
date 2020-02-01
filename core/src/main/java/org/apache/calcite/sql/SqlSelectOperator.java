@@ -221,7 +221,8 @@ public class SqlSelectOperator extends SqlOperator {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
               writer.sep(",");
               if (groupKey.getKind() == SqlKind.LITERAL
-                  || groupKey.getKind() == SqlKind.DYNAMIC_PARAM) {
+                  || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
+                  || groupKey.getKind() == SqlKind.MINUS_PREFIX) {
                 select.selectList.getList().
                     forEach(new Consumer<SqlNode>() {
                       @Override public void accept(SqlNode selectSqlNode) {
