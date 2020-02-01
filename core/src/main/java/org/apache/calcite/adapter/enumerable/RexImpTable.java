@@ -60,7 +60,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -174,7 +173,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUP_ID;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
@@ -630,7 +628,6 @@ public class RexImpTable {
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
     aggMap.put(GROUPING, grouping);
-    aggMap.put(GROUP_ID, grouping);
     aggMap.put(GROUPING_ID, grouping);
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
@@ -1622,12 +1619,6 @@ public class RexImpTable {
       switch (info.aggregation().kind) {
       case GROUPING: // "GROUPING(e, ...)", also "GROUPING_ID(e, ...)"
         keys = result.call().getArgList();
-        break;
-      case GROUP_ID: // "GROUP_ID()"
-        // We don't implement GROUP_ID properly. In most circumstances, it
-        // returns 0, so we always return 0. Logged
-        // [CALCITE-1824] GROUP_ID returns wrong result
-        keys = ImmutableIntList.of();
         break;
       default:
         throw new AssertionError();
