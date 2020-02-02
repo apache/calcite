@@ -46,6 +46,27 @@ LogicalProject(SUM_SAL=[$0], COUNT_DISTINCT_CLERK=[$1], SUM_SAL_D10=[$2], SUM_SA
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testAggregateCaseToFilterWhenCaseOperandsFlipped">
+        <Resource name="sql">
+            <![CDATA[
+select count(case when job = 'CLERK' then null else deptno end) from emp
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT($0)])
+  LogicalProject($f0=[CASE(=($2, 'CLERK'), null:INTEGER, $7)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{}], EXPR$0=[COUNT($1) FILTER $2])
+  LogicalProject($f0=[CASE(=($2, 'CLERK'), null:INTEGER, $7)], DEPTNO=[$7], $f2=[<>($2, 'CLERK')])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAggregateExtractProjectRule">
         <Resource name="sql">
             <![CDATA[select sum(sal)

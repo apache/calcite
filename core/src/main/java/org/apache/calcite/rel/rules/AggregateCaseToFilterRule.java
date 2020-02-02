@@ -165,8 +165,16 @@ public class AggregateCaseToFilterRule extends RelOptRule {
     final RexNode arg2 = caseCall.operands.get(flip ? 1 : 2);
 
     // Operand 1: Filter
+    // When flip is true, use IS_NOT_TRUE to handle NULL value correctly.
+    // Consider the following example:
+    //    SELECT SUM(CASE col=10 THEN NULL ELSE 100) FROM t;
+    // NULL=10 will be unknown thus the result falls into ELSE. condition
+    // IS_FALSE returns false when condition is unknown, but condition
+    // IS_NOT_TRUE returns true. Thus the equivalent FILTER clause above
+    // should be:
+    //    SELECT SUM(100) FILTER (WHERE col=10 IS NOT TRUE) FROM t;
     final SqlPostfixOperator op =
-        flip ? SqlStdOperatorTable.IS_FALSE : SqlStdOperatorTable.IS_TRUE;
+        flip ? SqlStdOperatorTable.IS_NOT_TRUE : SqlStdOperatorTable.IS_TRUE;
     final RexNode filterFromCase =
         rexBuilder.makeCall(op, caseCall.operands.get(0));
 

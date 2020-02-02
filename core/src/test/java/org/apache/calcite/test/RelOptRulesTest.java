@@ -3537,6 +3537,12 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(AggregateCaseToFilterRule.INSTANCE).check();
   }
 
+  @Test public void testAggregateCaseToFilterWhenCaseOperandsFlipped() {
+    final String sql = "select count(case when job = 'CLERK'\n"
+        + " then null else deptno end) from emp";
+    sql(sql).withRule(AggregateCaseToFilterRule.INSTANCE).check();
+  }
+
   @Test public void testPullAggregateThroughUnion() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(AggregateUnionAggregateRule.INSTANCE)
