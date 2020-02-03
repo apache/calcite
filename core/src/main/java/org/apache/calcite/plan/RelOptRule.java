@@ -394,6 +394,7 @@ public abstract class RelOptRule {
         for (int n = 0; n < m; n++) {
           if (operand.solveOrder[n] == k) {
             exists = true;
+            break;
           }
         }
         if (!exists) {

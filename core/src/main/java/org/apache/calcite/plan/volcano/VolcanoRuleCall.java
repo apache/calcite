@@ -128,9 +128,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       // don't register twice and cause churn.
       for (Map.Entry<RelNode, RelNode> entry : equiv.entrySet()) {
         volcanoPlanner.ensureRegistered(
-            entry.getKey(), entry.getValue(), this);
+            entry.getKey(), entry.getValue());
       }
-      volcanoPlanner.ensureRegistered(rel, rels[0], this);
+      volcanoPlanner.ensureRegistered(rel, rels[0]);
       rels[0].getCluster().invalidateMetadataQuery();
 
       if (volcanoPlanner.listener != null) {
