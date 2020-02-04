@@ -33,10 +33,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * {@code HintStrategy} collection indicates which kind of
+ * A {@code HintStrategy} collection indicates which kind of
  * {@link org.apache.calcite.rel.RelNode} a hint can apply to.
  *
- * <p>Typically, every supported hint should register a {@code HintStrategy}
+ * <p>Every supported hint should register a {@code HintStrategy}
  * into this collection. For example, {@link HintStrategies#JOIN} implies that this hint
  * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
@@ -78,12 +78,12 @@ public class HintStrategyTable {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Apply this {@link HintStrategyTable} to the given relational
-   * expression for the {@code hints}.
+   * Applies this {@link HintStrategyTable} hint strategies to the given relational
+   * expression and the {@code hints}.
    *
    * @param hints Hints that may attach to the {@code rel}
    * @param rel   Relational expression
-   * @return A hints list that can be attached to the {@code rel}
+   * @return A hint list that can be attached to the {@code rel}
    */
   public List<RelHint> apply(List<RelHint> hints, RelNode rel) {
     return hints.stream()
@@ -166,12 +166,12 @@ public class HintStrategyTable {
       this.errorHandler = HintErrorLogger.INSTANCE;
     }
 
-    public Builder addHintStrategy(String hintName, HintStrategy strategy) {
+    public Builder hintStrategy(String hintName, HintStrategy strategy) {
       this.hintStrategyMap.put(Key.of(hintName), Objects.requireNonNull(strategy));
       return this;
     }
 
-    public Builder addHintStrategy(
+    public Builder hintStrategy(
         String hintName,
         HintStrategy strategy,
         HintOptionChecker optionChecker) {

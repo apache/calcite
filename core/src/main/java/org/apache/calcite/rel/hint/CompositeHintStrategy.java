@@ -21,8 +21,9 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableList;
 
 /**
- * This class allows multiple {@link HintStrategy} rules to be combined into one rule.
- * The composition can be {@code AND} or {@code OR} currently.
+ * A {@link HintStrategy} to combine multiple hint strategies into one.
+ *
+ * <p>The composition can be {@code AND} or {@code OR}.
  */
 public class CompositeHintStrategy implements HintStrategy {
   //~ Enums ------------------------------------------------------------------
@@ -58,10 +59,10 @@ public class CompositeHintStrategy implements HintStrategy {
   //~ Methods ----------------------------------------------------------------
 
   @Override public boolean canApply(RelHint hint, RelNode rel) {
-    return supportsRel(composition, hint, rel);
+    return canApply(composition, hint, rel);
   }
 
-  private boolean supportsRel(Composition composition, RelHint hint, RelNode rel) {
+  private boolean canApply(Composition composition, RelHint hint, RelNode rel) {
     switch (composition) {
     case AND:
       for (HintStrategy hintStrategy: strategies) {
