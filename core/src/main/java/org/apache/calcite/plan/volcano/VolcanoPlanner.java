@@ -1013,10 +1013,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return set.getSubset(traits);
   }
 
-  private RelNode changeTraitsUsingConverters(
+  RelNode changeTraitsUsingConverters(
       RelNode rel,
-      RelTraitSet toTraits,
-      boolean allowAbstractConverters) {
+      RelTraitSet toTraits) {
     final RelTraitSet fromTraits = rel.getTraitSet();
 
     assert fromTraits.size() >= toTraits.size();
@@ -1042,7 +1041,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
 
       assert traitDef == toTrait.getTraitDef();
-//            if (fromTrait.subsumes(toTrait)) {
       if (fromTrait.equals(toTrait)) {
         // No need to convert; it's already correct.
         continue;
@@ -1057,11 +1055,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
         register(rel, converted);
-      } else if (allowAbstractConverters) {
-        RelTraitSet stepTraits =
-            converted.getTraitSet().replace(toTrait);
-
-        rel = getSubset(converted, stepTraits);
       }
 
       converted = rel;
@@ -1073,12 +1066,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     return converted;
-  }
-
-  RelNode changeTraitsUsingConverters(
-      RelNode rel,
-      RelTraitSet toTraits) {
-    return changeTraitsUsingConverters(rel, toTraits, false);
   }
 
   void checkForSatisfiedConverters(
