@@ -3050,14 +3050,18 @@ public class RelBuilderTest {
   }
 
   @Test public void testHints() {
-    final RelHint indexHint = RelHint.of(Collections.emptyList(),
-        "INDEX",
-        Arrays.asList("_idx1", "_idx2"));
-    final RelHint propsHint = RelHint.of(Collections.singletonList(0),
-        "PROPERTIES",
-        ImmutableMap.of("parallelism", "3", "mem", "20Mb"));
-    final RelHint noHashJoinHint = RelHint.of(Collections.singletonList(0),
-        "NO_HASH_JOIN");
+    final RelHint indexHint = RelHint.builder("INDEX")
+        .hintOption("_idx1")
+        .hintOption("_idx2")
+        .build();
+    final RelHint propsHint = RelHint.builder("PROPERTIES")
+        .inheritPath(0)
+        .hintOption("parallelism", "3")
+        .hintOption("mem", "20Mb")
+        .build();
+    final RelHint noHashJoinHint = RelHint.builder("NO_HASH_JOIN")
+        .inheritPath(0)
+        .build();
     final RelBuilder builder = RelBuilder.create(config().build());
     // Equivalent SQL:
     //   SELECT *
@@ -3098,9 +3102,10 @@ public class RelBuilderTest {
   }
 
   @Test public void testHintsOnEmptyStack() {
-    final RelHint indexHint = RelHint.of(Collections.emptyList(),
-        "INDEX",
-        Arrays.asList("_idx1", "_idx2"));
+    final RelHint indexHint = RelHint.builder("INDEX")
+        .hintOption("_idx1")
+        .hintOption("_idx2")
+        .build();
     // Attach hints on empty stack.
     final AssertionError error = assertThrows(
         AssertionError.class,
@@ -3111,9 +3116,10 @@ public class RelBuilderTest {
   }
 
   @Test public void testHintsOnNonHintable() {
-    final RelHint indexHint = RelHint.of(Collections.emptyList(),
-        "INDEX",
-        Arrays.asList("_idx1", "_idx2"));
+    final RelHint indexHint = RelHint.builder("INDEX")
+        .hintOption("_idx1")
+        .hintOption("_idx2")
+        .build();
     // Attach hints on non hintable.
     final AssertionError error1 = assertThrows(
         AssertionError.class,

@@ -22,7 +22,7 @@ import org.apache.calcite.rel.RelNode;
  * A {@code HintStrategy} indicates whether a {@link org.apache.calcite.rel.RelNode}
  * can apply the specified hint.
  *
- * <p>Typically, every supported hint should register a {@code HintStrategy}
+ * <p>Every supported hint should register a {@code HintStrategy}
  * into the {@link HintStrategyTable}. For example, {@link HintStrategies#JOIN} implies
  * that this hint would be propagated and applied to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
