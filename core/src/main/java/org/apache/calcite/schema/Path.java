@@ -41,5 +41,3 @@ public interface Path extends List<Pair<String, Schema>>, RandomAccess {
   /** Returns the schemas of this path. */
   List<Schema> schemas();
 }
-
-// End Path.java

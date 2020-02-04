@@ -46,5 +46,3 @@ class EnumerableSortRule extends ConverterRule {
         null);
   }
 }
-
-// End EnumerableSortRule.java

@@ -41,5 +41,3 @@ class Path {
         && id == ((Path) obj).id;
   }
 }
-
-// End Path.java

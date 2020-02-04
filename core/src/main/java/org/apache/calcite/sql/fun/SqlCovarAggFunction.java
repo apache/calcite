@@ -83,5 +83,3 @@ public class SqlCovarAggFunction extends SqlAggFunction {
     REGR_SYY
   }
 }
-
-// End SqlCovarAggFunction.java

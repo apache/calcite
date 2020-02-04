@@ -271,5 +271,3 @@ public final class FunctionExpression<F extends Function<?>>
     Object dynamicInvoke(Object... args);
   }
 }
-
-// End FunctionExpression.java

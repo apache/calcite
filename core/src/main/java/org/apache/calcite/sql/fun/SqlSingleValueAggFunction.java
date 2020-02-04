@@ -78,5 +78,3 @@ public class SqlSingleValueAggFunction extends SqlAggFunction {
     return type;
   }
 }
-
-// End SqlSingleValueAggFunction.java

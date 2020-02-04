@@ -323,5 +323,3 @@ public class CountriesTableFunction {
     };
   }
 }
-
-// End CountriesTableFunction.java

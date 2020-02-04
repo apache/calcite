@@ -48,5 +48,3 @@ abstract class MutableSetOp extends MutableMultiRel {
     return Objects.hash(type, inputs, all);
   }
 }
-
-// End MutableSetOp.java

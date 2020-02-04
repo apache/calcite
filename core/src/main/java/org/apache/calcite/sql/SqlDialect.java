@@ -28,6 +28,8 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.dialect.JethroDataSqlDialect;
@@ -35,6 +37,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
@@ -66,6 +69,15 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
  *
  * <p>It is used by classes such as {@link SqlWriter} and
  * {@link org.apache.calcite.sql.util.SqlBuilder}.
+ *
+ * <p>To add a new {@link SqlDialect} sub-class, extends this class to hold 2 public final
+ * static member:
+ * <ul>
+ *   <li>DEFAULT_CONTEXT: a default {@link Context} instance, which can be used to customize
+ *   or extending the dialect if the DEFAULT instance does not meet the requests</li>
+ *   <li>DEFAULT: the default {@link SqlDialect} instance with context properties defined with
+ *   <code>DEFAULT_CONTEXT</code></li>
+ * </ul>
  */
 public class SqlDialect {
   //~ Static fields/initializers ---------------------------------------------
@@ -101,6 +113,7 @@ public class SqlDialect {
           .add(SqlStdOperatorTable.CHARACTER_LENGTH)
           .add(SqlStdOperatorTable.COALESCE)
           .add(SqlStdOperatorTable.CONCAT)
+          .add(SqlStdOperatorTable.CBRT)
           .add(SqlStdOperatorTable.COS)
           .add(SqlStdOperatorTable.COT)
           .add(SqlStdOperatorTable.DIVIDE)
@@ -242,8 +255,8 @@ public class SqlDialect {
 
   //~ Methods ----------------------------------------------------------------
 
-  /** Creates an empty context. Use {@link #EMPTY_CONTEXT} if possible. */
-  protected static Context emptyContext() {
+  /** Creates an empty context. Use {@link #EMPTY_CONTEXT} to reference the instance. */
+  private static Context emptyContext() {
     return new ContextImpl(DatabaseProduct.UNKNOWN, null, null, -1, -1,
         "'", "''", null,
         Casing.UNCHANGED, Casing.TO_UPPER, true, SqlConformanceEnum.DEFAULT,
@@ -441,7 +454,29 @@ public class SqlDialect {
 
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    switch (call.getKind()) {
+    case ROW:
+      // Remove the ROW keyword if the dialect does not allow that.
+      if (!getConformance().allowExplicitRowValueConstructor()) {
+        // Fix the syntax when there is no parentheses after VALUES keyword.
+        if (!writer.isAlwaysUseParentheses()) {
+          writer.print(" ");
+        }
+        final SqlWriter.Frame frame = writer.isAlwaysUseParentheses()
+                ? writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL)
+                : writer.startList(SqlWriter.FrameTypeEnum.FUN_CALL, "(", ")");
+        for (SqlNode operand : call.getOperandList()) {
+          writer.sep(",");
+          operand.unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endList(frame);
+        break;
+      }
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      call.getOperator().unparse(writer, call, leftPrec, rightPrec);
+    }
   }
 
   protected void unparseDivideInteger(final SqlWriter writer,
@@ -786,6 +821,8 @@ public class SqlDialect {
     return true;
   }
 
+ /** Returns SqlNode for type in "cast(column as type)", which might be
+  * different between databases by type name, precision etc. */
   public SqlNode getCastSpec(RelDataType type) {
     if (type instanceof BasicSqlType) {
       int maxPrecision = -1;
@@ -882,6 +919,21 @@ public class SqlDialect {
   public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
     unparseFetchUsingAnsi(writer, offset, fetch);
+  }
+
+  /**
+   * Converts a fetch into a "SELECT TOP(fetch)".
+   *
+   * <p>A dialect that uses "TOP" syntax should override this method to print
+   * "TOP(fetch)", and override {@link #unparseOffsetFetch} to no-op.
+   *
+   * <p>The default implementation of this method is no-op.
+   *
+   * @param writer Writer
+   * @param offset Number of rows to skip before emitting, or null
+   * @param fetch Number of rows to fetch, or null
+   */
+  public void unparseTopN(SqlWriter writer, SqlNode offset, SqlNode fetch) {
   }
 
   /** Unparses offset/fetch using ANSI standard "OFFSET offset ROWS FETCH NEXT
@@ -1045,6 +1097,27 @@ public class SqlDialect {
   }
 
   /**
+   * Returns whether the dialect supports implicit type coercion.
+   *
+   * <p>Most of the sql dialects support implicit type coercion, so we make this method
+   * default return true. For instance, "cast('10' as integer) &gt; 5"
+   * can be simplified to "'10' &gt; 5" if the dialect supports implicit type coercion
+   * for VARCHAR and INTEGER comparison.
+   *
+   * <p>For sql dialect that does not support implicit type coercion, such as the BigQuery,
+   * we can not convert '10' into INT64 implicitly.
+   *
+   * <p>Now this method is used for some auxiliary decision when translating some {@link RexCall}s,
+   * see SqlImplementor#stripCastFromString for details.
+   *
+   * @param call the call to make decision
+   */
+  public boolean supportsImplicitTypeCoercion(RexCall call) {
+    final RexNode operand0 = call.getOperands().get(0);
+    return SqlTypeUtil.isCharacter(operand0.getType());
+  }
+
+  /**
    * Returns whether the dialect needs cast in string operands of comparison operator.
    * for instance, where employee_id = '10' is comparable in most of the dialect,
    * so doesn't need cast for string operand '10'.
@@ -1117,8 +1190,11 @@ public class SqlDialect {
    * {@link #databaseProduct}; sub-classes may override. */
   @Nonnull public SqlConformance getConformance() {
     switch (databaseProduct) {
+    case UNKNOWN:
     case CALCITE:
       return SqlConformanceEnum.DEFAULT;
+    case BIG_QUERY:
+      return SqlConformanceEnum.BIG_QUERY;
     case MYSQL:
       return SqlConformanceEnum.MYSQL_5;
     case ORACLE:
@@ -1127,8 +1203,6 @@ public class SqlDialect {
       return SqlConformanceEnum.SQL_SERVER_2008;
     case HIVE:
       return SqlConformanceEnum.HIVE;
-    case BIG_QUERY:
-      return SqlConformanceEnum.BIG_QUERY;
     default:
       return SqlConformanceEnum.PRAGMATIC_2003;
     }
@@ -1588,5 +1662,3 @@ public class SqlDialect {
     }
   }
 }
-
-// End SqlDialect.java

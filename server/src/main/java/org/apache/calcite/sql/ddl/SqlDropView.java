@@ -34,5 +34,3 @@ public class SqlDropView extends SqlDropObject {
     super(OPERATOR, pos, ifExists, name);
   }
 }
-
-// End SqlDropView.java

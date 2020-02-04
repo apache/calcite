@@ -132,5 +132,3 @@ public class DateString implements Comparable<DateString> {
     return Util.calendar(getMillisSinceEpoch());
   }
 }
-
-// End DateString.java

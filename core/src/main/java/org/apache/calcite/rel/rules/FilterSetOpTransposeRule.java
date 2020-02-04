@@ -93,5 +93,3 @@ public class FilterSetOpTransposeRule extends RelOptRule {
     call.transformTo(newSetOp);
   }
 }
-
-// End FilterSetOpTransposeRule.java

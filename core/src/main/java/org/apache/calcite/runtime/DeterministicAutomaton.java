@@ -184,5 +184,3 @@ public class DeterministicAutomaton {
     }
   }
 }
-
-// End DeterministicAutomaton.java

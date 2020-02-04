@@ -16,65 +16,59 @@
  */
 package org.apache.calcite.runtime;
 
-import com.google.common.collect.Ordering;
-
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+
+import static org.apache.calcite.runtime.BinarySearch.lowerBound;
+import static org.apache.calcite.runtime.BinarySearch.upperBound;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static java.util.Comparator.naturalOrder;
 
 /**
  * Tests {@link org.apache.calcite.runtime.BinarySearch}.
  */
 public class BinarySearchTest {
   private void search(int key, int lower, int upper, Integer... array) {
-    Assert.assertEquals(
-        "lower bound of " + key + " in " + Arrays.toString(array), lower,
-        BinarySearch.lowerBound(array, key, Ordering.natural()));
-    Assert.assertEquals(
-        "upper bound of " + key + " in " + Arrays.toString(array), upper,
-        BinarySearch.upperBound(array, key, Ordering.natural()));
+    assertEquals(lower, lowerBound(array, key, naturalOrder()),
+        () -> "lower bound of " + key + " in " + Arrays.toString(array));
+    assertEquals(upper, upperBound(array, key, naturalOrder()),
+        () -> "upper bound of " + key + " in " + Arrays.toString(array));
   }
 
-  @Test
-  public void testSimple() {
+  @Test public void testSimple() {
     search(1, 0, 0, 1, 2, 3);
     search(2, 1, 1, 1, 2, 3);
     search(3, 2, 2, 1, 2, 3);
   }
 
-  @Test
-  public void testRepeated() {
+  @Test public void testRepeated() {
     search(1, 0, 1, 1, 1, 2, 2, 3, 3);
     search(2, 2, 3, 1, 1, 2, 2, 3, 3);
     search(3, 4, 5, 1, 1, 2, 2, 3, 3);
   }
 
-  @Test
-  public void testMissing() {
+  @Test public void testMissing() {
     search(0, -1, -1, 1, 2, 4);
     search(3, 2, 1, 1, 2, 4);
     search(5, 3, 3, 1, 2, 4);
   }
 
-  @Test
-  public void testEmpty() {
+  @Test public void testEmpty() {
     search(42, -1, -1);
   }
 
-  @Test
-  public void testSingle() {
+  @Test public void testSingle() {
     search(41, -1, -1, 42);
     search(42, 0, 0, 42);
     search(43, 1, 1, 42);
   }
 
-  @Test
-  public void testAllTheSame() {
+  @Test public void testAllTheSame() {
     search(1, 0, 3, 1, 1, 1, 1);
     search(0, -1, -1, 1, 1, 1, 1);
     search(2, 4, 4, 1, 1, 1, 1);
   }
 }
-
-// End BinarySearchTest.java

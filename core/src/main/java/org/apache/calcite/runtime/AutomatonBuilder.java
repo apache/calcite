@@ -233,5 +233,3 @@ public class AutomatonBuilder {
     return this;
   }
 }
-
-// End AutomatonBuilder.java

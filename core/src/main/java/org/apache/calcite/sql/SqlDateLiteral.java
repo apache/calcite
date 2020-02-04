@@ -68,5 +68,3 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
     writer.getDialect().unparseDateTimeLiteral(writer, this, leftPrec, rightPrec);
   }
 }
-
-// End SqlDateLiteral.java

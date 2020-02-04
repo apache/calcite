@@ -85,5 +85,3 @@ public class SqlKeyConstraint extends SqlCall {
     columnList.unparse(writer, 1, 1);
   }
 }
-
-// End SqlKeyConstraint.java

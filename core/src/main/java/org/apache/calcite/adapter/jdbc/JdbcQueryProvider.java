@@ -34,5 +34,3 @@ public final class JdbcQueryProvider extends QueryProviderImpl {
     return null;
   }
 }
-
-// End JdbcQueryProvider.java

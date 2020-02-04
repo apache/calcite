@@ -44,5 +44,3 @@ public class TpchSchemaFactory implements SchemaFactory {
     return new TpchSchema(scale, part, partCount, columnPrefix);
   }
 }
-
-// End TpchSchemaFactory.java

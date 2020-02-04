@@ -38,14 +38,14 @@ import org.apache.calcite.tools.RuleSet;
 import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Tests the application of the {@link SortRemoveRule}.
@@ -210,5 +210,3 @@ public final class SortRemoveRuleTest {
             SqlExplainLevel.DIGEST_ATTRIBUTES));
   }
 }
-
-// End SortRemoveRuleTest.java

@@ -1179,5 +1179,3 @@ public class SqlIntervalQualifier extends SqlNode implements Serializable {
             value, type.name() + "(" + precision + ")"));
   }
 }
-
-// End SqlIntervalQualifier.java

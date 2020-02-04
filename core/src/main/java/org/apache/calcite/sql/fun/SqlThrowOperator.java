@@ -63,5 +63,3 @@ public class SqlThrowOperator extends SqlSpecialOperator {
     writer.endFunCall(frame);
   }
 }
-
-// End SqlThrowOperator.java

@@ -44,5 +44,3 @@ public interface NotNullImplementor {
       RexCall call,
       List<Expression> translatedOperands);
 }
-
-// End NotNullImplementor.java

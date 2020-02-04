@@ -82,5 +82,3 @@ public class ComplexMetric {
     }
   }
 }
-
-// End ComplexMetric.java

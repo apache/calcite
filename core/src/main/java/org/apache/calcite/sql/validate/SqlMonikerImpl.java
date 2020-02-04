@@ -84,5 +84,3 @@ public class SqlMonikerImpl implements SqlMoniker {
     return type + "(" + this + ")";
   }
 }
-
-// End SqlMonikerImpl.java

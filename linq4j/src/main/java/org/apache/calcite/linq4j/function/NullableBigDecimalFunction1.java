@@ -27,5 +27,3 @@ import java.math.BigDecimal;
 public interface NullableBigDecimalFunction1<T0>
     extends Function1<T0, BigDecimal> {
 }
-
-// End NullableBigDecimalFunction1.java

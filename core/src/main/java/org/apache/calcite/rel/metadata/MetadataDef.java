@@ -63,5 +63,3 @@ public class MetadataDef<M extends Metadata> {
     return new MetadataDef<>(metadataClass, handlerClass, methods);
   }
 }
-
-// End MetadataDef.java

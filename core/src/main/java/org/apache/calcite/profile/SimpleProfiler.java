@@ -321,5 +321,3 @@ public class SimpleProfiler implements Profiler {
     }
   }
 }
-
-// End SimpleProfiler.java

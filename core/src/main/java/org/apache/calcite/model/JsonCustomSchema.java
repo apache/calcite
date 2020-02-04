@@ -49,5 +49,3 @@ public class JsonCustomSchema extends JsonMapSchema {
     return "JsonCustomSchema(name=" + name + ")";
   }
 }
-
-// End JsonCustomSchema.java

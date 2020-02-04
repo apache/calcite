@@ -31,5 +31,3 @@ public interface SqlRexConvertlet {
       SqlRexContext cx,
       SqlCall call);
 }
-
-// End SqlRexConvertlet.java

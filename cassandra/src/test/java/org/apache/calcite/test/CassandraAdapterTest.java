@@ -25,13 +25,13 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 
 import com.google.common.collect.ImmutableMap;
 
-import net.jcip.annotations.NotThreadSafe;
-
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -51,10 +51,11 @@ import static org.junit.Assume.assumeTrue;
  * <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>.
  *
  */
+
 // force tests to run sequentially (maven surefire and failsafe are running them in parallel)
 // seems like some of our code is sharing static variables (like Hooks) which causes tests
 // to fail non-deterministically (flaky tests).
-@NotThreadSafe
+@Execution(ExecutionMode.SAME_THREAD)
 public class CassandraAdapterTest {
 
   @ClassRule
@@ -227,5 +228,3 @@ public class CassandraAdapterTest {
         .explainContains("CassandraTableScan(table=[[twissandra, Tweets_By_User]])");
   }
 }
-
-// End CassandraAdapterTest.java

@@ -28,5 +28,3 @@ public interface StreamableTable extends Table {
    * as an array of its column values. */
   Table stream();
 }
-
-// End StreamableTable.java

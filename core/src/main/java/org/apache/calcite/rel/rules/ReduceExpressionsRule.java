@@ -270,6 +270,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           } else {
             call.transformTo(createEmptyRelOrEquivalent(call, filter));
           }
+          // New plan is absolutely better than old plan.
+          call.getPlanner().setImportance(filter, 0.0);
         }
       }
     }
@@ -408,11 +410,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           final RexNode newConditionExp =
               expandedExprList.get(conditionIndex);
           if (newConditionExp.isAlwaysTrue()) {
-            // condition is always TRUE - drop it
+            // condition is always TRUE - drop it.
           } else if (newConditionExp instanceof RexLiteral
               || RexUtil.isNullLiteral(newConditionExp, true)) {
             // condition is always NULL or FALSE - replace calc
-            // with empty
+            // with empty.
             call.transformTo(createEmptyRelOrEquivalent(call, calc));
             return;
           } else {
@@ -472,7 +474,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     @Override public void onMatch(RelOptRuleCall call) {
       LogicalWindow window = call.rel(0);
       RexBuilder rexBuilder = window.getCluster().getRexBuilder();
-      final RelMetadataQuery mq = RelMetadataQuery.instance();
+      final RelMetadataQuery mq = call.getMetadataQuery();
       final RelOptPredicateList predicates = mq
           .getPulledUpPredicates(window.getInput());
 
@@ -633,9 +635,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
   protected static boolean reduceExpressionsInternal(RelNode rel,
       RexSimplify simplify, RexUnknownAs unknownAs, List<RexNode> expList,
       RelOptPredicateList predicates) {
-    boolean changed = false;
     // Replace predicates on CASE to CASE on predicates.
-    changed |= new CaseShuttle().mutate(expList);
+    boolean changed = new CaseShuttle().mutate(expList);
 
     // Find reducible expressions.
     final List<RexNode> constExps = new ArrayList<>();
@@ -793,8 +794,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final List<RexNode> operands = call.getOperands();
     for (int i = 0; i < operands.size(); i++) {
       RexNode operand = operands.get(i);
-      switch (operand.getKind()) {
-      case CASE:
+      if (operand.getKind() == SqlKind.CASE) {
         caseOrdinal = i;
       }
     }
@@ -1030,6 +1030,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       for (Constancy operandConstancy : operandStack) {
         if (operandConstancy == Constancy.NON_CONSTANT) {
           callConstancy = Constancy.NON_CONSTANT;
+          break;
         }
       }
 
@@ -1145,5 +1146,3 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     }
   }
 }
-
-// End ReduceExpressionsRule.java

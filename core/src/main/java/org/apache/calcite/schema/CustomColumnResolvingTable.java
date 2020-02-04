@@ -54,5 +54,3 @@ public interface CustomColumnResolvingTable extends Table {
   List<Pair<RelDataTypeField, List<String>>> resolveColumn(
       RelDataType rowType, RelDataTypeFactory typeFactory, List<String> names);
 }
-
-// End CustomColumnResolvingTable.java

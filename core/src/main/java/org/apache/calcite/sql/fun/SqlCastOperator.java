@@ -66,5 +66,3 @@ class SqlCastOperator extends SqlBinaryOperator {
     return SqlStdOperatorTable.CAST.getMonotonicity(call);
   }
 }
-
-// End SqlCastOperator.java

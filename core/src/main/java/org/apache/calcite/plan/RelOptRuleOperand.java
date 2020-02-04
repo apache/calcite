@@ -214,5 +214,3 @@ public class RelOptRuleOperand {
     return predicate.test(rel);
   }
 }
-
-// End RelOptRuleOperand.java

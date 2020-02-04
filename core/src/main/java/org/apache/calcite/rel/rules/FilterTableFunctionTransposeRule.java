@@ -118,5 +118,3 @@ public class FilterTableFunctionTransposeRule extends RelOptRule {
     call.transformTo(newFuncRel);
   }
 }
-
-// End FilterTableFunctionTransposeRule.java

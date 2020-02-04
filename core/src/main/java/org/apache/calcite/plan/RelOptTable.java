@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -100,6 +101,12 @@ public interface RelOptTable extends Wrapper {
   boolean isKey(ImmutableBitSet columns);
 
   /**
+   * Returns a list of unique keys, empty list if no key exist,
+   * the result should be consistent with {@code isKey}
+   */
+  List<ImmutableBitSet> getKeys();
+
+  /**
    * Returns the referential constraints existing for this table. These constraints
    * are represented over other tables using {@link RelReferentialConstraint} nodes.
    */
@@ -144,7 +151,29 @@ public interface RelOptTable extends Wrapper {
    * expression. */
   interface ToRelContext extends ViewExpander {
     RelOptCluster getCluster();
+
+    /**
+     * Returns the table hints of the table to convert,
+     * usually you can use the hints to pass along some dynamic params.
+     *
+     * @return the hints attached to the table, never null
+     */
+    List<RelHint> getTableHints();
+  }
+
+  /** Interface to customize the {@link ToRelContext}. **/
+  interface ToRelContextFactory {
+    /**
+     * Returns a {@link ToRelContext} instance.
+     *
+     * @param viewExpander The view expander
+     * @param cluster      The cluster
+     * @param hints        The hints attached to the table,
+     *                     empty if the table does not have any hints
+     *
+     * @return A new {@link ToRelContext} instance.
+     */
+    ToRelContext createToRelContext(RelOptTable.ViewExpander viewExpander,
+        RelOptCluster cluster, List<RelHint> hints);
   }
 }
-
-// End RelOptTable.java

@@ -51,5 +51,3 @@ public class Holder<E> {
     return new Holder<>(e);
   }
 }
-
-// End Holder.java

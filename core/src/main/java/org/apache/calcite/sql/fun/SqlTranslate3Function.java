@@ -68,5 +68,3 @@ public class SqlTranslate3Function extends SqlFunction {
   }
 
 }
-
-// End SqlTranslate3Function.java

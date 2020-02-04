@@ -96,5 +96,3 @@ public class SqlCountAggFunction extends SqlAggFunction {
     return super.unwrap(clazz);
   }
 }
-
-// End SqlCountAggFunction.java

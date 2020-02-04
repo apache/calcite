@@ -21,7 +21,6 @@ import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelNodes;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.util.ChunkList;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -328,17 +327,17 @@ class RuleQueue {
   void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
     for (PhaseMatchList matchList : matchListMap.values()) {
-      if (!matchList.names.add(matchName)) {
-        // Identical match has already been added.
-        continue;
-      }
-
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
       if (phaseRuleSet != ALL_RULES) {
         String ruleDescription = match.getRule().toString();
         if (!phaseRuleSet.contains(ruleDescription)) {
           continue;
         }
+      }
+
+      if (!matchList.names.add(matchName)) {
+        // Identical match has already been added.
+        continue;
       }
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
@@ -447,9 +446,11 @@ class RuleQueue {
       if (matchList.isEmpty()) {
         return null;
       }
+      int bestPos;
       if (LOGGER.isTraceEnabled()) {
         matchList.sort(MATCH_COMPARATOR);
-        match = matchList.remove(0);
+        match = matchList.get(0);
+        bestPos = 0;
 
         StringBuilder b = new StringBuilder();
         b.append("Sorted rule queue:");
@@ -466,7 +467,7 @@ class RuleQueue {
         // If we're not tracing, it's not worth the effort of sorting the
         // list to find the minimum.
         match = null;
-        int bestPos = -1;
+        bestPos = -1;
         int i = -1;
         for (VolcanoRuleMatch match2 : matchList) {
           ++i;
@@ -476,7 +477,14 @@ class RuleQueue {
             match = match2;
           }
         }
-        match = matchList.remove(bestPos);
+      }
+      // Removal from the middle is not efficient, but the removal from the tail is.
+      // We remove the very last element, then put it to the bestPos index which
+      // effectively removes an element from the list.
+      final VolcanoRuleMatch lastElement = matchList.remove(matchList.size() - 1);
+      if (bestPos < matchList.size()) {
+        // Replace the middle element with the last one
+        matchList.set(bestPos, lastElement);
       }
 
       if (skipMatch(match)) {
@@ -486,11 +494,10 @@ class RuleQueue {
       }
     }
 
-    // A rule match's digest is composed of the operand RelNodes' digests,
-    // which may have changed if sets have merged since the rule match was
-    // enqueued.
-    match.recomputeDigest();
-
+    // If sets have merged since the rule match was enqueued, the match
+    // may not be removed from the matchMap because the subset may have
+    // changed, it is OK to leave it since the matchMap will be cleared
+    // at the end.
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
@@ -660,14 +667,10 @@ class RuleQueue {
 
     /**
      * Current list of VolcanoRuleMatches for this phase. New rule-matches
-     * are appended to the end of this list. When removing a rule-match, the
-     * list is sorted and the highest importance rule-match removed. It is
-     * important for performance that this list remain mostly sorted.
-     *
-     * <p>Use a hunkList because {@link java.util.ArrayList} does not implement
-     * remove(0) efficiently.</p>
+     * are appended to the end of this list.
+     * The rules are not sorted in any way.
      */
-    final List<VolcanoRuleMatch> list = new ChunkList<>();
+    final List<VolcanoRuleMatch> list = new ArrayList<>();
 
     /**
      * A set of rule-match names contained in {@link #list}. Allows fast
@@ -691,10 +694,9 @@ class RuleQueue {
 
     void clear() {
       list.clear();
+      ((ArrayList<VolcanoRuleMatch>) list).trimToSize();
       names.clear();
       matchMap.clear();
     }
   }
 }
-
-// End RuleQueue.java

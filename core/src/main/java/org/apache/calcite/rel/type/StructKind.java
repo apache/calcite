@@ -84,5 +84,3 @@ public enum StructKind {
    * <p>Used in Flink, not Phoenix. */
   PEEK_FIELDS_NO_EXPAND,
 }
-
-// End StructKind.java

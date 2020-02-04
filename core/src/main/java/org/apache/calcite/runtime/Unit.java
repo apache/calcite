@@ -35,5 +35,3 @@ public class Unit implements Comparable<Unit> {
     return "{}";
   }
 }
-
-// End Unit.java

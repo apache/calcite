@@ -47,5 +47,3 @@ public class FilterNode extends AbstractSingleNode<Filter> {
     }
   }
 }
-
-// End FilterNode.java

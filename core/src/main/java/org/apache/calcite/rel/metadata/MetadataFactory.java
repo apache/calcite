@@ -43,5 +43,3 @@ public interface MetadataFactory {
   <M extends Metadata> M query(RelNode rel, RelMetadataQuery mq,
       Class<M> metadataClazz);
 }
-
-// End MetadataFactory.java

@@ -21,5 +21,3 @@ package org.apache.calcite.linq4j.tree;
  */
 public class MemberMemberBinding extends MemberBinding {
 }
-
-// End MemberMemberBinding.java

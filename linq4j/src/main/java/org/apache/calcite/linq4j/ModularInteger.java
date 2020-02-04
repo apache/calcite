@@ -71,5 +71,3 @@ class ModularInteger {
     return value + " mod " + modulus;
   }
 }
-
-// End ModularInteger.java

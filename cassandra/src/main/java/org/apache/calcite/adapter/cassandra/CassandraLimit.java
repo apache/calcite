@@ -71,5 +71,3 @@ public class CassandraLimit extends SingleRel implements CassandraRel {
     return pw;
   }
 }
-
-// End CassandraLimit.java

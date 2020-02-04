@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.tpcds;
 
-import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -34,8 +33,9 @@ import org.apache.calcite.util.Holder;
 
 import net.hydromatic.tpcds.query.Query;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Random;
@@ -43,12 +43,13 @@ import java.util.function.Consumer;
 
 import static org.apache.calcite.test.Matchers.hasTree;
 
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Unit test for {@link org.apache.calcite.adapter.tpcds.TpcdsSchema}.
  *
- * <p>Only runs if {@link org.apache.calcite.config.CalciteSystemProperty#TEST_SLOW} is set.</p>
+ * <p>Only runs as part of slow test suite.</p>
  */
+@Tag("slow")
 public class TpcdsTest {
   private static Consumer<Holder<Program>> handler(
       final boolean bushy, final int minJoinCount) {
@@ -82,8 +83,7 @@ public class TpcdsTest {
       + "}";
 
   private CalciteAssert.AssertThat with() {
-    return CalciteAssert.model(TPCDS_MODEL)
-        .enable(CalciteSystemProperty.TEST_SLOW.value());
+    return CalciteAssert.model(TPCDS_MODEL);
   }
 
   @Test public void testCallCenter() {
@@ -201,14 +201,14 @@ public class TpcdsTest {
   }
 
   /** Tests the customer table with scale factor 5. */
-  @Ignore("add tests like this that count each table")
+  @Disabled("add tests like this that count each table")
   @Test public void testCustomer5() {
     with()
         .query("select * from tpcds_5.customer")
         .returnsCount(750000);
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery01() {
     checkQuery(1).runs();
   }
@@ -219,7 +219,7 @@ public class TpcdsTest {
         .withHook(Hook.PROGRAM, handler(true, 2))
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableCalc(expr#0..9=[{inputs}], expr#10=[/($t4, $t3)], expr#11=[CAST($t10):INTEGER NOT NULL], expr#12=[*($t4, $t4)], expr#13=[/($t12, $t3)], expr#14=[-($t5, $t13)], expr#15=[1], expr#16=[=($t3, $t15)], expr#17=[null], expr#18=[-($t3, $t15)], expr#19=[CASE($t16, $t17, $t18)], expr#20=[/($t14, $t19)], expr#21=[0.5], expr#22=[POWER($t20, $t21)], expr#23=[CAST($t22):INTEGER NOT NULL], expr#24=[/($t23, $t11)], expr#25=[/($t6, $t3)], expr#26=[CAST($t25):INTEGER NOT NULL], expr#27=[*($t6, $t6)], expr#28=[/($t27, $t3)], expr#29=[-($t7, $t28)], expr#30=[/($t29, $t19)], expr#31=[POWER($t30, $t21)], expr#32=[CAST($t31):INTEGER NOT NULL], expr#33=[/($t32, $t26)], expr#34=[/($t8, $t3)], expr#35=[CAST($t34):INTEGER NOT NULL], expr#36=[*($t8, $t8)], expr#37=[/($t36, $t3)], expr#38=[-($t9, $t37)], expr#39=[/($t38, $t19)], expr#40=[POWER($t39, $t21)], expr#41=[CAST($t40):INTEGER NOT NULL], expr#42=[/($t41, $t35)], proj#0..3=[{exprs}], STORE_SALES_QUANTITYAVE=[$t11], STORE_SALES_QUANTITYSTDEV=[$t23], STORE_SALES_QUANTITYCOV=[$t24], AS_STORE_RETURNS_QUANTITYCOUNT=[$t3], AS_STORE_RETURNS_QUANTITYAVE=[$t26], AS_STORE_RETURNS_QUANTITYSTDEV=[$t32], STORE_RETURNS_QUANTITYCOV=[$t33], CATALOG_SALES_QUANTITYCOUNT=[$t3], CATALOG_SALES_QUANTITYAVE=[$t35], CATALOG_SALES_QUANTITYSTDEV=[$t42], CATALOG_SALES_QUANTITYCOV=[$t42]): rowcount = 100.0, cumulative cost = {1.2435775409784036E28 rows, 2.555295485909236E30 cpu, 0.0 io}\n"
+                + "EnumerableCalc(expr#0..9=[{inputs}], expr#10=[/($t4, $t3)], expr#11=[CAST($t10):INTEGER NOT NULL], expr#12=[*($t4, $t4)], expr#13=[/($t12, $t3)], expr#14=[-($t5, $t13)], expr#15=[1], expr#16=[=($t3, $t15)], expr#17=[null:BIGINT], expr#18=[-($t3, $t15)], expr#19=[CASE($t16, $t17, $t18)], expr#20=[/($t14, $t19)], expr#21=[0.5:DECIMAL(2, 1)], expr#22=[POWER($t20, $t21)], expr#23=[CAST($t22):INTEGER NOT NULL], expr#24=[/($t23, $t11)], expr#25=[/($t6, $t3)], expr#26=[CAST($t25):INTEGER NOT NULL], expr#27=[*($t6, $t6)], expr#28=[/($t27, $t3)], expr#29=[-($t7, $t28)], expr#30=[/($t29, $t19)], expr#31=[POWER($t30, $t21)], expr#32=[CAST($t31):INTEGER NOT NULL], expr#33=[/($t32, $t26)], expr#34=[/($t8, $t3)], expr#35=[CAST($t34):INTEGER NOT NULL], expr#36=[*($t8, $t8)], expr#37=[/($t36, $t3)], expr#38=[-($t9, $t37)], expr#39=[/($t38, $t19)], expr#40=[POWER($t39, $t21)], expr#41=[CAST($t40):INTEGER NOT NULL], expr#42=[/($t41, $t35)], proj#0..3=[{exprs}], STORE_SALES_QUANTITYAVE=[$t11], STORE_SALES_QUANTITYSTDEV=[$t23], STORE_SALES_QUANTITYCOV=[$t24], AS_STORE_RETURNS_QUANTITYCOUNT=[$t3], AS_STORE_RETURNS_QUANTITYAVE=[$t26], AS_STORE_RETURNS_QUANTITYSTDEV=[$t32], STORE_RETURNS_QUANTITYCOV=[$t33], CATALOG_SALES_QUANTITYCOUNT=[$t3], CATALOG_SALES_QUANTITYAVE=[$t35], CATALOG_SALES_QUANTITYSTDEV=[$t42], CATALOG_SALES_QUANTITYCOV=[$t42]): rowcount = 100.0, cumulative cost = {1.2435775409784036E28 rows, 2.555295485909236E30 cpu, 0.0 io}\n"
                 + "  EnumerableLimit(fetch=[100]): rowcount = 100.0, cumulative cost = {1.2435775409784036E28 rows, 2.555295485909236E30 cpu, 0.0 io}\n"
                 + "    EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC]): rowcount = 5.434029018852197E26, cumulative cost = {1.2435775409784036E28 rows, 2.555295485909236E30 cpu, 0.0 io}\n"
                 + "      EnumerableAggregate(group=[{0, 1, 2}], STORE_SALES_QUANTITYCOUNT=[COUNT()], agg#1=[$SUM0($3)], agg#2=[$SUM0($6)], agg#3=[$SUM0($4)], agg#4=[$SUM0($7)], agg#5=[$SUM0($5)], agg#6=[$SUM0($8)]): rowcount = 5.434029018852197E26, cumulative cost = {1.1892372507898816E28 rows, 1.2172225002228922E30 cpu, 0.0 io}\n"
@@ -244,29 +244,29 @@ public class TpcdsTest {
                 + "                EnumerableTableScan(table=[[TPCDS, CATALOG_SALES]]): rowcount = 1441548.0, cumulative cost = {1441548.0 rows, 1441549.0 cpu, 0.0 io}\n"));
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery27() {
     checkQuery(27).runs();
   }
 
-  @Ignore("throws 'RuntimeException: Cannot convert null to long'")
+  @Disabled("throws 'RuntimeException: Cannot convert null to long'")
   @Test public void testQuery58() {
     checkQuery(58).explainContains("PLAN").runs();
   }
 
-  @Ignore("takes too long to optimize")
+  @Disabled("takes too long to optimize")
   @Test public void testQuery72() {
     checkQuery(72).runs();
   }
 
-  @Ignore("work in progress")
+  @Disabled("work in progress")
   @Test public void testQuery72Plan() {
     checkQuery(72)
         .withHook(Hook.PROGRAM, handler(true, 2))
         .planContains("xx");
   }
 
-  @Ignore("throws 'java.lang.AssertionError: type mismatch'")
+  @Disabled("throws 'java.lang.AssertionError: type mismatch'")
   @Test public void testQuery95() {
     checkQuery(95)
         .withHook(Hook.PROGRAM, handler(false, 6))
@@ -398,5 +398,3 @@ public class TpcdsTest {
     assertThat(root, hasTree(expectResult));
   }
 }
-
-// End TpcdsTest.java

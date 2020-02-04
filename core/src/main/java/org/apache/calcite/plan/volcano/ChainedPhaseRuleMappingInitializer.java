@@ -66,5 +66,3 @@ public abstract class ChainedPhaseRuleMappingInitializer
   public abstract void chainedInitialize(
       Map<VolcanoPlannerPhase, Set<String>> phaseRuleMap);
 }
-
-// End ChainedPhaseRuleMappingInitializer.java

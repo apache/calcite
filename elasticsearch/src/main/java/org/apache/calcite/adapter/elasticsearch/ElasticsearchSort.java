@@ -72,5 +72,3 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
   }
 
 }
-
-// End ElasticsearchSort.java

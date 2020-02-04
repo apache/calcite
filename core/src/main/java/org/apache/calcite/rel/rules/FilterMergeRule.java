@@ -99,5 +99,3 @@ public class FilterMergeRule extends RelOptRule {
     return programBuilder.getProgram();
   }
 }
-
-// End FilterMergeRule.java

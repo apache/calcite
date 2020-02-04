@@ -51,5 +51,3 @@ public class SemiJoinRemoveRule extends RelOptRule {
     call.transformTo(call.rel(0).getInput(0));
   }
 }
-
-// End SemiJoinRemoveRule.java

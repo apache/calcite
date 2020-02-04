@@ -125,5 +125,3 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     }
   }
 }
-
-// End TrustAllSslSocketFactory.java

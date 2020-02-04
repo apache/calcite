@@ -96,5 +96,3 @@ public class VirtualColumn implements DruidJson {
     return new Builder();
   }
 }
-
-// End VirtualColumn.java

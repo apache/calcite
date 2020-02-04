@@ -35,5 +35,3 @@ public interface SqlParserImplFactory {
    */
   SqlAbstractParserImpl getParser(Reader stream);
 }
-
-// End SqlParserImplFactory.java

@@ -35,7 +35,7 @@ public class JdbcToEnumerableConverterRule extends ConverterRule {
       RelBuilderFactory relBuilderFactory) {
     super(RelNode.class, (Predicate<RelNode>) r -> true, out,
         EnumerableConvention.INSTANCE, relBuilderFactory,
-        "JdbcToEnumerableConverterRule:" + out);
+        "JdbcToEnumerableConverterRule");
   }
 
   @Override public RelNode convert(RelNode rel) {
@@ -43,5 +43,3 @@ public class JdbcToEnumerableConverterRule extends ConverterRule {
     return new JdbcToEnumerableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End JdbcToEnumerableConverterRule.java

@@ -92,5 +92,3 @@ public class TableMacroImpl extends ReflectiveFunctionBase
     }
   }
 }
-
-// End TableMacroImpl.java

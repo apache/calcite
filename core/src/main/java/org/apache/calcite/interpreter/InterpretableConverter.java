@@ -51,5 +51,3 @@ public class InterpretableConverter extends ConverterImpl
     return new Interpreter(dataContext, getInput());
   }
 }
-
-// End InterpretableConverter.java

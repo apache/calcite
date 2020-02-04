@@ -41,5 +41,3 @@ public class PigSchemaFactory implements SchemaFactory {
     return new PigSchema();
   }
 }
-
-// End PigSchemaFactory.java

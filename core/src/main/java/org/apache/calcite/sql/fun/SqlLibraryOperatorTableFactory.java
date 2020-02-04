@@ -162,5 +162,3 @@ public class SqlLibraryOperatorTableFactory {
     }
   }
 }
-
-// End SqlLibraryOperatorTableFactory.java

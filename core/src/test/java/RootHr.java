@@ -25,5 +25,3 @@ public class RootHr {
       new RootEmployee(150, "Sebastian"),
   };
 }
-
-// End RootHr.java

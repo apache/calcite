@@ -18,9 +18,4 @@
 /**
  * Examples of using linq4j.
  */
-@PackageMarker
 package com.example;
-
-import org.apache.calcite.linq4j.PackageMarker;
-
-// End package-info.java

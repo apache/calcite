@@ -25,9 +25,9 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -51,7 +51,7 @@ public class EnumerableProject extends Project implements EnumerableRel {
       RelNode input,
       List<? extends RexNode> projects,
       RelDataType rowType) {
-    super(cluster, traitSet, input, projects, rowType);
+    super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     assert getConvention() instanceof EnumerableConvention;
   }
 
@@ -76,15 +76,6 @@ public class EnumerableProject extends Project implements EnumerableRel {
     return new EnumerableProject(cluster, traitSet, input, projects, rowType);
   }
 
-  static RelNode create(RelNode child, List<? extends RexNode> projects,
-      List<String> fieldNames) {
-    final RelOptCluster cluster = child.getCluster();
-    final RelDataType rowType =
-        RexUtil.createStructType(cluster.getTypeFactory(), projects,
-          fieldNames, SqlValidatorUtil.F_SUGGESTER);
-    return create(child, projects, rowType);
-  }
-
   public EnumerableProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType) {
     return new EnumerableProject(getCluster(), traitSet, input,
@@ -96,5 +87,3 @@ public class EnumerableProject extends Project implements EnumerableRel {
     throw new UnsupportedOperationException();
   }
 }
-
-// End EnumerableProject.java

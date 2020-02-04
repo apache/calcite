@@ -54,5 +54,3 @@ public class SqlMonotonicUnaryFunction extends SqlFunction {
     return call.getOperandMonotonicity(0).unstrict();
   }
 }
-
-// End SqlMonotonicUnaryFunction.java

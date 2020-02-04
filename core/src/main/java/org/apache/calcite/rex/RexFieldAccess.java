@@ -111,5 +111,3 @@ public class RexFieldAccess extends RexNode {
     return result;
   }
 }
-
-// End RexFieldAccess.java

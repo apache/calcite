@@ -100,5 +100,3 @@ public enum SqlLibrary {
     MAP = builder.build();
   }
 }
-
-// End SqlLibrary.java

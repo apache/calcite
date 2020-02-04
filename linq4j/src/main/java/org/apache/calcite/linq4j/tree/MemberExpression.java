@@ -104,5 +104,3 @@ public class MemberExpression extends Expression {
     return Objects.hash(nodeType, type, expression, field);
   }
 }
-
-// End MemberExpression.java

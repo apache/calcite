@@ -106,5 +106,3 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
     }
   }
 }
-
-// End SameOperandTypeExceptLastOperandChecker.java

@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Entry point for optimizers that factor ou deterministic expressions to
+ * Entry point for optimizers that factor out deterministic expressions to
  * final static fields.
  * Instances of this class should not be reused, so new visitor should be
  * created for optimizing a new expression tree.
@@ -278,5 +278,3 @@ public class ClassDeclarationFinder extends Shuttle {
     return childFactory.apply(this);
   }
 }
-
-// End ClassDeclarationFinder.java

@@ -83,5 +83,3 @@ public class RexLocalRef extends RexSlot {
     return NAMES.get(index);
   }
 }
-
-// End RexLocalRef.java

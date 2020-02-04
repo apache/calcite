@@ -90,5 +90,3 @@ public class DruidSchema extends AbstractSchema {
         complexMetrics);
   }
 }
-
-// End DruidSchema.java

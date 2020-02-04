@@ -87,5 +87,3 @@ public class SqlAvgAggFunction extends SqlAggFunction {
     VAR_SAMP
   }
 }
-
-// End SqlAvgAggFunction.java

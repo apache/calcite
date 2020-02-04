@@ -16,9 +16,4 @@
  */
 
 /** Piglet, a Pig-like language. */
-@PackageMarker
 package org.apache.calcite.piglet;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

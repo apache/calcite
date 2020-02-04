@@ -45,5 +45,3 @@ public class ProjectNode extends AbstractSingleNode<Project> {
     }
   }
 }
-
-// End ProjectNode.java

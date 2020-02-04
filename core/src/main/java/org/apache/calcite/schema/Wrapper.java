@@ -24,5 +24,3 @@ public interface Wrapper {
    * or returns null if this object does not support that interface. */
   <C> C unwrap(Class<C> aClass);
 }
-
-// End Wrapper.java

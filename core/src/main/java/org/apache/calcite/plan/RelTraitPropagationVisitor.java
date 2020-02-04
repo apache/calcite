@@ -87,5 +87,3 @@ public class RelTraitPropagationVisitor extends RelVisitor {
     rel.childrenAccept(this);
   }
 }
-
-// End RelTraitPropagationVisitor.java

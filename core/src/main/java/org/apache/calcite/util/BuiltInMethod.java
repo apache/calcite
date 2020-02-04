@@ -21,6 +21,7 @@ import org.apache.calcite.adapter.enumerable.AggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicAggregateLambdaFactory;
 import org.apache.calcite.adapter.enumerable.BasicLazyAccumulator;
 import org.apache.calcite.adapter.enumerable.LazyAggregateLambdaFactory;
+import org.apache.calcite.adapter.enumerable.MatchUtils;
 import org.apache.calcite.adapter.enumerable.SourceSorter;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.adapter.jdbc.JdbcSchema;
@@ -89,6 +90,7 @@ import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.runtime.SqlFunctions.FlatProductInputType;
 import org.apache.calcite.runtime.Utilities;
+import org.apache.calcite.runtime.XmlFunctions;
 import org.apache.calcite.schema.FilterableTable;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ProjectableFilterableTable;
@@ -180,6 +182,8 @@ public enum BuiltInMethod {
   MATCHER_BUILDER_ADD(Matcher.Builder.class, "add", String.class,
       Predicate.class),
   MATCHER_BUILDER_BUILD(Matcher.Builder.class, "build"),
+  MATCH_UTILS_LAST_WITH_SYMBOL(MatchUtils.class, "lastWithSymbol", String.class,
+      List.class, List.class, int.class),
   EMITTER_EMIT(Enumerables.Emitter.class, "emit", List.class, List.class,
       List.class, int.class, Consumer.class),
   MERGE_JOIN(EnumerableDefaults.class, "mergeJoin", Enumerable.class,
@@ -218,12 +222,12 @@ public enum BuiltInMethod {
       Comparator.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
-  REPEAT_UNION_ALL(EnumerableDefaults.class, "repeatUnionAll", Enumerable.class,
-      Enumerable.class, int.class),
+  REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
+      Enumerable.class, int.class, boolean.class, EqualityComparer.class),
   LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,
       Enumerable.class),
-  INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class),
-  EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class),
+  INTERSECT(ExtendedEnumerable.class, "intersect", Enumerable.class, boolean.class),
+  EXCEPT(ExtendedEnumerable.class, "except", Enumerable.class, boolean.class),
   SKIP(ExtendedEnumerable.class, "skip", int.class),
   TAKE(ExtendedEnumerable.class, "take", int.class),
   SINGLETON_ENUMERABLE(Linq4j.class, "singletonEnumerable", Object.class),
@@ -319,6 +323,10 @@ public enum BuiltInMethod {
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
   MD5(SqlFunctions.class, "md5", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
+  EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
+  XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
+  EXTRACT_XML(XmlFunctions.class, "extractXml", String.class, String.class, String.class),
+  EXISTS_NODE(XmlFunctions.class, "existsNode", String.class, String.class, String.class),
   JSONIZE(JsonFunctions.class, "jsonize", Object.class),
   DEJSONIZE(JsonFunctions.class, "dejsonize", String.class),
   JSON_VALUE_EXPRESSION(JsonFunctions.class, "jsonValueExpression",
@@ -367,6 +375,7 @@ public enum BuiltInMethod {
       long.class),
   FLOOR(SqlFunctions.class, "floor", int.class, int.class),
   CEIL(SqlFunctions.class, "ceil", int.class, int.class),
+  COSH(SqlFunctions.class, "cosh", long.class),
   OVERLAY(SqlFunctions.class, "overlay", String.class, String.class, int.class),
   OVERLAY3(SqlFunctions.class, "overlay", String.class, String.class, int.class,
       int.class),
@@ -376,6 +385,7 @@ public enum BuiltInMethod {
   RAND_INTEGER(RandomFunction.class, "randInteger", int.class),
   RAND_INTEGER_SEED(RandomFunction.class, "randIntegerSeed", int.class,
       int.class),
+  TANH(SqlFunctions.class, "tanh", long.class),
   TRUNCATE(SqlFunctions.class, "truncate", String.class, int.class),
   TRUNCATE_OR_PAD(SqlFunctions.class, "truncateOrPad", String.class, int.class),
   TRIM(SqlFunctions.class, "trim", boolean.class, boolean.class, String.class,
@@ -403,6 +413,7 @@ public enum BuiltInMethod {
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
   BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
   BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
+  BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
@@ -575,7 +586,8 @@ public enum BuiltInMethod {
   AGG_LAMBDA_FACTORY_ACC_RESULT_SELECTOR(AggregateLambdaFactory.class,
       "resultSelector", Function2.class),
   AGG_LAMBDA_FACTORY_ACC_SINGLE_GROUP_RESULT_SELECTOR(AggregateLambdaFactory.class,
-      "singleGroupResultSelector", Function1.class);
+      "singleGroupResultSelector", Function1.class),
+  TUMBLING(EnumerableDefaults.class, "tumbling", Enumerable.class, Function1.class);
 
   public final Method method;
   public final Constructor constructor;
@@ -620,5 +632,3 @@ public enum BuiltInMethod {
     return method.getName();
   }
 }
-
-// End BuiltInMethod.java

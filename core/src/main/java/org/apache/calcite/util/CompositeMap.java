@@ -145,5 +145,3 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return combinedMap().entrySet();
   }
 }
-
-// End CompositeMap.java

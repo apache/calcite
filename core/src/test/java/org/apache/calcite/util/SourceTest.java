@@ -16,16 +16,25 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
+import com.google.common.io.CharSource;
 
+import org.junit.jupiter.api.Test;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static org.apache.calcite.util.Sources.file;
 import static org.apache.calcite.util.Sources.url;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests for {@link Source}.
@@ -41,6 +50,21 @@ public class SourceTest {
     }
     throw new IllegalStateException(
         "Unsupported operation system detected. Both / and c:/ produce relative paths");
+  }
+
+  /**
+   * Read lines from {@link CharSource}
+   */
+  @Test void charSource() throws IOException {
+    Source source = Sources.fromCharSource(CharSource.wrap("a\nb"));
+    for (Reader r: Arrays.asList(source.reader(),
+        new InputStreamReader(source.openStream(), StandardCharsets.UTF_8.name()))) {
+      try (BufferedReader reader = new BufferedReader(r)) {
+        assertEquals("a", reader.readLine());
+        assertEquals("b", reader.readLine());
+        assertNull(reader.readLine());
+      }
+    }
   }
 
   @Test public void testAppendWithSpaces() {
@@ -101,17 +125,17 @@ public class SourceTest {
   @Test public void testSpaceInUrl() {
     String url = "file:" + ROOT_PREFIX + "dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
-        foo.file().getAbsolutePath());
+    assertEquals(new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
+        foo.file().getAbsolutePath(),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testSpaceInRelativeUrl() {
     String url = "file:dir%20name/test%20file.json";
     final Source foo = url(url);
-    assertEquals(url + " .file().getAbsolutePath()",
-        "dir name/test file.json",
-        foo.file().getPath().replace('\\', '/'));
+    assertEquals("dir name/test file.json",
+        foo.file().getPath().replace('\\', '/'),
+        () -> url + " .file().getAbsolutePath()");
   }
 
   @Test public void testRelative() {
@@ -123,5 +147,3 @@ public class SourceTest {
     assertThat(fooBar.relative(baz), is(fooBar));
   }
 }
-
-// End SourceTest.java

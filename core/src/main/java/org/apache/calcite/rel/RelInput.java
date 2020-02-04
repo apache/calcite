@@ -96,5 +96,3 @@ public interface RelInput {
 
   boolean getBoolean(String tag, boolean default_);
 }
-
-// End RelInput.java

@@ -35,6 +35,7 @@ import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.convert.TraitMatchingRule;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -77,7 +78,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private RelTraitSet requestedRootTraits;
 
-  private final Map<Pair<String, RelDataType>, HepRelVertex> mapDigestToVertex = new HashMap<>();
+  /**
+   * {@link RelDataType} is represented with its field types as {@code List<RelDataType>}.
+   * This enables to treat as equal projects that differ in expression names only.
+   */
+  private final Map<Pair<String, List<RelDataType>>, HepRelVertex> mapDigestToVertex =
+      new HashMap<>();
 
   // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
   // in order to provide deterministic behavior.
@@ -494,7 +500,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   /** Returns whether the vertex is valid. */
   private boolean belongsToDag(HepRelVertex vertex) {
-    Pair<String, RelDataType> key = key(vertex.getCurrentRel());
+    Pair<String, List<RelDataType>> key = key(vertex.getCurrentRel());
     return mapDigestToVertex.get(key) != null;
   }
 
@@ -823,7 +829,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // try to find equivalent rel only if DAG is allowed
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
-      Pair<String, RelDataType> key = key(rel);
+      Pair<String, List<RelDataType>> key = key(rel);
       HepRelVertex equivVertex = mapDigestToVertex.get(key);
       if (equivVertex != null) {
         // Use existing vertex.
@@ -867,6 +873,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         }
         parentRel.replaceInput(i, preservedVertex);
       }
+      RelMdUtil.clearCache(parentRel);
       graph.removeEdge(parent, discardedVertex);
       graph.addEdge(parent, preservedVertex);
       updateVertex(parent, parentRel);
@@ -890,7 +897,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // reachable from here.
       notifyDiscard(vertex.getCurrentRel());
     }
-    Pair<String, RelDataType> oldKey = key(vertex.getCurrentRel());
+    Pair<String, List<RelDataType>> oldKey = key(vertex.getCurrentRel());
     if (mapDigestToVertex.get(oldKey) == vertex) {
       mapDigestToVertex.remove(oldKey);
     }
@@ -901,7 +908,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // otherwise the digest will be removed wrongly in the mapDigestToVertex
     //  when collectGC
     // so it must update the digest that map to vertex
-    Pair<String, RelDataType> newKey = key(rel);
+    Pair<String, List<RelDataType>> newKey = key(rel);
     mapDigestToVertex.put(newKey, vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
@@ -912,8 +919,8 @@ public class HepPlanner extends AbstractRelOptPlanner {
         false);
   }
 
-  private static Pair<String, RelDataType> key(RelNode rel) {
-    return Pair.of(rel.getDigest(), rel.getRowType());
+  private static Pair<String, List<RelDataType>> key(RelNode rel) {
+    return Pair.of(rel.getDigest(), Pair.right(rel.getRowType().getFieldList()));
   }
 
   private RelNode buildFinalPlan(HepRelVertex vertex) {
@@ -932,8 +939,9 @@ public class HepPlanner extends AbstractRelOptPlanner {
       }
       child = buildFinalPlan((HepRelVertex) child);
       rel.replaceInput(i, child);
-      rel.recomputeDigest();
     }
+    RelMdUtil.clearCache(rel);
+    rel.recomputeDigest();
 
     return rel;
   }
@@ -971,7 +979,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     graphSizeLastGC = graph.vertexSet().size();
 
     // Clean up digest map too.
-    Iterator<Map.Entry<Pair<String, RelDataType>, HepRelVertex>> digestIter =
+    Iterator<Map.Entry<Pair<String, List<RelDataType>>, HepRelVertex>> digestIter =
         mapDigestToVertex.entrySet().iterator();
     while (digestIter.hasNext()) {
       HepRelVertex vertex = digestIter.next().getValue();
@@ -1041,5 +1049,3 @@ public class HepPlanner extends AbstractRelOptPlanner {
     materializations.add(materialization);
   }
 }
-
-// End HepPlanner.java

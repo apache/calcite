@@ -19,39 +19,37 @@ package org.apache.calcite.linq4j.test;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Lookup;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for LookupImpl.java
  *
  */
-public class LookupImplTest extends TestCase {
+public class LookupImplTest {
 
   private Lookup<Integer, String> impl;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     impl = Linq4j.asEnumerable(Linq4jTest.emps).toLookup(
       Linq4jTest.EMP_DEPTNO_SELECTOR,
       Linq4jTest.EMP_NAME_SELECTOR);
   }
 
-  @Test
-  public void testPut() {
+  @Test public void testPut() {
     int initSize = impl.size();
     impl.put(99, Linq4j.asEnumerable(new String[]{"A", "B"}));
     assertTrue(impl.containsKey(99));
     assertTrue(impl.size() == initSize + 1);
   }
 
-  @Test
-  public void testContainsValue() {
+  @Test public void testContainsValue() {
     List<String> list = new ArrayList<>();
     list.add("C");
     list.add("D");
@@ -61,5 +59,3 @@ public class LookupImplTest extends TestCase {
     assertTrue(impl.containsValue(list2));
   }
 }
-
-// End LookupImplTest.java

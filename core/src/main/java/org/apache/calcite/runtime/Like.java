@@ -302,5 +302,3 @@ public class Like {
     return javaPattern.toString();
   }
 }
-
-// End Like.java

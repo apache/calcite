@@ -292,6 +292,9 @@ public interface CalciteResource {
   @BaseMessage("INNER, LEFT, RIGHT or FULL join requires a condition (NATURAL keyword or ON or USING clause)")
   ExInst<SqlValidatorException> joinRequiresCondition();
 
+  @BaseMessage("Cannot qualify common column ''{0}''")
+  ExInst<SqlValidatorException> disallowsQualifyingCommonColumn(String a0);
+
   @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS JOIN")
   ExInst<SqlValidatorException> crossJoinDisallowsCondition();
 
@@ -560,6 +563,9 @@ public interface CalciteResource {
   @BaseMessage("Statement preparation aborted")
   ExInst<CalciteException> preparationAborted();
 
+  @BaseMessage("Warning: use of non-standard feature ''{0}''")
+  ExInst<CalciteException> nonStandardFeatureUsed(String feature);
+
   @BaseMessage("SELECT DISTINCT not supported")
   @Property(name = "FeatureDefinition", value = "SQL:2003 Part 2 Annex F")
   Feature sQLFeature_E051_01();
@@ -788,6 +794,9 @@ public interface CalciteResource {
   @BaseMessage("Type ''{0}'' not found")
   ExInst<SqlValidatorException> typeNotFound(String name);
 
+  @BaseMessage("Function ''{0}'' not found")
+  ExInst<SqlValidatorException> functionNotFound(String name);
+
   @BaseMessage("Dialect does not support feature: ''{0}''")
   ExInst<SqlValidatorException> dialectDoesNotSupportFeature(String featureName);
 
@@ -894,6 +903,19 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
-}
 
-// End CalciteResource.java
+  @BaseMessage("Illegal xslt specified : ''{0}''")
+  ExInst<CalciteException> illegalXslt(String xslt);
+
+  @BaseMessage("Invalid input for XMLTRANSFORM xml: ''{0}''")
+  ExInst<CalciteException> invalidInputForXmlTransform(String xml);
+
+  @BaseMessage("Invalid input for EXTRACT xpath: ''{0}'', namespace: ''{1}''")
+  ExInst<CalciteException> invalidInputForExtractXml(String xpath, String namespace);
+
+  @BaseMessage("Invalid input for EXISTSNODE xpath: ''{0}'', namespace: ''{1}''")
+  ExInst<CalciteException> invalidInputForExistsNode(String xpath, String namespace);
+
+  @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
+  ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
+}

@@ -29,7 +29,7 @@ import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -38,21 +38,9 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * or disabled.
  */
 public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
-  //~ Static fields/initializers ---------------------------------------------
-
   private static final String FEATURE_DISABLED = "feature_disabled";
 
-  //~ Instance fields --------------------------------------------------------
-
   private Feature disabledFeature;
-
-  //~ Constructors -----------------------------------------------------------
-
-  public SqlValidatorFeatureTest() {
-    super();
-  }
-
-  //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTester getTester() {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
@@ -107,12 +95,12 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
 
   private void checkFeature(String sql, Feature feature) {
     // Test once with feature enabled:  should pass
-    check(sql);
+    sql(sql).ok();
 
     // Test once with feature disabled:  should fail
     try {
       disabledFeature = feature;
-      checkFails(sql, FEATURE_DISABLED);
+      sql(sql).fails(FEATURE_DISABLED);
     } finally {
       disabledFeature = null;
     }
@@ -152,5 +140,3 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     }
   }
 }
-
-// End SqlValidatorFeatureTest.java

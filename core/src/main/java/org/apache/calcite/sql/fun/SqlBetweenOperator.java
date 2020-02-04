@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeComparability;
 import org.apache.calcite.sql.ExplicitOperatorBinding;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlInfixOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -34,14 +33,8 @@ import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.sql.validate.SqlValidator;
-import org.apache.calcite.sql.validate.SqlValidatorScope;
-import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Util;
-
-import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -121,29 +114,12 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     return negated;
   }
 
-  private List<RelDataType> collectOperandTypes(
-      SqlValidator validator,
-      SqlValidatorScope scope,
-      SqlCall call) {
-    List<RelDataType> argTypes =
-        SqlTypeUtil.deriveAndCollectTypes(
-            validator, scope, call.getOperandList());
-    return ImmutableNullableList.of(
-        argTypes.get(VALUE_OPERAND),
-        argTypes.get(LOWER_OPERAND),
-        argTypes.get(UPPER_OPERAND));
-  }
-
   public RelDataType inferReturnType(
       SqlOperatorBinding opBinding) {
-    SqlCallBinding callBinding = (SqlCallBinding) opBinding;
     ExplicitOperatorBinding newOpBinding =
         new ExplicitOperatorBinding(
             opBinding,
-            collectOperandTypes(
-                callBinding.getValidator(),
-                callBinding.getScope(),
-                callBinding.getCall()));
+            opBinding.collectOperandTypes());
     return ReturnTypes.BOOLEAN_NULLABLE.inferReturnType(
         newOpBinding);
   }
@@ -270,5 +246,3 @@ public class SqlBetweenOperator extends SqlInfixOperator {
     }
   }
 }
-
-// End SqlBetweenOperator.java

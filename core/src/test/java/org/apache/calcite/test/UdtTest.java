@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.test;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for user-defined types.
@@ -68,5 +68,3 @@ public class UdtTest {
     withUdt().query(sql).returns("C=null\n");
   }
 }
-
-// End UdtTest.java

@@ -209,5 +209,3 @@ public class CalciteLogger {
     logger.info(msg);
   }
 }
-
-// End CalciteLogger.java

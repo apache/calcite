@@ -59,5 +59,3 @@ public class UnaryPrefixOperatorConversion implements DruidSqlOperatorConverter 
         .format("(%s %s)", druidOperator, Iterables.getOnlyElement(druidExpressions));
   }
 }
-
-// End UnaryPrefixOperatorConversion.java

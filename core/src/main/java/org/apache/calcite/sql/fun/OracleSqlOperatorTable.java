@@ -73,5 +73,3 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
     return instance;
   }
 }
-
-// End OracleSqlOperatorTable.java

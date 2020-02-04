@@ -126,5 +126,3 @@ public class ElasticsearchSchema extends AbstractSchema {
   }
 
 }
-
-// End ElasticsearchSchema.java

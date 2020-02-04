@@ -59,5 +59,3 @@ public interface SqlStatisticProvider {
    * <p>For example, {@code isKey(DEPT, [DEPTNO]} returns false. */
   boolean isKey(RelOptTable table, List<Integer> columns);
 }
-
-// End SqlStatisticProvider.java

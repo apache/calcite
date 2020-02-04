@@ -69,5 +69,3 @@ public class MetadataFactoryImpl implements MetadataFactory {
     }
   }
 }
-
-// End MetadataFactoryImpl.java

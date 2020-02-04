@@ -202,5 +202,3 @@ public class TimestampString implements Comparable<TimestampString> {
     return v.length() < 20 ? 0 : (v.length() - 20);
   }
 }
-
-// End TimestampString.java

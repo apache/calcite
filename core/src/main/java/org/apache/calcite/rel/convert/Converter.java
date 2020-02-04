@@ -73,5 +73,3 @@ public interface Converter extends RelNode {
    */
   RelNode getInput();
 }
-
-// End Converter.java

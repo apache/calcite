@@ -135,5 +135,3 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     return null;
   }
 }
-
-// End RexToSqlNodeConverterImpl.java

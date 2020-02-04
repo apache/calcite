@@ -85,5 +85,3 @@ public interface TableFactory<T extends Table> {
       Map<String, Object> operand,
       RelDataType rowType);
 }
-
-// End TableFactory.java

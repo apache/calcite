@@ -41,7 +41,7 @@ import java.math.BigDecimal;
  *
  * <p> Rewrite: (GB-Union All-GB)-GB-UDTF (on all attributes)
  *
- * <h3>Example</h3>
+ * <h2>Example</h2>
  *
  * <p>Query: <code>R1 Intersect All R2</code>
  *
@@ -124,5 +124,3 @@ public class IntersectToDistinctRule extends RelOptRule {
     call.transformTo(relBuilder.build());
   }
 }
-
-// End IntersectToDistinctRule.java

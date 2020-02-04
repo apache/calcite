@@ -572,5 +572,3 @@ public class JoinToMultiJoinRule extends RelOptRule {
     }
   }
 }
-
-// End JoinToMultiJoinRule.java

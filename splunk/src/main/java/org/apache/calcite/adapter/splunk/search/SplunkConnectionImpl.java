@@ -438,5 +438,3 @@ public class SplunkConnectionImpl implements SplunkConnection {
     }
   }
 }
-
-// End SplunkConnectionImpl.java

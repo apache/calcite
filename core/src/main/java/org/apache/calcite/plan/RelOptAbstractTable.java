@@ -97,13 +97,19 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return false;
   }
 
+  // Override to get unique keys
+  public List<ImmutableBitSet> getKeys() {
+    return Collections.emptyList();
+  }
+
   // Override to define foreign keys
   public List<RelReferentialConstraint> getReferentialConstraints() {
     return Collections.emptyList();
   }
 
   public RelNode toRel(ToRelContext context) {
-    return LogicalTableScan.create(context.getCluster(), this);
+    return LogicalTableScan.create(context.getCluster(), this,
+        context.getTableHints());
   }
 
   public Expression getExpression(Class clazz) {
@@ -119,5 +125,3 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
 }
-
-// End RelOptAbstractTable.java

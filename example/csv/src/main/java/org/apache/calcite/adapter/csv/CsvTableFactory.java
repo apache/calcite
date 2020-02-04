@@ -51,5 +51,3 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
     return new CsvScannableTable(source, protoRowType);
   }
 }
-
-// End CsvTableFactory.java

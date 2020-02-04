@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
@@ -29,7 +30,6 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlTimeLiteral;
 import org.apache.calcite.sql.SqlTimestampLiteral;
-import org.apache.calcite.sql.SqlUserDefinedTypeNameSpec;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
@@ -46,7 +46,6 @@ import java.util.List;
  * A <code>SqlDialect</code> implementation for the Oracle database.
  */
 public class OracleSqlDialect extends SqlDialect {
-
   /** OracleDB type system. */
   private static final RelDataTypeSystem ORACLE_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
@@ -61,11 +60,12 @@ public class OracleSqlDialect extends SqlDialect {
         }
       };
 
-  public static final SqlDialect DEFAULT =
-      new OracleSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.ORACLE)
-          .withIdentifierQuoteString("\"")
-          .withDataTypeSystem(ORACLE_TYPE_SYSTEM));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.ORACLE)
+      .withIdentifierQuoteString("\"")
+      .withDataTypeSystem(ORACLE_TYPE_SYSTEM);
+
+  public static final SqlDialect DEFAULT = new OracleSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an OracleSqlDialect. */
   public OracleSqlDialect(Context context) {
@@ -89,23 +89,23 @@ public class OracleSqlDialect extends SqlDialect {
     String castSpec;
     switch (type.getSqlTypeName()) {
     case SMALLINT:
-      castSpec = "_NUMBER(5)";
+      castSpec = "NUMBER(5)";
       break;
     case INTEGER:
-      castSpec = "_NUMBER(10)";
+      castSpec = "NUMBER(10)";
       break;
     case BIGINT:
-      castSpec = "_NUMBER(19)";
+      castSpec = "NUMBER(19)";
       break;
     case DOUBLE:
-      castSpec = "_DOUBLE PRECISION";
+      castSpec = "DOUBLE PRECISION";
       break;
     default:
       return super.getCastSpec(type);
     }
 
     return new SqlDataTypeSpec(
-        new SqlUserDefinedTypeNameSpec(castSpec, SqlParserPos.ZERO),
+        new SqlAlienSystemTypeNameSpec(castSpec, type.getSqlTypeName(), SqlParserPos.ZERO),
         SqlParserPos.ZERO);
   }
 
@@ -167,5 +167,3 @@ public class OracleSqlDialect extends SqlDialect {
     }
   }
 }
-
-// End OracleSqlDialect.java

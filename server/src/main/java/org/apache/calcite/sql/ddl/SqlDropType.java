@@ -33,5 +33,3 @@ public class SqlDropType extends SqlDropObject {
     super(OPERATOR, pos, ifExists, name);
   }
 }
-
-// End SqlDropType.java

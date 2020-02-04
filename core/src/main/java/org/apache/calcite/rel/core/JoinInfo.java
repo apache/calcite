@@ -108,5 +108,3 @@ public class JoinInfo {
   }
 
 }
-
-// End JoinInfo.java

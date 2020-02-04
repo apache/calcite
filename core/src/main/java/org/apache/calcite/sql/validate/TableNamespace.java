@@ -161,5 +161,3 @@ class TableNamespace extends AbstractNamespace {
     }
   }
 }
-
-// End TableNamespace.java

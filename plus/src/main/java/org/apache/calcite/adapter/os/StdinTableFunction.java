@@ -120,5 +120,3 @@ public class StdinTableFunction {
     };
   }
 }
-
-// End StdinTableFunction.java

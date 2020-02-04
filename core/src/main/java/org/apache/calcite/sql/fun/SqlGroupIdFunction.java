@@ -24,11 +24,15 @@ import org.apache.calcite.sql.type.ReturnTypes;
 /**
  * The {@code GROUP_ID()} function.
  *
- * <p>Accepts no arguments. If the query has {@code GROUP BY x, y, z} then
- * {@code GROUP_ID()} is the same as {@code GROUPING(x, y, z)}.
+ * <p>Accepts no arguments. The {@code GROUP_ID()} function distinguishes duplicate groups
+ * resulting from a GROUP BY specification. It is useful in filtering out duplicate groupings
+ * from the query result.
  *
  * <p>This function is not defined in the SQL standard; our implementation is
  * consistent with Oracle.
+ *
+ * <p>If n duplicates exist for a particular grouping, then {@code GROUP_ID()} function returns
+ * numbers in the range 0 to n-1.
  *
  * <p>Some examples are in {@code agg.iq}.
  */
@@ -38,5 +42,3 @@ class SqlGroupIdFunction extends SqlAbstractGroupFunction {
         OperandTypes.NILADIC, SqlFunctionCategory.SYSTEM);
   }
 }
-
-// End SqlGroupIdFunction.java

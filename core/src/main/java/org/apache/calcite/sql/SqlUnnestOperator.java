@@ -117,5 +117,3 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
   }
 
 }
-
-// End SqlUnnestOperator.java

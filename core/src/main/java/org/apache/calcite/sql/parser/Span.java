@@ -150,5 +150,3 @@ public final class Span {
     return this;
   }
 }
-
-// End Span.java

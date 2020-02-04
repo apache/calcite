@@ -41,5 +41,3 @@ public @interface LibraryOperator {
    * Must not be null or empty. */
   SqlLibrary[] libraries();
 }
-
-// End LibraryOperator.java

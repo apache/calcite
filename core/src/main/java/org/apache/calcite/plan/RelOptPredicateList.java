@@ -181,5 +181,3 @@ public class RelOptPredicateList {
         RexUtil.shift(rightInferredPredicates, offset));
   }
 }
-
-// End RelOptPredicateList.java

@@ -65,5 +65,3 @@ public class KafkaRowConverterImpl implements KafkaRowConverter<byte[], byte[]> 
     return fields;
   }
 }
-
-// End KafkaRowConverterImpl.java

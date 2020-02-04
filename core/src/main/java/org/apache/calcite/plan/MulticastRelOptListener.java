@@ -83,5 +83,3 @@ public class MulticastRelOptListener implements RelOptListener {
     }
   }
 }
-
-// End MulticastRelOptListener.java

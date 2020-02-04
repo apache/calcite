@@ -35,5 +35,3 @@ public interface Bindable<T> {
    */
   Enumerable<T> bind(DataContext dataContext);
 }
-
-// End Bindable.java

@@ -26,6 +26,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelOptUtil;
@@ -46,6 +47,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
@@ -69,7 +71,7 @@ import java.util.Properties;
 public class PlannerImpl implements Planner, ViewExpander {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
-  private final FrameworkConfig frameworkConfig;
+  private final RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
 
@@ -101,7 +103,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
   public PlannerImpl(FrameworkConfig config) {
-    this.frameworkConfig = config;
+    this.costFactory = config.getCostFactory();
     this.defaultSchema = config.getDefaultSchema();
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
@@ -116,17 +118,22 @@ public class PlannerImpl implements Planner, ViewExpander {
     reset();
   }
 
+  /** Gets a user defined config and appends default connection values */
   private CalciteConnectionConfig connConfig() {
-    CalciteConnectionConfig unwrapped = context.unwrap(CalciteConnectionConfig.class);
-    if (unwrapped != null) {
-      return unwrapped;
+    CalciteConnectionConfigImpl config =
+        context.unwrap(CalciteConnectionConfigImpl.class);
+    if (config == null) {
+      config = new CalciteConnectionConfigImpl(new Properties());
     }
-    Properties properties = new Properties();
-    properties.setProperty(CalciteConnectionProperty.CASE_SENSITIVE.camelName(),
-        String.valueOf(parserConfig.caseSensitive()));
-    properties.setProperty(CalciteConnectionProperty.CONFORMANCE.camelName(),
-        String.valueOf(frameworkConfig.getParserConfig().conformance()));
-    return new CalciteConnectionConfigImpl(properties);
+    if (!config.isSet(CalciteConnectionProperty.CASE_SENSITIVE)) {
+      config = config.set(CalciteConnectionProperty.CASE_SENSITIVE,
+          String.valueOf(parserConfig.caseSensitive()));
+    }
+    if (!config.isSet(CalciteConnectionProperty.CONFORMANCE)) {
+      config = config.set(CalciteConnectionProperty.CONFORMANCE,
+          String.valueOf(parserConfig.conformance()));
+    }
+    return config;
   }
 
   /** Makes sure that the state is at least the given state. */
@@ -168,7 +175,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         connectionConfig.typeSystem(RelDataTypeSystem.class,
             RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
-    planner = new VolcanoPlanner(frameworkConfig.getCostFactory(), context);
+    planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
         connectionConfig.materializationsEnabled(),
         Hook.ENABLE_BINDABLE.get(false));
@@ -205,12 +212,7 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
-    final SqlConformance conformance = conformance();
-    final CalciteCatalogReader catalogReader = createCatalogReader();
-    this.validator =
-        new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
-            conformance);
-    this.validator.setIdentifierExpansion(true);
+    this.validator = createSqlValidator(createCatalogReader());
     try {
       validatedSqlNode = validator.validate(sqlNode);
     } catch (RuntimeException e) {
@@ -288,13 +290,9 @@ public class PlannerImpl implements Planner, ViewExpander {
       throw new RuntimeException("parse failed", e);
     }
 
-    final SqlConformance conformance = conformance();
     final CalciteCatalogReader catalogReader =
         createCatalogReader().withSchemaPath(schemaPath);
-    final SqlValidator validator =
-        new CalciteSqlValidator(operatorTable, catalogReader, typeFactory,
-            conformance);
-    validator.setIdentifierExpansion(true);
+    final SqlValidator validator = createSqlValidator(catalogReader);
 
     final RexBuilder rexBuilder = createRexBuilder();
     final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
@@ -326,6 +324,16 @@ public class PlannerImpl implements Planner, ViewExpander {
         CalciteSchema.from(rootSchema),
         CalciteSchema.from(defaultSchema).path(null),
         typeFactory, connectionConfig);
+  }
+
+  private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader) {
+    final SqlConformance conformance = conformance();
+    final SqlOperatorTable opTab =
+        ChainedSqlOperatorTable.of(operatorTable, catalogReader);
+    final SqlValidator validator =
+        new CalciteSqlValidator(opTab, catalogReader, typeFactory, conformance);
+    validator.setIdentifierExpansion(true);
+    return validator;
   }
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {
@@ -388,5 +396,3 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
   }
 }
-
-// End PlannerImpl.java

@@ -51,5 +51,3 @@ public interface MongoRel extends RelNode {
     }
   }
 }
-
-// End MongoRel.java

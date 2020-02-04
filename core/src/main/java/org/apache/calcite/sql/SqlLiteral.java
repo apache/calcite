@@ -1037,5 +1037,3 @@ public class SqlLiteral extends SqlNode {
     int ordinal();
   }
 }
-
-// End SqlLiteral.java

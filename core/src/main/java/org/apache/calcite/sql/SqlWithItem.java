@@ -105,5 +105,3 @@ public class SqlWithItem extends SqlCall {
     }
   }
 }
-
-// End SqlWithItem.java

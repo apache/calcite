@@ -35,7 +35,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -49,8 +49,8 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test cases for
@@ -106,8 +106,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test
-  public void testInvalidAccessUseStringForIndexOnArray() throws Exception {
+  @Test public void testInvalidAccessUseStringForIndexOnArray() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -126,8 +125,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test
-  public void testNestedArrayOutOfBoundAccess() throws Exception {
+  @Test public void testNestedArrayOutOfBoundAccess() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -249,8 +247,7 @@ public class CollectionTypeTest {
     assertThat(resultStrings.size(), is(0));
   }
 
-  @Test
-  public void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
+  @Test public void testInvalidAccessUseStringForIndexOnArrayWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -269,8 +266,7 @@ public class CollectionTypeTest {
     }
   }
 
-  @Test
-  public void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
+  @Test public void testNestedArrayOutOfBoundAccessWithAnyType() throws Exception {
     Connection connection = setupConnectionWithNestedTable();
 
     final Statement statement = connection.createStatement();
@@ -457,5 +453,3 @@ public class CollectionTypeTest {
     }
   }
 }
-
-// End CollectionTypeTest.java

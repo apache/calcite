@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.chinook;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -72,5 +72,3 @@ public class RemotePreparedStatementParametersTest {
     server.stop();
   }
 }
-
-// End RemotePreparedStatementParametersTest.java

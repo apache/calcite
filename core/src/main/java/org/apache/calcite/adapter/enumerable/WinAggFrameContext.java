@@ -71,5 +71,3 @@ public interface WinAggFrameContext {
    */
   Expression getPartitionRowCount();
 }
-
-// End WinAggFrameContext.java

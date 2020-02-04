@@ -221,5 +221,3 @@ public class SqlBinaryOperator extends SqlOperator {
     return litmus.succeed();
   }
 }
-
-// End SqlBinaryOperator.java

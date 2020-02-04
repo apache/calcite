@@ -280,5 +280,3 @@ public class SqlCollation implements Serializable {
     return coercibility;
   }
 }
-
-// End SqlCollation.java

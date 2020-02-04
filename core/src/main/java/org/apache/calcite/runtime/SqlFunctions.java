@@ -614,6 +614,12 @@ public class SqlFunctions {
     return b0.stripTrailingZeros().equals(b1.stripTrailingZeros());
   }
 
+  /** SQL <code>=</code> operator applied to Object[] values (neither may be
+   * null). */
+  public static boolean eq(Object[] b0, Object[] b1) {
+    return Arrays.deepEquals(b0, b1);
+  }
+
   /** SQL <code>=</code> operator applied to Object values (including String;
    * neither side may be null). */
   public static boolean eq(Object b0, Object b1) {
@@ -1061,17 +1067,21 @@ public class SqlFunctions {
   }
 
   // &
-
   /** Helper function for implementing <code>BIT_AND</code> */
   public static long bitAnd(long b0, long b1) {
     return b0 & b1;
   }
 
   // |
-
   /** Helper function for implementing <code>BIT_OR</code> */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
+  }
+
+  // ^
+  /** Helper function for implementing <code>BIT_XOR</code> */
+  public static long bitXor(long b0, long b1) {
+    return b0 ^ b1;
   }
 
   // EXP
@@ -1156,8 +1166,8 @@ public class SqlFunctions {
   }
 
   // temporary
-  public static int mod(int b0, BigDecimal b1) {
-    return mod(b0, b1.intValue());
+  public static BigDecimal mod(int b0, BigDecimal b1) {
+    return mod(BigDecimal.valueOf(b0), b1);
   }
 
   public static BigDecimal mod(BigDecimal b0, BigDecimal b1) {
@@ -1374,6 +1384,17 @@ public class SqlFunctions {
     return Math.atan2(b0, b1);
   }
 
+  // CBRT
+  /** SQL <code>CBRT</code> operator applied to BigDecimal values. */
+  public static double cbrt(BigDecimal b) {
+    return cbrt(b.doubleValue());
+  }
+
+  /** SQL <code>CBRT</code> operator applied to double values. */
+  public static double cbrt(double b) {
+    return Math.cbrt(b);
+  }
+
   // COS
   /** SQL <code>COS</code> operator applied to BigDecimal values. */
   public static double cos(BigDecimal b0) {
@@ -1383,6 +1404,17 @@ public class SqlFunctions {
   /** SQL <code>COS</code> operator applied to double values. */
   public static double cos(double b0) {
     return Math.cos(b0);
+  }
+
+  // COSH
+  /** SQL <code>COSH</code> operator applied to BigDecimal values. */
+  public static double cosh(BigDecimal b) {
+    return cosh(b.doubleValue());
+  }
+
+  /** SQL <code>COSH</code> operator applied to double values. */
+  public static double cosh(double b) {
+    return Math.cosh(b);
   }
 
   // COT
@@ -1539,6 +1571,17 @@ public class SqlFunctions {
   /** SQL <code>TAN</code> operator applied to double values. */
   public static double tan(double b0) {
     return Math.tan(b0);
+  }
+
+  // TANH
+  /** SQL <code>TANH</code> operator applied to BigDecimal values. */
+  public static double tanh(BigDecimal b) {
+    return tanh(b.doubleValue());
+  }
+
+  /** SQL <code>TANH</code> operator applied to double values. */
+  public static double tanh(double b) {
+    return Math.tanh(b);
   }
 
   // Helpers
@@ -1791,6 +1834,10 @@ public class SqlFunctions {
         : (Integer) cannotConvert(o, int.class);
   }
 
+  public static Integer toIntOptional(Object o) {
+    return o == null ? null : toInt(o);
+  }
+
   /** Converts the Java type used for UDF parameters of SQL TIMESTAMP type
    * ({@link java.sql.Timestamp}) to internal representation (long).
    *
@@ -1832,7 +1879,12 @@ public class SqlFunctions {
     return o instanceof Long ? (Long) o
         : o instanceof Number ? toLong((Number) o)
         : o instanceof String ? toLong((String) o)
+        : o instanceof java.util.Date ? toLong((java.util.Date) o)
         : (Long) cannotConvert(o, long.class);
+  }
+
+  public static Long toLongOptional(Object o) {
+    return o == null ? null : toLong(o);
   }
 
   public static float toFloat(String s) {
@@ -2741,6 +2793,14 @@ public class SqlFunctions {
       list = Arrays.asList(flatElements);
     }
 
+    @Override public boolean moveNext() {
+      boolean hasNext = super.moveNext();
+      if (hasNext && withOrdinality) {
+        ordinality++;
+      }
+      return hasNext;
+    }
+
     public FlatLists.ComparableList<E> current() {
       int i = 0;
       for (Object element : (Object[]) elements) {
@@ -2755,9 +2815,16 @@ public class SqlFunctions {
         i += a.length;
       }
       if (withOrdinality) {
-        flatElements[i] = (E) Integer.valueOf(++ordinality); // 1-based
+        flatElements[i] = (E) Integer.valueOf(ordinality);
       }
       return FlatLists.ofComparable(list);
+    }
+
+    @Override public void reset() {
+      super.reset();
+      if (withOrdinality) {
+        ordinality = 0;
+      }
     }
   }
 
@@ -2797,5 +2864,3 @@ public class SqlFunctions {
   }
 
 }
-
-// End SqlFunctions.java

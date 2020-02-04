@@ -44,5 +44,3 @@ class SqlDefaultOperator extends SqlSpecialOperator {
     writer.keyword(getName());
   }
 }
-
-// End SqlDefaultOperator.java

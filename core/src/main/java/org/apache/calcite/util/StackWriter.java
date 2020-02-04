@@ -244,5 +244,3 @@ public class StackWriter extends FilterWriter {
     pw.write(CLOSE_SQL_IDENTIFIER);
   }
 }
-
-// End StackWriter.java

@@ -260,5 +260,3 @@ public class ModifiableViewTable extends ViewTable
     }
   }
 }
-
-// End ModifiableViewTable.java

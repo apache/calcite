@@ -70,5 +70,3 @@ class FieldNamespace extends AbstractNamespace {
     return false;
   }
 }
-
-// End FieldNamespace.java

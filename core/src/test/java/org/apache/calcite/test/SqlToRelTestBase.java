@@ -80,8 +80,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
@@ -103,12 +103,6 @@ public abstract class SqlToRelTestBase {
   protected final Tester tester = createTester();
   // Same as tester but without implicit type coercion.
   protected final Tester strictTester = tester.enableTypeCoercion(false);
-
-  //~ Methods ----------------------------------------------------------------
-
-  public SqlToRelTestBase() {
-    super();
-  }
 
   protected Tester createTester() {
     return new TesterImpl(getDiffRepos(), false, false, true, false,
@@ -417,7 +411,8 @@ public abstract class SqlToRelTestBase {
       }
 
       public RelNode toRel(ToRelContext context) {
-        return LogicalTableScan.create(context.getCluster(), this);
+        return LogicalTableScan.create(context.getCluster(), this,
+            context.getTableHints());
       }
 
       public List<RelCollation> getCollationList() {
@@ -430,6 +425,10 @@ public abstract class SqlToRelTestBase {
 
       public boolean isKey(ImmutableBitSet columns) {
         return false;
+      }
+
+      public List<ImmutableBitSet> getKeys() {
+        return ImmutableList.of();
       }
 
       public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -495,7 +494,8 @@ public abstract class SqlToRelTestBase {
     }
 
     public RelNode toRel(ToRelContext context) {
-      return LogicalTableScan.create(context.getCluster(), this);
+      return LogicalTableScan.create(context.getCluster(), this,
+          context.getTableHints());
     }
 
     public List<RelCollation> getCollationList() {
@@ -508,6 +508,10 @@ public abstract class SqlToRelTestBase {
 
     public boolean isKey(ImmutableBitSet columns) {
       return parent.isKey(columns);
+    }
+
+    public List<ImmutableBitSet> getKeys() {
+      return parent.getKeys();
     }
 
     public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -886,8 +890,11 @@ public abstract class SqlToRelTestBase {
     private final RelOptCluster cluster;
     private final SqlToRelConverter.Config config;
 
-    MockViewExpander(SqlValidator validator, Prepare.CatalogReader catalogReader,
-        RelOptCluster cluster, SqlToRelConverter.Config config) {
+    MockViewExpander(
+        SqlValidator validator,
+        Prepare.CatalogReader catalogReader,
+        RelOptCluster cluster,
+        SqlToRelConverter.Config config) {
       this.validator = validator;
       this.catalogReader = catalogReader;
       this.cluster = cluster;
@@ -936,5 +943,3 @@ public abstract class SqlToRelTestBase {
     }
   }
 }
-
-// End SqlToRelTestBase.java

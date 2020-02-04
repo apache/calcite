@@ -30,18 +30,18 @@ import org.apache.calcite.model.JsonView;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for data models.
@@ -353,7 +353,7 @@ public class ModelTest {
   @Test public void testYamlInlineDetection() throws Exception {
     // yaml model with different line endings
     final String yamlModel = "version: 1.0\r\n"
-        + "schemas: \n"
+        + "schemas:\n"
         + "- type: custom\r\n"
         + "  name: 'MyCustomSchema'\n"
         + "  factory: " + JdbcTest.MySchemaFactory.class.getName() + "\r\n";
@@ -377,5 +377,3 @@ public class ModelTest {
         .doWithConnection(calciteConnection -> null);
   }
 }
-
-// End ModelTest.java

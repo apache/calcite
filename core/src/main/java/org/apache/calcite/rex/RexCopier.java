@@ -95,5 +95,3 @@ class RexCopier extends RexShuttle {
         rangeRef.getOffset(), false);
   }
 }
-
-// End RexCopier.java

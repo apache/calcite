@@ -60,5 +60,3 @@ public abstract class DelegatingSqlValidatorCatalogReader
     return catalogReader.unwrap(aClass);
   }
 }
-
-// End DelegatingSqlValidatorCatalogReader.java

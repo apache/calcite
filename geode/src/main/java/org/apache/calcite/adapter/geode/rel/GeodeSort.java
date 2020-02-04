@@ -99,5 +99,3 @@ public class GeodeSort extends Sort implements GeodeRel {
     return ASC;
   }
 }
-
-// End GeodeSort.java

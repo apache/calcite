@@ -265,5 +265,3 @@ public abstract class ValuesReduceRule extends RelOptRule {
     }
   }
 }
-
-// End ValuesReduceRule.java

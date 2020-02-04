@@ -150,5 +150,3 @@ public interface SaffronProperties {
     }
   }
 }
-
-// End SaffronProperties.java

@@ -85,5 +85,3 @@ public class WinAggResetContextImpl extends AggResetContextImpl
     return partitionRowCount;
   }
 }
-
-// End WinAggResetContextImpl.java

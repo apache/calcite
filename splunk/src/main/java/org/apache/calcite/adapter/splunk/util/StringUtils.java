@@ -155,5 +155,3 @@ public class StringUtils {
     return LoggerFactory.getLogger(clazz);
   }
 }
-
-// End StringUtils.java

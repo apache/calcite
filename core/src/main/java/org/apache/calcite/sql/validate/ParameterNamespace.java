@@ -50,5 +50,3 @@ class ParameterNamespace extends AbstractNamespace {
     return type;
   }
 }
-
-// End ParameterNamespace.java

@@ -132,5 +132,3 @@ public class SqlPosixRegexOperator extends SqlBinaryOperator {
     writer.endList(frame);
   }
 }
-
-// End SqlPosixRegexOperator.java

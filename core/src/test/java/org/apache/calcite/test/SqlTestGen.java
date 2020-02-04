@@ -147,10 +147,7 @@ public class SqlTestGen {
         @Override public void checkIntervalConv(String sql, String expected) {
         }
 
-        @Override public void checkRewrite(
-            SqlValidator validator,
-            String query,
-            String expectedRewrite) {
+        @Override public void checkRewrite(String query, String expectedRewrite) {
         }
 
         @Override public void checkFieldOrigin(
@@ -181,5 +178,3 @@ public class SqlTestGen {
     }
   }
 }
-
-// End SqlTestGen.java

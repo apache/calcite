@@ -78,5 +78,3 @@ public abstract class StrictWinAggImplementor extends StrictAggImplementor
     return true;
   }
 }
-
-// End StrictWinAggImplementor.java

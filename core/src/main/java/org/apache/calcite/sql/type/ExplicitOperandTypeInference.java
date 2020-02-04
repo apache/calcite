@@ -53,5 +53,3 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
     paramTypes.toArray(operandTypes);
   }
 }
-
-// End ExplicitOperandTypeInference.java

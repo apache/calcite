@@ -52,10 +52,11 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
  */
 public class SparkSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new SparkSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.SPARK)
-          .withNullCollation(NullCollation.LOW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.SPARK)
+      .withNullCollation(NullCollation.LOW);
+
+  public static final SqlDialect DEFAULT = new SparkSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlFunction SPARKSQL_SUBSTRING =
       new SqlFunction("SUBSTRING", SqlKind.OTHER_FUNCTION,
@@ -99,6 +100,10 @@ public class SparkSqlDialect extends SqlDialect {
 
   @Override public boolean supportsGroupByWithRollup() {
     return true;
+  }
+
+  @Override public boolean supportsNestedAggregations() {
+    return false;
   }
 
   @Override public boolean supportsGroupByWithCube() {
@@ -473,5 +478,3 @@ public class SparkSqlDialect extends SqlDialect {
     return inputString;
   }
 }
-
-// End SparkSqlDialect.java

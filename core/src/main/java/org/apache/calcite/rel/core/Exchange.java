@@ -103,5 +103,3 @@ public abstract class Exchange extends SingleRel {
         .item("distribution", distribution);
   }
 }
-
-// End Exchange.java

@@ -96,5 +96,3 @@ public class MutableProject extends MutableSingleRel {
     return MutableProject.of(rowType, input.clone(), projects);
   }
 }
-
-// End MutableProject.java

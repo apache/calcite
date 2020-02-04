@@ -228,7 +228,7 @@ public class SplunkPushDownRule
     // handle top projection (ie reordering and renaming)
     List<RelDataTypeField> newFields = bottomFields;
     if (topProj != null) {
-      LOGGER.debug("topProj: {}", String.valueOf(topProj.getPermutation()));
+      LOGGER.debug("topProj: {}", topProj.getPermutation());
       newFields = new ArrayList<>();
       int i = 0;
       for (RexNode rn : topProj.getProjects()) {
@@ -279,7 +279,8 @@ public class SplunkPushDownRule
     if (proj == null) {
       return rel;
     }
-    return LogicalProject.create(rel, proj.getProjects(), proj.getRowType());
+    return LogicalProject.create(rel, proj.getHints(),
+        proj.getProjects(), proj.getRowType());
   }
 
   // TODO: use StringBuilder instead of String
@@ -440,5 +441,3 @@ public class SplunkPushDownRule
     return row.getFieldNames().toString();
   }
 }
-
-// End SplunkPushDownRule.java

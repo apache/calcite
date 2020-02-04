@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -36,6 +38,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -43,7 +47,8 @@ import java.util.Set;
 /**
  * Relational operator that returns the contents of a table.
  */
-public abstract class TableScan extends AbstractRelNode {
+public abstract class TableScan
+    extends AbstractRelNode implements Hintable {
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -51,22 +56,34 @@ public abstract class TableScan extends AbstractRelNode {
    */
   protected final RelOptTable table;
 
+  /**
+   * The table hints.
+   */
+  protected final ImmutableList<RelHint> hints;
+
   //~ Constructors -----------------------------------------------------------
 
   protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
-      RelOptTable table) {
+      List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
     this.table = table;
     if (table.getRelOptSchema() != null) {
       cluster.getPlanner().registerSchema(table.getRelOptSchema());
     }
+    this.hints = ImmutableList.copyOf(hints);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected TableScan(RelOptCluster cluster, RelTraitSet traitSet,
+      RelOptTable table) {
+    this(cluster, traitSet, ImmutableList.of(), table);
   }
 
   /**
    * Creates a TableScan by parsing serialized output.
    */
   protected TableScan(RelInput input) {
-    this(input.getCluster(), input.getTraitSet(), input.getTable("table"));
+    this(input.getCluster(), input.getTraitSet(), ImmutableList.of(), input.getTable("table"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -162,6 +179,8 @@ public abstract class TableScan extends AbstractRelNode {
   @Override public RelNode accept(RelShuttle shuttle) {
     return shuttle.visit(this);
   }
-}
 
-// End TableScan.java
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
+  }
+}

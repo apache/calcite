@@ -41,5 +41,3 @@ public class TpcdsSchemaFactory implements SchemaFactory {
     return new TpcdsSchema(scale);
   }
 }
-
-// End TpcdsSchemaFactory.java

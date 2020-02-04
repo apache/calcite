@@ -225,8 +225,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), null, planner, resultConvention,
-            createConvertletTable());
+            context.getRootSchema(), null, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
     final SqlToRelConverter converter =
         preparingStmt.getSqlToRelConverter(validator, catalogReader,
             configBuilder.build());
@@ -588,8 +588,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
             : EnumerableConvention.INSTANCE;
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
-            context.getRootSchema(), prefer, planner, resultConvention,
-            createConvertletTable());
+            context.getRootSchema(), prefer, createCluster(planner, new RexBuilder(typeFactory)),
+            resultConvention, createConvertletTable());
 
     final RelDataType x;
     final Prepare.PreparedResult preparedResult;
@@ -855,7 +855,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
   }
 
   protected void populateMaterializations(Context context,
-      RelOptPlanner planner, Prepare.Materialization materialization) {
+      RelOptCluster cluster, Prepare.Materialization materialization) {
     // REVIEW: initialize queryRel and tableRel inside MaterializationService,
     // not here?
     try {
@@ -867,8 +867,8 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               context.getTypeFactory(),
               context.config());
       final CalciteMaterializer materializer =
-          new CalciteMaterializer(this, context, catalogReader, schema, planner,
-              createConvertletTable());
+          new CalciteMaterializer(this, context, catalogReader, schema,
+              cluster, createConvertletTable());
       materializer.populate(materialization);
     } catch (Exception e) {
       throw new RuntimeException("While populating materialization "
@@ -926,6 +926,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     protected final RelDataTypeFactory typeFactory;
     protected final SqlRexConvertletTable convertletTable;
     private final EnumerableRel.Prefer prefer;
+    private final RelOptCluster cluster;
     private final Map<String, Object> internalParameters =
         new LinkedHashMap<>();
     private int expansionDepth;
@@ -937,17 +938,18 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         RelDataTypeFactory typeFactory,
         CalciteSchema schema,
         EnumerableRel.Prefer prefer,
-        RelOptPlanner planner,
+        RelOptCluster cluster,
         Convention resultConvention,
         SqlRexConvertletTable convertletTable) {
       super(context, catalogReader, resultConvention);
       this.prepare = prepare;
       this.schema = schema;
       this.prefer = prefer;
-      this.planner = planner;
+      this.cluster = cluster;
+      this.planner = cluster.getPlanner();
+      this.rexBuilder = cluster.getRexBuilder();
       this.typeFactory = typeFactory;
       this.convertletTable = convertletTable;
-      this.rexBuilder = new RexBuilder(typeFactory);
     }
 
     @Override protected void init(Class runtimeContextClass) {
@@ -983,7 +985,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               ? ((Sort) rel).collation
               : RelCollations.EMPTY;
       RelRoot root = new RelRoot(rel, resultType, SqlKind.SELECT, fields,
-          collation);
+          collation, new ArrayList<>());
 
       if (timingTracer != null) {
         timingTracer.traceTime("end sql2rel");
@@ -1016,7 +1018,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         SqlValidator validator,
         CatalogReader catalogReader,
         SqlToRelConverter.Config config) {
-      final RelOptCluster cluster = prepare.createCluster(planner, rexBuilder);
       return new SqlToRelConverter(this, validator, catalogReader, cluster,
           convertletTable, config);
     }
@@ -1085,6 +1086,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override protected PreparedResult implement(RelRoot root) {
+      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       final Bindable bindable;
@@ -1152,7 +1154,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
               ? MaterializationService.instance().query(schema)
               : ImmutableList.of();
       for (Prepare.Materialization materialization : materializations) {
-        prepare.populateMaterializations(context, planner, materialization);
+        prepare.populateMaterializations(context, cluster, materialization);
       }
       return materializations;
     }
@@ -1341,5 +1343,3 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
   }
 }
-
-// End CalcitePrepareImpl.java

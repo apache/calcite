@@ -234,5 +234,3 @@ public abstract class TableModify extends SingleRel {
     return planner.getCostFactory().makeCost(rowCount, 0, 0);
   }
 }
-
-// End TableModify.java

@@ -77,5 +77,3 @@ public class SqlInfixOperator extends SqlSpecialOperator {
     }
   }
 }
-
-// End SqlInfixOperator.java

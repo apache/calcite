@@ -673,5 +673,3 @@ public abstract class BuiltInMetadata {
       ExpressionLineage, TableReferences, NodeTypes {
   }
 }
-
-// End BuiltInMetadata.java

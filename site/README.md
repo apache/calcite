@@ -41,10 +41,12 @@ Site generation currently works best with ruby-2.5.1.
 ### Add javadoc
 
 1. `cd ..`
-2. `mvn -DskipTests site`
+2. `./gradlew javadocAggregate`
 3. `rm -rf site/target/apidocs site/target/testapidocs`
    `rmdir site\target\apidocs site\target\testapidocs /S /Q` (Windows)
-4. `mv target/site/apidocs target/site/testapidocs site/target`
+4. `mkdir site/target`
+   `mkdir site\target` (Windows)
+4. `mv build/docs/javadocAggregate site/target/apidocs`
    `for /d %a in (target\site\apidocs* target\site\testapidocs*) do move %a site\target` (Windows)
 
 ### Running locally
@@ -113,7 +115,7 @@ see the results at
 This process also publishes Avatica's web site. Avatica's web site has
 separate source (under `avatica/site`) but configures Jekyll to
 generate files to `site/target/avatica`, which becomes an
-[avatica](http://calcite.apache.org/avatica)
+[avatica](https://calcite.apache.org/avatica)
 sub-directory when deployed. See
 [Avatica site README](../avatica/site/README.md).
 

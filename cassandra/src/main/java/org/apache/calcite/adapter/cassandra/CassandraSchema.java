@@ -30,7 +30,7 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -54,8 +54,6 @@ import com.google.common.collect.ImmutableMap;
 
 import org.slf4j.Logger;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -290,11 +288,12 @@ public class CassandraSchema extends AbstractSchema {
         continue;
       }
 
-      StringWriter stringWriter = new StringWriter(query.length());
-      PrintWriter printWriter = new PrintWriter(stringWriter);
-      SqlWriter writer = new SqlPrettyWriter(CalciteSqlDialect.DEFAULT, true, printWriter);
+      final StringBuilder buf = new StringBuilder(query.length());
+      final SqlWriterConfig config = SqlPrettyWriter.config()
+          .withAlwaysUseParentheses(true);
+      final SqlWriter writer = new SqlPrettyWriter(config, buf);
       parsedQuery.unparse(writer, 0, 0);
-      query = stringWriter.toString();
+      query = buf.toString();
 
       // Add the view for this query
       String viewName = "$" + getTableNames().size();
@@ -327,5 +326,3 @@ public class CassandraSchema extends AbstractSchema {
     return session.getCluster().getMetadata().getKeyspace(keyspace);
   }
 }
-
-// End CassandraSchema.java

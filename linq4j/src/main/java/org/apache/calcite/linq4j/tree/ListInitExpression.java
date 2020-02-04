@@ -33,5 +33,3 @@ public class ListInitExpression extends Expression {
   }
 
 }
-
-// End ListInitExpression.java

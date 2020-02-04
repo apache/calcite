@@ -45,5 +45,3 @@ public class JsonType {
     handler.visit(this);
   }
 }
-
-// End JsonType.java

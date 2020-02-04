@@ -184,7 +184,7 @@ public enum JavaRowFormat {
       if (fromType == null) {
         fromType = e.getType();
       }
-      return RexToLixTranslator.convert(e, fromType, fieldType);
+      return EnumUtils.convert(e, fromType, fieldType);
     }
   },
 
@@ -213,7 +213,7 @@ public enum JavaRowFormat {
       if (fromType == null) {
         fromType = e.getType();
       }
-      return RexToLixTranslator.convert(e, fromType, fieldType);
+      return EnumUtils.convert(e, fromType, fieldType);
     }
   },
 
@@ -244,7 +244,7 @@ public enum JavaRowFormat {
       if (fromType == null) {
         fromType = e.getType();
       }
-      return RexToLixTranslator.convert(e, fromType, fieldType);
+      return EnumUtils.convert(e, fromType, fieldType);
     }
   };
 
@@ -292,5 +292,3 @@ public enum JavaRowFormat {
   public abstract Expression field(Expression expression, int field,
       Type fromType, Type fieldType);
 }
-
-// End JavaRowFormat.java

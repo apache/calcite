@@ -21,7 +21,6 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -62,7 +61,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       RexNode condition,
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);
@@ -146,11 +145,11 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                   right.getRowType().getFieldList().get(pair.right).getType()));
       final Type keyClass = typeFactory.getJavaClass(keyType);
       leftExpressions.add(
-          Types.castIfNecessary(keyClass,
-              leftResult.physType.fieldReference(left_, pair.left)));
+          EnumUtils.convert(
+              leftResult.physType.fieldReference(left_, pair.left), keyClass));
       rightExpressions.add(
-          Types.castIfNecessary(keyClass,
-              rightResult.physType.fieldReference(right_, pair.right)));
+          EnumUtils.convert(
+              rightResult.physType.fieldReference(right_, pair.right), keyClass));
     }
     final PhysType leftKeyPhysType =
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
@@ -178,5 +177,3 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         joinType.generatesNullsOnRight())))).toBlock());
   }
 }
-
-// End EnumerableMergeJoin.java

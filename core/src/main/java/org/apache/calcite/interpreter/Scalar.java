@@ -23,5 +23,3 @@ public interface Scalar {
   Object execute(Context context);
   void execute(Context context, Object[] results);
 }
-
-// End Scalar.java

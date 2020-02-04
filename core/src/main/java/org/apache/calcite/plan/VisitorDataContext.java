@@ -162,5 +162,3 @@ public class VisitorDataContext implements DataContext {
   }
 
 }
-
-// End VisitorDataContext.java

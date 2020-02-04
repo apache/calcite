@@ -19,9 +19,7 @@ package org.apache.calcite.test;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,10 +28,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Properties;
 import java.util.function.UnaryOperator;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Unit tests for Babel framework.
@@ -42,8 +41,24 @@ public class BabelTest {
 
   static final String URL = "jdbc:calcite:";
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  private static UnaryOperator<CalciteAssert.PropBuilder> useParserFactory() {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.PARSER_FACTORY,
+            SqlBabelParserImpl.class.getName() + "#FACTORY");
+  }
+
+  private static UnaryOperator<CalciteAssert.PropBuilder> useLibraryList(
+      String libraryList) {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.FUN, libraryList);
+  }
+
+  private static UnaryOperator<CalciteAssert.PropBuilder> useLenientOperatorLookup(
+      boolean lenient) {
+    return propBuilder ->
+        propBuilder.set(CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP,
+            Boolean.toString(lenient));
+  }
 
   static Connection connect() throws SQLException {
     return connect(UnaryOperator.identity());
@@ -51,21 +66,17 @@ public class BabelTest {
 
   static Connection connect(UnaryOperator<CalciteAssert.PropBuilder> propBuild)
       throws SQLException {
-    final CalciteAssert.PropBuilder propBuilder =
-        CalciteAssert.propBuilder()
-            .set(CalciteConnectionProperty.PARSER_FACTORY,
-                SqlBabelParserImpl.class.getName() + "#FACTORY");
-    return DriverManager.getConnection(URL,
-        propBuild.apply(propBuilder).build());
-  }
-
-  private Connection connectWithFun(String libraryList) throws SQLException {
-    return connect(propBuilder ->
-        propBuilder.set(CalciteConnectionProperty.FUN, libraryList));
+    final CalciteAssert.PropBuilder propBuilder = CalciteAssert.propBuilder();
+    final Properties info =
+        propBuild.andThen(useParserFactory())
+            .andThen(useLenientOperatorLookup(true))
+            .apply(propBuilder)
+            .build();
+    return DriverManager.getConnection(URL, info);
   }
 
   @Test public void testInfixCast() throws SQLException {
-    try (Connection connection = connectWithFun("standard,postgresql");
+    try (Connection connection = connect(useLibraryList("standard,postgresql"));
          Statement statement = connection.createStatement()) {
       checkInfixCast(statement, "integer", Types.INTEGER);
       checkInfixCast(statement, "varchar", Types.VARCHAR);
@@ -87,5 +98,3 @@ public class BabelTest {
     }
   }
 }
-
-// End BabelTest.java

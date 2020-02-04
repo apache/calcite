@@ -26,5 +26,3 @@ package org.apache.calcite.linq4j;
  */
 public interface Queryable<T> extends RawQueryable<T>, ExtendedQueryable<T> {
 }
-
-// End Queryable.java

@@ -133,5 +133,3 @@ public class SqlOverlapsOperator extends SqlBinaryOperator {
     return true;
   }
 }
-
-// End SqlOverlapsOperator.java

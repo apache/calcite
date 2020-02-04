@@ -129,5 +129,3 @@ public class SqlGroupedWindowFunction extends SqlFunction {
     return call.getOperandMonotonicity(0).unstrict();
   }
 }
-
-// End SqlGroupedWindowFunction.java

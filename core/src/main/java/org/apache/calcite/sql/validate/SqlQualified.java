@@ -61,5 +61,3 @@ public class SqlQualified {
     return Util.skip(identifier.names, prefixLength);
   }
 }
-
-// End SqlQualified.java

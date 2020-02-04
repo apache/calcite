@@ -81,5 +81,3 @@ public enum DruidType {
     }
   }
 }
-
-// End DruidType.java

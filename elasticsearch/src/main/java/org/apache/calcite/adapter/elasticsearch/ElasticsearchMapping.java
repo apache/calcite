@@ -177,5 +177,3 @@ class ElasticsearchMapping {
   }
 
 }
-
-// End ElasticsearchMapping.java

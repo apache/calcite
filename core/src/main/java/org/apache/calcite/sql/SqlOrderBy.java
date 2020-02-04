@@ -90,10 +90,8 @@ public class SqlOrderBy extends SqlCall {
       orderBy.query.unparse(writer, getLeftPrec(), getRightPrec());
       if (orderBy.orderList != SqlNodeList.EMPTY) {
         writer.sep(getName());
-        final SqlWriter.Frame listFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
-        unparseListClause(writer, orderBy.orderList);
-        writer.endList(listFrame);
+        writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
+            orderBy.orderList);
       }
       if (orderBy.offset != null) {
         final SqlWriter.Frame frame2 =
@@ -119,5 +117,3 @@ public class SqlOrderBy extends SqlCall {
     }
   }
 }
-
-// End SqlOrderBy.java

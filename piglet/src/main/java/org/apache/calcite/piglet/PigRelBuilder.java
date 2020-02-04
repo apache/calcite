@@ -78,7 +78,7 @@ public class PigRelBuilder extends RelBuilder {
   /** Creates a PigRelBuilder. */
   public static PigRelBuilder create(FrameworkConfig config) {
     final RelBuilder relBuilder = RelBuilder.create(config);
-    Hook.REL_BUILDER_SIMPLIFY.add(Hook.propertyJ(false));
+    Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false));
     return new PigRelBuilder(config.getContext(), relBuilder.getCluster(),
         relBuilder.getRelOptSchema());
   }
@@ -253,7 +253,7 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   private RelBuilder scan(RelOptTable tableSchema) {
-    final RelNode scan = getScanFactory().createScan(cluster, tableSchema);
+    final RelNode scan = getScanFactory().createScan(cluster, tableSchema, ImmutableList.of());
     push(scan);
     return this;
   }
@@ -654,5 +654,3 @@ public class PigRelBuilder extends RelBuilder {
     final Map<String, FuncSpec> pigUdfs = new HashMap<>();
   }
 }
-
-// End PigRelBuilder.java

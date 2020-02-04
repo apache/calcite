@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.adapter.geode.rel;
 
-import org.junit.ClassRule;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 /**
  * Base class that allows sharing same geode instance across all tests.
@@ -24,11 +26,10 @@ import org.junit.ClassRule;
  * <p>Also, due to legacy reasons, there can't be more than one Geode
  * instance (running in parallel) for a single JVM.
  */
+@Execution(ExecutionMode.CONCURRENT)
 public abstract class AbstractGeodeTest {
 
-  @ClassRule
+  @RegisterExtension
   public static final GeodeEmbeddedPolicy POLICY = GeodeEmbeddedPolicy.create().share();
 
 }
-
-// End AbstractGeodeTest.java

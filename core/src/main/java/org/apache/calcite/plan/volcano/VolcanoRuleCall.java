@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.RelHintsPropagator;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -33,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
@@ -87,7 +89,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   //~ Methods ----------------------------------------------------------------
 
   // implement RelOptRuleCall
-  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv) {
+  public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
+      RelHintsPropagator handler) {
+    rel = handler.propagate(rels[0], rel);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
           equiv.isEmpty() ? "" : " with equivalences " + equiv);
@@ -124,9 +128,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       // don't register twice and cause churn.
       for (Map.Entry<RelNode, RelNode> entry : equiv.entrySet()) {
         volcanoPlanner.ensureRegistered(
-            entry.getKey(), entry.getValue(), this);
+            entry.getKey(), entry.getValue());
       }
-      volcanoPlanner.ensureRegistered(rel, rels[0], this);
+      volcanoPlanner.ensureRegistered(rel, rels[0]);
       rels[0].getCluster().invalidateMetadataQuery();
 
       if (volcanoPlanner.listener != null) {
@@ -276,6 +280,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       final Collection<? extends RelNode> successors;
       if (ascending) {
         assert previousOperand.getParent() == operand;
+        if (previousOperand.getMatchedClass() != RelSubset.class
+            && previous instanceof RelSubset) {
+          throw new RuntimeException("RelSubset should not match with "
+              + previousOperand.getMatchedClass().getSimpleName());
+        }
         parentOperand = operand;
         final RelSubset subset = volcanoPlanner.getSubset(previous);
         successors = subset.getParentRels();
@@ -314,8 +323,10 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           final RelSubset subset =
               (RelSubset) inputs.get(operand.ordinalInParent);
           if (operand.getMatchedClass() == RelSubset.class) {
-            // If the rule wants the whole subset, we just provide it
-            successors = ImmutableList.of(subset);
+            // Find all the sibling subsets that satisfy the traitSet of current subset.
+            successors = subset.set.subsets.stream()
+                .filter(s -> s.getTraitSet().satisfies(subset.getTraitSet()))
+                .collect(Collectors.toList());
           } else {
             successors = subset.getRelList();
           }
@@ -339,7 +350,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           final RelSubset input =
               (RelSubset) rel.getInput(previousOperand.ordinalInParent);
           List<RelNode> inputRels = input.getRelList();
-          if (!inputRels.contains(previous)) {
+          if (!(previous instanceof RelSubset) && !inputRels.contains(previous)) {
             continue;
           }
         }
@@ -372,5 +383,3 @@ public class VolcanoRuleCall extends RelOptRuleCall {
     }
   }
 }
-
-// End VolcanoRuleCall.java

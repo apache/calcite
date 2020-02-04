@@ -123,5 +123,3 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
 
   protected abstract Void found(SqlCall call);
 }
-
-// End AggVisitor.java

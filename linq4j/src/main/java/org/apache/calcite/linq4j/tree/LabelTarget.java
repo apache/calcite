@@ -49,5 +49,3 @@ public class LabelTarget {
     return Objects.hashCode(name);
   }
 }
-
-// End LabelTarget.java

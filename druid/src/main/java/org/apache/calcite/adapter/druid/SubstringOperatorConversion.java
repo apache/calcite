@@ -81,5 +81,3 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
     return DruidQuery.format("substring(%s, %s, %s)", arg, startIndex, length);
   }
 }
-
-// End SubstringOperatorConversion.java

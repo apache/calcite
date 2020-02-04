@@ -171,5 +171,3 @@ public class AbstractSchema implements Schema {
     }
   }
 }
-
-// End AbstractSchema.java

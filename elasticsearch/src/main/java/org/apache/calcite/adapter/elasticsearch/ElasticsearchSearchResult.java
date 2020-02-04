@@ -169,5 +169,3 @@ public class ElasticsearchSearchResult {
   }
 
 }
-
-// End ElasticsearchSearchResult.java

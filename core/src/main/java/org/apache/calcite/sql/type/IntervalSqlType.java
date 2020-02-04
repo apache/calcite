@@ -22,6 +22,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
@@ -58,10 +59,12 @@ public class IntervalSqlType extends AbstractSqlType {
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append("INTERVAL ");
     final SqlDialect dialect = AnsiSqlDialect.DEFAULT;
-    final SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
-    writer.setAlwaysUseParentheses(false);
-    writer.setSelectListItemsOnSeparateLines(false);
-    writer.setIndentation(0);
+    final SqlWriterConfig config = SqlPrettyWriter.config()
+        .withAlwaysUseParentheses(false)
+        .withSelectListItemsOnSeparateLines(false)
+        .withIndentation(0)
+        .withDialect(dialect);
+    final SqlPrettyWriter writer = new SqlPrettyWriter(config);
     intervalQualifier.unparse(writer, 0, 0);
     final String sql = writer.toString();
     sb.append(new SqlString(dialect, sql).getSql());
@@ -142,5 +145,3 @@ public class IntervalSqlType extends AbstractSqlType {
     return intervalQualifier.getFractionalSecondPrecision(typeSystem);
   }
 }
-
-// End IntervalSqlType.java

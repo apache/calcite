@@ -89,5 +89,3 @@ public class SqlAttributeDefinition extends SqlCall {
     }
   }
 }
-
-// End SqlAttributeDefinition.java

@@ -76,5 +76,3 @@ public class WhileStatement extends Statement {
     return Objects.hash(nodeType, type, condition, body);
   }
 }
-
-// End WhileStatement.java

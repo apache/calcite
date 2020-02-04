@@ -69,5 +69,3 @@ public class GeodeSchemaFactory implements SchemaFactory {
         Arrays.asList(regionNames));
   }
 }
-
-// End GeodeSchemaFactory.java

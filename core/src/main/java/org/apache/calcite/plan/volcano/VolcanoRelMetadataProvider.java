@@ -117,5 +117,3 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
     return ImmutableMultimap.of();
   }
 }
-
-// End VolcanoRelMetadataProvider.java

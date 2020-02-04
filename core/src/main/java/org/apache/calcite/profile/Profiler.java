@@ -300,5 +300,3 @@ public interface Profiler {
     }
   }
 }
-
-// End Profiler.java

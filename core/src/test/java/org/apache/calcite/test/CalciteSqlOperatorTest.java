@@ -27,5 +27,3 @@ public class CalciteSqlOperatorTest extends SqlOperatorBaseTest {
     super(false, tester());
   }
 }
-
-// End CalciteSqlOperatorTest.java

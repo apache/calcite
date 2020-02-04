@@ -93,5 +93,3 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     return countMap.keySet();
   }
 }
-
-// End TopologicalOrderIterator.java

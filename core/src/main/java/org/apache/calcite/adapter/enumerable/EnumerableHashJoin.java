@@ -60,6 +60,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     super(
         cluster,
         traits,
+        ImmutableList.of(),
         left,
         right,
         condition,
@@ -244,10 +245,8 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
                         Expressions.constant(joinType.generatesNullsOnLeft()))
                     .append(
                         Expressions.constant(
-                            joinType.generatesNullsOnRight())).append(predicate)
-            ))
+                            joinType.generatesNullsOnRight()))
+                    .append(predicate)))
             .toBlock());
   }
 }
-
-// End EnumerableHashJoin.java

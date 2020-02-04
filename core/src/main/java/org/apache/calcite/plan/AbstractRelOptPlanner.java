@@ -248,7 +248,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   @SuppressWarnings("deprecation")
   public RelOptCost getCost(RelNode rel) {
-    final RelMetadataQuery mq = RelMetadataQuery.instance();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
 
@@ -419,8 +419,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Returns sub-classes of relational expression. */
   public Iterable<Class<? extends RelNode>> subClasses(
       final Class<? extends RelNode> clazz) {
-    return Util.filter(classes, clazz::isAssignableFrom);
+    return Util.filter(classes, c -> {
+      // RelSubset must be exact type, not subclass
+      if (c == RelSubset.class) {
+        return c == clazz;
+      }
+      return clazz.isAssignableFrom(c);
+    });
   }
 }
-
-// End AbstractRelOptPlanner.java

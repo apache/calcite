@@ -119,5 +119,3 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
     return planner.getCostFactory().makeHugeCost();
   }
 }
-
-// End LogicalTableFunctionScan.java

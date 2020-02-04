@@ -54,5 +54,3 @@ public abstract class EnumeratorCursor<T> extends PositionedCursor<T> {
     enumerator.close();
   }
 }
-
-// End EnumeratorCursor.java

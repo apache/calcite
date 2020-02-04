@@ -93,5 +93,3 @@ class ListTable extends AbstractQueryableTable {
     };
   }
 }
-
-// End ListTable.java

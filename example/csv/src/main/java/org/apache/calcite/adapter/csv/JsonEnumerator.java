@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,21 +68,23 @@ public class JsonEnumerator implements Enumerator<Object[]> {
       objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
           .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
           .configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-      if (source.file().exists() && source.file().length() > 0) {
-        if ("file".equals(source.protocol())) {
-          //noinspection unchecked
-          jsonObj = objectMapper.readValue(source.file(), Object.class);
-        } else {
-          //noinspection unchecked
-          jsonObj = objectMapper.readValue(source.url(), Object.class);
-        }
+
+      if ("file".equals(source.protocol()) && source.file().exists()) {
+        //noinspection unchecked
+        jsonObj = objectMapper.readValue(source.file(), Object.class);
+      } else if (Arrays.asList("http", "https", "ftp").contains(source.protocol())) {
+        //noinspection unchecked
+        jsonObj = objectMapper.readValue(source.url(), Object.class);
+      } else {
+        jsonObj = objectMapper.readValue(source.reader(), Object.class);
       }
+
     } catch (MismatchedInputException e) {
       if (!e.getMessage().contains("No content")) {
-        throw new RuntimeException(e);
+        throw new RuntimeException("Couldn't read " + source, e);
       }
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("Couldn't read " + source, e);
     }
 
     if (jsonObj == null) {
@@ -153,5 +156,3 @@ public class JsonEnumerator implements Enumerator<Object[]> {
     }
   }
 }
-
-// End JsonEnumerator.java

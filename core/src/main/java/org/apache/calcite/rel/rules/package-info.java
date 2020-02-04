@@ -47,9 +47,4 @@
  *        provides an optimizer interface.</li>
  * </ul>
  */
-@PackageMarker
 package org.apache.calcite.rel.rules;
-
-import org.apache.calcite.avatica.util.PackageMarker;
-
-// End package-info.java

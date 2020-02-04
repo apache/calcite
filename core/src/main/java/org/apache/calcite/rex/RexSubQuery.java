@@ -137,5 +137,3 @@ public class RexSubQuery extends RexCall {
     return new RexSubQuery(type, getOperator(), operands, rel);
   }
 }
-
-// End RexSubQuery.java

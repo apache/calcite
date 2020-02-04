@@ -34,12 +34,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import net.jcip.annotations.NotThreadSafe;
-
 import org.hamcrest.CoreMatchers;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -80,14 +80,15 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test for Calcite's remote JDBC driver.
  * Technically speaking, the test is thread safe, however Caclite/Avatica have thread-safety issues
  * see https://issues.apache.org/jira/browse/CALCITE-2853.
  */
-@NotThreadSafe
+@Execution(ExecutionMode.SAME_THREAD)
 public class CalciteRemoteDriverTest {
   public static final String LJS = Factory2.class.getName();
 
@@ -150,7 +151,7 @@ public class CalciteRemoteDriverTest {
   private static Connection localConnection;
   private static HttpServer start;
 
-  @BeforeClass public static void beforeClass() throws Exception {
+  @BeforeAll public static void beforeClass() throws Exception {
     localConnection = CalciteAssert.hr().connect();
 
     // Make sure we pick an ephemeral port for the server
@@ -164,7 +165,7 @@ public class CalciteRemoteDriverTest {
         "jdbc:avatica:remote:url=http://localhost:" + port);
   }
 
-  @AfterClass public static void afterClass() throws Exception {
+  @AfterAll public static void afterClass() throws Exception {
     if (localConnection != null) {
       localConnection.close();
       localConnection = null;
@@ -461,20 +462,22 @@ public class CalciteRemoteDriverTest {
     }
   }
 
-  @Test(expected = SQLException.class)
-  public void testAvaticaConnectionException() throws Exception {
-    try (Connection remoteConnection = getRemoteConnection()) {
-      remoteConnection.isValid(-1);
-    }
+  @Test public void testAvaticaConnectionException() {
+    assertThrows(SQLException.class, () -> {
+      try (Connection remoteConnection = getRemoteConnection()) {
+        remoteConnection.isValid(-1);
+      }
+    });
   }
 
-  @Test(expected = SQLException.class)
-  public void testAvaticaStatementException() throws Exception {
-    try (Connection remoteConnection = getRemoteConnection()) {
-      try (Statement statement = remoteConnection.createStatement()) {
-        statement.setCursorName("foo");
+  @Test public void testAvaticaStatementException() {
+    assertThrows(SQLException.class, () -> {
+      try (Connection remoteConnection = getRemoteConnection()) {
+        try (Statement statement = remoteConnection.createStatement()) {
+          statement.setCursorName("foo");
+        }
       }
-    }
+    });
   }
 
   @Test public void testAvaticaStatementGetMoreResults() throws Exception {
@@ -882,5 +885,3 @@ public class CalciteRemoteDriverTest {
   @Test public void testRemotePreparedStatementInsert2() throws Exception {
   }
 }
-
-// End CalciteRemoteDriverTest.java

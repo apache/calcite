@@ -856,9 +856,6 @@ group by rollup(1);
 
 !use scott
 
-# When
-#   [CALCITE-1824] GROUP_ID returns wrong result
-# is fixed, there will be an extra row (null, 1, 14).
 select deptno, group_id() as g, count(*) as c
 from "scott".emp
 group by grouping sets (deptno, (), ());
@@ -870,8 +867,9 @@ group by grouping sets (deptno, (), ());
 |     20 | 0 |  5 |
 |     30 | 0 |  6 |
 |        | 0 | 14 |
+|        | 1 | 14 |
 +--------+---+----+
-(4 rows)
+(5 rows)
 
 !ok
 
@@ -929,10 +927,6 @@ select deptno
 !ok
 
 # From http://rwijk.blogspot.com/2008/12/groupid.html
-# (replacing "to_char(...)" with "cast(... as varchar)")
-# The current results are incorrect. When
-#   [CALCITE-1824] GROUP_ID returns wrong result
-# is fixed, there will be 4 more rows.
 select deptno
        , job
        , empno
@@ -967,6 +961,7 @@ select deptno
 |     10 | PRESIDENT |  7839 | KING   |  5000.00 | grouped by deptno,job,empno,ename |
 |     10 | PRESIDENT |       |        |  5000.00 | grouped by deptno,job             |
 |     10 |           |       |        |  8750.00 | grouped by deptno, grouping set 3 |
+|     10 |           |       |        |  8750.00 | grouped by deptno, grouping set 4 |
 |     20 | ANALYST   |  7788 | SCOTT  |  3000.00 | grouped by deptno,job,empno,ename |
 |     20 | ANALYST   |  7902 | FORD   |  3000.00 | grouped by deptno,job,empno,ename |
 |     20 | ANALYST   |       |        |  6000.00 | grouped by deptno,job             |
@@ -976,6 +971,7 @@ select deptno
 |     20 | MANAGER   |  7566 | JONES  |  2975.00 | grouped by deptno,job,empno,ename |
 |     20 | MANAGER   |       |        |  2975.00 | grouped by deptno,job             |
 |     20 |           |       |        | 10875.00 | grouped by deptno, grouping set 3 |
+|     20 |           |       |        | 10875.00 | grouped by deptno, grouping set 4 |
 |     30 | CLERK     |  7900 | JAMES  |   950.00 | grouped by deptno,job,empno,ename |
 |     30 | CLERK     |       |        |   950.00 | grouped by deptno,job             |
 |     30 | MANAGER   |  7698 | BLAKE  |  2850.00 | grouped by deptno,job,empno,ename |
@@ -986,9 +982,11 @@ select deptno
 |     30 | SALESMAN  |  7844 | TURNER |  1500.00 | grouped by deptno,job,empno,ename |
 |     30 | SALESMAN  |       |        |  5600.00 | grouped by deptno,job             |
 |     30 |           |       |        |  9400.00 | grouped by deptno, grouping set 3 |
+|     30 |           |       |        |  9400.00 | grouped by deptno, grouping set 4 |
 |        |           |       |        | 29025.00 | grouped by (), grouping set 5     |
+|        |           |       |        | 29025.00 | grouped by (), grouping set 6     |
 +--------+-----------+-------+--------+----------+-----------------------------------+
-(27 rows)
+(31 rows)
 
 !ok
 
@@ -1306,6 +1304,42 @@ group by deptno;
 |     30 |   2 |
 +--------+-----+
 (3 rows)
+
+!ok
+
+# Convert CASE to FILTER
+select count(case x when 0 then null else -1 end) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Same, expressed as FILTER
+select count(*) filter (where (x = 0) is not true) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 2 |
++---+
+(1 row)
+
+!ok
+
+# Similar, not quite the same
+select count(*) filter (where (x = 0) is false) as c
+from (values 0, null, 0, 1) as t(x);
++---+
+| C |
++---+
+| 1 |
++---+
+(1 row)
 
 !ok
 
@@ -2525,25 +2559,27 @@ EnumerableAggregate(group=[{0}], EMPNOS=[COLLECT($1) WITHIN GROUP ([2])])
     EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
-# BIT_AND, BIT_OR aggregate functions
-select bit_and(deptno), bit_or(deptno) from "scott".emp;
-+--------+--------+
-| EXPR$0 | EXPR$1 |
-+--------+--------+
-|      0 |     30 |
-+--------+--------+
+# BIT_AND, BIT_OR, BIT_XOR aggregate functions
+select bit_and(deptno), bit_or(deptno), bit_xor(deptno) from "scott".emp;
+
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+|      0 |     30 |     30 |
++--------+--------+--------+
 (1 row)
 
 !ok
 
-select deptno, bit_and(empno), bit_or(empno) from "scott".emp group by deptno;
-+--------+--------+--------+
-| DEPTNO | EXPR$1 | EXPR$2 |
-+--------+--------+--------+
-|     10 |   7686 |   7935 |
-|     20 |   7168 |   8191 |
-|     30 |   7168 |   8191 |
-+--------+--------+--------+
+select deptno, bit_and(empno), bit_or(empno), bit_xor(empno) from "scott".emp group by deptno;
+
++--------+--------+--------+--------+
+| DEPTNO | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+|     10 |   7686 |   7935 |   7687 |
+|     20 |   7168 |   8191 |   7985 |
+|     30 |   7168 |   8191 |    934 |
++--------+--------+--------+--------+
 (3 rows)
 
 !ok

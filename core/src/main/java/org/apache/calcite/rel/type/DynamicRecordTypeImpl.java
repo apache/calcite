@@ -86,5 +86,3 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   }
 
 }
-
-// End DynamicRecordTypeImpl.java

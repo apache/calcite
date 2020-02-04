@@ -184,5 +184,3 @@ public class TimeWithTimeZoneString implements Comparable<TimeWithTimeZoneString
   }
 
 }
-
-// End TimeWithTimeZoneString.java

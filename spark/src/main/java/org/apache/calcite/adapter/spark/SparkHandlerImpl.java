@@ -52,10 +52,13 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     private static final SparkHandlerImpl INSTANCE = new SparkHandlerImpl();
   }
 
-  private static final File CLASS_DIR = new File("target/classes");
+  private static final File CLASS_DIR = new File("build/sparkServer/classes");
 
   /** Creates a SparkHandlerImpl. */
   private SparkHandlerImpl() {
+    if (!CLASS_DIR.isDirectory() && !CLASS_DIR.mkdirs()) {
+      System.err.println("Unable to create temporary folder " + CLASS_DIR);
+    }
     classServer = new HttpServer(CLASS_DIR);
 
     // Start the classServer and store its URI in a spark system property
@@ -125,7 +128,7 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     try {
       @SuppressWarnings("unchecked")
       final Class<ArrayBindable> clazz =
-          (Class<ArrayBindable>) Class.forName(className);
+          (Class<ArrayBindable>) compiler.getClassLoader().loadClass(className);
       final Constructor<ArrayBindable> constructor = clazz.getConstructor();
       return constructor.newInstance();
     } catch (ClassNotFoundException | InstantiationException
@@ -135,5 +138,3 @@ public class SparkHandlerImpl implements CalcitePrepare.SparkHandler {
     }
   }
 }
-
-// End SparkHandlerImpl.java

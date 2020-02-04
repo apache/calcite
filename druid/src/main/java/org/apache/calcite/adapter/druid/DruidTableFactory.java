@@ -166,5 +166,3 @@ public class DruidTableFactory implements TableFactory {
     }
   }
 }
-
-// End DruidTableFactory.java

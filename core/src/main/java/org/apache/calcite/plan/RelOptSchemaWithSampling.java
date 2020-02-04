@@ -42,5 +42,3 @@ public interface RelOptSchemaWithSampling extends RelOptSchema {
       String datasetName,
       boolean[] usedDataset);
 }
-
-// End RelOptSchemaWithSampling.java

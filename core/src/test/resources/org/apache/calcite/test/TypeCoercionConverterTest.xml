@@ -1,204 +1,72 @@
 <?xml version="1.0" ?>
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to you under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 <Root>
     <TestCase name="testInOperation">
         <Resource name="sql">
-            <![CDATA[select 1 in ('1', '2', '3') from (values true)]]>
+            <![CDATA[select
+1 in ('1', '2', '3') as f0,
+(1, 2) in (('1', '2')) as f1,
+(1, 2) in (('1', '2'), ('3', '4')) as f2
+from (values (true, true, true))]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testInOperation1">
-        <Resource name="sql">
-            <![CDATA[select (1, 2) in (select '1', '2'
-from (values (true, true))) from (values true))]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[CAST(OR(AND(IS NOT NULL($7), <>($1, 0)), AND(<($2, $1), null, <>($1, 0), IS NULL($7)))):BOOLEAN NOT NULL])
-  LogicalJoin(condition=[AND(=($3, $5), =($4, $6))], joinType=[left])
-    LogicalProject(EXPR$0=[$0], $f0=[$1], $f1=[$2], $f3=[1], $f4=[2])
-      LogicalJoin(condition=[true], joinType=[inner])
-        LogicalValues(tuples=[[{ true }]])
-        LogicalAggregate(group=[{}], agg#0=[COUNT()], agg#1=[COUNT($0, $1)])
-          LogicalProject(EXPR$0=[1], EXPR$1=[2], $f2=[true])
-            LogicalValues(tuples=[[{ true, true }]])
-    LogicalAggregate(group=[{0, 1}], agg#0=[MIN($2)])
-      LogicalProject(EXPR$0=[1], EXPR$1=[2], $f2=[true])
-        LogicalValues(tuples=[[{ true, true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testInOperation2">
-        <Resource name="sql">
-            <![CDATA[select 1 in ('1', '2', '3') from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
+LogicalProject(F0=[true], F1=[true], F2=[true])
+  LogicalValues(tuples=[[{ true, true, true }]])
 ]]>
         </Resource>
     </TestCase>
     <TestCase name="testBooleanEquality">
         <Resource name="sql">
-            <![CDATA[select 1=true from (values true)]]>
+            <![CDATA[select
+1=true as f0,
+1.0=true as f1,
+0.0=true=true as f2,
+1.23=t1_boolean as f3,
+t1_smallint=t1_boolean as f4,
+10000000000=true as f5
+from t1]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBooleanEquality1">
-        <Resource name="sql">
-            <![CDATA[select 1.0=true from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBooleanEquality2">
-        <Resource name="sql">
-            <![CDATA[select 0.0=true from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[false])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBooleanEquality3">
-        <Resource name="sql">
-            <![CDATA[select 1.23=t1_boolean from t1]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[NOT($10)])
+LogicalProject(F0=[true], F1=[true], F2=[false], F3=[NOT($10)], F4=[=($1, CASE($10, 1:SMALLINT, 0:SMALLINT))], F5=[false])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testBooleanEquality4">
+    <TestCase name="testBinaryComparison">
         <Resource name="sql">
-            <![CDATA[select t1_smallint=t1_boolean from t1]]>
+            <![CDATA["select
+1<'1' as f0,
+1<='1' as f1,
+1>'1' as f2,
+1>='1' as f3,
+1='1' as f4,
+t1_date > t1_timestamp as f5,
+'2' is not distinct from 2 as f6,
+'2019-09-23' between t1_date and t1_timestamp as f7,
+cast('2019-09-23' as date) between t1_date and t1_timestamp as f8
+from t1]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[=($1, CASE($10, 1:SMALLINT, 0:SMALLINT))])
+LogicalProject(F0=[false], F1=[true], F2=[false], F3=[true], F4=[true], F5=[>(CAST($8):TIMESTAMP(0) NOT NULL, $7)], F6=[true], F7=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))], F8=[AND(>=(2019-09-23 00:00:00, CAST($8):TIMESTAMP(0) NOT NULL), <=(2019-09-23 00:00:00, $7))])
   LogicalTableScan(table=[[CATALOG, SALES, T1]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBooleanEquality5">
-        <Resource name="sql">
-            <![CDATA[select 10000000000=true from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[false])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable">
-        <Resource name="sql">
-            <![CDATA[select 1<'1' from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[false])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable1">
-        <Resource name="sql">
-            <![CDATA[select 1<='1' from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable2">
-        <Resource name="sql">
-            <![CDATA[select 1>'1' from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[false])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable3">
-        <Resource name="sql">
-            <![CDATA[select 1>='1' from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable4">
-        <Resource name="sql">
-            <![CDATA[select 1='1' from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable5">
-        <Resource name="sql">
-            <![CDATA[select t1_date > t1_timestamp from t1]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[>(CAST($8):TIMESTAMP(0) NOT NULL, $7)])
-  LogicalTableScan(table=[[CATALOG, SALES, T1]])
-]]>
-        </Resource>
-    </TestCase>
-    <TestCase name="testBinaryComparable6">
-        <Resource name="sql">
-            <![CDATA[select '2' is not distinct from 2 from (values true)]]>
-        </Resource>
-        <Resource name="plan">
-            <![CDATA[
-LogicalProject(EXPR$0=[true])
-  LogicalValues(tuples=[[{ true }]])
 ]]>
         </Resource>
     </TestCase>
@@ -227,7 +95,7 @@ LogicalUnion(all=[false])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSetOperations">
+    <TestCase name="testSetOperation">
         <Resource name="sql">
             <![CDATA[select t1_int, t1_decimal, t1_smallint, t1_double from t1
 union select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2
@@ -258,6 +126,31 @@ LogicalUnion(all=[false])
             <![CDATA[
 LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertQuerySourceCoercion">
+        <Resource name="sql">
+            <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
+t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
+  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_float=[CAST($5):FLOAT NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUpdateQuerySourceCoercion">
+        <Resource name="sql">
+            <![CDATA[update t1 set t1_varchar20=123, t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[CAST(123):VARCHAR(20) NOT NULL, CAST(2020-01-03 10:14:34):DATE NOT NULL, 12.3]], flattened=[false])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_float=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=[123], EXPR$1=[2020-01-03 10:14:34], EXPR$2=[12.3:DECIMAL(3, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
         </Resource>
     </TestCase>

@@ -37,5 +37,3 @@ public class RelConversionException extends Exception {
     super(cause);
   }
 }
-
-// End RelConversionException.java

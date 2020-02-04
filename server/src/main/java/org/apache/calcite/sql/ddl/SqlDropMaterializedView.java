@@ -61,5 +61,3 @@ public class SqlDropMaterializedView extends SqlDropObject {
     }
   }
 }
-
-// End SqlDropMaterializedView.java

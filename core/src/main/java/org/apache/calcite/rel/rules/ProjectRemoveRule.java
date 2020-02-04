@@ -93,5 +93,3 @@ public class ProjectRemoveRule extends RelOptRule {
     return RexUtil.isIdentity(exps, childRowType);
   }
 }
-
-// End ProjectRemoveRule.java

@@ -22,14 +22,13 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Informix database.
  */
 public class InformixSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new InformixSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.INFORMIX));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.INFORMIX);
+
+  public static final SqlDialect DEFAULT = new InformixSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an InformixSqlDialect. */
   public InformixSqlDialect(Context context) {
     super(context);
   }
 }
-
-// End InformixSqlDialect.java

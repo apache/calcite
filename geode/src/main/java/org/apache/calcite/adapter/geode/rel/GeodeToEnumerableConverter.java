@@ -155,5 +155,3 @@ public class GeodeToEnumerableConverter extends ConverterImpl implements Enumera
     return Lists.transform(values, Expressions::constant);
   }
 }
-
-// End GeodeToEnumerableConverter.java

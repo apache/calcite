@@ -143,5 +143,3 @@ public class JdbcCatalogSchema extends AbstractSchema {
     }
   }
 }
-
-// End JdbcCatalogSchema.java

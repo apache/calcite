@@ -72,5 +72,3 @@ public class SqlCursorConstructor extends SqlSpecialOperator {
     return false;
   }
 }
-
-// End SqlCursorConstructor.java

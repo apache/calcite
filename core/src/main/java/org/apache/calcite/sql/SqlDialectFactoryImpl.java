@@ -300,5 +300,3 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
   }
 
 }
-
-// End SqlDialectFactoryImpl.java

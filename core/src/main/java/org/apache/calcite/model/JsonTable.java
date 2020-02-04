@@ -56,5 +56,3 @@ public abstract class JsonTable {
 
   public abstract void accept(ModelHandler handler);
 }
-
-// End JsonTable.java

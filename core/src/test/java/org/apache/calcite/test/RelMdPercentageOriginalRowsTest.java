@@ -20,7 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Test case for CALCITE-2894 */
 public class RelMdPercentageOriginalRowsTest {
@@ -41,5 +41,3 @@ public class RelMdPercentageOriginalRowsTest {
                     CalciteAssert.checkResultContains("EnumerableCorrelate"));
   }
 }
-
-// End RelMdPercentageOriginalRowsTest.java

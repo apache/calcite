@@ -35,6 +35,9 @@ import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.GeoFunctions;
@@ -42,10 +45,15 @@ import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.TableFunction;
+import org.apache.calcite.schema.Wrapper;
 import org.apache.calcite.schema.impl.AbstractSchema;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.schema.impl.TableFunctionImpl;
 import org.apache.calcite.schema.impl.ViewTable;
 import org.apache.calcite.schema.impl.ViewTableMacro;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -62,7 +70,6 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.dbcp2.PoolableConnectionFactory;
 import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 
 import com.google.common.collect.ImmutableList;
@@ -73,6 +80,7 @@ import com.google.common.collect.Lists;
 import net.hydromatic.foodmart.data.hsqldb.FoodmartHsqldb;
 import net.hydromatic.scott.data.hsqldb.ScottHsqldb;
 
+import org.apiguardian.api.API;
 import org.hamcrest.Matcher;
 
 import java.lang.reflect.InvocationTargetException;
@@ -103,21 +111,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.test.Matchers.compose;
 import static org.apache.calcite.test.Matchers.containsStringLinux;
 import static org.apache.calcite.test.Matchers.isLinux;
+import static org.apache.calcite.util.Util.toLinux;
+
+import static org.apache.commons.lang3.StringUtils.countMatches;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Fluid DSL for testing Calcite connections and queries.
@@ -247,24 +260,23 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkException(final String expected) {
     return p0 -> {
-      assertNotNull(
-          "expected exception but none was thrown", p0);
+      assertNotNull(p0, "expected exception but none was thrown");
       String stack = TestUtil.printStackTrace(p0);
-      assertTrue(stack, stack.contains(expected));
+      assertThat(stack, containsString(expected));
     };
   }
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
       @Override public void accept(@Nullable Throwable throwable) {
-        assertNotNull("Nothing was thrown", throwable);
+        assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);
 
-        assertTrue("Expected to fail at validation, but did not", exception != null);
+        assertNotNull(exception, "Expected to fail at validation, but did not");
         if (expected != null) {
           String stack = TestUtil.printStackTrace(exception);
-          assertTrue(stack, stack.contains(expected));
+          assertThat(stack, containsString(expected));
         }
       }
 
@@ -432,9 +444,8 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        assertTrue(
-            actual + " should have " + count + " occurrence of " + expected,
-            StringUtils.countMatches(actual, expected) == count);
+        assertEquals(count, countMatches(actual, expected),
+            () -> actual + " should have " + count + " occurrence of " + expected);
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
       }
@@ -666,7 +677,7 @@ public class CalciteAssert {
   }
 
   /** Converts a {@link ResultSet} to a string. */
-  static String toString(ResultSet resultSet) throws SQLException {
+  public static String toString(ResultSet resultSet) throws SQLException {
     return new ResultSetFormatter().resultSet(resultSet).string();
   }
 
@@ -878,6 +889,48 @@ public class CalciteAssert {
             ImmutableList.<String>of(), ImmutableList.of("POST", "TICKER"),
             null));
       return post;
+    case FAKE_FOODMART:
+      // Similar to FOODMART, but not based on JdbcSchema.
+      // Contains 2 tables that do not extend JdbcTable.
+      // They redirect requests for SqlDialect and DataSource to the real JDBC
+      // FOODMART, and this allows statistics queries to be executed.
+      foodmart = addSchemaIfNotExists(rootSchema, SchemaSpec.JDBC_FOODMART);
+      final Wrapper salesTable = (Wrapper) foodmart.getTable("sales_fact_1997");
+      SchemaPlus fake =
+          rootSchema.add(schema.schemaName, new AbstractSchema());
+      fake.add("time_by_day", new AbstractTable() {
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return typeFactory.builder()
+              .add("time_id", SqlTypeName.INTEGER)
+              .add("the_year", SqlTypeName.INTEGER)
+              .build();
+        }
+
+        public <C> C unwrap(Class<C> aClass) {
+          if (aClass.isAssignableFrom(SqlDialect.class)
+              || aClass.isAssignableFrom(DataSource.class)) {
+            return salesTable.unwrap(aClass);
+          }
+          return super.unwrap(aClass);
+        }
+      });
+      fake.add("sales_fact_1997", new AbstractTable() {
+        public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+          return typeFactory.builder()
+              .add("time_id", SqlTypeName.INTEGER)
+              .add("customer_id", SqlTypeName.INTEGER)
+              .build();
+        }
+
+        public <C> C unwrap(Class<C> aClass) {
+          if (aClass.isAssignableFrom(SqlDialect.class)
+              || aClass.isAssignableFrom(DataSource.class)) {
+            return salesTable.unwrap(aClass);
+          }
+          return super.unwrap(aClass);
+        }
+      });
+      return fake;
     case AUX:
       SchemaPlus aux =
           rootSchema.add(schema.schemaName, new AbstractSchema());
@@ -924,7 +977,7 @@ public class CalciteAssert {
    * they are considered equal.
    *
    * <p>This method produces more user-friendly error messages than
-   * {@link org.junit.Assert#assertArrayEquals(String, Object[], Object[])}
+   * {@link org.junit.jupiter.api.Assertions#assertArrayEquals(Object[], Object[], String)}
    *
    * @param message the identifying message for the {@link AssertionError} (<code>null</code>
    * okay)
@@ -933,7 +986,7 @@ public class CalciteAssert {
    */
   public static void assertArrayEqual(
       String message, Object[] expected, Object[] actual) {
-    assertEquals(message, str(expected), str(actual));
+    assertEquals(str(expected), str(actual), message);
   }
 
   private static String str(Object[] objects) {
@@ -1096,7 +1149,7 @@ public class CalciteAssert {
       if (model.contains("defaultSchema: 'foodmart'")) {
         int endIndex = model.lastIndexOf(']');
         model2 = model.substring(0, endIndex)
-            + ", \n{ name: 'mat', "
+            + ",\n{ name: 'mat', "
             + buf
             + "}\n"
             + "]"
@@ -1556,43 +1609,142 @@ public class CalciteAssert {
       return explainMatches("", checkResultContains(expected));
     }
 
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(String)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(String expectedPlan) {
+      return explainHookContains(SqlExplainLevel.EXPPLAN_ATTRIBUTES, expectedPlan);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * <p>Note: prefer using {@link #explainHookMatches(SqlExplainLevel, Matcher)} if you assert
+     * the full plan tree as it produces slightly cleaner messages</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookContains(SqlExplainLevel sqlExplainLevel, String expectedPlan) {
+      return explainHookMatches(sqlExplainLevel, containsString(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param expectedPlan expected execution plan. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(String expectedPlan) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, is(expectedPlan));
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(Matcher<String> planMatcher) {
+      return explainHookMatches(SqlExplainLevel.EXPPLAN_ATTRIBUTES, planMatcher);
+    }
+
+    /**
+     * This enables to assert the optimized plan without issuing a separate {@code explain ...}
+     * command. This is especially useful when {@code RelNode} is provided via
+     * {@link Hook#STRING_TO_QUERY} or {@link #withRel(Function)}.
+     *
+     * <p>Note: this API does NOT trigger the query, so you need to use something like
+     * {@link #returns(String)}, or {@link #returnsUnordered(String...)} to trigger query
+     * execution</p>
+     *
+     * @param sqlExplainLevel the level of explain plan
+     * @param planMatcher execution plan matcher. The plan is normalized to LF line endings
+     * @return updated assert query
+     */
+    @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+    public AssertQuery explainHookMatches(SqlExplainLevel sqlExplainLevel,
+        Matcher<String> planMatcher) {
+      return withHook(Hook.PLAN_BEFORE_IMPLEMENTATION,
+          (RelRoot root) ->
+              assertThat(
+                  "Execution plan for sql " + sql,
+                  RelOptUtil.toString(root.rel, sqlExplainLevel),
+                  compose(planMatcher, Util::toLinux)));
+    }
+
     public final AssertQuery explainMatches(String extra,
         Consumer<ResultSet> checker) {
       return returns("explain plan " + extra + "for " + sql, checker);
     }
 
     public AssertQuery planContains(String expected) {
-      ensurePlan(null);
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
-              .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
-      return this;
+      return planContains(null, JavaSql.fromJava(expected));
     }
 
     public AssertQuery planUpdateHasSql(String expected, int count) {
-      ensurePlan(checkUpdateCount(count));
-      expected = ".unwrap(javax.sql.DataSource.class), \""
-          + expected.replace("\\", "\\\\")
-          .replace("\"", "\\\"")
-          .replaceAll("\n", "\\\\n")
-          + "\"";
-      assertTrue(
-          "Plan [" + plan + "] contains [" + expected + "]",
-          Util.toLinux(plan)
-              .replaceAll("\\\\r\\\\n", "\\\\n")
-              .contains(expected));
+      return planContains(checkUpdateCount(count), JavaSql.fromSql(expected));
+    }
+
+    @Nonnull private AssertQuery planContains(Consumer<Integer> checkUpdate,
+        JavaSql expected) {
+      ensurePlan(checkUpdate);
+      if (expected.sql != null) {
+        final List<String> planSqls = JavaSql.fromJava(plan).extractSql();
+        final String planSql;
+        if (planSqls.size() == 1) {
+          planSql = planSqls.get(0);
+          assertThat(planSql, is(expected.sql));
+        } else {
+          assertThat("contains " + planSqls + " expected " + expected,
+              planSqls.contains(expected.sql), is(true));
+        }
+      } else {
+        final String message =
+            "Plan [" + plan + "] contains [" + expected.java + "]";
+        final String actualJava = toLinux(plan).replaceAll("\\\\r\\\\n", "\\\\n");
+        assertTrue(actualJava.contains(expected.java), message);
+      }
       return this;
     }
 
     public AssertQuery planHasSql(String expected) {
-      return planContains(
-          ".unwrap(javax.sql.DataSource.class), \""
-              + expected.replace("\\", "\\\\")
-              .replace("\"", "\\\"")
-              .replaceAll("\n", "\\\\n")
-              + "\"");
+      return planContains(null, JavaSql.fromSql(expected));
     }
 
     private void ensurePlan(Consumer<Integer> checkUpdate) {
@@ -1683,7 +1835,16 @@ public class CalciteAssert {
     }
 
     /** Adds a factory to create a {@link RelNode} query. This {@code RelNode}
-     * will be used instead of the SQL string. */
+     * will be used instead of the SQL string.
+     *
+     * <p>Note: if you want to assert the optimized plan, consider using {@code explainHook...}
+     * methods like {@link #explainHookMatches(String)}</p>
+     *
+     * @param relFn a custom factory that creates a RelNode instead of regular sql to rel
+     * @return updated AssertQuery
+     * @see #explainHookContains(String)
+     * @see #explainHookMatches(String)
+     **/
     public AssertQuery withRel(final Function<RelBuilder, RelNode> relFn) {
       return withHook(Hook.STRING_TO_QUERY,
           (Consumer<Pair<FrameworkConfig, Holder<CalcitePrepare.Query>>>)
@@ -1882,6 +2043,7 @@ public class CalciteAssert {
   /** Specification for common test schemas. */
   public enum SchemaSpec {
     REFLECTIVE_FOODMART("foodmart"),
+    FAKE_FOODMART("foodmart"),
     JDBC_FOODMART("foodmart"),
     CLONE_FOODMART("foodmart2"),
     JDBC_FOODMART_WITH_LATTICE("lattice"),
@@ -1982,6 +2144,77 @@ public class CalciteAssert {
   public interface PreparedStatementConsumer {
     void accept(PreparedStatement statement) throws SQLException;
   }
-}
 
-// End CalciteAssert.java
+  /** An expected string that may contain either Java or a SQL string embedded
+   * in the Java. */
+  private static class JavaSql {
+    private static final String START =
+        ".unwrap(javax.sql.DataSource.class), \"";
+    private static final String END = "\"";
+
+    private final String java;
+    private final String sql;
+
+    JavaSql(String java, String sql) {
+      this.java = Objects.requireNonNull(java);
+      this.sql = sql;
+    }
+
+    static JavaSql fromJava(String java) {
+      return new JavaSql(java, null);
+    }
+
+    static JavaSql fromSql(String sql) {
+      return new JavaSql(wrap(sql), sql);
+    }
+
+    private static String wrap(String sql) {
+      return START
+          + sql.replace("\\", "\\\\")
+              .replace("\"", "\\\"")
+              .replaceAll("\n", "\\\\n")
+          + END;
+    }
+
+    /** Extracts the SQL statement(s) from within a Java plan. */
+    public List<String> extractSql() {
+      return unwrap(java);
+    }
+
+    static @Nonnull List<String> unwrap(String java) {
+      final List<String> sqlList = new ArrayList<>();
+      final StringBuilder b = new StringBuilder();
+      hLoop:
+      for (int h = 0;;) {
+        final int i = java.indexOf(START, h);
+        if (i < 0) {
+          return sqlList;
+        }
+        for (int j = i + START.length(); j < java.length();) {
+          char c = java.charAt(j++);
+          switch (c) {
+          case '"':
+            sqlList.add(b.toString());
+            b.setLength(0);
+            h = j;
+            continue hLoop;
+          case '\\':
+            c = java.charAt(j++);
+            if (c == 'n') {
+              b.append('\n');
+              break;
+            }
+            if (c == 'r') {
+              // Ignore CR, thus converting Windows strings to Unix.
+              break;
+            }
+            // fall through for '\\' and '\"'
+          default:
+            b.append(c);
+          }
+        }
+        return sqlList; // last SQL literal was incomplete
+      }
+    }
+  }
+}

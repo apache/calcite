@@ -29,5 +29,3 @@ package org.apache.calcite.linq4j;
 public abstract class AbstractQueryable<T> extends DefaultQueryable<T>
     implements Queryable<T> {
 }
-
-// End AbstractQueryable.java

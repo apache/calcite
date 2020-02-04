@@ -86,5 +86,3 @@ public class CsvFilterableTable extends CsvTable
     return false;
   }
 }
-
-// End CsvFilterableTable.java

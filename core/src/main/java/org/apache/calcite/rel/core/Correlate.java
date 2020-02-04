@@ -108,7 +108,7 @@ public abstract class Correlate extends BiRel {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
-        new CorrelationId((Integer) input.get("correlationId")),
+        new CorrelationId((Integer) input.get("correlation")),
         input.getBitSet("requiredColumns"),
         input.getEnum("joinType", JoinRelType.class));
   }
@@ -158,7 +158,7 @@ public abstract class Correlate extends BiRel {
     return super.explainTerms(pw)
         .item("correlation", correlationId)
         .item("joinType", joinType.lowerName)
-        .item("requiredColumns", requiredColumns.toString());
+        .item("requiredColumns", requiredColumns);
   }
 
   /**
@@ -188,6 +188,17 @@ public abstract class Correlate extends BiRel {
     return ImmutableSet.of(correlationId);
   }
 
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    double leftRowCount = mq.getRowCount(left);
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      return leftRowCount;
+    default:
+      return leftRowCount * mq.getRowCount(right);
+    }
+  }
+
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);
@@ -210,5 +221,3 @@ public abstract class Correlate extends BiRel {
         0, 0).plus(rescanCost);
   }
 }
-
-// End Correlate.java

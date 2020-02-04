@@ -29,7 +29,7 @@ import org.apache.calcite.test.DiffTestCase;
 import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -37,7 +37,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.PrintWriter;
-import java.nio.file.Paths;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +48,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /** Various automated checks on the documentation. */
 public class DocumentationTest {
@@ -186,25 +186,39 @@ public class DocumentationTest {
     final File inFile;
     final File outFile;
 
+    private boolean isProjectDir(File dir) {
+      return new File(dir, "pom.xml").isFile()
+          || new File(dir, "build.gradle.kts").isFile()
+          || new File(dir, "gradle.properties").isFile();
+    }
+
     FileFixture() {
-      // inUrl =
-      // "file:/home/x/calcite/core/target/test-classes/hsqldb-model.json"
-      String path = "hsqldb-model.json";
-      File hsqlDbModel =
-          Sources.of(SqlParserTest.class.getResource("/" + path)).file();
-      assert hsqlDbModel.getAbsolutePath().endsWith(
-          Paths.get("core", "target", "test-classes", "hsqldb-model.json")
-              .toString())
-          : hsqlDbModel.getAbsolutePath()
-          + " should end with core/target/test-classes/hsqldb-model.json";
-      // skip hsqldb-model.json, test-classes, target, core
-      // The assertion above protects us from walking over unrelated paths
-      base = hsqlDbModel.getAbsoluteFile()
-          .getParentFile().getParentFile().getParentFile().getParentFile();
+      // Algorithm:
+      // 1) Find location of DocumentationTest.class
+      // 2) Climb via getParentFile() until we detect pom.xml
+      // 3) It means we've got core/pom.xml, and we need to get core/../site/
+      Class<DocumentationTest> klass = DocumentationTest.class;
+      File docTestClass =
+          Sources.of(klass.getResource(klass.getSimpleName() + ".class")).file();
+
+      File core = docTestClass.getAbsoluteFile();
+      for (int i = 0; i < 42; i++) {
+        if (isProjectDir(core)) {
+          // Ok, core == core/
+          break;
+        }
+        core = core.getParentFile();
+      }
+      if (!isProjectDir(core)) {
+        fail("Unable to find neither core/pom.xml nor core/build.gradle.kts. Started with "
+            + docTestClass.getAbsolutePath()
+            + ", the current path is " + core.getAbsolutePath());
+      }
+      base = core.getParentFile();
       inFile = new File(base, "site/_docs/reference.md");
-      outFile = new File(base, "core/target/surefire/reference.md");
+      // TODO: replace with core/build/ when Maven is migrated to Gradle
+      // It does work in Gradle, however, we don't want to create "target" folder in Gradle
+      outFile = new File(base, "core/build/reports/documentationTest/reference.md");
     }
   }
 }
-
-// End DocumentationTest.java

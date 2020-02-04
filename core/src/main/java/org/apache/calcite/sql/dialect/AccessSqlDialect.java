@@ -22,10 +22,11 @@ import org.apache.calcite.sql.SqlDialect;
  * A <code>SqlDialect</code> implementation for the Access database.
  */
 public class AccessSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new AccessSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.ACCESS)
-          .withIdentifierQuoteString("\""));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.ACCESS)
+      .withIdentifierQuoteString("\"");
+
+  public static final SqlDialect DEFAULT = new AccessSqlDialect(DEFAULT_CONTEXT);
 
   /** Creates an AccessSqlDialect. */
   public AccessSqlDialect(Context context) {
@@ -36,5 +37,3 @@ public class AccessSqlDialect extends SqlDialect {
     return false;
   }
 }
-
-// End AccessSqlDialect.java

@@ -102,5 +102,3 @@ public abstract class RelEnumTypes {
     return (E) ENUM_BY_NAME.get(name);
   }
 }
-
-// End RelEnumTypes.java

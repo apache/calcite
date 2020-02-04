@@ -81,5 +81,3 @@ public interface Member {
       Object schemaInstance,
       List<Object> arguments);
 }
-
-// End Member.java

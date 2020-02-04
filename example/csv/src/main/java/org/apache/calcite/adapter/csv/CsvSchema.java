@@ -118,5 +118,3 @@ public class CsvSchema extends AbstractSchema {
     }
   }
 }
-
-// End CsvSchema.java

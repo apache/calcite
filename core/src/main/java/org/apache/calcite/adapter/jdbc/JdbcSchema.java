@@ -567,5 +567,3 @@ public class JdbcSchema implements Schema {
       extends BiFunction<String, String, Iterable<MetaImpl.MetaTable>> {
   }
 }
-
-// End JdbcSchema.java

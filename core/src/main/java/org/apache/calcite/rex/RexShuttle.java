@@ -277,5 +277,3 @@ public class RexShuttle implements RexVisitor<RexNode> {
     return (expr == null) ? null : expr.accept(this);
   }
 }
-
-// End RexShuttle.java

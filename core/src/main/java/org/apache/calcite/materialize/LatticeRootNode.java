@@ -82,5 +82,3 @@ public class LatticeRootNode extends LatticeNode {
   }
 
 }
-
-// End LatticeRootNode.java

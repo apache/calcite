@@ -59,5 +59,3 @@ public class SqlJsonPrettyFunction extends SqlFunction {
     return super.createCall(functionQualifier, pos, operands);
   }
 }
-
-// End SqlJsonPrettyFunction.java

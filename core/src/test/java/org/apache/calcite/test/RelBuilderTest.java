@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -67,7 +68,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 import org.hamcrest.Matcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -80,17 +81,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
-import java.util.function.Function;
-import javax.annotation.Nonnull;
+import java.util.function.UnaryOperator;
 
+import static org.apache.calcite.test.Matchers.hasHints;
 import static org.apache.calcite.test.Matchers.hasTree;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Unit test for {@link RelBuilder}.
@@ -160,12 +164,10 @@ public class RelBuilderTest {
     return Frameworks.newConfigBuilder().defaultSchema(root);
   }
 
-  @Nonnull static RelBuilder createBuilder(
-      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform) {
+  static RelBuilder createBuilder(UnaryOperator<RelBuilder.Config> transform) {
     final Frameworks.ConfigBuilder configBuilder = config();
     configBuilder.context(
-        Contexts.of(transform.apply(RelBuilder.Config.builder())
-            .build()));
+        Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
     return RelBuilder.create(configBuilder.build());
   }
 
@@ -392,19 +394,18 @@ public class RelBuilderTest {
   /** Tests that {@link RelBuilder#project} simplifies expressions if and only if
    * {@link RelBuilder.Config#simplify}. */
   @Test public void testSimplify() {
-    checkSimplify(configBuilder -> configBuilder.withSimplify(true),
+    checkSimplify(c -> c.withSimplify(true),
         hasTree("LogicalProject($f0=[true])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
-    checkSimplify(configBuilder -> configBuilder,
+    checkSimplify(c -> c,
         hasTree("LogicalProject($f0=[true])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
-    checkSimplify(configBuilder -> configBuilder.withSimplify(false),
+    checkSimplify(c -> c.withSimplify(false),
         hasTree("LogicalProject($f0=[IS NOT NULL($0)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  private void checkSimplify(
-      Function<RelBuilder.ConfigBuilder, RelBuilder.ConfigBuilder> transform,
+  private void checkSimplify(UnaryOperator<RelBuilder.Config> transform,
       Matcher<RelNode> matcher) {
     final RelBuilder builder = createBuilder(transform);
     final RelNode root =
@@ -724,7 +725,7 @@ public class RelBuilderTest {
     assertTrue(root instanceof Project);
     Project project = (Project) root;
     Mappings.TargetMapping mapping = project.getMapping();
-    assertTrue(mapping == null);
+    assertThat(mapping, nullValue());
   }
 
   private void project1(int value, SqlTypeName sqlTypeName, String message, String expected) {
@@ -995,30 +996,27 @@ public class RelBuilderTest {
   /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
    * calls and creates a {@code Project} to compensate. */
   @Test public void testAggregateEliminatesDuplicateCalls() {
-    final RelBuilder builder =
-        createBuilder(configBuilder ->
-            configBuilder.withDedupAggregateCalls(true));
     final String expected = ""
         + "LogicalProject(S1=[$0], C=[$1], S2=[$2], S1b=[$0])\n"
         + "  LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(buildRelWithDuplicateAggregates(builder), hasTree(expected));
+    assertThat(
+        buildRelWithDuplicateAggregates(c -> c.withDedupAggregateCalls(true)),
+        hasTree(expected));
 
     // Now, disable the rewrite
-    final RelBuilder builder2 =
-        createBuilder(configBuilder ->
-            configBuilder.withDedupAggregateCalls(false));
     final String expected2 = ""
         + "LogicalAggregate(group=[{}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)], S1b=[SUM($1)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(buildRelWithDuplicateAggregates(builder2), hasTree(expected2));
+    assertThat(
+        buildRelWithDuplicateAggregates(c -> c.withDedupAggregateCalls(false)),
+        hasTree(expected2));
   }
 
   /** As {@link #testAggregateEliminatesDuplicateCalls()} but with a
    * single-column GROUP BY clause. */
   @Test public void testAggregateEliminatesDuplicateCalls2() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root = buildRelWithDuplicateAggregates(builder, 0);
+    RelNode root = buildRelWithDuplicateAggregates(c -> c, 0);
     final String expected = ""
         + "LogicalProject(EMPNO=[$0], S1=[$1], C=[$2], S2=[$3], S1b=[$1])\n"
         + "  LogicalAggregate(group=[{0}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
@@ -1029,8 +1027,7 @@ public class RelBuilderTest {
   /** As {@link #testAggregateEliminatesDuplicateCalls()} but with a
    * multi-column GROUP BY clause. */
   @Test public void testAggregateEliminatesDuplicateCalls3() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    RelNode root = buildRelWithDuplicateAggregates(builder, 2, 0, 4, 3);
+    RelNode root = buildRelWithDuplicateAggregates(c -> c, 2, 0, 4, 3);
     final String expected = ""
         + "LogicalProject(EMPNO=[$0], JOB=[$1], MGR=[$2], HIREDATE=[$3], S1=[$4], C=[$5], S2=[$6], S1b=[$4])\n"
         + "  LogicalAggregate(group=[{0, 2, 3, 4}], S1=[SUM($1)], C=[COUNT()], S2=[SUM($2)])\n"
@@ -1038,8 +1035,10 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  private RelNode buildRelWithDuplicateAggregates(RelBuilder builder,
+  private RelNode buildRelWithDuplicateAggregates(
+      UnaryOperator<RelBuilder.Config> transform,
       int... groupFieldOrdinals) {
+    final RelBuilder builder = createBuilder(transform);
     return builder.scan("EMP")
         .aggregate(builder.groupKey(groupFieldOrdinals),
             builder.sum(builder.field(1)).as("S1"),
@@ -1086,8 +1085,9 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of())),
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of())),
                 builder.count()
                     .filter(
                         builder.call(SqlStdOperatorTable.GREATER_THAN,
@@ -1207,8 +1207,9 @@ public class RelBuilderTest {
           builder.scan("EMP")
               .aggregate(
                   builder.groupKey(ImmutableBitSet.of(7),
-                      ImmutableList.of(ImmutableBitSet.of(4),
-                          ImmutableBitSet.of())))
+                      (Iterable<ImmutableBitSet>)
+                          ImmutableList.of(ImmutableBitSet.of(4),
+                              ImmutableBitSet.of())))
               .build();
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
@@ -1223,9 +1224,10 @@ public class RelBuilderTest {
         builder.scan("EMP")
             .aggregate(
                 builder.groupKey(ImmutableBitSet.of(7, 6),
-                    ImmutableList.of(ImmutableBitSet.of(7),
-                        ImmutableBitSet.of(6),
-                        ImmutableBitSet.of(7))))
+                    (Iterable<ImmutableBitSet>)
+                        ImmutableList.of(ImmutableBitSet.of(7),
+                            ImmutableBitSet.of(6),
+                            ImmutableBitSet.of(7))))
             .build();
     final String expected = ""
         + "LogicalAggregate(group=[{6, 7}], groups=[[{6}, {7}]])\n"
@@ -2022,6 +2024,105 @@ public class RelBuilderTest {
         + "LogicalProject(DEPTNO=[$7], EMPNO=[$0], MGR=[$3], x=[+($0, $3)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithOrdinal() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field(2),
+                builder.field(3))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("MGR"),
+                builder.field("JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithExplicitAliasAndName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .as("e")
+            .projectExcept(
+                builder.field("e", "MGR"),
+                builder.field("e", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithImplicitAliasAndName() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root =
+        builder.scan("EMP")
+            .projectExcept(
+                builder.field("EMP", "MGR"),
+                builder.field("EMP", "JOB"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithDuplicateField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      builder.scan("EMP")
+          .projectExcept(
+            builder.field("EMP", "MGR"),
+            builder.field("EMP", "MGR"));
+    }, "Project should fail since we are trying to remove the same field two times.");
+    assertThat(ex.getMessage(), containsString("Input list contains duplicates."));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3462">[CALCITE-3462]
+   * Add projectExcept method in RelBuilder for projecting out expressions</a>. */
+  @Test public void testProjectExceptWithMissingField() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.scan("EMP");
+    RexNode deptnoField = builder.field("DEPTNO");
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      builder.project(
+            builder.field("EMPNO"),
+            builder.field("ENAME"))
+          .projectExcept(deptnoField);
+    }, "Project should fail since we are trying to remove a field that does not exist.");
+    assertThat(ex.getMessage(), allOf(containsString("Expression"), containsString("not found")));
   }
 
   @Test public void testMultiLevelAlias() {
@@ -2947,6 +3048,105 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
-}
 
-// End RelBuilderTest.java
+  @Test public void testHints() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    final RelHint propsHint = RelHint.of(Collections.singletonList(0),
+        "PROPERTIES",
+        ImmutableMap.of("parallelism", "3", "mem", "20Mb"));
+    final RelHint noHashJoinHint = RelHint.of(Collections.singletonList(0),
+        "NO_HASH_JOIN");
+    final RelBuilder builder = RelBuilder.create(config().build());
+    // Equivalent SQL:
+    //   SELECT *
+    //   FROM emp /*+ INDEX(_idx1, _idx2) */
+    final RelNode root = builder
+            .scan("EMP")
+            .hints(indexHint)
+            .build();
+    assertThat(root,
+        hasHints("[[INDEX inheritPath:[] options:[_idx1, _idx2]]]"));
+    // Equivalent SQL:
+    //   SELECT /*+  PROPERTIES(parallelism='3', mem='20Mb') */
+    //   *
+    //   FROM emp /*+ INDEX(_idx1, _idx2) */
+    final RelNode root1 = builder
+            .scan("EMP")
+            .hints(indexHint, propsHint)
+            .build();
+    assertThat(root1,
+        hasHints("[[INDEX inheritPath:[] options:[_idx1, _idx2]], "
+            + "[PROPERTIES inheritPath:[0] options:{parallelism=3, mem=20Mb}]]"));
+    // Equivalent SQL:
+    //   SELECT /*+ NO_HASH_JOIN */
+    //   *
+    //   FROM emp
+    //     join dept
+    //     on emp.deptno = dept.deptno
+    final RelNode root2 = builder
+        .scan("EMP")
+        .scan("DEPT")
+        .join(JoinRelType.INNER,
+            builder.equals(
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .hints(noHashJoinHint)
+        .build();
+    assertThat(root2, hasHints("[[NO_HASH_JOIN inheritPath:[0]]]"));
+  }
+
+  @Test public void testHintsOnEmptyStack() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    // Attach hints on empty stack.
+    final AssertionError error = assertThrows(
+        AssertionError.class,
+        () -> RelBuilder.create(config().build()).hints(indexHint),
+        "hints() should fail on empty stack");
+    assertThat(error.getMessage(),
+        containsString("There is no relational expression to attach the hints"));
+  }
+
+  @Test public void testHintsOnNonHintable() {
+    final RelHint indexHint = RelHint.of(Collections.emptyList(),
+        "INDEX",
+        Arrays.asList("_idx1", "_idx2"));
+    // Attach hints on non hintable.
+    final AssertionError error1 = assertThrows(
+        AssertionError.class,
+        () -> {
+          final RelBuilder builder = RelBuilder.create(config().build());
+          // Equivalent SQL:
+          //   SELECT *
+          //   FROM emp
+          //   WHERE EMPNO = 124
+          builder
+              .scan("EMP")
+              .filter(
+                  builder.equals(
+                      builder.field("EMPNO"),
+                      builder.literal(124)))
+              .hints(indexHint);
+        },
+        "hints() should fail on non Hintable relational expression");
+    assertThat(error1.getMessage(),
+        containsString("The top relational expression is not a Hintable"));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3747">[CALCITE-3747]
+   * Constructing BETWEEN with RelBuilder throws class cast exception</a>. */
+  @Test public void testCallBetweenOperator() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RexNode call = builder.scan("EMP")
+        .call(
+            SqlStdOperatorTable.BETWEEN,
+            builder.field("EMPNO"),
+            builder.literal(1),
+            builder.literal(5));
+    assertThat(call.toStringRaw(), is("BETWEEN ASYMMETRIC($0, 1, 5)"));
+  }
+}

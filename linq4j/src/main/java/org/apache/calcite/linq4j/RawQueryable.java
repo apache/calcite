@@ -46,5 +46,3 @@ public interface RawQueryable<T> extends Enumerable<T> {
    */
   QueryProvider getProvider();
 }
-
-// End RawQueryable.java

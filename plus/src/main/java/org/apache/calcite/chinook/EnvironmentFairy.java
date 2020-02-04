@@ -48,5 +48,3 @@ public class EnvironmentFairy {
   }
 
 }
-
-// End EnvironmentFairy.java

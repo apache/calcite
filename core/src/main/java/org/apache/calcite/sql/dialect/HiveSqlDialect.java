@@ -17,9 +17,12 @@
 package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -33,9 +36,11 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
-import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ToNumberUtils;
 
@@ -48,11 +53,12 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IF;
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
  */
 public class HiveSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new HiveSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.HIVE)
-          .withNullCollation(NullCollation.LOW)
-          .withConformance(SqlConformanceEnum.HIVE));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.HIVE)
+      .withNullCollation(NullCollation.LOW)
+      .withConformance(SqlConformanceEnum.HIVE);
+
+  public static final SqlDialect DEFAULT = new HiveSqlDialect(DEFAULT_CONTEXT);
 
   private final boolean emulateNullDirection;
   private final boolean isHiveLowerVersion;
@@ -205,6 +211,16 @@ public class HiveSqlDialect extends SqlDialect {
       if (call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())
           && ((SqlBasicCall) call).getOperands().length > 0) {
         unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+      } else if (call.getOperator() instanceof SqlSubstringFunction) {
+        final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
+        call.operand(0).unparse(writer, leftPrec, rightPrec);
+        writer.sep(",", true);
+        call.operand(1).unparse(writer, leftPrec, rightPrec);
+        if (3 == call.operandCount()) {
+          writer.sep(",", true);
+          call.operand(2).unparse(writer, leftPrec, rightPrec);
+        }
+        writer.endFunCall(funCallFrame);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
@@ -301,6 +317,22 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override public boolean supportsCharSet() {
     return false;
+  }
+
+  @Override public boolean supportsGroupByWithCube() {
+    return true;
+  }
+
+  @Override public SqlNode getCastSpec(final RelDataType type) {
+    if (type instanceof BasicSqlType) {
+      switch (type.getSqlTypeName()) {
+        case INTEGER:
+          SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+            "INT", type.getSqlTypeName(), SqlParserPos.ZERO);
+          return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+      }
+    }
+    return super.getCastSpec(type);
   }
 
   @Override public void unparseSqlDatetimeArithmetic(

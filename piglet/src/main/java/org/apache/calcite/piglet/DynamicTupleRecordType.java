@@ -72,5 +72,3 @@ public class DynamicTupleRecordType extends DynamicRecordTypeImpl {
     return -1;
   }
 }
-
-// End DynamicTupleRecordType.java

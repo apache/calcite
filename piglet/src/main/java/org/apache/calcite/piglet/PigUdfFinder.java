@@ -108,5 +108,3 @@ class PigUdfFinder {
     return returnedMethod;
   }
 }
-
-// End PigUdfFinder.java

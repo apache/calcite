@@ -53,5 +53,3 @@ public abstract class SqlCreate extends SqlDdl {
   }
 
 }
-
-// End SqlCreate.java

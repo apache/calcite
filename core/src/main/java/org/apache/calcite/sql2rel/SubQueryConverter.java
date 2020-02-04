@@ -49,5 +49,3 @@ public interface SubQueryConverter {
       boolean isExists,
       boolean isExplain);
 }
-
-// End SubQueryConverter.java

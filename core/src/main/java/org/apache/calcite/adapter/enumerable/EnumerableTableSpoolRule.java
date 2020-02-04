@@ -49,5 +49,3 @@ public class EnumerableTableSpoolRule extends ConverterRule {
         spool.getTable());
   }
 }
-
-// End EnumerableTableSpoolRule.java

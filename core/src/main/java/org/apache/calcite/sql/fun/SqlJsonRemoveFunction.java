@@ -55,13 +55,12 @@ public class SqlJsonRemoveFunction extends SqlFunction {
         callBinding, callBinding.operand(0), 0, throwOnFailure)) {
       return false;
     }
+    final SqlTypeFamily[] families = new SqlTypeFamily[operandCount];
+    families[0] = SqlTypeFamily.ANY;
     for (int i = 1; i < operandCount; i++) {
-      if (!OperandTypes.CHARACTER.checkSingleOperandType(
-          callBinding, callBinding.operand(i), 0, throwOnFailure)) {
-        return false;
-      }
+      families[i] = SqlTypeFamily.CHARACTER;
     }
-    return true;
+    return OperandTypes.family(families).checkOperandTypes(callBinding, throwOnFailure);
   }
 
   @Override public String getAllowedSignatures(String opNameToUse) {
@@ -69,5 +68,3 @@ public class SqlJsonRemoveFunction extends SqlFunction {
         SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER);
   }
 }
-
-// End SqlJsonRemoveFunction.java

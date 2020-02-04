@@ -132,5 +132,3 @@ public class GotoStatement extends Statement {
     return Objects.hash(nodeType, type, kind, labelTarget, expression);
   }
 }
-
-// End GotoStatement.java

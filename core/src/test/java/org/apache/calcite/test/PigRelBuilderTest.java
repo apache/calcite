@@ -16,16 +16,20 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.PigRelBuilder;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
  * Unit test for {@link PigRelBuilder}.
@@ -34,6 +38,14 @@ public class PigRelBuilderTest {
   /** Creates a config based on the "scott" schema. */
   public static Frameworks.ConfigBuilder config() {
     return RelBuilderTest.config();
+  }
+
+  static PigRelBuilder createBuilder(
+      UnaryOperator<RelBuilder.Config> transform) {
+    final Frameworks.ConfigBuilder configBuilder = config();
+    configBuilder.context(
+        Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
+    return PigRelBuilder.create(configBuilder.build());
   }
 
   /** Converts a relational expression to a sting with linux line-endings. */
@@ -154,5 +166,3 @@ public class PigRelBuilderTest {
   @Test public void testStore() {}
   @Test public void testUnion() {}
 }
-
-// End PigRelBuilderTest.java

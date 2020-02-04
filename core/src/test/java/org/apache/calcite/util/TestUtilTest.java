@@ -16,26 +16,24 @@
  */
 package org.apache.calcite.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for TestUtil
  */
 public class TestUtilTest {
 
-  @Test
-  public void javaMajorVersionExceeds6() {
+  @Test public void javaMajorVersionExceeds6() {
     // shouldn't throw any exceptions (for current JDK)
     int majorVersion = TestUtil.getJavaMajorVersion();
-    assertTrue("current JavaMajorVersion == " + majorVersion + " is expected to exceed 6",
-        majorVersion > 6);
+    assertTrue(majorVersion > 6,
+        "current JavaMajorVersion == " + majorVersion + " is expected to exceed 6");
   }
 
-  @Test
-  public void majorVersionFromString() {
+  @Test public void majorVersionFromString() {
     testJavaVersion(4, "1.4.2_03");
     testJavaVersion(5, "1.5.0_16");
     testJavaVersion(6, "1.6.0_22");
@@ -85,10 +83,9 @@ public class TestUtilTest {
   }
 
   private void testJavaVersion(int expectedMajorVersion, String versionString) {
-    assertEquals(versionString, expectedMajorVersion,
-        TestUtil.majorVersionFromString(versionString));
+    assertEquals(expectedMajorVersion,
+        TestUtil.majorVersionFromString(versionString),
+        versionString);
   }
 
 }
-
-// End TestUtilTest.java

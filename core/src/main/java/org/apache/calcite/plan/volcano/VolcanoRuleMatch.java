@@ -142,18 +142,18 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
         new StringBuilder("rule [" + getRule() + "] rels [");
     for (int i = 0; i < rels.length; i++) {
       if (i > 0) {
-        buf.append(", ");
+        buf.append(',');
       }
-      buf.append(rels[i].toString());
+      buf.append('#').append(rels[i].getId());
     }
-    buf.append("]");
+    buf.append(']');
     return buf.toString();
   }
 
   /**
-   * Recomputes the digest of this VolcanoRuleMatch. It is necessary when sets
-   * have merged since the match was created.
+   * Recomputes the digest of this VolcanoRuleMatch.
    */
+  @Deprecated // to be removed before 2.0
   public void recomputeDigest() {
     digest = computeDigest();
   }
@@ -196,5 +196,3 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
   }
 
 }
-
-// End VolcanoRuleMatch.java

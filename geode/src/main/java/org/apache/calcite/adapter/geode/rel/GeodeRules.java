@@ -331,9 +331,10 @@ public class GeodeRules {
         String rightName = fieldNames.get(right1.getIndex());
 
         return (leftName != null) && (rightName != null);
-      }
-      if ((left.isA(SqlKind.OTHER_FUNCTION))
-          && right.isA(SqlKind.LITERAL)) {
+      } else if (left.isA(SqlKind.ITEM) && right.isA(SqlKind.LITERAL)) {
+        return true;
+      }else if ((left.isA(SqlKind.OTHER_FUNCTION))
+        && right.isA(SqlKind.LITERAL)) {
         if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
           return false;
         }

@@ -45,6 +45,10 @@ public enum SqlConformanceEnum implements SqlConformance {
   PRAGMATIC_99,
 
   /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with BigQuery. */
+  BIG_QUERY,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with MySQL version 5.x. */
   MYSQL_5,
 
@@ -92,6 +96,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case BABEL:
     case LENIENT:
+    case BIG_QUERY:
     case MYSQL_5:
     case BIG_QUERY:
       return true;
@@ -116,6 +121,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case BABEL:
     case LENIENT:
+    case BIG_QUERY:
     case MYSQL_5:
       return true;
     default:
@@ -128,6 +134,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case DEFAULT:
     case BABEL:
     case LENIENT:
+    case BIG_QUERY:
     case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
@@ -230,6 +237,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
+    case BIG_QUERY:
       return true;
     default:
       return false;
@@ -294,6 +302,7 @@ public enum SqlConformanceEnum implements SqlConformance {
     switch (this) {
     case PRAGMATIC_99:
     case PRAGMATIC_2003:
+    case BIG_QUERY:
     case MYSQL_5:
     case ORACLE_10:
     case ORACLE_12:
@@ -316,6 +325,27 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
-}
+  @Override public boolean allowPluralTimeUnits() {
+    switch (this) {
+    case BABEL:
+    case LENIENT:
+      return true;
+    default:
+      return false;
+    }
+  }
 
-// End SqlConformanceEnum.java
+  @Override public boolean allowQualifyingCommonColumn() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+    case STRICT_92:
+    case STRICT_99:
+    case STRICT_2003:
+      return false;
+    default:
+      return true;
+    }
+  }
+
+}

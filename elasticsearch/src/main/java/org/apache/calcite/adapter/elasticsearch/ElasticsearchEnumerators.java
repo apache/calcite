@@ -139,5 +139,3 @@ class ElasticsearchEnumerators {
     return o;
   }
 }
-
-// End ElasticsearchEnumerators.java

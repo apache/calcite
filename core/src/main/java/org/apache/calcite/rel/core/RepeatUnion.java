@@ -110,5 +110,3 @@ public abstract class RepeatUnion extends BiRel {
     return rowType;
   }
 }
-
-// End RepeatUnion.java

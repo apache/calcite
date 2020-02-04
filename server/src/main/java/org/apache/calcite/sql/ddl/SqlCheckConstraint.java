@@ -71,5 +71,3 @@ public class SqlCheckConstraint extends SqlCall {
     }
   }
 }
-
-// End SqlCheckConstraint.java

@@ -112,5 +112,3 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
     return Consistency.NONE;
   }
 }
-
-// End AssignableOperandTypeChecker.java

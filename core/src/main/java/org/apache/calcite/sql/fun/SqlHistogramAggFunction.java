@@ -76,5 +76,3 @@ public class SqlHistogramAggFunction extends SqlAggFunction {
     return type;
   }
 }
-
-// End SqlHistogramAggFunction.java

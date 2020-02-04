@@ -63,5 +63,3 @@ public class SqlNullTreatmentOperator extends SqlSpecialOperator {
     }
   }
 }
-
-// End SqlNullTreatmentOperator.java

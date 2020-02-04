@@ -72,5 +72,3 @@ class UnnestNamespace extends AbstractNamespace {
     return unnest;
   }
 }
-
-// End UnnestNamespace.java

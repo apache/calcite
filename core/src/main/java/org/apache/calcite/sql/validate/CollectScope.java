@@ -49,5 +49,3 @@ class CollectScope extends ListScope {
     return child;
   }
 }
-
-// End CollectScope.java

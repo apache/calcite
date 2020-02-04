@@ -38,5 +38,3 @@ public abstract class DynamicRecordType extends RelDataTypeImpl {
   }
 
 }
-
-// End DynamicRecordType.java

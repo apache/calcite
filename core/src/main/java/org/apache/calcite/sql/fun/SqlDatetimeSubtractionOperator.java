@@ -71,5 +71,3 @@ public class SqlDatetimeSubtractionOperator extends SqlSpecialOperator {
     return SqlStdOperatorTable.MINUS.getMonotonicity(call);
   }
 }
-
-// End SqlDatetimeSubtractionOperator.java

@@ -50,5 +50,3 @@ public class NoneToBindableConverterRule extends ConverterRule {
     return new InterpretableConverter(rel.getCluster(), newTraitSet, rel);
   }
 }
-
-// End NoneToBindableConverterRule.java

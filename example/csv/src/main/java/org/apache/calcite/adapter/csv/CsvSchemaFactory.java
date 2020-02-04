@@ -62,5 +62,3 @@ public class CsvSchemaFactory implements SchemaFactory {
     return new CsvSchema(directoryFile, flavor);
   }
 }
-
-// End CsvSchemaFactory.java

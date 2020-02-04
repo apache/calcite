@@ -788,5 +788,3 @@ public class ProfilerImpl implements Profiler {
     }
   }
 }
-
-// End ProfilerImpl.java

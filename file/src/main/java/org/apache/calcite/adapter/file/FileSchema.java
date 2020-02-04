@@ -164,5 +164,3 @@ class FileSchema extends AbstractSchema {
     return false;
   }
 }
-
-// End FileSchema.java

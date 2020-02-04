@@ -93,5 +93,3 @@ public class SqlPostfixOperator extends SqlOperator {
     return litmus.succeed();
   }
 }
-
-// End SqlPostfixOperator.java

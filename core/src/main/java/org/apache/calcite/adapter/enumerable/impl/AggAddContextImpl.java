@@ -36,5 +36,3 @@ public abstract class AggAddContextImpl extends AggResultContextImpl
     return rowTranslator().translateList(rexArguments());
   }
 }
-
-// End AggAddContextImpl.java

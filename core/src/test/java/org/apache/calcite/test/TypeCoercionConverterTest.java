@@ -18,7 +18,7 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test cases for implicit type coercion converter. see {@link TypeCoercion} doc
@@ -37,47 +37,28 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for {@link TypeCoercion#commonTypeForBinaryComparison}. */
-  @Test public void testBinaryComparable() {
+  @Test public void testBinaryComparison() {
     // for constant cast, there is reduce rule
-    checkPlanEquals("select 1<'1' from (values true)");
-  }
-
-  @Test public void testBinaryComparable1() {
-    checkPlanEquals("select 1<='1' from (values true)");
-  }
-
-  @Test public void testBinaryComparable2() {
-    checkPlanEquals("select 1>'1' from (values true)");
-  }
-
-  @Test public void testBinaryComparable3() {
-    checkPlanEquals("select 1>='1' from (values true)");
-  }
-
-  @Test public void testBinaryComparable4() {
-    checkPlanEquals("select 1='1' from (values true)");
-  }
-
-  @Test public void testBinaryComparable5() {
-    checkPlanEquals("select t1_date > t1_timestamp from t1");
-  }
-
-  @Test public void testBinaryComparable6() {
-    checkPlanEquals("select '2' is not distinct from 2 from (values true)");
+    checkPlanEquals("select\n"
+        + "1<'1' as f0,\n"
+        + "1<='1' as f1,\n"
+        + "1>'1' as f2,\n"
+        + "1>='1' as f3,\n"
+        + "1='1' as f4,\n"
+        + "t1_date > t1_timestamp as f5,\n"
+        + "'2' is not distinct from 2 as f6,\n"
+        + "'2019-09-23' between t1_date and t1_timestamp as f7,\n"
+        + "cast('2019-09-23' as date) between t1_date and t1_timestamp as f8\n"
+        + "from t1");
   }
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
   @Test public void testInOperation() {
-    checkPlanEquals("select 1 in ('1', '2', '3') from (values true)");
-  }
-
-  @Test public void testInOperation1() {
-    checkPlanEquals("select (1, 2) in (select '1', '2' "
-        + "from (values (true, true))) from (values true)");
-  }
-
-  @Test public void testInOperation2() {
-    checkPlanEquals("select (1, 2) in (('1', '2'), ('3', '4')) from (values true)");
+    checkPlanEquals("select\n"
+        + "1 in ('1', '2', '3') as f0,\n"
+        + "(1, 2) in (('1', '2')) as f1,\n"
+        + "(1, 2) in (('1', '2'), ('3', '4')) as f2\n"
+        + "from (values (true, true, true))");
   }
 
   /** Test cases for
@@ -87,35 +68,21 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     // Calcite execution runtime, but we still add cast in the plan so other systems
     // using Calcite can rewrite Cast operator implementation.
     // for this case, we replace the boolean literal with numeric 1.
-    checkPlanEquals("select 1=true from (values true)");
-  }
-
-  @Test public void testBooleanEquality1() {
-    checkPlanEquals("select 1.0=true from (values true)");
-  }
-
-  @Test public void testBooleanEquality2() {
-    checkPlanEquals("select 0.0=true from (values true)");
-  }
-
-  @Test public void testBooleanEquality3() {
-    checkPlanEquals("select 1.23=t1_boolean from t1");
-  }
-
-  @Test public void testBooleanEquality4() {
-    // int boolean
-    checkPlanEquals("select t1_smallint=t1_boolean from t1");
-  }
-
-  @Test public void testBooleanEquality5() {
-    checkPlanEquals("select 10000000000=true from (values true)");
+    checkPlanEquals("select\n"
+        + "1=true as f0,\n"
+        + "1.0=true as f1,\n"
+        + "0.0=true=true as f2,\n"
+        + "1.23=t1_boolean as f3,\n"
+        + "t1_smallint=t1_boolean as f4,\n"
+        + "10000000000=true as f5\n"
+        + "from t1");
   }
 
   @Test public void testCaseWhen() {
     checkPlanEquals("select case when 1 > 0 then t2_bigint else t2_decimal end from t2");
   }
 
-  @Test  public void testBuiltinFunctionCoercion() {
+  @Test public void testBuiltinFunctionCoercion() {
     checkPlanEquals("select 1||'a' from (values true)");
   }
 
@@ -123,7 +90,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals("select * from (values(1, '3')) union select * from (values('2', 4))");
   }
 
-  @Test public void testSetOperations() {
+  @Test public void testSetOperation() {
     // int decimal smallint double
     // char decimal float bigint
     // char decimal float double
@@ -135,9 +102,19 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals(sql);
   }
 
+  @Test public void testInsertQuerySourceCoercion() {
+    final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
+        + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
+    checkPlanEquals(sql);
+  }
+
+  @Test public void testUpdateQuerySourceCoercion() {
+    final String sql = "update t1 set t1_varchar20=123, "
+        + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
+    checkPlanEquals(sql);
+  }
+
   private void checkPlanEquals(String sql) {
     tester.assertConvertsTo(sql, "${plan}");
   }
 }
-
-// End TypeCoercionConverterTest.java

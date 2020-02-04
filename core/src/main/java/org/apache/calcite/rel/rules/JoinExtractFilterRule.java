@@ -56,5 +56,3 @@ public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
   //~ Methods ----------------------------------------------------------------
 
 }
-
-// End JoinExtractFilterRule.java

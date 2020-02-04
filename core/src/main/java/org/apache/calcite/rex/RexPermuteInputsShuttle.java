@@ -110,5 +110,3 @@ public class RexPermuteInputsShuttle extends RexShuttle {
     return -1;
   }
 }
-
-// End RexPermuteInputsShuttle.java

@@ -44,5 +44,3 @@ public class ConstantUntypedNull extends ConstantExpression {
     return ConstantUntypedNull.class.hashCode();
   }
 }
-
-// End ConstantUntypedNull.java

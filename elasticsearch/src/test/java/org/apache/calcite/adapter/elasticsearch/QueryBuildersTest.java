@@ -19,7 +19,7 @@ package org.apache.calcite.adapter.elasticsearch;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Check that internal queries are correctly converted to ES search query (as JSON)
@@ -44,8 +44,7 @@ public class QueryBuildersTest {
    * Test for simple scalar terms (boolean, int etc.)
    * @throws Exception not expected
    */
-  @Test
-  public void term() throws Exception {
+  @Test public void term() throws Exception {
     assertEquals("{\"term\":{\"foo\":\"bar\"}}",
         toJson(QueryBuilders.termQuery("foo", "bar")));
     assertEquals("{\"term\":{\"bar\":\"foo\"}}",
@@ -78,8 +77,7 @@ public class QueryBuildersTest {
         toJson(QueryBuilders.termQuery("foo", new AtomicBoolean(true))));
   }
 
-  @Test
-  public void terms() throws Exception {
+  @Test public void terms() throws Exception {
     assertEquals("{\"terms\":{\"foo\":[]}}",
         toJson(QueryBuilders.termsQuery("foo", Collections.emptyList())));
 
@@ -108,8 +106,7 @@ public class QueryBuildersTest {
         toJson(QueryBuilders.termsQuery("foo", Arrays.asList(1.1, 2.2, 3.3))));
   }
 
-  @Test
-  public void boolQuery() throws Exception {
+  @Test public void boolQuery() throws Exception {
     QueryBuilders.QueryBuilder q1 = QueryBuilders.boolQuery()
         .must(QueryBuilders.termQuery("foo", "bar"));
 
@@ -130,14 +127,12 @@ public class QueryBuildersTest {
 
   }
 
-  @Test
-  public void exists() throws Exception {
+  @Test public void exists() throws Exception {
     assertEquals("{\"exists\":{\"field\":\"foo\"}}",
         toJson(QueryBuilders.existsQuery("foo")));
   }
 
-  @Test
-  public void range() throws Exception {
+  @Test public void range() throws Exception {
     assertEquals("{\"range\":{\"f\":{\"lt\":0}}}",
         toJson(QueryBuilders.rangeQuery("f").lt(0)));
     assertEquals("{\"range\":{\"f\":{\"gt\":0}}}",
@@ -166,10 +161,17 @@ public class QueryBuildersTest {
         toJson(QueryBuilders.rangeQuery("f").lt(1).lt(2).lte(3)));
   }
 
-  @Test
-  public void matchAll() throws IOException {
+  @Test public void matchAll() throws IOException {
     assertEquals("{\"match_all\":{}}",
         toJson(QueryBuilders.matchAll()));
+  }
+
+  @Test public void match() throws IOException {
+    assertEquals("{\"match\":{\"foo\":[\"bar\"]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton("bar"))));
+
+    assertEquals("{\"match\":{\"foo\":[true]}}",
+        toJson(QueryBuilders.matchesQuery("foo", Collections.singleton(true))));
   }
 
   private String toJson(QueryBuilders.QueryBuilder builder) throws IOException {
@@ -181,5 +183,3 @@ public class QueryBuildersTest {
     return writer.toString();
   }
 }
-
-// End QueryBuildersTest.java

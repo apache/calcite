@@ -43,5 +43,3 @@ public interface Metadata {
   /** Returns the relational expression that this metadata is about. */
   RelNode rel();
 }
-
-// End Metadata.java

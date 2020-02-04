@@ -85,5 +85,3 @@ public class Unsafe {
     return sb.toString();
   }
 }
-
-// End Unsafe.java

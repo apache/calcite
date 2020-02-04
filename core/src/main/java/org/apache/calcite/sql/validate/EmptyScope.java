@@ -233,5 +233,3 @@ class EmptyScope implements SqlValidatorScope {
     return null;
   }
 }
-
-// End EmptyScope.java

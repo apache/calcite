@@ -34,6 +34,7 @@ import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.JavaToSqlTypeConversionRules;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
@@ -251,11 +252,36 @@ public class JavaTypeFactoryImpl
               type.getFieldNames()),
           type.isNullable());
     } else if (type instanceof JavaType) {
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(type.getSqlTypeName()),
-          type.isNullable());
+      SqlTypeName sqlTypeName = type.getSqlTypeName();
+      final RelDataType relDataType;
+      if (SqlTypeUtil.isArray(type)) {
+        // Transform to sql type, take care for two cases:
+        // 1. type.getJavaClass() is collection with erased generic type
+        // 2. ElementType returned by JavaType is also of JavaType,
+        // and needs conversion using typeFactory
+        final RelDataType elementType = toSqlTypeWithNullToAny(
+            typeFactory, type.getComponentType());
+        relDataType = typeFactory.createArrayType(elementType, -1);
+      } else if (SqlTypeUtil.isMap(type)) {
+        final RelDataType keyType = toSqlTypeWithNullToAny(
+            typeFactory, type.getKeyType());
+        final RelDataType valueType = toSqlTypeWithNullToAny(
+            typeFactory, type.getValueType());
+        relDataType = typeFactory.createMapType(keyType, valueType);
+      } else {
+        relDataType = typeFactory.createSqlType(sqlTypeName);
+      }
+      return typeFactory.createTypeWithNullability(relDataType, type.isNullable());
     }
     return type;
+  }
+
+  private static RelDataType toSqlTypeWithNullToAny(
+      final RelDataTypeFactory typeFactory, RelDataType type) {
+    if (type == null) {
+      return typeFactory.createSqlType(SqlTypeName.ANY);
+    }
+    return toSql(typeFactory, type);
   }
 
   public Type createSyntheticType(List<Type> types) {
@@ -399,5 +425,3 @@ public class JavaTypeFactoryImpl
     }
   }
 }
-
-// End JavaTypeFactoryImpl.java

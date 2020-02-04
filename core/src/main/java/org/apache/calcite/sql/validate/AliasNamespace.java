@@ -129,5 +129,3 @@ public class AliasNamespace extends AbstractNamespace {
         + "' in rowtype " + underlyingRowType);
   }
 }
-
-// End AliasNamespace.java

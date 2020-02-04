@@ -34,5 +34,3 @@ public class SqlOperatorTest extends SqlOperatorBaseTest {
     super(false, DEFAULT_TESTER);
   }
 }
-
-// End SqlOperatorTest.java

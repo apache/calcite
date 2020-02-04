@@ -556,5 +556,3 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
   }
 }
-
-// End RelTraitSet.java

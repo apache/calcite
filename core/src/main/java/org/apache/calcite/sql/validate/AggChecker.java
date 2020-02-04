@@ -217,5 +217,3 @@ class AggChecker extends SqlBasicVisitor<Void> {
   }
 
 }
-
-// End AggChecker.java

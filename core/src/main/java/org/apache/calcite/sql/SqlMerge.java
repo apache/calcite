@@ -222,5 +222,3 @@ public class SqlMerge extends SqlCall {
     validator.validateMerge(this);
   }
 }
-
-// End SqlMerge.java

@@ -168,5 +168,3 @@ public class VmstatTableFunction {
     };
   }
 }
-
-// End VmstatTableFunction.java

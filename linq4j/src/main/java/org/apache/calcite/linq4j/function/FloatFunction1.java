@@ -24,5 +24,3 @@ package org.apache.calcite.linq4j.function;
 public interface FloatFunction1<T0> extends Function<Float> {
   float apply(T0 v0);
 }
-
-// End FloatFunction1.java

@@ -32,5 +32,3 @@ public interface Sink {
   @Deprecated
   void setSourceEnumerable(Enumerable<Row> enumerable) throws InterruptedException;
 }
-
-// End Sink.java

@@ -34,7 +34,6 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
   public EnumerableIntersect(RelOptCluster cluster, RelTraitSet traitSet,
       List<RelNode> inputs, boolean all) {
     super(cluster, traitSet, inputs, all);
-    assert !all;
   }
 
   public EnumerableIntersect copy(RelTraitSet traitSet, List<RelNode> inputs,
@@ -60,7 +59,8 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
             Expressions.call(intersectExp,
                 BuiltInMethod.INTERSECT.method,
                 Expressions.list(childExp)
-                    .appendIfNotNull(result.physType.comparer()));
+                    .appendIfNotNull(result.physType.comparer())
+                    .append(Expressions.constant(all)));
       }
 
       // Once the first input has chosen its format, ask for the same for
@@ -77,5 +77,3 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 }
-
-// End EnumerableIntersect.java

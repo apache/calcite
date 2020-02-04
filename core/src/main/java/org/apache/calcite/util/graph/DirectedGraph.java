@@ -66,5 +66,3 @@ public interface DirectedGraph<V, E> {
     E createEdge(V v0, V v1);
   }
 }
-
-// End DirectedGraph.java

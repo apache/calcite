@@ -289,5 +289,3 @@ public class DruidExpressions {
             DruidExpressions.stringLiteral(timeZone.getID())));
   }
 }
-
-// End DruidExpressions.java

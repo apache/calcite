@@ -53,19 +53,17 @@ public class UnionPullUpConstantsRule extends RelOptRule {
   /** Creates a UnionPullUpConstantsRule. */
   public UnionPullUpConstantsRule(Class<? extends Union> unionClass,
       RelBuilderFactory relBuilderFactory) {
-    super(operand(unionClass, any()), relBuilderFactory, null);
+    // If field count is 1, then there's no room for
+    // optimization since we cannot create an empty Project
+    // operator. If we created a Project with one column, this rule would
+    // cycle.
+    super(
+        operandJ(unionClass, null, union -> union.getRowType().getFieldCount() > 1, any()),
+        relBuilderFactory, null);
   }
 
   @Override public void onMatch(RelOptRuleCall call) {
     final Union union = call.rel(0);
-
-    final int count = union.getRowType().getFieldCount();
-    if (count == 1) {
-      // No room for optimization since we cannot create an empty Project
-      // operator. If we created a Project with one column, this rule would
-      // cycle.
-      return;
-    }
 
     final RexBuilder rexBuilder = union.getCluster().getRexBuilder();
     final RelMetadataQuery mq = call.getMetadataQuery();
@@ -139,5 +137,3 @@ public class UnionPullUpConstantsRule extends RelOptRule {
   }
 
 }
-
-// End UnionPullUpConstantsRule.java

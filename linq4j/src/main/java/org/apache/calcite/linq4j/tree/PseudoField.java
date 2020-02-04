@@ -33,5 +33,3 @@ public interface PseudoField {
 
   Type getDeclaringClass();
 }
-
-// End PseudoField.java

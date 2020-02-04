@@ -99,5 +99,3 @@ public class SqlLeadLagAggFunction extends SqlAggFunction {
   }
 
 }
-
-// End SqlLeadLagAggFunction.java

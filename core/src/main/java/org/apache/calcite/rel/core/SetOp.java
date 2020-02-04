@@ -133,5 +133,3 @@ public abstract class SetOp extends AbstractRelNode {
     return true;
   }
 }
-
-// End SetOp.java

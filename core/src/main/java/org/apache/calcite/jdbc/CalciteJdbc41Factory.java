@@ -263,5 +263,3 @@ public class CalciteJdbc41Factory extends CalciteFactory {
     }
   }
 }
-
-// End CalciteJdbc41Factory.java

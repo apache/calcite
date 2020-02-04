@@ -25,14 +25,22 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.calcite.rel.hint.Hintable;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
+import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
+
+import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
@@ -40,30 +48,43 @@ import java.util.List;
  * <code>Calc</code> is an abstract base class for implementations of
  * {@link org.apache.calcite.rel.logical.LogicalCalc}.
  */
-public abstract class Calc extends SingleRel {
+public abstract class Calc extends SingleRel implements Hintable {
   //~ Instance fields --------------------------------------------------------
+
+  protected final ImmutableList<RelHint> hints;
 
   protected final RexProgram program;
 
   //~ Constructors -----------------------------------------------------------
-
   /**
    * Creates a Calc.
    *
    * @param cluster Cluster
    * @param traits Traits
+   * @param hints Hints of this relational expression
    * @param child Input relation
    * @param program Calc program
    */
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
+      List<RelHint> hints,
       RelNode child,
       RexProgram program) {
     super(cluster, traits, child);
     this.rowType = program.getOutputRowType();
     this.program = program;
+    this.hints = ImmutableList.copyOf(hints);
     assert isValid(Litmus.THROW, null);
+  }
+
+  @Deprecated // to be removed before 2.0
+  protected Calc(
+      RelOptCluster cluster,
+      RelTraitSet traits,
+      RelNode child,
+      RexProgram program) {
+    this(cluster, traits, ImmutableList.of(), child, program);
   }
 
   @Deprecated // to be removed before 2.0
@@ -73,7 +94,7 @@ public abstract class Calc extends SingleRel {
       RelNode child,
       RexProgram program,
       List<RelCollation> collationList) {
-    this(cluster, traits, child, program);
+    this(cluster, traits, ImmutableList.of(), child, program);
     Util.discard(collationList);
   }
 
@@ -130,6 +151,10 @@ public abstract class Calc extends SingleRel {
     return program;
   }
 
+  @Override public ImmutableList<RelHint> getHints() {
+    return hints;
+  }
+
   @Override public double estimateRowCount(RelMetadataQuery mq) {
     return RelMdUtil.estimateFilteredRows(getInput(), program, mq);
   }
@@ -167,13 +192,19 @@ public abstract class Calc extends SingleRel {
         && condition == oldCondition) {
       return this;
     }
-    return copy(traitSet, getInput(),
-        new RexProgram(program.getInputRowType(),
-            exprs,
+
+    final RexBuilder rexBuilder = getCluster().getRexBuilder();
+    final RelDataType rowType =
+        RexUtil.createStructType(
+            rexBuilder.getTypeFactory(),
             projects,
-            (RexLocalRef) condition,
-            program.getOutputRowType()));
+            this.rowType.getFieldNames(),
+            null);
+    final RexProgram newProgram =
+        RexProgramBuilder.create(
+            rexBuilder, program.getInputRowType(), exprs, projects,
+            condition, rowType, true, null)
+        .getProgram(false);
+    return copy(traitSet, getInput(), newProgram);
   }
 }
-
-// End Calc.java

@@ -857,5 +857,3 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     boolean lessThan(E e1, E e2);
   }
 }
-
-// End PartiallyOrderedSet.java

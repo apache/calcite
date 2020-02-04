@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandCountRanges;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
@@ -39,11 +40,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.sql.fun.SqlLibrary.*;
 import static org.apache.calcite.sql.fun.SqlLibrary.BIGQUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
-import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
-import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
-import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
@@ -194,9 +193,33 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = {MYSQL, ORACLE})
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction EXTRACT_VALUE = new SqlFunction(
+      "EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction XML_TRANSFORM = new SqlFunction(
+      "XMLTRANSFORM", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EXTRACT_XML = new SqlFunction(
+      "EXTRACT", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction EXISTS_NODE = new SqlFunction(
+      "EXISTSNODE", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.INTEGER_NULLABLE, SqlTypeTransforms.FORCE_NULLABLE),
+      null, OperandTypes.STRING_STRING_OPTIONAL_STRING, SqlFunctionCategory.SYSTEM);
+
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction CURRENT_TIMESTAMP = new SqlCurrentTimestampFunction(
-          "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
+    "CURRENT_TIMESTAMP", SqlTypeName.TIMESTAMP);
 
   /**
    * The REGEXP_EXTRACT(source_string, regex_pattern) returns the first substring in source_string
@@ -207,33 +230,33 @@ public abstract class SqlLibraryOperators {
    */
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction REGEXP_EXTRACT = new SqlFunction("REGEXP_EXTRACT",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-          SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING,
-      SqlFunctionCategory.STRING);
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+      SqlTypeTransforms.TO_NULLABLE),
+    null, OperandTypes.STRING_STRING,
+    SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction REGEXP_EXTRACT_ALL = new SqlFunction("REGEXP_EXTRACT_ALL",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
-          SqlTypeTransforms.TO_NULLABLE),
-      null, OperandTypes.STRING_STRING,
-      SqlFunctionCategory.STRING);
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARCHAR),
+      SqlTypeTransforms.TO_NULLABLE),
+    null, OperandTypes.STRING_STRING,
+    SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY})
   public static final SqlFunction FORMAT_TIMESTAMP = new SqlFunction("FORMAT_TIMESTAMP",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.VARCHAR_2000_NULLABLE, null,
-      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
-      SqlFunctionCategory.TIMEDATE);
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.VARCHAR_2000_NULLABLE, null,
+    OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
+    SqlFunctionCategory.TIMEDATE);
 
   @LibraryOperator(libraries = {HIVE})
   public static final SqlFunction DATE_FORMAT = new SqlFunction("DATE_FORMAT",
-      SqlKind.OTHER_FUNCTION,
-      ReturnTypes.VARCHAR_2000_NULLABLE, null,
-      OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
-      SqlFunctionCategory.TIMEDATE);
+    SqlKind.OTHER_FUNCTION,
+    ReturnTypes.VARCHAR_2000_NULLABLE, null,
+    OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+    SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
    * in the current locale, of a TIMESTAMP or DATE argument. */
@@ -427,6 +450,24 @@ public abstract class SqlLibraryOperators {
           null,
           OperandTypes.INTEGER,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction TANH =
+      new SqlFunction("TANH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
+
+  @LibraryOperator(libraries = {ORACLE})
+  public static final SqlFunction COSH =
+      new SqlFunction("COSH",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DOUBLE_NULLABLE,
+          null,
+          OperandTypes.NUMERIC,
+          SqlFunctionCategory.NUMERIC);
 
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL})
   public static final SqlFunction MD5 =

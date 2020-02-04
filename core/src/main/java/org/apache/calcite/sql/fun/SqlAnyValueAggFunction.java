@@ -52,5 +52,3 @@ public class SqlAnyValueAggFunction extends SqlAggFunction {
 
   //~ Methods ----------------------------------------------------------------
 }
-
-// End SqlAnyValueAggFunction.java

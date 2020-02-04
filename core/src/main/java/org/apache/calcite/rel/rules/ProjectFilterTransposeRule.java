@@ -132,5 +132,3 @@ public class ProjectFilterTransposeRule extends RelOptRule {
     }
   }
 }
-
-// End ProjectFilterTransposeRule.java

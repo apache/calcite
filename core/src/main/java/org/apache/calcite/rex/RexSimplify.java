@@ -604,9 +604,9 @@ public class RexSimplify {
       List<RexNode> operands = ((RexCall) a).getOperands();
       for (int i = 0; i < operands.size(); i += 2) {
         if (i + 1 == operands.size()) {
-          newOperands.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operands.get(i + 0)));
+          newOperands.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operands.get(i)));
         } else {
-          newOperands.add(operands.get(i + 0));
+          newOperands.add(operands.get(i));
           newOperands.add(rexBuilder.makeCall(SqlStdOperatorTable.NOT, operands.get(i + 1)));
         }
       }
@@ -683,6 +683,7 @@ public class RexSimplify {
     switch (kind) {
     case IS_NULL:
       // x IS NULL ==> FALSE (if x is not nullable)
+      validateStrongPolicy(a);
       simplified = simplifyIsNull(a);
       if (simplified != null) {
         return simplified;
@@ -690,6 +691,7 @@ public class RexSimplify {
       break;
     case IS_NOT_NULL:
       // x IS NOT NULL ==> TRUE (if x is not nullable)
+      validateStrongPolicy(a);
       simplified = simplifyIsNotNull(a);
       if (simplified != null) {
         return simplified;
@@ -750,7 +752,7 @@ public class RexSimplify {
     if (predicates.pulledUpPredicates.contains(a)) {
       return rexBuilder.makeLiteral(true);
     }
-    if (a.getKind() == SqlKind.CAST) {
+    if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
     switch (Strong.policy(a.getKind())) {
@@ -799,7 +801,7 @@ public class RexSimplify {
     if (RexUtil.isNull(a)) {
       return rexBuilder.makeLiteral(true);
     }
-    if (a.getKind() == SqlKind.CAST) {
+    if (hasCustomNullabilityRules(a.getKind())) {
       return null;
     }
     switch (Strong.policy(a.getKind())) {
@@ -822,6 +824,54 @@ public class RexSimplify {
     case AS_IS:
     default:
       return null;
+    }
+  }
+
+  /**
+   * Validates strong policy for specified {@link RexNode}.
+   *
+   * @param rexNode Rex node to validate the strong policy
+   * @throws AssertionError If the validation fails
+   */
+  private void validateStrongPolicy(RexNode rexNode) {
+    if (hasCustomNullabilityRules(rexNode.getKind())) {
+      return;
+    }
+    switch (Strong.policy(rexNode.getKind())) {
+    case NOT_NULL:
+      assert !rexNode.getType().isNullable();
+      break;
+    case ANY:
+      List<RexNode> operands = ((RexCall) rexNode).getOperands();
+      if (rexNode.getType().isNullable()) {
+        assert operands.stream()
+            .map(RexNode::getType)
+            .anyMatch(RelDataType::isNullable);
+      } else {
+        assert operands.stream()
+            .map(RexNode::getType)
+            .noneMatch(RelDataType::isNullable);
+      }
+    }
+  }
+
+  /**
+   * Returns {@code true} if specified {@link SqlKind} has custom nullability rules which
+   * depend not only on the nullability of input operands.
+   *
+   * <p>For example, CAST may be used to change the nullability of its operand type,
+   * so it may be nullable, though the argument type was non-nullable.
+   *
+   * @param sqlKind Sql kind to check
+   * @return {@code true} if specified {@link SqlKind} has custom nullability rules
+   */
+  private boolean hasCustomNullabilityRules(SqlKind sqlKind) {
+    switch (sqlKind) {
+    case CAST:
+    case ITEM:
+      return true;
+    default:
+      return false;
     }
   }
 
@@ -943,7 +993,7 @@ public class RexSimplify {
         }
       }
     }
-    List<RexNode> newOperands = CaseBranch.toCaseOperands(rexBuilder, branches);
+    List<RexNode> newOperands = CaseBranch.toCaseOperands(branches);
     if (newOperands.equals(call.getOperands())) {
       return call;
     }
@@ -1001,8 +1051,7 @@ public class RexSimplify {
       return ret;
     }
 
-    private static List<RexNode> toCaseOperands(RexBuilder rexBuilder,
-        List<CaseBranch> branches) {
+    private static List<RexNode> toCaseOperands(List<CaseBranch> branches) {
       List<RexNode> ret = new ArrayList<>();
       for (int i = 0; i < branches.size() - 1; i++) {
         CaseBranch branch = branches.get(i);
@@ -1058,7 +1107,6 @@ public class RexSimplify {
       safeOps.add(SqlKind.REVERSE);
       safeOps.add(SqlKind.TIMESTAMP_ADD);
       safeOps.add(SqlKind.TIMESTAMP_DIFF);
-      safeOps.add(SqlKind.LIKE);
       this.safeOps = Sets.immutableEnumSet(safeOps);
     }
 
@@ -1160,7 +1208,7 @@ public class RexSimplify {
       branches.add(new CaseBranch(cond, value));
     }
 
-    result = simplifyBooleanCaseGeneric(rexBuilder, branches, branchType);
+    result = simplifyBooleanCaseGeneric(rexBuilder, branches);
     return result;
   }
 
@@ -1179,7 +1227,7 @@ public class RexSimplify {
    * <pre>(p1 and x) or (p2 and y and not(p1)) or (true and z and not(p1) and not(p2))</pre>
    */
   private static RexNode simplifyBooleanCaseGeneric(RexBuilder rexBuilder,
-      List<CaseBranch> branches, RelDataType outputType) {
+      List<CaseBranch> branches) {
 
     boolean booleanBranches = branches.stream()
         .allMatch(branch -> branch.value.isAlwaysTrue() || branch.value.isAlwaysFalse());
@@ -1583,6 +1631,7 @@ public class RexSimplify {
    */
   private <C extends Comparable<C>> Range<C> residue(RexNode ref, Range<C> r0,
       List<RexNode> predicates, Class<C> clazz) {
+    Range<C> result = r0;
     for (RexNode predicate : predicates) {
       switch (predicate.getKind()) {
       case EQUALS:
@@ -1596,20 +1645,22 @@ public class RexSimplify {
           final RexLiteral literal = (RexLiteral) call.operands.get(1);
           final C c1 = literal.getValueAs(clazz);
           final Range<C> r1 = range(predicate.getKind(), c1);
-          if (r0.encloses(r1)) {
+          if (result.encloses(r1)) {
             // Given these predicates, term is always satisfied.
             // e.g. r0 is "$0 < 10", r1 is "$0 < 5"
-            return Range.all();
+            result = Range.all();
+            continue;
           }
-          if (r0.isConnected(r1)) {
-            return r0.intersection(r1);
+          if (result.isConnected(r1)) {
+            result = result.intersection(r1);
+            continue;
           }
           // Ranges do not intersect. Return null meaning the empty range.
           return null;
         }
       }
     }
-    return r0;
+    return result;
   }
 
   /** Simplifies OR(x, x) into x, and similar.
@@ -1786,6 +1837,47 @@ public class RexSimplify {
     operand = simplify(operand, UNKNOWN);
     if (sameTypeOrNarrowsNullability(e.getType(), operand.getType())) {
       return operand;
+    }
+    if (RexUtil.isLosslessCast(operand)) {
+      // x :: y below means cast(x as y) (which is PostgreSQL-specifiic cast by the way)
+      // A) Remove lossless casts:
+      // A.1) intExpr :: bigint :: int => intExpr
+      // A.2) char2Expr :: char(5) :: char(2) => char2Expr
+      // B) There are cases when we can't remove two casts, but we could probably remove inner one
+      // B.1) char2expression :: char(4) :: char(5) -> char2expression :: char(5)
+      // B.2) char2expression :: char(10) :: char(5) -> char2expression :: char(5)
+      // B.3) char2expression :: varchar(10) :: char(5) -> char2expression :: char(5)
+      // B.4) char6expression :: varchar(10) :: char(5) -> char6expression :: char(5)
+      // C) Simplification is not possible:
+      // C.1) char6expression :: char(3) :: char(5) -> must not be changed
+      //      the input is truncated to 3 chars, so we can't use char6expression :: char(5)
+      // C.2) varchar2Expr :: char(5) :: varchar(2) -> must not be changed
+      //      the input have to be padded with spaces (up to 2 chars)
+      // C.3) char2expression :: char(4) :: varchar(5) -> must not be changed
+      //      would not have the padding
+
+      // The approach seems to be:
+      // 1) Ensure inner cast is lossless (see if above)
+      // 2) If operand of the inner cast has the same type as the outer cast,
+      //    remove two casts except C.2 or C.3-like pattern (== inner cast is CHAR)
+      // 3) If outer cast is lossless, remove inner cast (B-like cases)
+
+      // Here we try to remove two casts in one go (A-like cases)
+      RexNode intExpr = ((RexCall) operand).operands.get(0);
+      // intExpr == CHAR detects A.1
+      // operand != CHAR detects C.2
+      if ((intExpr.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)
+          && sameTypeOrNarrowsNullability(e.getType(), intExpr.getType())) {
+        return intExpr;
+      }
+      // Here we try to remove inner cast (B-like cases)
+      if (RexUtil.isLosslessCast(intExpr.getType(), operand.getType())
+          && (e.getType().getSqlTypeName() == operand.getType().getSqlTypeName()
+          || e.getType().getSqlTypeName() == SqlTypeName.CHAR
+          || operand.getType().getSqlTypeName() != SqlTypeName.CHAR)) {
+        return rexBuilder.makeCast(e.getType(), intExpr);
+      }
     }
     switch (operand.getKind()) {
     case LITERAL:
@@ -2163,10 +2255,11 @@ public class RexSimplify {
       this.literal = Objects.requireNonNull(literal);
     }
 
-    /** Creates a comparison, between a {@link RexInputRef} or {@link RexFieldAccess}
-     * and a literal. */
+    /** Creates a comparison, between a {@link RexInputRef} or {@link RexFieldAccess} or
+     * deterministic {@link RexCall} and a literal. */
     static Comparison of(RexNode e) {
-      return of(e, node -> RexUtil.isReferenceOrAccess(node, true));
+      return of(e, node -> RexUtil.isReferenceOrAccess(node, true)
+          || RexUtil.isDeterministic(node));
     }
 
     /** Creates a comparison, or returns null. */
@@ -2339,5 +2432,3 @@ public class RexSimplify {
     return rexBuilder.makeCall(e.getType(), e.getOperator(), operands);
   }
 }
-
-// End RexSimplify.java

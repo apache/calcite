@@ -318,7 +318,8 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     final ImmutableList<ImmutableBitSet> groupSets =
         (groupType == GroupType.CUBE)
             ? ImmutableList.copyOf(groupSet.powerSet()) : groupsetBuilder.build();
-    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet, groupSets);
+    RelBuilder.GroupKey groupKey = builder.groupKey(groupSet,
+        (Iterable<ImmutableBitSet>) groupSets);
 
     // Finally, do COLLECT aggregate.
     builder.cogroup(ImmutableList.of(groupKey));
@@ -718,5 +719,3 @@ class PigRelOpVisitor extends PigRelOpWalker.PlanPreVisitor {
     return builder.checkMap(root);
   }
 }
-
-// End PigRelOpVisitor.java

@@ -147,5 +147,3 @@ public class JoinToCorrelateRule extends RelOptRule {
     call.transformTo(newRel);
   }
 }
-
-// End JoinToCorrelateRule.java

@@ -76,5 +76,3 @@ public class CsvStreamScannableTable extends CsvScannableTable
     return this;
   }
 }
-
-// End CsvStreamScannableTable.java

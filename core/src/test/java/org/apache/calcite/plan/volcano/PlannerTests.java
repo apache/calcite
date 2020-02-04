@@ -125,7 +125,7 @@ class PlannerTests {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      assert traitSet.comprises(Convention.NONE);
+      assert traitSet.contains(Convention.NONE);
       return new NoneSingleRel(getCluster(), sole(inputs));
     }
   }
@@ -203,7 +203,7 @@ class PlannerTests {
     }
 
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      assert traitSet.comprises(PHYS_CALLING_CONVENTION);
+      assert traitSet.contains(PHYS_CALLING_CONVENTION);
       return new PhysSingleRel(getCluster(), sole(inputs));
     }
   }
@@ -266,5 +266,3 @@ class PlannerTests {
     }
   }
 }
-
-// End PlannerTests.java
