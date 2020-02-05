@@ -19,7 +19,9 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
@@ -32,6 +34,9 @@ import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
@@ -118,12 +123,32 @@ public class HiveSqlDialect extends SqlDialect {
    * For usage of TRIM, LTRIM and RTRIM in Hive, see
    * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
-  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+  private void unparseTrim(
+      SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    SqlLiteral flag = call.operand(0);
+    SqlLiteral valueToBeTrim = call.operand(1);
+    if (valueToBeTrim.toValue().matches("\\s+")) {
+      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
+    } else {
+      handleTrimWithChar(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both ' ' from "ABC")
+   * OUPUT : SELECT TRIM(ABC)
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
+  private void handleTrimWithSpace(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final String operatorName;
-    switch (flag.getValueAs(SqlTrimFunction.Flag.class)) {
+    SqlLiteral trimFlag = call.operand(0);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
       break;
@@ -134,9 +159,31 @@ public class HiveSqlDialect extends SqlDialect {
       operatorName = call.getOperator().getName();
       break;
     }
-    final SqlWriter.Frame frame = writer.startFunCall(operatorName);
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
     call.operand(2).unparse(writer, leftPrec, rightPrec);
-    writer.endFunCall(frame);
+    writer.endFunCall(trimFrame);
+  }
+
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is not space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both 'A' from "ABC")
+   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
+  private void handleTrimWithChar(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlLiteral trimFlag = call.operand(0);
+    SqlCharStringLiteral regexNode =
+        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
+    SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
+        call.getParserPosition());
+    SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
+    SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
+    REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
   }
 
   @Override public boolean supportsCharSet() {

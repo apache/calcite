@@ -19,7 +19,9 @@ package org.apache.calcite.sql.dialect;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.sql.JoinType;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -30,7 +32,12 @@ import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlFloorFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.RelToSqlConverterUtil;
+
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 
 /**
  * A <code>SqlDialect</code> implementation for the APACHE SPARK database.
@@ -102,10 +109,78 @@ public class SparkSqlDialect extends SqlDialect {
             timeUnitNode.getParserPosition());
         SqlFloorFunction.unparseDatetimeFunction(writer, call2, "DATE_TRUNC", false);
         break;
-
+      case TRIM:
+        unparseTrim(writer, call, leftPrec, rightPrec);
+        break;
       default:
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
     }
+  }
+
+  /**
+   * For usage of TRIM, LTRIM and RTRIM in Spark
+   */
+  private void unparseTrim(
+      SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlLiteral valueToBeTrim = call.operand(1);
+    if (valueToBeTrim.toValue().matches("\\s+")) {
+      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
+    } else {
+      handleTrimWithChar(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both ' ' from "ABC")
+   * OUPUT : SELECT TRIM(ABC)
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
+  private void handleTrimWithSpace(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
+    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
+    case LEADING:
+      operatorName = "LTRIM";
+      break;
+    case TRAILING:
+      operatorName = "RTRIM";
+      break;
+    default:
+      operatorName = call.getOperator().getName();
+      break;
+    }
+    final SqlWriter.Frame trimFrame = writer.startFunCall(operatorName);
+    call.operand(2).unparse(writer, leftPrec, rightPrec);
+    writer.endFunCall(trimFrame);
+  }
+
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is not space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both 'A' from "ABC")
+   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
+  private void handleTrimWithChar(
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlLiteral trimFlag = call.operand(0);
+    SqlCharStringLiteral regexNode =
+        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
+    SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
+        call.getParserPosition());
+    SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
+    SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
+    REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
   }
 }
