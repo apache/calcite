@@ -35,7 +35,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
@@ -85,7 +84,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   }
 
   public static EnumerableMergeJoin create(RelNode left, RelNode right,
-      RexLiteral condition, ImmutableIntList leftKeys,
+      RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType) {
     final RelOptCluster cluster = right.getCluster();
     RelTraitSet traitSet = cluster.traitSet();
@@ -96,7 +95,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       traitSet = traitSet.replace(collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
-        leftKeys, rightKeys, ImmutableSet.of(), joinType);
+        ImmutableSet.of(), joinType);
   }
 
   @Override public EnumerableMergeJoin copy(RelTraitSet traitSet,
