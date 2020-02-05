@@ -81,7 +81,7 @@ public class EnumerableProject extends Project implements EnumerableRel {
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // EnumerableCalcRel is always better
+    // EnumerableCalc is always better
     throw new UnsupportedOperationException();
   }
 }

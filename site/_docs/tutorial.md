@@ -480,7 +480,7 @@ sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
 +-----------------------------------------------------+
-| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
+| EnumerableCalc(expr#0..9=[{inputs}], NAME=[$t1])    |
 |   EnumerableTableScan(table=[[SALES, EMPS]])        |
 +-----------------------------------------------------+
 sqlline> !connect jdbc:calcite:model=src/test/resources/smart.json admin admin
@@ -488,7 +488,7 @@ sqlline> explain plan for select name from emps;
 +-----------------------------------------------------+
 | PLAN                                                |
 +-----------------------------------------------------+
-| EnumerableCalcRel(expr#0..9=[{inputs}], NAME=[$t1]) |
+| EnumerableCalc(expr#0..9=[{inputs}], NAME=[$t1])    |
 |   CsvTableScan(table=[[SALES, EMPS]])               |
 +-----------------------------------------------------+
 {% endhighlight %}
