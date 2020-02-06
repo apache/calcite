@@ -220,6 +220,83 @@ public class EnumerablesTest {
         matcher);
   }
 
+  @Test public void testMergeJoinWithPredicate() {
+    final List<Emp> listEmp1 = Arrays.asList(
+        new Emp(1, "Fred"),
+        new Emp(2, "Fred"),
+        new Emp(3, "Joe"),
+        new Emp(4, "Joe"),
+        new Emp(5, "Peter"));
+    final List<Emp> listEmp2 = Arrays.asList(
+        new Emp(2, "Fred"),
+        new Emp(3, "Fred"),
+        new Emp(3, "Joe"),
+        new Emp(5, "Joe"),
+        new Emp(6, "Peter"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp1),
+            Linq4j.asEnumerable(listEmp2),
+            e1 -> e1.name,
+            e2 -> e2.name,
+            (e1, e2) -> e1.deptno < e2.deptno,
+            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+        equalTo("["
+            + "Emp(1, Fred)-Emp(2, Fred), "
+            + "Emp(1, Fred)-Emp(3, Fred), "
+            + "Emp(2, Fred)-Emp(3, Fred), "
+            + "Emp(3, Joe)-Emp(5, Joe), "
+            + "Emp(4, Joe)-Emp(5, Joe), "
+            + "Emp(5, Peter)-Emp(6, Peter)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno > e1.deptno,
+            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+        equalTo("["
+            + "Emp(2, Fred)-Emp(1, Fred), "
+            + "Emp(3, Fred)-Emp(1, Fred), "
+            + "Emp(3, Fred)-Emp(2, Fred), "
+            + "Emp(5, Joe)-Emp(3, Joe), "
+            + "Emp(5, Joe)-Emp(4, Joe), "
+            + "Emp(6, Peter)-Emp(5, Peter)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp1),
+            Linq4j.asEnumerable(listEmp2),
+            e1 -> e1.name,
+            e2 -> e2.name,
+            (e1, e2) -> e1.deptno == e2.deptno * 2,
+            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+        equalTo("[]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno == e1.deptno * 2,
+            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+        equalTo("[Emp(2, Fred)-Emp(1, Fred)]"));
+
+    assertThat(
+        EnumerableDefaults.mergeJoin(
+            Linq4j.asEnumerable(listEmp2),
+            Linq4j.asEnumerable(listEmp1),
+            e2 -> e2.name,
+            e1 -> e1.name,
+            (e2, e1) -> e2.deptno == e1.deptno + 2,
+            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+        equalTo("[Emp(3, Fred)-Emp(1, Fred), Emp(5, Joe)-Emp(3, Joe)]"));
+  }
+
   private static <T extends Comparable<T>> Enumerable<T> intersect(
       List<T> list0, List<T> list1) {
     return EnumerableDefaults.mergeJoin(
