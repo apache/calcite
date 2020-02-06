@@ -179,7 +179,7 @@ public class RelHint {
     public Builder hintOption(String hintOption) {
       Objects.requireNonNull(hintOption);
       Preconditions.checkState(this.kvOptions.size() == 0,
-          "List options and Key-Value options can not be mixed in");
+          "List options and key value options can not be mixed in");
       this.listOptions.add(hintOption);
       return this;
     }
@@ -188,7 +188,7 @@ public class RelHint {
     public Builder hintOptions(Iterable<String> hintOptions) {
       Objects.requireNonNull(hintOptions);
       Preconditions.checkState(this.kvOptions.size() == 0,
-          "List options and Key-Value options can not be mixed in");
+          "List options and key value options can not be mixed in");
       this.listOptions = ImmutableList.copyOf(hintOptions);
       return this;
     }
@@ -198,7 +198,7 @@ public class RelHint {
       Objects.requireNonNull(optionKey);
       Objects.requireNonNull(optionValue);
       Preconditions.checkState(this.listOptions.size() == 0,
-          "List options and key-value options can not be mixed in");
+          "List options and key value options can not be mixed in");
       this.kvOptions.put(optionKey, optionValue);
       return this;
     }
@@ -207,7 +207,7 @@ public class RelHint {
     public Builder hintOptions(Map<String, String> kvOptions) {
       Objects.requireNonNull(kvOptions);
       Preconditions.checkState(this.listOptions.size() == 0,
-          "List options and key-value options can not be mixed in");
+          "List options and key value options can not be mixed in");
       this.kvOptions = kvOptions;
       return this;
     }

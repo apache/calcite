@@ -38,11 +38,6 @@ public abstract class ViewExpanders {
       RelOptTable.ViewExpander viewExpander,
       RelOptCluster cluster,
       List<RelHint> hints) {
-    // See if the user wants to customize the ToRelContext.
-    if (viewExpander instanceof RelOptTable.ToRelContextFactory) {
-      return ((RelOptTable.ToRelContextFactory) viewExpander)
-          .createToRelContext(viewExpander, cluster, hints);
-    }
     return new RelOptTable.ToRelContext() {
       public RelOptCluster getCluster() {
         return cluster;

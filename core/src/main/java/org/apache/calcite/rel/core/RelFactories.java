@@ -528,22 +528,6 @@ public class RelFactories {
   }
 
   /**
-   * Creates a {@link TableScanFactory} that can expand
-   * {@link TranslatableTable} instances, but explodes on views.
-   *
-   * @param tableScanFactory Factory for non-translatable tables
-   * @return Table scan factory
-   */
-  @Nonnull public static TableScanFactory expandingScanFactory(
-      @Nonnull TableScanFactory tableScanFactory) {
-    return expandingScanFactory(
-        (rowType, queryString, schemaPath, viewPath) -> {
-          throw new UnsupportedOperationException("cannot expand view");
-        },
-        tableScanFactory);
-  }
-
-  /**
    * Creates a {@link TableScanFactory} that uses a
    * {@link org.apache.calcite.plan.RelOptTable.ViewExpander} to handle
    * {@link TranslatableTable} instances, and falls back to a default
