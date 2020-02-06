@@ -75,6 +75,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -755,6 +756,85 @@ public class RelBuilderTest {
             + " type of 1 in the output plan since the convention is to omit type of INTEGER",
         "LogicalProject($f0=[1:BIGINT])\n"
             + "  LogicalValues(tuples=[[]])\n");
+  }
+
+  @Test public void testProjectBloat() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .project(
+                b.alias(
+                    caseCall(b, b.field("DEPTNO"),
+                        b.literal(0), b.literal("zero"),
+                        b.literal(1), b.literal("one"),
+                        b.literal(2), b.literal("two"),
+                        b.literal("other")),
+                    "v"))
+            .project(
+                b.call(SqlStdOperatorTable.PLUS, b.field("v"), b.field("v")))
+        .build();
+    // Complexity of bottom is 14; top is 3; merged is 29; difference is -12.
+    // So, we merge if bloat is 20 or 100 (the default),
+    // but not if it is -1, 0 or 10.
+    final String expected = "LogicalProject($f0=[+"
+        + "(CASE(=($7, 0), 'zero', =($7, 1), 'one', =($7, 2), 'two', 'other'),"
+        + " CASE(=($7, 0), 'zero', =($7, 1), 'one', =($7, 2), 'two', 'other'))])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedNeg = "LogicalProject($f0=[+($0, $0)])\n"
+        + "  LogicalProject(v=[CASE(=($7, 0), 'zero', =($7, 1), "
+        + "'one', =($7, 2), 'two', 'other')])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(0))),
+        hasTree(expectedNeg));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(-1))),
+        hasTree(expectedNeg));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(10))),
+        hasTree(expectedNeg));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(20))),
+        hasTree(expected));
+  }
+
+  @Test public void testProjectBloat2() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .project(
+                b.field("DEPTNO"),
+                b.field("SAL"),
+                b.alias(
+                    b.call(SqlStdOperatorTable.PLUS, b.field("DEPTNO"),
+                        b.field("EMPNO")), "PLUS"))
+            .project(
+                b.call(SqlStdOperatorTable.MULTIPLY, b.field("SAL"),
+                    b.field("PLUS")),
+                b.field("SAL"))
+        .build();
+    // Complexity of bottom is 5; top is 4; merged is 6; difference is 3.
+    // So, we merge except when bloat is -1.
+    final String expected = "LogicalProject($f0=[*($5, +($7, $0))], SAL=[$5])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    final String expectedNeg = "LogicalProject($f0=[*($1, $2)], SAL=[$1])\n"
+        + "  LogicalProject(DEPTNO=[$7], SAL=[$5], PLUS=[+($7, $0)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(0))),
+        hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(-1))),
+        hasTree(expectedNeg));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(10))),
+        hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withBloat(20))),
+        hasTree(expected));
+  }
+
+  private RexNode caseCall(RelBuilder b, RexNode ref, RexNode... nodes) {
+    final List<RexNode> list = new ArrayList<>();
+    for (int i = 0; i + 1 < nodes.length; i += 2) {
+      list.add(b.equals(ref, nodes[i]));
+      list.add(nodes[i + 1]);
+    }
+    list.add(nodes.length % 2 == 1 ? nodes[nodes.length - 1]
+        : b.literal(null));
+    return b.call(SqlStdOperatorTable.CASE, list);
   }
 
   @Test public void testRename() {

@@ -171,17 +171,6 @@ public class RexProgramTestBase extends RexProgramBuilderBase {
         is(expected ? "true" : "false"));
   }
 
-  /** Returns the number of nodes (including leaves) in a Rex tree. */
-  protected static int nodeCount(RexNode node) {
-    int n = 1;
-    if (node instanceof RexCall) {
-      for (RexNode operand : ((RexCall) node).getOperands()) {
-        n += nodeCount(operand);
-      }
-    }
-    return n;
-  }
-
   protected Comparable eval(RexNode e) {
     return RexInterpreter.evaluate(e, ImmutableMap.of());
   }

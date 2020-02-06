@@ -135,6 +135,7 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -2964,6 +2965,28 @@ public abstract class RelOptUtil {
       Project project) {
     final List<RexNode> list = new ArrayList<>();
     pushShuttle(project).visitList(nodes, list);
+    return list;
+  }
+
+  /** As {@link #pushPastProject}, but returns null if the resulting expressions
+   * are significantly more complex.
+   *
+   * @param bloat Maximum allowable increase in complexity */
+  public static @Nullable List<RexNode> pushPastProjectUnlessBloat(
+      List<? extends RexNode> nodes, Project project, int bloat) {
+    if (bloat < 0) {
+      // If bloat is negative never merge.
+      return null;
+    }
+    final List<RexNode> list = pushPastProject(nodes, project);
+    final int bottomCount = RexUtil.nodeCount(project.getProjects());
+    final int topCount = RexUtil.nodeCount(nodes);
+    final int mergedCount = RexUtil.nodeCount(list);
+    if (mergedCount > bottomCount + topCount + bloat) {
+      // The merged expression is more complex than the input expressions.
+      // Do not merge.
+      return null;
+    }
     return list;
   }
 

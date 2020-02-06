@@ -16,11 +16,14 @@
  */
 package org.apache.calcite.rex;
 
+import org.apache.calcite.util.Pair;
+
 import com.google.common.collect.ImmutableList;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
@@ -37,6 +40,7 @@ public class RexWindow {
   private final RexWindowBound upperBound;
   private final boolean isRows;
   private final String digest;
+  public final int nodeCount;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,16 +53,15 @@ public class RexWindow {
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,
-      RexWindowBound lowerBound,
-      RexWindowBound upperBound,
+      @Nullable RexWindowBound lowerBound,
+      @Nullable RexWindowBound upperBound,
       boolean isRows) {
-    assert partitionKeys != null;
-    assert orderKeys != null;
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = ImmutableList.copyOf(orderKeys);
     this.lowerBound = lowerBound;
     this.upperBound = upperBound;
     this.isRows = isRows;
+    this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
   }
 
@@ -148,5 +151,12 @@ public class RexWindow {
 
   public boolean isRows() {
     return isRows;
+  }
+
+  private int computeCodeCount() {
+    return RexUtil.nodeCount(partitionKeys)
+        + RexUtil.nodeCount(Pair.left(orderKeys))
+        + (lowerBound == null ? 0 : lowerBound.nodeCount())
+        + (upperBound == null ? 0 : upperBound.nodeCount());
   }
 }

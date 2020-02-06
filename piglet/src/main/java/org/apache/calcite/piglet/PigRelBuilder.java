@@ -17,6 +17,7 @@
 package org.apache.calcite.piglet;
 
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
@@ -56,6 +57,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * Extension to {@link RelBuilder} for Pig logical operators.
@@ -79,8 +81,17 @@ public class PigRelBuilder extends RelBuilder {
   public static PigRelBuilder create(FrameworkConfig config) {
     final RelBuilder relBuilder = RelBuilder.create(config);
     Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false));
-    return new PigRelBuilder(config.getContext(), relBuilder.getCluster(),
+    return new PigRelBuilder(
+        transform(config.getContext(), c -> c.withBloat(-1)),
+        relBuilder.getCluster(),
         relBuilder.getRelOptSchema());
+  }
+
+  private static Context transform(Context context,
+      UnaryOperator<RelBuilder.Config> transform) {
+    final Config config =
+        Util.first(context.unwrap(Config.class), Config.DEFAULT);
+    return Contexts.of(transform.apply(config), context);
   }
 
   public RelNode getRel(String alias) {
@@ -106,10 +117,6 @@ public class PigRelBuilder extends RelBuilder {
    */
   CorrelationId nextCorrelId() {
     return new CorrelationId(nextCorrelId++);
-  }
-
-  @Override protected boolean shouldMergeProject() {
-    return false;
   }
 
   public String getAlias() {

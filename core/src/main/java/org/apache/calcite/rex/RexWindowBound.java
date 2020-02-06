@@ -106,6 +106,15 @@ public abstract class RexWindowBound {
   }
 
   /**
+   * Returns the number of nodes in this bound.
+   *
+   * @see RexNode#nodeCount()
+   */
+  public int nodeCount() {
+    return 1;
+  }
+
+  /**
    * Implements UNBOUNDED PRECEDING/FOLLOWING bound.
    */
   private static class RexWindowBoundUnbounded extends RexWindowBound {
@@ -215,6 +224,10 @@ public abstract class RexWindowBound {
 
     @Override public RexNode getOffset() {
       return offset;
+    }
+
+    @Override public int nodeCount() {
+      return super.nodeCount() + offset.nodeCount();
     }
 
     @Override public <R> RexWindowBound accept(RexVisitor<R> visitor) {

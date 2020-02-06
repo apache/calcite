@@ -738,7 +738,7 @@ public class RexProgramTest extends RexProgramTestBase {
               rexBuilder.makeFieldAccess(range3, i * 2 + 1)));
     }
     final RexNode cnf = RexUtil.toCnf(rexBuilder, or(list));
-    final int nodeCount = nodeCount(cnf);
+    final int nodeCount = cnf.nodeCount();
     assertThat((n + 1) * (int) Math.pow(2, n) + 1, equalTo(nodeCount));
     if (n == 3) {
       assertThat(cnf.toStringRaw(),

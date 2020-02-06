@@ -158,6 +158,18 @@ public abstract class RexNode {
     }
   }
 
+  /** Returns the number of nodes in this expression.
+   *
+   * <p>Leaf nodes, such as {@link RexInputRef} or {@link RexLiteral}, have
+   * a count of 1. Calls have a count of 1 plus the sum of their operands.
+   *
+   * <p>Node count is a measure of expression complexity that is used by some
+   * planner rules to prevent deeply nested expressions.
+   */
+  public int nodeCount() {
+    return 1;
+  }
+
   /**
    * Accepts a visitor, dispatching to the right overloaded
    * {@link RexVisitor#visitInputRef visitXxx} method.

@@ -1377,7 +1377,7 @@ public class PlannerTest {
   @Test public void testMergeProjectForceMode() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
-            new ProjectMergeRule(true,
+            new ProjectMergeRule(true, ProjectMergeRule.DEFAULT_BLOAT,
                 RelBuilder.proto(RelFactories.DEFAULT_PROJECT_FACTORY)));
     Planner planner = getPlanner(null, Programs.of(ruleSet));
     planner.close();
