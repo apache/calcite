@@ -160,20 +160,4 @@ public interface RelOptTable extends Wrapper {
      */
     List<RelHint> getTableHints();
   }
-
-  /** Interface to customize the {@link ToRelContext}. **/
-  interface ToRelContextFactory {
-    /**
-     * Returns a {@link ToRelContext} instance.
-     *
-     * @param viewExpander The view expander
-     * @param cluster      The cluster
-     * @param hints        The hints attached to the table,
-     *                     empty if the table does not have any hints
-     *
-     * @return A new {@link ToRelContext} instance.
-     */
-    ToRelContext createToRelContext(RelOptTable.ViewExpander viewExpander,
-        RelOptCluster cluster, List<RelHint> hints);
-  }
 }
