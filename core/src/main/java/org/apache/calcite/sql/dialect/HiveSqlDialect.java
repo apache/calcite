@@ -18,12 +18,12 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalLiteral;
@@ -38,9 +38,9 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlSubstringFunction;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
-import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.ToNumberUtils;
 
@@ -71,12 +71,12 @@ public class HiveSqlDialect extends SqlDialect {
     // Since 2.1.0, Hive natively supports "NULLS FIRST" and "NULLS LAST".
     // See https://issues.apache.org/jira/browse/HIVE-12994.
     emulateNullDirection = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+      || (context.databaseMajorVersion() == 2
+      && context.databaseMinorVersion() < 1);
 
     isHiveLowerVersion = (context.databaseMajorVersion() < 2)
-        || (context.databaseMajorVersion() == 2
-        && context.databaseMinorVersion() < 1);
+      || (context.databaseMajorVersion() == 2
+      && context.databaseMinorVersion() < 1);
   }
 
   @Override protected boolean allowsAs() {
@@ -108,12 +108,12 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+    SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node,
-      boolean nullsFirst, boolean desc) {
+    boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
     }
@@ -139,7 +139,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call,
-      final int leftPrec, final int rightPrec) {
+    final int leftPrec, final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("INSTR");
@@ -236,7 +236,7 @@ public class HiveSqlDialect extends SqlDialect {
    * usage</a>.
    */
   private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
-                           int rightPrec) {
+      int rightPrec) {
     assert call.operand(0) instanceof SqlLiteral : call.operand(0);
     SqlLiteral trimFlag = call.operand(0);
     SqlLiteral valueToTrim = call.operand(1);
@@ -248,7 +248,7 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call,
-                                       int leftPrec, int rightPrec) {
+      int leftPrec, int rightPrec) {
     CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
     SqlCall dateFormatCall = timestampHandler.makeDateFormatCall(call);
     SqlCall castCall = timestampHandler.makeCastCall(dateFormatCall);
@@ -296,16 +296,18 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     default:
       regexPattern = "^(".concat(regexPattern).concat(")*|(")
-          .concat(regexPattern).concat(")*$");
+        .concat(regexPattern).concat(")*$");
       break;
     }
     return SqlLiteral.createCharString(regexPattern,
-        call.getParserPosition());
+      call.getParserPosition());
   }
 
   private String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+    final String[] specialCharacters = {
+        "\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"
+    };
 
     for (int i = 0; i < specialCharacters.length; i++) {
       if (inputString.contains(specialCharacters[i])) {
@@ -326,17 +328,17 @@ public class HiveSqlDialect extends SqlDialect {
   @Override public SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
-        case INTEGER:
-          SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+      case INTEGER:
+        SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
             "INT", type.getSqlTypeName(), SqlParserPos.ZERO);
-          return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+        return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
       }
     }
     return super.getCastSpec(type);
   }
 
   @Override public void unparseSqlDatetimeArithmetic(
-      SqlWriter writer,
+    SqlWriter writer,
       SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
     switch (sqlKind) {
     case MINUS:
@@ -366,7 +368,7 @@ public class HiveSqlDialect extends SqlDialect {
    * @param rightPrec Indicate right precision
    */
   @Override public void unparseIntervalOperandsBasedFunctions(
-      SqlWriter writer,
+    SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
     if (isHiveLowerVersion) {
       castIntervalOperandToDate(writer, call, leftPrec, rightPrec);
@@ -491,8 +493,10 @@ public class HiveSqlDialect extends SqlDialect {
     }
     SqlNode intervalValue = new SqlIdentifier(literalValue.toString(),
         intervalOperand.getParserPosition());
-    SqlNode[] sqlNodes = new SqlNode[]{identifier,
-        intervalValue};
+    SqlNode[] sqlNodes = new SqlNode[]{
+        identifier,
+        intervalValue
+    };
     return new SqlBasicCall(SqlStdOperatorTable.MULTIPLY, sqlNodes, SqlParserPos.ZERO);
   }
 
@@ -525,8 +529,8 @@ public class HiveSqlDialect extends SqlDialect {
   }
 
   private void writeNegativeLiteral(
-      SqlIntervalLiteral.IntervalValue interval,
-      SqlWriter writer) {
+        SqlIntervalLiteral.IntervalValue interval,
+        SqlWriter writer) {
     if (interval.signum() == -1) {
       writer.print("-");
     }
@@ -536,11 +540,12 @@ public class HiveSqlDialect extends SqlDialect {
     SqlNode[] operands = new SqlNode[call.getOperandList().size()];
     call.getOperandList().toArray(operands);
     SqlParserPos pos = call.getParserPosition();
-    SqlNode[] ifOperands = new SqlNode[]{new SqlBasicCall(EQUALS, operands, pos),
-        SqlLiteral.createNull(SqlParserPos.ZERO), operands[0]};
+    SqlNode[] ifOperands = new SqlNode[]{
+        new SqlBasicCall(EQUALS, operands, pos),
+      SqlLiteral.createNull(SqlParserPos.ZERO), operands[0]
+    };
     SqlCall ifCall = new SqlBasicCall(IF, ifOperands, pos);
     unparseCall(writer, ifCall, leftPrec, rightPrec);
   }
 
 }
-// End HiveSqlDialect.java

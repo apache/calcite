@@ -237,9 +237,9 @@ public abstract class OperandTypes {
           number -> number == 2);
 
   public static final FamilyOperandTypeChecker STRING_INTEGER_OPTIONAL_STRING =
-    family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+      family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
       // Third operand optional
-      number -> number == 2);
+        number -> number == 2);
 
   public static final SqlSingleOperandTypeChecker CHARACTER =
       family(SqlTypeFamily.CHARACTER);

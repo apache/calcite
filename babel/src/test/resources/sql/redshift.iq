@@ -1842,12 +1842,6 @@ select regexp_replace('DonecFri@semperpretiumneque.com', '@.*\\.(org|gov|com)$')
 SELECT "REGEXP_REPLACE"('DonecFri@semperpretiumneque.com', '@.*\\.(org|gov|com)$')
 !explain-validated-on calcite
 
-# REGEXP_SUBSTR ( source_string, pattern [, position [, occurrence
-# [, parameters ] ] ] )
-select regexp_substr('Suspendisse.tristique@nonnisiAenean.edu','@[^.]*');
-SELECT "REGEXP_SUBSTR"('Suspendisse.tristique@nonnisiAenean.edu', '@[^.]*')
-!explain-validated-on calcite
-
 # REPEAT
 select repeat('ba', 3);
 EXPR$0
@@ -2036,12 +2030,6 @@ SELECT "TO_CHAR"(-125.8, '999D99S')
 -- returns '2001-10-02'
 select to_date ('02 Oct 2001', 'DD Mon YYYY');
 SELECT "TO_DATE"('02 Oct 2001', 'DD Mon YYYY')
-!explain-validated-on calcite
-
-# TO_NUMBER
--- returns -12454.8
-select to_number('12,454.8-', '99G999D9S');
-SELECT "TO_NUMBER"('12,454.8-', '99G999D9S')
 !explain-validated-on calcite
 
 # 12 System Administration Functions

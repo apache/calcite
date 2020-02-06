@@ -154,11 +154,11 @@ public class GeodeRules {
       final LogicalProject project = (LogicalProject) rel;
       final RelTraitSet traitSet = project.getTraitSet().replace(out);
       return new GeodeProject(
-          project.getCluster(),
-          traitSet,
-          convert(project.getInput(), out),
-          project.getProjects(),
-          project.getRowType());
+        project.getCluster(),
+        traitSet,
+        convert(project.getInput(), out),
+        project.getProjects(),
+        project.getRowType());
     }
   }
 
@@ -178,12 +178,12 @@ public class GeodeRules {
       final LogicalAggregate aggregate = (LogicalAggregate) rel;
       final RelTraitSet traitSet = aggregate.getTraitSet().replace(out);
       return new GeodeAggregate(
-          aggregate.getCluster(),
-          traitSet,
-          convert(aggregate.getInput(), traitSet.simplify()),
-          aggregate.getGroupSet(),
-          aggregate.getGroupSets(),
-          aggregate.getAggCallList());
+        aggregate.getCluster(),
+        traitSet,
+        convert(aggregate.getInput(), traitSet.simplify()),
+        aggregate.getGroupSet(),
+        aggregate.getGroupSets(),
+        aggregate.getAggCallList());
     }
   }
 
@@ -195,7 +195,7 @@ public class GeodeRules {
 
     private static final GeodeSortLimitRule INSTANCE =
         new GeodeSortLimitRule(
-            // OQL doesn't support for offsets (e.g. LIMIT 10 OFFSET 500)
+        // OQL doesn't support for offsets (e.g. LIMIT 10 OFFSET 500)
             sort -> sort.offset == null);
 
     GeodeSortLimitRule(Predicate<Sort> predicate) {
@@ -333,8 +333,8 @@ public class GeodeRules {
         return (leftName != null) && (rightName != null);
       } else if (left.isA(SqlKind.ITEM) && right.isA(SqlKind.LITERAL)) {
         return true;
-      }else if ((left.isA(SqlKind.OTHER_FUNCTION))
-        && right.isA(SqlKind.LITERAL)) {
+      } else if ((left.isA(SqlKind.OTHER_FUNCTION))
+          && right.isA(SqlKind.LITERAL)) {
         if (((RexCall) left).getOperator() != SqlStdOperatorTable.ITEM) {
           return false;
         }
@@ -357,10 +357,10 @@ public class GeodeRules {
     private RelNode convert(LogicalFilter filter, GeodeTableScan scan) {
       final RelTraitSet traitSet = filter.getTraitSet().replace(GeodeRel.CONVENTION);
       return new GeodeFilter(
-          filter.getCluster(),
-          traitSet,
-          convert(filter.getInput(), GeodeRel.CONVENTION),
-          filter.getCondition());
+        filter.getCluster(),
+        traitSet,
+        convert(filter.getInput(), GeodeRel.CONVENTION),
+        filter.getCondition());
     }
   }
 
@@ -377,5 +377,3 @@ public class GeodeRules {
     }
   }
 }
-
-// End GeodeRules.java

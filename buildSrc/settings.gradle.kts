@@ -16,12 +16,12 @@
  */
 
 pluginManagement {
-    /*plugins {
+    plugins {
         fun String.v() = extra["$this.version"].toString()
         fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
         idv("com.github.autostyle")
         idv("com.github.vlsi.gradle-extensions", "com.github.vlsi.vlsi-release-plugins")
-    }*/
+    }
 }
 
 include("javacc")

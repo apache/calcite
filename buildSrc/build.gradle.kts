@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-//import com.github.vlsi.gradle.properties.dsl.props
-//import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.github.vlsi.gradle.properties.dsl.props
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     java

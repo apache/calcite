@@ -76,10 +76,6 @@ public enum SqlConformanceEnum implements SqlConformance {
   SQL_SERVER_2008,
 
   /** Conformance value that instructs Calcite to use SQL semantics
-   * consistent with Google BigQuery. */
-  BIG_QUERY,
-
-  /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Apache Hive. */
   HIVE;
 
@@ -98,7 +94,6 @@ public enum SqlConformanceEnum implements SqlConformance {
     case LENIENT:
     case BIG_QUERY:
     case MYSQL_5:
-    case BIG_QUERY:
       return true;
     default:
       return false;

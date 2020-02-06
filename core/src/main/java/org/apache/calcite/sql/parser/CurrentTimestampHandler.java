@@ -91,5 +91,3 @@ public class CurrentTimestampHandler {
     return new SqlBasicCall(CAST, castOperands, SqlParserPos.ZERO);
   }
 }
-
-// End CurrentTimestampHandler.java
