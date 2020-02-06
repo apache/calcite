@@ -207,8 +207,8 @@ public class EnumerableJoinTest {
                 builder.alias(builder.field(1, "depts", "deptno"), "d_deptno"))
             .build())
         .explainHookMatches("" // It is important that we have MergeJoin in the plan
-            + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[10], expr#6=[*($t5, $t3)], expr#7=[>($t0, $t6)], empid=[$t0], name=[$t2], dept_name=[$t4], e_deptno=[$t1], d_deptno=[$t3], $condition=[$t7])\n"
-            + "  EnumerableMergeJoin(condition=[=($1, $3)], joinType=[inner])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t2], dept_name=[$t4], e_deptno=[$t1], d_deptno=[$t3])\n"
+            + "  EnumerableMergeJoin(condition=[AND(=($1, $3), >($0, *(10, $3)))], joinType=[inner])\n"
             + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
             + "        EnumerableTableScan(table=[[s, emps]])\n"

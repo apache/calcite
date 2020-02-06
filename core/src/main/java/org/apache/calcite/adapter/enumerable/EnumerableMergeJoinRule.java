@@ -28,10 +28,12 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** Planner rule that converts a
@@ -53,7 +55,6 @@ class EnumerableMergeJoinRule extends ConverterRule {
     final JoinInfo info = join.analyzeCondition();
     if (join.getJoinType() != JoinRelType.INNER) {
       // EnumerableMergeJoin only supports inner join.
-      // (It supports non-equi join, using a post-filter; see below.)
       return null;
     }
     if (info.pairs().size() == 0) {
@@ -90,19 +91,25 @@ class EnumerableMergeJoinRule extends ConverterRule {
     if (!collations.isEmpty()) {
       traitSet = traitSet.replace(collations);
     }
+    // Re-arrange condition: first the equi-join elements, then the non-equi-join ones (if any);
+    // this is not strictly necessary but it will be useful to avoid spurious errors in the
+    // unit tests when verifying the plan.
+    final RexBuilder rexBuilder = join.getCluster().getRexBuilder();
+    final RexNode equi = info.getEquiCondition(left, right, rexBuilder);
+    final RexNode condition;
+    if (info.isEqui()) {
+      condition = equi;
+    } else {
+      final RexNode nonEqui = RexUtil.composeConjunction(rexBuilder, info.nonEquiConditions);
+      condition = RexUtil.composeConjunction(rexBuilder, Arrays.asList(equi, nonEqui));
+    }
     newRel = new EnumerableMergeJoin(cluster,
         traitSet,
         left,
         right,
-        info.getEquiCondition(left, right, cluster.getRexBuilder()),
+        condition,
         join.getVariablesSet(),
         join.getJoinType());
-    if (!info.isEqui()) {
-      RexNode nonEqui = RexUtil.composeConjunction(cluster.getRexBuilder(),
-          info.nonEquiConditions);
-      newRel = new EnumerableFilter(cluster, newRel.getTraitSet(),
-          newRel, nonEqui);
-    }
     return newRel;
   }
 }

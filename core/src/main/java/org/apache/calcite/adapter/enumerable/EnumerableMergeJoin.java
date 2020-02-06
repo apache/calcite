@@ -36,6 +36,7 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
@@ -150,6 +151,15 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           EnumUtils.convert(
               rightResult.physType.fieldReference(right_, pair.right), keyClass));
     }
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      final RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     final PhysType leftKeyPhysType =
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final PhysType rightKeyPhysType =
@@ -166,6 +176,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         leftKeyPhysType.record(leftExpressions), left_),
                     Expressions.lambda(
                         rightKeyPhysType.record(rightExpressions), right_),
+                    predicate,
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
