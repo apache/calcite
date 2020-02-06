@@ -102,6 +102,13 @@ tasks.jar {
     }
 }
 
+// run this task by "./gradlew :core:runJdbcExample".
+task("runJdbcExample", JavaExec::class) {
+    description = "Run the main class runJdbcExample with JavaExecTask"
+    classpath = sourceSets["test"].runtimeClasspath
+    main = "org.apache.calcite.examples.foodmart.java.JdbcExample"
+}
+
 val generatedVersionDir = File(buildDir, "generated/sources/version")
 val versionClass by tasks.registering(Sync::class) {
     val re = Regex("^(\\d+)\\.(\\d+).*")
