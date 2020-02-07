@@ -26,7 +26,6 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Window;
-import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -1353,11 +1352,11 @@ public abstract class SqlImplementor {
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
 
-      if (rel instanceof LogicalSort
+     /* if (rel instanceof LogicalSort
           && dialect.getConformance().isSortByAlias()
           && !dialect.getConformance().isSortByOrdinal()) {
         keepColumnAlias = true;
-      }
+      }*/
 
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
@@ -1379,9 +1378,9 @@ public abstract class SqlImplementor {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:
-              if (keepColumnAliasFinal) {
-                return ((SqlCall) selectItem).operand(1);
-              }
+              /*if (keepColumnAliasFinal) {
+                return ((SqlCall) selectItem).operand(0);
+              }*/
               return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;
@@ -1391,9 +1390,9 @@ public abstract class SqlImplementor {
             final SqlNode selectItem = selectList.get(ordinal);
             switch (selectItem.getKind()) {
             case AS:
-              if (useAlias) {
+              /*if (useAlias) {
                 return ((SqlCall) selectItem).operand(1);
-              }
+              }*/
               return ((SqlCall) selectItem).operand(0);
             }
             return selectItem;

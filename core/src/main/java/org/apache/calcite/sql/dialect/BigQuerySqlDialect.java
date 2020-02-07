@@ -319,22 +319,6 @@ public class BigQuerySqlDialect extends SqlDialect {
   private static final SqlSetOperator INTERSECT_DISTINCT =
       new SqlSetOperator("INTERSECT DISTINCT", SqlKind.INTERSECT, 18, false);
 
-  @Override public void unparseSqlDatetimeArithmetic(SqlWriter writer,
-    SqlCall call, SqlKind sqlKind, int leftPrec, int rightPrec) {
-    switch (sqlKind) {
-    case MINUS:
-      final SqlWriter.Frame dateDiffFrame = writer.startFunCall("DATE_DIFF");
-      writer.sep(",");
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      call.operand(1).unparse(writer, leftPrec, rightPrec);
-      writer.sep(",");
-      writer.literal("DAY");
-      writer.endFunCall(dateDiffFrame);
-      break;
-    }
-  }
-
   private void unparseRegexSubstr(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     SqlCall extractCall;
     switch (call.operandCount()) {

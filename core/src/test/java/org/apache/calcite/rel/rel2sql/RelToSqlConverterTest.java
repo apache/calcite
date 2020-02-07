@@ -872,16 +872,16 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee) t";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
-        + "FROM (SELECT RANK() OVER (ORDER BY hire_date NULLS LAST) AS rnk\n"
+        + "FROM (SELECT RANK() OVER (ORDER BY hire_date IS NULL, hire_date) AS rnk\n"
         + "FROM foodmart.employee) AS t";
     sql(query)
-      .ok(expectedSql)
-      .withHive()
-      .ok(expectedHive);
-     /* .withSpark()
-      .ok(expectedSpark)
-      .withBigQuery()
-      .ok(expectedBigQuery);*/
+        .ok(expectedSql)
+        .withHive2()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
   }
 
   @Test public void testAnalyticalFunctionInAggregate1() {
@@ -903,12 +903,12 @@ public class RelToSqlConverterTest {
         + "FROM foodmart.employee) t";
     final String expectedSpark = expectedHive;
     final String expectedBigQuery = "SELECT MAX(rnk) AS rnk1\n"
-        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date NULLS LAST)) = 1 "
+        + "FROM (SELECT CASE WHEN (RANK() OVER (ORDER BY hire_date IS NULL, hire_date)) = 1 "
         + "THEN 100 ELSE 200 END AS rnk\n"
         + "FROM foodmart.employee) AS t";
     sql(query)
       .ok(expectedSql)
-      .withHive()
+      .withHive2()
       .ok(expectedHive)
       .withSpark()
       .ok(expectedSpark)
@@ -1136,7 +1136,9 @@ public class RelToSqlConverterTest {
         + "FROM `foodmart`.`product`\n"
         + "ORDER BY `product_id` IS NULL, 2";
     sql(query).ok(expected)
-        .withMysql().ok(expectedMysql);
+        //.withMysql().ok(expectedMysql)
+        .withBigQuery().ok(expectedMysql);
+
   }
 
   @Test public void testHiveSelectCharset() {
@@ -4775,7 +4777,7 @@ public class RelToSqlConverterTest {
         + "WHERE 10 = '10' AND \"birth_date\" = '1914-02-02' OR \"hire_date\" = '1996-01-01 ' || '00:00:00'";
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
-        + "WHERE 10 = CAST('10' AS INTEGER) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP(0))";
+        + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -4812,7 +4814,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT product_id, REGEXP_EXTRACT_ALL(SUBSTR('chocolate chip "
         + "cookies', 4), 'c+.{2}') [OFFSET(1)]\n"
         + "FROM foodmart.product\n"
-        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3";
+        + "WHERE product_id = 1 OR (product_id = 2 OR product_id = 3)";
     sql(query)
         .withBigQuery()
         .ok(expected);
@@ -4826,7 +4828,7 @@ public class RelToSqlConverterTest {
         + "REGEXP_EXTRACT_ALL(SUBSTR('chocolate Chip cookies', 1), '(?i)c+.{2}') [OFFSET"
         + "(1)]\n"
         + "FROM foodmart.product\n"
-        + "WHERE product_id = 1 OR product_id = 2 OR product_id = 3 OR product_id = 4";
+        + "WHERE product_id = 1 OR product_id = 2 OR (product_id = 3 OR product_id = 4)";
     sql(query)
         .withBigQuery()
         .ok(expected);
@@ -4843,7 +4845,7 @@ public class RelToSqlConverterTest {
     final String expectedSql = "SELECT CURRENT_TIMESTAMP(6) AS \"CT\"\n"
         + "FROM \"scott\".\"EMP\"";
     final String expectedBiqQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E6S', "
-        + "CURRENT_TIMESTAMP) AS TIMESTAMP(0)) AS CT\n"
+        + "CURRENT_TIMESTAMP) AS TIMESTAMP) AS CT\n"
         + "FROM scott.EMP";
     final String expectedSpark = "SELECT CAST(DATE_FORMAT(CURRENT_TIMESTAMP, 'yyyy-MM-dd HH:mm:ss"
         + ".ssssss') AS TIMESTAMP(0)) CT\n"
@@ -5229,20 +5231,6 @@ public class RelToSqlConverterTest {
         .ok(expectedSpark);
   }
 
-  @Test public void minusDateFunctionForHiveAndSparkAndBigQuery() {
-    String query = "select (\"birth_date\" - DATE '1899-12-31') day from \"employee\"";
-    final String expectedHive = "SELECT DATEDIFF(birth_date, DATE '1899-12-31')\n"
-        + "FROM foodmart.employee";
-    final String expectedSpark = "SELECT DATEDIFF(birth_date, DATE '1899-12-31')\n"
-        + "FROM foodmart.employee";
-    final String expectedBigQuery = "SELECT DATE_DIFF(birth_date, DATE '1899-12-31', DAY)\n"
-        + "FROM foodmart.employee";
-    sql(query)
-        .withHive().ok(expectedHive)
-        .withBigQuery().ok(expectedBigQuery)
-        .withSpark().ok(expectedSpark);
-  }
-
   @Test public void truncateFunctionEmulationForBigQuery() {
     String query = "select truncate(2.30259, 3) from \"employee\"";
     final String expectedBigQuery = "SELECT TRUNC(2.30259, 3)\n"
@@ -5538,7 +5526,7 @@ public class RelToSqlConverterTest {
     final String expectedBiqquery = "SELECT employee_id\n"
         + "FROM foodmart.employee\n"
         + "WHERE 10 = CAST('10' AS INT64) AND birth_date = '1914-02-02' OR hire_date = "
-        + "CAST('1996-01-01 ' || '00:00:00' AS TIMESTAMP)";
+        + "CAST(CONCAT('1996-01-01 ', '00:00:00') AS TIMESTAMP)";
     sql(query)
         .ok(expected)
         .withBigQuery()
@@ -5917,15 +5905,16 @@ public class RelToSqlConverterTest {
 
   @Test public void testIf() {
     String query = "SELECT if ('ABC'='' or 'ABC' is null, null, ASCII('ABC'))";
-    final String expected = "SELECT CAST(ASCII('ABC') AS INTEGER)";
-    final String expectedBigQuery = "SELECT CAST(TO_CODE_POINTS('ABC') [OFFSET(0)] AS INTEGER)";
+    final String expectedHiveQuery = "SELECT CAST(ASCII('ABC') AS INT)";
+    final String expectedSparkQuery = "SELECT CAST(ASCII('ABC') AS INTEGER)";
+    final String expectedBigQuery = "SELECT CAST(TO_CODE_POINTS('ABC') [OFFSET(0)] AS INT64)";
     sql(query)
       .withBigQuery()
       .ok(expectedBigQuery)
       .withHive()
-      .ok(expected)
+      .ok(expectedHiveQuery)
       .withSpark()
-      .ok(expected);
+      .ok(expectedSparkQuery);
   }
 
   @Test public void testIfMethodArgument() {
@@ -6208,7 +6197,17 @@ public class RelToSqlConverterTest {
       return dialect(SqlDialect.DatabaseProduct.HIVE.getDialect());
     }
 
-    Sql withHsqldb() {
+    Sql withHive2(){
+     return dialect(
+         new HiveSqlDialect(HiveSqlDialect.DEFAULT_CONTEXT
+          .withDatabaseMajorVersion(2)
+          .withDatabaseMinorVersion(1)
+          .withNullCollation(NullCollation.LOW)));
+    }
+
+
+
+  Sql withHsqldb() {
       return dialect(SqlDialect.DatabaseProduct.HSQLDB.getDialect());
     }
 

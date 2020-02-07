@@ -213,14 +213,17 @@ public class SqlSelectOperator extends SqlOperator {
     }
     if (select.groupBy != null) {
       writer.sep("GROUP BY");
+      SqlNodeList groupBy = null;
+     /* final SqlNodeList groupBy =
+          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
+              : select.groupBy;
+      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
+          groupBy);
       final SqlWriter.Frame groupFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);
+          writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);*/
       if (select.groupBy.getList().isEmpty()) {
-        final SqlWriter.Frame frame =
-            writer.startList(SqlWriter.FrameTypeEnum.SIMPLE, "(", ")");
-        writer.endList(frame);
-      } else {
-        if (writer.getDialect().getConformance().isGroupByOrdinal()) {
+        groupBy = SqlNodeList.SINGLETON_EMPTY;
+      } else if (writer.getDialect().getConformance().isGroupByOrdinal()) {
           List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
           for (SqlNode groupKey : select.groupBy.getList()) {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
@@ -256,11 +259,12 @@ public class SqlSelectOperator extends SqlOperator {
               }
             }
           }
-        } else {
-          unparseListClause(writer, select.groupBy);
         }
+        else {
+          groupBy = select.groupBy;
       }
-      writer.endList(groupFrame);
+      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
+          groupBy);
     }
     if (select.having != null) {
       writer.sep("HAVING");
