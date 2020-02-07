@@ -8889,6 +8889,46 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
+  @Test public void testBitNotFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.SNOWFLAKE);
+    tester1.setFor(SqlLibraryOperators.BITNOT);
+
+    tester.checkFails(
+        "^bitnot()^",
+        "No match found for function signature BITNOT\\(\\)",
+        false);
+    tester.checkFails(
+        "^bitnot(1, 2)^",
+        "No match found for function signature BITNOT\\(<NUMERIC>, <NUMERIC>\\)",
+        false);
+
+    tester1.checkScalar("bitnot(CAST(2 AS TINYINT))",
+        "-3",
+        "TINYINT NOT NULL");
+    tester1.checkScalar("bitnot(CAST(3 AS SMALLINT))",
+        "-4",
+        "SMALLINT NOT NULL");
+    tester1.checkScalar("bitnot(CAST(-2 AS INTEGER))",
+        "1",
+        "INTEGER NOT NULL");
+    tester1.checkScalar("bitnot(CAST(-3 AS BIGINT))",
+        "2",
+        "BIGINT NOT NULL");
+    tester1.checkScalar("bitnot(CAST(x'03' AS BINARY(1)))",
+        "fc",
+        "BINARY(1) NOT NULL");
+    tester1.checkScalar("bitnot(CAST(x'ABCDEF12' AS BINARY(4)))",
+        "543210ed",
+        "BINARY(4) NOT NULL");
+    tester1.checkScalar("bitnot(CAST(x'ABCDEF12' AS VARBINARY(4)))",
+        "543210ed",
+        "VARBINARY(4) NOT NULL");
+    tester1.checkScalar("bitnot(CAST(x'ABCDEF12' AS VARBINARY))",
+        "543210ed",
+        "VARBINARY NOT NULL");
+    tester1.checkNull("bitnot(CAST(null AS BINARY(1)))");
+  }
+
   @Test public void testBitAndFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);
