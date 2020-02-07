@@ -530,7 +530,7 @@ public class RelFactories {
    */
   private static class TableScanFactoryImpl implements TableScanFactory {
     public RelNode createScan(RelOptCluster cluster, RelOptTable table, List<RelHint> hints) {
-      return LogicalTableScan.create(cluster, table, hints);
+      return table.toRel(ViewExpanders.simpleContext(cluster, hints));
     }
   }
 

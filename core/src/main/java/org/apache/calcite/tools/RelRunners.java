@@ -16,7 +16,13 @@
  */
 package org.apache.calcite.tools;
 
+import org.apache.calcite.interpreter.Bindables;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttle;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,6 +35,19 @@ public class RelRunners {
 
   /** Runs a relational expression by creating a JDBC connection. */
   public static PreparedStatement run(RelNode rel) {
+    final RelShuttle shuttle = new RelHomogeneousShuttle() {
+      @Override public RelNode visit(TableScan scan) {
+        final RelOptTable table = scan.getTable();
+        if (scan instanceof LogicalTableScan
+            && Bindables.BindableTableScan.canHandle(table)) {
+          // Always replace the LogicalTableScan with BindableTableScan
+          // because it's implementation does not require a "schema" as context.
+          return Bindables.BindableTableScan.create(scan.getCluster(), table);
+        }
+        return super.visit(scan);
+      }
+    };
+    rel = rel.accept(shuttle);
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       final RelRunner runner = connection.unwrap(RelRunner.class);
       return runner.prepare(rel);

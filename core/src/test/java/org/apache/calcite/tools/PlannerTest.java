@@ -135,7 +135,7 @@ public class PlannerTest {
 
         "LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
         + "  LogicalFilter(condition=[LIKE($2, '%e%')])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    LogicalTableScan(table=[[hr, emps]])\n");
   }
 
   @Test public void testParseIdentiferMaxLengthWithDefault() {
@@ -167,7 +167,7 @@ public class PlannerTest {
 
         "LogicalSort(sort0=[$1], dir0=[ASC], offset=[10])\n"
         + "  LogicalProject(empid=[$0], deptno=[$1], name=[$2], salary=[$3], commission=[$4])\n"
-        + "    EnumerableTableScan(table=[[hr, emps]])\n");
+        + "    LogicalTableScan(table=[[hr, emps]])\n");
   }
 
   private String toString(RelNode rel) {
@@ -390,6 +390,7 @@ public class PlannerTest {
     Program program =
         Programs.ofRules(
             FilterMergeRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     Planner planner = getPlanner(null, program);
@@ -552,6 +553,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             SortRemoveRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -582,6 +584,7 @@ public class PlannerTest {
             SortRemoveRule.INSTANCE,
             SortJoinTransposeRule.INSTANCE,
             SortProjectTransposeRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_LIMIT_RULE,
             EnumerableRules.ENUMERABLE_JOIN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
@@ -686,6 +689,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             SortRemoveRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_WINDOW_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -711,6 +715,7 @@ public class PlannerTest {
   @Test public void testDuplicateSortPlanWORemoveSortRule() throws Exception {
     RuleSet ruleSet =
         RuleSets.ofList(
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -754,6 +759,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             FilterMergeRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     final List<RelTraitDef> traitDefs = new ArrayList<>();
@@ -779,6 +785,7 @@ public class PlannerTest {
     RuleSet ruleSet =
         RuleSets.ofList(
             FilterMergeRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
     Planner planner = getPlanner(null, Programs.of(ruleSet));
@@ -827,6 +834,7 @@ public class PlannerTest {
     RuleSet ruleSet1 =
         RuleSets.ofList(
             rule1,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
 
@@ -876,6 +884,7 @@ public class PlannerTest {
     Program program0 =
         Programs.ofRules(
             FilterMergeRule.INSTANCE,
+            EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_PROJECT_RULE);
 
@@ -1368,7 +1377,7 @@ public class PlannerTest {
     assertThat(plan,
         equalTo("LogicalSort(sort0=[$0], dir0=[ASC])\n"
         + "  LogicalProject(psPartkey=[$0])\n"
-        + "    EnumerableTableScan(table=[[tpch, partsupp]])\n"));
+        + "    LogicalTableScan(table=[[tpch, partsupp]])\n"));
   }
 
   /** Test case for

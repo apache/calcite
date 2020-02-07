@@ -29,7 +29,11 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableScan} to the result
  * of calling {@link RelOptTable#toRel}.
+ *
+ * @deprecated {@code org.apache.calcite.rel.core.RelFactories.TableScanFactoryImpl}
+ * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext)}.
  */
+@Deprecated // to be removed before 2.0
 public class TableScanRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 

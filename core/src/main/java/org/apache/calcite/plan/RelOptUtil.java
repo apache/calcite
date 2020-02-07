@@ -2038,7 +2038,6 @@ public abstract class RelOptUtil {
         planner.addRule(rule);
       }
     }
-    planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
     planner.addRule(ProjectTableScanRule.INSTANCE);
     planner.addRule(ProjectTableScanRule.INTERPRETER);
 

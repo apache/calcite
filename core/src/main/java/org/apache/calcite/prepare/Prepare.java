@@ -23,7 +23,6 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptLattice;
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -31,12 +30,9 @@ import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
-import org.apache.calcite.rel.RelVisitor;
-import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -164,26 +160,6 @@ public abstract class Prepare {
     }
 
     final RelTraitSet desiredTraits = getDesiredRootTraitSet(root);
-
-    // Work around
-    //   [CALCITE-1774] Allow rules to be registered during planning process
-    // by briefly creating each kind of physical table to let it register its
-    // rules. The problem occurs when plans are created via RelBuilder, not
-    // the usual process (SQL and SqlToRelConverter.Config.isConvertTableAccess
-    // = true).
-    final RelVisitor visitor = new RelVisitor() {
-      @Override public void visit(RelNode node, int ordinal, RelNode parent) {
-        if (node instanceof TableScan) {
-          final RelOptCluster cluster = node.getCluster();
-          final RelOptTable.ToRelContext context =
-              ViewExpanders.simpleContext(cluster);
-          final RelNode r = node.getTable().toRel(context);
-          planner.registerClass(r);
-        }
-        super.visit(node, ordinal, parent);
-      }
-    };
-    visitor.go(root.rel);
 
     final Program program = getProgram();
     final RelNode rootRel4 = program.run(

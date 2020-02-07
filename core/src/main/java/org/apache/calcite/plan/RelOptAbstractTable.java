@@ -113,7 +113,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public Expression getExpression(Class clazz) {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   public RelOptTable extend(List<RelDataTypeField> extendedFields) {

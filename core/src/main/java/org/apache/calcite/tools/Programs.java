@@ -55,7 +55,6 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
-import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
@@ -85,6 +84,7 @@ public class Programs {
 
   public static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
+          EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE,
           EnumerableRules.ENUMERABLE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
           EnumerableRules.ENUMERABLE_CORRELATE_RULE,
@@ -102,7 +102,6 @@ public class Programs {
           EnumerableRules.ENUMERABLE_MATCH_RULE,
           SemiJoinRule.PROJECT,
           SemiJoinRule.JOIN,
-          TableScanRule.INSTANCE,
           MatchRule.INSTANCE,
           CalciteSystemProperty.COMMUTE.value()
               ? JoinAssociateRule.INSTANCE
