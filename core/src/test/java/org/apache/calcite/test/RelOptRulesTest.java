@@ -122,7 +122,6 @@ import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortRemoveConstantKeysRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
-import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
@@ -1968,7 +1967,6 @@ public class RelOptRulesTest extends RelOptTestBase {
 
   @Test public void testMergeFilterWithJoinCondition() throws Exception {
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(TableScanRule.INSTANCE)
         .addRuleInstance(JoinExtractFilterRule.INSTANCE)
         .addRuleInstance(FilterToCalcRule.INSTANCE)
         .addRuleInstance(ProjectToCalcRule.INSTANCE)
@@ -2239,7 +2237,6 @@ public class RelOptRulesTest extends RelOptTestBase {
     // of the projections, transfer it to calc, for the other,
     // keep it unchanged.
     HepProgram program = new HepProgramBuilder()
-        .addRuleInstance(TableScanRule.INSTANCE)
         // Control the calc conversion.
         .addMatchLimit(1)
         .addRuleInstance(ProjectToCalcRule.INSTANCE)

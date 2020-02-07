@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
@@ -23,6 +24,11 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.schema.FilterableTable;
+import org.apache.calcite.schema.ProjectableFilterableTable;
+import org.apache.calcite.schema.QueryableTable;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilderFactory;
 
 import java.util.function.Predicate;
@@ -53,10 +59,31 @@ public class EnumerableTableScanRule extends ConverterRule {
   @Override public RelNode convert(RelNode rel) {
     LogicalTableScan scan = (LogicalTableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
+    final Table table = relOptTable.unwrap(Table.class);
     final Expression expression = relOptTable.getExpression(Object.class);
-    if (expression == null) {
-      return null;
+
+    if (table instanceof QueryableTable
+        && (expression != null
+            || EnumerableTableScan.canHandle(relOptTable))) {
+      return EnumerableTableScan.create(scan.getCluster(), relOptTable);
     }
-    return EnumerableTableScan.create(scan.getCluster(), relOptTable);
+
+    if (table instanceof ScannableTable
+        || table instanceof FilterableTable
+        || table instanceof ProjectableFilterableTable) {
+      // Transform to EnumerableInterpreter + BindableTableScan
+      // because:
+      // 1. ScannableTable can bind data directly;
+      // 2. Only BindableTable supports project push down now.
+      final Bindables.BindableTableScan bindableScan =
+          Bindables.BindableTableScan.create(rel.getCluster(), relOptTable);
+      return EnumerableInterpreter.create(bindableScan, 0.5d);
+    }
+
+    if (expression != null) {
+      return EnumerableTableScan.create(scan.getCluster(), relOptTable);
+    }
+
+    return null;
   }
 }

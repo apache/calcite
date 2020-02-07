@@ -50,7 +50,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -3151,28 +3150,15 @@ public class RelBuilderTest {
   }
 
   @Test public void testExpandTable() throws SQLException {
-    final RelOptTable.ViewExpander viewExpander =
-        (rowType, queryString, schemaPath, viewPath) -> null;
-    final RelFactories.TableScanFactory tableScanFactory =
-        RelFactories.expandingScanFactory(viewExpander,
-            RelFactories.DEFAULT_TABLE_SCAN_FACTORY);
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
-      // First, use a non-expanding RelBuilder. Plan contains LogicalTableScan.
+      // RelBuilder expands as default. Plan contains JdbcTableScan,
+      // because RelBuilder.scan has called RelOptTable.toRel.
       final Frameworks.ConfigBuilder configBuilder =
           expandingConfig(connection);
       final RelBuilder builder = RelBuilder.create(configBuilder.build());
       final String expected = "LogicalFilter(condition=[>($2, 10)])\n"
-          + "  LogicalTableScan(table=[[JDBC_SCOTT, EMP]])\n";
-      checkExpandTable(builder, hasTree(expected));
-
-      // Next, use an expanding RelBuilder. Plan contains JdbcTableScan,
-      // because RelBuilder.scan has called RelOptTable.toRel.
-      final FrameworkConfig config = configBuilder
-          .context(Contexts.of(tableScanFactory)).build();
-      final RelBuilder builder2 = RelBuilder.create(config);
-      final String expected2 = "LogicalFilter(condition=[>($2, 10)])\n"
           + "  JdbcTableScan(table=[[JDBC_SCOTT, EMP]])\n";
-      checkExpandTable(builder2, hasTree(expected2));
+      checkExpandTable(builder, hasTree(expected));
     }
   }
 

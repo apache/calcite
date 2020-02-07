@@ -65,7 +65,6 @@ import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortRemoveConstantKeysRule;
 import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
-import org.apache.calcite.rel.rules.TableScanRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.rules.UnionPullUpConstantsRule;
 import org.apache.calcite.rel.rules.UnionToDistinctRule;
@@ -113,7 +112,6 @@ public class RelOptRules {
   static final List<RelOptRule> BASE_RULES = ImmutableList.of(
       AggregateStarTableRule.INSTANCE,
       AggregateStarTableRule.INSTANCE2,
-      TableScanRule.INSTANCE,
       CalciteSystemProperty.COMMUTE.value()
           ? JoinAssociateRule.INSTANCE
           : ProjectMergeRule.INSTANCE,

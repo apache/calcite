@@ -64,6 +64,13 @@ public abstract class ViewExpanders {
 
   /** Creates a simple {@code ToRelContext} that cannot expand views. */
   public static RelOptTable.ToRelContext simpleContext(RelOptCluster cluster) {
+    return simpleContext(cluster, ImmutableList.of());
+  }
+
+  /** Creates a simple {@code ToRelContext} that cannot expand views. */
+  public static RelOptTable.ToRelContext simpleContext(
+      RelOptCluster cluster,
+      List<RelHint> hints) {
     return new RelOptTable.ToRelContext() {
       public RelOptCluster getCluster() {
         return cluster;
@@ -75,7 +82,7 @@ public abstract class ViewExpanders {
       }
 
       public List<RelHint> getTableHints() {
-        return ImmutableList.of();
+        return hints;
       }
     };
   }
