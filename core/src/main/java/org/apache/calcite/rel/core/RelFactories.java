@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -53,6 +54,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -60,6 +62,7 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import javax.annotation.Nonnull;
@@ -116,24 +119,28 @@ public class RelFactories {
   public static final RepeatUnionFactory DEFAULT_REPEAT_UNION_FACTORY =
       new RepeatUnionFactoryImpl();
 
+  public static final Struct DEFAULT_STRUCT =
+      new Struct(DEFAULT_FILTER_FACTORY,
+          DEFAULT_PROJECT_FACTORY,
+          DEFAULT_AGGREGATE_FACTORY,
+          DEFAULT_SORT_FACTORY,
+          DEFAULT_EXCHANGE_FACTORY,
+          DEFAULT_SORT_EXCHANGE_FACTORY,
+          DEFAULT_SET_OP_FACTORY,
+          DEFAULT_JOIN_FACTORY,
+          DEFAULT_CORRELATE_FACTORY,
+          DEFAULT_VALUES_FACTORY,
+          DEFAULT_TABLE_SCAN_FACTORY,
+          DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
+          DEFAULT_SNAPSHOT_FACTORY,
+          DEFAULT_MATCH_FACTORY,
+          DEFAULT_SPOOL_FACTORY,
+          DEFAULT_REPEAT_UNION_FACTORY);
+
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
-      RelBuilder.proto(
-          Contexts.of(DEFAULT_PROJECT_FACTORY,
-              DEFAULT_FILTER_FACTORY,
-              DEFAULT_JOIN_FACTORY,
-              DEFAULT_SORT_FACTORY,
-              DEFAULT_EXCHANGE_FACTORY,
-              DEFAULT_SORT_EXCHANGE_FACTORY,
-              DEFAULT_AGGREGATE_FACTORY,
-              DEFAULT_MATCH_FACTORY,
-              DEFAULT_SET_OP_FACTORY,
-              DEFAULT_VALUES_FACTORY,
-              DEFAULT_TABLE_SCAN_FACTORY,
-              DEFAULT_SNAPSHOT_FACTORY,
-              DEFAULT_SPOOL_FACTORY,
-              DEFAULT_REPEAT_UNION_FACTORY));
+      RelBuilder.proto(Contexts.of(DEFAULT_STRUCT));
 
   private RelFactories() {
   }
@@ -671,6 +678,101 @@ public class RelFactories {
     public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
         boolean all, int iterationLimit) {
       return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
+    }
+  }
+
+  /** Immutable record that contains an instance of each factory. */
+  public static class Struct {
+    public final FilterFactory filterFactory;
+    public final ProjectFactory projectFactory;
+    public final AggregateFactory aggregateFactory;
+    public final SortFactory sortFactory;
+    public final ExchangeFactory exchangeFactory;
+    public final SortExchangeFactory sortExchangeFactory;
+    public final SetOpFactory setOpFactory;
+    public final JoinFactory joinFactory;
+    public final CorrelateFactory correlateFactory;
+    public final ValuesFactory valuesFactory;
+    public final TableScanFactory scanFactory;
+    public final TableFunctionScanFactory tableFunctionScanFactory;
+    public final SnapshotFactory snapshotFactory;
+    public final MatchFactory matchFactory;
+    public final SpoolFactory spoolFactory;
+    public final RepeatUnionFactory repeatUnionFactory;
+
+    private Struct(FilterFactory filterFactory,
+        ProjectFactory projectFactory,
+        AggregateFactory aggregateFactory,
+        SortFactory sortFactory,
+        ExchangeFactory exchangeFactory,
+        SortExchangeFactory sortExchangeFactory,
+        SetOpFactory setOpFactory,
+        JoinFactory joinFactory,
+        CorrelateFactory correlateFactory,
+        ValuesFactory valuesFactory,
+        TableScanFactory scanFactory,
+        TableFunctionScanFactory tableFunctionScanFactory,
+        SnapshotFactory snapshotFactory,
+        MatchFactory matchFactory,
+        SpoolFactory spoolFactory,
+        RepeatUnionFactory repeatUnionFactory) {
+      this.filterFactory = Objects.requireNonNull(filterFactory);
+      this.projectFactory = Objects.requireNonNull(projectFactory);
+      this.aggregateFactory = Objects.requireNonNull(aggregateFactory);
+      this.sortFactory = Objects.requireNonNull(sortFactory);
+      this.exchangeFactory = Objects.requireNonNull(exchangeFactory);
+      this.sortExchangeFactory = Objects.requireNonNull(sortExchangeFactory);
+      this.setOpFactory = Objects.requireNonNull(setOpFactory);
+      this.joinFactory = Objects.requireNonNull(joinFactory);
+      this.correlateFactory = Objects.requireNonNull(correlateFactory);
+      this.valuesFactory = Objects.requireNonNull(valuesFactory);
+      this.scanFactory = Objects.requireNonNull(scanFactory);
+      this.tableFunctionScanFactory =
+          Objects.requireNonNull(tableFunctionScanFactory);
+      this.snapshotFactory = Objects.requireNonNull(snapshotFactory);
+      this.matchFactory = Objects.requireNonNull(matchFactory);
+      this.spoolFactory = Objects.requireNonNull(spoolFactory);
+      this.repeatUnionFactory = Objects.requireNonNull(repeatUnionFactory);
+    }
+
+    public static @Nonnull Struct fromContext(Context context) {
+      Struct struct = context.unwrap(Struct.class);
+      if (struct != null) {
+        return struct;
+      }
+      return new Struct(
+          Util.first(context.unwrap(FilterFactory.class),
+              DEFAULT_FILTER_FACTORY),
+          Util.first(context.unwrap(ProjectFactory.class),
+              DEFAULT_PROJECT_FACTORY),
+          Util.first(context.unwrap(AggregateFactory.class),
+              DEFAULT_AGGREGATE_FACTORY),
+          Util.first(context.unwrap(SortFactory.class),
+              DEFAULT_SORT_FACTORY),
+          Util.first(context.unwrap(ExchangeFactory.class),
+              DEFAULT_EXCHANGE_FACTORY),
+          Util.first(context.unwrap(SortExchangeFactory.class),
+              DEFAULT_SORT_EXCHANGE_FACTORY),
+          Util.first(context.unwrap(SetOpFactory.class),
+              DEFAULT_SET_OP_FACTORY),
+          Util.first(context.unwrap(JoinFactory.class),
+              DEFAULT_JOIN_FACTORY),
+          Util.first(context.unwrap(CorrelateFactory.class),
+              DEFAULT_CORRELATE_FACTORY),
+          Util.first(context.unwrap(ValuesFactory.class),
+              DEFAULT_VALUES_FACTORY),
+          Util.first(context.unwrap(TableScanFactory.class),
+              DEFAULT_TABLE_SCAN_FACTORY),
+          Util.first(context.unwrap(TableFunctionScanFactory.class),
+              DEFAULT_TABLE_FUNCTION_SCAN_FACTORY),
+          Util.first(context.unwrap(SnapshotFactory.class),
+              DEFAULT_SNAPSHOT_FACTORY),
+          Util.first(context.unwrap(MatchFactory.class),
+              DEFAULT_MATCH_FACTORY),
+          Util.first(context.unwrap(SpoolFactory.class),
+              DEFAULT_SPOOL_FACTORY),
+          Util.first(context.unwrap(RepeatUnionFactory.class),
+              DEFAULT_REPEAT_UNION_FACTORY));
     }
   }
 }
