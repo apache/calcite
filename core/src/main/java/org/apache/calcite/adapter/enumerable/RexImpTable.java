@@ -182,7 +182,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.HOP_TVF;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.HOP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INTERSECTION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
@@ -265,6 +265,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROUND;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ROW_NUMBER;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIGN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SIMILAR_TO;
@@ -281,7 +282,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SYSTEM_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRIM;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TRUNCATE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE_TVF;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.TUMBLE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_MINUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
@@ -670,8 +671,9 @@ public class RexImpTable {
     matchMap.put(CLASSIFIER, ClassifierImplementor::new);
     matchMap.put(LAST, LastImplementor::new);
     map.put(PREV, new PrevImplementor());
-    tvfImplementorMap.put(TUMBLE_TVF, TumbleImplementor::new);
-    tvfImplementorMap.put(HOP_TVF, HopImplementor::new);
+    tvfImplementorMap.put(TUMBLE, TumbleImplementor::new);
+    tvfImplementorMap.put(HOP, HopImplementor::new);
+    tvfImplementorMap.put(SESSION, SessionImplementor::new);
   }
 
   private <T> Supplier<T> constructorSupplier(Class<T> klass) {
@@ -3159,23 +3161,50 @@ public class RexImpTable {
   private static class HopImplementor implements TableFunctionCallImplementor {
     @Override public Expression implement(RexToLixTranslator translator,
         Expression inputEnumerable, RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
-      Expression intervalExpression = translator.translate(call.getOperands().get(2));
-      Expression intervalExpression2 = translator.translate(call.getOperands().get(3));
-      RexCall descriptor = (RexCall) call.getOperands().get(1);
+      Expression slidingInterval = translator.translate(call.getOperands().get(1));
+      Expression windowSize = translator.translate(call.getOperands().get(2));
+      RexCall descriptor = (RexCall) call.getOperands().get(0);
       List<Expression> translatedOperands = new ArrayList<>();
       Expression wmColIndexExpr =
           Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex());
       translatedOperands.add(wmColIndexExpr);
-      translatedOperands.add(intervalExpression);
-      translatedOperands.add(intervalExpression2);
+      translatedOperands.add(slidingInterval);
+      translatedOperands.add(windowSize);
 
       return Expressions.call(
           BuiltInMethod.HOPPING.method,
           Expressions.list(
               Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
-              wmColIndexExpr,
-              intervalExpression,
-              intervalExpression2));
+              translatedOperands.get(0),
+              translatedOperands.get(1),
+              translatedOperands.get(2)));
+    }
+  }
+
+  /** Implements per-key sessionization. */
+  private static class SessionImplementor implements TableFunctionCallImplementor {
+    @Override public Expression implement(RexToLixTranslator translator,
+        Expression inputEnumerable, RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
+      RexCall timestampDescriptor = (RexCall) call.getOperands().get(0);
+      RexCall keyDescriptor = (RexCall) call.getOperands().get(1);
+      Expression gapInterval = translator.translate(call.getOperands().get(2));
+
+      List<Expression> translatedOperands = new ArrayList<>();
+      Expression wmColIndexExpr =
+          Expressions.constant(((RexInputRef) timestampDescriptor.getOperands().get(0)).getIndex());
+      Expression keyColIndexExpr =
+          Expressions.constant(((RexInputRef) keyDescriptor.getOperands().get(0)).getIndex());
+      translatedOperands.add(wmColIndexExpr);
+      translatedOperands.add(keyColIndexExpr);
+      translatedOperands.add(gapInterval);
+
+      return Expressions.call(
+          BuiltInMethod.SESSIONIZATION.method,
+          Expressions.list(
+              Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
+              translatedOperands.get(0),
+              translatedOperands.get(1),
+              translatedOperands.get(2)));
     }
   }
 }

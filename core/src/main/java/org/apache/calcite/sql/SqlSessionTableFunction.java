@@ -23,15 +23,16 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 
 /**
- * SqlHopTableFunction implements an operator for hopping. It allows four parameters:
+ * SqlSessionTableFunction implements an operator for per-key sessionization. It allows
+ * four parameters:
  * 1. a table.
  * 2. a descriptor to provide a watermarked column name from the input table.
- * 3. an interval parameter to specify the length of window shifting.
- * 4. an interval parameter to specify the length of window size.
+ * 3. a descriptor to provide a column as key, on which sessionization will be applied.
+ * 4. an interval parameter to specify a inactive activity gap to break sessions.
  */
-public class SqlHopTableFunction extends SqlWindowTableFunction {
-  public SqlHopTableFunction() {
-    super(SqlKind.HOP.name());
+public class SqlSessionTableFunction extends SqlWindowTableFunction {
+  public SqlSessionTableFunction() {
+    super(SqlKind.SESSION.name());
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
@@ -51,10 +52,11 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
       return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
     }
     validateColumnNames(validator, type.getFieldNames(), ((SqlCall) operand1).getOperandList());
-    final RelDataType type2 = validator.getValidatedNodeType(callBinding.operand(2));
-    if (!SqlTypeUtil.isInterval(type2)) {
+    final SqlNode operand2 = callBinding.operand(2);
+    if (operand2.getKind() != SqlKind.DESCRIPTOR) {
       return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
     }
+    validateColumnNames(validator, type.getFieldNames(), ((SqlCall) operand2).getOperandList());
     final RelDataType type3 = validator.getValidatedNodeType(callBinding.operand(3));
     if (!SqlTypeUtil.isInterval(type3)) {
       return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
@@ -64,6 +66,6 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
 
   @Override public String getAllowedSignatures(String opNameToUse) {
     return getName() + "(TABLE table_name, DESCRIPTOR(col), "
-        + "datetime interval, datetime interval)";
+        + "DESCRIPTOR(col), datetime interval)";
   }
 }

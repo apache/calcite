@@ -4256,36 +4256,4 @@ public abstract class EnumerableDefaults {
       }
     };
   }
-
-  /**
-   * Apply tumbling per row from the enumerable input.
-   */
-  public static <TSource, TResult> Enumerable<TResult> tumbling(
-      Enumerable<TSource> inputEnumerable,
-      Function1<TSource, TResult> outSelector) {
-    return new AbstractEnumerable<TResult>() {
-      // Applies tumbling on each element from the input enumerator and produces
-      // exactly one element for each input element.
-      @Override public Enumerator<TResult> enumerator() {
-        return new Enumerator<TResult>() {
-          Enumerator<TSource> inputs = inputEnumerable.enumerator();
-
-          public TResult current() {
-            return outSelector.apply(inputs.current());
-          }
-
-          public boolean moveNext() {
-            return inputs.moveNext();
-          }
-
-          public void reset() {
-            inputs.reset();
-          }
-
-          public void close() {
-          }
-        };
-      }
-    };
-  }
 }

@@ -10211,21 +10211,51 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
             + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\)");
     sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\)");
     sql("select * from table(\n"
         + "^hop(table orders, 'test', interval '2' hour, interval '2' hour)^)")
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <INTERVAL HOUR>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col1, col2 \\.\\.\\.\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\)");
     sql("select * from table(\n"
         + "hop(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour, interval '1' hour))")
+        .fails("Object 'TABLER_NOT_EXIST' not found");
+  }
+
+  @Test public void testSessionTableFunction() {
+    sql("select * from table(\n"
+        + "session(table orders, descriptor(rowtime), descriptor(productid), interval '1' hour))")
+        .ok();
+    sql("select * from table(\n"
+        + "^session(table orders, descriptor(rowtime), interval '2' hour)^)")
+        .fails("Invalid number of arguments to function 'SESSION'. Was expecting 4 arguments");
+    sql("select * from table(\n"
+        + "^session(table orders, descriptor(rowtime), descriptor(productid), 'test')^)")
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+            + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <COLUMN_LIST>, "
+            + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
+            + "col\\), DESCRIPTOR\\(col\\), datetime interval\\)");
+    sql("select * from table(\n"
+        + "^session(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+            + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
+            + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
+            + "col\\), DESCRIPTOR\\(col\\), datetime interval\\)");
+    sql("select * from table(\n"
+        + "^session(table orders, 'test', descriptor(productid), interval '2' hour)^)")
+        .fails("Cannot apply 'SESSION' to arguments of type 'SESSION\\(<RECORDTYPE\\(TIMESTAMP\\("
+            + "0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <COLUMN_LIST>, "
+            + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): SESSION\\(TABLE table_name, DESCRIPTOR\\("
+            + "col\\), DESCRIPTOR\\(col\\), datetime interval\\)");
+    sql("select * from table(\n"
+        + "session(TABLE ^tabler_not_exist^, descriptor(rowtime), descriptor(productid), interval '1' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");
   }
 

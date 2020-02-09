@@ -45,6 +45,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
+import org.apache.calcite.runtime.SortedMultiMap;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
@@ -59,8 +60,10 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utilities for generating programs in the Enumerable (functional)
@@ -748,8 +751,12 @@ public class EnumUtils {
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
   }
 
-  /** Generates a window selector which appends attribute of the window based on
-   * the parameters. */
+  /**
+   * Generates a window selector which appends attribute of the window based on
+   * the parameters.
+   *
+   * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
+   */
   static Expression tumblingWindowSelector(
       PhysType inputPhysType,
       PhysType outputPhysType,
@@ -802,6 +809,147 @@ public class EnumUtils {
   }
 
   /**
+   * Creates enumerable implementation that applies sessionization to elements from the input
+   * enumerator based on a specified key. Elements are windowed into sessions separated by
+   * periods with no input for at least the duration specified by gap parameter.
+   */
+  public static Enumerable<Object[]> sessionize(Enumerator<Object[]> inputEnumerator,
+      int indexOfWatermarkedColumn, int indexOfKeyColumn, long gap) {
+    return new AbstractEnumerable<Object[]>() {
+      @Override public Enumerator<Object[]> enumerator() {
+        return new SessionizationEnumerator(inputEnumerator,
+            indexOfWatermarkedColumn, indexOfKeyColumn, gap);
+      }
+    };
+  }
+
+  private static class SessionizationEnumerator implements Enumerator<Object[]> {
+    private final Enumerator<Object[]> inputEnumerator;
+    private final int indexOfWatermarkedColumn;
+    private final int indexOfKeyColumn;
+    private final long gap;
+    private LinkedList<Object[]> list;
+    private boolean initialized;
+
+    /**
+     * Note that it only works for batch scenario. E.g. all data is known and there is no
+     * late data.
+     *
+     * @param inputEnumerator the enumerator to provide an array of objects as input
+     * @param indexOfWatermarkedColumn the index of timestamp column upon which a watermark is built
+     * @param indexOfKeyColumn the index of column that acts as grouping key
+     * @param gap gap parameter
+     */
+    SessionizationEnumerator(Enumerator<Object[]> inputEnumerator,
+        int indexOfWatermarkedColumn, int indexOfKeyColumn, long gap) {
+      this.inputEnumerator = inputEnumerator;
+      this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
+      this.indexOfKeyColumn = indexOfKeyColumn;
+      this.gap = gap;
+      list = new LinkedList<>();
+      initialized = false;
+    }
+
+    @Override public Object[] current() {
+      if (!initialized) {
+        initialize();
+        initialized = true;
+      }
+      return list.pollFirst();
+    }
+
+    @Override public boolean moveNext() {
+      return initialized ? list.size() > 0 : inputEnumerator.moveNext();
+    }
+
+    @Override public void reset() {
+      list.clear();
+      inputEnumerator.reset();
+      initialized = false;
+    }
+
+    @Override public void close() {
+      list.clear();
+      inputEnumerator.close();
+      initialized = false;
+    }
+
+    private void initialize() {
+      List<Object[]> elements = new ArrayList<>();
+      // initialize() will be called when inputEnumerator.moveNext() is true,
+      // thus firstly should take the current element.
+      elements.add(inputEnumerator.current());
+      // sessionization needs to see all data.
+      while (inputEnumerator.moveNext()) {
+        elements.add(inputEnumerator.current());
+      }
+
+      Map<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> sessionKeyMap = new HashMap<>();
+      for (Object[] element : elements) {
+        sessionKeyMap.putIfAbsent(element[indexOfKeyColumn], new SortedMultiMap<>());
+        Pair initWindow = computeInitWindow(
+            SqlFunctions.toLong(element[indexOfWatermarkedColumn]), gap);
+        sessionKeyMap.get(element[indexOfKeyColumn]).putMulti(initWindow, element);
+      }
+
+      // merge per key session windows if there is any overlap between windows.
+      for (Map.Entry<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> perKeyEntry
+          : sessionKeyMap.entrySet()) {
+        Map<Pair<Long, Long>, List<Object[]>> finalWindowElementsMap = new HashMap<>();
+        Pair<Long, Long> currentWindow = null;
+        List<Object[]> tempElementList = new ArrayList<>();
+        for (Map.Entry<Pair<Long, Long>, List<Object[]>> sessionEntry
+            : perKeyEntry.getValue().entrySet()) {
+          // check the next window can be merged.
+          if (currentWindow == null || !isOverlapped(currentWindow, sessionEntry.getKey())) {
+            // cannot merge window as there is no overlap
+            if (currentWindow != null) {
+              finalWindowElementsMap.put(currentWindow, new ArrayList<>(tempElementList));
+            }
+
+            currentWindow = sessionEntry.getKey();
+            tempElementList.clear();
+            tempElementList.addAll(sessionEntry.getValue());
+          } else {
+            // merge windows.
+            currentWindow = mergeWindows(currentWindow, sessionEntry.getKey());
+            // merge elements in windows.
+            tempElementList.addAll(sessionEntry.getValue());
+          }
+        }
+
+        if (!tempElementList.isEmpty()) {
+          finalWindowElementsMap.put(currentWindow, new ArrayList<>(tempElementList));
+        }
+
+        // construct final results from finalWindowElementsMap.
+        for (Map.Entry<Pair<Long, Long>, List<Object[]>> finalWindowElementsEntry
+            : finalWindowElementsMap.entrySet()) {
+          for (Object[] element : finalWindowElementsEntry.getValue()) {
+            Object[] curWithWindow = new Object[element.length + 2];
+            System.arraycopy(element, 0, curWithWindow, 0, element.length);
+            curWithWindow[element.length] = finalWindowElementsEntry.getKey().left;
+            curWithWindow[element.length + 1] = finalWindowElementsEntry.getKey().right;
+            list.offer(curWithWindow);
+          }
+        }
+      }
+    }
+
+    private boolean isOverlapped(Pair<Long, Long> a, Pair<Long, Long> b) {
+      return !(b.left >= a.right);
+    }
+
+    private Pair<Long, Long> mergeWindows(Pair<Long, Long> a, Pair<Long, Long> b) {
+      return new Pair<>(a.left <= b.left ? a.left : b.left, a.right >= b.right ? a.right : b.right);
+    }
+
+    private Pair<Long, Long> computeInitWindow(long ts, long gap) {
+      return new Pair<>(ts, ts + gap);
+    }
+  }
+
+  /**
    * Create enumerable implementation that applies hopping on each element from the input
    * enumerator and produces at least one element for each input element.
    */
@@ -822,11 +970,19 @@ public class EnumUtils {
     private final long intervalSize;
     private LinkedList<Object[]> list;
 
+    /**
+     * Note that it only works for batch scenario. E.g. all data is known and there is no late data.
+     *
+     * @param inputEnumerator the enumerator to provide an array of objects as input
+     * @param indexOfWatermarkedColumn the index of timestamp column upon which a watermark is built
+     * @param slide sliding size
+     * @param intervalSize window size
+     */
     HopEnumerator(Enumerator<Object[]> inputEnumerator,
-        int indexOfWatermarkedColumn, long emitFrequency, long intervalSize) {
+        int indexOfWatermarkedColumn, long slide, long intervalSize) {
       this.inputEnumerator = inputEnumerator;
       this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
-      this.emitFrequency = emitFrequency;
+      this.emitFrequency = slide;
       this.intervalSize = intervalSize;
       list = new LinkedList<>();
     }
@@ -850,10 +1006,7 @@ public class EnumUtils {
     }
 
     public boolean moveNext() {
-      if (list.size() > 0) {
-        return true;
-      }
-      return inputEnumerator.moveNext();
+      return list.size() > 0 || inputEnumerator.moveNext();
     }
 
     public void reset() {
@@ -878,5 +1031,37 @@ public class EnumUtils {
       ret.add(new Pair(start, start + sizeMillis));
     }
     return ret;
+  }
+
+  /**
+   * Apply tumbling per row from the enumerable input.
+   */
+  public static <TSource, TResult> Enumerable<TResult> tumbling(
+      Enumerable<TSource> inputEnumerable,
+      Function1<TSource, TResult> outSelector) {
+    return new AbstractEnumerable<TResult>() {
+      // Applies tumbling on each element from the input enumerator and produces
+      // exactly one element for each input element.
+      @Override public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> inputs = inputEnumerable.enumerator();
+
+          public TResult current() {
+            return outSelector.apply(inputs.current());
+          }
+
+          public boolean moveNext() {
+            return inputs.moveNext();
+          }
+
+          public void reset() {
+            inputs.reset();
+          }
+
+          public void close() {
+          }
+        };
+      }
+    };
   }
 }

@@ -45,6 +45,7 @@ import org.apache.calcite.sql.SqlPrefixOperator;
 import org.apache.calcite.sql.SqlProcedureCallOperator;
 import org.apache.calcite.sql.SqlRankFunction;
 import org.apache.calcite.sql.SqlSampleSpec;
+import org.apache.calcite.sql.SqlSessionTableFunction;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlSyntax;
@@ -2297,11 +2298,14 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** DESCRIPTOR(column_name, ...). */
   public static final SqlOperator DESCRIPTOR = new SqlDescriptorOperator();
 
-  /** TUMBLE as a table-value function. */
-  public static final SqlFunction TUMBLE_TVF = new SqlTumbleTableFunction();
+  /** TUMBLE as a table function. */
+  public static final SqlFunction TUMBLE = new SqlTumbleTableFunction();
 
-  /** HOP as a table-value function. */
-  public static final SqlFunction HOP_TVF = new SqlHopTableFunction();
+  /** HOP as a table function. */
+  public static final SqlFunction HOP = new SqlHopTableFunction();
+
+  /** SESSION as a table function. */
+  public static final SqlFunction SESSION = new SqlSessionTableFunction();
 
   /** The {@code TUMBLE} group function.
    *
@@ -2316,7 +2320,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * this TUMBLE group function, and in fact all group functions. See
    * [CALCITE-3340] for details.
    */
-  public static final SqlGroupedWindowFunction TUMBLE =
+  public static final SqlGroupedWindowFunction TUMBLE_OLD =
       new SqlGroupedWindowFunction("$TUMBLE", SqlKind.TUMBLE,
           null, ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
@@ -2330,15 +2334,15 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code TUMBLE_START} auxiliary function of
    * the {@code TUMBLE} group function. */
   public static final SqlGroupedWindowFunction TUMBLE_START =
-      TUMBLE.auxiliary(SqlKind.TUMBLE_START);
+      TUMBLE_OLD.auxiliary(SqlKind.TUMBLE_START);
 
   /** The {@code TUMBLE_END} auxiliary function of
    * the {@code TUMBLE} group function. */
   public static final SqlGroupedWindowFunction TUMBLE_END =
-      TUMBLE.auxiliary(SqlKind.TUMBLE_END);
+      TUMBLE_OLD.auxiliary(SqlKind.TUMBLE_END);
 
   /** The {@code HOP} group function. */
-  public static final SqlGroupedWindowFunction HOP =
+  public static final SqlGroupedWindowFunction HOP_OLD =
       new SqlGroupedWindowFunction("$HOP", SqlKind.HOP, null,
           ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL_INTERVAL,
@@ -2352,16 +2356,16 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code HOP_START} auxiliary function of
    * the {@code HOP} group function. */
   public static final SqlGroupedWindowFunction HOP_START =
-      HOP.auxiliary(SqlKind.HOP_START);
+      HOP_OLD.auxiliary(SqlKind.HOP_START);
 
   /** The {@code HOP_END} auxiliary function of
    * the {@code HOP} group function. */
   public static final SqlGroupedWindowFunction HOP_END =
-      HOP.auxiliary(SqlKind.HOP_END);
+      HOP_OLD.auxiliary(SqlKind.HOP_END);
 
   /** The {@code SESSION} group function. */
-  public static final SqlGroupedWindowFunction SESSION =
-      new SqlGroupedWindowFunction(SqlKind.SESSION.name(), SqlKind.SESSION,
+  public static final SqlGroupedWindowFunction SESSION_OLD =
+      new SqlGroupedWindowFunction("$SESSION", SqlKind.SESSION,
           null, ReturnTypes.ARG0, null,
           OperandTypes.or(OperandTypes.DATETIME_INTERVAL,
               OperandTypes.DATETIME_INTERVAL_TIME),
@@ -2374,12 +2378,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /** The {@code SESSION_START} auxiliary function of
    * the {@code SESSION} group function. */
   public static final SqlGroupedWindowFunction SESSION_START =
-      SESSION.auxiliary(SqlKind.SESSION_START);
+      SESSION_OLD.auxiliary(SqlKind.SESSION_START);
 
   /** The {@code SESSION_END} auxiliary function of
    * the {@code SESSION} group function. */
   public static final SqlGroupedWindowFunction SESSION_END =
-      SESSION.auxiliary(SqlKind.SESSION_END);
+      SESSION_OLD.auxiliary(SqlKind.SESSION_END);
 
   /** {@code |} operator to create alternate patterns
    * within {@code MATCH_RECOGNIZE}.
@@ -2498,13 +2502,13 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     switch (kind) {
     case TUMBLE_START:
     case TUMBLE_END:
-      return TUMBLE;
+      return TUMBLE_OLD;
     case HOP_START:
     case HOP_END:
-      return HOP;
+      return HOP_OLD;
     case SESSION_START:
     case SESSION_END:
-      return SESSION;
+      return SESSION_OLD;
     default:
       return null;
     }
