@@ -6050,19 +6050,31 @@ SqlCall GroupByWindowingCall():
 {
     final Span s;
     final List<SqlNode> args;
+    final SqlOperator op;
 }
 {
     (
-        <TUMBLE> { s = span(); }
-        args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
-            return SqlStdOperatorTable.TUMBLE.createCall(s.end(this), args);
+        <TUMBLE>
+        {
+            s = span();
+            op = SqlStdOperatorTable.TUMBLE_OLD;
         }
     |
-        <HOP> { s = span(); }
-        args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
-            return SqlStdOperatorTable.HOP.createCall(s.end(this), args);
+        <HOP>
+        {
+            s = span();
+            op = SqlStdOperatorTable.HOP_OLD;
+        }
+    |
+        <SESSION>
+        {
+            s = span();
+            op = SqlStdOperatorTable.SESSION_OLD;
         }
     )
+    args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
+        return op.createCall(s.end(this), args);
+    }
 }
 
 SqlCall MatchRecognizeFunctionCall() :

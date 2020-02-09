@@ -1805,15 +1805,50 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test void testTableValuedFunctionTumble() {
+  @Test void testTableFunctionTumble() {
     final String sql = "select *\n"
         + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE))";
     sql(sql).ok();
   }
 
-  @Test void testTableValuedFunctionTumbleWithSubQueryParam() {
+  @Test public void testTableFunctionHop() {
+    final String sql = "select *\n"
+        + "from table(hop(table Shipments, descriptor(rowtime), "
+        + "INTERVAL '1' MINUTE, INTERVAL '2' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableFunctionSession() {
+    final String sql = "select *\n"
+        + "from table(session(table Shipments, descriptor(rowtime), "
+        + "descriptor(orderId), INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test void testTableFunctionTumbleWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(tumble((select * from Shipments), descriptor(rowtime), INTERVAL '1' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableFunctionHopWithSubQueryParam() {
+    final String sql = "select *\n"
+        + "from table(hop((select * from Shipments), descriptor(rowtime), "
+        + "INTERVAL '1' MINUTE, INTERVAL '2' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableFunctionSessionWithSubQueryParam() {
+    final String sql = "select *\n"
+        + "from table(session((select * from Shipments), descriptor(rowtime), "
+        + "descriptor(orderId), INTERVAL '10' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableFunctionSessionCompoundSessionKey() {
+    final String sql = "select *\n"
+        + "from table(session(table Orders, descriptor(rowtime), "
+        + "descriptor(orderId, productId), INTERVAL '10' MINUTE))";
     sql(sql).ok();
   }
 

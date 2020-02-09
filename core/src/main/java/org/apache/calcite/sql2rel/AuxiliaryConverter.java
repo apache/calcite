@@ -25,7 +25,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 /** Converts an expression for a group window function (e.g. TUMBLE)
  * into an expression for an auxiliary group function (e.g. TUMBLE_START).
  *
- * @see SqlStdOperatorTable#TUMBLE
+ * @see SqlStdOperatorTable#TUMBLE_OLD
  */
 public interface AuxiliaryConverter {
   /** Converts an expression.
