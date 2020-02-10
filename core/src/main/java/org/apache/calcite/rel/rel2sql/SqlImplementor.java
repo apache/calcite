@@ -1449,7 +1449,8 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private Clause maxClause() {
+    /** Returns the highest clause that is in use. */
+    public Clause maxClause() {
       Clause maxClause = null;
       for (Clause clause : clauses) {
         if (maxClause == null || clause.ordinal() > maxClause.ordinal()) {
