@@ -98,6 +98,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
@@ -392,23 +393,14 @@ public class RelToSqlConverter extends SqlImplementor
         + aggregate.getGroupSet() + ", just possibly a different order";
 
     final List<SqlNode> groupKeys = new ArrayList<>();
+    boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
     for (int key : groupList) {
-      boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
-      if (builder.context.field(key).getKind() == SqlKind.LITERAL
-          && dialect.getConformance().isGroupByOrdinal()) {
-        isGroupByAlias = false;
-      } /*else if (isGroupByAlias) {
-        List<SqlIdentifier> identifierList = new ArrayList<>();
-        SqlNode node = builder.context.field(key);
-        String alias = builder.context.field(key, true).toString();
-        extractSqlIdentifiers(identifierList, node);
-        isGroupByAlias = !checkIfAliasMatchesIdentifier(identifierList, alias);
-      }*/
-      SqlNode field = builder.context.field(key, isGroupByAlias);
-      groupKeys.add(field);
+      groupKeys.add(getGroupBySqlNode(builder,key));
     }
+
     for (int key : sortedGroupList) {
       final SqlNode field = builder.context.field(key, false);
+     // final SqlNode field = getGroupBySqlNode(builder,key);
       addSelect(selectList, field, aggregate.getRowType());
     }
     switch (aggregate.getGroupType()) {
@@ -434,6 +426,51 @@ public class RelToSqlConverter extends SqlImplementor
                   .collect(Collectors.toList())));
     }
   }
+
+
+  private SqlNode getGroupBySqlNode(Builder builder, int key){
+    boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
+    SqlNode field;
+    if (isGroupByAlias) {
+      SqlNode sqlNode = builder.select.getSelectList().get(key);
+      if (sqlNode.getKind() == SqlKind.LITERAL
+          || sqlNode.getKind() == SqlKind.DYNAMIC_PARAM
+          || sqlNode.getKind() == SqlKind.MINUS_PREFIX) {
+        Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
+        if(aliasNode.isPresent()){
+          field = aliasNode.get();
+        } else {
+          //add ordinal
+          int ordinal =
+              builder.select.getSelectList().getList().indexOf(sqlNode) + 1;
+          field = SqlLiteral.createExactNumeric(String.valueOf(ordinal),
+              SqlParserPos.ZERO);
+        }
+      } else {
+        Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
+        if(aliasNode.isPresent()){
+          field = aliasNode.get();
+        }else {
+          field = sqlNode;
+        }
+      }
+    } else {
+      field = builder.context.field(key);
+    }
+    return field;
+  }
+
+
+  private Optional<SqlNode> getAliasSqlNode(SqlNode sqlNode) {
+    List<SqlNode> openrandList = ((SqlCall) sqlNode).getOperandList();
+    if (openrandList.size() > 1) {
+      return Optional.of(((SqlCall) sqlNode).operand(1));
+    }
+    return Optional.empty();
+  }
+
+
+
 
   /*private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias)
   {
