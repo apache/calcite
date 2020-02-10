@@ -53,7 +53,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -270,12 +270,26 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
-      if (call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())
-              && ((SqlBasicCall) call).getOperands().length > 0) {
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+      if (((SqlBasicCall) call).getOperands().length > 0) {
         unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
       } else {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
+      break;
+    case "CURRENT_USER":
+    case "SESSION_USER":
+      final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
+      writer.endFunCall(sessionUserFunc);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -5299,6 +5299,32 @@ public class RelToSqlConverterTest {
     assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
   }
 
+  @Test public void testCurrentUser() {
+    String query = "select CURRENT_USER";
+    final String expectedSql = "SELECT CURRENT_USER() CURRENT_USER";
+    final String expectedSqlBQ = "SELECT SESSION_USER() AS CURRENT_USER";
+    sql(query)
+        .withHive()
+        .ok(expectedSql)
+        .withBigQuery()
+        .ok(expectedSqlBQ);
+  }
+
+  @Test public void testCurrentUserWithAlias() {
+    String query = "select CURRENT_USER myuser from \"product\" where \"product_id\" = 1";
+    final String expectedSql = "SELECT CURRENT_USER() MYUSER\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_id = 1";
+    final String expected = "SELECT SESSION_USER() AS MYUSER\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_id = 1";
+    sql(query)
+        .withHive()
+        .ok(expectedSql)
+        .withBigQuery()
+        .ok(expected);
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
