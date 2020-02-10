@@ -51,7 +51,7 @@ public abstract class HintStrategies {
       new NodeTypeHintStrategy(NodeTypeHintStrategy.NodeType.CALC);
 
   /**
-   * Create a hint strategy from a specific matcher whose rules are totally customized.
+   * Creates a hint strategy from a specific matcher whose rules are totally customized.
    *
    * @param matcher The strategy matcher
    * @return A ExplicitHintStrategy instance.

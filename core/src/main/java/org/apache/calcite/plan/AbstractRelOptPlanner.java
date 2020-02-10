@@ -300,6 +300,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
+    if (ruleCall.isRuleExcluded()) {
+      LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion hint",
+          ruleCall.id, ruleCall.getRule());
+      return;
+    }
+
     if (LOGGER.isDebugEnabled()) {
       // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
       LOGGER.debug("call#{}: Apply rule [{}] to {}",
