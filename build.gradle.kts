@@ -22,7 +22,6 @@ import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.RepositoryType
-import com.github.vlsi.gradle.test.dsl.printTestResults
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
 import org.apache.calcite.buildtools.buildext.dsl.ParenthesisBalancer
@@ -229,6 +228,8 @@ fun com.github.autostyle.gradle.BaseFormatExtension.license() {
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
+
+    apply(plugin = "com.github.vlsi.gradle-extensions")
 
     repositories {
         // RAT and Autostyle dependencies
@@ -552,7 +553,6 @@ allprojects {
                         passProperty(e)
                     }
                 }
-                printTestResults()
             }
             // Cannot be moved above otherwise configure each will override
             // also the specific configurations below.
