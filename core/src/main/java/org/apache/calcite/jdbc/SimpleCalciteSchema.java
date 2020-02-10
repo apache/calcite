@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableSortedSet;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * A concrete implementation of {@link org.apache.calcite.jdbc.CalciteSchema}
@@ -67,33 +69,72 @@ class SimpleCalciteSchema extends CalciteSchema {
     return calciteSchema;
   }
 
+  private String caseInsensitiveLookup(Set<String> candidates, String name) {
+    // Exact string lookup
+    if (candidates.contains(name)) {
+      return name;
+    }
+    // Upper case string lookup
+    final String upperCaseName = name.toUpperCase(Locale.ROOT);
+    if (candidates.contains(upperCaseName)) {
+      return upperCaseName;
+    }
+    // Lower case string lookup
+    final String lowerCaseName = name.toLowerCase(Locale.ROOT);
+    if (candidates.contains(lowerCaseName)) {
+      return lowerCaseName;
+    }
+    // Fall through: Set iteration
+    for (String candidate: candidates) {
+      if (candidate.equalsIgnoreCase(name)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
   protected CalciteSchema getImplicitSubSchema(String schemaName,
       boolean caseSensitive) {
     // Check implicit schemas.
-    Schema s = schema.getSubSchema(schemaName);
-    if (s != null) {
-      return new SimpleCalciteSchema(this, s, schemaName);
+    final String schemaName2 = caseSensitive ? schemaName : caseInsensitiveLookup(
+        schema.getSubSchemaNames(), schemaName);
+    if (schemaName2 == null) {
+      return null;
     }
-    return null;
+    final Schema s = schema.getSubSchema(schemaName2);
+    if (s == null) {
+      return null;
+    }
+    return new SimpleCalciteSchema(this, s, schemaName2);
   }
 
   protected TableEntry getImplicitTable(String tableName,
       boolean caseSensitive) {
     // Check implicit tables.
-    Table table = schema.getTable(tableName);
-    if (table != null) {
-      return tableEntry(tableName, table);
+    final String tableName2 = caseSensitive ? tableName : caseInsensitiveLookup(
+        schema.getTableNames(), tableName);
+    if (tableName2 == null) {
+      return null;
     }
-    return null;
+    final Table table = schema.getTable(tableName2);
+    if (table == null) {
+      return null;
+    }
+    return tableEntry(tableName2, table);
   }
 
   protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
     // Check implicit types.
-    RelProtoDataType type = schema.getType(name);
-    if (type != null) {
-      return typeEntry(name, type);
+    final String name2 = caseSensitive ? name : caseInsensitiveLookup(
+        schema.getTypeNames(), name);
+    if (name2 == null) {
+      return null;
     }
-    return null;
+    final RelProtoDataType type = schema.getType(name2);
+    if (type == null) {
+      return null;
+    }
+    return typeEntry(name2, type);
   }
 
   protected void addImplicitSubSchemaToBuilder(
