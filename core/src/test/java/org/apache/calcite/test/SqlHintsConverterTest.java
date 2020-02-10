@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -40,6 +41,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintStrategies;
+import org.apache.calcite.rel.hint.HintStrategy;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -431,6 +433,34 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     new ValidateHintVisitor(hint, Aggregate.class).go(newRel);
   }
 
+  @Test public void testUseMergeJoin() {
+    final String sql = "select /*+ use_merge_join(emp, dept) */\n"
+        + "ename, job, sal, dept.name\n"
+        + "from emp join dept on emp.deptno = dept.deptno";
+    RelOptPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    Tester tester1 = tester.withDecorrelation(true)
+        .withClusterFactory(
+            relOptCluster -> RelOptCluster.create(planner, relOptCluster.getRexBuilder()));
+    final RelNode rel = tester1.convertSqlToRel(sql).rel;
+    RuleSet ruleSet = RuleSets.ofList(
+        EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
+        EnumerableRules.ENUMERABLE_JOIN_RULE,
+        EnumerableRules.ENUMERABLE_PROJECT_RULE,
+        EnumerableRules.ENUMERABLE_TABLE_SCAN_RULE);
+    Program program = Programs.of(ruleSet);
+    RelTraitSet toTraits = rel
+        .getCluster()
+        .traitSet()
+        .replace(EnumerableConvention.INSTANCE);
+
+    RelNode relAfter = program.run(planner, rel, toTraits,
+        Collections.emptyList(), Collections.emptyList());
+
+    String planAfter = NL + RelOptUtil.toString(relAfter);
+    getDiffRepos().assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   @Override protected Tester createTester() {
@@ -723,30 +753,38 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
             "resource", HintStrategies.or(
             HintStrategies.PROJECT, HintStrategies.AGGREGATE, HintStrategies.CALC))
         .hintStrategy("AGG_STRATEGY",
-            HintStrategies.AGGREGATE,
-            (hint, errorHandler) -> errorHandler.check(
-                hint.listOptions.size() == 1
-                    && (hint.listOptions.get(0).equalsIgnoreCase("ONE_PHASE")
+            HintStrategyTable.entryBuilder(HintStrategies.AGGREGATE)
+                .optionChecker(
+                    (hint, errorHandler) -> errorHandler.check(
+                    hint.listOptions.size() == 1
+                        && (hint.listOptions.get(0).equalsIgnoreCase("ONE_PHASE")
                         || hint.listOptions.get(0).equalsIgnoreCase("TWO_PHASE")),
-                "Hint {} only allows single option, "
-                    + "allowed options: [ONE_PHASE, TWO_PHASE]",
-                hint.hintName
-            ))
+                    "Hint {} only allows single option, "
+                        + "allowed options: [ONE_PHASE, TWO_PHASE]",
+                    hint.hintName)).build())
         .hintStrategy("use_hash_join",
-          HintStrategies.and(HintStrategies.JOIN,
-            HintStrategies.explicit((hint, rel) -> {
-              if (!(rel instanceof LogicalJoin)) {
-                return false;
-              }
-              LogicalJoin join = (LogicalJoin) rel;
-              final List<String> tableNames = hint.listOptions;
-              final List<String> inputTables = join.getInputs().stream()
-                  .filter(input -> input instanceof TableScan)
-                  .map(scan -> Util.last(scan.getTable().getQualifiedName()))
-                  .collect(Collectors.toList());
-              return equalsStringList(tableNames, inputTables);
-            })))
+          HintStrategies.and(HintStrategies.JOIN, joinWithFixedTableName()))
+        .hintStrategy("use_merge_join",
+            HintStrategyTable.entryBuilder(
+                HintStrategies.and(HintStrategies.JOIN, joinWithFixedTableName()))
+                .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
+    }
+
+    /** Returns a {@link HintStrategy} for join with specified table references. */
+    private static HintStrategy joinWithFixedTableName() {
+      return HintStrategies.explicit((hint, rel) -> {
+        if (!(rel instanceof LogicalJoin)) {
+          return false;
+        }
+        LogicalJoin join = (LogicalJoin) rel;
+        final List<String> tableNames = hint.listOptions;
+        final List<String> inputTables = join.getInputs().stream()
+            .filter(input -> input instanceof TableScan)
+            .map(scan -> Util.last(scan.getTable().getQualifiedName()))
+            .collect(Collectors.toList());
+        return equalsStringList(tableNames, inputTables);
+      });
     }
 
     /** Format the query with hint {@link #HINT}. */
