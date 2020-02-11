@@ -108,8 +108,8 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
       } else {
         sb.append(field.getType().toString());
       }
-      sb.append(" ");
-      sb.append(field.getName());
+      // field.getName() is intentionally not added to the digest
+      // It enables to treat equal records that differ in field names only
     }
     sb.append(")");
   }
