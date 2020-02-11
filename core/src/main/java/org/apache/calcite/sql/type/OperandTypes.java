@@ -239,6 +239,18 @@ public abstract class OperandTypes {
   public static final SqlSingleOperandTypeChecker EXACT_NUMERIC_EXACT_NUMERIC =
       family(SqlTypeFamily.EXACT_NUMERIC, SqlTypeFamily.EXACT_NUMERIC);
 
+  public static final SqlSingleOperandTypeChecker INTEGER_INTEGER =
+      family(SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER);
+
+  public static final SqlSingleOperandTypeChecker BINARY_BINARY =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.BINARY);
+
+  public static final SqlSingleOperandTypeChecker INTEGER_BINARY =
+      family(SqlTypeFamily.INTEGER, SqlTypeFamily.BINARY);
+
+  public static final SqlSingleOperandTypeChecker BINARY_INTEGER =
+      family(SqlTypeFamily.BINARY, SqlTypeFamily.INTEGER);
+
   public static final SqlSingleOperandTypeChecker BINARY =
       family(SqlTypeFamily.BINARY);
 

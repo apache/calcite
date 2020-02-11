@@ -101,6 +101,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.Negate;
 import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BITAND;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CONCAT2;
@@ -397,6 +398,9 @@ public class RexImpTable {
 
     map.put(RAND, new RandImplementor());
     map.put(RAND_INTEGER, new RandIntegerImplementor());
+
+    //bitwise
+    map.put(BITAND, new BitWiseImplementor("bitAnd"));
 
     defineMethod(ACOS, "acos", NullPolicy.STRICT);
     defineMethod(ASIN, "asin", NullPolicy.STRICT);
@@ -3490,4 +3494,44 @@ public class RexImpTable {
               gapInterval));
     }
   }
+
+  /** Implementor for bitwise  scalar function. */
+  private static class BitWiseImplementor extends AbstractRexCallImplementor {
+
+    protected final String methodName;
+
+    BitWiseImplementor(String methodName) {
+      super(NullPolicy.STRICT, false);
+      this.methodName = methodName;
+    }
+
+    @Override
+    String getVariableName() {
+      return methodName;
+    }
+
+    public Expression implementSafe(
+        RexToLixTranslator translator,
+        RexCall call,
+        List<Expression> translatedOperands) {
+      // translate to long type if operand is belong to numeric
+      List<Expression> operandsExps = new ArrayList<>();
+      for (int i = 0; i < call.operands.size(); i++) {
+        if (SqlTypeUtil.isNumeric(call.operands.get(i).getType())) {
+          Expression exp = EnumUtils.convert(translatedOperands.get(i), long.class);
+          operandsExps.add(exp);
+        } else {
+          operandsExps.add(translatedOperands.get(i));
+        }
+      }
+      final Type returnType =
+          translator.typeFactory.getJavaClass(call.getType());
+
+      return EnumUtils.convert(
+          EnumUtils.call(SqlFunctions.class, methodName, operandsExps),
+          returnType);
+    }
+
+  }
+
 }

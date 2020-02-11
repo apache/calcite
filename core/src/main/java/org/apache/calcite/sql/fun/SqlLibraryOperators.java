@@ -37,6 +37,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.BIG_QUERY;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 
 /**
  * Defines functions and operators that are not part of standard SQL but
@@ -476,5 +477,18 @@ public abstract class SqlLibraryOperators {
   @LibraryOperator(libraries = { POSTGRESQL })
   public static final SqlOperator INFIX_CAST =
       new SqlCastOperator();
+
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction BITAND =
+      new SqlFunction("BITAND",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.BITWISE_FUNCTION,
+          null,
+          OperandTypes.or(
+              OperandTypes.INTEGER_INTEGER,
+              OperandTypes.BINARY_BINARY,
+              OperandTypes.INTEGER_BINARY,
+              OperandTypes.BINARY_INTEGER),
+          SqlFunctionCategory.NUMERIC);
 
 }

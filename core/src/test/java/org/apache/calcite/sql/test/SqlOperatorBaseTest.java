@@ -9135,7 +9135,67 @@ public abstract class SqlOperatorBaseTest {
         0d);
   }
 
-  @Test void testBitAndFunc() {
+  @Test public void testBitAndScalarFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.SNOWFLAKE);
+    tester1.setFor(SqlLibraryOperators.BITAND);
+
+    tester1.checkFails(
+        "^bitand(1)^",
+        "Invalid number of arguments to function 'BITAND'. Was expecting 2 arguments",
+        false);
+    tester1.checkScalar(
+        "bitand(CAST(2 AS TINYINT), CAST(3 AS TINYINT))",
+        "2",
+        "TINYINT NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(3 AS SMALLINT), CAST(4 AS SMALLINT))",
+        "0",
+        "SMALLINT NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(-2 AS INTEGER), CAST(3 AS INTEGER))",
+        "2",
+        "INTEGER NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(-3 AS BIGINT), CAST(-4 AS BIGINT))",
+        "-4",
+        "BIGINT NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(-3 AS INTEGER), CAST(-4 AS BIGINT))",
+        "-4",
+        "BIGINT NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(x'03' AS BINARY(1)), CAST(x'12' AS BINARY(1)))",
+        "02",
+        "BINARY(1) NOT NULL");
+    tester1.checkScalar("bitand(CAST(x'ABCDEF12' AS BINARY(4)), CAST(x'123456AB' AS BINARY(4)))",
+        "02044602",
+        "BINARY(4) NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(x'ABCDEF12' AS VARBINARY(4)), CAST(x'123456AB' AS VARBINARY(4)))",
+        "02044602",
+        "VARBINARY(4) NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(x'ABCDEF12' AS VARBINARY), CAST(x'123456AB' AS VARBINARY))",
+        "02044602",
+        "VARBINARY NOT NULL");
+    tester1.checkScalar(
+        "bitand(CAST(1234 AS BIGINT), CAST(x'123456AB' AS VARBINARY))",
+        "00000482",
+        "VARBINARY NOT NULL");
+
+    tester1.checkScalar(
+        "bitand(CAST(x'123456AB' AS VARBINARY), CAST(1234 AS BIGINT))",
+        "00000482",
+        "VARBINARY NOT NULL");
+    tester1.checkNull(
+        "bitand(CAST(null AS TINYINT), 1)");
+    tester1.checkFails(
+        "bitand(CAST(x'03' AS BINARY(1)), CAST(x'ABCDEF12' AS BINARY(4)))",
+        "Invalid length for bitwise operator of input binary value",
+        true);
+  }
+
+  @Test public void testBitAndAggFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_AND, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_and(^*^)", "Unknown identifier '\\*'", false);
     tester.checkType("bit_and(1)", "INTEGER");
@@ -9176,7 +9236,7 @@ public abstract class SqlOperatorBaseTest {
         true);
   }
 
-  @Test void testBitOrFunc() {
+  @Test public void testBitOrAggFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_OR, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_or(^*^)", "Unknown identifier '\\*'", false);
     tester.checkType("bit_or(1)", "INTEGER");
@@ -9207,7 +9267,7 @@ public abstract class SqlOperatorBaseTest {
     tester.checkAgg("bit_or(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
   }
 
-  @Test void testBitXorFunc() {
+  @Test public void testBitXorAggFunc() {
     tester.setFor(SqlStdOperatorTable.BIT_XOR, VM_FENNEL, VM_JAVA);
     tester.checkFails("bit_xor(^*^)", "Unknown identifier '\\*'", false);
     tester.checkType("bit_xor(1)", "INTEGER");

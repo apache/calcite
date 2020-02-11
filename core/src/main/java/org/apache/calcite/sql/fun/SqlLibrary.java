@@ -54,7 +54,10 @@ public enum SqlLibrary {
   ORACLE("o", "oracle"),
   /** A collection of operators that are in PostgreSQL but not in standard
    * SQL. */
-  POSTGRESQL("p", "postgresql");
+  POSTGRESQL("p", "postgresql"),
+  /** A collection of operators that are in PostgreSQL but not in standard
+   * SQL. */
+  SNOWFLAKE("s", "snowflake");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
