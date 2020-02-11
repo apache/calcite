@@ -500,8 +500,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   /** Returns whether the vertex is valid. */
   private boolean belongsToDag(HepRelVertex vertex) {
-    Pair<String, List<RelDataType>> key = key(vertex.getCurrentRel());
-    return mapDigestToVertex.get(key) != null;
+    return graph.vertexSet().contains(vertex);
   }
 
   private HepRelVertex applyRule(
