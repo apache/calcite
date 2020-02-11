@@ -498,17 +498,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  /** Returns whether the vertex is valid. */
-  private boolean belongsToDag(HepRelVertex vertex) {
-    Pair<String, List<RelDataType>> key = key(vertex.getCurrentRel());
-    return mapDigestToVertex.get(key) != null;
-  }
-
   private HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
-    if (!belongsToDag(vertex)) {
+    if (!graph.vertexSet().contains(vertex)) {
       return null;
     }
     RelTrait parentTrait = null;
@@ -628,6 +622,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
       Map<RelNode, List<RelNode>> nodeChildren) {
     if (!operand.matches(rel)) {
       return false;
+    }
+    for (RelNode input : rel.getInputs()) {
+      if (!(input instanceof HepRelVertex)) {
+        // The graph could be partially optimized for materialized view. In that
+        // case, the input would be a RelNode and shouldn't be matched again here.
+        return false;
+      }
     }
     bindings.add(rel);
     @SuppressWarnings("unchecked")
