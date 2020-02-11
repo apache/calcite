@@ -29,7 +29,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -82,7 +81,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  *
  * <p>An instance of this class is immutable.
  */
-public class SqlIntervalQualifier extends SqlNode implements Serializable {
+public class SqlIntervalQualifier extends SqlNode {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final BigDecimal ZERO = BigDecimal.ZERO;
