@@ -3040,7 +3040,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  @Test public void testEmptyJoin() {
+  @Test public void testLeftEmptyInnerJoin() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
@@ -3055,7 +3055,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  @Test public void testEmptyJoinLeft() {
+  @Test public void testLeftEmptyLeftJoin() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
@@ -3070,7 +3070,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
-  @Test public void testEmptyJoinRight() {
+  @Test public void testLeftEmptyRightJoin() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
@@ -3078,12 +3078,249 @@ public class RelOptRulesTest extends RelOptTestBase {
         .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
         .build();
 
-    // Plan should be equivalent to "select * from emp join dept".
+    // Plan should be equivalent to "select * from emp right join dept".
     // Cannot optimize away the join because of RIGHT.
     final String sql = "select * from (\n"
         + "  select * from emp where false) e\n"
         + "right join dept d on e.deptno = d.deptno";
     sql(sql).with(program).check();
+  }
+
+  @Test public void testLeftEmptyFullJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be equivalent to "select * from emp full join dept".
+    // Cannot optimize away the join because of FULL.
+    final String sql = "select * from (\n"
+        + "  select * from emp where false) e\n"
+        + "full join dept d on e.deptno = d.deptno";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testLeftEmptySemiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("EMP").empty()
+        .scan("DEPT")
+        .semiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    // Plan should be empty
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testLeftEmptyAntiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("EMP").empty()
+        .scan("DEPT")
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    // Plan should be empty
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testRightEmptyInnerJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be empty
+    final String sql = "select * from emp e\n"
+        + "join (select * from dept where false) as d\n"
+        + "on e.deptno = d.deptno";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testRightEmptyLeftJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be equivalent to "select * from emp left join dept".
+    // Cannot optimize away the join because of LEFT.
+    final String sql = "select * from emp e\n"
+        + "left join (select * from dept where false) as d\n"
+        + "on e.deptno = d.deptno";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testRightEmptyRightJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be empty
+    final String sql = "select * from emp e\n"
+        + "right join (select * from dept where false) as d\n"
+        + "on e.deptno = d.deptno";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testRightEmptyFullJoin() {
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    // Plan should be equivalent to "select * from emp full join dept".
+    // Cannot optimize away the join because of FULL.
+    final String sql = "select * from emp e\n"
+        + "full join (select * from dept where false) as d\n"
+        + "on e.deptno = d.deptno";
+    sql(sql).with(program).check();
+  }
+
+  @Test public void testRightEmptySemiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("EMP")
+        .scan("DEPT").empty()
+        .semiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    // Plan should be empty
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testRightEmptyAntiJoin() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("EMP")
+        .scan("DEPT").empty()
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    // Plan should be scan("EMP") (i.e. join's left child)
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+  }
+
+  @Test public void testRightEmptyAntiJoinNonEqui() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("EMP")
+        .scan("DEPT").empty()
+        .antiJoin(relBuilder
+            .equals(
+                relBuilder.field(2, 0, "DEPTNO"),
+                relBuilder.field(2, 1, "DEPTNO")),
+            relBuilder
+                .equals(
+                    relBuilder.field(2, 0, "SAL"),
+                    relBuilder.literal(2000)))
+        .project(relBuilder.field("EMPNO"))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_LEFT_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.JOIN_RIGHT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    // Cannot optimize away the join because it is not equi join.
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
 
   @Test public void testEmptySort() {
