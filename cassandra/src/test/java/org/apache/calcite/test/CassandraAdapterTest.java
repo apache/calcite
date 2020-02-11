@@ -16,13 +16,16 @@
  */
 package org.apache.calcite.test;
 
+import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.cassandraunit.CQLDataLoader;
+import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.junit.rules.ExternalResource;
 
 /**
  * Tests for the {@code org.apache.calcite.adapter.cassandra} package.
@@ -35,18 +38,19 @@ import org.junit.rules.ExternalResource;
  * <a href="https://issues.apache.org/jira/browse/CASSANDRA-9608">CASSANDRA-9608</a>.
  *
  */
-
 @Execution(ExecutionMode.SAME_THREAD)
-public class CassandraAdapterTest extends AbstractCassandraAdapterTest {
-
-  @ClassRule
-  public static final ExternalResource RULE =
-          initCassandraIfEnabled("twissandra.cql");
+@ExtendWith(CassandraExtension.class)
+public class CassandraAdapterTest {
 
   /** Connection factory based on the "mongo-zips" model. */
   private static final ImmutableMap<String, String> TWISSANDRA =
-          getDataset("/model.json");
+          CassandraExtension.getDataset("/model.json");
 
+  @BeforeAll
+  static void load(Session session) {
+    new CQLDataLoader(session)
+        .load(new ClassPathCQLDataSet("twissandra.cql"));
+  }
 
   @Test public void testSelect() {
     CalciteAssert.that()
