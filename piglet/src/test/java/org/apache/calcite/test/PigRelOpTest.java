@@ -297,7 +297,7 @@ public class PigRelOpTest extends PigRelTestBase {
         + "l2:bag{l21:(l22:int, l23:float)}, "
         + "m1:map[], m2:map[int], m3:map[(m3:float)]);\n"
         + "B = FOREACH A GENERATE a, a as a2, b, c, d, e, f, g, h, i, j, k2, "
-        + "l2, m2, null as n:chararray; \n";
+        + "l2, m2, null as n:chararray;\n";
     final String plan = ""
         + "LogicalProject(a=[$0], a2=[$0], b=[$1], c=[$2], d=[$3], e=[$4], "
         + "f=[$5], g=[$6], h=[$7], i=[$8], j=[$9], k2=[$11], l2=[$13], "
@@ -780,7 +780,7 @@ public class PigRelOpTest extends PigRelTestBase {
     final String script = ""
         + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray,\n"
         + "    LOC:CHARARRAY);\n"
-        + "B = FOREACH A GENERATE DEPTNO; \n"
+        + "B = FOREACH A GENERATE DEPTNO;\n"
         + "C = FILTER B BY DEPTNO <= 20;\n"
         + "D = CROSS B, C;\n";
     final String plan = ""
@@ -813,7 +813,7 @@ public class PigRelOpTest extends PigRelTestBase {
     final String script2 = ""
         + "A = LOAD 'scott.DEPT' as (DEPTNO:int, DNAME:chararray,"
         + "    LOC:CHARARRAY);\n"
-        + "B = FOREACH A GENERATE DEPTNO; \n"
+        + "B = FOREACH A GENERATE DEPTNO;\n"
         + "C = FILTER B BY DEPTNO <= 20;\n"
         + "D = FILTER B BY DEPTNO > 20;\n"
         + "E = CROSS B, C, D;\n";

@@ -300,6 +300,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
+    if (ruleCall.isRuleExcluded()) {
+      LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion hint",
+          ruleCall.id, ruleCall.getRule());
+      return;
+    }
+
     if (LOGGER.isDebugEnabled()) {
       // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
       LOGGER.debug("call#{}: Apply rule [{}] to {}",
@@ -419,6 +425,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Returns sub-classes of relational expression. */
   public Iterable<Class<? extends RelNode>> subClasses(
       final Class<? extends RelNode> clazz) {
-    return Util.filter(classes, clazz::isAssignableFrom);
+    return Util.filter(classes, c -> {
+      // RelSubset must be exact type, not subclass
+      if (c == RelSubset.class) {
+        return c == clazz;
+      }
+      return clazz.isAssignableFrom(c);
+    });
   }
 }

@@ -60,7 +60,6 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.util.BuiltInMethod;
-import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -97,6 +96,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
@@ -120,6 +120,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.RIGHT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TANH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.XML_TRANSFORM;
@@ -174,7 +175,6 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUPING_ID;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.GROUP_ID;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.INITCAP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_A_SET;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IS_EMPTY;
@@ -401,6 +401,7 @@ public class RexImpTable {
     defineMethod(ATAN2, "atan2", NullPolicy.STRICT);
     defineMethod(CBRT, "cbrt", NullPolicy.STRICT);
     defineMethod(COS, "cos", NullPolicy.STRICT);
+    defineMethod(COSH, "cosh", NullPolicy.STRICT);
     defineMethod(COT, "cot", NullPolicy.STRICT);
     defineMethod(DEGREES, "degrees", NullPolicy.STRICT);
     defineMethod(RADIANS, "radians", NullPolicy.STRICT);
@@ -408,6 +409,7 @@ public class RexImpTable {
     defineMethod(SIGN, "sign", NullPolicy.STRICT);
     defineMethod(SIN, "sin", NullPolicy.STRICT);
     defineMethod(TAN, "tan", NullPolicy.STRICT);
+    defineMethod(TANH, "tanh", NullPolicy.STRICT);
     defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
     map.put(PI, (translator, call, nullAs) -> Expressions.constant(Math.PI));
@@ -630,7 +632,6 @@ public class RexImpTable {
     final Supplier<GroupingImplementor> grouping =
         constructorSupplier(GroupingImplementor.class);
     aggMap.put(GROUPING, grouping);
-    aggMap.put(GROUP_ID, grouping);
     aggMap.put(GROUPING_ID, grouping);
     winAggMap.put(RANK, constructorSupplier(RankImplementor.class));
     winAggMap.put(DENSE_RANK, constructorSupplier(DenseRankImplementor.class));
@@ -1622,12 +1623,6 @@ public class RexImpTable {
       switch (info.aggregation().kind) {
       case GROUPING: // "GROUPING(e, ...)", also "GROUPING_ID(e, ...)"
         keys = result.call().getArgList();
-        break;
-      case GROUP_ID: // "GROUP_ID()"
-        // We don't implement GROUP_ID properly. In most circumstances, it
-        // returns 0, so we always return 0. Logged
-        // [CALCITE-1824] GROUP_ID returns wrong result
-        keys = ImmutableIntList.of();
         break;
       default:
         throw new AssertionError();

@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -191,6 +192,21 @@ public abstract class RelOptRuleCall {
    */
   public RelOptPlanner getPlanner() {
     return planner;
+  }
+
+  /**
+   * Determines whether the rule is excluded by any root node hint.
+   *
+   * @return true iff rule should be excluded
+   */
+  public boolean isRuleExcluded() {
+    if (!(rels[0] instanceof Hintable)) {
+      return false;
+    }
+
+    return rels[0].getCluster()
+        .getHintStrategies()
+        .isRuleExcluded((Hintable) rels[0], rule);
   }
 
   /**

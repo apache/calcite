@@ -26,6 +26,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
@@ -286,6 +287,9 @@ public abstract class PruneEmptyRules {
    *
    * <ul>
    * <li>Join(Empty, Scan(Dept), INNER) becomes Empty
+   * <li>Join(Empty, Scan(Dept), LEFT) becomes Empty
+   * <li>Join(Empty, Scan(Dept), SEMI) becomes Empty
+   * <li>Join(Empty, Scan(Dept), ANTI) becomes Empty
    * </ul>
    */
   public static final RelOptRule JOIN_LEFT_INSTANCE =
@@ -314,6 +318,9 @@ public abstract class PruneEmptyRules {
    *
    * <ul>
    * <li>Join(Scan(Emp), Empty, INNER) becomes Empty
+   * <li>Join(Scan(Emp), Empty, RIGHT) becomes Empty
+   * <li>Join(Scan(Emp), Empty, SEMI) becomes Empty
+   * <li>Join(Scan(Emp), Empty, ANTI) becomes Scan(Emp)
    * </ul>
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
@@ -328,6 +335,14 @@ public abstract class PruneEmptyRules {
           if (join.getJoinType().generatesNullsOnRight()) {
             // "select * from emp left join dept" is not necessarily empty if
             // dept is empty
+            return;
+          }
+          if (join.getJoinType() == JoinRelType.ANTI) {
+            // "select * from emp anti join dept" is not necessarily empty if dept is empty
+            if (join.analyzeCondition().isEqui()) {
+              // In case of anti (equi) join: Join(X, Empty, ANTI) becomes X
+              call.transformTo(join.getLeft());
+            }
             return;
           }
           call.transformTo(call.builder().push(join).empty().build());

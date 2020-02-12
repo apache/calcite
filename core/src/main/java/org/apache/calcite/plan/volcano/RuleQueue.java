@@ -494,11 +494,10 @@ class RuleQueue {
       }
     }
 
-    // A rule match's digest is composed of the operand RelNodes' digests,
-    // which may have changed if sets have merged since the rule match was
-    // enqueued.
-    match.recomputeDigest();
-
+    // If sets have merged since the rule match was enqueued, the match
+    // may not be removed from the matchMap because the subset may have
+    // changed, it is OK to leave it since the matchMap will be cleared
+    // at the end.
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 

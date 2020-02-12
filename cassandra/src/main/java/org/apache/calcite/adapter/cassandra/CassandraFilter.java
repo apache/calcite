@@ -181,9 +181,7 @@ public class CassandraFilter extends Filter implements CassandraRel {
      */
     private static String literalValue(RexLiteral literal) {
       Object value = literal.getValue2();
-      StringBuilder buf = new StringBuilder();
-      buf.append(value);
-      return buf.toString();
+      return String.valueOf(value);
     }
 
     /** Translate a conjunctive predicate to a CQL string.

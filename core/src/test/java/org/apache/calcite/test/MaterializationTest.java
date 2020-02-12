@@ -2403,7 +2403,7 @@ public class MaterializationTest {
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"depts\" using (\"deptno\")\n"
             + "join \"dependents\" using (\"empid\")",
-        "select \"a\".\"empid\" from \n"
+        "select \"a\".\"empid\" from\n"
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"dependents\" using (\"empid\")\n")
         .withResultContains(
@@ -2416,7 +2416,7 @@ public class MaterializationTest {
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"depts\" using (\"deptno\")\n"
             + "join \"dependents\" using (\"empid\")",
-        "select \"a\".\"empid\" from \n"
+        "select \"a\".\"empid\" from\n"
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"dependents\" using (\"empid\")\n")
         .withResultContains(
@@ -2430,7 +2430,7 @@ public class MaterializationTest {
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"depts\" using (\"deptno\")\n"
             + "join \"dependents\" using (\"empid\")",
-        "select \"a\".\"name\" from \n"
+        "select \"a\".\"name\" from\n"
             + "(select * from \"emps\" where \"empid\" = 1) \"a\"\n"
             + "join \"dependents\" using (\"empid\")\n")
         .noMat();

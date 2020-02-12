@@ -1529,7 +1529,7 @@ public class JdbcTest {
   @Test public void testExtractMonthFromTimestamp() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(month from \"birth_date\") as c \n"
+        .query("select extract(month from \"birth_date\") as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         .returns("C=8\n");
   }
@@ -1537,7 +1537,7 @@ public class JdbcTest {
   @Test public void testExtractYearFromTimestamp() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(year from \"birth_date\") as c \n"
+        .query("select extract(year from \"birth_date\") as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         .returns("C=1961\n");
   }
@@ -1545,7 +1545,7 @@ public class JdbcTest {
   @Test public void testExtractFromInterval() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select extract(month from interval '2-3' year to month) as c \n"
+        .query("select extract(month from interval '2-3' year to month) as c\n"
             + "from \"foodmart\".\"employee\" where \"employee_id\"=1")
         // disable for MySQL, H2; cannot handle EXTRACT yet
         .enable(CalciteAssert.DB != CalciteAssert.DatabaseInstance.MYSQL
@@ -1580,7 +1580,7 @@ public class JdbcTest {
   @Test public void testFloorDate() {
     CalciteAssert.that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
-        .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c \n"
+        .query("select floor(timestamp '2011-9-14 19:27:23' to month) as c\n"
             + "from \"foodmart\".\"employee\" limit 1")
         // disable for MySQL; birth_date suffers timezone shift
         // disable for H2; Calcite generates incorrect FLOOR syntax
@@ -3837,16 +3837,16 @@ public class JdbcTest {
 
   @Test public void testNestedWin() {
     CalciteAssert.hr()
-        .query("select \n"
-            + " lag(a2, 1, 0) over (partition by \"deptno\" order by a1) as lagx \n"
-            + "from \n"
+        .query("select\n"
+            + " lag(a2, 1, 0) over (partition by \"deptno\" order by a1) as lagx\n"
+            + "from\n"
             + " (\n"
-            + "  select \n"
-            + "   \"deptno\", \n"
-            + "   \"salary\" / \"commission\" as a1, \n"
+            + "  select\n"
+            + "   \"deptno\",\n"
+            + "   \"salary\" / \"commission\" as a1,\n"
             + "   sum(\"commission\") over ( partition by \"deptno\" order by \"salary\" / "
-            + "\"commission\") / sum(\"commission\") over (partition by \"deptno\") as a2 \n"
-            + "  from \n"
+            + "\"commission\") / sum(\"commission\") over (partition by \"deptno\") as a2\n"
+            + "  from\n"
             + "   \"hr\".\"emps\"\n"
             + " )\n")
         .typeIs(
@@ -4486,6 +4486,53 @@ public class JdbcTest {
             + "where \"commission\" > 800")
         .returns(
             "empid=100; deptno=10; name=Bill; salary=10000.0; commission=1000\n");
+  }
+
+  /** Test case for rewriting queries that contain {@code GROUP_ID()} function.
+   * For instance, the query
+   * {@code
+   *    select deptno, group_id() as gid
+   *    from scott.emp
+   *    group by grouping sets(deptno, deptno, deptno, (), ())
+   * }
+   * will be converted into:
+   * {@code
+   *    select deptno, 0 as gid
+   *    from scott.emp group by grouping sets(deptno, ())
+   *    union all
+   *    select deptno, 1 as gid
+   *    from scott.emp group by grouping sets(deptno, ())
+   *    union all
+   *    select deptno, 2 as gid
+   *    from scott.emp group by grouping sets(deptno)
+   * }
+   */
+  @Test public void testGroupId() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, group_id() + 1 as g, count(*) as c\n"
+            + "from \"scott\".emp\n"
+            + "group by grouping sets (deptno, deptno, deptno, (), ())\n"
+            + "having group_id() > 0")
+        .explainContains("EnumerableCalc(expr#0..2=[{inputs}], expr#3=[1], expr#4=[+($t1, $t3)], "
+            + "expr#5=[0], expr#6=[>($t1, $t5)], DEPTNO=[$t0], G=[$t4], C=[$t2], $condition=[$t6])\n"
+            + "  EnumerableUnion(all=[true])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=[2:BIGINT], DEPTNO=[$t0], $f1=[$t2], C=[$t1])\n"
+            + "      EnumerableAggregate(group=[{7}], C=[COUNT()])\n"
+            + "        EnumerableTableScan(table=[[scott, EMP]])")
+        .returnsUnordered("DEPTNO=10; G=2; C=3",
+            "DEPTNO=10; G=3; C=3",
+            "DEPTNO=20; G=2; C=5",
+            "DEPTNO=20; G=3; C=5",
+            "DEPTNO=30; G=2; C=6",
+            "DEPTNO=30; G=3; C=6",
+            "DEPTNO=null; G=2; C=14");
   }
 
   /** Tests CALCITE-980: Not (C='a' or C='b') causes NPE */

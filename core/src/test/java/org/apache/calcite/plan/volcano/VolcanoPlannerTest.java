@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -211,6 +212,7 @@ public class VolcanoPlannerTest {
   @Test public void testSubsetRule() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
     planner.addRule(new GoodSingleRule());
@@ -230,14 +232,18 @@ public class VolcanoPlannerTest {
         planner.changeTraits(
             singleRel,
             cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    planner.changeTraits(leafRel,
+        cluster.traitSetOf(PHYS_CALLING_CONVENTION)
+        .plus(RelCollations.of(0)));
     planner.setRoot(convertedRel);
     RelNode result = planner.chooseDelegate().findBestExp();
     assertTrue(result instanceof PhysSingleRel);
     assertThat(sort(buf),
         equalTo(
             sort(
-                "NoneSingleRel:Subset#0.NONE",
-                "PhysSingleRel:Subset#0.PHYS")));
+                "NoneSingleRel:Subset#0.NONE.[]",
+                "PhysSingleRel:Subset#0.PHYS.[0]",
+                "PhysSingleRel:Subset#0.PHYS.[]")));
   }
 
   private static <E extends Comparable> List<E> sort(List<E> list) {

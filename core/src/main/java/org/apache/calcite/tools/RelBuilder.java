@@ -85,6 +85,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.ImmutableNullableList;
@@ -234,11 +235,8 @@ public class RelBuilder {
   private Config getConfig(Context context) {
     final Config config =
         Util.first(context.unwrap(Config.class), Config.DEFAULT);
-    boolean simplify = Hook.REL_BUILDER_SIMPLIFY.get(config.simplify);
-    if (simplify == config.simplify) {
-      return config;
-    }
-    return config.toBuilder().withSimplify(simplify).build();
+    boolean simplify = Hook.REL_BUILDER_SIMPLIFY.get(config.simplify());
+    return config.withSimplify(simplify);
   }
 
   /** Creates a RelBuilder. */
@@ -1418,7 +1416,7 @@ public class RelBuilder {
     }
 
     // Simplify expressions.
-    if (config.simplify) {
+    if (config.simplify()) {
       for (int i = 0; i < nodeList.size(); i++) {
         nodeList.set(i, simplifier.simplifyPreservingType(nodeList.get(i)));
       }
@@ -1735,7 +1733,7 @@ public class RelBuilder {
       assert groupSet.contains(set);
     }
 
-    if (!config.dedupAggregateCalls || Util.isDistinct(aggregateCalls)) {
+    if (!config.dedupAggregateCalls() || Util.isDistinct(aggregateCalls)) {
       return aggregate_(groupSet, groupSets, r, aggregateCalls,
           registrar.extraNodes, frame.fields);
     }
@@ -2038,7 +2036,7 @@ public class RelBuilder {
     final RelNode join;
     final boolean correlate = variablesSet.size() == 1;
     RexNode postCondition = literal(true);
-    if (config.simplify) {
+    if (config.simplify()) {
       // Normalize expanded versions IS NOT DISTINCT FROM so that simplifier does not
       // transform the expression to something unrecognizable
       if (condition instanceof RexCall) {
@@ -2751,6 +2749,21 @@ public class RelBuilder {
       this.filter = filter;
     }
 
+    @Override public String toString() {
+      final StringBuilder b = new StringBuilder();
+      b.append(aggFunction.getName())
+          .append('(');
+      if (distinct) {
+        b.append("DISTINCT ");
+      }
+      b.append(operands)
+          .append(')');
+      if (filter != null) {
+        b.append(" FILTER (WHERE" + filter + ")");
+      }
+      return b.toString();
+    }
+
     public AggCall sort(Iterable<RexNode> orderKeys) {
       final ImmutableList<RexNode> orderKeyList =
           ImmutableList.copyOf(orderKeys);
@@ -2811,6 +2824,10 @@ public class RelBuilder {
 
     AggCallImpl2(AggregateCall aggregateCall) {
       this.aggregateCall = Objects.requireNonNull(aggregateCall);
+    }
+
+    @Override public String toString() {
+      return aggregateCall.toString();
     }
 
     public AggCall sort(Iterable<RexNode> orderKeys) {
@@ -3001,69 +3018,68 @@ public class RelBuilder {
    *
    * <p>It is immutable, and all fields are public.
    *
-   * <p>Use the {@link #DEFAULT} instance,
-   * or call {@link #builder()} to create a builder then
-   * {@link RelBuilder.ConfigBuilder#build()}. You can also use
-   * {@link #toBuilder()} to modify a few properties of an existing Config. */
-  public static class Config {
+   * <p>Start with the {@link #DEFAULT} instance,
+   * and call {@code withXxx} methods to set its properties. */
+  public interface Config {
     /** Default configuration. */
-    public static final Config DEFAULT =
-        new Config(true, true);
+    Config DEFAULT = ImmutableBeans.create(Config.class);
 
-    /** Whether {@link RelBuilder#aggregate} should eliminate duplicate
-     * aggregate calls; default true. */
-    public final boolean dedupAggregateCalls;
-
-    /** Whether to simplify expressions; default true. */
-    public final boolean simplify;
-
-    // called only from ConfigBuilder and when creating DEFAULT;
-    // parameters and fields must be in alphabetical order
-    private Config(boolean dedupAggregateCalls,
-        boolean simplify) {
-      this.dedupAggregateCalls = dedupAggregateCalls;
-      this.simplify = simplify;
-    }
-
-    /** Creates a ConfigBuilder with all properties set to their default
-     * values. */
-    public static ConfigBuilder builder() {
+    @Deprecated // to be removed before 2.0
+    static ConfigBuilder builder() {
       return DEFAULT.toBuilder();
     }
 
-    /** Creates a ConfigBuilder with properties set to the values in this
-     * Config. */
-    public ConfigBuilder toBuilder() {
-      return new ConfigBuilder()
-          .withDedupAggregateCalls(dedupAggregateCalls)
-          .withSimplify(simplify);
+    @Deprecated // to be removed before 2.0
+    default ConfigBuilder toBuilder() {
+      return new ConfigBuilder(this);
     }
+
+    /** Whether {@link RelBuilder#aggregate} should eliminate duplicate
+     * aggregate calls; default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean dedupAggregateCalls();
+
+    /** Sets {@link #dedupAggregateCalls}. */
+    Config withDedupAggregateCalls(boolean dedupAggregateCalls);
+
+    /** Whether to simplify expressions; default true. */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(true)
+    boolean simplify();
+
+    /** Sets {@link #simplify}. */
+    Config withSimplify(boolean simplify);
   }
 
-  /** Creates a {@link RelBuilder.Config}. */
+  /** Creates a {@link RelBuilder.Config}.
+   *
+   * @deprecated Use the {@code withXxx} methods in
+   * {@link RelBuilder.Config}. */
+  @Deprecated // to be removed before 2.0
   public static class ConfigBuilder {
-    private boolean dedupAggregateCalls;
-    private boolean simplify;
+    private Config config;
 
-    private ConfigBuilder() {
+    private ConfigBuilder(@Nonnull Config config) {
+      this.config = config;
     }
 
     /** Creates a {@link RelBuilder.Config}. */
     public Config build() {
-      return new Config(dedupAggregateCalls, simplify);
+      return config;
     }
 
     /** Sets the value that will become
      * {@link org.apache.calcite.tools.RelBuilder.Config#dedupAggregateCalls}. */
     public ConfigBuilder withDedupAggregateCalls(boolean dedupAggregateCalls) {
-      this.dedupAggregateCalls = dedupAggregateCalls;
+      config = config.withDedupAggregateCalls(dedupAggregateCalls);
       return this;
     }
 
     /** Sets the value that will become
      * {@link org.apache.calcite.tools.RelBuilder.Config#simplify}. */
     public ConfigBuilder withSimplify(boolean simplify) {
-      this.simplify = simplify;
+      config = config.withSimplify(simplify);
       return this;
     }
   }
