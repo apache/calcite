@@ -978,6 +978,20 @@ public abstract class SqlUtil {
     return node;
   }
 
+  /** Modifies a list of nodes, removing AS from each if present.
+   *
+   * @see #stripAs */
+  public static SqlNodeList stripListAs(SqlNodeList nodeList) {
+    for (int i = 0; i < nodeList.size(); i++) {
+      SqlNode n = nodeList.get(i);
+      SqlNode n2 = stripAs(n);
+      if (n != n2) {
+        nodeList.set(i, n2);
+      }
+    }
+    return nodeList;
+  }
+
   /** Returns a list of ancestors of {@code predicate} within a given
    * {@code SqlNode} tree.
    *
@@ -1014,22 +1028,23 @@ public abstract class SqlUtil {
       assert node instanceof SqlHint;
       final SqlHint sqlHint = (SqlHint) node;
       final String hintName = sqlHint.getName();
-      final List<Integer> inheritPath = new ArrayList<>();
-      RelHint relHint;
+
+      final RelHint.Builder builder = RelHint.builder(hintName);
       switch (sqlHint.getOptionFormat()) {
       case EMPTY:
-        relHint = RelHint.of(inheritPath, hintName);
+        // do nothing.
         break;
       case LITERAL_LIST:
       case ID_LIST:
-        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionList());
+        builder.hintOptions(sqlHint.getOptionList());
         break;
       case KV_LIST:
-        relHint = RelHint.of(inheritPath, hintName, sqlHint.getOptionKVPairs());
+        builder.hintOptions(sqlHint.getOptionKVPairs());
         break;
       default:
         throw new AssertionError("Unexpected hint option format");
       }
+      final RelHint relHint = builder.build();
       if (hintStrategies.validateHint(relHint)) {
         // Skips the hint if the validation fails.
         relHints.add(relHint);

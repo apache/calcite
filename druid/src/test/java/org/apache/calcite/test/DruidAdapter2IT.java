@@ -2038,7 +2038,7 @@ public class DruidAdapter2IT {
   }
 
   @Test public void testInterleaveBetweenAggregateAndGroupOrderByOnDimension() {
-    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from \n"
+    final String sqlQuery = "select \"store_state\", \"brand_name\", \"A\" from\n"
         + "(select \"store_state\", sum(\"store_sales\")+sum(\"store_cost\") "
         + "as a, \"brand_name\" from \"foodmart\" group by \"store_state\", \"brand_name\") "
         + "order by \"brand_name\", \"store_state\" limit 5";

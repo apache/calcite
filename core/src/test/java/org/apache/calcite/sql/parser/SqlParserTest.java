@@ -1734,7 +1734,7 @@ public class SqlParserTest {
   }
 
   @Test public void testSubstring() {
-    expr("substring('a' \n  FROM \t  1)")
+    expr("substring('a'\nFROM \t  1)")
         .ok("SUBSTRING('a' FROM 1)");
     expr("substring('a' FROM 1 FOR 3)")
         .ok("SUBSTRING('a' FROM 1 FOR 3)");
@@ -2982,7 +2982,7 @@ public class SqlParserTest {
 
     // on several lines
     sql("select /* 1,\n"
-        + " 2, \n"
+        + " 2,\n"
         + " */ 3 from t")
         .ok("SELECT 3\n"
             + "FROM `T`");
@@ -3033,7 +3033,7 @@ public class SqlParserTest {
     // a preceding "/*" in the same <simple comment>, it will prematurely
     // terminate the containing <bracketed comment>.
     if (Bug.FRG73_FIXED) {
-      final String sql = "values /* multiline contains -- singline */ \n"
+      final String sql = "values /* multiline contains -- singline */\n"
           + " (1)";
       sql(sql).fails("xxx");
     }
@@ -3042,7 +3042,7 @@ public class SqlParserTest {
     if (Bug.FRG73_FIXED) {
       // Test should fail, and it does, but it should give "*/" as the
       // erroneous token.
-      final String sql = "values ( -- rest of line /* a comment  \n"
+      final String sql = "values ( -- rest of line /* a comment\n"
           + " 1, ^*/^ 2)";
       sql(sql).fails("Encountered \"/\\*\" at");
     }
@@ -3052,12 +3052,12 @@ public class SqlParserTest {
         .ok("VALUES (ROW((1 + 2)))");
 
     // multiline comment inside single-line comment
-    sql("values -- rest of line /* a comment */ \n"
+    sql("values -- rest of line /* a comment */\n"
         + "(1)")
         .ok("VALUES (ROW(1))");
 
     // non-terminated multiline comment inside single-line comment
-    sql("values -- rest of line /* a comment  \n"
+    sql("values -- rest of line /* a comment\n"
         + "(1)")
         .ok("VALUES (ROW(1))");
 
@@ -3988,11 +3988,11 @@ public class SqlParserTest {
         .ok("(X'' = X'2')");
     expr("x'fffff'=X''")
         .ok("(X'FFFFF' = X'')");
-    expr("x'1' \t\t\f\r \n"
-        + "'2'--hi this is a comment'FF'\r\r\t\f \n"
+    expr("x'1' \t\t\f\r\n"
+        + "'2'--hi this is a comment'FF'\r\r\t\f\n"
         + "'34'")
         .ok("X'1'\n'2'\n'34'");
-    expr("x'1' \t\t\f\r \n"
+    expr("x'1' \t\t\f\r\n"
         + "'000'--\n"
         + "'01'")
         .ok("X'1'\n'000'\n'01'");
@@ -4030,13 +4030,13 @@ public class SqlParserTest {
         .ok("'boring string'");
     expr("_iSo-8859-1'bye'")
         .ok("_ISO-8859-1'bye'");
-    expr("'three' \n ' blind'\n' mice'")
+    expr("'three'\n' blind'\n' mice'")
         .ok("'three'\n' blind'\n' mice'");
-    expr("'three' -- comment \n ' blind'\n' mice'")
+    expr("'three' -- comment\n' blind'\n' mice'")
         .ok("'three'\n' blind'\n' mice'");
     expr("N'bye' \t\r\f\f\n' bye'")
         .ok("_ISO-8859-1'bye'\n' bye'");
-    expr("_iso-8859-1'bye' \n\n--\n-- this is a comment\n' bye'")
+    expr("_iso-8859-1'bye'\n\n--\n-- this is a comment\n' bye'")
         .ok("_ISO-8859-1'bye'\n' bye'");
     expr("_utf8'hi'")
         .ok("_UTF8'hi'");
@@ -4047,7 +4047,7 @@ public class SqlParserTest {
     expr("'foo\nbar'")
         .ok("'foo\nbar'");
 
-    // prevent test infrastructure from converting \r\n to \n
+    // prevent test infrastructure from converting '\r\n' to '\n'
     boolean[] linuxify = LINUXIFY.get();
     try {
       linuxify[0] = false;
@@ -4061,7 +4061,7 @@ public class SqlParserTest {
   @Test public void testStringLiteralFails() {
     sql("select N ^'space'^")
         .fails("(?s).*Encountered .*space.* at line 1, column ...*");
-    sql("select _latin1 \n^'newline'^")
+    sql("select _latin1\n^'newline'^")
         .fails("(?s).*Encountered.*newline.* at line 2, column ...*");
     sql("select ^_unknown-charset''^ from (values(true))")
         .fails("Unknown character set 'unknown-charset'");
@@ -4084,7 +4084,7 @@ public class SqlParserTest {
         .ok(fooBar);
     expr("   'foo'\r\n'bar'")
         .ok(fooBar);
-    expr("   'foo'\r\n\r\n'bar'  \n   'baz'")
+    expr("   'foo'\r\n\r\n'bar'\n'baz'")
         .ok(fooBarBaz);
     expr("   'foo' /* a comment */ 'bar'")
         .ok(fooBar);
@@ -4107,7 +4107,7 @@ public class SqlParserTest {
         .ok("(CASE WHEN (`NBR` IS FALSE) THEN 'one' ELSE NULL END)");
 
     // multiple WHENs
-    expr("case col1 when \n1.2 then 'one' when 2 then 'two' else 'three' end")
+    expr("case col1 when\n1.2 then 'one' when 2 then 'two' else 'three' end")
         .ok("(CASE WHEN (`COL1` = 1.2) THEN 'one' WHEN (`COL1` = 2) THEN 'two' ELSE 'three' END)");
 
     // sub-queries as case expression operands
@@ -8733,7 +8733,7 @@ public class SqlParserTest {
   @Test public void testTableHintsInUpdate() {
     final String sql = "update emps\n"
         + "/*+ properties(k1='v1', k2='v2'), index(idx1, idx2), no_hash_join */\n"
-        + "set empno = empno + 1, sal = sal - 1 \n"
+        + "set empno = empno + 1, sal = sal - 1\n"
         + "where empno=12";
     final String expected = "UPDATE `EMPS`\n"
         + "/*+ `PROPERTIES`(`K1` ='v1', `K2` ='v2'), "

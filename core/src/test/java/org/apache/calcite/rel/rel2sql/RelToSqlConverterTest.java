@@ -846,7 +846,8 @@ public class RelToSqlConverterTest {
         + "    having count(*) > 1) where \"product_id\" > 100";
 
     String expected = "SELECT *\n"
-        + "FROM (SELECT \"product\".\"product_id\", MIN(\"sales_fact_1997\".\"store_id\")\n"
+        + "FROM (SELECT \"product\".\"product_id\","
+        + " MIN(\"sales_fact_1997\".\"store_id\") AS \"EXPR$1\"\n"
         + "FROM \"foodmart\".\"product\"\n"
         + "INNER JOIN \"foodmart\".\"sales_fact_1997\" ON \"product\".\"product_id\" = \"sales_fact_1997\".\"product_id\"\n"
         + "GROUP BY \"product\".\"product_id\"\n"
@@ -2012,9 +2013,9 @@ public class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1636">[CALCITE-1636]
    * JDBC adapter generates wrong SQL for self join with sub-query</a>. */
   @Test public void testSubQueryAlias() {
-    String query = "select t1.\"customer_id\", t2.\"customer_id\" \n"
-        + "from (select \"customer_id\" from \"sales_fact_1997\") as t1 \n"
-        + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2 \n"
+    String query = "select t1.\"customer_id\", t2.\"customer_id\"\n"
+        + "from (select \"customer_id\" from \"sales_fact_1997\") as t1\n"
+        + "inner join (select \"customer_id\" from \"sales_fact_1997\") t2\n"
         + "on t1.\"customer_id\" = t2.\"customer_id\"";
     final String expected = "SELECT *\n"
         + "FROM (SELECT sales_fact_1997.customer_id\n"
@@ -2881,8 +2882,8 @@ public class RelToSqlConverterTest {
     String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
         + "  (\n"
-        + "    partition by \"product_class_id\", \"brand_name\" \n"
-        + "    order by \"product_class_id\" asc, \"brand_name\" desc \n"
+        + "    partition by \"product_class_id\", \"brand_name\"\n"
+        + "    order by \"product_class_id\" asc, \"brand_name\" desc\n"
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.\"net_weight\" < PREV(down.\"net_weight\"),\n"
@@ -3882,8 +3883,8 @@ public class RelToSqlConverterTest {
     final String sql = "select *\n"
         + "  from \"product\" match_recognize\n"
         + "  (\n"
-        + "    partition by \"product_class_id\", \"brand_name\" \n"
-        + "    order by \"product_class_id\" asc, \"brand_name\" desc \n"
+        + "    partition by \"product_class_id\", \"brand_name\"\n"
+        + "    order by \"product_class_id\" asc, \"brand_name\" desc\n"
         + "    pattern (strt down+ up+)\n"
         + "    define\n"
         + "      down as down.\"net_weight\" in (0, 1),\n"
@@ -4065,7 +4066,7 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUncollectExplicitAlias() {
-    final String sql = "select did + 1 \n"
+    final String sql = "select did + 1\n"
         + "from unnest(select collect(\"department_id\") as deptid"
         + "            from \"department\") as t(did)";
 
@@ -4076,7 +4077,7 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testUncollectImplicitAlias() {
-    final String sql = "select did + 1 \n"
+    final String sql = "select did + 1\n"
         + "from unnest(select collect(\"department_id\") "
         + "            from \"department\") as t(did)";
 
@@ -4359,11 +4360,11 @@ public class RelToSqlConverterTest {
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\".\"department\" B where 1=2 )";
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
-        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\")\n"
+        + "INNER JOIN (SELECT \"t1\".\"department_id\" \"department_id0\", MIN(\"t1\".\"department_id\") \"EXPR$0\"\n"
         + "FROM (SELECT NULL \"department_id\", NULL \"department_description\"\nFROM \"DUAL\"\nWHERE 1 = 0) \"t\",\n"
         + "(SELECT \"department_id\"\nFROM \"foodmart\".\"employee\"\nGROUP BY \"department_id\") \"t1\"\n"
         + "GROUP BY \"t1\".\"department_id\") \"t3\" ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).withOracle().ok(expected);
   }
 
@@ -4374,7 +4375,7 @@ public class RelToSqlConverterTest {
     final String expected = "SELECT \"employee\".\"department_id\"\n"
         + "FROM \"foodmart\".\"employee\"\n"
         + "INNER JOIN (SELECT \"t1\".\"department_id\" AS \"department_id0\","
-        + " MIN(\"t1\".\"department_id\")\n"
+        + " MIN(\"t1\".\"department_id\") AS \"EXPR$0\"\n"
         + "FROM (SELECT *\nFROM (VALUES  (NULL, NULL))"
         + " AS \"t\" (\"department_id\", \"department_description\")"
         + "\nWHERE 1 = 0) AS \"t\","
@@ -4382,7 +4383,7 @@ public class RelToSqlConverterTest {
         + "\nGROUP BY \"department_id\") AS \"t1\""
         + "\nGROUP BY \"t1\".\"department_id\") AS \"t3\" "
         + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
-        + " AND \"employee\".\"department_id\" = MIN(\"t1\".\"department_id\")";
+        + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).ok(expected);
   }
 
@@ -4513,10 +4514,10 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testSelectNullWithInsertFromJoin() {
-    String query = "insert into \n"
+    String query = "insert into\n"
             + "\"account\"(\"account_id\",\"account_parent\",\n"
             + "\"account_type\",\"account_rollup\")\n"
-            + "select \"product\".\"product_id\", \n"
+            + "select \"product\".\"product_id\",\n"
             + "cast(NULL AS INT),\n"
             + "cast(\"product\".\"product_id\" as varchar),\n"
             + "cast(\"sales_fact_1997\".\"store_id\" as varchar)\n"

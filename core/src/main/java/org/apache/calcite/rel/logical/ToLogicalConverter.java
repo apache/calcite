@@ -33,6 +33,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Minus;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Uncollect;
 import org.apache.calcite.rel.core.Union;
@@ -150,6 +151,15 @@ public class ToLogicalConverter extends RelShuttleImpl {
     if (relNode instanceof Calc) {
       final Calc calc = (Calc) relNode;
       return LogicalCalc.create(visit(calc.getInput()), calc.getProgram());
+    }
+
+    if (relNode instanceof TableModify) {
+      final TableModify tableModify = (TableModify) relNode;
+      final RelNode input = visit(tableModify.getInput());
+      return LogicalTableModify.create(tableModify.getTable(),
+          tableModify.getCatalogReader(), input, tableModify.getOperation(),
+          tableModify.getUpdateColumnList(), tableModify.getSourceExpressionList(),
+          tableModify.isFlattened());
     }
 
     if (relNode instanceof EnumerableInterpreter

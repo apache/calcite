@@ -265,9 +265,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
    */
-  public VolcanoPlanner(RelOptCostFactory costFactory, //
+  public VolcanoPlanner(RelOptCostFactory costFactory,
       Context externalContext) {
-    super(costFactory == null ? VolcanoCost.FACTORY : costFactory, //
+    super(costFactory == null ? VolcanoCost.FACTORY : costFactory,
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
@@ -293,7 +293,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public void setRoot(RelNode rel) {
-    // We're registered all the rules, and therefore RelNode classes,
+    // We've registered all the rules, and therefore RelNode classes,
     // we're interested in, and have not yet started calling metadata providers.
     // So now is a good time to tell the metadata layer what to expect.
     registerMetadataRels();
@@ -848,8 +848,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           Litmus.THROW);
       set = getSet(equivRel);
     }
-    final RelSubset subset = registerImpl(rel, set);
-    return subset;
+    return registerImpl(rel, set);
   }
 
   public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
@@ -1014,10 +1013,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return set.getSubset(traits);
   }
 
-  private RelNode changeTraitsUsingConverters(
+  RelNode changeTraitsUsingConverters(
       RelNode rel,
-      RelTraitSet toTraits,
-      boolean allowAbstractConverters) {
+      RelTraitSet toTraits) {
     final RelTraitSet fromTraits = rel.getTraitSet();
 
     assert fromTraits.size() >= toTraits.size();
@@ -1043,7 +1041,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
 
       assert traitDef == toTrait.getTraitDef();
-//            if (fromTrait.subsumes(toTrait)) {
       if (fromTrait.equals(toTrait)) {
         // No need to convert; it's already correct.
         continue;
@@ -1058,11 +1055,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
         register(rel, converted);
-      } else if (allowAbstractConverters) {
-        RelTraitSet stepTraits =
-            converted.getTraitSet().replace(toTrait);
-
-        rel = getSubset(converted, stepTraits);
       }
 
       converted = rel;
@@ -1074,12 +1066,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     return converted;
-  }
-
-  RelNode changeTraitsUsingConverters(
-      RelNode rel,
-      RelTraitSet toTraits) {
-    return changeTraitsUsingConverters(rel, toTraits, false);
   }
 
   void checkForSatisfiedConverters(
@@ -1124,15 +1110,21 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       originalRoot.explain(
           new RelWriterImpl(pw, SqlExplainLevel.ALL_ATTRIBUTES, false));
     }
-    if (CalciteSystemProperty.DUMP_SETS.value()) {
-      pw.println();
-      pw.println("Sets:");
-      dumpSets(pw);
-    }
-    if (CalciteSystemProperty.DUMP_GRAPHVIZ.value()) {
-      pw.println();
-      pw.println("Graphviz:");
-      dumpGraphviz(pw);
+
+    try {
+      if (CalciteSystemProperty.DUMP_SETS.value()) {
+        pw.println();
+        pw.println("Sets:");
+        dumpSets(pw);
+      }
+      if (CalciteSystemProperty.DUMP_GRAPHVIZ.value()) {
+        pw.println();
+        pw.println("Graphviz:");
+        dumpGraphviz(pw);
+      }
+    } catch (Exception | AssertionError e) {
+      pw.println("Error when dumping plan state: \n"
+          + e);
     }
   }
 
@@ -1466,7 +1458,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Add the relational expression into the correct set and subset.
-    RelSubset subset2 = addRelToSet(rel, set);
+    addRelToSet(rel, set);
   }
 
   /**
@@ -1912,13 +1904,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   public void setLocked(boolean locked) {
     this.locked = locked;
-  }
-
-  public void ensureRegistered(
-      RelNode rel,
-      RelNode equivRel,
-      VolcanoRuleCall ruleCall) {
-    ensureRegistered(rel, equivRel);
   }
 
   //~ Inner Classes ----------------------------------------------------------

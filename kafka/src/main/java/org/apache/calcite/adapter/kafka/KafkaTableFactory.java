@@ -82,7 +82,7 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
           | InstantiationException | InvocationTargetException e) {
         final String details = String.format(
             Locale.ROOT,
-            "Fail to create table '%s' with configuration: \n"
+            "Fail to create table '%s' with configuration:\n"
                 + "'%s'\n"
                 + "KafkaCustConsumer '%s' is invalid",
             name, operand, custConsumerClass);

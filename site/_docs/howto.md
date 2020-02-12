@@ -209,7 +209,11 @@ See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
 ### Setting up IntelliJ IDEA
 
-To setup [IntelliJ IDEA](https://www.jetbrains.com/idea/), follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
+Download a version of [IntelliJ IDEA](https://www.jetbrains.com/idea/) greater than (2018.X). Versions 2019.2, and
+2019.3 have been tested by members of the community and appear to be stable. Older versions of IDEA may still work
+without problems for Calcite sources that do not use the Gradle build (release 1.21.0 and before).
+
+Follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
 
 Start with [building Calcite from the command line](#building-from-a-source-distribution).
 

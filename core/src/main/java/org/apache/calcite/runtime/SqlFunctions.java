@@ -1406,6 +1406,17 @@ public class SqlFunctions {
     return Math.cos(b0);
   }
 
+  // COSH
+  /** SQL <code>COSH</code> operator applied to BigDecimal values. */
+  public static double cosh(BigDecimal b) {
+    return cosh(b.doubleValue());
+  }
+
+  /** SQL <code>COSH</code> operator applied to double values. */
+  public static double cosh(double b) {
+    return Math.cosh(b);
+  }
+
   // COT
   /** SQL <code>COT</code> operator applied to BigDecimal values. */
   public static double cot(BigDecimal b0) {
@@ -1560,6 +1571,17 @@ public class SqlFunctions {
   /** SQL <code>TAN</code> operator applied to double values. */
   public static double tan(double b0) {
     return Math.tan(b0);
+  }
+
+  // TANH
+  /** SQL <code>TANH</code> operator applied to BigDecimal values. */
+  public static double tanh(BigDecimal b) {
+    return tanh(b.doubleValue());
+  }
+
+  /** SQL <code>TANH</code> operator applied to double values. */
+  public static double tanh(double b) {
+    return Math.tanh(b);
   }
 
   // Helpers

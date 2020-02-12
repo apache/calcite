@@ -354,9 +354,9 @@ public class RexTransformerTest {
    * RelOptUtil.splitJoinCondition attempts to split a Join-Condition which
    * has a remaining condition</a>. */
   @Test public void testSplitJoinCondition() {
-    final String sql = "select * \n"
-        + "from emp a \n"
-        + "INNER JOIN dept b \n"
+    final String sql = "select *\n"
+        + "from emp a\n"
+        + "INNER JOIN dept b\n"
         + "ON CAST(a.empno AS int) <> b.deptno";
 
     final RelNode relNode = toRel(sql);

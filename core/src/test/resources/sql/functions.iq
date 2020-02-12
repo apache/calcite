@@ -45,6 +45,28 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 !use oraclefunc
 
+# COSH
+select cosh(1);
++-------------------+
+| EXPR$0            |
++-------------------+
+| 1.543080634815244 |
++-------------------+
+(1 row)
+
+!ok
+
+# TANH
+select tanh(1);
++--------------------+
+| EXPR$0             |
++--------------------+
+| 0.7615941559557649 |
++--------------------+
+(1 row)
+
+!ok
+
 SELECT XMLTRANSFORM(
                    '<?xml version="1.0"?>
                     <Article>

@@ -353,7 +353,7 @@ public class ModelTest {
   @Test public void testYamlInlineDetection() throws Exception {
     // yaml model with different line endings
     final String yamlModel = "version: 1.0\r\n"
-        + "schemas: \n"
+        + "schemas:\n"
         + "- type: custom\r\n"
         + "  name: 'MyCustomSchema'\n"
         + "  factory: " + JdbcTest.MySchemaFactory.class.getName() + "\r\n";

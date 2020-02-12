@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rel2sql;
 
 import org.apache.calcite.adapter.jdbc.JdbcTable;
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -95,6 +96,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
@@ -125,13 +127,17 @@ public class RelToSqlConverter extends SqlImplementor
     return dispatcher.invoke(e);
   }
 
-  public Result visitChild(int i, RelNode e) {
+  public Result visitChild(int i, RelNode e, boolean anon) {
     try {
-      stack.push(new Frame(i, e));
+      stack.push(new Frame(i, e, anon));
       return dispatch(e);
     } finally {
       stack.pop();
     }
+  }
+
+  @Override protected boolean isAnon() {
+    return stack.isEmpty() || stack.peek().anon;
   }
 
   /** @see #dispatch */
@@ -895,17 +901,12 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> result = new ArrayList<>();
     result.add(leftOperand);
     result.add(new SqlIdentifier(alias, POS));
-    for (int i = 0; i < rowType.getFieldCount(); i++) {
-      final String lowerName = rowType.getFieldNames().get(i).toLowerCase(Locale.ROOT);
-      SqlIdentifier sqlColumn;
-      if (lowerName.startsWith("expr$")) {
-        sqlColumn = new SqlIdentifier("col_" + i, POS);
-        ordinalMap.put(lowerName, sqlColumn);
-      } else {
-        sqlColumn = new SqlIdentifier(rowType.getFieldNames().get(i), POS);
+    Ord.forEach(rowType.getFieldNames(), (fieldName, i) -> {
+      if (fieldName.toLowerCase(Locale.ROOT).startsWith("expr$")) {
+        fieldName = "col_" + i;
       }
-      result.add(sqlColumn);
-    }
+      result.add(new SqlIdentifier(fieldName, POS));
+    });
     return result;
   }
 
@@ -913,11 +914,7 @@ public class RelToSqlConverter extends SqlImplementor
       RelDataType rowType) {
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
-    final String lowerName = name.toLowerCase(Locale.ROOT);
-    if (lowerName.startsWith("expr$")) {
-      // Put it in ordinalMap
-      ordinalMap.put(lowerName, node);
-    } else if (alias == null || !alias.equals(name)) {
+    if (alias == null || !alias.equals(name)) {
       node = as(node, name);
     }
     selectList.add(node);
@@ -933,10 +930,12 @@ public class RelToSqlConverter extends SqlImplementor
   private static class Frame {
     private final int ordinalInParent;
     private final RelNode r;
+    private final boolean anon;
 
-    Frame(int ordinalInParent, RelNode r) {
+    Frame(int ordinalInParent, RelNode r, boolean anon) {
       this.ordinalInParent = ordinalInParent;
-      this.r = r;
+      this.r = Objects.requireNonNull(r);
+      this.anon = anon;
     }
   }
 }

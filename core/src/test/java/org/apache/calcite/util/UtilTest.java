@@ -2419,7 +2419,7 @@ public class UtilTest {
     assertThat(describe(isLinux("X")), is("is \"X\""));
     assertThat(isLinux("x\ny").matches("x\ny"), is(true));
     assertThat(isLinux("x\ny").matches("x\r\ny"), is(true));
-    // \n\r is not a valid windows line ending
+    //\n\r is not a valid windows line ending
     assertThat(isLinux("x\ny").matches("x\n\ry"), is(false));
     assertThat(isLinux("x\ny").matches("x\n\ryz"), is(false));
     // left-hand side must be linux or will never match

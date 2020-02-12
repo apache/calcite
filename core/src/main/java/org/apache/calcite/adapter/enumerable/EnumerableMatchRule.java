@@ -33,7 +33,11 @@ public class EnumerableMatchRule extends ConverterRule {
 
   @Override public RelNode convert(RelNode rel) {
     final LogicalMatch match = (LogicalMatch) rel;
-    return EnumerableMatch.create(match.getInput(), match.getRowType(),
+    return EnumerableMatch.create(
+        convert(match.getInput(),
+            match.getInput().getTraitSet()
+                .replace(EnumerableConvention.INSTANCE)),
+        match.getRowType(),
         match.getPattern(), match.isStrictStart(), match.isStrictEnd(),
         match.getPatternDefinitions(), match.getMeasures(), match.getAfter(),
         match.getSubsets(), match.isAllRows(), match.getPartitionKeys(),
