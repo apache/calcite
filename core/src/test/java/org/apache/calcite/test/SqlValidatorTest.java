@@ -7144,6 +7144,18 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("FILTER must not contain aggregate expression");
   }
 
+  @Test public void testAggregateFilterContainsGrouping() {
+    sql("select deptno, sum(sal) filter (where ^grouping(deptno) = 0^) "
+        + "from emp group by deptno")
+       .fails("FILTER must not contain aggregate expression");
+    sql("select deptno, sum(sal) filter (where ^grouping_id(deptno) = 0^) "
+        + "from emp group by deptno")
+        .fails("FILTER must not contain aggregate expression");
+    sql("select deptno, sum(sal) filter (where ^group_id() = 0^) "
+        + "from emp group by deptno")
+        .fails("FILTER must not contain aggregate expression");
+  }
+
   @Test public void testWithinGroup() {
     sql("select deptno,\n"
         + " collect(empno) within group(order by 1)\n"

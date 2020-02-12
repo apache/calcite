@@ -44,6 +44,9 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
    * or group auxiliary functions (e.g. {@code TUMBLE_START}). */
   protected final boolean group;
   protected final SqlNameMatcher nameMatcher;
+  /** Whether to find grouping functions (i.e., {@code GROUP_ID},
+   * {@code GROUPING_ID}, {@code GROUPING}).*/
+  private boolean grouping = false;
 
   /**
    * Creates an AggVisitor.
@@ -66,11 +69,15 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
     this.nameMatcher = Objects.requireNonNull(nameMatcher);
   }
 
+  public void findGroupingFunctions(boolean grouping) {
+    this.grouping = grouping;
+  }
+
   public Void visit(SqlCall call) {
     final SqlOperator operator = call.getOperator();
     // If nested aggregates disallowed or found an aggregate at invalid level
     if (operator.isAggregator()
-        && !(operator instanceof SqlAbstractGroupFunction)
+        && (grouping || !(operator instanceof SqlAbstractGroupFunction))
         && !operator.requiresOver()) {
       if (delegate != null) {
         return operator.acceptCall(delegate, call);
