@@ -20,13 +20,16 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -432,5 +435,18 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       }
       return clazz.isAssignableFrom(c);
     });
+  }
+
+  /** Computes the key for relational expression digest cache. */
+  protected static Pair<String, List<RelDataType>> key(RelNode rel) {
+    return key(rel.getDigest(), rel.getRowType());
+  }
+
+  /** Computes the key for relational expression digest cache. */
+  protected static Pair<String, List<RelDataType>> key(String digest, RelDataType relType) {
+    final List<RelDataType> v = relType.isStruct()
+        ? Pair.right(relType.getFieldList())
+        : Collections.singletonList(relType);
+    return Pair.of(digest, v);
   }
 }

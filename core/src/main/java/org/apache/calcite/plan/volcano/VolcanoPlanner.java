@@ -1128,11 +1128,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  /** Computes the key for {@link #mapDigestToRel}. */
-  private static Pair<String, List<RelDataType>> key(RelNode rel) {
-    return Pair.of(rel.getDigest(), Pair.right(rel.getRowType().getFieldList()));
-  }
-
   public String toDot() {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -1375,8 +1370,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   void rename(RelNode rel) {
     final String oldDigest = rel.getDigest();
     if (fixUpInputs(rel)) {
-      final Pair<String, List<RelDataType>> oldKey =
-          Pair.of(oldDigest, Pair.right(rel.getRowType().getFieldList()));
+      final Pair<String, List<RelDataType>> oldKey = key(oldDigest, rel.getRowType());
       final RelNode removed = mapDigestToRel.remove(oldKey);
       assert removed == rel;
       final String newDigest = rel.recomputeDigest();

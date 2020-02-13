@@ -920,10 +920,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
         false);
   }
 
-  private static Pair<String, List<RelDataType>> key(RelNode rel) {
-    return Pair.of(rel.getDigest(), Pair.right(rel.getRowType().getFieldList()));
-  }
-
   private RelNode buildFinalPlan(HepRelVertex vertex) {
     RelNode rel = vertex.getCurrentRel();
 
