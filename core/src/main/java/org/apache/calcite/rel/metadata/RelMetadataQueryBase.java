@@ -23,6 +23,7 @@ import com.google.common.collect.Table;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -98,8 +99,15 @@ public class RelMetadataQueryBase {
    * Removes cached metadata values for specified RelNode.
    *
    * @param rel RelNode whose cached metadata should be removed
+   * @return true if cache for the provided RelNode was not empty
    */
-  public void clearCache(RelNode rel) {
-    map.row(rel).clear();
+  public boolean clearCache(RelNode rel) {
+    Map<List, Object> row = map.row(rel);
+    if (row.isEmpty()) {
+      return false;
+    }
+
+    row.clear();
+    return true;
   }
 }

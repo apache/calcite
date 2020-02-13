@@ -943,9 +943,9 @@ public class RelMdUtil {
    * Removes cached metadata values for specified RelNode.
    *
    * @param rel RelNode whose cached metadata should be removed
+   * @return true if cache for the provided RelNode was not empty
    */
-  public static void clearCache(RelNode rel) {
-    rel.getCluster().getMetadataQuery().clearCache(rel);
+  public static boolean clearCache(RelNode rel) {
+    return rel.getCluster().getMetadataQuery().clearCache(rel);
   }
-
 }
