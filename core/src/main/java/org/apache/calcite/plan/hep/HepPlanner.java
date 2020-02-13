@@ -59,8 +59,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -873,7 +875,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         }
         parentRel.replaceInput(i, preservedVertex);
       }
-      RelMdUtil.clearCache(parentRel);
+      clearCache(parent);
       graph.removeEdge(parent, discardedVertex);
       graph.addEdge(parent, preservedVertex);
       updateVertex(parent, parentRel);
@@ -885,6 +887,28 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     if (discardedVertex == root) {
       root = preservedVertex;
+    }
+  }
+
+  /**
+   * Clears metadata cache for the RelNode and its ancestors.
+   *
+   * @param vertex relnode
+   */
+  private void clearCache(HepRelVertex vertex) {
+    RelMdUtil.clearCache(vertex.getCurrentRel());
+    if (!RelMdUtil.clearCache(vertex)) {
+      return;
+    }
+    Queue<DefaultEdge> queue =
+        new LinkedList<>(graph.getInwardEdges(vertex));
+    while (!queue.isEmpty()) {
+      DefaultEdge edge = queue.remove();
+      HepRelVertex source = (HepRelVertex) edge.source;
+      RelMdUtil.clearCache(source.getCurrentRel());
+      if (RelMdUtil.clearCache(source)) {
+        queue.addAll(graph.getInwardEdges(source));
+      }
     }
   }
 
