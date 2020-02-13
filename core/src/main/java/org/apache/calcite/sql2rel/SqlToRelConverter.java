@@ -331,8 +331,9 @@ public class SqlToRelConverter {
     this.config = new ConfigBuilder().withConfig(config).build();
     this.relBuilder = config.getRelBuilderFactory().create(cluster, null);
     this.hintStrategies = config.getHintStrategyTable();
-    this.cluster = Objects.requireNonNull(cluster)
-        .withHintStrategies(this.hintStrategies);
+
+    cluster.setHintStrategies(this.hintStrategies);
+    this.cluster = Objects.requireNonNull(cluster);
   }
 
   //~ Methods ----------------------------------------------------------------
