@@ -261,7 +261,9 @@ public abstract class Project extends SingleRel implements Hintable {
     // field names only
     if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
       final int firstNonTrivial = countTrivial(exps);
-      if (firstNonTrivial != 0) {
+      if (firstNonTrivial == 1) {
+        pw.item("inputs", "0");
+      } else if (firstNonTrivial != 0) {
         pw.item("inputs", "0.." + (firstNonTrivial - 1));
       }
       if (firstNonTrivial != exps.size()) {
