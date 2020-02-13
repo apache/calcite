@@ -1305,7 +1305,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     final RelNode rel = root.rel;
     assertThat(rel, instanceOf(LogicalFilter.class));
     assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
-    final MyRelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
 
     try {
       assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
@@ -1416,7 +1416,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Top node is a filter. Its metadata uses getColType(RelNode, int).
     assertThat(rel, instanceOf(LogicalFilter.class));
     assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
-    final MyRelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final MyRelMetadataQuery mq = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
     assertThat(colType(mq, rel, 0), equalTo("DEPTNO-rel"));
     assertThat(colType(mq, rel, 1), equalTo("EXPR$1-rel"));
 
@@ -1444,11 +1444,13 @@ public class RelMetadataTest extends SqlToRelTestBase {
     // Invalidate the metadata query triggers clearing of all the metadata.
     rel.getCluster().invalidateMetadataQuery();
     assertThat(rel.getCluster().getMetadataQuery(), instanceOf(MyRelMetadataQuery.class));
-    final MyRelMetadataQuery mq1 = rel.getCluster().getMetadataQuery();
+    final MyRelMetadataQuery mq1 = (MyRelMetadataQuery) rel.getCluster().getMetadataQuery();
     assertThat(colType(mq1, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(5));
     assertThat(colType(mq1, input, 0), equalTo("DEPTNO-agg"));
     assertThat(buf.size(), equalTo(5));
+    // Resets the RelMetadataQuery to default.
+    rel.getCluster().setMetadataQuerySupplier(RelMetadataQuery::instance);
   }
 
   /** Unit test for

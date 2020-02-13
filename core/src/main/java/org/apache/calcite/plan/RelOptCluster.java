@@ -154,7 +154,7 @@ public class RelOptCluster {
   }
 
   /**
-   * Set up the customized {@link RelMetadataQuery} instance supplier that to
+   * Sets up the customized {@link RelMetadataQuery} instance supplier that to
    * use during rule planning.
    *
    * <p>Note that the {@code mqSupplier} should return
@@ -166,22 +166,22 @@ public class RelOptCluster {
     this.mqSupplier = mqSupplier;
   }
 
-  /** Returns the current RelMetadataQuery.
+  /**
+   * Returns the current RelMetadataQuery.
    *
    * <p>This method might be changed or moved in future.
    * If you have a {@link RelOptRuleCall} available,
    * for example if you are in a {@link RelOptRule#onMatch(RelOptRuleCall)}
    * method, then use {@link RelOptRuleCall#getMetadataQuery()} instead. */
-  public <M extends RelMetadataQuery> M getMetadataQuery() {
+  public RelMetadataQuery getMetadataQuery() {
     if (mq == null) {
       mq = this.mqSupplier.get();
     }
-    //noinspection unchecked
-    return (M) mq;
+    return mq;
   }
 
   /**
-   * @return The supplier of RelMetadataQuery
+   * Returns the supplier of RelMetadataQuery.
    */
   public Supplier<RelMetadataQuery> getMetadataQuerySupplier() {
     return this.mqSupplier;
@@ -196,7 +196,7 @@ public class RelOptCluster {
   }
 
   /**
-   * Setup the hint propagation strategies to be used during rule planning.
+   * Sets up the hint propagation strategies to be used during rule planning.
    *
    * <p>Use <code>RelOptNode.getCluster().getHintStrategies()</code> to fetch
    * the hint strategies.
@@ -207,10 +207,9 @@ public class RelOptCluster {
    *
    * @param hintStrategies The specified hint strategies to override the default one(empty)
    */
-  public RelOptCluster withHintStrategies(HintStrategyTable hintStrategies) {
+  public void setHintStrategies(HintStrategyTable hintStrategies) {
     Objects.requireNonNull(hintStrategies);
     this.hintStrategies = hintStrategies;
-    return this;
   }
 
   /**
