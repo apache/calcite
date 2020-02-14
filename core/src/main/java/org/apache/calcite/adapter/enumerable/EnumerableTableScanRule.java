@@ -62,9 +62,7 @@ public class EnumerableTableScanRule extends ConverterRule {
     final Table table = relOptTable.unwrap(Table.class);
     final Expression expression = relOptTable.getExpression(Object.class);
 
-    if (table instanceof QueryableTable
-        && (expression != null
-            || EnumerableTableScan.canHandle(relOptTable))) {
+    if (table instanceof QueryableTable) {
       return EnumerableTableScan.create(scan.getCluster(), relOptTable);
     }
 
