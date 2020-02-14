@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.prepare.RelOptTableImpl;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -148,6 +149,7 @@ public class RelBuilder {
   private final Deque<Frame> stack = new ArrayDeque<>();
   private final RexSimplify simplifier;
   private final Config config;
+  private final RelOptTable.ViewExpander viewExpander;
   private final RelFactories.Struct struct;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
@@ -158,6 +160,7 @@ public class RelBuilder {
       context = Contexts.EMPTY_CONTEXT;
     }
     this.config = getConfig(context);
+    this.viewExpander = getViewExpander(cluster, context);
     this.struct =
         Objects.requireNonNull(RelFactories.Struct.fromContext(context));
     final RexExecutor executor =
@@ -166,6 +169,23 @@ public class RelBuilder {
     final RelOptPredicateList predicates = RelOptPredicateList.EMPTY;
     this.simplifier =
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
+  }
+
+  /**
+   * Derives the view expander
+   * {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
+   * to be used for this RelBuilder.
+   *
+   * <p>The ViewExpander instance is used for expanding views in the default
+   * table scan factory {@code RelFactories.TableScanFactoryImpl}.
+   * You can also define a new table scan factory in the {@code struct}
+   * to override the whole table scan creation.
+   *
+   * <p>The default view expander does not support expanding views.
+   */
+  private RelOptTable.ViewExpander getViewExpander(RelOptCluster cluster, Context context) {
+    return Util.first(context.unwrap(RelOptTable.ViewExpander.class),
+        ViewExpanders.simpleContext(cluster));
   }
 
   /** Derives the Config to be used for this RelBuilder.
@@ -1021,8 +1041,9 @@ public class RelBuilder {
       throw RESOURCE.tableNotFound(String.join(".", names)).ex();
     }
     final RelNode scan =
-        struct.scanFactory.createScan(cluster, relOptTable,
-            ImmutableList.of());
+        struct.scanFactory.createScan(
+            ViewExpanders.toRelContext(viewExpander, cluster),
+            relOptTable);
     push(scan);
     rename(relOptTable.getRowType().getFieldNames());
 
@@ -1920,8 +1941,9 @@ public class RelBuilder {
         transientTable,
         ImmutableList.of(tableName));
     RelNode scan =
-        struct.scanFactory.createScan(cluster, relOptTable,
-            ImmutableList.of());
+        struct.scanFactory.createScan(
+            ViewExpanders.toRelContext(viewExpander, cluster),
+            relOptTable);
     push(scan);
     rename(rowType.getFieldNames());
     return this;

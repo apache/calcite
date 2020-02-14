@@ -22,6 +22,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -260,7 +261,8 @@ public class PigRelBuilder extends RelBuilder {
    * @return This builder
    */
   private RelBuilder scan(RelOptTable tableSchema) {
-    final RelNode scan = getScanFactory().createScan(cluster, tableSchema, ImmutableList.of());
+    final RelNode scan = getScanFactory().createScan(
+        ViewExpanders.simpleContext(cluster), tableSchema);
     push(scan);
     return this;
   }

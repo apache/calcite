@@ -60,9 +60,9 @@ public class PigRelFactories {
 
     public static final PigTableScanFactory INSTANCE = new PigTableScanFactory();
 
-    @Override public RelNode createScan(RelOptCluster cluster,
-        RelOptTable table, List<RelHint> hints) {
-      Util.discard(hints);
+    @Override public RelNode createScan(RelOptTable.ToRelContext toRelContext,
+        RelOptTable table) {
+      final RelOptCluster cluster = toRelContext.getCluster();
       return new PigTableScan(cluster, cluster.traitSetOf(PigRel.CONVENTION), table);
     }
   }
