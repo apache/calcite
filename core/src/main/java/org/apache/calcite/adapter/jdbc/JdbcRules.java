@@ -187,7 +187,7 @@ public class JdbcRules {
       };
 
   public static final RelFactories.TableScanFactory TABLE_SCAN_FACTORY =
-      (cluster, table, hints) -> {
+      (toRelContext, table) -> {
         throw new UnsupportedOperationException();
       };
 
