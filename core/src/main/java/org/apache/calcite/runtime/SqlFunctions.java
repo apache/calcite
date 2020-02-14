@@ -693,6 +693,22 @@ public class SqlFunctions {
     return b0.compareTo(b1) < 0;
   }
 
+  /** SQL <code>&lt;</code> operator applied to List<Comparable> values. */
+  public static <T extends Comparable> boolean lt(List<T> b0, List<T> b1) {
+    for (int i = 0; i < b0.size(); i++) {
+      // b0 is greater because b0 is longer than b1.
+      if (i >= b1.size()) {
+        return false;
+      }
+
+      if (!b0.get(i).equals(b1.get(i))) {
+        return b0.get(i).compareTo(b1.get(i)) < 0;
+      }
+    }
+
+    return b0.size() < b1.size();
+  }
+
   /** SQL <code>&lt;</code> operator applied to Object values. */
   public static boolean ltAny(Object b0, Object b1) {
     if (b0.getClass().equals(b1.getClass())
@@ -726,6 +742,22 @@ public class SqlFunctions {
   /** SQL <code>&le;</code> operator applied to BigDecimal values. */
   public static boolean le(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) <= 0;
+  }
+
+  /** SQL <code>&le;</code> operator applied to List<Comparable> values. */
+  public static <T extends Comparable> boolean le(List<T> b0, List<T> b1) {
+    for (int i = 0; i < b0.size(); i++) {
+      // b0 is greater because b0 is longer than b1.
+      if (i >= b1.size()) {
+        return false;
+      }
+
+      if (!b0.get(i).equals(b1.get(i))) {
+        return b0.get(i).compareTo(b1.get(i)) <= 0;
+      }
+    }
+
+    return b0.size() <= b1.size();
   }
 
   /** SQL <code>&le;</code> operator applied to Object values (at least one
@@ -764,6 +796,11 @@ public class SqlFunctions {
     return b0.compareTo(b1) > 0;
   }
 
+  /** SQL <code>&gt;</code> operator applied to List<Comparable> values. */
+  public static <T extends Comparable> boolean gt(List<T> b0, List<T> b1) {
+    return !le(b0, b1);
+  }
+
   /** SQL <code>&gt;</code> operator applied to Object values (at least one
    * operand has ANY type; neither may be null). */
   public static boolean gtAny(Object b0, Object b1) {
@@ -798,6 +835,11 @@ public class SqlFunctions {
   /** SQL <code>&ge;</code> operator applied to BigDecimal values. */
   public static boolean ge(BigDecimal b0, BigDecimal b1) {
     return b0.compareTo(b1) >= 0;
+  }
+
+  /** SQL <code>&ge;</code> operator applied to List<Comparable> values. */
+  public static <T extends Comparable> boolean ge(List<T> b0, List<T> b1) {
+    return !lt(b0, b1);
   }
 
   /** SQL <code>&ge;</code> operator applied to Object values (at least one

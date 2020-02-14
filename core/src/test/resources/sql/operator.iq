@@ -165,4 +165,60 @@ values multiset ['a', 'c', 'a', 'a'] multiset intersect distinct multiset ['a', 
 
 !ok
 
+# ARRAY <
+select
+    array[1, 2, 3] < array[1, 2, 4], array[1, 2, 5] < array[1, 2],
+    array[1, 2] < array[1, 2, 5], array[1, 2, 3] < array[1, 2, 3];
+
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| true   | false  | true   | false  |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# ARRAY <=
+select
+    array[1, 2, 3] <= array[1, 2, 4], array[1, 2, 3] <= array[1, 2],
+    array[1, 2] <= array[1, 2, 5], array[1, 2, 3] <= array[1, 2, 3];
+
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| true   | false  | true   | true   |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# ARRAY >=
+select
+    array[1, 2, 3] >= array[1, 2, 4], array[1, 2, 5] >= array[1, 2],
+    array[1, 2] >=array[1, 2, 5], array[1, 2, 3] >= array[1, 2, 3];
+
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| false  | true   | false  | true   |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
+# ARRAY >
+select
+    array[1, 2, 3] > array[1, 2, 4], array[1, 2, 3] > array[1, 2],
+    array[1, 2] > array[1, 2, 5], array[1, 2, 3] > array[1, 2, 3];
+
++--------+--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 | EXPR$3 |
++--------+--------+--------+--------+
+| false  | true   | false  | false  |
++--------+--------+--------+--------+
+(1 row)
+
+!ok
+
 # End operator.iq
