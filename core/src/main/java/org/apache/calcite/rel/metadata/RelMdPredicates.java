@@ -41,7 +41,6 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutor;
-import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -422,10 +421,11 @@ public class RelMdPredicates
   public RelOptPredicateList getPredicates(Intersect intersect, RelMetadataQuery mq) {
     final RexBuilder rexBuilder = intersect.getCluster().getRexBuilder();
 
-    final RexExecutorImpl rexImpl =
-        (RexExecutorImpl) (intersect.getCluster().getPlanner().getExecutor());
+    final RexExecutor executor =
+        Util.first(intersect.getCluster().getPlanner().getExecutor(), RexUtil.EXECUTOR);
+
     final RexImplicationChecker rexImplicationChecker =
-        new RexImplicationChecker(rexBuilder, rexImpl, intersect.getRowType());
+        new RexImplicationChecker(rexBuilder, executor, intersect.getRowType());
 
     Set<RexNode> finalPredicates = new HashSet<>();
 
