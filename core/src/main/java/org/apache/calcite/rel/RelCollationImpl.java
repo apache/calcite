@@ -26,7 +26,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.UnmodifiableIterator;
 
 import java.util.Iterator;
 import java.util.List;
@@ -97,9 +96,11 @@ public class RelCollationImpl implements RelCollation {
   }
 
   public int compareTo(@Nonnull RelMultipleTrait o) {
-    final RelCollationImpl that = (RelCollationImpl) o;
-    final UnmodifiableIterator<RelFieldCollation> iterator =
-        that.fieldCollations.iterator();
+    if (this == o) {
+      return 0;
+    }
+    final RelCollation that = (RelCollation) o;
+    final Iterator<RelFieldCollation> iterator = that.getFieldCollations().iterator();
     for (RelFieldCollation f : fieldCollations) {
       if (!iterator.hasNext()) {
         return 1;
@@ -117,9 +118,9 @@ public class RelCollationImpl implements RelCollation {
 
   public boolean satisfies(RelTrait trait) {
     return this == trait
-        || trait instanceof RelCollationImpl
+        || trait instanceof RelCollation
         && Util.startsWith(fieldCollations,
-            ((RelCollationImpl) trait).fieldCollations);
+            ((RelCollation) trait).getFieldCollations());
   }
 
   /** Returns a string representation of this collation, suitably terse given
