@@ -49,6 +49,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -118,7 +120,14 @@ final class ElasticsearchTransport {
    * Build index mapping returning new instance of {@link ElasticsearchMapping}.
    */
   private ElasticsearchMapping fetchAndCreateMapping() {
-    final String uri = String.format(Locale.ROOT, "/%s/_mapping", indexName);
+    String encodedIndexName = indexName;
+    try {
+      encodedIndexName = URLEncoder.encode(indexName, StandardCharsets.UTF_8.toString());
+    } catch (Exception e) {
+      LOGGER.error("URL encode error", e);
+    }
+
+    final String uri = String.format(Locale.ROOT, "/%s/_mapping", encodedIndexName);
     final ObjectNode root = rawHttp(ObjectNode.class).apply(new HttpGet(uri));
     ObjectNode properties = (ObjectNode) root.elements().next().get("mappings");
 
