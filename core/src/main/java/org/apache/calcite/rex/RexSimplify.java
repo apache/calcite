@@ -533,20 +533,11 @@ public class RexSimplify {
     if (predicate == null) {
       return false;
     }
-    /** Inequalities are not supported. */
     SqlKind kind = t.getKind();
-    if (!SqlKind.COMPARISON.contains(kind)) {
-      return true;
-    }
-    switch (kind) {
-    case LESS_THAN:
-    case GREATER_THAN:
-    case GREATER_THAN_OR_EQUAL:
-    case LESS_THAN_OR_EQUAL:
+    if (SqlKind.COMPARISON.contains(kind) && t.getType().isNullable()) {
       return false;
-    default:
-      return true;
     }
+    return true;
   }
 
   private RexNode simplifyNot(RexCall call, RexUnknownAs unknownAs) {

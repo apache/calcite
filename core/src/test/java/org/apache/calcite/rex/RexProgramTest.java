@@ -2506,12 +2506,12 @@ public class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3192">[CALCITE-3192]
    * Simplify OR incorrectly weaks condition</a>. */
   @Test public void testOrSimplificationNotWeakensCondition() {
-    // "1 < a or (a < 3 and b = 2)" can't be simplified
+    // "1 < a or (a < 3 and b = 2)" can't be simplified if a is nullable.
     checkSimplifyUnchanged(
         or(
-            lt(literal(1), vIntNotNull()),
+            lt(literal(1), vInt()),
             and(
-                lt(vIntNotNull(), literal(3)),
+                lt(vInt(), literal(3)),
                 vBoolNotNull(2))));
   }
 
