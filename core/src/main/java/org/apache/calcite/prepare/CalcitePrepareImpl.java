@@ -57,8 +57,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -214,14 +212,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final Convention resultConvention =
         enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
-    final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
+    // Use the Volcano because it can handle the traits.
+    final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     final SqlToRelConverter.ConfigBuilder configBuilder =
         SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
-    if (analyze) {
-      configBuilder.withConvertTableAccess(false);
-    }
 
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
