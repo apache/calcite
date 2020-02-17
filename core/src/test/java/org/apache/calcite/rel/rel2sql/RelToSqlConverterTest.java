@@ -94,13 +94,11 @@ public class RelToSqlConverterTest {
   static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
       SqlToRelConverter.configBuilder()
           .withTrimUnusedFields(false)
-          .withConvertTableAccess(false)
           .build();
 
   static final SqlToRelConverter.Config NO_EXPAND_CONFIG =
       SqlToRelConverter.configBuilder()
           .withTrimUnusedFields(false)
-          .withConvertTableAccess(false)
           .withExpand(false)
           .build();
 

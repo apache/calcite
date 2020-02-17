@@ -78,7 +78,6 @@ public class ToLogicalConverterTest {
   private static final SqlToRelConverter.Config DEFAULT_REL_CONFIG =
       SqlToRelConverter.configBuilder()
           .withTrimUnusedFields(false)
-          .withConvertTableAccess(false)
           .build();
 
   private static FrameworkConfig frameworkConfig() {
