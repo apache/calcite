@@ -43,6 +43,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.ToNumberUtils;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
@@ -403,19 +404,28 @@ public class SparkSqlDialect extends SqlDialect {
   private void unparseTrim(
       SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
-    if (valueToTrim.toValue().matches("\\s+")) {
-      handleTrimWithSpace(writer, call, leftPrec, rightPrec, trimFlag);
+    SqlLiteral valueToBeTrim = call.operand(1);
+    if (valueToBeTrim.toValue().matches("\\s+")) {
+      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
-      handleTrimWithChar(writer, call, leftPrec, rightPrec, trimFlag);
+      handleTrimWithChar(writer, call, leftPrec, rightPrec);
     }
   }
 
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both ' ' from "ABC")
+   * OUPUT : SELECT TRIM(ABC)
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
   private void handleTrimWithSpace(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -432,45 +442,26 @@ public class SparkSqlDialect extends SqlDialect {
     writer.endFunCall(trimFrame);
   }
 
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is not space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both 'A' from "ABC")
+   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
   private void handleTrimWithChar(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
-    SqlCharStringLiteral regexNode = makeRegexNodeFromCall(call.operand(1), trimFlag);
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlLiteral trimFlag = call.operand(0);
+    SqlCharStringLiteral regexNode =
+        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
     SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
         call.getParserPosition());
     SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
     SqlCall regexReplaceCall = new SqlBasicCall(REGEXP_REPLACE, trimOperands, SqlParserPos.ZERO);
     REGEXP_REPLACE.unparse(writer, regexReplaceCall, leftPrec, rightPrec);
-  }
-
-  private SqlCharStringLiteral makeRegexNodeFromCall(SqlNode call, SqlLiteral trimFlag) {
-    String regexPattern = ((SqlCharStringLiteral) call).toValue();
-    regexPattern = escapeSpecialChar(regexPattern);
-    switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
-    case LEADING:
-      regexPattern = "^(".concat(regexPattern).concat(")*");
-      break;
-    case TRAILING:
-      regexPattern = "(".concat(regexPattern).concat(")*$");
-      break;
-    default:
-      regexPattern = "^(".concat(regexPattern).concat(")*|(")
-          .concat(regexPattern).concat(")*$");
-      break;
-    }
-    return SqlLiteral.createCharString(regexPattern,
-        call.getParserPosition());
-  }
-
-  private String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
-
-    for (int i = 0; i < specialCharacters.length; i++) {
-      if (inputString.contains(specialCharacters[i])) {
-        inputString = inputString.replace(specialCharacters[i], "\\" + specialCharacters[i]);
-      }
-    }
-    return inputString;
   }
 }
 
