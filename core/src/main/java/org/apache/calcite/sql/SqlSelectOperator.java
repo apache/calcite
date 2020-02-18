@@ -24,7 +24,6 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * An operator describing a query. (Not a query itself.)

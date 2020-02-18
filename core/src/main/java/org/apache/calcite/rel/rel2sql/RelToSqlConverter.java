@@ -265,7 +265,7 @@ public class RelToSqlConverter extends SqlImplementor
    */
   private SqlNode castNullType(SqlNode sqlNodeNull, RelDataTypeField field) {
     return SqlStdOperatorTable.CAST.createCall(POS,
-            sqlNodeNull, dialect.getCastSpec(field.getType()));
+        sqlNodeNull, dialect.getCastSpec(field.getType()));
   }
 
   /** @see #dispatch */
@@ -275,16 +275,16 @@ public class RelToSqlConverter extends SqlImplementor
     RelNode input = e.getInput();
     int inputFieldCount = input.getRowType().getFieldCount();
     final List<SqlNode> rexOvers = new ArrayList<>();
-    for (Window.Group group: e.groups) {
+    for (Window.Group group : e.groups) {
       rexOvers.addAll(builder.context.toSql(group, e.constants, inputFieldCount));
     }
     final List<SqlNode> selectList = new ArrayList<>();
 
-    for (RelDataTypeField field: input.getRowType().getFieldList()) {
+    for (RelDataTypeField field : input.getRowType().getFieldList()) {
       addSelect(selectList, builder.context.field(field.getIndex()), e.getRowType());
     }
 
-    for (SqlNode rexOver: rexOvers) {
+    for (SqlNode rexOver : rexOvers) {
       addSelect(selectList, rexOver, e.getRowType());
     }
 
@@ -395,12 +395,12 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> groupKeys = new ArrayList<>();
     boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
     for (int key : groupList) {
-      groupKeys.add(getGroupBySqlNode(builder,key));
+      groupKeys.add(getGroupBySqlNode(builder, key));
     }
 
     for (int key : sortedGroupList) {
       final SqlNode field = builder.context.field(key, false);
-     // final SqlNode field = getGroupBySqlNode(builder,key);
+      // final SqlNode field = getGroupBySqlNode(builder,key);
       addSelect(selectList, field, aggregate.getRowType());
     }
     switch (aggregate.getGroupType()) {
@@ -428,7 +428,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
 
-  private SqlNode getGroupBySqlNode(Builder builder, int key){
+  private SqlNode getGroupBySqlNode(Builder builder, int key) {
     boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
     SqlNode field;
     if (isGroupByAlias) {
@@ -437,7 +437,7 @@ public class RelToSqlConverter extends SqlImplementor
           || sqlNode.getKind() == SqlKind.DYNAMIC_PARAM
           || sqlNode.getKind() == SqlKind.MINUS_PREFIX) {
         Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
-        if(aliasNode.isPresent()){
+        if (aliasNode.isPresent()) {
           field = aliasNode.get();
         } else {
           //add ordinal
@@ -448,9 +448,9 @@ public class RelToSqlConverter extends SqlImplementor
         }
       } else {
         Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
-        if(aliasNode.isPresent()){
+        if (aliasNode.isPresent()) {
           field = aliasNode.get();
-        }else {
+        } else {
           field = sqlNode;
         }
       }
@@ -462,51 +462,14 @@ public class RelToSqlConverter extends SqlImplementor
 
 
   private Optional<SqlNode> getAliasSqlNode(SqlNode sqlNode) {
-    List<SqlNode> openrandList = ((SqlCall) sqlNode).getOperandList();
-    if (openrandList.size() > 1) {
-      return Optional.of(((SqlCall) sqlNode).operand(1));
+    if (SqlCall.class.isInstance(sqlNode)) {
+      List<SqlNode> openrandList = ((SqlCall) sqlNode).getOperandList();
+      if (openrandList.size() > 1) {
+        return Optional.of(((SqlCall) sqlNode).operand(1));
+      }
     }
     return Optional.empty();
   }
-
-
-
-
-  /*private boolean checkIfAliasMatchesIdentifier(List<SqlIdentifier> identifierList, String alias)
-  {
-    for (SqlIdentifier node : identifierList) {
-      if (node.toString().equalsIgnoreCase(alias)) {
-        return true;
-      }
-    }
-    return false;
-  }*/
-
-  /*private void extractSqlIdentifiers(List<SqlIdentifier> identifierList, SqlNode node) {
-    if (node instanceof SqlIdentifier) {
-      identifierList.add((SqlIdentifier) node);
-    } else if (node instanceof SqlCase) {
-      SqlCase caseNode = (SqlCase) node;
-      SqlNode exprNode = caseNode.getValueOperand();
-      SqlNodeList whenList = caseNode.getWhenOperands();
-      SqlNodeList thenList = caseNode.getThenOperands();
-      SqlNode elseNode = caseNode.getElseOperand();
-      if (null != exprNode) {
-        extractSqlIdentifiers(identifierList, exprNode);
-      }
-      whenList.forEach(whenNode ->
-          extractSqlIdentifiers(identifierList, whenNode));
-      thenList.forEach(thenNode ->
-          extractSqlIdentifiers(identifierList, thenNode));
-      if (null != elseNode) {
-        extractSqlIdentifiers(identifierList, elseNode);
-      }
-    } else if (node instanceof SqlBasicCall) {
-      List<SqlNode> nodeList = Arrays.asList(((SqlBasicCall) node).operands);
-      nodeList.forEach(sqlNode ->
-          extractSqlIdentifiers(identifierList, sqlNode));
-    }
-  }*/
 
   private SqlNode groupItem(List<SqlNode> groupKeys,
       ImmutableBitSet groupSet, ImmutableBitSet wholeGroupSet) {
@@ -663,10 +626,10 @@ public class RelToSqlConverter extends SqlImplementor
           query = as(query, "t");
         }
         query = new SqlSelect(POS, null,
-                null, query,
-                createAlwaysFalseCondition(),
-                null, null, null,
-                null, null, null, null);
+            null, query,
+            createAlwaysFalseCondition(),
+            null, null, null,
+            null, null, null, null);
       }
     }
     return result(query, clauses, e, null);
@@ -686,8 +649,8 @@ public class RelToSqlConverter extends SqlImplementor
     // Use condition 1=0 since "where false" does not seem to be supported
     // on some DB vendors.
     return SqlStdOperatorTable.EQUALS.createCall(POS,
-            ImmutableList.of(SqlLiteral.createExactNumeric("1", POS),
-                    SqlLiteral.createExactNumeric("0", POS)));
+        ImmutableList.of(SqlLiteral.createExactNumeric("1", POS),
+            SqlLiteral.createExactNumeric("0", POS)));
   }
 
   /** @see #dispatch */
@@ -770,10 +733,10 @@ public class RelToSqlConverter extends SqlImplementor
     return !dialect.supportsAggregateFunction(SqlKind.ROLLUP)
         && dialect.supportsGroupByWithRollup()
         && (aggregate.getGroupType() == Aggregate.Group.ROLLUP
-            || aggregate.getGroupType() == Aggregate.Group.CUBE
-                && aggregate.getGroupSet().cardinality() == 1)
+        || aggregate.getGroupType() == Aggregate.Group.CUBE
+        && aggregate.getGroupSet().cardinality() == 1)
         && e.collation.getFieldCollations().stream().allMatch(fc ->
-            fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
+        fc.getFieldIndex() < aggregate.getGroupSet().cardinality());
   }
 
   private SqlIdentifier getSqlTargetTable(RelNode e) {
