@@ -6331,6 +6331,14 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       SqlKind kind = call.getKind();
       List<SqlNode> operands = call.getOperandList();
       List<SqlNode> newOperands = new ArrayList<>();
+
+      if (call.getFunctionQuantifier() != null
+          && call.getFunctionQuantifier().getValue() == SqlSelectKeyword.DISTINCT) {
+        final SqlParserPos pos = call.getParserPosition();
+        throw SqlUtil.newContextException(pos,
+            Static.RESOURCE.functionQuantifierNotAllowed(call.toString()));
+      }
+
       if (isLogicalNavigation(kind) || isPhysicalNavigation(kind)) {
         SqlNode inner = operands.get(0);
         SqlNode offset = operands.get(1);
