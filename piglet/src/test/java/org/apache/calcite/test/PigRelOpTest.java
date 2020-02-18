@@ -1586,27 +1586,23 @@ public class PigRelOpTest extends PigRelTestBase {
         + "(40,{(30,SALES,CHICAGO)},{},{(40,OPERATIONS,BOSTON)})\n"
         + "(50,{(40,OPERATIONS,BOSTON)},{},{})\n";
 
-    final String sql = ""
-        + "SELECT CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END "
-        + "AS DEPTNO, t4.A, t4.B, t7.C\n"
-        + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
-        + "AS DEPTNO, t0.A, t3.B\n"
-        + "    FROM (SELECT DEPTNO + 10 AS $f0, "
-        + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
-        + "        FROM scott.DEPT\n"
-        + "        GROUP BY DEPTNO + 10) AS t0\n"
-        + "      FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, "
-        + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS B\n"
-        + "        FROM scott.DEPT\n"
-        + "        WHERE DEPTNO <= 30\n"
-        + "        GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 "
-        + "ON t0.$f0 = t3.DEPTNO) AS t4\n"
-        + "  FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, COLLECT(ROW(DEPTNO, DNAME, "
-        + "LOC)) AS C\n"
-        + "      FROM scott.DEPT\n"
-        + "      WHERE DEPTNO >= 20\n"
-        + "      GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\n"
-        + "ORDER BY DEPTNO";
+    final String sql =
+        "SELECT CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END"
+       +" AS DEPTNO, t4.A, t4.B, t7.C\n"
+       + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
+       + "AS DEPTNO, t0.A, t3.B\n"
+       + "    FROM (SELECT DEPTNO + 10 AS $f0, "
+       + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
+       + "        FROM scott.DEPT\n"
+       + "        GROUP BY DEPTNO + 10) AS t0\n"
+       + "      FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, "
+       + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS B\n"
+       + "        FROM scott.DEPT\n"
+       + "        WHERE DEPTNO <= 30\n"
+       + "        GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 "
+       + "ON t0.$f0 = t3.DEPTNO) AS t4\n  FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS C\n"
+       + "    FROM scott.DEPT\n    WHERE DEPTNO >= 20\n    GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\nORDER BY DEPTNO";
+
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));

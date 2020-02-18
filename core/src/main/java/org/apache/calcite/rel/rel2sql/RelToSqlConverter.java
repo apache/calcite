@@ -393,7 +393,6 @@ public class RelToSqlConverter extends SqlImplementor
         + aggregate.getGroupSet() + ", just possibly a different order";
 
     final List<SqlNode> groupKeys = new ArrayList<>();
-    boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
     for (int key : groupList) {
       groupKeys.add(getGroupBySqlNode(builder, key));
     }
@@ -447,12 +446,7 @@ public class RelToSqlConverter extends SqlImplementor
               SqlParserPos.ZERO);
         }
       } else {
-        Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
-        if (aliasNode.isPresent()) {
-          field = aliasNode.get();
-        } else {
-          field = sqlNode;
-        }
+        field = builder.context.field(key, true);
       }
     } else {
       field = builder.context.field(key);

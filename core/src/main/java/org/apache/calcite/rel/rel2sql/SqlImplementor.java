@@ -1393,7 +1393,10 @@ public abstract class SqlImplementor {
             switch (selectItem.getKind()) {
             case AS:
               if (useAlias) {
-                return ((SqlCall) selectItem).operand(1);
+                SqlNode sqlNode = ((SqlCall) selectItem).operand(1);
+                if (!sqlNode.toString().toLowerCase(Locale.ROOT).startsWith("expr$")) {
+                  return sqlNode;
+                }
               }
               return ((SqlCall) selectItem).operand(0);
             }

@@ -3152,7 +3152,9 @@ public class RelToSqlConverterTest {
         .withOracle()
         .ok(expectedOracle)
         .withPostgresql()
-        .ok(expectedPostgresql);
+        .ok(expectedPostgresql)
+        .withMysql()
+        .ok(expectedMysql);
   }
 
   @Test public void testSubstring() {
@@ -5990,12 +5992,8 @@ public class RelToSqlConverterTest {
   }
 
   @Test public void testRowValueExpression() {
-    final String expected0 = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\n"
-        + "SELECT 1, 'Fred', 'San Francisco'\n"
-        + "FROM (VALUES  (0)) t (ZERO)\n"
-        + "UNION ALL\n"
-        + "SELECT 2, 'Eric', 'Washington'\n"
-        + "FROM (VALUES  (0)) t (ZERO)";
+    final String expected0 = "INSERT INTO SCOTT.DEPT (DEPTNO, DNAME, LOC)\nSELECT 1, 'Fred', "
+        + "'San Francisco'\nUNION ALL\nSELECT 2, 'Eric', 'Washington'";
     String sql = "insert into \"DEPT\"\n"
         + "values ROW(1,'Fred', 'San Francisco'), ROW(2, 'Eric', 'Washington')";
     sql(sql)
