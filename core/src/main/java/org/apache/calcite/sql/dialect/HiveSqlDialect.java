@@ -42,10 +42,11 @@ import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.ToNumberUtils;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.IF;
 
@@ -208,42 +209,58 @@ public class HiveSqlDialect extends SqlDialect {
       unparseNullIf(writer, call, leftPrec, rightPrec);
       break;
     case OTHER_FUNCTION:
-      if (call.getOperator().getName().equals(CURRENT_TIMESTAMP.getName())
-          && ((SqlBasicCall) call).getOperands().length > 0) {
-        unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
-      } else if (call.getOperator() instanceof SqlSubstringFunction) {
-        final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
-        call.operand(0).unparse(writer, leftPrec, rightPrec);
-        writer.sep(",", true);
-        call.operand(1).unparse(writer, leftPrec, rightPrec);
-        if (3 == call.operandCount()) {
-          writer.sep(",", true);
-          call.operand(2).unparse(writer, leftPrec, rightPrec);
-        }
-        writer.endFunCall(funCallFrame);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
+      unparseOtherFunction(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
   }
 
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+      if (((SqlBasicCall) call).getOperands().length > 0) {
+        unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case "CURRENT_USER":
+      final SqlWriter.Frame currUserFrame = writer.startFunCall(CURRENT_USER.getName());
+      writer.endFunCall(currUserFrame);
+      break;
+
+    case "SqlSubstringFunction":
+      final SqlWriter.Frame funCallFrame = writer.startFunCall(call.getOperator().getName());
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      writer.sep(",", true);
+      call.operand(1).unparse(writer, leftPrec, rightPrec);
+      if (3 == call.operandCount()) {
+        writer.sep(",", true);
+        call.operand(2).unparse(writer, leftPrec, rightPrec);
+      }
+      writer.endFunCall(funCallFrame);
+      break;
+
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+
+
   /**
    * For usage of TRIM, LTRIM and RTRIM in Hive, see
-   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF
-   * usage</a>.
+   * <a href="https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF">Hive UDF usage</a>.
    */
-  private void unparseTrim(SqlWriter writer, SqlCall call, int leftPrec,
+  private void unparseTrim(
+      SqlWriter writer, SqlCall call, int leftPrec,
       int rightPrec) {
-    assert call.operand(0) instanceof SqlLiteral : call.operand(0);
-    SqlLiteral trimFlag = call.operand(0);
-    SqlLiteral valueToTrim = call.operand(1);
-    if (valueToTrim.toValue().matches("\\s+")) {
-      handleTrimWithSpace(writer, call, leftPrec, rightPrec, trimFlag);
+    SqlLiteral valueToBeTrim = call.operand(1);
+    if (valueToBeTrim.toValue().matches("\\s+")) {
+      handleTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
-      handleTrimWithChar(writer, call, leftPrec, rightPrec, trimFlag);
+      handleTrimWithChar(writer, call, leftPrec, rightPrec);
     }
   }
 
@@ -255,9 +272,20 @@ public class HiveSqlDialect extends SqlDialect {
     unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both ' ' from "ABC")
+   * OUPUT : SELECT TRIM(ABC)
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
   private void handleTrimWithSpace(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     final String operatorName;
+    SqlLiteral trimFlag = call.operand(0);
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {
     case LEADING:
       operatorName = "LTRIM";
@@ -274,9 +302,21 @@ public class HiveSqlDialect extends SqlDialect {
     writer.endFunCall(trimFrame);
   }
 
+  /**
+   * This method will handle the TRIM function if the value to be trimmed is not space
+   * Below is an example :
+   * INPUT : SELECT TRIM(both 'A' from "ABC")
+   * OUPUT : SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
+   * @param writer Target SqlWriter to write the call
+   * @param call SqlCall
+   * @param leftPrec Indicate left precision
+   * @param rightPrec Indicate Right precision
+   */
   private void handleTrimWithChar(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlLiteral trimFlag) {
-    SqlCharStringLiteral regexNode = makeRegexNodeFromCall(call.operand(1), trimFlag);
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    SqlLiteral trimFlag = call.operand(0);
+    SqlCharStringLiteral regexNode =
+        RelToSqlConverterUtil.makeRegexNodeFromCall(call.operand(1), trimFlag);
     SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString("",
         call.getParserPosition());
     SqlNode[] trimOperands = new SqlNode[]{call.operand(2), regexNode, blankLiteral};
@@ -548,4 +588,12 @@ public class HiveSqlDialect extends SqlDialect {
     unparseCall(writer, ifCall, leftPrec, rightPrec);
   }
 
+  private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call,
+                                       int leftPrec, int rightPrec) {
+    CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
+    SqlCall dateFormatCall = timestampHandler.makeDateFormatCall(call);
+    SqlCall castCall = timestampHandler.makeCastCall(dateFormatCall);
+    unparseCall(writer, castCall, leftPrec, rightPrec);
+  }
 }
+// End HiveSqlDialect.java
