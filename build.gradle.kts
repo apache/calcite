@@ -406,6 +406,7 @@ allprojects {
         if (!skipAutostyle) {
             autostyle {
                 java {
+                    paddedCell()
                     filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
                     license()
                     if (!project.props.bool("junit4", default = false)) {

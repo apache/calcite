@@ -64,8 +64,10 @@ public class RelToSqlConverterUtil {
    * @return Escape character if any special character is present in the string
    */
   private static String escapeSpecialChar(String inputString) {
-    final String[] specialCharacters = {"\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
-        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"};
+    final String[] specialCharacters = {
+        "\\", "^", "$", "{", "}", "[", "]", "(", ")", ".",
+        "*", "+", "?", "|", "<", ">", "-", "&", "%", "@"
+    };
 
     for (int i = 0; i < specialCharacters.length; i++) {
       if (inputString.contains(specialCharacters[i])) {
@@ -75,5 +77,3 @@ public class RelToSqlConverterUtil {
     return inputString;
   }
 }
-
-// End RelToSqlConverterUtil.java

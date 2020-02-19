@@ -59,44 +59,47 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.*;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
  * dialect.
  */
 public class BigQuerySqlDialect extends SqlDialect {
   public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
-        .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
-        .withLiteralQuoteString("'")
-        .withLiteralEscapedQuoteString("\\'")
-        .withIdentifierQuoteString("`")
-        .withNullCollation(NullCollation.LOW)
-        .withUnquotedCasing(Casing.UNCHANGED)
-        .withQuotedCasing(Casing.UNCHANGED)
-        .withCaseSensitive(false)
-        .withConformance(SqlConformanceEnum.BIG_QUERY);
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.BIG_QUERY)
+      .withLiteralQuoteString("'")
+      .withLiteralEscapedQuoteString("\\'")
+      .withIdentifierQuoteString("`")
+      .withNullCollation(NullCollation.LOW)
+      .withUnquotedCasing(Casing.UNCHANGED)
+      .withQuotedCasing(Casing.UNCHANGED)
+      .withCaseSensitive(false)
+      .withConformance(SqlConformanceEnum.BIG_QUERY);
 
   public static final SqlDialect DEFAULT = new BigQuerySqlDialect(DEFAULT_CONTEXT);
 
   private static final List<String> RESERVED_KEYWORDS =
       ImmutableList.copyOf(
-      Arrays.asList("ALL", "AND", "ANY", "ARRAY", "AS", "ASC",
-        "ASSERT_ROWS_MODIFIED", "AT", "BETWEEN", "BY", "CASE", "CAST",
-        "COLLATE", "CONTAINS", "CREATE", "CROSS", "CUBE", "CURRENT",
-        "DEFAULT", "DEFINE", "DESC", "DISTINCT", "ELSE", "END", "ENUM",
-        "ESCAPE", "EXCEPT", "EXCLUDE", "EXISTS", "EXTRACT", "FALSE",
-        "FETCH", "FOLLOWING", "FOR", "FROM", "FULL", "GROUP", "GROUPING",
-        "GROUPS", "HASH", "HAVING", "IF", "IGNORE", "IN", "INNER",
-        "INTERSECT", "INTERVAL", "INTO", "IS", "JOIN", "LATERAL", "LEFT",
-        "LIKE", "LIMIT", "LOOKUP", "MERGE", "NATURAL", "NEW", "NO",
-        "NOT", "NULL", "NULLS", "OF", "ON", "OR", "ORDER", "OUTER",
-        "OVER", "PARTITION", "PRECEDING", "PROTO", "RANGE", "RECURSIVE",
-        "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME",
-        "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
-        "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
-        "WINDOW", "WITH", "WITHIN"));
+          Arrays.asList("ALL", "AND", "ANY", "ARRAY", "AS", "ASC",
+              "ASSERT_ROWS_MODIFIED", "AT", "BETWEEN", "BY", "CASE", "CAST",
+              "COLLATE", "CONTAINS", "CREATE", "CROSS", "CUBE", "CURRENT",
+              "DEFAULT", "DEFINE", "DESC", "DISTINCT", "ELSE", "END", "ENUM",
+              "ESCAPE", "EXCEPT", "EXCLUDE", "EXISTS", "EXTRACT", "FALSE",
+              "FETCH", "FOLLOWING", "FOR", "FROM", "FULL", "GROUP", "GROUPING",
+              "GROUPS", "HASH", "HAVING", "IF", "IGNORE", "IN", "INNER",
+              "INTERSECT", "INTERVAL", "INTO", "IS", "JOIN", "LATERAL", "LEFT",
+              "LIKE", "LIMIT", "LOOKUP", "MERGE", "NATURAL", "NEW", "NO",
+              "NOT", "NULL", "NULLS", "OF", "ON", "OR", "ORDER", "OUTER",
+              "OVER", "PARTITION", "PRECEDING", "PROTO", "RANGE", "RECURSIVE",
+              "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME",
+              "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
+              "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
+              "WINDOW", "WITH", "WITHIN"));
 
   /**
    * An unquoted BigQuery identifier must start with a letter and be followed
@@ -118,22 +121,22 @@ public class BigQuerySqlDialect extends SqlDialect {
 
   @Override protected boolean identifierNeedsQuote(String val) {
     return !IDENTIFIER_REGEX.matcher(val).matches()
-      || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
+        || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));
   }
 
   @Override public SqlNode emulateNullDirection(SqlNode node,
-    boolean nullsFirst, boolean desc) {
+      boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
 
   @Override public boolean supportsImplicitTypeCoercion(RexCall call) {
     return super.supportsImplicitTypeCoercion(call)
-      && RexUtil.isLiteral(call.getOperands().get(0), false)
-      && !SqlTypeUtil.isNumeric(call.type);
+        && RexUtil.isLiteral(call.getOperands().get(0), false)
+        && !SqlTypeUtil.isNumeric(call.type);
   }
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-    SqlNode fetch) {
+      SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
@@ -194,7 +197,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
-    final int rightPrec) {
+      final int rightPrec) {
     switch (call.getKind()) {
     case POSITION:
       final SqlWriter.Frame frame = writer.startFunCall("STRPOS");
@@ -379,7 +382,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     String regexStr = call.operand(1).toString();
     String regexLiteral = "(?i)".concat(regexStr.substring(1, regexStr.length() - 1));
     return SqlLiteral.createCharString(regexLiteral,
-      call.operand(1).getParserPosition());
+        call.operand(1).getParserPosition());
   }
 
   private SqlCall makeSubstringSqlCall(SqlCall call) {
@@ -434,7 +437,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * @param rightPrec Indicate left precision
    */
   @Override public void unparseIntervalOperandsBasedFunctions(
-    SqlWriter writer,
+      SqlWriter writer,
       SqlCall call, int leftPrec, int rightPrec) {
     final SqlWriter.Frame frame = writer.startFunCall(call.getOperator().toString());
     call.operand(0).unparse(writer, leftPrec, rightPrec);
@@ -535,7 +538,7 @@ public class BigQuerySqlDialect extends SqlDialect {
    * BigQuery interval syntax: INTERVAL int64 time_unit.
    */
   @Override public void unparseSqlIntervalLiteral(
-    SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
+      SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
     writer.keyword("INTERVAL");
@@ -554,7 +557,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public void unparseSqlIntervalQualifier(
-    SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
+      SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     final String start = validate(qualifier.timeUnitRange.startUnit).name();
     if (qualifier.timeUnitRange.endUnit == null) {
       writer.keyword(start);
@@ -627,6 +630,4 @@ public class BigQuerySqlDialect extends SqlDialect {
         typeAlias, typeName, SqlParserPos.ZERO);
     return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
-
 }
-// End BigQuerySqlDialect.java
