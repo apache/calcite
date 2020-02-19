@@ -651,6 +651,120 @@ public class RelToSqlConverterTest {
     assertThat(sqlString, notNullValue());
   }
 
+  @Test public void testAntiJoin() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .join(
+            JoinRelType.ANTI, builder.equals(
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE NOT EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test public void testSemiJoin() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .join(
+            JoinRelType.SEMI, builder.equals(
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test public void testSemiJoinFilter() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .filter(
+            builder.call(SqlStdOperatorTable.GREATER_THAN,
+              builder.field(builder.peek().getRowType().getField("EMPNO", false, false).getIndex()),
+              builder.literal((short) 10)))
+        .join(
+            JoinRelType.SEMI, builder.equals(
+            builder.field(2, 1, "DEPTNO"),
+            builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT *\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "WHERE \"EMPNO\" > 10) AS \"t\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"t\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test public void testSemiJoinProject() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .scan("DEPT")
+        .scan("EMP")
+        .project(
+            builder.field(builder.peek().getRowType().getField("EMPNO", false, false).getIndex()),
+            builder.field(builder.peek().getRowType().getField("DEPTNO", false, false).getIndex()))
+        .join(
+            JoinRelType.SEMI, builder.equals(
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM (SELECT \"EMPNO\", \"DEPTNO\"\n"
+        + "FROM \"scott\".\"EMP\") AS \"t\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"t\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
+  @Test public void testSemiNestedJoin() {
+    final RelBuilder builder = relBuilder();
+    final RelNode base = builder
+        .scan("EMP")
+        .scan("EMP")
+        .join(
+            JoinRelType.INNER, builder.equals(
+              builder.field(2, 0, "EMPNO"),
+              builder.field(2, 1, "EMPNO")))
+        .build();
+    final RelNode root = builder
+        .scan("DEPT")
+        .push(base)
+        .join(
+            JoinRelType.SEMI, builder.equals(
+              builder.field(2, 1, "DEPTNO"),
+              builder.field(2, 0, "DEPTNO")))
+        .project(builder.field("DEPTNO"))
+        .build();
+    final String expectedSql = "SELECT \"DEPTNO\"\n"
+        + "FROM \"scott\".\"DEPT\"\n"
+        + "WHERE EXISTS (SELECT 1\n"
+        + "FROM \"scott\".\"EMP\"\n"
+        + "INNER JOIN \"scott\".\"EMP\" AS \"EMP0\" ON \"EMP\".\"EMPNO\" = \"EMP0\".\"EMPNO\"\n"
+        + "WHERE \"DEPT\".\"DEPTNO\" = \"EMP\".\"DEPTNO\")";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2792">[CALCITE-2792]
    * Stackoverflow while evaluating filter with large number of OR conditions</a>. */
