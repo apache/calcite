@@ -121,9 +121,9 @@ public class PigRelOpTest extends PigRelTestBase {
 
   private static void writeToFile(File f, String[] inputData) {
     try (PrintWriter pw =
-             new PrintWriter(
-                 new OutputStreamWriter(new FileOutputStream(f),
-                     StandardCharsets.UTF_8))) {
+        new PrintWriter(
+            new OutputStreamWriter(new FileOutputStream(f),
+                StandardCharsets.UTF_8))) {
       for (String input : inputData) {
         pw.print(input);
         pw.print("\n");
@@ -262,10 +262,10 @@ public class PigRelOpTest extends PigRelTestBase {
     pig(script)
         .assertRel("B1", false,
             hasTree("LogicalFilter(condition=[=($7, 10)])\n"
-              + scan))
+                + scan))
         .assertRel("B2", false,
             hasTree("LogicalFilter(condition=[=($7, 20)])\n"
-              + scan))
+                + scan))
         .assertRel(hasTree(plan))
         .assertResult(is(result))
         .assertSql(is(sql));
@@ -383,7 +383,7 @@ public class PigRelOpTest extends PigRelTestBase {
         + "  LATERAL UNNEST (SELECT $cor1.$f2 AS $f0\n"
         + "    FROM (VALUES  (0)) AS t (ZERO)) AS t3 (EMPNO, ENAME, JOB,"
         + " MGR, HIREDATE, SAL, COMM, DEPTNO) AS t30\n"
-        + "ORDER BY dept, job";
+        + "ORDER BY $cor1.DEPTNO, $cor1.JOB";
     pig(script).assertRel(hasTree(plan))
         .assertSql(is(sql));
 
@@ -1588,20 +1588,22 @@ public class PigRelOpTest extends PigRelTestBase {
 
     final String sql =
         "SELECT CASE WHEN t4.DEPTNO IS NOT NULL THEN t4.DEPTNO ELSE t7.DEPTNO END"
-       +" AS DEPTNO, t4.A, t4.B, t7.C\n"
-       + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
-       + "AS DEPTNO, t0.A, t3.B\n"
-       + "    FROM (SELECT DEPTNO + 10 AS $f0, "
-       + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
-       + "        FROM scott.DEPT\n"
-       + "        GROUP BY DEPTNO + 10) AS t0\n"
-       + "      FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, "
-       + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS B\n"
-       + "        FROM scott.DEPT\n"
-       + "        WHERE DEPTNO <= 30\n"
-       + "        GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 "
-       + "ON t0.$f0 = t3.DEPTNO) AS t4\n  FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS C\n"
-       + "    FROM scott.DEPT\n    WHERE DEPTNO >= 20\n    GROUP BY CAST(DEPTNO AS INTEGER)) AS t7 ON t4.DEPTNO = t7.DEPTNO\nORDER BY DEPTNO";
+            + " AS DEPTNO, t4.A, t4.B, t7.C\n"
+            + "FROM (SELECT CASE WHEN t0.$f0 IS NOT NULL THEN t0.$f0 ELSE t3.DEPTNO END "
+            + "AS DEPTNO, t0.A, t3.B\n"
+            + "    FROM (SELECT DEPTNO + 10 AS $f0, "
+            + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS A\n"
+            + "        FROM scott.DEPT\n"
+            + "        GROUP BY DEPTNO + 10) AS t0\n"
+            + "      FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS DEPTNO, "
+            + "COLLECT(ROW(DEPTNO, DNAME, LOC)) AS B\n"
+            + "        FROM scott.DEPT\n"
+            + "        WHERE DEPTNO <= 30\n"
+            + "        GROUP BY CAST(DEPTNO AS INTEGER)) AS t3 "
+            + "ON t0.$f0 = t3.DEPTNO) AS t4\n  FULL JOIN (SELECT CAST(DEPTNO AS INTEGER) AS "
+            + "DEPTNO, COLLECT(ROW(DEPTNO, DNAME, LOC)) AS C\n"
+            + "    FROM scott.DEPT\n    WHERE DEPTNO >= 20\n    GROUP BY CAST(DEPTNO AS INTEGER))"
+            + " AS t7 ON t4.DEPTNO = t7.DEPTNO\nORDER BY DEPTNO";
 
     pig(script).assertRel(hasTree(plan))
         .assertResult(is(result))
