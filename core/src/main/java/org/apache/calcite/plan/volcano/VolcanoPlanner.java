@@ -1068,27 +1068,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return converted;
   }
 
-  void checkForSatisfiedConverters(
-      RelSet set,
-      RelNode rel) {
-    int i = 0;
-    while (i < set.abstractConverters.size()) {
-      AbstractConverter converter = set.abstractConverters.get(i);
-      RelNode converted =
-          changeTraitsUsingConverters(
-              rel,
-              converter.getTraitSet());
-      if (converted == null) {
-        i++; // couldn't convert this; move on to the next
-      } else {
-        if (!isRegistered(converted)) {
-          registerImpl(converted, set);
-        }
-        set.abstractConverters.remove(converter); // success
-      }
-    }
-  }
-
   public void setImportance(RelNode rel, double importance) {
     assert rel != null;
     if (importance == 0d) {
@@ -1761,14 +1740,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (rel == this.root) {
       ruleQueue.subsetImportances.remove(subset);
     }
-
-    // Remember abstract converters until they're satisfied
-    if (rel instanceof AbstractConverter) {
-      set.abstractConverters.add((AbstractConverter) rel);
-    }
-
-    // If this set has any unsatisfied converters, try to satisfy them.
-    checkForSatisfiedConverters(set, rel);
 
     // Make sure this rel's subset importance is updated
     ruleQueue.recompute(subset, true);

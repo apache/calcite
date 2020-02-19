@@ -380,7 +380,6 @@ public class RelSubset extends AbstractRelNode {
             }
           }
         }
-        planner.checkForSatisfiedConverters(set, rel);
       }
     } finally {
       activeSet.remove(this);

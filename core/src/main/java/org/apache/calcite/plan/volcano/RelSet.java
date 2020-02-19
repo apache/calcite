@@ -63,12 +63,6 @@ class RelSet {
   final List<RelSubset> subsets = new ArrayList<>();
 
   /**
-   * List of {@link AbstractConverter} objects which have not yet been
-   * satisfied.
-   */
-  final List<AbstractConverter> abstractConverters = new ArrayList<>();
-
-  /**
    * Set to the superseding set when this is found to be equivalent to another
    * set.
    */
