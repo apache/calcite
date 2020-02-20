@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.metadata.NullSentinel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
@@ -29,6 +30,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntPredicate;
@@ -46,6 +48,16 @@ import java.util.function.IntPredicate;
  */
 public class RexInterpreter implements RexVisitor<Comparable> {
   private static final NullSentinel N = NullSentinel.INSTANCE;
+
+  public static final EnumSet<SqlKind> SUPPORTED_SQL_KIND =
+      EnumSet.of(SqlKind.IS_NOT_DISTINCT_FROM, SqlKind.EQUALS, SqlKind.IS_DISTINCT_FROM,
+          SqlKind.NOT_EQUALS, SqlKind.GREATER_THAN, SqlKind.GREATER_THAN_OR_EQUAL,
+          SqlKind.LESS_THAN, SqlKind.LESS_THAN_OR_EQUAL, SqlKind.AND, SqlKind.OR,
+          SqlKind.NOT, SqlKind.CASE, SqlKind.IS_TRUE, SqlKind.IS_NOT_TRUE,
+          SqlKind.IS_FALSE, SqlKind.IS_NOT_FALSE, SqlKind.PLUS_PREFIX,
+          SqlKind.MINUS_PREFIX, SqlKind.PLUS, SqlKind.MINUS, SqlKind.TIMES,
+          SqlKind.DIVIDE, SqlKind.COALESCE, SqlKind.CEIL,
+          SqlKind.FLOOR, SqlKind.EXTRACT);
 
   private final Map<RexNode, Comparable> environment;
 

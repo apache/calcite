@@ -323,7 +323,7 @@ public class RexSimplify {
     // Simplify "x <op> x"
     final RexNode o0 = operands.get(0);
     final RexNode o1 = operands.get(1);
-    if (o0.equals(o1)) {
+    if (o0.equals(o1) && RexUtil.isDeterministic(o0)) {
       RexNode newExpr;
       switch (e.getKind()) {
       case EQUALS:
