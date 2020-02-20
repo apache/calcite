@@ -257,7 +257,7 @@ public class SqlLiteral extends SqlNode {
   }
 
   public <T> T getValueAs(Class<T> clazz) {
-    if (clazz.isInstance(value)) {
+    if (value == null || clazz.isInstance(value)) {
       return clazz.cast(value);
     }
     switch (typeName) {
