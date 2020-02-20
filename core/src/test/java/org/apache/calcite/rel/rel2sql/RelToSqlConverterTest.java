@@ -24,6 +24,8 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
@@ -847,6 +849,53 @@ public class RelToSqlConverterTest {
         + "HAVING COUNT(*) > 1) AS \"t2\"\n"
         + "WHERE \"t2\".\"product_id\" > 100";
     sql(query).ok(expected);
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3811">[CALCITE-3811]
+   * JDBC adapter generates SQL with invalid field names if Filter's row type
+   * is different from its input</a>. */
+  @Test public void testHavingAlias() {
+    final RelBuilder builder = relBuilder();
+    builder.scan("EMP")
+        .project(builder.alias(builder.field("DEPTNO"), "D"))
+        .aggregate(builder.groupKey(builder.field("D")),
+            builder.countStar("emps.count"))
+        .filter(
+            builder.call(SqlStdOperatorTable.LESS_THAN,
+                builder.field("emps.count"), builder.literal(2)));
+
+    final LogicalFilter filter = (LogicalFilter) builder.build();
+    assertThat(filter.getRowType().getFieldNames().toString(),
+        is("[D, emps.count]"));
+
+    // Create a LogicalAggregate similar to the input of filter, but with different
+    // field names.
+    final LogicalAggregate newAggregate =
+        (LogicalAggregate) builder.scan("EMP")
+            .project(builder.alias(builder.field("DEPTNO"), "D2"))
+            .aggregate(builder.groupKey(builder.field("D2")),
+                builder.countStar("emps.count"))
+            .build();
+    assertThat(newAggregate.getRowType().getFieldNames().toString(),
+        is("[D2, emps.count]"));
+
+    // Change filter's input. Its row type does not change.
+    filter.replaceInput(0, newAggregate);
+    assertThat(filter.getRowType().getFieldNames().toString(),
+        is("[D, emps.count]"));
+
+    final RelNode root =
+        builder.push(filter)
+            .project(builder.alias(builder.field("D"), "emps.deptno"))
+            .build();
+    final String sql = toSql(root, DatabaseProduct.MYSQL.getDialect());
+    final String expectedSql = "SELECT `D2` AS `emps.deptno`\n"
+        + "FROM (SELECT `DEPTNO` AS `D2`, COUNT(*) AS `emps.count`\n"
+        + "FROM `scott`.`EMP`\n"
+        + "GROUP BY `DEPTNO`\n"
+        + "HAVING COUNT(*) < 2) AS `t1`";
+    assertThat(sql, isLinux(expectedSql));
   }
 
   @Test public void testHaving4() {

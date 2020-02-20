@@ -56,8 +56,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    * A SqlNodeList that has a single element that is a star identifier.
    */
   public static final SqlNodeList SINGLETON_STAR =
-      new SqlNodeList(ImmutableList.of(SqlIdentifier.star(SqlParserPos.ZERO)),
-          SqlParserPos.ZERO);
+      new SqlNodeList(ImmutableList.of(SqlIdentifier.STAR), SqlParserPos.ZERO);
 
   //~ Instance fields --------------------------------------------------------
 

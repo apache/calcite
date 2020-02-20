@@ -420,17 +420,43 @@ public abstract class SqlImplementor {
    * {@code node} is "(query) as tableAlias (fieldAlias, ...)". */
   private RelDataType adjustedRowType(RelNode rel, SqlNode node) {
     final RelDataType rowType = rel.getRowType();
-    if (node.getKind() == SqlKind.AS) {
-      final List<SqlNode> operandList = ((SqlCall) node).getOperandList();
-      if (operandList.size() > 2) {
-        final RelDataTypeFactory.Builder builder = rel.getCluster().getTypeFactory().builder();
-        Pair.forEach(Util.skip(operandList, 2),
-            rowType.getFieldList(),
-            (operand, field) -> builder.add(operand.toString(), field.getType()));
-        return builder.build();
+    final RelDataTypeFactory.Builder builder;
+    switch (node.getKind()) {
+    case UNION:
+    case INTERSECT:
+    case EXCEPT:
+      return adjustedRowType(rel, ((SqlCall) node).getOperandList().get(0));
+
+    case SELECT:
+      final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
+      if (selectList == null) {
+        return rowType;
       }
+      builder = rel.getCluster().getTypeFactory().builder();
+      Pair.forEach(selectList,
+          rowType.getFieldList(),
+          (selectItem, field) ->
+              builder.add(
+                  Util.first(SqlValidatorUtil.getAlias(selectItem, -1),
+                      field.getName()),
+                  field.getType()));
+      return builder.build();
+
+    case AS:
+      final List<SqlNode> operandList = ((SqlCall) node).getOperandList();
+      if (operandList.size() <= 2) {
+        return rowType;
+      }
+      builder = rel.getCluster().getTypeFactory().builder();
+      Pair.forEach(Util.skip(operandList, 2),
+          rowType.getFieldList(),
+          (operand, field) ->
+              builder.add(operand.toString(), field.getType()));
+      return builder.build();
+
+    default:
+      return rowType;
     }
-    return rowType;
   }
 
   /** Creates a result based on a join. (Each join could contain one or more
@@ -1065,7 +1091,7 @@ public abstract class SqlImplementor {
 
       if ((op instanceof SqlCountAggFunction) && operandList.isEmpty()) {
         // If there is no parameter in "count" function, add a star identifier to it
-        operandList.add(SqlIdentifier.star(POS));
+        operandList.add(SqlIdentifier.STAR);
       }
 
       final SqlLiteral qualifier =
