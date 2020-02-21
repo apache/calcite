@@ -1077,19 +1077,23 @@ SqlNodeList ParenthesizedKeyValueOptionCommaList() :
 }
 
 /**
-* Parses an option with format key=val whose key is a simple identifier
+* Parses an option with format key=val whose key is a simple identifier or string literal
 * and value is a string literal.
 */
 void KeyValueOption(List<SqlNode> list) :
 {
-    final SqlIdentifier id;
+    final SqlNode key;
     final SqlNode value;
 }
 {
-    id = SimpleIdentifier()
+    (
+        key = SimpleIdentifier()
+    |
+        key = StringLiteral()
+    )
     <EQ>
     value = StringLiteral() {
-        list.add(id);
+        list.add(key);
         list.add(value);
     }
 }
@@ -1145,48 +1149,63 @@ void CommaSepatatedSqlHints(List<SqlNode> hints) :
     SqlIdentifier hintName;
     SqlNodeList hintOptions;
     SqlNode optionVal;
+    SqlHint.HintOptionFormat optionFormat;
 }
 {
     hintName = SimpleIdentifier()
     (   LOOKAHEAD(5)
-        hintOptions = ParenthesizedKeyValueOptionCommaList()
+        hintOptions = ParenthesizedKeyValueOptionCommaList() {
+            optionFormat = SqlHint.HintOptionFormat.KV_LIST;
+        }
     |
         LOOKAHEAD(3)
-        hintOptions = ParenthesizedSimpleIdentifierList()
+        hintOptions = ParenthesizedSimpleIdentifierList() {
+            optionFormat = SqlHint.HintOptionFormat.ID_LIST;
+        }
     |
         LOOKAHEAD(3)
-        hintOptions = ParenthesizedLiteralOptionCommaList()
+        hintOptions = ParenthesizedLiteralOptionCommaList() {
+            optionFormat = SqlHint.HintOptionFormat.LITERAL_LIST;
+        }
     |
         LOOKAHEAD(2)
         [<LPAREN> <RPAREN>]
         {
             hintOptions = SqlNodeList.EMPTY;
+            optionFormat = SqlHint.HintOptionFormat.EMPTY;
         }
     )
     {
-        hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+        hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions, optionFormat));
     }
     (
         <COMMA>
         hintName = SimpleIdentifier()
         (
             LOOKAHEAD(5)
-            hintOptions = ParenthesizedKeyValueOptionCommaList()
+            hintOptions = ParenthesizedKeyValueOptionCommaList() {
+                optionFormat = SqlHint.HintOptionFormat.KV_LIST;
+            }
         |
             LOOKAHEAD(3)
-            hintOptions = ParenthesizedSimpleIdentifierList()
+            hintOptions = ParenthesizedSimpleIdentifierList() {
+                optionFormat = SqlHint.HintOptionFormat.ID_LIST;
+            }
         |
             LOOKAHEAD(3)
-            hintOptions = ParenthesizedLiteralOptionCommaList()
+            hintOptions = ParenthesizedLiteralOptionCommaList() {
+                optionFormat = SqlHint.HintOptionFormat.LITERAL_LIST;
+            }
         |
             LOOKAHEAD(2)
             [<LPAREN> <RPAREN>]
             {
                 hintOptions = SqlNodeList.EMPTY;
+                optionFormat = SqlHint.HintOptionFormat.EMPTY;
             }
         )
         {
-            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions));
+            hints.add(new SqlHint(Span.of(hintOptions).end(this), hintName, hintOptions, optionFormat));
         }
     )*
 }
