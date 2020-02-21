@@ -1429,7 +1429,8 @@ public abstract class SqlImplementor {
             // "ORDER BY empno" would give incorrect result;
             // "ORDER BY x" is acceptable but is not preferred.
             final SqlNode node = field(ordinal);
-            if (node instanceof SqlIdentifier
+            if (dialect.getConformance().isSortByOrdinal()
+                && node instanceof SqlIdentifier
                 && ((SqlIdentifier) node).isSimple()) {
               final String name = ((SqlIdentifier) node).getSimple();
               for (Ord<SqlNode> selectItem : Ord.zip(selectList)) {
@@ -1442,9 +1443,8 @@ public abstract class SqlImplementor {
                   }
                 }
               }
-            } else if (node instanceof SqlCall) {
-              SqlNode alias = field(ordinal, true);
-              return alias;
+            } else if (dialect.getConformance().isSortByAlias()) {
+              return field(ordinal, true);
             }
             return node;
           }

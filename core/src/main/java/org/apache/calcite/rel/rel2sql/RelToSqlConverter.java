@@ -430,7 +430,7 @@ public class RelToSqlConverter extends SqlImplementor
   private SqlNode getGroupBySqlNode(Builder builder, int key) {
     boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
     SqlNode field;
-    if (isGroupByAlias) {
+    if (isGroupByAlias && builder.select.getSelectList() != null) {
       SqlNode sqlNode = builder.select.getSelectList().get(key);
       if (sqlNode.getKind() == SqlKind.LITERAL
           || sqlNode.getKind() == SqlKind.DYNAMIC_PARAM
