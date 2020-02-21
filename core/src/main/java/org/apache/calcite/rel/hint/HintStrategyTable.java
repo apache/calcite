@@ -37,20 +37,16 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
- * A {@code HintStrategy} collection indicates which kind of
- * {@link org.apache.calcite.rel.RelNode} a hint can apply to.
+ * A collections of {@link HintStrategy}s.
  *
- * <p>Every supported hint should register a {@code HintStrategy}
- * into this collection. For example, {@link HintStrategies#JOIN} implies that this hint
+ * <p>Every supported hint should register a {@link HintPredicate}
+ * into this collection. For example, {@link HintPredicates#JOIN} implies that this hint
  * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
  *
- * <p>A {@code HintStrategy} can be used independently or cascaded with other strategies
- * with method {@link HintStrategies#and}.
- *
  * <p>The matching for hint name is case in-sensitive.
  *
- * @see HintStrategy
+ * @see HintPredicate
  */
 public class HintStrategyTable {
   //~ Static fields/initializers ---------------------------------------------
@@ -62,14 +58,14 @@ public class HintStrategyTable {
 
   //~ Instance fields --------------------------------------------------------
 
-  /** Mapping from hint name to {@link Entry}. */
-  private final Map<Key, Entry> entries;
+  /** Mapping from hint name to {@link HintStrategy}. */
+  private final Map<Key, HintStrategy> strategies;
 
   /** Handler for the hint error. */
   private final Litmus errorHandler;
 
-  private HintStrategyTable(Map<Key, Entry> entries, Litmus litmus) {
-    this.entries = entries;
+  private HintStrategyTable(Map<Key, HintStrategy> strategies, Litmus litmus) {
+    this.strategies = strategies;
     this.errorHandler = litmus;
   }
 
@@ -91,8 +87,8 @@ public class HintStrategyTable {
 
   private boolean canApply(RelHint hint, RelNode rel) {
     final Key key = Key.of(hint.hintName);
-    assert this.entries.containsKey(key);
-    return this.entries.get(key).hintStrategy.canApply(hint, rel);
+    assert this.strategies.containsKey(key);
+    return this.strategies.get(key).predicate.apply(hint, rel);
   }
 
   /**
@@ -103,16 +99,16 @@ public class HintStrategyTable {
   public boolean validateHint(RelHint hint) {
     final Key key = Key.of(hint.hintName);
     boolean hintExists = this.errorHandler.check(
-        this.entries.containsKey(key),
+        this.strategies.containsKey(key),
         "Hint: {} should be registered in the {}",
         hint.hintName,
         this.getClass().getSimpleName());
     if (!hintExists) {
       return false;
     }
-    final Entry entry = entries.get(key);
-    if (entry.hintOptionChecker != null) {
-      return entry.hintOptionChecker.checkOptions(hint, this.errorHandler);
+    final HintStrategy strategy = strategies.get(key);
+    if (strategy.hintOptionChecker != null) {
+      return strategy.hintOptionChecker.checkOptions(hint, this.errorHandler);
     }
     return true;
   }
@@ -127,10 +123,10 @@ public class HintStrategyTable {
 
     for (RelHint hint : hints) {
       final Key key = Key.of(hint.hintName);
-      assert this.entries.containsKey(key);
-      final Entry entry = entries.get(key);
-      if (entry.excludedRules.contains(rule)) {
-        return isDesiredConversionPossible(entry.converterRules, hintable);
+      assert this.strategies.containsKey(key);
+      final HintStrategy strategy = strategies.get(key);
+      if (strategy.excludedRules.contains(rule)) {
+        return isDesiredConversionPossible(strategy.converterRules, hintable);
       }
     }
 
@@ -149,21 +145,20 @@ public class HintStrategyTable {
   }
 
   /**
-   * Returns a strategies builder.
+   * Returns a {@code HintStrategyTable} builder.
    */
   public static Builder builder() {
     return new Builder();
   }
 
   /**
-   * Returns an entry builder of this {@link HintStrategyTable}
-   * with given hint strategy.
+   * Returns a {@link HintStrategy} builder with given hint predicate.
    *
-   * @param hintStrategy hint strategy
-   * @return an {@link EntryBuilder} instance
+   * @param hintPredicate hint predicate
+   * @return {@link StrategyBuilder} instance
    */
-  public static EntryBuilder entryBuilder(HintStrategy hintStrategy) {
-    return new EntryBuilder(hintStrategy);
+  public static StrategyBuilder strategyBuilder(HintPredicate hintPredicate) {
+    return new StrategyBuilder(hintPredicate);
   }
 
   //~ Inner Class ------------------------------------------------------------
@@ -197,22 +192,22 @@ public class HintStrategyTable {
    * Builder for {@code HintStrategyTable}.
    */
   public static class Builder {
-    private Map<Key, Entry> entries;
+    private Map<Key, HintStrategy> strategies;
     private Litmus errorHandler;
 
     private Builder() {
-      this.entries = new HashMap<>();
+      this.strategies = new HashMap<>();
       this.errorHandler = HintErrorLogger.INSTANCE;
     }
 
-    public Builder hintStrategy(String hintName, HintStrategy strategy) {
-      this.entries.put(Key.of(hintName),
-          entryBuilder(Objects.requireNonNull(strategy)).build());
+    public Builder hintStrategy(String hintName, HintPredicate strategy) {
+      this.strategies.put(Key.of(hintName),
+          strategyBuilder(Objects.requireNonNull(strategy)).build());
       return this;
     }
 
-    public Builder hintStrategy(String hintName, Entry entry) {
-      this.entries.put(Key.of(hintName), Objects.requireNonNull(entry));
+    public Builder hintStrategy(String hintName, HintStrategy entry) {
+      this.strategies.put(Key.of(hintName), Objects.requireNonNull(entry));
       return this;
     }
 
@@ -230,46 +225,62 @@ public class HintStrategyTable {
 
     public HintStrategyTable build() {
       return new HintStrategyTable(
-          this.entries,
+          this.strategies,
           this.errorHandler);
     }
   }
 
-  /** Represents a hint strategy entry of this {@link HintStrategyTable}. */
-  public static class Entry {
-    public final HintStrategy hintStrategy;
+  /**
+   * Represents a hint strategy entry of this {@link HintStrategyTable}.
+   *
+   * <p>A {@code HintStrategy} includes:
+   *
+   * <ul>
+   *   <li>{@link HintPredicate}: tests whether a hint should apply to
+   *   a relational expression;</li>
+   *   <li>{@link HintOptionChecker}: validates the hint options;</li>
+   *   <li>{@code excludedRules}: rules to exclude when a relational expression
+   *   is going to apply a planner rule;</li>
+   *   <li>{@code converterRules}: fallback rules to apply when there are
+   *   no proper implementations after excluding the {@code excludedRules}.</li>
+   * </ul>
+   *
+   * <p>The {@link HintPredicate} is required, all the other items are optional.
+   */
+  public static class HintStrategy {
+    public final HintPredicate predicate;
     public final HintOptionChecker hintOptionChecker;
     public final ImmutableSet<RelOptRule> excludedRules;
     public final ImmutableSet<ConverterRule> converterRules;
 
-    public Entry(
-        HintStrategy hintStrategy,
+    public HintStrategy(
+        HintPredicate predicate,
         HintOptionChecker hintOptionChecker,
         ImmutableSet<RelOptRule> excludedRules,
         ImmutableSet<ConverterRule> converterRules) {
-      this.hintStrategy = hintStrategy;
+      this.predicate = predicate;
       this.hintOptionChecker = hintOptionChecker;
       this.excludedRules = excludedRules;
       this.converterRules = converterRules;
     }
   }
 
-  /** Builder for {@link Entry}. */
-  public static class EntryBuilder {
-    private final HintStrategy hintStrategy;
+  /** Builder for {@link HintStrategy}. */
+  public static class StrategyBuilder {
+    private final HintPredicate predicate;
     @Nullable
     private HintOptionChecker optionChecker;
     private ImmutableSet<RelOptRule> excludedRules;
     private ImmutableSet<ConverterRule> converterRules;
 
-    private EntryBuilder(HintStrategy hintStrategy) {
-      this.hintStrategy = Objects.requireNonNull(hintStrategy);
+    private StrategyBuilder(HintPredicate predicate) {
+      this.predicate = Objects.requireNonNull(predicate);
       this.excludedRules = ImmutableSet.of();
       this.converterRules = ImmutableSet.of();
     }
 
     /** Registers a hint option checker to validate the hint options. */
-    public EntryBuilder optionChecker(HintOptionChecker optionChecker) {
+    public StrategyBuilder optionChecker(HintOptionChecker optionChecker) {
       this.optionChecker = Objects.requireNonNull(optionChecker);
       return this;
     }
@@ -292,7 +303,7 @@ public class HintStrategyTable {
      *
      * @param rules excluded rules
      */
-    public EntryBuilder excludedRules(RelOptRule... rules) {
+    public StrategyBuilder excludedRules(RelOptRule... rules) {
       this.excludedRules = ImmutableSet.copyOf(rules);
       return this;
     }
@@ -317,13 +328,13 @@ public class HintStrategyTable {
      *
      * @param rules desired converter rules
      */
-    public EntryBuilder converterRules(ConverterRule... rules) {
+    public StrategyBuilder converterRules(ConverterRule... rules) {
       this.converterRules = ImmutableSet.copyOf(rules);
       return this;
     }
 
-    public Entry build() {
-      return new Entry(hintStrategy, optionChecker, excludedRules, converterRules);
+    public HintStrategy build() {
+      return new HintStrategy(predicate, optionChecker, excludedRules, converterRules);
     }
   }
 

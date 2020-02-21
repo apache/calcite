@@ -21,60 +21,60 @@ import org.apache.calcite.rel.RelNode;
 import com.google.common.collect.ImmutableList;
 
 /**
- * A {@link HintStrategy} to combine multiple hint strategies into one.
+ * A {@link HintPredicate} to combine multiple hint predicates into one.
  *
  * <p>The composition can be {@code AND} or {@code OR}.
  */
-public class CompositeHintStrategy implements HintStrategy {
+public class CompositeHintPredicate implements HintPredicate {
   //~ Enums ------------------------------------------------------------------
 
-  /** How hint strategies are composed. */
+  /** How hint predicates are composed. */
   public enum Composition {
     AND, OR
   }
 
   //~ Instance fields --------------------------------------------------------
 
-  private ImmutableList<HintStrategy> strategies;
+  private ImmutableList<HintPredicate> predicates;
   private Composition composition;
 
   /**
-   * Creates a {@link CompositeHintStrategy} with a {@link Composition}
-   * and an array of hint strategies.
+   * Creates a {@link CompositeHintPredicate} with a {@link Composition}
+   * and an array of hint predicates.
    *
    * <p>Make this constructor package-protected intentionally.
-   * Use utility methods in {@link HintStrategies}
-   * to create a {@link CompositeHintStrategy}.</p>
+   * Use utility methods in {@link HintPredicates}
+   * to create a {@link CompositeHintPredicate}.</p>
    */
-  CompositeHintStrategy(Composition composition, HintStrategy... strategies) {
-    assert strategies != null;
-    assert strategies.length > 1;
-    for (HintStrategy strategy : strategies) {
-      assert strategy != null;
+  CompositeHintPredicate(Composition composition, HintPredicate... predicates) {
+    assert predicates != null;
+    assert predicates.length > 1;
+    for (HintPredicate predicate : predicates) {
+      assert predicate != null;
     }
-    this.strategies = ImmutableList.copyOf(strategies);
+    this.predicates = ImmutableList.copyOf(predicates);
     this.composition = composition;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean canApply(RelHint hint, RelNode rel) {
-    return canApply(composition, hint, rel);
+  @Override public boolean apply(RelHint hint, RelNode rel) {
+    return apply(composition, hint, rel);
   }
 
-  private boolean canApply(Composition composition, RelHint hint, RelNode rel) {
+  private boolean apply(Composition composition, RelHint hint, RelNode rel) {
     switch (composition) {
     case AND:
-      for (HintStrategy hintStrategy: strategies) {
-        if (!hintStrategy.canApply(hint, rel)) {
+      for (HintPredicate predicate: predicates) {
+        if (!predicate.apply(hint, rel)) {
           return false;
         }
       }
       return true;
     case OR:
     default:
-      for (HintStrategy hintStrategy: strategies) {
-        if (hintStrategy.canApply(hint, rel)) {
+      for (HintPredicate predicate: predicates) {
+        if (predicate.apply(hint, rel)) {
           return true;
         }
       }

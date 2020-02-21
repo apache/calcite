@@ -34,14 +34,15 @@
  * <h2>Customize Hint Matching Rules</h2>
  * Calcite implements a framework to define and propagate the hints. In order to make the hints
  * propagate efficiently, every hint referenced in the sql statement needs to
- * register the propagation rules.
+ * register the matching rules for hints propagation.
  *
- * <p>Two kinds of matching rules are supported for rule registration:
+ * <p>A matching rule is defined though {@link org.apache.calcite.rel.hint.HintPredicate}.
+ * Two kinds of matching rules are supported for hint registration:
  *
  * <ol>
- *   <li>{@link org.apache.calcite.rel.hint.NodeTypeHintStrategy} matches a
+ *   <li>{@link org.apache.calcite.rel.hint.NodeTypeHintPredicate} matches a
  *   relational expression by the relational node type.</li>
- *   <li>{@link org.apache.calcite.rel.hint.ExplicitHintStrategy} matches a
+ *   <li>{@link org.apache.calcite.rel.hint.ExplicitHintPredicate} matches a
  *   relational expression with totally customized matching rule.</li>
  * </ol>
  *
@@ -50,14 +51,18 @@
  * <pre>
  *       // Initialize a HintStrategyTable.
  *       HintStrategyTable strategies = HintStrategyTable.builder()
- *         .addHintStrategy("time_zone", HintStrategies.SET_VAR)
- *         .addHintStrategy("index", HintStrategies.TABLE_SCAN)
- *         .addHintStrategy("resource", HintStrategies.PROJECT)
+ *         .addHintStrategy("time_zone", HintPredicates.SET_VAR)
+ *         .addHintStrategy("index", HintPredicates.TABLE_SCAN)
+ *         .addHintStrategy("resource", HintPredicates.PROJECT)
  *         .addHintStrategy("use_hash_join",
- *             HintStrategies.and(HintStrategies.JOIN,
- *                 HintStrategies.explicit((hint, rel) -&gt; {
+ *             HintPredicates.and(HintPredicates.JOIN,
+ *                 HintPredicates.explicit((hint, rel) -&gt; {
  *                   ...
  *                 })))
+ *         .hintStrategy("use_merge_join",
+ *             HintStrategyTable.strategyBuilder(
+ *                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
+ *                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
  *         .build();
  *       // Config the strategies in the config.
  *       SqlToRelConverter.Config config = SqlToRelConverter.configBuilder()

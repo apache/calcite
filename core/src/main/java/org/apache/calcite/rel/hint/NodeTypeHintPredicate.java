@@ -24,10 +24,10 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 
 /**
- * A hint strategy that specifies which kind of relational
+ * A hint predicate that specifies which kind of relational
  * expression the hint can be applied to.
  */
-public class NodeTypeHintStrategy implements HintStrategy {
+public class NodeTypeHintPredicate implements HintPredicate {
 
   /**
    * Enumeration of the relational expression types that the hints
@@ -75,11 +75,11 @@ public class NodeTypeHintStrategy implements HintStrategy {
 
   private NodeType nodeType;
 
-  public NodeTypeHintStrategy(NodeType nodeType) {
+  public NodeTypeHintPredicate(NodeType nodeType) {
     this.nodeType = nodeType;
   }
 
-  @Override public boolean canApply(RelHint hint, RelNode rel) {
+  @Override public boolean apply(RelHint hint, RelNode rel) {
     switch (this.nodeType) {
     // Hints of SET_VAR type never propagate.
     case SET_VAR:

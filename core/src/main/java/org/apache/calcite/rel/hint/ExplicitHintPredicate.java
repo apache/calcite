@@ -19,31 +19,31 @@ package org.apache.calcite.rel.hint;
 import org.apache.calcite.rel.RelNode;
 
 /**
- * A hint strategy whose rules are totally customized.
+ * A hint predicate with custom test rules.
  *
  * @see ExplicitHintMatcher
  */
-public class ExplicitHintStrategy implements HintStrategy {
+public class ExplicitHintPredicate implements HintPredicate {
   //~ Instance fields --------------------------------------------------------
 
   private final ExplicitHintMatcher matcher;
 
   /**
-   * Creates an {@code ExplicitHintStrategy} with specified {@code matcher}.
+   * Creates an {@link ExplicitHintPredicate} with specified {@code matcher}.
    *
    * <p>Make this constructor package-protected intentionally, use
-   * {@link HintStrategies#explicit(ExplicitHintMatcher)}.
+   * {@link HintPredicates#explicit(ExplicitHintMatcher)}.
    *
    * @param matcher ExplicitHintMatcher instance to test
    *                if a hint can be applied to a rel
    */
-  ExplicitHintStrategy(ExplicitHintMatcher matcher) {
+  ExplicitHintPredicate(ExplicitHintMatcher matcher) {
     this.matcher = matcher;
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean canApply(RelHint hint, RelNode rel) {
+  @Override public boolean apply(RelHint hint, RelNode rel) {
     return this.matcher.matches(hint, rel);
   }
 }
