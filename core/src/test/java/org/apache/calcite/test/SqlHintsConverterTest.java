@@ -40,8 +40,8 @@ import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.hint.HintStrategies;
-import org.apache.calcite.rel.hint.HintStrategy;
+import org.apache.calcite.rel.hint.HintPredicate;
+import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -744,16 +744,16 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
      */
     static HintStrategyTable createHintStrategies(HintStrategyTable.Builder builder) {
       return builder
-        .hintStrategy("no_hash_join", HintStrategies.JOIN)
-        .hintStrategy("time_zone", HintStrategies.SET_VAR)
-        .hintStrategy("REPARTITION", HintStrategies.SET_VAR)
-        .hintStrategy("index", HintStrategies.TABLE_SCAN)
-        .hintStrategy("properties", HintStrategies.TABLE_SCAN)
+        .hintStrategy("no_hash_join", HintPredicates.JOIN)
+        .hintStrategy("time_zone", HintPredicates.SET_VAR)
+        .hintStrategy("REPARTITION", HintPredicates.SET_VAR)
+        .hintStrategy("index", HintPredicates.TABLE_SCAN)
+        .hintStrategy("properties", HintPredicates.TABLE_SCAN)
         .hintStrategy(
-            "resource", HintStrategies.or(
-            HintStrategies.PROJECT, HintStrategies.AGGREGATE, HintStrategies.CALC))
+            "resource", HintPredicates.or(
+            HintPredicates.PROJECT, HintPredicates.AGGREGATE, HintPredicates.CALC))
         .hintStrategy("AGG_STRATEGY",
-            HintStrategyTable.entryBuilder(HintStrategies.AGGREGATE)
+            HintStrategyTable.strategyBuilder(HintPredicates.AGGREGATE)
                 .optionChecker(
                     (hint, errorHandler) -> errorHandler.check(
                     hint.listOptions.size() == 1
@@ -763,17 +763,17 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
                         + "allowed options: [ONE_PHASE, TWO_PHASE]",
                     hint.hintName)).build())
         .hintStrategy("use_hash_join",
-          HintStrategies.and(HintStrategies.JOIN, joinWithFixedTableName()))
+          HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
         .hintStrategy("use_merge_join",
-            HintStrategyTable.entryBuilder(
-                HintStrategies.and(HintStrategies.JOIN, joinWithFixedTableName()))
+            HintStrategyTable.strategyBuilder(
+                HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
     }
 
-    /** Returns a {@link HintStrategy} for join with specified table references. */
-    private static HintStrategy joinWithFixedTableName() {
-      return HintStrategies.explicit((hint, rel) -> {
+    /** Returns a {@link HintPredicate} for join with specified table references. */
+    private static HintPredicate joinWithFixedTableName() {
+      return HintPredicates.explicit((hint, rel) -> {
         if (!(rel instanceof LogicalJoin)) {
           return false;
         }

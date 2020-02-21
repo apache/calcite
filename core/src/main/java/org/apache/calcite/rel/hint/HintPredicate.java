@@ -19,20 +19,23 @@ package org.apache.calcite.rel.hint;
 import org.apache.calcite.rel.RelNode;
 
 /**
- * A {@code HintStrategy} indicates whether a {@link org.apache.calcite.rel.RelNode}
+ * A {@code HintPredicate} indicates whether a {@link org.apache.calcite.rel.RelNode}
  * can apply the specified hint.
  *
- * <p>Every supported hint should register a {@code HintStrategy}
- * into the {@link HintStrategyTable}. For example, {@link HintStrategies#JOIN} implies
+ * <p>Every supported hint should register a {@code HintPredicate}
+ * into the {@link HintStrategyTable}. For example, {@link HintPredicates#JOIN} implies
  * that this hint would be propagated and applied to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
  *
- * <p>In {@link HintStrategyTable} the strategy is used for
+ * <p>A {@code HintPredicate} can be used independently or cascaded with other strategies
+ * with method {@link HintPredicates#and}.
+ *
+ * <p>In {@link HintStrategyTable} the predicate is used for
  * hints registration.
  *
  * @see HintStrategyTable
  */
-public interface HintStrategy {
+public interface HintPredicate {
 
   /**
    * Decides if the given {@code hint} can be applied to
@@ -42,5 +45,5 @@ public interface HintStrategy {
    * @param rel  The relational expression
    * @return True if the {@code hint} can be applied to the {@code rel}
    */
-  boolean canApply(RelHint hint, RelNode rel);
+  boolean apply(RelHint hint, RelNode rel);
 }
