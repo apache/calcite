@@ -51,16 +51,6 @@ public abstract class HintPredicates {
       new NodeTypeHintPredicate(NodeTypeHintPredicate.NodeType.CALC);
 
   /**
-   * Creates a hint predicate from a specific matcher whose rules are totally customized.
-   *
-   * @param matcher The hint matcher
-   * @return A ExplicitHintPredicate instance
-   */
-  public static HintPredicate explicit(ExplicitHintMatcher matcher) {
-    return new ExplicitHintPredicate(matcher);
-  }
-
-  /**
    * Returns a composed hint predicate that represents a short-circuiting logical
    * AND of an array of hint predicates {@code hintPredicates}.  When evaluating the composed
    * predicate, if a predicate is {@code false}, then all the left
