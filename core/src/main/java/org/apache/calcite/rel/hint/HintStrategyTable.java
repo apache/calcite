@@ -22,8 +22,6 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.collect.ImmutableSet;
-
 import org.slf4j.Logger;
 
 import java.util.Collections;
@@ -34,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 
 /**
  * A collections of {@link HintStrategy}s.
@@ -44,7 +41,7 @@ import javax.annotation.Nullable;
  * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
  *
- * <p>The matching for hint name is case in-sensitive.
+ * <p>Match of hint name is case in-sensitive.
  *
  * @see HintPredicate
  */
@@ -151,16 +148,6 @@ public class HintStrategyTable {
     return new Builder();
   }
 
-  /**
-   * Returns a {@link HintStrategy} builder with given hint predicate.
-   *
-   * @param hintPredicate hint predicate
-   * @return {@link StrategyBuilder} instance
-   */
-  public static StrategyBuilder strategyBuilder(HintPredicate hintPredicate) {
-    return new StrategyBuilder(hintPredicate);
-  }
-
   //~ Inner Class ------------------------------------------------------------
 
   /**
@@ -202,7 +189,7 @@ public class HintStrategyTable {
 
     public Builder hintStrategy(String hintName, HintPredicate strategy) {
       this.strategies.put(Key.of(hintName),
-          strategyBuilder(Objects.requireNonNull(strategy)).build());
+          HintStrategy.builder(Objects.requireNonNull(strategy)).build());
       return this;
     }
 
@@ -227,114 +214,6 @@ public class HintStrategyTable {
       return new HintStrategyTable(
           this.strategies,
           this.errorHandler);
-    }
-  }
-
-  /**
-   * Represents a hint strategy entry of this {@link HintStrategyTable}.
-   *
-   * <p>A {@code HintStrategy} includes:
-   *
-   * <ul>
-   *   <li>{@link HintPredicate}: tests whether a hint should apply to
-   *   a relational expression;</li>
-   *   <li>{@link HintOptionChecker}: validates the hint options;</li>
-   *   <li>{@code excludedRules}: rules to exclude when a relational expression
-   *   is going to apply a planner rule;</li>
-   *   <li>{@code converterRules}: fallback rules to apply when there are
-   *   no proper implementations after excluding the {@code excludedRules}.</li>
-   * </ul>
-   *
-   * <p>The {@link HintPredicate} is required, all the other items are optional.
-   */
-  public static class HintStrategy {
-    public final HintPredicate predicate;
-    public final HintOptionChecker hintOptionChecker;
-    public final ImmutableSet<RelOptRule> excludedRules;
-    public final ImmutableSet<ConverterRule> converterRules;
-
-    public HintStrategy(
-        HintPredicate predicate,
-        HintOptionChecker hintOptionChecker,
-        ImmutableSet<RelOptRule> excludedRules,
-        ImmutableSet<ConverterRule> converterRules) {
-      this.predicate = predicate;
-      this.hintOptionChecker = hintOptionChecker;
-      this.excludedRules = excludedRules;
-      this.converterRules = converterRules;
-    }
-  }
-
-  /** Builder for {@link HintStrategy}. */
-  public static class StrategyBuilder {
-    private final HintPredicate predicate;
-    @Nullable
-    private HintOptionChecker optionChecker;
-    private ImmutableSet<RelOptRule> excludedRules;
-    private ImmutableSet<ConverterRule> converterRules;
-
-    private StrategyBuilder(HintPredicate predicate) {
-      this.predicate = Objects.requireNonNull(predicate);
-      this.excludedRules = ImmutableSet.of();
-      this.converterRules = ImmutableSet.of();
-    }
-
-    /** Registers a hint option checker to validate the hint options. */
-    public StrategyBuilder optionChecker(HintOptionChecker optionChecker) {
-      this.optionChecker = Objects.requireNonNull(optionChecker);
-      return this;
-    }
-
-    /**
-     * Registers an array of rules to exclude during the
-     * {@link org.apache.calcite.plan.RelOptPlanner} planning.
-     *
-     * <p>The desired converter rules work together with the excluded rules.
-     * We have no validation here but they expect to have the same
-     * function(semantic equivalent).
-     *
-     * <p>A rule fire cancels if:
-     *
-     * <ol>
-     *   <li>The registered {@link #excludedRules} contains the rule</li>
-     *   <li>The desired converter rules conversion is not possible for the rule
-     *   matched root node</li>
-     * </ol>
-     *
-     * @param rules excluded rules
-     */
-    public StrategyBuilder excludedRules(RelOptRule... rules) {
-      this.excludedRules = ImmutableSet.copyOf(rules);
-      return this;
-    }
-
-    /**
-     * Registers an array of desired converter rules during the
-     * {@link org.apache.calcite.plan.RelOptPlanner} planning.
-     *
-     * <p>The desired converter rules work together with the excluded rules.
-     * We have no validation here but they expect to have the same
-     * function(semantic equivalent).
-     *
-     * <p>A rule fire cancels if:
-     *
-     * <ol>
-     *   <li>The registered {@link #excludedRules} contains the rule</li>
-     *   <li>The desired converter rules conversion is not possible for the rule
-     *   matched root node</li>
-     * </ol>
-     *
-     * <p>If no converter rules are specified, we assume the conversion is possible.
-     *
-     * @param rules desired converter rules
-     */
-    public StrategyBuilder converterRules(ConverterRule... rules) {
-      this.converterRules = ImmutableSet.copyOf(rules);
-      return this;
-    }
-
-    public HintStrategy build() {
-      return new HintStrategy(predicate, optionChecker, excludedRules, converterRules);
     }
   }
 

@@ -42,6 +42,7 @@ import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.HintPredicate;
 import org.apache.calcite.rel.hint.HintPredicates;
+import org.apache.calcite.rel.hint.HintStrategy;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -753,7 +754,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
             "resource", HintPredicates.or(
             HintPredicates.PROJECT, HintPredicates.AGGREGATE, HintPredicates.CALC))
         .hintStrategy("AGG_STRATEGY",
-            HintStrategyTable.strategyBuilder(HintPredicates.AGGREGATE)
+            HintStrategy.builder(HintPredicates.AGGREGATE)
                 .optionChecker(
                     (hint, errorHandler) -> errorHandler.check(
                     hint.listOptions.size() == 1
@@ -765,7 +766,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .hintStrategy("use_hash_join",
           HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
         .hintStrategy("use_merge_join",
-            HintStrategyTable.strategyBuilder(
+            HintStrategy.builder(
                 HintPredicates.and(HintPredicates.JOIN, joinWithFixedTableName()))
                 .excludedRules(EnumerableRules.ENUMERABLE_JOIN_RULE).build())
         .build();
@@ -773,7 +774,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
     /** Returns a {@link HintPredicate} for join with specified table references. */
     private static HintPredicate joinWithFixedTableName() {
-      return HintPredicates.explicit((hint, rel) -> {
+      return (hint, rel) -> {
         if (!(rel instanceof LogicalJoin)) {
           return false;
         }
@@ -784,7 +785,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
             .map(scan -> Util.last(scan.getTable().getQualifiedName()))
             .collect(Collectors.toList());
         return equalsStringList(tableNames, inputTables);
-      });
+      };
     }
 
     /** Format the query with hint {@link #HINT}. */

@@ -31,20 +31,15 @@
  *     on emp.deptno=dept.deptno
  * </pre></blockquote>
  *
- * <h2>Customize Hint Matching Rules</h2>
+ * <h2>Customize Hint Match Rules</h2>
  * Calcite implements a framework to define and propagate the hints. In order to make the hints
  * propagate efficiently, every hint referenced in the sql statement needs to
- * register the matching rules for hints propagation.
+ * register the match rules for hints propagation.
  *
- * <p>A matching rule is defined though {@link org.apache.calcite.rel.hint.HintPredicate}.
- * Two kinds of matching rules are supported for hint registration:
- *
- * <ol>
- *   <li>{@link org.apache.calcite.rel.hint.NodeTypeHintPredicate} matches a
- *   relational expression by the relational node type.</li>
- *   <li>{@link org.apache.calcite.rel.hint.ExplicitHintPredicate} matches a
- *   relational expression with totally customized matching rule.</li>
- * </ol>
+ * <p>A match rule is defined though {@link org.apache.calcite.rel.hint.HintPredicate}.
+ * {@link org.apache.calcite.rel.hint.NodeTypeHintPredicate} matches a relational expression
+ * by its node type; you can also define a custom instance with more complicated rules,
+ * i.e. JOIN with specified relations from the hint options.
  *
  * <p>Here is the code snippet to illustrate how to config the strategies:
  *

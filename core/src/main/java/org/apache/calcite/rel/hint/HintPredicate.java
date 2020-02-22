@@ -27,6 +27,13 @@ import org.apache.calcite.rel.RelNode;
  * that this hint would be propagated and applied to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
  *
+ * <p>Usually use {@link NodeTypeHintPredicate} is enough for most of the {@link RelHint}s.
+ * Some of the hints can only be matched to the relational expression with special
+ * match conditions(not only the relational expression type).
+ * i.e. "hash_join(r, st)", this hint can only be applied to JOIN expression that
+ * has "r" and "st" as the input table names. To implement this, you can make a custom
+ * {@code HintPredicate} instance.
+ *
  * <p>A {@code HintPredicate} can be used independently or cascaded with other strategies
  * with method {@link HintPredicates#and}.
  *
