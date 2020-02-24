@@ -89,6 +89,6 @@ public class RexRangeRef extends RexNode {
   }
 
   @Override public String toString() {
-    return "offset(" + offset + ")";
+    return "type(" + type.getFullTypeString() + "):offset(" + offset + ")";
   }
 }
