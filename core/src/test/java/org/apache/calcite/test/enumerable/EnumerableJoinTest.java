@@ -21,11 +21,13 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.interpreter.Bindables;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.HierarchySchema;
 import org.apache.calcite.test.JdbcTest;
 
 import org.junit.jupiter.api.Test;
@@ -216,6 +218,84 @@ public class EnumerableJoinTest {
         .returnsUnordered(""
             + "empid=110; name=Theodore; dept_name=Sales; e_deptno=10; d_deptno=10\n"
             + "empid=150; name=Sebastian; dept_name=Sales; e_deptno=10; d_deptno=10");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3820">[CALCITE-3820]
+   * EnumerableDefaults#orderBy should be lazily computed + support enumerator
+   * re-initialization</a>. */
+  @Test public void testRepeatUnionWithMergeJoin() {
+    tester(false, new HierarchySchema())
+        .query("?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
+          planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        // Note: explicit sort is used so EnumerableMergeJoin can actually work
+        .withRel(builder -> builder
+            //   WITH RECURSIVE delta(empid, name) as (
+            //     SELECT empid, name FROM emps WHERE empid = 2
+            //     UNION ALL
+            //     SELECT e.empid, e.name FROM delta d
+            //                            JOIN hierarchies h ON d.empid = h.managerid
+            //                            JOIN emps e        ON h.subordinateid = e.empid
+            //   )
+            //   SELECT empid, name FROM delta
+            .scan("s", "emps")
+            .filter(
+                builder.equals(
+                    builder.field("empid"),
+                    builder.literal(2)))
+            .project(
+                builder.field("emps", "empid"),
+                builder.field("emps", "name"))
+
+            .transientScan("#DELTA#")
+            .sort(builder.field("empid"))
+            .scan("s", "hierarchies")
+            .sort(builder.field("managerid"))
+            .join(
+                JoinRelType.INNER,
+                builder.equals(
+                    builder.field(2, "#DELTA#", "empid"),
+                    builder.field(2, "hierarchies", "managerid")))
+            .sort(builder.field("subordinateid"))
+
+            .scan("s", "emps")
+            .sort(builder.field("empid"))
+            .join(
+                JoinRelType.INNER,
+                builder.equals(
+                    builder.field(2, "hierarchies", "subordinateid"),
+                    builder.field(2, "emps", "empid")))
+            .project(
+                builder.field("emps", "empid"),
+                builder.field("emps", "name"))
+            .repeatUnion("#DELTA#", true)
+            .build()
+        )
+        .explainHookMatches("" // It is important to have MergeJoin + EnumerableSort in the plan
+            + "EnumerableRepeatUnion(all=[true])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
+            + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[2], expr#6=[=($t0, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
+            + "      EnumerableTableScan(table=[[s, emps]])\n"
+            + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
+            + "    EnumerableCalc(expr#0..8=[{inputs}], empid=[$t0], name=[$t2])\n"
+            + "      EnumerableMergeJoin(condition=[=($0, $8)], joinType=[inner])\n"
+            + "        EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n"
+            + "        EnumerableSort(sort0=[$3], dir0=[ASC])\n"
+            + "          EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])\n"
+            + "            EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "              EnumerableInterpreter\n"
+            + "                BindableTableScan(table=[[#DELTA#]])\n"
+            + "            EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "              EnumerableTableScan(table=[[s, hierarchies]])\n")
+        .returnsUnordered(""
+            + "empid=2; name=Emp2\n"
+            + "empid=3; name=Emp3\n"
+            + "empid=5; name=Emp5");
   }
 
   private CalciteAssert.AssertThat tester(boolean forceDecorrelate,
