@@ -35,7 +35,7 @@ class EnumerableCalcRule extends ConverterRule {
     // The predicate ensures that if there's a multiset, FarragoMultisetSplitter
     // will work on it first.
     super(LogicalCalc.class,
-        (Predicate<Calc>) RelOptUtil::containsMultisetOrWindowedAgg,
+        (Predicate<Calc>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
         RelFactories.LOGICAL_BUILDER, "EnumerableCalcRule");
   }
