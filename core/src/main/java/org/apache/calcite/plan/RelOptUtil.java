@@ -3415,20 +3415,17 @@ public abstract class RelOptUtil {
     return projectFactory.createProject(rel, ImmutableList.of(), exprList, outputNameList);
   }
 
-  /** Predicate for whether a {@link Calc} contains multisets or windowed
-   * aggregates. */
+  /** Predicate for if a {@link Calc} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Calc calc) {
     return !calc.getProgram().containsAggs();
   }
 
-  /** Predicate for whether a {@link Filter} contains multisets or windowed
-   * aggregates. */
+  /** Predicate for if a {@link Filter} does not windowed aggregates. */
   public static boolean notContainsWindowedAgg(Filter filter) {
     return !RexOver.containsOver(filter.getCondition());
   }
 
-  /** Predicate for whether a {@link Project} contains multisets or windowed
-   * aggregates. */
+  /** Predicate for if a {@link Project} does not contain windowed aggregates. */
   public static boolean notContainsWindowedAgg(Project project) {
     return !RexOver.containsOver(project.getProjects(), null);
   }
