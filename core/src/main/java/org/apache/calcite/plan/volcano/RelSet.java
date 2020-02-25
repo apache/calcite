@@ -23,6 +23,7 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -105,6 +106,25 @@ class RelSet {
    */
   public List<RelNode> getParentRels() {
     return parents;
+  }
+
+  /**
+   * Returns the child Relset for current set
+   */
+  public Set<RelSet> getChildSets(VolcanoPlanner planner) {
+    Set<RelSet> childSets = new HashSet<>();
+    for (RelNode node : this.rels) {
+      if (node instanceof Converter) {
+        continue;
+      }
+      for (RelNode child : node.getInputs()) {
+        RelSet childSet = planner.equivRoot(((RelSubset) child).getSet());
+        if (childSet.id != this.id) {
+          childSets.add(childSet);
+        }
+      }
+    }
+    return childSets;
   }
 
   /**
@@ -326,7 +346,29 @@ class RelSet {
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
         changedSubsets.put(subset, otherSubset.best);
       }
-      for (RelNode otherRel : otherSubset.getRels()) {
+    }
+
+    Set<RelNode> parentRels = new HashSet<>(parents);
+    for (RelNode otherRel : otherSet.rels) {
+      Double importance = planner.getImportance(otherRel);
+      if (importance != null && importance == 0d) {
+        continue;
+      }
+
+      boolean pruned = false;
+      if (parentRels.contains(otherRel)) {
+        // if otherRel is a enforcing operator e.g.
+        // Sort, Exchange, do not prune it.
+        if (otherRel.getInputs().size() != 1
+            || otherRel.getInput(0).getTraitSet()
+                .satisfies(otherRel.getTraitSet())) {
+          pruned = true;
+        }
+      }
+
+      if (pruned) {
+        planner.setImportance(otherRel, 0d);
+      } else {
         planner.reregister(this, otherRel);
       }
     }

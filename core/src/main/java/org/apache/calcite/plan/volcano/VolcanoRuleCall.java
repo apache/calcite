@@ -123,6 +123,22 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.listener.ruleProductionSucceeded(event);
       }
 
+      for (int i = 0; i < rels.length; i++) {
+        if (rel == rels[i]) {
+          if (i == 0) {
+            return;
+          }
+          volcanoPlanner.setImportance(rels[0], 0d);
+          break;
+        }
+
+        final RelNode relCopy = rel;
+        if (rels[i].getInputs().stream().anyMatch(n -> n == relCopy)) {
+          volcanoPlanner.setImportance(rels[0], 0d);
+          break;
+        }
+      }
+
       // Registering the root relational expression implicitly registers
       // its descendants. Register any explicit equivalences first, so we
       // don't register twice and cause churn.
