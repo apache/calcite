@@ -2407,13 +2407,17 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey> Enumerable<TSource> orderBy(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Comparator<TKey> comparator) {
-    // NOTE: TreeMap allows null comparator. But the caller of this method
-    // must supply a comparator if the key does not extend Comparable.
-    // Otherwise there will be a ClassCastException while retrieving.
-    final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
-    LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
-        Functions.identitySelector());
-    return lookup.valuesEnumerable();
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        // NOTE: TreeMap allows null comparator. But the caller of this method
+        // must supply a comparator if the key does not extend Comparable.
+        // Otherwise there will be a ClassCastException while retrieving.
+        final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
+        final LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
+            Functions.identitySelector());
+        return lookup.valuesEnumerable().enumerator();
+      }
+    };
   }
 
   /**
