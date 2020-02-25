@@ -1712,6 +1712,22 @@ public class RelToSqlConverterTest {
     sql(query).dialect(MysqlSqlDialect.DEFAULT).ok(expected);
   }
 
+  @Test public void testMySqlCastToVarcharWithLessThanMaxPrecision() {
+    final String query = "select cast(\"product_id\" as varchar(50)), \"product_id\" "
+        + "from \"product\" ";
+    final String expected = "SELECT CAST(`product_id` AS CHAR(50)), `product_id`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
+
+  @Test public void testMySqlCastToVarcharWithGreaterThanMaxPrecision() {
+    final String query = "select cast(\"product_id\" as varchar(500)), \"product_id\" "
+        + "from \"product\" ";
+    final String expected = "SELECT CAST(`product_id` AS CHAR(255)), `product_id`\n"
+        + "FROM `foodmart`.`product`";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test public void testMySqlWithHighNullsSelectWithOrderByAscNullsLastAndNoEmulation() {
     final String query = "select \"product_id\" from \"product\"\n"
         + "order by \"product_id\" nulls last";
