@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 class EnumerableFilterRule extends ConverterRule {
   EnumerableFilterRule() {
     super(LogicalFilter.class,
-        (Predicate<LogicalFilter>) RelOptUtil::containsMultisetOrWindowedAgg,
+        (Predicate<LogicalFilter>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
         RelFactories.LOGICAL_BUILDER, "EnumerableFilterRule");
   }

@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 class EnumerableProjectRule extends ConverterRule {
   EnumerableProjectRule() {
     super(LogicalProject.class,
-        (Predicate<LogicalProject>) RelOptUtil::containsMultisetOrWindowedAgg,
+        (Predicate<LogicalProject>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
         RelFactories.LOGICAL_BUILDER, "EnumerableProjectRule");
   }

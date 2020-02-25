@@ -285,7 +285,7 @@ public class Bindables {
      */
     public BindableFilterRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalFilter.class,
-          (Predicate<LogicalFilter>) RelOptUtil::containsMultisetOrWindowedAgg,
+          (Predicate<LogicalFilter>) RelOptUtil::notContainsWindowedAgg,
           Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
           "BindableFilterRule");
     }
@@ -352,7 +352,7 @@ public class Bindables {
      */
     public BindableProjectRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalProject.class,
-          (Predicate<LogicalProject>) RelOptUtil::containsMultisetOrWindowedAgg,
+          (Predicate<LogicalProject>) RelOptUtil::notContainsWindowedAgg,
           Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
           "BindableProjectRule");
     }
