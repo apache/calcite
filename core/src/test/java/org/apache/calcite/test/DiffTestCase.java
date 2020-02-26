@@ -74,8 +74,10 @@ public abstract class DiffTestCase {
    */
   // private List diffMasks;
   private String diffMasks;
+  Pattern compiledDiffPattern;
   Matcher compiledDiffMatcher;
   private String ignorePatterns;
+  Pattern compiledIgnorePattern;
   Matcher compiledIgnoreMatcher;
 
   /**
@@ -285,7 +287,7 @@ public abstract class DiffTestCase {
     } else {
       diffMasks = diffMasks + "|" + mask;
     }
-    Pattern compiledDiffPattern = Pattern.compile(diffMasks);
+    compiledDiffPattern = Pattern.compile(diffMasks);
     compiledDiffMatcher = compiledDiffPattern.matcher("");
   }
 
@@ -295,7 +297,7 @@ public abstract class DiffTestCase {
     } else {
       ignorePatterns = ignorePatterns + "|" + javaPattern;
     }
-    Pattern compiledIgnorePattern = Pattern.compile(ignorePatterns);
+    compiledIgnorePattern = Pattern.compile(ignorePatterns);
     compiledIgnoreMatcher = compiledIgnorePattern.matcher("");
   }
 
@@ -306,7 +308,7 @@ public abstract class DiffTestCase {
       // we assume most of lines do not match
       // so compiled matches will be faster than replaceAll.
       if (compiledDiffMatcher.find()) {
-        return s.replaceAll(diffMasks, "XYZZY");
+        return compiledDiffPattern.matcher(s).replaceAll("XYZZY");
       }
     }
     return s;
@@ -328,7 +330,7 @@ public abstract class DiffTestCase {
     if (verbose) {
       if (inIde()) {
         // If we're in IntelliJ, it's worth printing the 'expected
-        // <...> actual <...>' string, becauase IntelliJ can format
+        // <...> actual <...>' string, because IntelliJ can format
         // this intelligently. Otherwise, use the more concise
         // diff format.
         assertEquals(fileContents(refFile), fileContents(logFile), message);

@@ -73,6 +73,35 @@ public class SqlFunctionsTest {
     assertThat(charLength("xyz"), is(3));
   }
 
+  @Test public void testToString() {
+    assertThat(SqlFunctions.toString(0f), is("0E0"));
+    assertThat(SqlFunctions.toString(1f), is("1"));
+    assertThat(SqlFunctions.toString(1.5f), is("1.5"));
+    assertThat(SqlFunctions.toString(-1.5f), is("-1.5"));
+    assertThat(SqlFunctions.toString(1.5e8f), is("1.5E8"));
+    assertThat(SqlFunctions.toString(-0.0625f), is("-0.0625"));
+    assertThat(SqlFunctions.toString(0.0625f), is("0.0625"));
+    assertThat(SqlFunctions.toString(-5e-12f), is("-5E-12"));
+
+    assertThat(SqlFunctions.toString(0d), is("0E0"));
+    assertThat(SqlFunctions.toString(1d), is("1"));
+    assertThat(SqlFunctions.toString(1.5d), is("1.5"));
+    assertThat(SqlFunctions.toString(-1.5d), is("-1.5"));
+    assertThat(SqlFunctions.toString(1.5e8d), is("1.5E8"));
+    assertThat(SqlFunctions.toString(-0.0625d), is("-0.0625"));
+    assertThat(SqlFunctions.toString(0.0625d), is("0.0625"));
+    assertThat(SqlFunctions.toString(-5e-12d), is("-5E-12"));
+
+    assertThat(SqlFunctions.toString(new BigDecimal("0")), is("0"));
+    assertThat(SqlFunctions.toString(new BigDecimal("1")), is("1"));
+    assertThat(SqlFunctions.toString(new BigDecimal("1.5")), is("1.5"));
+    assertThat(SqlFunctions.toString(new BigDecimal("-1.5")), is("-1.5"));
+    assertThat(SqlFunctions.toString(new BigDecimal("1.5e8")), is("1.5E+8"));
+    assertThat(SqlFunctions.toString(new BigDecimal("-0.0625")), is("-.0625"));
+    assertThat(SqlFunctions.toString(new BigDecimal("0.0625")), is(".0625"));
+    assertThat(SqlFunctions.toString(new BigDecimal("-5e-12")), is("-5E-12"));
+  }
+
   @Test public void testConcat() {
     assertThat(concat("a b", "cd"), is("a bcd"));
     // The code generator will ensure that nulls are never passed in. If we

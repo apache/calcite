@@ -43,12 +43,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 /**
  * Matchers for testing SQL queries.
  */
 public class Matchers {
+
+  private static final Pattern PATTERN = Pattern.compile(", id = [0-9]+");
+
   private Matchers() {}
 
   /** Allows passing the actual result from the {@code matchesSafely} method to
@@ -248,7 +252,7 @@ public class Matchers {
   }
 
   public static String trimNodeIds(String s) {
-    return s.replaceAll(", id = [0-9]+", "");
+    return PATTERN.matcher(s).replaceAll("");
   }
 
   /**

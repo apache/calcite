@@ -95,7 +95,7 @@ public class MatchTest {
     Resources.readLines(ElasticSearchAdapterTest.class.getResource("/zips-mini.json"),
         StandardCharsets.UTF_8, new LineProcessor<Void>() {
           @Override public boolean processLine(String line) throws IOException {
-            line = line.replaceAll("_id", "id"); // _id is a reserved attribute in ES
+            line = line.replace("_id", "id"); // _id is a reserved attribute in ES
             bulk.add((ObjectNode) NODE.mapper().readTree(line));
             return true;
           }

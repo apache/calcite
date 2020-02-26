@@ -457,8 +457,7 @@ public class CalciteAssert {
     return s -> {
       try {
         final String actual = Util.toLinux(toString(s));
-        final String maskedActual =
-            actual.replaceAll(", id = [0-9]+", "");
+        final String maskedActual = Matchers.trimNodeIds(actual);
         assertThat(maskedActual, containsString(expected));
       } catch (SQLException e) {
         throw TestUtil.rethrow(e);
@@ -1130,7 +1129,7 @@ public class CalciteAssert {
             map.put("view", table + "v");
           }
           String sql = materializations[i];
-          final String sql2 = sql.replaceAll("`", "\"");
+          final String sql2 = sql.replace("`", "\"");
           map.put("sql", sql2);
           list.add(map);
         }
@@ -1737,7 +1736,7 @@ public class CalciteAssert {
       } else {
         final String message =
             "Plan [" + plan + "] contains [" + expected.java + "]";
-        final String actualJava = toLinux(plan).replaceAll("\\\\r\\\\n", "\\\\n");
+        final String actualJava = toLinux(plan);
         assertTrue(actualJava.contains(expected.java), message);
       }
       return this;
@@ -2172,7 +2171,7 @@ public class CalciteAssert {
       return START
           + sql.replace("\\", "\\\\")
               .replace("\"", "\\\"")
-              .replaceAll("\n", "\\\\n")
+              .replace("\n", "\\\\n")
           + END;
     }
 

@@ -89,7 +89,7 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
                 + ":{\"script\":"
                 // _source (ES2) vs params._source (ES5)
                 + "\"" + implementor.elasticsearchTable.scriptedFieldPrefix() + "."
-                + expr.replaceAll("\"", "") + "\"}");
+                + expr.replace("\"", "") + "\"}");
       }
     }
 

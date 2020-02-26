@@ -26,6 +26,13 @@ java.lang.Object#wait(long,int)
 java.lang.Object#notify()
 java.lang.Object#notifyAll()
 
+@defaultMessage If you want regex use Pattern.compile; otherwise String.replace is faster
+java.lang.String#replaceAll(java.lang.String, java.lang.String)
+
+@defaultMessage Use toLowerCase(Locale.ROOT) and toUpperCase(Locale.ROOT)
+java.lang.String#toUpperCase()
+java.lang.String#toLowerCase()
+
 @defaultMessage Use StringBuilder; it is more efficient
 java.lang.StringBuffer
 

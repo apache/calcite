@@ -741,7 +741,7 @@ public class Util {
   }
 
   public static String toLinux(String s) {
-    return s.replaceAll("\r\n", "\n");
+    return s.replace("\r\n", "\n");
   }
 
   /**

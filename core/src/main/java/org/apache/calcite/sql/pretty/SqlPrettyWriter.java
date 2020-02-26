@@ -995,14 +995,14 @@ public class SqlPrettyWriter implements SqlWriter {
   }
 
   public void identifier(String name, boolean quoted) {
-    String qName = name;
     // If configured globally or the original identifier is quoted,
     // then quotes the identifier.
+    maybeWhitespace(name);
     if (isQuoteAllIdentifiers() || quoted) {
-      qName = dialect.quoteIdentifier(name);
+      dialect.quoteIdentifier(buf, name);
+    } else {
+      buf.append(name);
     }
-    maybeWhitespace(qName);
-    buf.append(qName);
     setNeedWhitespace(true);
   }
 
