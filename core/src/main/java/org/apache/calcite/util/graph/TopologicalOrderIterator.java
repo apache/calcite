@@ -46,12 +46,12 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
   }
 
   private void populate(Map<V, int[]> countMap, List<V> empties) {
-    for (V v : graph.vertexMap.keySet()) {
+    for (V v : graph.vertexOutMap.keySet()) {
       countMap.put(v, new int[] {0});
     }
     for (DefaultDirectedGraph.VertexInfo<V, E> info
-        : graph.vertexMap.values()) {
-      for (E edge : info.outEdges) {
+        : graph.vertexOutMap.values()) {
+      for (E edge : info.edges) {
         //noinspection SuspiciousMethodCalls
         final int[] ints = countMap.get(edge.target);
         ++ints[0];
@@ -71,7 +71,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   public V next() {
     V v = empties.remove(0);
-    for (E o : graph.vertexMap.get(v).outEdges) {
+    for (E o : graph.vertexOutMap.get(v).edges) {
       //noinspection unchecked
       final V target = (V) o.target;
       if (--countMap.get(target)[0] == 0) {

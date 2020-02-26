@@ -41,8 +41,8 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
 
   /** Returns the first edge between one vertex to another. */
   @Override public E getEdge(V source, V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
-    for (E outEdge : info.outEdges) {
+    final VertexInfo<V, E> info = vertexOutMap.get(source);
+    for (E outEdge : info.edges) {
       if (outEdge.target.equals(target)) {
         return outEdge;
       }
@@ -57,12 +57,12 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
   }
 
   public E addEdge(V vertex, V targetVertex, Object... attributes) {
-    final VertexInfo<V, E> info = vertexMap.get(vertex);
-    if (info == null) {
+    final VertexInfo<V, E> outInfo = vertexOutMap.get(vertex);
+    if (outInfo == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
     }
-    final VertexInfo<V, E> info2 = vertexMap.get(targetVertex);
-    if (info2 == null) {
+    final VertexInfo<V, E> inInfo = vertexInMap.get(targetVertex);
+    if (inInfo == null) {
       throw new IllegalArgumentException("no vertex " + targetVertex);
     }
     @SuppressWarnings("unchecked")
@@ -70,7 +70,8 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
         (AttributedEdgeFactory) this.edgeFactory;
     final E edge = f.createEdge(vertex, targetVertex, attributes);
     if (edges.add(edge)) {
-      info.outEdges.add(edge);
+      outInfo.edges.add(edge);
+      inInfo.edges.add(edge);
       return edge;
     } else {
       return null;
@@ -79,25 +80,40 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
 
   /** Returns all edges between one vertex to another. */
   public Iterable<E> getEdges(V source, final V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
-    return Util.filter(info.outEdges, outEdge -> outEdge.target.equals(target));
+    final VertexInfo<V, E> info = vertexOutMap.get(source);
+    return Util.filter(info.edges, outEdge -> outEdge.target.equals(target));
   }
 
   /** Removes all edges from a given vertex to another.
    * Returns whether any were removed. */
   public boolean removeEdge(V source, V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
-    List<E> outEdges = info.outEdges;
-    int removeCount = 0;
+    // remove out edges
+    final VertexInfo<V, E> outInfo = vertexOutMap.get(source);
+    List<E> outEdges = outInfo.edges;
+    int removeOutCount = 0;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
       E edge = outEdges.get(i);
       if (edge.target.equals(target)) {
         outEdges.remove(i);
         edges.remove(edge);
-        ++removeCount;
+        ++removeOutCount;
       }
     }
-    return removeCount > 0;
+
+    // remove inedges
+    final VertexInfo<V, E> inInfo = vertexInMap.get(target);
+    List<E> inEdges = inInfo.edges;
+    int removeInCount = 0;
+    for (int i = 0, size = inEdges.size(); i < size; i++) {
+      E edge = inEdges.get(i);
+      if (edge.source.equals(source)) {
+        inEdges.remove(i);
+        ++removeInCount;
+      }
+    }
+
+    assert removeOutCount == removeInCount;
+    return removeOutCount > 0;
   }
 
   /** Factory for edges that have attributes.

@@ -58,8 +58,8 @@ public class Graphs {
     DefaultDirectedGraph<V, E> graph1 = (DefaultDirectedGraph<V, E>) graph;
     Map<Pair<V, V>, List<V>> shortestPaths = new HashMap<>();
     for (DefaultDirectedGraph.VertexInfo<V, E> arc
-        : graph1.vertexMap.values()) {
-      for (E edge : arc.outEdges) {
+        : graph1.vertexOutMap.values()) {
+      for (E edge : arc.edges) {
         final V source = graph1.source(edge);
         final V target = graph1.target(edge);
         shortestPaths.put(Pair.of(source, target),
