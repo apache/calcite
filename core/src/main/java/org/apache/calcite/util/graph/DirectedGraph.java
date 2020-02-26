@@ -49,6 +49,8 @@ public interface DirectedGraph<V, E> {
 
   Set<V> vertexSet();
 
+  /** Removes from this graph all vertices that are in {@code collection},
+   * and the edges into and out of those vertices. */
   void removeAllVertices(Collection<V> collection);
 
   List<E> getOutwardEdges(V source);
