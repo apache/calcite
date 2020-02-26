@@ -47,8 +47,6 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sample;
 import org.apache.calcite.rel.core.Sort;
-import org.apache.calcite.rel.core.Uncollect;
-import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.rel.hint.RelHint;
@@ -2032,6 +2030,12 @@ public class SqlToRelConverter {
     }
   }
 
+  protected void convertFrom(
+      Blackboard bb,
+      SqlNode from) {
+    convertFrom(bb, from, Collections.emptyList());
+  }
+
   /**
    * Converts a FROM clause into a relational expression.
    *
@@ -2048,10 +2052,12 @@ public class SqlToRelConverter {
    *             <li>a query ("(SELECT * FROM EMP WHERE GENDER = 'F')"),
    *             <li>or any combination of the above.
    *             </ul>
+   * @param fieldNames Field aliases, usually come from AS clause
    */
   protected void convertFrom(
       Blackboard bb,
-      SqlNode from) {
+      SqlNode from,
+      List<String> fieldNames) {
     if (from == null) {
       bb.setRoot(LogicalValues.createOneRow(cluster), false);
       return;
@@ -2066,15 +2072,15 @@ public class SqlToRelConverter {
 
     case AS:
       call = (SqlCall) from;
-      convertFrom(bb, call.operand(0));
-      if (call.operandCount() > 2
-          && (bb.root instanceof Values || bb.root instanceof Uncollect)) {
-        final List<String> fieldNames = new ArrayList<>();
+      SqlNode firstOperand = call.operand(0);
+      final List<String> fieldNameList = new ArrayList<>();
+      if (call.operandCount() > 2) {
         for (SqlNode node : Util.skip(call.getOperandList(), 2)) {
-          fieldNames.add(((SqlIdentifier) node).getSimple());
+          fieldNameList.add(((SqlIdentifier) node).getSimple());
         }
-        bb.setRoot(relBuilder.push(bb.root).rename(fieldNames).build(), true);
+
       }
+      convertFrom(bb, firstOperand, fieldNameList);
       return;
 
     case WITH_ITEM:
@@ -2199,29 +2205,13 @@ public class SqlToRelConverter {
 
     case VALUES:
       convertValuesImpl(bb, (SqlCall) from, null);
+      if (fieldNames.size() > 0) {
+        bb.setRoot(relBuilder.push(bb.root).rename(fieldNames).build(), true);
+      }
       return;
 
     case UNNEST:
-      call = (SqlCall) from;
-      final List<SqlNode> nodes = call.getOperandList();
-      final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
-      for (SqlNode node : nodes) {
-        replaceSubQueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
-      }
-      final List<RexNode> exprs = new ArrayList<>();
-      final List<String> fieldNames = new ArrayList<>();
-      for (Ord<SqlNode> node : Ord.zip(nodes)) {
-        exprs.add(bb.convertExpression(node.e));
-        fieldNames.add(validator.deriveAlias(node.e, node.i));
-      }
-      RelNode child =
-          (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
-      relBuilder.push(child).projectNamed(exprs, fieldNames, false);
-
-      Uncollect uncollect =
-          new Uncollect(cluster, cluster.traitSetOf(Convention.NONE),
-              relBuilder.build(), operator.withOrdinality);
-      bb.setRoot(uncollect, true);
+      convertUnnest(bb, (SqlCall) from, fieldNames);
       return;
 
     case COLLECTION_TABLE:
@@ -2236,6 +2226,38 @@ public class SqlToRelConverter {
     default:
       throw new AssertionError("not a join operator " + from);
     }
+  }
+
+  private void convertUnnest(Blackboard bb, SqlCall call, List<String> fieldNames) {
+    final List<SqlNode> nodes = call.getOperandList();
+    final SqlUnnestOperator operator = (SqlUnnestOperator) call.getOperator();
+    for (SqlNode node : nodes) {
+      replaceSubQueries(bb, node, RelOptUtil.Logic.TRUE_FALSE_UNKNOWN);
+    }
+    final List<RexNode> exprs = new ArrayList<>();
+    for (Ord<SqlNode> node : Ord.zip(nodes)) {
+      exprs.add(
+          relBuilder.alias(bb.convertExpression(node.e), validator.deriveAlias(node.e, node.i)));
+    }
+    RelNode child =
+        (null != bb.root) ? bb.root : LogicalValues.createOneRow(cluster);
+    RelNode uncollect;
+    if (validator.config().sqlConformance().allowAliasUnnestItems()) {
+      uncollect = relBuilder
+          .push(child)
+          .project(exprs)
+          .uncollect(fieldNames, operator.withOrdinality)
+          .build();
+    } else {
+      // REVIEW danny 2020-04-26: should we unify the normal field aliases and the item aliases ?
+      uncollect = relBuilder
+          .push(child)
+          .project(exprs)
+          .uncollect(Collections.emptyList(), operator.withOrdinality)
+          .rename(fieldNames)
+          .build();
+    }
+    bb.setRoot(uncollect, true);
   }
 
   protected void convertMatchRecognize(Blackboard bb, SqlCall call) {

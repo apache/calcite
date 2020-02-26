@@ -83,7 +83,7 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
         builder.add(MAP_KEY_COLUMN_NAME, type.getKeyType());
         builder.add(MAP_VALUE_COLUMN_NAME, type.getValueType());
       } else {
-        if (type.getComponentType().isStruct()) {
+        if (!allowAliasUnnestItems(opBinding) && type.getComponentType().isStruct()) {
           builder.addAll(type.getComponentType().getFieldList());
         } else {
           builder.add(SqlUtil.deriveAliasFromOrdinal(operand),
@@ -95,6 +95,15 @@ public class SqlUnnestOperator extends SqlFunctionalOperator {
       builder.add(ORDINALITY_COLUMN_NAME, SqlTypeName.INTEGER);
     }
     return builder.build();
+  }
+
+  private boolean allowAliasUnnestItems(SqlOperatorBinding operatorBinding) {
+    return (operatorBinding instanceof SqlCallBinding)
+        && ((SqlCallBinding) operatorBinding)
+        .getValidator()
+        .config()
+        .sqlConformance()
+        .allowAliasUnnestItems();
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

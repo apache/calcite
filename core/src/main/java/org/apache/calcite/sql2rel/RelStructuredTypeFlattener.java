@@ -319,6 +319,20 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           .orElseThrow(NoSuchElementException::new);
   }
 
+  /** Returns whether the old field at index {@code fieldIdx} was not flattened. */
+  private boolean noFlatteningForInput(int fieldIdx) {
+    final List<RelNode> inputs = currentRel.getInputs();
+    int fieldCnt = 0;
+    for (RelNode input : inputs) {
+      fieldCnt += input.getRowType().getFieldCount();
+      if (fieldCnt > fieldIdx) {
+        return getNewForOldRel(input).getRowType().getFieldList().size()
+            == input.getRowType().getFieldList().size();
+      }
+    }
+    return false;
+  }
+
   /**
    * Maps the ordinal of a field pre-flattening to the ordinal of the
    * corresponding field post-flattening, and also returns its type.
@@ -884,6 +898,12 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
           // is flattened (no struct types). We just have to create a new RexInputRef with the
           // correct ordinal and type.
           RexInputRef inputRef = (RexInputRef) refExp;
+          if (noFlatteningForInput(inputRef.getIndex())) {
+            // Sanity check, the input must not have struct type fields.
+            // We better have a record for each old input field
+            // whether it is flattened.
+            return fieldAccess;
+          }
           final Ord<RelDataType> newField =
               getNewFieldForOldInput(inputRef.getIndex(), iInput);
           return new RexInputRef(newField.getKey(), removeDistinct(newField.getValue()));

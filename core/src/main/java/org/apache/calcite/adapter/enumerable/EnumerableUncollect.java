@@ -32,6 +32,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import com.google.common.primitives.Ints;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Uncollect} in
@@ -48,7 +49,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing. */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
-    super(cluster, traitSet, child, withOrdinality);
+    super(cluster, traitSet, child, withOrdinality, Collections.emptyList());
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == child.getConvention();
   }
