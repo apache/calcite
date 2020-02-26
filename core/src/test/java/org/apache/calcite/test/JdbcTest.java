@@ -3694,7 +3694,7 @@ public class JdbcTest {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
     if (CalciteSystemProperty.DEBUG.value()) {
-      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+      planLine = planLine.replace("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()
         .query("select min(\"salary\"+1) over w as m\n"
@@ -3719,7 +3719,7 @@ public class JdbcTest {
     String planLine =
         "a0s0w0 = org.apache.calcite.runtime.SqlFunctions.lesser(a0s0w0, org.apache.calcite.runtime.SqlFunctions.toFloat(_rows[j]));";
     if (CalciteSystemProperty.DEBUG.value()) {
-      planLine = planLine.replaceAll("a0s0w0", "MINa0s0w0");
+      planLine = planLine.replace("a0s0w0", "MINa0s0w0");
     }
     CalciteAssert.hr()
         .query("select 1+min(\"salary\"+1) over w as m\n"

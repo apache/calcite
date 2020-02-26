@@ -7451,7 +7451,7 @@ public class SqlParserTest {
     sql(in).ok(out);
 
     // Verify that we can override with an explicit escape character
-    sql(in.replaceAll("\\\\", "!") + "UESCAPE '!'").ok(out);
+    sql(in.replace("\\", "!") + "UESCAPE '!'").ok(out);
   }
 
   @Test public void testIllegalUnicodeEscape() {

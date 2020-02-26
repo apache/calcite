@@ -141,6 +141,8 @@ public class SqlFunctions {
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
+  private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
+
   private SqlFunctions() {
   }
 
@@ -599,7 +601,7 @@ public class SqlFunctions {
     String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
         .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
     for (String v : existingExpressions) {
-      regex = regex.replaceAll(v.toLowerCase(Locale.ROOT), "\\\\p{" + v + "}");
+      regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
     }
 
     int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
@@ -1683,7 +1685,7 @@ public class SqlFunctions {
     BigDecimal bigDecimal =
         new BigDecimal(x, MathContext.DECIMAL32).stripTrailingZeros();
     final String s = bigDecimal.toString();
-    return s.replaceAll("0*E", "E").replace("E+", "E");
+    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
   }
 
   /** CAST(DOUBLE AS VARCHAR). */
@@ -1694,16 +1696,18 @@ public class SqlFunctions {
     BigDecimal bigDecimal =
         new BigDecimal(x, MathContext.DECIMAL64).stripTrailingZeros();
     final String s = bigDecimal.toString();
-    return s.replaceAll("0*E", "E").replace("E+", "E");
+    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
   }
 
   /** CAST(DECIMAL AS VARCHAR). */
   public static String toString(BigDecimal x) {
     final String s = x.toString();
-    if (s.startsWith("0")) {
+    if (s.equals("0")) {
+      return s;
+    } else if (s.startsWith("0.")) {
       // we want ".1" not "0.1"
       return s.substring(1);
-    } else if (s.startsWith("-0")) {
+    } else if (s.startsWith("-0.")) {
       // we want "-.1" not "-0.1"
       return "-" + s.substring(2);
     } else {

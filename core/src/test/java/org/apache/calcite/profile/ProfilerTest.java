@@ -629,8 +629,9 @@ public class ProfilerTest {
           map1.keySet().retainAll(Fluid.this.columns);
         }
         final String json = jb.toJsonString(map);
-        return json.replaceAll("\n", "").replaceAll(" ", "")
-            .replaceAll("\"", "");
+        return json.replace("\n", "")
+            .replace(" ", "")
+            .replace("\"", "");
       }
     }
   }

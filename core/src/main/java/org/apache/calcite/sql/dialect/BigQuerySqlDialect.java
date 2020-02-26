@@ -94,10 +94,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public String quoteIdentifier(String val) {
-    return quoteIdentifier(new StringBuilder(), val).toString();
-  }
-
   @Override protected boolean identifierNeedsQuote(String val) {
     return !IDENTIFIER_REGEX.matcher(val).matches()
         || RESERVED_KEYWORDS.contains(val.toUpperCase(Locale.ROOT));

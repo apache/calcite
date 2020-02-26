@@ -134,7 +134,7 @@ public class SqlPrettyWriterTest {
 
       // Now parse the result, and make sure it is structurally equivalent
       // to the original.
-      final String actual2 = formatted.replaceAll("`", "\"");
+      final String actual2 = formatted.replace("`", "\"");
       final SqlNode node2;
       if (expr) {
         final SqlCall valuesCall =

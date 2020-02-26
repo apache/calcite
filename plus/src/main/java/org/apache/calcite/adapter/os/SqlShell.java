@@ -172,8 +172,8 @@ public class SqlShell {
         .append("\",\n")
         .append("         \"type\": \"view\",\n")
         .append("         \"sql\": \"")
-        .append(sql.replaceAll("\"", "\\\\\"")
-            .replaceAll("\n", ""))
+        .append(sql.replace("\"", "\\\"")
+            .replace("\n", ""))
         .append("\"\n");
   }
 
@@ -256,7 +256,7 @@ public class SqlShell {
           // do nothing - unfortunately same as empty string
         } else if (s.contains("\"")) {
           b.append('"')
-              .append(s.replaceAll("\"", "\"\""))
+              .append(s.replace("\"", "\"\""))
               .append('"');
         } else if (s.indexOf(',') >= 0
             || s.indexOf('\n') >= 0
