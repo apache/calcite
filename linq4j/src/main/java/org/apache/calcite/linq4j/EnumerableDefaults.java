@@ -1959,7 +1959,10 @@ public abstract class EnumerableDefaults {
     };
   }
 
-  /** Joins two inputs that are sorted on the key. */
+  /**
+   * Joins two inputs that are sorted on the key.
+   * Inputs must sorted in ascending order, nulls last.
+   */
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
       mergeJoin(final Enumerable<TSource> outer,
       final Enumerable<TInner> inner,
@@ -3785,6 +3788,7 @@ public abstract class EnumerableDefaults {
   }
 
   /** Enumerator that performs a merge join on its sorted inputs.
+   * Inputs must sorted in ascending order, nulls last.
    *
    * @param <TResult> result type
    * @param <TSource> left input record type
@@ -3833,6 +3837,12 @@ public abstract class EnumerableDefaults {
       TInner right = rightEnumerator.current();
       TKey rightKey = innerKeySelector.apply(right);
       for (;;) {
+        // mergeJoin assumes inputs sorted in ascending order with nulls last,
+        // if we reach a null key, we are done.
+        if (leftKey == null || rightKey == null) {
+          done = true;
+          return false;
+        }
         int c = leftKey.compareTo(rightKey);
         if (c == 0) {
           break;
@@ -3862,6 +3872,10 @@ public abstract class EnumerableDefaults {
         }
         left = leftEnumerator.current();
         TKey leftKey2 = outerKeySelector.apply(left);
+        if (leftKey2 == null) {
+          done = true;
+          break;
+        }
         int c = leftKey.compareTo(leftKey2);
         if (c != 0) {
           if (c > 0) {
@@ -3882,6 +3896,10 @@ public abstract class EnumerableDefaults {
         }
         right = rightEnumerator.current();
         TKey rightKey2 = innerKeySelector.apply(right);
+        if (rightKey2 == null) {
+          done = true;
+          break;
+        }
         int c = rightKey.compareTo(rightKey2);
         if (c != 0) {
           if (c > 0) {
