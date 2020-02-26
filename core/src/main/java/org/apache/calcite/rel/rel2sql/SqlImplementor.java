@@ -1443,7 +1443,8 @@ public abstract class SqlImplementor {
                   }
                 }
               }
-            } else if (dialect.getConformance().isSortByAlias()) {
+            }
+            if (dialect.getConformance().isSortByAlias()) {
               return field(ordinal, true);
             }
             return node;
@@ -1485,10 +1486,10 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project) {
-        if (this.clauses.contains(Clause.HAVING)
+       /* if (this.clauses.contains(Clause.HAVING)
             && dialect.getConformance().isHavingAlias()) {
           return true;
-        }
+        }*/
         if (rel.getInput(0) instanceof Aggregate
             && dialect.getConformance().isGroupByAlias()
             && hasAliasUsedInGroupByWhichIsNotPresentInFinalProjection((Project) rel)) {

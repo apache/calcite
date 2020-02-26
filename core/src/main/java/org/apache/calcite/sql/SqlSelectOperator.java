@@ -24,6 +24,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * An operator describing a query. (Not a query itself.)
@@ -211,83 +212,24 @@ public class SqlSelectOperator extends SqlOperator {
       }
     }
 
-    if (select.groupBy != null) {
+    /*if (select.groupBy != null) {
       writer.sep("GROUP BY");
       final SqlNodeList groupBy =
           select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
               : select.groupBy;
       writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
           groupBy);
-    }
-
-    /*if (select.groupBy != null) {
-      writer.sep("GROUP BY");
-      SqlNodeList groupBy = null;
-     *//* final SqlNodeList groupBy =
-          select.groupBy.size() == 0 ? SqlNodeList.SINGLETON_EMPTY
-              : select.groupBy;
-      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
-          groupBy);
-      final SqlWriter.Frame groupFrame =
-          writer.startList(SqlWriter.FrameTypeEnum.GROUP_BY_LIST);*//*
-      if (select.groupBy.getList().isEmpty()) {
-        groupBy = SqlNodeList.SINGLETON_EMPTY;
-      } else if (writer.getDialect().getConformance().isGroupByOrdinal()) {
-          List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
-          for (SqlNode groupKey : select.groupBy.getList()) {
-            if (!groupKey.toString().equalsIgnoreCase("NULL")) {
-              writer.sep(",");
-              if (groupKey.getKind() == SqlKind.LITERAL
-                  || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
-                  || groupKey.getKind() == SqlKind.MINUS_PREFIX) {
-                select.selectList.getList().
-                    forEach(new Consumer<SqlNode>() {
-                      @Override public void accept(SqlNode selectSqlNode) {
-                        SqlNode literalNode = selectSqlNode;
-                        if (literalNode.getKind() == SqlKind.AS) {
-                          literalNode = ((SqlBasicCall) selectSqlNode).getOperandList().get(0);
-                          if (SqlKind.CAST == literalNode.getKind()) {
-                            literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
-                          }
-                        }
-                        if (SqlKind.CAST == literalNode.getKind()) {
-                          literalNode = ((SqlBasicCall) literalNode).getOperandList().get(0);
-                        }
-                        if (literalNode == groupKey
-                            && !visitedLiteralNodeList.contains(literalNode)) {
-                          String ordinal = String.valueOf(
-                              select.selectList.getList().indexOf(selectSqlNode) + 1);
-                          SqlLiteral.createExactNumeric(ordinal,
-                              SqlParserPos.ZERO).unparse(writer, 2, 3);
-                          visitedLiteralNodeList.add(literalNode);
-                        }
-                      }
-                    });
-              } else {
-                groupKey.unparse(writer, 2, 3);
-              }
-            }
-          }
-        }
-        else {
-          groupBy = select.groupBy;
-      }
-      writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
-          groupBy);
     }*/
-    /*if (select.groupBy != null) {
+    if (select.groupBy != null) {
       writer.sep("GROUP BY");
-      if(select.groupBy.size() == 0){
+      if (select.groupBy.size() == 0) {
         writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
             SqlNodeList.SINGLETON_EMPTY);
-      }else {
-        if(writer.getDialect().getConformance().isGroupByOrdinal()){
+      } else {
+        if (writer.getDialect().getConformance().isGroupByOrdinal()) {
           List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
-          boolean appendSeperator = false;
+          List<SqlNode> groupByNodeList = new ArrayList<>();
           for (SqlNode groupKey : select.groupBy.getList()) {
-            if(appendSeperator){
-              writer.sep(",");
-            }
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
               if (groupKey.getKind() == SqlKind.LITERAL
                   || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
@@ -309,24 +251,28 @@ public class SqlSelectOperator extends SqlOperator {
                             && !visitedLiteralNodeList.contains(literalNode)) {
                           String ordinal = String.valueOf(
                               select.selectList.getList().indexOf(selectSqlNode) + 1);
-                          SqlLiteral.createExactNumeric(ordinal,
-                              SqlParserPos.ZERO).unparse(writer, 2, 3);
+                          SqlLiteral groupKeyLiteralNode = SqlLiteral.createExactNumeric(ordinal,
+                              SqlParserPos.ZERO);
+                          groupByNodeList.add(groupKeyLiteralNode);
                           visitedLiteralNodeList.add(literalNode);
                         }
                       }
                     });
               } else {
-                groupKey.unparse(writer, 2, 3);
+                //  groupKey.unparse(writer, 2, 3);
+                groupByNodeList.add(groupKey);
               }
             }
-            appendSeperator = true;
           }
-      }else{
+          writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
+              new SqlNodeList(groupByNodeList, SqlParserPos.QUOTED_ZERO));
+        } else {
           writer.list(SqlWriter.FrameTypeEnum.GROUP_BY_LIST, SqlWriter.COMMA,
               select.groupBy);
+
         }
       }
-    }*/
+    }
 
     if (select.having != null) {
       writer.sep("HAVING");

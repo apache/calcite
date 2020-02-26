@@ -428,38 +428,36 @@ public class RelToSqlConverter extends SqlImplementor
 
 
   private SqlNode getGroupBySqlNode(Builder builder, int key) {
-    boolean isGroupByAlias = dialect.getConformance().isGroupByAlias();
-    SqlNode field;
-    if (isGroupByAlias && builder.select.getSelectList() != null) {
-      SqlNode sqlNode = builder.select.getSelectList().get(key);
-      if (sqlNode.getKind() == SqlKind.LITERAL
-          || sqlNode.getKind() == SqlKind.DYNAMIC_PARAM
-          || sqlNode.getKind() == SqlKind.MINUS_PREFIX) {
-        Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
-        if (aliasNode.isPresent()) {
-          field = aliasNode.get();
-        } else {
-          //add ordinal
-          int ordinal =
-              builder.select.getSelectList().getList().indexOf(sqlNode) + 1;
-          field = SqlLiteral.createExactNumeric(String.valueOf(ordinal),
-              SqlParserPos.ZERO);
-        }
-      } else {
-        field = builder.context.field(key, true);
-      }
+    if (builder.select.getSelectList() == null || !dialect.getConformance().isGroupByAlias()) {
+      return builder.context.field(key);
     } else {
-      field = builder.context.field(key);
+      return builder.context.field(key, true);
     }
-    return field;
+    /*SqlNode sqlNode = builder.select.getSelectList().get(key);
+    if (sqlNode.getKind() == SqlKind.LITERAL
+        || sqlNode.getKind() == SqlKind.DYNAMIC_PARAM
+        || sqlNode.getKind() == SqlKind.MINUS_PREFIX) {
+      Optional<SqlNode> aliasNode = getAliasSqlNode(sqlNode);
+      if (aliasNode.isPresent()) {
+        return aliasNode.get();
+      } else {
+        //add ordinal
+        int ordinal =
+            builder.select.getSelectList().getList().indexOf(sqlNode) + 1;
+        return SqlLiteral.createExactNumeric(String.valueOf(ordinal),
+            SqlParserPos.ZERO);
+      }
+    } */
   }
-
 
   private Optional<SqlNode> getAliasSqlNode(SqlNode sqlNode) {
     if (SqlCall.class.isInstance(sqlNode)) {
       List<SqlNode> openrandList = ((SqlCall) sqlNode).getOperandList();
-      if (openrandList.size() > 1) {
-        return Optional.of(((SqlCall) sqlNode).operand(1));
+      if (openrandList.size() > 1 && !openrandList.get(1)
+          .toString()
+          .toLowerCase(Locale.ROOT)
+          .startsWith("expr$")) {
+        return Optional.of(openrandList.get(1));
       }
     }
     return Optional.empty();
@@ -964,7 +962,13 @@ public class RelToSqlConverter extends SqlImplementor
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
-      node = as(node, name);
+      if (name.toLowerCase(Locale.ROOT).startsWith("expr$")) {
+        if (dialect.getConformance().isDollarSupportedinAlias()) {
+          node = as(node, name);
+        }
+      }else{
+        node = as(node, name);
+      }
     }
     selectList.add(node);
   }

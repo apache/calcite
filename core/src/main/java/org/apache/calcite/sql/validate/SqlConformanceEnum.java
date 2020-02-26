@@ -343,4 +343,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+
+  @Override public boolean isDollarSupportedinAlias() {
+    switch (this) {
+    case ORACLE_10:
+    case ORACLE_12:
+    case DEFAULT:
+      return true;
+    default:
+      return false;
+    }
+  }
 }

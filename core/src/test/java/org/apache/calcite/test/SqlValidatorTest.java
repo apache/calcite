@@ -6144,6 +6144,9 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
   @Test public void testAbstractConformance()
       throws InvocationTargetException, IllegalAccessException {
     final SqlAbstractConformance c0 = new SqlAbstractConformance() {
+      @Override public boolean isDollarSupportedinAlias() {
+        return true;
+      }
     };
     final SqlConformance c1 = SqlConformanceEnum.DEFAULT;
     for (Method method : SqlConformance.class.getMethods()) {

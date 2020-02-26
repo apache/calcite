@@ -73,4 +73,7 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
     return delegate.allowNiladicParentheses();
   }
 
+  @Override public boolean isDollarSupportedinAlias() {
+    return delegate.isDollarSupportedinAlias();
+  }
 }
