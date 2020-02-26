@@ -35,6 +35,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
@@ -168,6 +169,17 @@ public class JoinProjectTransposeRule extends RelOptRule {
       rightProj = null;
       rightJoinChild = joinRel.getRight();
     }
+
+    // Skip projects containing over clause
+    if (leftProj != null && RexOver.containsOver(leftProj.getChildExps(), null)) {
+      leftProj = null;
+      leftJoinChild = joinRel.getLeft();
+    }
+    if (rightProj != null && RexOver.containsOver(rightProj.getChildExps(), null)) {
+      rightProj = null;
+      rightJoinChild = joinRel.getRight();
+    }
+
     if ((leftProj == null) && (rightProj == null)) {
       return;
     }
