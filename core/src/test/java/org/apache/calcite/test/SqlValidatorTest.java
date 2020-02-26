@@ -7555,6 +7555,43 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Column 'C1' not found in any table");
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
+   * Support validation of UNNEST multiple array columns like Presto</a>.
+   */
+  @Test public void testAliasUnnestMultipleArrays() {
+    // for accessing a field in STRUCT type unnested from array
+    sql("select e.ENAME\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as t(e)")
+        .withConformance(SqlConformanceEnum.PRESTO).columnType("VARCHAR(10) NOT NULL");
+
+    // for unnesting multiple arrays at the same time
+    sql("select d.deptno, e, k.empno, l.\"unit\", l.\"X\" * l.\"Y\"\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees, d.offices) as t(e, k, l)")
+        .withConformance(SqlConformanceEnum.PRESTO).ok();
+
+    // Make sure validation fails properly given illegal select items
+    sql("select d.deptno, ^e^.some_column, k.empno\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees) as t(e, k)")
+        .withConformance(SqlConformanceEnum.PRESTO)
+        .fails("Table 'E' not found");
+    sql("select d.deptno, e.detail, ^unknown^.detail\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as t(e)")
+        .withConformance(SqlConformanceEnum.PRESTO).fails("Incompatible types");
+
+    // Make sure validation fails without PRESTO conformance
+    sql("select e.ENAME\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.employees) as t(^e^)")
+        .fails("List of column aliases must have same degree as table; table has 3 columns "
+            + "\\('EMPNO', 'ENAME', 'DETAIL'\\), whereas alias list has 1 columns");
+  }
+
   @Test void testUnnestArray() {
     sql("select*from unnest(array[1])")
         .columnType("INTEGER NOT NULL");

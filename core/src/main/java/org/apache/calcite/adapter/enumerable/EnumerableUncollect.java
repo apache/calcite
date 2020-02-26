@@ -48,7 +48,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing. */
   public EnumerableUncollect(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode child, boolean withOrdinality) {
-    super(cluster, traitSet, child, withOrdinality);
+    super(cluster, traitSet, child, withOrdinality, null);
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == child.getConvention();
   }

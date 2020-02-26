@@ -157,6 +157,16 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     deptNestedTable.addColumn("EMPLOYEES", fixture.empListType);
     registerTable(deptNestedTable);
 
+    // Register "DEPT_NESTED_EXPANDED" table.
+    MockTable deptNestedExpandedTable =
+        MockTable.create(this, salesSchema, "DEPT_NESTED_EXPANDED", false, 4);
+    deptNestedExpandedTable.addColumn("DEPTNO", fixture.intType, true);
+    deptNestedExpandedTable.addColumn("NAME", fixture.varchar10Type);
+    deptNestedExpandedTable.addColumn("EMPLOYEES", fixture.empListType);
+    deptNestedExpandedTable.addColumn("ADMINS", fixture.varchar5ArrayType);
+    deptNestedExpandedTable.addColumn("OFFICES", fixture.rectilinearPeekCoordMultisetType);
+    registerTable(deptNestedExpandedTable);
+
     // Register "BONUS" table.
     MockTable bonusTable =
         MockTable.create(this, salesSchema, "BONUS", false, 0);

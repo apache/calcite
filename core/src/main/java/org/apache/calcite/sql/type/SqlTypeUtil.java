@@ -45,7 +45,10 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -941,11 +944,21 @@ public abstract class SqlTypeUtil {
     }
     List<RelDataType> types = new ArrayList<>();
     List<String> fieldNames = new ArrayList<>();
+    Map<String, Long> fieldCnt = fieldList.stream()
+        .map(RelDataTypeField::getName)
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     int i = -1;
     for (RelDataTypeField field : fieldList) {
       ++i;
       types.add(field.getType());
-      fieldNames.add(field.getName() + "_" + i);
+      String oriFieldName = field.getName();
+      // Patch up the field name with index if there are duplicates.
+      // There is still possibility that the patched name conflicts with existing ones,
+      // but that should be rare case.
+      String fieldName = fieldCnt.get(oriFieldName) > 1
+          ? oriFieldName + "_" + i
+          : oriFieldName;
+      fieldNames.add(fieldName);
     }
     return typeFactory.createStructType(types, fieldNames);
   }
