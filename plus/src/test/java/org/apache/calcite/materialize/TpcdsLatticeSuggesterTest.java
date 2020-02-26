@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -63,14 +64,16 @@ public class TpcdsLatticeSuggesterTest {
 
   private void checkFoodMartAll(boolean evolve) throws Exception {
     final Tester t = new Tester().tpcds().withEvolve(evolve);
+    final Pattern pattern =
+        Pattern.compile("substr\\(([^,]*),([^,]*),([^)]*)\\)");
     for (Query query : Query.values()) {
-      final String sql = query.sql(new Random(0))
-          .replaceAll("as returns", "as \"returns\"")
-          .replaceAll("sum\\(returns\\)", "sum(\"returns\")")
-          .replaceAll(", returns", ", \"returns\"")
-          .replaceAll("14 days", "interval '14' day")
-          .replaceAll("substr\\(([^,]*),([^,]*),([^)]*)\\)",
-              "substring($1 from $2 for $3)");
+      final String sql0 = query.sql(new Random(0))
+          .replace("as returns", "as \"returns\"")
+          .replace("sum(returns)", "sum(\"returns\")")
+          .replace(", returns", ", \"returns\"")
+          .replace("14 days", "interval '14' day");
+      final String sql =
+          pattern.matcher(sql0).replaceAll("substring($1 from $2 for $3)");
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Query #" + query.id + "\n"
             + number(sql));

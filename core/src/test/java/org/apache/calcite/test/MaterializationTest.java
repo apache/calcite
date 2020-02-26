@@ -2580,7 +2580,7 @@ public class MaterializationTest {
                 map.put("table", "locations");
                 String sql = "select distinct `deptno` as `empid`, '' as `name`\n"
                     + "from `emps`";
-                final String sql2 = sql.replaceAll("`", "\"");
+                final String sql2 = sql.replace("`", "\"");
                 map.put("sql", sql2);
                 return ImmutableList.of(map);
               })

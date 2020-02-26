@@ -297,7 +297,7 @@ public class TpcdsTest {
       break;
     }
     return with()
-        .query(sql.replaceAll("tpcds\\.", "tpcds_01."));
+        .query(sql.replace("tpcds.", "tpcds_01."));
   }
 
   public Frameworks.ConfigBuilder config() throws Exception {

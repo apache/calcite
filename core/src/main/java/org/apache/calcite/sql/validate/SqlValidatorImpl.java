@@ -1023,7 +1023,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             || (op.getSyntax() == SqlSyntax.PREFIX)) {
           if (op.getOperandTypeChecker() != null) {
             String sig = op.getAllowedSignatures();
-            sig = sig.replaceAll("'", "");
+            sig = sig.replace("'", "");
             result.add(
                 new SqlMonikerImpl(
                     sig,

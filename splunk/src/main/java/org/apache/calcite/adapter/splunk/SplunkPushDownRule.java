@@ -398,7 +398,7 @@ public class SplunkPushDownRule
     } else if (litSqlType == SqlTypeName.CHAR) {
       value = ((NlsString) literal.getValue()).getValue();
       if (like) {
-        value = value.replaceAll("%", "*");
+        value = value.replace("%", "*");
       }
       value = searchEscape(value);
     }
