@@ -537,7 +537,7 @@ public class BigQuerySqlDialect extends SqlDialect {
   /**
    * BigQuery interval syntax: INTERVAL int64 time_unit.
    */
-  /*@Override public void unparseSqlIntervalLiteral(
+  @Override public void unparseSqlIntervalLiteral(
       SqlWriter writer, SqlIntervalLiteral literal, int leftPrec, int rightPrec) {
     SqlIntervalLiteral.IntervalValue interval =
         (SqlIntervalLiteral.IntervalValue) literal.getValue();
@@ -555,7 +555,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
   }
-*/
+
   @Override public void unparseSqlIntervalQualifier(
       SqlWriter writer, SqlIntervalQualifier qualifier, RelDataTypeSystem typeSystem) {
     final String start = validate(qualifier.timeUnitRange.startUnit).name();

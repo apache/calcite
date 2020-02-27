@@ -966,7 +966,7 @@ public class RelToSqlConverter extends SqlImplementor
         if (dialect.getConformance().isDollarSupportedinAlias()) {
           node = as(node, name);
         }
-      }else{
+      } else {
         node = as(node, name);
       }
     }

@@ -16,19 +16,23 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.regex.Pattern;
+
 
 /**
  * This class is specific to BigQuery, Hive and Spark.
@@ -40,10 +44,11 @@ public class ToNumberUtils {
 
   private static void handleCasting(
       SqlWriter writer, SqlCall call, int leftPrec, int rightPrec,
-      SqlTypeName sqlTypeName) {
-    SqlNode[] extractNodeOperands = new SqlNode[]{call.operand(0), new SqlDataTypeSpec(new
-        SqlBasicTypeNameSpec(sqlTypeName, SqlParserPos.ZERO),
-        SqlParserPos.ZERO)};
+      SqlTypeName sqlTypeName, SqlDialect sqlDialect) {
+    SqlNode[] extractNodeOperands = new SqlNode[]{
+        call.operand(0),
+        sqlDialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, sqlTypeName))
+    };
     SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
         extractNodeOperands, SqlParserPos.ZERO);
 
@@ -56,22 +61,25 @@ public class ToNumberUtils {
       firstOperand = "-" + firstOperand;
     }
 
-    SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
-        SqlParserPos.ZERO)};
+    SqlNode[] sqlNode = new SqlNode[]{
+        SqlLiteral.createCharString(firstOperand.trim(),
+            SqlParserPos.ZERO)
+    };
     call.setOperand(0, sqlNode[0]);
   }
 
   public static boolean handleIfOperandIsNull(
-      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+      SqlWriter writer, SqlCall call, int leftPrec, int rightPrec, SqlDialect sqlDialect) {
     if (call.operand(0).toString().equalsIgnoreCase("null")
         || (call.getOperandList().size() == 2 && call.operand(1).toString().equalsIgnoreCase
         ("null"))) {
 
-      SqlNode[] extractNodeOperands = new SqlNode[]{new SqlDataTypeSpec(new
-          SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
-          SqlParserPos.ZERO), new SqlDataTypeSpec(new
-          SqlBasicTypeNameSpec(SqlTypeName.INTEGER, SqlParserPos.ZERO),
-          SqlParserPos.ZERO)};
+      SqlNode[] extractNodeOperands = new SqlNode[]{
+          new SqlDataTypeSpec(new
+              SqlBasicTypeNameSpec(SqlTypeName.NULL, SqlParserPos.ZERO),
+              SqlParserPos.ZERO),
+          sqlDialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.INTEGER))
+      };
 
       SqlCall extractCallCast = new SqlBasicCall(SqlStdOperatorTable.CAST,
           extractNodeOperands, SqlParserPos.ZERO);
@@ -85,25 +93,27 @@ public class ToNumberUtils {
   public static void handleToNumber(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     switch (call.getOperandList().size()) {
     case 1:
-      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec)) {
+      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec, writer.getDialect())) {
         return;
       }
       if (call.operand(0) instanceof SqlCharStringLiteral && Pattern.matches("['.-[0-9]]+", call
           .operand(0).toString())) {
         String regEx1 = "[',]+";
         String firstOperand = call.operand(0).toString().replaceAll(regEx1, "");
-        SqlNode[] sqlNode = new SqlNode[]{SqlLiteral.createCharString(firstOperand.trim(),
-            SqlParserPos.ZERO)};
+        SqlNode[] sqlNode = new SqlNode[]{
+            SqlLiteral.createCharString(firstOperand.trim(),
+                SqlParserPos.ZERO)
+        };
         call.setOperand(0, sqlNode[0]);
       }
 
       SqlTypeName sqlTypeName = call.operand(0).toString().contains(".")
           ? SqlTypeName.FLOAT : SqlTypeName.INTEGER;
-      handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName);
+      handleCasting(writer, call, leftPrec, rightPrec, sqlTypeName, writer.getDialect());
 
       break;
     case 2:
-      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec)) {
+      if (handleIfOperandIsNull(writer, call, leftPrec, rightPrec, writer.getDialect())) {
         return;
       }
       if (Pattern.matches("^'[Xx]+'", call.operand(1).toString())) {
@@ -111,17 +121,19 @@ public class ToNumberUtils {
         if (!writer.getDialect().getConformance().toString().equals("BIG_QUERY")) {
           throw new UnsupportedOperationException();
         }
-        SqlNode[] sqlNodes = new SqlNode[]{SqlLiteral.createCharString("0x",
-            SqlParserPos.ZERO), call.operand(0)};
+        SqlNode[] sqlNodes = new SqlNode[]{
+            SqlLiteral.createCharString("0x",
+                SqlParserPos.ZERO), call.operand(0)
+        };
         SqlCall extractCall = new SqlBasicCall(SqlStdOperatorTable.CONCAT, sqlNodes,
             SqlParserPos.ZERO);
         call.setOperand(0, extractCall);
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
+        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER, writer.getDialect());
 
       } else if (call.operand(0).toString().contains(".")) {
         String regEx = "[-',]+";
         handleNegativeValue(call, regEx);
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.FLOAT);
+        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.FLOAT, writer.getDialect());
       } else {
         String regEx = "[-',$]+";
         if (call.operand(1).toString().contains("C")) {
@@ -133,7 +145,7 @@ public class ToNumberUtils {
             && call.operand(1).toString().contains("E")
             ? SqlTypeName.DECIMAL : SqlTypeName.INTEGER;
 
-        handleCasting(writer, call, leftPrec, rightPrec, sqlType);
+        handleCasting(writer, call, leftPrec, rightPrec, sqlType, writer.getDialect());
       }
       break;
     case 3:
@@ -148,11 +160,12 @@ public class ToNumberUtils {
             SqlLiteral.createCharString(call.operand(0).toString().replaceAll("[']+", "")
                     .substring(lengthOfFirstArgument, call.operand(0)
                         .toString().replaceAll("[']+", "").length()),
-                call.operand(1).getParserPosition())};
+                call.operand(1).getParserPosition())
+        };
 
         call.setOperand(0, sqlNodes[0]);
 
-        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER);
+        handleCasting(writer, call, leftPrec, rightPrec, SqlTypeName.INTEGER, writer.getDialect());
       }
       break;
     default:
