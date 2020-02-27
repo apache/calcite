@@ -267,6 +267,25 @@ public class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test public void testDigestOfApproximateDistinctAggregateCall() {
+    HepProgram preProgram = new HepProgramBuilder()
+            .build();
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    hepPlanner.addRule(AggregateProjectMergeRule.INSTANCE);
+
+    final String sql = "select *\n"
+            + "from (\n"
+            + "select deptno, count(distinct empno) from emp group by deptno\n"
+            + "union all\n"
+            + "select deptno, approx_count_distinct(empno) from emp group by deptno)";
+    sql(sql).withPre(preProgram)
+            .with(hepPlanner)
+            .check();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1479">[CALCITE-1479]
    * AssertionError in ReduceExpressionsRule on multi-column IN
