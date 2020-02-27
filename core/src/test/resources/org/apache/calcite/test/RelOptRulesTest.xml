@@ -164,6 +164,37 @@ LogicalProject(SAL=[$5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDigestOfApproximateDistinctAggregateCall">
+        <Resource name="sql">
+            <![CDATA[select *
+from (
+select deptno, count(distinct empno) from emp group by deptno
+union all
+select deptno, approx_count_distinct(empno) from emp group by deptno)]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{7}], EXPR$1=[APPROX_COUNT_DISTINCT($0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
+  LogicalUnion(all=[true])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalAggregate(group=[{0}], EXPR$1=[APPROX_COUNT_DISTINCT($1)])
+      LogicalProject(DEPTNO=[$7], EMPNO=[$0])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceOrCaseWhen">
         <Resource name="sql">
             <![CDATA[select sal

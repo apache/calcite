@@ -22,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.mapping.Mapping;
@@ -292,9 +293,15 @@ public class AggregateCall {
   }
 
   public String toString() {
-    StringBuilder buf = new StringBuilder(aggFunction.toString());
+    StringBuilder buf = new StringBuilder();
+    // currently approximate = true is only for 'APPROX_COUNT_DISTINCT'
+    if (approximate && distinct) {
+      buf.append("APPROX_COUNT_DISTINCT");
+    } else {
+      buf.append(aggFunction.toString());
+    }
     buf.append("(");
-    if (distinct) {
+    if (distinct && !approximate) {
       buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");
     }
     int i = -1;
