@@ -40,12 +40,12 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   /**
    * The map for out-edges.
    */
-  final Map<V, VertexInfo<V, E>> vertexOutMap = new LinkedHashMap<>();
+  final Map<V, List<E>> vertexOutMap = new LinkedHashMap<>();
 
   /**
    * The map for in-edges.
    */
-  final Map<V, VertexInfo<V, E>> vertexInMap = new LinkedHashMap<>();
+  final Map<V, List<E>> vertexInMap = new LinkedHashMap<>();
 
   final EdgeFactory<V, E> edgeFactory;
 
@@ -89,10 +89,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   public boolean addVertex(V vertex) {
     if (vertexOutMap.containsKey(vertex)) {
+      assert vertexInMap.containsKey(vertex);
       return false;
     } else {
-      vertexOutMap.put(vertex, new VertexInfo<>());
-      vertexInMap.put(vertex, new VertexInfo<>());
+      vertexOutMap.put(vertex, new ArrayList<>());
+      vertexInMap.put(vertex, new ArrayList<>());
       return true;
     }
   }
@@ -102,18 +103,18 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public E addEdge(V vertex, V targetVertex) {
-    final VertexInfo<V, E> outInfo = vertexOutMap.get(vertex);
-    if (outInfo == null) {
+    final List<E> outEdges = vertexOutMap.get(vertex);
+    if (outEdges == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
     }
-    final VertexInfo<V, E> inInfo = vertexInMap.get(targetVertex);
-    if (inInfo == null) {
+    final List<E> inEdges = vertexInMap.get(targetVertex);
+    if (inEdges == null) {
       throw new IllegalArgumentException("no vertex " + targetVertex);
     }
     final E edge = edgeFactory.createEdge(vertex, targetVertex);
     if (edges.add(edge)) {
-      outInfo.edges.add(edge);
-      inInfo.edges.add(edge);
+      outEdges.add(edge);
+      inEdges.add(edge);
       return edge;
     } else {
       return null;
@@ -122,8 +123,8 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   public E getEdge(V source, V target) {
     // REVIEW: could instead use edges.get(new DefaultEdge(source, target))
-    final VertexInfo<V, E> info = vertexOutMap.get(source);
-    for (E outEdge : info.edges) {
+    final List<E> outEdges = vertexOutMap.get(source);
+    for (E outEdge : outEdges) {
       if (outEdge.target.equals(target)) {
         return outEdge;
       }
@@ -133,8 +134,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   public boolean removeEdge(V source, V target) {
     // remove out edges
-    final VertexInfo<V, E> outInfo = vertexOutMap.get(source);
-    List<E> outEdges = outInfo.edges;
+    final List<E> outEdges = vertexOutMap.get(source);
     boolean outRemoved = false;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
       E edge = outEdges.get(i);
@@ -147,8 +147,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
 
     // remove in edges
-    final VertexInfo<V, E> inInfo = vertexInMap.get(target);
-    List<E> inEdges = inInfo.edges;
+    final List<E> inEdges = vertexInMap.get(target);
     boolean inRemoved = false;
     for (int i = 0, size = inEdges.size(); i < size; i++) {
       E edge = inEdges.get(i);
@@ -169,25 +168,25 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   public void removeAllVertices(Collection<V> collection) {
     // remove out edges
     vertexOutMap.keySet().removeAll(collection);
-    for (VertexInfo<V, E> info : vertexOutMap.values()) {
+    for (List<E> edges : vertexOutMap.values()) {
       //noinspection SuspiciousMethodCalls
-      info.edges.removeIf(next -> collection.contains(next.target));
+      edges.removeIf(next -> collection.contains(next.target));
     }
 
     // remove in edges
     vertexInMap.keySet().removeAll(collection);
-    for (VertexInfo<V, E> info : vertexInMap.values()) {
+    for (List<E> edges : vertexInMap.values()) {
       //noinspection SuspiciousMethodCalls
-      info.edges.removeIf(next -> collection.contains(next.source));
+      edges.removeIf(next -> collection.contains(next.source));
     }
   }
 
   public List<E> getOutwardEdges(V source) {
-    return vertexOutMap.get(source).edges;
+    return vertexOutMap.get(source);
   }
 
   public List<E> getInwardEdges(V target) {
-    return vertexInMap.get(target).edges;
+    return vertexInMap.get(target);
   }
 
   final V source(E edge) {
@@ -198,15 +197,5 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   final V target(E edge) {
     //noinspection unchecked
     return (V) edge.target;
-  }
-
-  /**
-   * Information about a vertex.
-   *
-   * @param <V> Vertex type
-   * @param <E> Edge type
-   */
-  static class VertexInfo<V, E> {
-    public List<E> edges = new ArrayList<>();
   }
 }
