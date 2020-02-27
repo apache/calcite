@@ -139,6 +139,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
 
@@ -516,7 +517,8 @@ public class JdbcTest {
   @Test public void testTableMacroWithNamedParameters() throws Exception {
     // View(String r optional, String s, int t optional)
     final CalciteAssert.AssertThat with =
-        assertWithMacro(Smalls.TableMacroFunctionWithNamedParameters.class);
+        assertWithMacro(Smalls.TableMacroFunctionWithNamedParameters.class,
+            Smalls.AnotherTableMacroFunctionWithNamedParameters.class);
     with.query("select * from table(\"adhoc\".\"View\"('(5)'))")
         .throws_("No match found for function signature View(<CHARACTER>)");
     final String expected1 = "c=1\n"
@@ -541,6 +543,8 @@ public class JdbcTest {
     with.query("select * from table(\"adhoc\".\"View\"(t=>'5', s=>'6'))")
         .returns(expected3);
     with.query("select * from table(\"adhoc\".\"View\"(t=>5, s=>'6'))")
+        .returns(expected3);
+    with.query("select * from table(\"adhoc\".\"View\"(s=>'6', t=>5))")
         .returns(expected3);
   }
 
@@ -568,7 +572,17 @@ public class JdbcTest {
     checkTableFunctionInModel(Smalls.TestStaticTableFunction.class);
   }
 
-  private CalciteAssert.AssertThat assertWithMacro(Class clazz) {
+  private CalciteAssert.AssertThat assertWithMacro(Class<?>... clazz) {
+    String delimiter = ""
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'View',\n"
+        + "           className: '";
+    String functions = Arrays.stream(clazz)
+        .map(Class::getName)
+        .collect(Collectors.joining(delimiter));
+
     return CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
         + "   schemas: [\n"
@@ -577,7 +591,9 @@ public class JdbcTest {
         + "       functions: [\n"
         + "         {\n"
         + "           name: 'View',\n"
-        + "           className: '" + clazz.getName() + "'\n"
+        + "           className: '"
+        + functions
+        + "'\n"
         + "         }\n"
         + "       ]\n"
         + "     }\n"
@@ -585,7 +601,7 @@ public class JdbcTest {
         + "}");
   }
 
-  private void checkTableMacroInModel(Class clazz) {
+  private void checkTableMacroInModel(Class<?> clazz) {
     assertWithMacro(clazz)
         .query("select * from table(\"adhoc\".\"View\"('(30)'))")
         .returns(""
@@ -594,7 +610,7 @@ public class JdbcTest {
             + "c=30\n");
   }
 
-  private void checkTableFunctionInModel(Class clazz) {
+  private void checkTableFunctionInModel(Class<?> clazz) {
     checkTableMacroInModel(clazz);
 
     assertWithMacro(clazz)

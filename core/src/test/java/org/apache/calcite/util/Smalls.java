@@ -843,6 +843,30 @@ public class Smalls {
     }
   }
 
+  /** User-defined table-macro function with named and optional parameters. */
+  public static class AnotherTableMacroFunctionWithNamedParameters {
+    public TranslatableTable eval(
+        @Parameter(name = "R", optional = true) String r,
+        @Parameter(name = "S") String s,
+        @Parameter(name = "T", optional = true) Integer t,
+        @Parameter(name = "S2", optional = true) String s2) {
+      final StringBuilder sb = new StringBuilder();
+      abc(sb, r);
+      abc(sb, s);
+      abc(sb, t);
+      return view(sb.toString());
+    }
+
+    private void abc(StringBuilder sb, Object s) {
+      if (s != null) {
+        if (sb.length() > 0) {
+          sb.append(", ");
+        }
+        sb.append('(').append(s).append(')');
+      }
+    }
+  }
+
   /** A table function that returns a {@link QueryableTable}. */
   public static class SimpleTableFunction {
     public QueryableTable eval(Integer s) {
