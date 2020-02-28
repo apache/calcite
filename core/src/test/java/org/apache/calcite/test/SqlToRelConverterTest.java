@@ -35,7 +35,9 @@ import org.apache.calcite.rel.externalize.RelXmlWriter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlDelegatingConformance;
@@ -3676,6 +3678,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   @Test public void testCoalesceOnNullableField() {
     final String sql = "select coalesce(mgr, 0) from emp";
     sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3826">[CALCITE-3826]
+   * UPDATE assigns wrong type to bind variables</a>.
+   */
+  @Test public void testDynamicParamTypesInUpdate() {
+    RelNode rel = tester.convertSqlToRel("update emp set sal = ?, ename = ? where empno = ?").rel;
+    LogicalTableModify modify = (LogicalTableModify) rel;
+    List<RexNode> parameters = modify.getSourceExpressionList();
+    assertThat(parameters.size(), is(2));
+    assertThat(parameters.get(0).getType().getSqlTypeName(), is(SqlTypeName.INTEGER));
+    assertThat(parameters.get(1).getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
   }
 
   /**

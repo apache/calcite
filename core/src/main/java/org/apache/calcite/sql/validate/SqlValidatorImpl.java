@@ -4235,8 +4235,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     final Set<String> aliases = new HashSet<>();
     final List<Map.Entry<String, RelDataType>> fieldList = new ArrayList<>();
 
-    for (int i = 0; i < selectItems.size(); i++) {
-      SqlNode selectItem = selectItems.get(i);
+    for (SqlNode selectItem : selectItems) {
       if (selectItem instanceof SqlSelect) {
         handleScalarSubQuery(
             select,
@@ -4245,13 +4244,18 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
             aliases,
             fieldList);
       } else {
+        // Use the field list size to record the field index
+        // because the select item may be a STAR(*), which could have been expanded.
+        final int fieldIdx = fieldList.size();
+        final RelDataType fieldType =
+                targetRowType.isStruct()
+                        && targetRowType.getFieldCount() > fieldIdx
+                ? targetRowType.getFieldList().get(fieldIdx).getType()
+                : unknownType;
         expandSelectItem(
             selectItem,
             select,
-            targetRowType.isStruct()
-                && targetRowType.getFieldCount() > i
-                ? targetRowType.getFieldList().get(i).getType()
-                : unknownType,
+            fieldType,
             expandedSelectItems,
             aliases,
             fieldList,
