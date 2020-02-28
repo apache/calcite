@@ -292,15 +292,12 @@ public class AggregateCall {
   }
 
   public String toString() {
-    StringBuilder buf = new StringBuilder();
-    // currently approximate = true is only for 'APPROX_COUNT_DISTINCT'
-    if (approximate && distinct) {
-      buf.append("APPROX_COUNT_DISTINCT");
-    } else {
-      buf.append(aggFunction.toString());
-    }
+    StringBuilder buf = new StringBuilder(aggFunction.toString());
     buf.append("(");
-    if (distinct && !approximate) {
+    if (approximate) {
+      buf.append("APPROXIMATE ");
+    }
+    if (distinct) {
       buf.append((argList.size() == 0) ? "DISTINCT" : "DISTINCT ");
     }
     int i = -1;

@@ -178,7 +178,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalUnion(all=[true])
     LogicalAggregate(group=[{7}], EXPR$1=[COUNT(DISTINCT $0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{7}], EXPR$1=[APPROX_COUNT_DISTINCT($0)])
+    LogicalAggregate(group=[{7}], EXPR$1=[COUNT(APPROXIMATE DISTINCT $0)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -189,7 +189,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
     LogicalAggregate(group=[{0}], EXPR$1=[COUNT(DISTINCT $1)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
-    LogicalAggregate(group=[{0}], EXPR$1=[APPROX_COUNT_DISTINCT($1)])
+    LogicalAggregate(group=[{0}], EXPR$1=[COUNT(APPROXIMATE DISTINCT $1)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
