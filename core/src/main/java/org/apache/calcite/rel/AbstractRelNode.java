@@ -402,7 +402,7 @@ public abstract class AbstractRelNode implements RelNode {
    * (e.g. visitors, planner) can define the identity as meets their needs.
    */
   @Override public final int hashCode() {
-    return super.hashCode();
+    return this.id ^ (this.id << 16);
   }
 
   /**
