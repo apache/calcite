@@ -2720,12 +2720,12 @@ public class JdbcTest {
             + "from \"hr\".\"emps\"\n"
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
-            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t2], deptno=[$t0], name=[$t1])\n"
-            + "  EnumerableHashJoin(condition=[=($0, $3)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])\n"
+            + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t0], deptno=[$t2], name=[$t3])\n"
+            + "  EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])\n"
             + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, emps]])")
+            + "      EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "      EnumerableTableScan(table=[[hr, depts]])")
         .returns("empid=100; deptno=10; name=Sales\n"
             + "empid=150; deptno=10; name=Sales\n"
             + "empid=110; deptno=10; name=Sales\n");

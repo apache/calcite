@@ -17,8 +17,6 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelTrait;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Litmus;
 
