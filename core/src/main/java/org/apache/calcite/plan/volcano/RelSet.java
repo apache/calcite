@@ -337,7 +337,6 @@ class RelSet {
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
-      planner.ruleQueue.subsetImportances.remove(otherSubset);
       RelSubset subset =
           getOrCreateSubset(
               otherSubset.getCluster(),

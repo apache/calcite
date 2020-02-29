@@ -32,10 +32,7 @@ import java.util.Map;
 class VolcanoRuleMatch extends VolcanoRuleCall {
   //~ Instance fields --------------------------------------------------------
 
-  private final RelSet targetSet;
-  private RelSubset targetSubset;
   private String digest;
-  private double cachedImportance = Double.NaN;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -52,10 +49,6 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
     super(volcanoPlanner, operand0, rels.clone(), nodeInputs);
     assert allNotNull(rels, Litmus.THROW);
 
-    // Try to deduce which subset the result will belong to. Assume --
-    // for now -- that the set is the same as the root relexp.
-    targetSet = volcanoPlanner.getSet(rels[0]);
-    assert targetSet != null : rels[0].toString() + " isn't in a set";
     digest = computeDigest();
   }
 
@@ -63,72 +56,6 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
 
   public String toString() {
     return digest;
-  }
-
-  /**
-   * Clears the cached importance value of this rule match. The importance
-   * will be re-calculated next time {@link #getImportance()} is called.
-   */
-  void clearCachedImportance() {
-    cachedImportance = Double.NaN;
-  }
-
-  /**
-   * Returns the importance of this rule.
-   *
-   * <p>Calls {@link #computeImportance()} the first time, thereafter uses a
-   * cached value until {@link #clearCachedImportance()} is called.
-   *
-   * @return importance of this rule; a value between 0 and 1
-   */
-  double getImportance() {
-    if (Double.isNaN(cachedImportance)) {
-      cachedImportance = computeImportance();
-    }
-
-    return cachedImportance;
-  }
-
-  /**
-   * Computes the importance of this rule match.
-   *
-   * @return importance of this rule match
-   */
-  double computeImportance() {
-    assert rels[0] != null;
-    RelSubset subset = volcanoPlanner.getSubset(rels[0]);
-    double importance = 0;
-    if (subset != null) {
-      importance = volcanoPlanner.ruleQueue.getImportance(subset);
-    }
-    final RelSubset targetSubset = guessSubset();
-    if ((targetSubset != null) && (targetSubset != subset)) {
-      // If this rule will generate a member of an equivalence class
-      // which is more important, use that importance.
-      final double targetImportance =
-          volcanoPlanner.ruleQueue.getImportance(targetSubset);
-      if (targetImportance > importance) {
-        importance = targetImportance;
-
-        // If the equivalence class is cheaper than the target, bump up
-        // the importance of the rule. A converter is an easy way to
-        // make the plan cheaper, so we'd hate to miss this opportunity.
-        //
-        // REVIEW: jhyde, 2007/12/21: This rule seems to make sense, but
-        // is disabled until it has been proven.
-        //
-        // CHECKSTYLE: IGNORE 3
-        if ((subset != null)
-            && subset.bestCost.isLt(targetSubset.bestCost)
-            && false) {
-          importance *=
-              targetSubset.bestCost.divideBy(subset.bestCost);
-          importance = Math.min(importance, 0.99);
-        }
-      }
-    }
-
-    return importance;
   }
 
   /**
@@ -156,32 +83,6 @@ class VolcanoRuleMatch extends VolcanoRuleCall {
   @Deprecated // to be removed before 2.0
   public void recomputeDigest() {
     digest = computeDigest();
-  }
-
-  /**
-   * Returns a guess as to which subset (that is equivalence class of
-   * relational expressions combined with a set of physical traits) the result
-   * of this rule will belong to.
-   *
-   * @return expected subset, or null if we cannot guess
-   */
-  private RelSubset guessSubset() {
-    if (targetSubset != null) {
-      return targetSubset;
-    }
-    final RelTrait targetTrait = getRule().getOutTrait();
-    if ((targetSet != null) && (targetTrait != null)) {
-      final RelTraitSet targetTraitSet =
-          rels[0].getTraitSet().replace(targetTrait);
-
-      // Find the subset in the target set which matches the expected
-      // set of traits. It may not exist yet.
-      targetSubset = targetSet.getSubset(targetTraitSet);
-      return targetSubset;
-    }
-
-    // The target subset doesn't exist yet.
-    return null;
   }
 
   /** Returns whether all elements of a given array are not-null;

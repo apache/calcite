@@ -366,8 +366,7 @@ public class RelSubset extends AbstractRelNode {
         // since best was changed, cached metadata for this subset should be removed
         mq.clearCache(this);
 
-        // Recompute subset's importance and propagate cost change to parents
-        planner.ruleQueue.recompute(this);
+        // Propagate cost change to parents
         for (RelNode parent : getParents()) {
           // removes parent cached metadata since its input was changed
           mq.clearCache(parent);
@@ -383,18 +382,6 @@ public class RelSubset extends AbstractRelNode {
       }
     } finally {
       activeSet.remove(this);
-    }
-  }
-
-  public void propagateBoostRemoval(VolcanoPlanner planner) {
-    planner.ruleQueue.recompute(this);
-
-    if (boosted) {
-      boosted = false;
-
-      for (RelSubset parentSubset : getParentSubsets(planner)) {
-        parentSubset.propagateBoostRemoval(planner);
-      }
     }
   }
 
