@@ -928,11 +928,11 @@ public class LatticeTest {
         + "join \"time_by_day\" using (\"time_id\")\n";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
         + "  JdbcAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-        + "    JdbcJoin(condition=[=($1, $0)], joinType=[inner])\n"
-        + "      JdbcProject(time_id=[$0])\n"
-        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+        + "    JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
         + "      JdbcProject(time_id=[$1])\n"
-        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n";
+        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+        + "      JdbcProject(time_id=[$0])\n"
+        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n";
     CalciteAssert.model(model)
         .withDefaultSchema("foodmart")
         .query(sql)

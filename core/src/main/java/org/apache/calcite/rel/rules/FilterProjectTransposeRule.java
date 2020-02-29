@@ -27,6 +27,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexUtil;
@@ -45,17 +47,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
-   * <p>It matches any kind of {@link org.apache.calcite.rel.core.Join} or
-   * {@link org.apache.calcite.rel.core.Filter}, and generates the same kind of
-   * Join and Filter.
-   *
    * <p>It does not allow a Filter to be pushed past the Project if
    * {@link RexUtil#containsCorrelation there is a correlation condition})
    * anywhere in the Filter, since in some cases it can prevent a
    * {@link org.apache.calcite.rel.core.Correlate} from being de-correlated.
    */
   public static final FilterProjectTransposeRule INSTANCE =
-      new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
+      new FilterProjectTransposeRule(LogicalFilter.class, LogicalProject.class, true, true,
           RelFactories.LOGICAL_BUILDER);
 
   private final boolean copyFilter;

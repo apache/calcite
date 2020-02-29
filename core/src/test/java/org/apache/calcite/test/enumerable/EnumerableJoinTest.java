@@ -207,14 +207,14 @@ public class EnumerableJoinTest {
                 builder.alias(builder.field(1, "depts", "deptno"), "d_deptno"))
             .build())
         .explainHookMatches("" // It is important that we have MergeJoin in the plan
-            + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[10], expr#6=[*($t5, $t0)], expr#7=[>($t2, $t6)], empid=[$t2], name=[$t4], dept_name=[$t1], e_deptno=[$t3], d_deptno=[$t0], $condition=[$t7])\n"
-            + "  EnumerableMergeJoin(condition=[=($0, $3)], joinType=[inner])\n"
-            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "        EnumerableTableScan(table=[[s, depts]])\n"
+            + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[10], expr#6=[*($t5, $t3)], expr#7=[>($t0, $t6)], empid=[$t0], name=[$t2], dept_name=[$t4], e_deptno=[$t1], d_deptno=[$t3], $condition=[$t7])\n"
+            + "  EnumerableMergeJoin(condition=[=($1, $3)], joinType=[inner])\n"
             + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
             + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])\n"
-            + "        EnumerableTableScan(table=[[s, emps]])\n")
+            + "        EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "        EnumerableTableScan(table=[[s, depts]])\n")
         .returnsUnordered(""
             + "empid=110; name=Theodore; dept_name=Sales; e_deptno=10; d_deptno=10\n"
             + "empid=150; name=Sebastian; dept_name=Sales; e_deptno=10; d_deptno=10");
@@ -281,17 +281,17 @@ public class EnumerableJoinTest {
             + "    EnumerableCalc(expr#0..4=[{inputs}], expr#5=[2], expr#6=[=($t0, $t5)], empid=[$t0], name=[$t2], $condition=[$t6])\n"
             + "      EnumerableTableScan(table=[[s, emps]])\n"
             + "  EnumerableTableSpool(readType=[LAZY], writeType=[LAZY], table=[[#DELTA#]])\n"
-            + "    EnumerableCalc(expr#0..8=[{inputs}], empid=[$t0], name=[$t2])\n"
-            + "      EnumerableMergeJoin(condition=[=($0, $8)], joinType=[inner])\n"
-            + "        EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "          EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableCalc(expr#0..8=[{inputs}], empid=[$t4], name=[$t6])\n"
+            + "      EnumerableMergeJoin(condition=[=($3, $4)], joinType=[inner])\n"
             + "        EnumerableSort(sort0=[$3], dir0=[ASC])\n"
             + "          EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])\n"
             + "            EnumerableSort(sort0=[$0], dir0=[ASC])\n"
             + "              EnumerableInterpreter\n"
             + "                BindableTableScan(table=[[#DELTA#]])\n"
             + "            EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "              EnumerableTableScan(table=[[s, hierarchies]])\n")
+            + "              EnumerableTableScan(table=[[s, hierarchies]])\n"
+            + "        EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "          EnumerableTableScan(table=[[s, emps]])\n")
         .returnsUnordered(""
             + "empid=2; name=Emp2\n"
             + "empid=3; name=Emp3\n"

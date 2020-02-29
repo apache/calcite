@@ -431,14 +431,14 @@ join (
   from "hr"."emps"
   window w as (partition by "deptno" order by "commission")) b
 on a."deptno" = b."deptno"
-limit 5;
+order by "deptno", ar, br limit 5;
 
 +--------+-----+-----+
 | deptno | AR  | BR  |
 +--------+-----+-----+
 |     10 | 110 | 100 |
-|     10 | 110 | 110 |
-|     20 | 200 | 200 |
+|     10 | 110 | 100 |
+|     10 | 110 | 100 |
 |     10 | 110 | 110 |
 |     10 | 110 | 110 |
 +--------+-----+-----+

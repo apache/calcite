@@ -166,8 +166,8 @@ public class SparkAdapterTest {
         + "order by x asc";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):CHAR(1) NOT NULL], expr#6=[CAST($t2):CHAR(1) NOT NULL], expr#7=[CAST($t3):BIGINT NOT NULL], X=[$t0], MIN_Y=[$t5], MAX_Y=[$t6], CNT_Y=[$t7], CNT_DIST_Y=[$t4])\n"
-        + "  EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+        + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):CHAR(1) NOT NULL], expr#6=[CAST($t2):CHAR(1) NOT NULL], expr#7=[CAST($t3):BIGINT NOT NULL], X=[$t0], MIN_Y=[$t5], MAX_Y=[$t6], CNT_Y=[$t7], CNT_DIST_Y=[$t4])\n"
         + "    EnumerableAggregate(group=[{0}], MIN_Y=[MIN($2) FILTER $6], MAX_Y=[MIN($3) FILTER $6], CNT_Y=[MIN($4) FILTER $6], CNT_DIST_Y=[COUNT($1) FILTER $5])\n"
         + "      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])\n"
         + "        EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($0, $1)])\n"
@@ -188,8 +188,8 @@ public class SparkAdapterTest {
         + "order by x desc";
 
     final String plan = "PLAN="
-        + "EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):CHAR(1) NOT NULL], expr#6=[CAST($t2):CHAR(1) NOT NULL], expr#7=[CAST($t3):BIGINT NOT NULL], X=[$t0], MIN_Y=[$t5], MAX_Y=[$t6], CNT_Y=[$t7], CNT_DIST_Y=[$t4])\n"
-        + "  EnumerableSort(sort0=[$0], dir0=[DESC])\n"
+        + "EnumerableSort(sort0=[$0], dir0=[DESC])\n"
+        + "  EnumerableCalc(expr#0..4=[{inputs}], expr#5=[CAST($t1):CHAR(1) NOT NULL], expr#6=[CAST($t2):CHAR(1) NOT NULL], expr#7=[CAST($t3):BIGINT NOT NULL], X=[$t0], MIN_Y=[$t5], MAX_Y=[$t6], CNT_Y=[$t7], CNT_DIST_Y=[$t4])\n"
         + "    EnumerableAggregate(group=[{0}], MIN_Y=[MIN($2) FILTER $6], MAX_Y=[MIN($3) FILTER $6], CNT_Y=[MIN($4) FILTER $6], CNT_DIST_Y=[COUNT($1) FILTER $5])\n"
         + "      EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[1], expr#9=[=($t5, $t8)], proj#0..4=[{exprs}], $g_0=[$t7], $g_1=[$t9])\n"
         + "        EnumerableAggregate(group=[{0, 1}], groups=[[{0, 1}, {0}]], MIN_Y=[MIN($1)], MAX_Y=[MAX($1)], CNT_Y=[COUNT()], $g=[GROUPING($0, $1)])\n"

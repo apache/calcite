@@ -160,20 +160,20 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.dept d\n"
             + "on e.deptno = d.deptno")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], DEPTNO=[$4], DNAME=[$1])\n"
-            + "    JdbcJoin(condition=[=($4, $0)], joinType=[inner])\n"
-            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "        JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$2], DNAME=[$4])\n"
+            + "    JdbcJoin(condition=[=($2, $3)], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "        JdbcTableScan(table=[[SCOTT, DEPT]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
-            + "\"t0\".\"DEPTNO\", \"t\".\"DNAME\"\n"
-            + "FROM (SELECT \"DEPTNO\", \"DNAME\"\n"
-            + "FROM \"SCOTT\".\"DEPT\") AS \"t\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
+            + "\"t\".\"DEPTNO\", \"t0\".\"DNAME\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" "
             + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
@@ -202,15 +202,14 @@ public class JdbcAdapterTest {
         + "group by deptno, job\n"
         + "order by 1, 2";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
-        + "  JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
-        + "    JdbcSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])\n"
+        + "  JdbcSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        + "    JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
         + "      JdbcAggregate(group=[{2, 7}], EXPR$2=[SUM($5)])\n"
         + "        JdbcTableScan(table=[[SCOTT, EMP]])";
-    final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", \"EXPR$2\"\n"
-        + "FROM (SELECT \"JOB\", \"DEPTNO\", SUM(\"SAL\") AS \"EXPR$2\"\n"
+    final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", SUM(\"SAL\")\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
         + "GROUP BY \"JOB\", \"DEPTNO\"\n"
-        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST) AS \"t0\"";
+        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)
         .explainContains(explain)
@@ -228,19 +227,19 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.salgrade s\n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
-            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], GRADE=[$3])\n"
+            + "    JdbcJoin(condition=[AND(>($2, $4), <($2, $5))], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
-            + "\"SALGRADE\".\"GRADE\"\nFROM \"SCOTT\".\"SALGRADE\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"SAL\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
-            + "ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" "
-            + "AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", \"SALGRADE\".\"GRADE\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"SAL\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN \"SCOTT\".\"SALGRADE\" "
+            + "ON \"t\".\"SAL\" > \"SALGRADE\".\"LOSAL\" "
+            + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testNonEquiJoinReverseConditionPlan() {
@@ -249,18 +248,18 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.salgrade s\n"
             + "on s.losal <= e.sal and s.hisal >= e.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(<=($1, $5), >=($2, $5))], joinType=[inner])\n"
-            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], GRADE=[$3])\n"
+            + "    JdbcJoin(condition=[AND(<=($4, $2), >=($5, $2))], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])")
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
-            + "\"SALGRADE\".\"GRADE\"\nFROM \"SCOTT\".\"SALGRADE\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"SAL\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
-            + "ON \"SALGRADE\".\"LOSAL\" <= \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" >= \"t\".\"SAL\"");
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", \"SALGRADE\".\"GRADE\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"SAL\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
+            + "INNER JOIN \"SCOTT\".\"SALGRADE\" ON \"t\".\"SAL\" >= \"SALGRADE\".\"LOSAL\" "
+            + "AND \"t\".\"SAL\" <= \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testMixedJoinPlan() {
@@ -269,21 +268,21 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.emp m on\n"
             + "e.mgr = m.empno and e.sal > m.sal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$2], ENAME=[$3], EMPNO0=[$2], ENAME0=[$3])\n"
-            + "    JdbcJoin(condition=[AND(=($4, $0), >($5, $1))], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], SAL=[$5])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], EMPNO0=[$0], ENAME0=[$1])\n"
+            + "    JdbcJoin(condition=[AND(=($2, $4), >($3, $5))], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], MGR=[$3], SAL=[$5])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], SAL=[$5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
-            + "\"t0\".\"EMPNO\" AS \"EMPNO0\", \"t0\".\"ENAME\" AS \"ENAME0\"\n"
-            + "FROM (SELECT \"EMPNO\", \"SAL\"\n"
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
+            + "\"t\".\"EMPNO\" AS \"EMPNO0\", \"t\".\"ENAME\" AS \"ENAME0\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"SAL\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
-            + "ON \"t\".\"EMPNO\" = \"t0\".\"MGR\" AND \"t\".\"SAL\" < \"t0\".\"SAL\"");
+            + "ON \"t\".\"MGR\" = \"t0\".\"EMPNO\" AND \"t\".\"SAL\" > \"t0\".\"SAL\"");
   }
 
   @Test public void testMixedJoinWithOrPlan() {
@@ -292,22 +291,22 @@ public class JdbcAdapterTest {
             + "from scott.emp e inner join scott.emp m on\n"
             + "e.mgr = m.empno and (e.sal > m.sal or m.hiredate > e.hiredate)")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], EMPNO0=[$3], ENAME0=[$4])\n"
-            + "    JdbcJoin(condition=[AND(=($5, $0), OR(>($7, $2), >($1, $6)))], joinType=[inner])\n"
-            + "      JdbcProject(EMPNO=[$0], HIREDATE=[$4], SAL=[$5])\n"
-            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], EMPNO0=[$0], ENAME0=[$1])\n"
+            + "    JdbcJoin(condition=[AND(=($2, $5), OR(>($4, $7), >($6, $3)))], joinType=[inner])\n"
             + "      JdbcProject(EMPNO=[$0], ENAME=[$1], MGR=[$3], HIREDATE=[$4], SAL=[$5])\n"
+            + "        JdbcTableScan(table=[[SCOTT, EMP]])\n"
+            + "      JdbcProject(EMPNO=[$0], HIREDATE=[$4], SAL=[$5])\n"
             + "        JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
-        .planHasSql("SELECT \"t0\".\"EMPNO\", \"t0\".\"ENAME\", "
-            + "\"t0\".\"EMPNO\" AS \"EMPNO0\", \"t0\".\"ENAME\" AS \"ENAME0\"\n"
-            + "FROM (SELECT \"EMPNO\", \"HIREDATE\", \"SAL\"\n"
+        .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
+            + "\"t\".\"EMPNO\" AS \"EMPNO0\", \"t\".\"ENAME\" AS \"ENAME0\"\n"
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"HIREDATE\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
-            + "INNER JOIN (SELECT \"EMPNO\", \"ENAME\", \"MGR\", \"HIREDATE\", \"SAL\"\n"
+            + "INNER JOIN (SELECT \"EMPNO\", \"HIREDATE\", \"SAL\"\n"
             + "FROM \"SCOTT\".\"EMP\") AS \"t0\" "
-            + "ON \"t\".\"EMPNO\" = \"t0\".\"MGR\" "
-            + "AND (\"t\".\"SAL\" < \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" > \"t0\".\"HIREDATE\")");
+            + "ON \"t\".\"MGR\" = \"t0\".\"EMPNO\" "
+            + "AND (\"t\".\"SAL\" > \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" < \"t0\".\"HIREDATE\")");
   }
 
   @Test public void testJoin3TablesPlan() {
@@ -318,24 +317,25 @@ public class JdbcAdapterTest {
             + "inner join scott.salgrade s\n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], DNAME=[$8], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
-            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DNAME=[$5], GRADE=[$6])\n"
+            + "    JdbcJoin(condition=[AND(>($2, $7), <($2, $8))], joinType=[inner])\n"
             + "      JdbcJoin(condition=[=($3, $4)], joinType=[inner])\n"
             + "        JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
             + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
             + "        JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "          JdbcTableScan(table=[[SCOTT, DEPT]])")
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
             + "\"t0\".\"DNAME\", \"SALGRADE\".\"GRADE\"\n"
-            + "FROM \"SCOTT\".\"SALGRADE\"\n"
-            + "INNER JOIN ((SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
-            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")"
-            + " ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
+            + "INNER JOIN \"SCOTT\".\"SALGRADE\" "
+            + "ON \"t\".\"SAL\" > \"SALGRADE\".\"LOSAL\" "
+            + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testCrossJoinWithJoinKeyPlan() {

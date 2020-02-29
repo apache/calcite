@@ -470,8 +470,8 @@ public class MongoAdapterTest implements SchemaFactory {
                 "{$project: {STATE: '$state', POP: '$pop'}}",
                 "{$group: {_id: '$STATE', _1: {$sum: '$POP'}, _2: {$sum: {$cond: [ {$eq: ['POP', null]}, 0, 1]}}}}",
                 "{$project: {STATE: '$_id', _1: '$_1', _2: '$_2'}}",
-                "{$sort: {STATE: 1}}",
-                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}"));
+                "{$project: {STATE: 1, A: {$divide: [{$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, '$_2']}, S: {$cond:[{$eq: ['$_2', {$literal: 0}]},null,'$_1']}, C: '$_2'}}",
+                "{$sort: {STATE: 1}}"));
   }
 
   @Test public void testGroupByHaving() {

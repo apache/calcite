@@ -557,10 +557,10 @@ select count(*) as c from "hr"."emps", "hr"."depts";
 !ok
 EnumerableAggregate(group=[{}], C=[COUNT()])
   EnumerableNestedLoopJoin(condition=[true], joinType=[inner])
-    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], DUMMY=[$t4])
-      EnumerableTableScan(table=[[hr, depts]])
     EnumerableCalc(expr#0..4=[{inputs}], expr#5=[0], DUMMY=[$t5])
       EnumerableTableScan(table=[[hr, emps]])
+    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], DUMMY=[$t4])
+      EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # [CALCITE-345] AssertionError in RexToLixTranslator comparing to date literal
