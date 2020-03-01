@@ -182,15 +182,14 @@ public class JdbcAdapterTest {
         .query("select ename\n"
             + "from scott.emp\n"
             + "order by empno")
-        .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcSort(sort0=[$1], dir0=[ASC])\n"
+        .explainContains("PLAN=EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+            + "  JdbcToEnumerableConverter\n"
             + "    JdbcProject(ENAME=[$1], EMPNO=[$0])\n"
             + "      JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"ENAME\", \"EMPNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\"\n"
-            + "ORDER BY \"EMPNO\" NULLS LAST");
+            + "FROM \"SCOTT\".\"EMP\"");
   }
 
   /** Test case for
@@ -201,16 +200,14 @@ public class JdbcAdapterTest {
         + "from \"EMP\"\n"
         + "group by deptno, job\n"
         + "order by 1, 2";
-    final String explain = "PLAN=JdbcToEnumerableConverter\n"
-        + "  JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
-        + "    JdbcSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])\n"
+    final String explain = "PLAN=EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        + "  JdbcToEnumerableConverter\n"
+        + "    JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
         + "      JdbcAggregate(group=[{2, 7}], EXPR$2=[SUM($5)])\n"
         + "        JdbcTableScan(table=[[SCOTT, EMP]])";
-    final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", \"EXPR$2\"\n"
-        + "FROM (SELECT \"JOB\", \"DEPTNO\", SUM(\"SAL\") AS \"EXPR$2\"\n"
+    final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", SUM(\"SAL\")\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
-        + "GROUP BY \"JOB\", \"DEPTNO\"\n"
-        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST) AS \"t0\"";
+        + "GROUP BY \"JOB\", \"DEPTNO\"";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)
         .explainContains(explain)
@@ -318,24 +315,25 @@ public class JdbcAdapterTest {
             + "inner join scott.salgrade s\n"
             + "on e.sal > s.losal and e.sal < s.hisal")
         .explainContains("PLAN=JdbcToEnumerableConverter\n"
-            + "  JdbcProject(EMPNO=[$3], ENAME=[$4], DNAME=[$8], GRADE=[$0])\n"
-            + "    JdbcJoin(condition=[AND(>($5, $1), <($5, $2))], joinType=[inner])\n"
-            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n"
+            + "  JdbcProject(EMPNO=[$0], ENAME=[$1], DNAME=[$5], GRADE=[$6])\n"
+            + "    JdbcJoin(condition=[AND(>($2, $7), <($2, $8))], joinType=[inner])\n"
             + "      JdbcJoin(condition=[=($3, $4)], joinType=[inner])\n"
             + "        JdbcProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7])\n"
             + "          JdbcTableScan(table=[[SCOTT, EMP]])\n"
             + "        JdbcProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "          JdbcTableScan(table=[[SCOTT, DEPT]])")
+            + "          JdbcTableScan(table=[[SCOTT, DEPT]])\n"
+            + "      JdbcTableScan(table=[[SCOTT, SALGRADE]])\n")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"t\".\"EMPNO\", \"t\".\"ENAME\", "
             + "\"t0\".\"DNAME\", \"SALGRADE\".\"GRADE\"\n"
-            + "FROM \"SCOTT\".\"SALGRADE\"\n"
-            + "INNER JOIN ((SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\") AS \"t\" "
+            + "FROM (SELECT \"EMPNO\", \"ENAME\", \"SAL\", \"DEPTNO\"\n"
+            + "FROM \"SCOTT\".\"EMP\") AS \"t\"\n"
             + "INNER JOIN (SELECT \"DEPTNO\", \"DNAME\"\n"
-            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\")"
-            + " ON \"SALGRADE\".\"LOSAL\" < \"t\".\"SAL\" AND \"SALGRADE\".\"HISAL\" > \"t\".\"SAL\"");
+            + "FROM \"SCOTT\".\"DEPT\") AS \"t0\" ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"\n"
+            + "INNER JOIN \"SCOTT\".\"SALGRADE\" "
+            + "ON \"t\".\"SAL\" > \"SALGRADE\".\"LOSAL\" "
+            + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
   @Test public void testCrossJoinWithJoinKeyPlan() {

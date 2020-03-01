@@ -677,10 +677,10 @@ public class LatticeTest {
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], "
-            + "expr#2=[1:BIGINT], expr#3=[0:BIGINT], expr#4=[CASE($t1, $t2, $t3)], C=[$t4])\n"
-            + "  EnumerableAggregate(group=[{0}])\n"
-            + "    EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
+            + "  EnumerableAggregate(group=[{0}], C=[COUNT($0)])\n"
+            + "    EnumerableAggregate(group=[{0}])\n"
+            + "      EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=1");
   }
 
@@ -928,11 +928,11 @@ public class LatticeTest {
         + "join \"time_by_day\" using (\"time_id\")\n";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
         + "  JdbcAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-        + "    JdbcJoin(condition=[=($1, $0)], joinType=[inner])\n"
-        + "      JdbcProject(time_id=[$0])\n"
-        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+        + "    JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
         + "      JdbcProject(time_id=[$1])\n"
-        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n";
+        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+        + "      JdbcProject(time_id=[$0])\n"
+        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n";
     CalciteAssert.model(model)
         .withDefaultSchema("foodmart")
         .query(sql)
