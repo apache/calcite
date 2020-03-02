@@ -3316,7 +3316,7 @@ public class RelOptRulesTest extends RelOptTestBase {
     final String planAfter = NL + RelOptUtil.toString(output);
     final DiffRepository diffRepos = getDiffRepos();
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
-    // Cannot optimize away the join because it is not equi join.
+    // Plan should be scan("EMP") (i.e. join's left child)
     diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
 

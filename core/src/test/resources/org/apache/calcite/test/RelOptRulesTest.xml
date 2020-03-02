@@ -3102,9 +3102,7 @@ LogicalProject(EMPNO=[$0])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EMPNO=[$0])
-  LogicalJoin(condition=[AND(=($7, $8), =($5, 2000))], joinType=[anti])
-    LogicalTableScan(table=[[scott, EMP]])
-    LogicalValues(tuples=[[]])
+  LogicalTableScan(table=[[scott, EMP]])
 ]]>
         </Resource>
     </TestCase>
