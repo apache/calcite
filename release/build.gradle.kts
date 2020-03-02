@@ -172,10 +172,10 @@ fun CrLfSpec.sourceLayout() = copySpec {
     }
 }
 
-for (archive in listOf(Zip::class, Tar::class)) {
+for (archive in listOf(Tar::class)) {
     val taskName = "dist${archive.simpleName}"
     val archiveTask = tasks.register(taskName, archive) {
-        val eol = if (archive == Tar::class) LineEndings.LF else LineEndings.CRLF
+        val eol = LineEndings.LF
         group = distributionGroup
         description = "Creates source distribution with $eol line endings for text files"
         if (this is Tar) {
