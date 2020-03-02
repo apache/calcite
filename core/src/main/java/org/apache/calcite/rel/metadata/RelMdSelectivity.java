@@ -19,6 +19,7 @@ package org.apache.calcite.rel.metadata;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -26,7 +27,9 @@ import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
@@ -116,6 +119,20 @@ public class RelMdSelectivity
               rel.getCondition()));
     } else {
       return mq.getSelectivity(rel.getInput(), rel.getCondition());
+    }
+  }
+
+  public Double getSelectivity(Calc rel, RelMetadataQuery mq, RexNode predicate) {
+    final RexProgram rexProgram = rel.getProgram();
+    final RexLocalRef programCondition = rexProgram.getCondition();
+    if (programCondition == null) {
+      return getSelectivity(rel.getInput(), mq, predicate);
+    } else {
+      return mq.getSelectivity(rel.getInput(),
+          RelMdUtil.minusPreds(
+              rel.getCluster().getRexBuilder(),
+              predicate,
+              rexProgram.expandLocalRef(programCondition)));
     }
   }
 
