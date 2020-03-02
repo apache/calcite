@@ -290,8 +290,7 @@ public class StreamTest {
             + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
             + "      EnumerableInterpreter\n"
             + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
-            + "    EnumerableInterpreter\n"
-            + "      BindableTableScan(table=[[STREAM_JOINS, PRODUCTS]])")
+            + "    EnumerableTableScan(table=[[STREAM_JOINS, PRODUCTS]])")
         .returns(
             startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
                 "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",

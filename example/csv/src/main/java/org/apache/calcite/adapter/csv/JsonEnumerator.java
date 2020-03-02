@@ -61,7 +61,7 @@ public class JsonEnumerator implements Enumerator<Object[]> {
    * of a JSON file. */
   static JsonDataConverter deduceRowType(RelDataTypeFactory typeFactory, Source source) {
     final ObjectMapper objectMapper = new ObjectMapper();
-    List<Object> list = new ArrayList<>();
+    List<Object> list;
     LinkedHashMap<String, Object> jsonFieldMap = new LinkedHashMap<>(1);
     Object jsonObj = null;
     try {
