@@ -50,6 +50,7 @@ public class CsvFilterableTable extends CsvTable
   }
 
   public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
+    final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final int[] fields = CsvEnumerator.identityList(fieldTypes.size());

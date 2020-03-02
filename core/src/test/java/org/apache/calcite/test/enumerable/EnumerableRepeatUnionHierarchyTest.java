@@ -18,12 +18,9 @@ package org.apache.calcite.test.enumerable;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRepeatUnion;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
-import org.apache.calcite.interpreter.Bindables;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.HierarchySchema;
@@ -35,7 +32,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -132,8 +128,6 @@ public class EnumerableRepeatUnionHierarchyTest {
     CalciteAssert.that()
         .withSchema("s", schema)
         .query("?")
-        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
-            planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE))
         .withRel(buildHierarchy(all, startIds, fromField, toField, maxDepth))
         .returnsOrdered(expected);
   }

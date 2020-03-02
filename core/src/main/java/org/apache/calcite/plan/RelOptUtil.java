@@ -2038,6 +2038,21 @@ public abstract class RelOptUtil {
         planner.addRule(rule);
       }
     }
+    // Registers this rule for default ENUMERABLE convention
+    // because:
+    // 1. ScannableTable can bind data directly;
+    // 2. Only BindableTable supports project push down now.
+
+    // EnumerableInterpreterRule.INSTANCE would then transform
+    // the BindableTableScan to
+    // EnumerableInterpreter + BindableTableScan.
+
+    // Note: the cost of EnumerableInterpreter + BindableTableScan
+    // is always bigger that EnumerableTableScan because of the additional
+    // EnumerableInterpreter node, but if there are pushing projects or filter,
+    // we prefer BindableTableScan instead,
+    // see BindableTableScan#computeSelfCost.
+    planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
     planner.addRule(ProjectTableScanRule.INSTANCE);
     planner.addRule(ProjectTableScanRule.INTERPRETER);
 

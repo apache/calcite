@@ -234,6 +234,11 @@ public class Bindables {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
+      boolean noPushing = filters.isEmpty()
+              && projects.size() == table.getRowType().getFieldCount();
+      if (noPushing) {
+        return super.computeSelfCost(planner, mq);
+      }
       // Cost factor for pushing filters
       double f = filters.isEmpty() ? 1d : 0.5d;
 
