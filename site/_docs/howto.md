@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.21.0-source.tar.gz
-$ cd calcite-1.21.0
+$ tar xvfz calcite-1.22.0-source.tar.gz
+$ cd calcite-1.22.0
 $ ./gradlew build
 {% endhighlight %}
 
@@ -506,7 +506,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.21.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.22.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.
