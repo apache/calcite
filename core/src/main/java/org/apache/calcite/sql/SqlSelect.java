@@ -16,9 +16,6 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.sql.dialect.BigQuerySqlDialect;
-import org.apache.calcite.sql.dialect.HiveSqlDialect;
-import org.apache.calcite.sql.dialect.SparkSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
@@ -221,7 +218,7 @@ public class SqlSelect extends SqlCall {
 
   // Override SqlCall, to introduce a sub-query frame.
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-    if (isSubqueryNeeded(writer)) {
+    if (!writer.inQuery()) {
       // If this SELECT is the topmost item in a sub-query, introduce a new
       // frame. (The topmost item in the sub-query might be a UNION or
       // ORDER. In this case, we don't need a wrapper frame.)
@@ -232,13 +229,6 @@ public class SqlSelect extends SqlCall {
     } else {
       writer.getDialect().unparseCall(writer, this, leftPrec, rightPrec);
     }
-  }
-
-  private boolean isSubqueryNeeded(SqlWriter writer) {
-    return !writer.inQuery() && !(writer.toSqlString().toString().startsWith("INSERT")
-      && ((writer.getDialect() instanceof BigQuerySqlDialect)
-        || (writer.getDialect() instanceof HiveSqlDialect)
-        || (writer.getDialect() instanceof SparkSqlDialect)));
   }
 
   public boolean hasOrderBy() {
