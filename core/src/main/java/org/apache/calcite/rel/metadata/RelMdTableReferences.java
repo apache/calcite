@@ -20,6 +20,7 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
@@ -197,6 +198,13 @@ public class RelMdTableReferences
    * Table references from Filter.
    */
   public Set<RelTableRef> getTableReferences(Filter rel, RelMetadataQuery mq) {
+    return mq.getTableReferences(rel.getInput());
+  }
+
+  /**
+   * Table references from Calc.
+   */
+  public Set<RelTableRef> getTableReferences(Calc rel, RelMetadataQuery mq) {
     return mq.getTableReferences(rel.getInput());
   }
 
