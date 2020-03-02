@@ -45,7 +45,7 @@ public class JsonScannableTable extends JsonTable
   public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
       public Enumerator<Object[]> enumerator() {
-        return new JsonEnumerator(list);
+        return new JsonEnumerator(getDataList(root.getTypeFactory()));
       }
     };
   }

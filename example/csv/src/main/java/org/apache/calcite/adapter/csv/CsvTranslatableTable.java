@@ -57,7 +57,11 @@ public class CsvTranslatableTable extends CsvTable
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
     return new AbstractEnumerable<Object>() {
       public Enumerator<Object> enumerator() {
-        return new CsvEnumerator<>(source, cancelFlag, fieldTypes, fields);
+        return new CsvEnumerator<>(
+            source,
+            cancelFlag,
+            getFieldTypes(root.getTypeFactory()),
+            fields);
       }
     };
   }

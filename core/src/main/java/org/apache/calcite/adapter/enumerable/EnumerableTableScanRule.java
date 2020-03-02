@@ -16,18 +16,13 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.interpreter.Bindables;
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
-import org.apache.calcite.schema.FilterableTable;
-import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.QueryableTable;
-import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -60,25 +55,10 @@ public class EnumerableTableScanRule extends ConverterRule {
     LogicalTableScan scan = (LogicalTableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
     final Table table = relOptTable.unwrap(Table.class);
-    final Expression expression = relOptTable.getExpression(Object.class);
-
-    if (table instanceof QueryableTable) {
-      return EnumerableTableScan.create(scan.getCluster(), relOptTable);
-    }
-
-    if (table instanceof ScannableTable
-        || table instanceof FilterableTable
-        || table instanceof ProjectableFilterableTable) {
-      // Transform to EnumerableInterpreter + BindableTableScan
-      // because:
-      // 1. ScannableTable can bind data directly;
-      // 2. Only BindableTable supports project push down now.
-      final Bindables.BindableTableScan bindableScan =
-          Bindables.BindableTableScan.create(rel.getCluster(), relOptTable);
-      return EnumerableInterpreter.create(bindableScan, 0.5d);
-    }
-
-    if (expression != null) {
+    // The QueryableTable can only be implemented as ENUMERABLE convention,
+    // but some test QueryableTables do not really implement the expressions,
+    // just skips the QueryableTable#getExpression invocation and returns early.
+    if (table instanceof QueryableTable || relOptTable.getExpression(Object.class) != null) {
       return EnumerableTableScan.create(scan.getCluster(), relOptTable);
     }
 
