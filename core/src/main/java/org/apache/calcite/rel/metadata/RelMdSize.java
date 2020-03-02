@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -135,6 +136,16 @@ public class RelMdSize implements MetadataHandler<BuiltInMetadata.Size> {
     for (RexNode project : rel.getProjects()) {
       sizes.add(averageRexSize(project, inputColumnSizes));
     }
+    return sizes.build();
+  }
+
+  public List<Double> averageColumnSizes(Calc rel, RelMetadataQuery mq) {
+    final List<Double> inputColumnSizes =
+        mq.getAverageColumnSizesNotNull(rel.getInput());
+    final ImmutableNullableList.Builder<Double> sizes =
+        ImmutableNullableList.builder();
+    rel.getProgram().split().left.forEach(
+        exp -> sizes.add(averageRexSize(exp, inputColumnSizes)));
     return sizes.build();
   }
 
