@@ -253,6 +253,7 @@ hintOptions:
 
 hintKVOption:
       optionName '=' stringLiteral
+  |   stringLiteral '=' stringLiteral
 
 optionValue:
       stringLiteral
@@ -2657,6 +2658,68 @@ Here are some examples:
 * `f(c => 3, d => 1, a => 0)` is equivalent to `f(0, NULL, 3, 1, NULL)`;
 * `f(c => 3, d => 1)` is not legal, because you have not specified a value for
   `a` and `a` is not optional.
+
+### SQL Hints
+
+A hint is an instruction to the optimizer. When writing SQL, you may know information about
+the data unknown to the optimizer. Hints enable you to make decisions normally made by the optimizer.
+
+* Planner enforcers: there's no perfect planner, so it makes sense to implement hints to
+allow user better control the execution. For instance: "never merge this subquery with others" (`/*+ no_merge */`);
+“treat those tables as leading ones" (`/*+ leading */`) to affect join ordering, etc;
+* Append meta data/statistics: some statistics like “table index for scan” or “skew info of some shuffle keys”
+are somehow dynamic for the query, it would be very convenient to config them with hints because
+our planning metadata from the planner is very often not very accurate;
+* Operator resource constraints: for many cases, we would give a default resource configuration
+for the execution operators,
+i.e. min parallelism, memory (resource consuming UDF), special resource requirement (GPU or SSD disk) ...
+It would be very flexible to profile the resource with hints per query (not the Job).
+
+#### Syntax
+
+Calcite supports basically two kinds of hints:
+
+* Query Hint: right after the `SELECT` keyword;
+* Table Hint: right after the referenced table name.
+
+{% highlight sql %}
+query :
+      SELECT /*+ hints */
+      ...
+      from
+          tableName /*+ hints */
+          JOIN
+          tableName /*+ hints */
+      ...
+
+hints :
+      hintItem[, hintItem ]*
+
+hintItem :
+      hintName
+  |   hintName(optionKey=optionVal[, optionKey=optionVal ]*)
+  |   hintName(hintOption [, hintOption ]*)
+
+optionKey :
+      simpleIdentifier
+  |   stringLiteral
+
+optionVal :
+      stringLiteral
+
+hintOption :
+      simpleIdentifier
+   |  numericLiteral
+   |  stringLiteral
+{% endhighlight %}
+
+It is experimental in Calcite, and yet not fully implemented, what we have implemented are:
+
+* The parser support for the syntax above;
+* `RelHint` to represent a hint item;
+* Mechanism to propagate the hints, during sql-to-rel conversion and planner planning.
+
+We do not add any builtin hint items yet, would introduce more if we think the hints is stable enough.
 
 ### MATCH_RECOGNIZE
 
