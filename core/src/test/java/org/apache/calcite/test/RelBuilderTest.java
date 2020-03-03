@@ -1081,6 +1081,28 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3839">[CALCITE-3839]
+   * After calling RelBuilder.aggregate, cannot lookup field by name</a>. */
+  @Test public void testAggregateAndThenProjectNamedField() {
+    final Function<RelBuilder, RelNode> f = builder ->
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"),
+                builder.field("SAL"))
+            .aggregate(builder.groupKey(builder.field("ENAME")),
+                builder.sum(builder.field("SAL")))
+            // Before [CALCITE-3839] was fixed, the following line gave
+            // 'field [ENAME] not found'
+            .project(builder.field("ENAME"))
+            .build();
+    final String expected = ""
+        + "LogicalProject(ENAME=[$0])\n"
+        + "  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
+        + "    LogicalProject(ENAME=[$1], SAL=[$5])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+  }
+
   /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
    * calls and creates a {@code Project} to compensate. */
   @Test public void testAggregateEliminatesDuplicateCalls() {
