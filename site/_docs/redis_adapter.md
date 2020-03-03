@@ -145,6 +145,7 @@ sqlline> Select a.DEPTNO, b.NAME from "csv_01" a left join "json_02" b on a.DEPT
 | 10     | "Sales1" |
 +--------+----------+
 1 row selected (3.304 seconds)
+{% endhighlight %}
 
 This query shows the result of the join query in a CSV format table `csv_01` and a JSON format table `json_02`.
 
@@ -171,6 +172,7 @@ sqlline> select * from "raw_02";
 | book2 |
 | book1 |
 +-------+
+{% endhighlight %}
 
 ## Example: JSON
 
@@ -178,6 +180,8 @@ The JSON format parses a Redis string value and uses the mapping to convert fiel
 
 {% highlight bash %}
 127.0.0.1:6379> LPUSH json_02 {"DEPTNO":10,"NAME":"Sales1"}
+{% endhighlight %}
+
 The schema contains mapping:
 
 {% highlight bash %}
@@ -200,6 +204,7 @@ The schema contains mapping:
      ]
    }
  }
+{% endhighlight %}
 
 {% highlight bash %}
 sqlline> select * from "json_02";
@@ -210,6 +215,7 @@ sqlline> select * from "json_02";
 | 10     | "Sales1" |
 +--------+----------+
 2 rows selected (0.014 seconds)
+{% endhighlight %}
 
 ## Example: CSV
 
@@ -217,6 +223,8 @@ The CSV format parses a Redis string value and combines the mapping in fields in
 
 {% highlight bash %}
 127.0.0.1:6379> LPUSH csv_02 "10:Sales"
+{% endhighlight %}
+
 The schema contains mapping:
 
 {% highlight bash %}
@@ -240,6 +248,7 @@ The schema contains mapping:
     ]
   }
 }
+{% endhighlight %}
 
 {% highlight bash %}
 sqlline> select * from "csv_02";
@@ -249,7 +258,6 @@ sqlline> select * from "csv_02";
 | 20     | Sales |
 | 10     | Sales |
 +--------+-------+
-
 {% endhighlight %}
 
 Future plan:
