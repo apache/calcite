@@ -154,12 +154,29 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public void removeAllVertices(Collection<V> collection) {
-    vertexMap.keySet().removeAll(collection);
-    for (VertexInfo<V, E> info : vertexMap.values()) {
-      //noinspection SuspiciousMethodCalls
-      info.outEdges.removeIf(next -> collection.contains(next.target));
-      info.inEdges.removeIf(next -> collection.contains(next.source));
+    for (V v : collection) {
+      VertexInfo<V, E> curInfo = vertexMap.get(v);
+      if (curInfo == null) {
+        continue;
+      }
+
+      // remove all edges pointing to v
+      List<E> srcEdges = curInfo.inEdges;
+      for (E srcEdge : srcEdges) {
+        V srcNode = (V) srcEdge.source;
+        VertexInfo<V, E> info = vertexMap.get(srcNode);
+        info.outEdges.removeIf(e -> e.target.equals(v));
+      }
+
+      // remove all edges starting from v
+      List<E> dstEdges = curInfo.outEdges;
+      for (E dstEdge : dstEdges) {
+        V dstNode = (V) dstEdge.target;
+        VertexInfo<V, E> info = vertexMap.get(dstNode);
+        info.inEdges.removeIf(e -> e.source.equals(v));
+      }
     }
+    vertexMap.keySet().removeAll(collection);
   }
 
   public List<E> getOutwardEdges(V source) {
