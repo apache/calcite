@@ -32,13 +32,23 @@ import org.apache.calcite.sql.validate.SqlModality;
  */
 public class SqlCollectionTableOperator extends SqlFunctionalOperator {
   private final SqlModality modality;
+  private final String aliasName;
+
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlCollectionTableOperator(String name, SqlModality modality) {
     super(name, SqlKind.COLLECTION_TABLE, 200, true, ReturnTypes.ARG0, null,
-        OperandTypes.ANY);
+            OperandTypes.ANY);
     this.modality = modality;
+    this.aliasName = null;
+  }
+
+  public SqlCollectionTableOperator(String name, SqlModality modality, String aliasName) {
+    super(name, SqlKind.COLLECTION_TABLE, 200, true, ReturnTypes.ARG0, null,
+            OperandTypes.ANY);
+    this.modality = modality;
+    this.aliasName = aliasName;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -46,6 +56,9 @@ public class SqlCollectionTableOperator extends SqlFunctionalOperator {
   public SqlModality getModality() {
     return modality;
   }
-}
 
+  public String getAliasName() {
+    return aliasName;
+  }
+}
 // End SqlCollectionTableOperator.java

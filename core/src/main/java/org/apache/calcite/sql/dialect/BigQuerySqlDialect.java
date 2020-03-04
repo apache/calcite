@@ -34,6 +34,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSetOperator;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
@@ -271,6 +272,17 @@ public class BigQuerySqlDialect extends SqlDialect {
       break;
     case OTHER_FUNCTION:
       unparseOtherFunction(writer, call, leftPrec, rightPrec);
+      break;
+    case COLLECTION_TABLE:
+      if (call.operandCount() > 1) {
+        throw new RuntimeException("Table function supports only one argument in Big Query");
+      }
+      call.operand(0).unparse(writer, leftPrec, rightPrec);
+      SqlCollectionTableOperator operator = (SqlCollectionTableOperator) call.getOperator();
+      if (operator.getAliasName() == null) {
+        throw new RuntimeException("Table function must have alias in Big Query");
+      }
+      writer.sep("as " + operator.getAliasName());
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

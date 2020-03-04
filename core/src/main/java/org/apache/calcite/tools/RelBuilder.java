@@ -391,6 +391,11 @@ public class RelBuilder {
     } else if (value instanceof Enum) {
       return rexBuilder.makeLiteral(value,
           getTypeFactory().createSqlType(SqlTypeName.SYMBOL), false);
+    } else if (value instanceof List) {
+      RelDataType arrayDataType = getTypeFactory().
+              createArrayType(getTypeFactory().createSqlType(SqlTypeName.ANY), -1);
+      return rexBuilder.makeLiteral(value,
+             arrayDataType, false);
     } else {
       throw new IllegalArgumentException("cannot convert " + value
           + " (" + value.getClass() + ") to a constant");

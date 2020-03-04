@@ -55,6 +55,7 @@ import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.test.MockSqlOperatorTable;
 import org.apache.calcite.test.RelBuilderTest;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
@@ -72,6 +73,7 @@ import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -113,6 +115,9 @@ public class RelToSqlConverterTest {
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       SqlParser.Config parserConfig, SchemaPlus schema,
       SqlToRelConverter.Config sqlToRelConf, Program... programs) {
+    final MockSqlOperatorTable operatorTable =
+            new MockSqlOperatorTable(SqlStdOperatorTable.instance());
+    MockSqlOperatorTable.addRamp(operatorTable);
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .parserConfig(parserConfig)
@@ -120,6 +125,7 @@ public class RelToSqlConverterTest {
         .traitDefs(traitDefs)
         .sqlToRelConverterConfig(sqlToRelConf)
         .programs(programs)
+        .operatorTable(operatorTable)
         .build();
     return Frameworks.getPlanner(config);
   }
@@ -834,6 +840,17 @@ public class RelToSqlConverterTest {
     final String expectedSql = "SELECT COUNT(`MGR`) AS `c`\n"
         + "FROM `scott`.`EMP`\n"
         + "WHERE `DEPTNO` = 10";
+    assertThat(toSql(root, dialect), isLinux(expectedSql));
+  }
+
+  /**  */
+  @Test public void testTableFunctionScanWithUnnest() {
+    final RelBuilder builder = relBuilder();
+    String[] array = {"abc", "bcd", "fdc"};
+    RelNode root = builder.functionScan(SqlStdOperatorTable.UNNEST, 0,
+            builder.literal(Arrays.asList(array))).project(builder.field(0)).build();
+    final SqlDialect dialect = DatabaseProduct.BIG_QUERY.getDialect();
+    final String expectedSql = "SELECT *\nFROM UNNEST(ARRAY['abc', 'bcd', 'fdc'])\nAS EXPR$0";
     assertThat(toSql(root, dialect), isLinux(expectedSql));
   }
 
@@ -5709,6 +5726,42 @@ public class RelToSqlConverterTest {
     public Sql schema(CalciteAssert.SchemaSpec schemaSpec) {
       return new Sql(schemaSpec, sql, dialect, config, transforms);
     }
+  }
+
+  @Test public void testTableFunctionScan() {
+    final String query = "SELECT *\n"
+            + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+            + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+            + "FROM \"foodmart\".\"employee\")), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+            + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+            + "FROM \"foodmart\".\"product\")), CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+            + "FROM \"foodmart\".\"employee\")), 'NAME'))";
+    sql(query).ok(expected);
+
+    final String query2 = "select * from table(ramp(3))";
+    sql(query2).ok("SELECT *\n"
+            + "FROM TABLE(RAMP(3))");
+  }
+
+  @Test public void testTableFunctionScanWithComplexQuery() {
+    final String query = "SELECT *\n"
+            + "FROM TABLE(DEDUP(CURSOR(select \"product_id\", \"product_name\"\n"
+            + "from \"product\"\n"
+            + "where \"net_weight\" > 100 and \"product_name\" = 'Hello World')\n"
+            + ",CURSOR(select  \"employee_id\", \"full_name\"\n"
+            + "from \"employee\"\n"
+            + "group by \"employee_id\", \"full_name\"), 'NAME'))";
+
+    final String expected = "SELECT *\n"
+            + "FROM TABLE(DEDUP(CURSOR ((SELECT \"product_id\", \"product_name\"\n"
+            + "FROM \"foodmart\".\"product\"\n"
+            + "WHERE \"net_weight\" > 100 AND \"product_name\" = 'Hello World')), "
+            + "CURSOR ((SELECT \"employee_id\", \"full_name\"\n"
+            + "FROM \"foodmart\".\"employee\"\n"
+            + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
+    sql(query).ok(expected);
   }
 }
 
