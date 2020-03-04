@@ -524,6 +524,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ensureRootConverters();
     registerMaterializations();
 
+    PLANNING:
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       while (true) {
         LOGGER.debug("PLANNER = {}; PHASE = {}; COST = {}",
@@ -535,7 +536,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         }
 
         assert match.getRule().matches(match);
-        match.onMatch();
+        try {
+          match.onMatch();
+        } catch (VolcanoTimeoutException e) {
+          root = canonize(root);
+          ruleQueue.phaseCompleted(phase);
+          break PLANNING;
+        }
 
         // The root may have been merged with another
         // subset. Find the new root subset.
@@ -561,6 +568,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       }
     }
     return cheapest;
+  }
+
+  @Override public void checkCancel() {
+    if (cancelFlag.get()) {
+      throw new VolcanoTimeoutException();
+    }
   }
 
   /** Informs {@link JaninoRelMetadataProvider} about the different kinds of
