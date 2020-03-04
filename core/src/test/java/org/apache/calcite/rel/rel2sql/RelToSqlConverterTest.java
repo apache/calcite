@@ -4212,6 +4212,25 @@ public class RelToSqlConverterTest {
         .ok(expectedPostgresql);
   }
 
+  /** Test case fo
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3840">[CALCITE-3840]
+   * Re-aliasing of VALUES that has column aliases produces wrong SQL in the JDBC adapter</a>*/
+  @Test public void testValuesReAlias() {
+    final RelBuilder builder = relBuilder();
+    final RelNode root = builder
+        .values(new String[]{ "a", "b" }, 1, "x ", 2, "yy")
+        .values(new String[]{ "a", "b" }, 1, "x ", 2, "yy")
+        .join(JoinRelType.FULL)
+        .project(builder.field("a"))
+        .build();
+    final String expectedSql = "SELECT \"t\".\"a\"\n"
+        + "FROM (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS \"t\" (\"a\", \"b\")\n"
+        + "FULL JOIN (VALUES  (1, 'x '),\n"
+        + " (2, 'yy')) AS \"t0\" (\"a\", \"b\") ON TRUE";
+    assertThat(toSql(root), isLinux(expectedSql));
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2118">[CALCITE-2118]
    * RelToSqlConverter should only generate "*" if field names match</a>. */
