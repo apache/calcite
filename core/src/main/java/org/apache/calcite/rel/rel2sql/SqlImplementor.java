@@ -1499,8 +1499,17 @@ public abstract class SqlImplementor {
      * equivalent to "SELECT * FROM emp AS emp".) */
     public SqlNode asFrom() {
       if (neededAlias != null) {
-        return SqlStdOperatorTable.AS.createCall(POS, node,
-            new SqlIdentifier(neededAlias, POS));
+        if (node.getKind() == SqlKind.AS) {
+          // If we already have an AS node, we need to replace the alias
+          // This is especially relevant for the VALUES clause rendering
+          SqlCall sqlCall = (SqlCall) node;
+          SqlNode[] operands = sqlCall.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+          operands[1] = new SqlIdentifier(neededAlias, POS);
+          return SqlStdOperatorTable.AS.createCall(POS, operands);
+        } else {
+          return SqlStdOperatorTable.AS.createCall(POS, node,
+              new SqlIdentifier(neededAlias, POS));
+        }
       }
       return node;
     }
