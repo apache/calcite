@@ -32,8 +32,8 @@ import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -140,7 +140,7 @@ class RuleQueue {
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
-      matchList.list.add(match);
+      matchList.queue.offer(match);
 
       matchList.matchMap.put(
           planner.getSubset(match.rels[0]), match);
@@ -167,14 +167,13 @@ class RuleQueue {
           + " after phase complete");
     }
 
-    final List<VolcanoRuleMatch> matchList = phaseMatchList.list;
     VolcanoRuleMatch match;
     for (;;) {
-      if (matchList.isEmpty()) {
+      if (phaseMatchList.queue.isEmpty()) {
         return null;
       }
 
-      match = matchList.remove(0);
+      match = phaseMatchList.queue.poll();
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -269,14 +268,14 @@ class RuleQueue {
     final VolcanoPlannerPhase phase;
 
     /**
-     * Current list of VolcanoRuleMatches for this phase. New rule-matches
-     * are appended to the end of this list.
+     * Current queue of VolcanoRuleMatches for this phase. New rule-matches
+     * are appended to the end of this queue.
      * The rules are not sorted in any way.
      */
-    final List<VolcanoRuleMatch> list = new LinkedList<>();
+    final Queue<VolcanoRuleMatch> queue = new LinkedList<>();
 
     /**
-     * A set of rule-match names contained in {@link #list}. Allows fast
+     * A set of rule-match names contained in {@link #queue}. Allows fast
      * detection of duplicate rule-matches.
      */
     final Set<String> names = new HashSet<>();
@@ -292,7 +291,7 @@ class RuleQueue {
     }
 
     void clear() {
-      list.clear();
+      queue.clear();
       names.clear();
       matchMap.clear();
     }
