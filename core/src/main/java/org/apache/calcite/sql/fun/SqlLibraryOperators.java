@@ -465,7 +465,7 @@ public abstract class SqlLibraryOperators {
 
   /** The "TO_NUMBER(string1, string2)" function; casts string1
    * as hexadecimal to a NUMBER using the format specified in string2. */
-  @LibraryOperator(libraries = {TERADATA})
+  @LibraryOperator(libraries = {TERADATA, POSTGRESQL, ORACLE})
   public static final SqlFunction TO_NUMBER =
       new SqlFunction(
           "TO_NUMBER",
@@ -477,6 +477,16 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING_STRING,
           OperandTypes.family(SqlTypeFamily.NULL)),
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction CONV =
+          new SqlFunction(
+                  "CONV",
+                  SqlKind.OTHER_FUNCTION,
+                  ReturnTypes.VARCHAR_4_NULLABLE, null,
+                  OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.NUMERIC,
+                          SqlTypeFamily.NUMERIC),
+                  SqlFunctionCategory.STRING);
 
   @LibraryOperator(libraries = {BIGQUERY, HIVE, SPARK})
   public static final SqlFunction IF =

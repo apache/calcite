@@ -40,6 +40,8 @@ import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.ToNumberUtils;
 
+import java.util.regex.Pattern;
+
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_USER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.EQUALS;
@@ -197,7 +199,12 @@ public class HiveSqlDialect extends SqlDialect {
       unparseFormat(writer, call, leftPrec, rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+      if (call.getOperandList().size() == 2 && Pattern.matches("^'[Xx]+'", call.operand(1)
+              .toString())) {
+        ToNumberUtils.unparseToNumbertoConv(writer, call, leftPrec, rightPrec);
+        break;
+      }
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     case NULLIF:
       unparseNullIf(writer, call, leftPrec, rightPrec);

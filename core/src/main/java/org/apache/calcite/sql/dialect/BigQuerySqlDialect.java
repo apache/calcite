@@ -252,7 +252,7 @@ public class BigQuerySqlDialect extends SqlDialect {
       unparseRegexSubstr(writer, call, leftPrec, rightPrec);
       break;
     case TO_NUMBER:
-      ToNumberUtils.handleToNumber(writer, call, leftPrec, rightPrec);
+      ToNumberUtils.unparseToNumber(writer, call, leftPrec, rightPrec);
       break;
     case ASCII:
       SqlWriter.Frame toCodePointsFrame = writer.startFunCall("TO_CODE_POINTS");
