@@ -21,7 +21,7 @@ excerpt_separator: ""
 repository: https://github.com/apache/calcite
 destination: target
 exclude: [README.md,Gemfile*]
-keep_files: [".git", ".svn", "apidocs", "testapidocs", "avatica", "docs/cassandra.html"]
+keep_files: [".git", ".svn", "javadocAggregate", "avatica", "docs/cassandra.html"]
 
 collections:
   docs:
@@ -31,12 +31,8 @@ collections:
 sourceRoot: https://github.com/apache/calcite/blob/master
 
 # The URL where Javadocs are located
-apiRoot: /apidocs
-# apiRoot: http://calcite.apache.org/apidocs
-
-# The URL where Test Javadocs are located
-testApiRoot: /testapidocs
-# testApiRoot: http://calcite.apache.org/testapidocs
+apiRoot: /javadocAggregate
+# apiRoot: http://calcite.apache.org/javadocAggregate
 
 # The URL where Avatica's Javadocs are located
 avaticaApiRoot: /avatica/apidocs
