@@ -5314,7 +5314,7 @@ public class RelToSqlConverterTest {
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }
-
+/*
   @Test public void testUnionAllWithNoOperandsUsingOracleDialect() {
     String query = "select A.\"department_id\" "
         + "from \"foodmart\".\"employee\" A "
@@ -5332,9 +5332,9 @@ public class RelToSqlConverterTest {
         + ".\"department_id0\""
         + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).withOracle().ok(expected);
-  }
+  }*/
 
-  @Test public void testUnionAllWithNoOperands() {
+  /*@Test public void testUnionAllWithNoOperands() {
     String query = "select A.\"department_id\" "
         + "from \"foodmart\".\"employee\" A "
         + " where A.\"department_id\" = ( select min( A.\"department_id\") from \"foodmart\""
@@ -5352,7 +5352,7 @@ public class RelToSqlConverterTest {
         + "ON \"employee\".\"department_id\" = \"t3\".\"department_id0\""
         + " AND \"employee\".\"department_id\" = \"t3\".\"EXPR$0\"";
     sql(query).ok(expected);
-  }
+  }*/
 
   @Test public void testSmallintOracle() {
     String query = "SELECT CAST(\"department_id\" AS SMALLINT) FROM \"employee\"";

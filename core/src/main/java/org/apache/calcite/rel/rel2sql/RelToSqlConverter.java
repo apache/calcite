@@ -949,10 +949,16 @@ public class RelToSqlConverter extends SqlImplementor
     result.add(leftOperand);
     result.add(new SqlIdentifier(alias, POS));
     Ord.forEach(rowType.getFieldNames(), (fieldName, i) -> {
-      if (fieldName.toLowerCase(Locale.ROOT).startsWith("expr$")) {
+      final String lowerName = rowType.getFieldNames().get(i).toLowerCase(Locale.ROOT);
+      SqlIdentifier sqlColumn;
+      if (lowerName.startsWith("expr$")) {
         fieldName = "col_" + i;
+        sqlColumn = new SqlIdentifier(fieldName, POS);
+        ordinalMap.put(lowerName, sqlColumn);
+      } else {
+        sqlColumn = new SqlIdentifier(fieldName, POS);
       }
-      result.add(new SqlIdentifier(fieldName, POS));
+      result.add(sqlColumn);
     });
     return result;
   }
@@ -962,7 +968,9 @@ public class RelToSqlConverter extends SqlImplementor
     String name = rowType.getFieldNames().get(selectList.size());
     String alias = SqlValidatorUtil.getAlias(node, -1);
     if (alias == null || !alias.equals(name)) {
-      if (name.toLowerCase(Locale.ROOT).startsWith("expr$")) {
+      final String lowerName = name.toLowerCase(Locale.ROOT);
+      if (lowerName.startsWith("expr$")) {
+        ordinalMap.put(lowerName, node);
         if (dialect.getConformance().isDollarSupportedinAlias()) {
           node = as(node, name);
         }

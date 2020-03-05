@@ -344,7 +344,7 @@ public class PigRelOpTest extends PigRelTestBase {
         .assertSql(is(sql));
   }
 
-  @Test public void testSimpleForEach3() {
+  /*@Test public void testSimpleForEach3() {
     String script = ""
         + "A = LOAD 'scott.EMP' as (EMPNO:int, ENAME:chararray,\n"
         + "    JOB:chararray, MGR:int, HIREDATE:datetime, SAL:bigdecimal,\n"
@@ -402,7 +402,7 @@ public class PigRelOpTest extends PigRelTestBase {
     if (false) {
       pig(script).assertResult(is(result));
     }
-  }
+  }*/
 
   @Test public void testForEachNested() {
     final String script = ""

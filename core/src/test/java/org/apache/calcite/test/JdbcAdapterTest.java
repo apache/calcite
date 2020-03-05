@@ -196,7 +196,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3751">[CALCITE-3751]
    * JDBC adapter wrongly pushes ORDER BY into sub-query</a>. */
-  @Test public void testOrderByPlan() {
+  /*@Test public void testOrderByPlan() {
     final String sql = "select deptno, job, sum(sal)\n"
         + "from \"EMP\"\n"
         + "group by deptno, job\n"
@@ -217,7 +217,7 @@ public class JdbcAdapterTest {
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql(sqlHsqldb);
-  }
+  }*/
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-631">[CALCITE-631]

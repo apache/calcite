@@ -119,6 +119,7 @@ public abstract class SqlImplementor {
 
   public final SqlDialect dialect;
   protected final Set<String> aliasSet = new LinkedHashSet<>();
+  protected final Map<String, SqlNode> ordinalMap = new HashMap<>();
 
   protected final Map<CorrelationId, Context> correlTableMap = new HashMap<>();
 
@@ -1256,6 +1257,11 @@ public abstract class SqlImplementor {
         final List<RelDataTypeField> fields = alias.getValue().getFieldList();
         if (ordinal < fields.size()) {
           RelDataTypeField field = fields.get(ordinal);
+          final SqlNode mappedSqlNode =
+              ordinalMap.get(field.getName().toLowerCase(Locale.ROOT));
+          if (mappedSqlNode != null) {
+            return mappedSqlNode;
+          }
           return new SqlIdentifier(!qualified
               ? ImmutableList.of(field.getName())
               : ImmutableList.of(alias.getKey(), field.getName()),
