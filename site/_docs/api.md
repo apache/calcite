@@ -1,7 +1,7 @@
 ---
 title: API
 layout: external
-external_url: /apidocs
+external_url: /javadocAggregate
 ---
 {% comment %}
 Ideally, we want to use {{ site.apiRoot }} instead of hardcoding
