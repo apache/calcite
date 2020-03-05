@@ -39,7 +39,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     TrustManager[] trustAllCerts = {new DummyTrustManager()};
     SSLSocketFactory factory = null;
     try {
-      SSLContext sc = SSLContext.getInstance("SSL");
+      SSLContext sc = SSLContext.getInstance("TLSv1.2");
       sc.init(null, trustAllCerts, new SecureRandom());
       factory = sc.getSocketFactory();
     } catch (Exception e) {
