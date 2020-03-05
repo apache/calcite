@@ -50,7 +50,10 @@ Release          | Date       | Commit   | Download
 {% endcomment %}{% capture d1 %}{{ post.date | date: "%F"}}{% endcapture %}{% comment %}
 {% endcomment %}{% capture d2 %}2017-08-31{% endcapture %}{% comment %}
 {% endcomment %}{% capture d3 %}2018-06-01{% endcapture %}{% comment %}
-{% endcomment %}{% if d1 > d2 %}{% comment %}
+{% endcomment %}{% capture d4 %}2020-03-01{% endcapture %}{% comment %}
+{% endcomment %}{% if d1 > d4 %}{% comment %}
+{% endcomment %}{% assign digest = "sha512" %}{% comment %}
+{% endcomment %}{% else if d1 > d2 %}{% comment %}
 {% endcomment %}{% assign digest = "sha256" %}{% comment %}
 {% endcomment %}{% else %}{% comment %}
 {% endcomment %}{% assign digest = "md5" %}{% comment %}
