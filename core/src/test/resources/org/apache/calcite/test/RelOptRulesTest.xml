@@ -8067,6 +8067,20 @@ LogicalTableModify(table=[[CATALOG, SALES, DEPT]], operation=[INSERT], flattened
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testReduceCaseWhenWithCast">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
+  LogicalValues(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject($f0=[CAST(CASE(=(MOD($0, 2:BIGINT), 1), <($0, 2:BIGINT), =(MOD($0, 3:BIGINT), 2), <($0, 1:BIGINT), <($0, 3:BIGINT))):BOOLEAN])
+  LogicalValues(tuples=[[{ 1, 2 }]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testReduceConstants3">
         <Resource name="sql">
             <![CDATA[select e.mgr is not distinct from f.mgr from emp e join emp f on (e.mgr=f.mgr) where e.mgr is null]]>
