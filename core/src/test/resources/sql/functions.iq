@@ -54,6 +54,19 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 !ok
 
+# Compression Functions
+
+SELECT COMPRESS('sample');
++--------------------------------------+
+| EXPR$0                               |
++--------------------------------------+
+| 06000000789c2b4ecc2dc849050008de0283 |
++--------------------------------------+
+(1 row)
+
+!ok
+
+
 !use oraclefunc
 
 # COSH

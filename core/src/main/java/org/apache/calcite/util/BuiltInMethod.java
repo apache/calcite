@@ -79,6 +79,7 @@ import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Automaton;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.CompressionFunctions;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.runtime.JsonFunctions;
@@ -324,6 +325,7 @@ public enum BuiltInMethod {
   FROM_BASE64(SqlFunctions.class, "fromBase64", String.class),
   MD5(SqlFunctions.class, "md5", String.class),
   SHA1(SqlFunctions.class, "sha1", String.class),
+  COMPRESS(CompressionFunctions.class, "compress", String.class),
   EXTRACT_VALUE(XmlFunctions.class, "extractValue", String.class, String.class),
   XML_TRANSFORM(XmlFunctions.class, "xmlTransform", String.class, String.class),
   EXTRACT_XML(XmlFunctions.class, "extractXml", String.class, String.class, String.class),

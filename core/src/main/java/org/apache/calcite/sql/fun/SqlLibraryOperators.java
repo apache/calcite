@@ -173,6 +173,12 @@ public abstract class SqlLibraryOperators {
   public static final SqlFunction REGEXP_REPLACE = new SqlRegexpReplaceFunction();
 
   @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction COMPRESS = new SqlFunction("COMPRESS", SqlKind.OTHER_FUNCTION,
+      ReturnTypes.cascade(ReturnTypes.explicit(SqlTypeName.VARBINARY),
+          SqlTypeTransforms.TO_NULLABLE), null, OperandTypes.STRING, SqlFunctionCategory.STRING);
+
+
+  @LibraryOperator(libraries = {MYSQL})
   public static final SqlFunction EXTRACT_VALUE = new SqlFunction(
       "EXTRACTVALUE", SqlKind.OTHER_FUNCTION,
       ReturnTypes.cascade(ReturnTypes.VARCHAR_2000, SqlTypeTransforms.FORCE_NULLABLE),
