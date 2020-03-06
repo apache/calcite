@@ -2320,6 +2320,7 @@ semantics.
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | m o p | CONCAT(string [, string ]*)                | Concatenates two or more strings
+| m | COMPRESS(string)                               | Compresses a string and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified

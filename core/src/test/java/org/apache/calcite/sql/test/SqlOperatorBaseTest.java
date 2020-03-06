@@ -5165,6 +5165,15 @@ public abstract class SqlOperatorBaseTest {
     tester.checkBoolean("'[]' is not json scalar", true);
   }
 
+  @Test public void testCompress() {
+    SqlTester sqlTester = tester(SqlLibrary.MYSQL);
+    sqlTester.checkNull("COMPRESS(NULL)");
+    sqlTester.checkString("COMPRESS('sample')", "06000000789c2b4ecc2dc849050008de0283",
+        "VARBINARY NOT NULL");
+    sqlTester.checkString("COMPRESS('example')", "07000000789c4bad48cc2dc84905000bc002ed",
+        "VARBINARY NOT NULL");
+  }
+
   @Test public void testExtractValue() {
     SqlTester mySqlTester = tester(SqlLibrary.MYSQL);
     mySqlTester.checkNull("ExtractValue(NULL, '//b')");
