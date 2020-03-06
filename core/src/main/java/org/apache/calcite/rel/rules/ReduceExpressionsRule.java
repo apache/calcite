@@ -302,6 +302,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           Lists.newArrayList(project.getProjects());
       if (reduceExpressions(project, expList, predicates, false,
           matchNullability)) {
+        assert !project.getProjects().equals(expList)
+            : "Reduced expressions should be different from original expressions";
         call.transformTo(
             call.builder()
                 .push(project.getInput())
@@ -608,6 +610,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       boolean matchNullability) {
     final RelOptCluster cluster = rel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final List<RexNode> originExpList = Lists.newArrayList(expList);
     final RexExecutor executor =
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RexSimplify simplify =
@@ -627,6 +630,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         expList.set(i, expr2);
         simplified = true;
       }
+    }
+
+    if (reduced && simplified) {
+      return !originExpList.equals(expList);
     }
 
     return reduced || simplified;
