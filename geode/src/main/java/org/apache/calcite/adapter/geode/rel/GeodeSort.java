@@ -58,7 +58,7 @@ public class GeodeSort extends Sort implements GeodeRel {
     if (fetch != null) {
       return cost.multiplyBy(0.05);
     } else {
-      return cost;
+      return cost.multiplyBy(0.9);
     }
   }
 

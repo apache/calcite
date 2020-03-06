@@ -182,8 +182,8 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
         .returns("yearPublished=1971\n"
             + "yearPublished=2011\n"
             + "yearPublished=2011\n")
-        .explainContains("PLAN=EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-            + "  GeodeToEnumerableConverter\n"
+        .explainContains("PLAN=GeodeToEnumerableConverter\n"
+            + "  GeodeSort(sort0=[$0], dir0=[ASC])\n"
             + "    GeodeProject(yearPublished=[$3])\n"
             + "      GeodeTableScan(table=[[geode, BookMaster]])\n");
   }
@@ -212,7 +212,7 @@ public class GeodeBookstoreTest extends AbstractGeodeTest {
         .queryContains(
             GeodeAssertions.query("SELECT yearPublished AS yearPublished, "
               + "itemNumber AS itemNumber "
-              + "FROM /BookMaster"));
+              + "FROM /BookMaster ORDER BY yearPublished ASC, itemNumber DESC"));
   }
 
   //

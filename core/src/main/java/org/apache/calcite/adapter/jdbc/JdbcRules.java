@@ -801,6 +801,11 @@ public class JdbcRules {
           offset, fetch);
     }
 
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(0.9);
+    }
+
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {
       return implementor.implement(this);
     }

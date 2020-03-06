@@ -182,14 +182,15 @@ public class JdbcAdapterTest {
         .query("select ename\n"
             + "from scott.emp\n"
             + "order by empno")
-        .explainContains("PLAN=EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-            + "  JdbcToEnumerableConverter\n"
+        .explainContains("PLAN=JdbcToEnumerableConverter\n"
+            + "  JdbcSort(sort0=[$1], dir0=[ASC])\n"
             + "    JdbcProject(ENAME=[$1], EMPNO=[$0])\n"
             + "      JdbcTableScan(table=[[SCOTT, EMP]])")
         .runs()
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB)
         .planHasSql("SELECT \"ENAME\", \"EMPNO\"\n"
-            + "FROM \"SCOTT\".\"EMP\"");
+            + "FROM \"SCOTT\".\"EMP\"\n"
+            + "ORDER BY \"EMPNO\" NULLS LAST");
   }
 
   /** Test case for
@@ -200,14 +201,15 @@ public class JdbcAdapterTest {
         + "from \"EMP\"\n"
         + "group by deptno, job\n"
         + "order by 1, 2";
-    final String explain = "PLAN=EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
-        + "  JdbcToEnumerableConverter\n"
+    final String explain = "PLAN=JdbcToEnumerableConverter\n"
+        + "  JdbcSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
         + "    JdbcProject(DEPTNO=[$1], JOB=[$0], EXPR$2=[$2])\n"
         + "      JdbcAggregate(group=[{2, 7}], EXPR$2=[SUM($5)])\n"
         + "        JdbcTableScan(table=[[SCOTT, EMP]])";
     final String sqlHsqldb = "SELECT \"DEPTNO\", \"JOB\", SUM(\"SAL\")\n"
         + "FROM \"SCOTT\".\"EMP\"\n"
-        + "GROUP BY \"JOB\", \"DEPTNO\"";
+        + "GROUP BY \"JOB\", \"DEPTNO\"\n"
+        + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)
         .explainContains(explain)
