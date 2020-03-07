@@ -80,7 +80,9 @@ public class DefaultDirectedGraphBenchmark {
 
     List<Node> nodes;
 
-    List<Node> nodesToRemove;
+    List<Node> minorityNodes;
+
+    List<Node> majorityNodes;
 
     @Setup(Level.Invocation)
     public void setUp() {
@@ -117,7 +119,11 @@ public class DefaultDirectedGraphBenchmark {
         }
         prevLayerNodes = curLayerNodes;
       }
-      nodesToRemove = Lists.newArrayList(nodes.get(0), nodes.get(3), nodes.get(7));
+
+      int minorityNodeCount = (int) (nodes.size() * 0.1);
+      int majorityNodeCount = (int) (nodes.size() * 0.5);
+      minorityNodes = nodes.subList(0, minorityNodeCount);
+      majorityNodes = nodes.subList(0, majorityNodeCount);
     }
   }
 
@@ -182,10 +188,16 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVerticesBenchmark(GraphState state) {
-    state.graph.removeAllVertices(state.nodesToRemove);
+  public void removeAllVerticesMinorityBenchmark(GraphState state) {
+    state.graph.removeAllVertices(state.minorityNodes);
   }
 
+  @Benchmark
+  @BenchmarkMode(Mode.AverageTime)
+  @OutputTimeUnit(TimeUnit.MICROSECONDS)
+  public void removeAllVerticesMajorityBenchmark(GraphState state) {
+    state.graph.removeAllVertices(state.majorityNodes);
+  }
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()

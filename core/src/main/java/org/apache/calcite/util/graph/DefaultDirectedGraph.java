@@ -154,6 +154,14 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   }
 
   public void removeAllVertices(Collection<V> collection) {
+    if (collection.size() > vertexMap.size() / 2) {
+      removeMajorityVertices(collection);
+    } else {
+      removeMinorityVertices(collection);
+    }
+  }
+
+  private void removeMinorityVertices(Collection<V> collection) {
     for (V v : collection) {
       VertexInfo<V, E> curInfo = vertexMap.get(v);
       if (curInfo == null) {
@@ -177,6 +185,14 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
       }
     }
     vertexMap.keySet().removeAll(collection);
+  }
+
+  private void removeMajorityVertices(Collection<V> collection) {
+    vertexMap.keySet().removeAll(collection);
+    for (VertexInfo<V, E> info : vertexMap.values()) {
+      info.outEdges.removeIf(e -> collection.contains(e.target));
+      info.inEdges.removeIf(e -> collection.contains(e.source));
+    }
   }
 
   public List<E> getOutwardEdges(V source) {
