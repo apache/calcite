@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -55,7 +56,7 @@ import java.util.stream.Collectors;
  * <pre>select s.product_id from sales as s</pre></blockquote>
  *
  */
-public class ProjectJoinRemoveRule extends RelOptRule {
+public class ProjectJoinRemoveRule extends RelOptRule implements SubstitutionRule {
   public static final ProjectJoinRemoveRule INSTANCE =
       new ProjectJoinRemoveRule(LogicalProject.class,
           LogicalJoin.class, RelFactories.LOGICAL_BUILDER);

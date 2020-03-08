@@ -420,7 +420,7 @@ class RelSet {
     // once to fire again.)
     for (RelNode rel : rels) {
       assert planner.getSet(rel) == this;
-      planner.fireRules(rel, true);
+      planner.fireRules(rel);
     }
   }
 }

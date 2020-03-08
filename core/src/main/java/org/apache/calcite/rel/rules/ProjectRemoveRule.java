@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
@@ -39,7 +40,7 @@ import java.util.List;
  * @see CalcRemoveRule
  * @see ProjectMergeRule
  */
-public class ProjectRemoveRule extends RelOptRule {
+public class ProjectRemoveRule extends RelOptRule implements SubstitutionRule {
   public static final ProjectRemoveRule INSTANCE =
       new ProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
 

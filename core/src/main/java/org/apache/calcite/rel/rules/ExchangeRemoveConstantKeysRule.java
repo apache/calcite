@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
@@ -49,7 +50,8 @@ import java.util.stream.Collectors;
  * <code>SELECT 1 AS key, value FROM src</code>.</p>
  *
  */
-public class ExchangeRemoveConstantKeysRule extends RelOptRule {
+public class ExchangeRemoveConstantKeysRule extends RelOptRule
+    implements SubstitutionRule {
   /**
    * Singleton rule that removes constants inside a
    * {@link LogicalExchange}.

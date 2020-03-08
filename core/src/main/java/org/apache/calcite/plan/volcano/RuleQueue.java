@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -33,7 +34,6 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -140,7 +140,11 @@ class RuleQueue {
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
-      matchList.queue.offer(match);
+      if (match.getRule() instanceof SubstitutionRule) {
+        matchList.list.offerFirst(match);
+      } else {
+        matchList.list.offer(match);
+      }
 
       matchList.matchMap.put(
           planner.getSubset(match.rels[0]), match);
@@ -169,11 +173,11 @@ class RuleQueue {
 
     VolcanoRuleMatch match;
     for (;;) {
-      if (phaseMatchList.queue.isEmpty()) {
+      if (phaseMatchList.list.isEmpty()) {
         return null;
       }
 
-      match = phaseMatchList.queue.poll();
+      match = phaseMatchList.list.poll();
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -268,14 +272,14 @@ class RuleQueue {
     final VolcanoPlannerPhase phase;
 
     /**
-     * Current queue of VolcanoRuleMatches for this phase. New rule-matches
-     * are appended to the end of this queue.
+     * Current list of VolcanoRuleMatches for this phase. New rule-matches
+     * are appended to the end of this list.
      * The rules are not sorted in any way.
      */
-    final Queue<VolcanoRuleMatch> queue = new LinkedList<>();
+    final Deque<VolcanoRuleMatch> list = new LinkedList<>();
 
     /**
-     * A set of rule-match names contained in {@link #queue}. Allows fast
+     * A set of rule-match names contained in {@link #list}. Allows fast
      * detection of duplicate rule-matches.
      */
     final Set<String> names = new HashSet<>();
@@ -291,7 +295,7 @@ class RuleQueue {
     }
 
     void clear() {
-      queue.clear();
+      list.clear();
       names.clear();
       matchMap.clear();
     }
