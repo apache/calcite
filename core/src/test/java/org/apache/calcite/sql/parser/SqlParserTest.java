@@ -2139,6 +2139,12 @@ public class SqlParserTest {
             + "FROM `DEPT`))");
   }
 
+  @Test public void testSomeEveryAndIntersectionAggQuery() {
+    sql("select some(deptno = 10), every(deptno > 0), intersection(multiset[1,2]) from dept")
+        .ok("SELECT SOME((`DEPTNO` = 10)), EVERY((`DEPTNO` > 0)), INTERSECTION((MULTISET[1, 2]))\n"
+            + "FROM `DEPT`");
+  }
+
   /**
    * Tricky for the parser - looks like "IN (scalar, scalar)" but isn't.
    */
@@ -2184,11 +2190,15 @@ public class SqlParserTest {
 
     final String sql3 = "select * from emp\n"
         + "where name like (select ^some^ name from emp)";
-    sql(sql3).fails("(?s).*Encountered \"some\" at .*");
+    sql(sql3).fails("(?s).*Encountered \"some name\" at .*");
 
     final String sql4 = "select * from emp\n"
-        + "where name ^like^ some (select name from emp)";
-    sql(sql4).fails("(?s).*Encountered \"like some\" at .*");
+        + "where name like some (select name from emp)";
+    final String expected4 = "SELECT *\n"
+        + "FROM `EMP`\n"
+        + "WHERE (`NAME` LIKE SOME((SELECT `NAME`\n"
+        +  "FROM `EMP`)))";
+    sql(sql4).ok(expected4);
 
     final String sql5 = "select * from emp where empno = any (10,20)";
     final String expected5 = "SELECT *\n"

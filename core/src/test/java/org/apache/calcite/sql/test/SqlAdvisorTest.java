@@ -152,6 +152,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(DATE)",
           "KEYWORD(DENSE_RANK)",
           "KEYWORD(ELEMENT)",
+          "KEYWORD(EVERY)",
           "KEYWORD(EXISTS)",
           "KEYWORD(EXP)",
           "KEYWORD(EXTRACT)",
@@ -161,6 +162,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(FUSION)",
           "KEYWORD(GROUPING)",
           "KEYWORD(HOUR)",
+          "KEYWORD(INTERSECTION)",
           "KEYWORD(INTERVAL)",
           "KEYWORD(JSON_ARRAY)",
           "KEYWORD(JSON_ARRAYAGG)",
@@ -208,6 +210,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
           "KEYWORD(RUNNING)",
           "KEYWORD(SECOND)",
           "KEYWORD(SESSION_USER)",
+          "KEYWORD(SOME)",
           "KEYWORD(SPECIFIC)",
           "KEYWORD(SQRT)",
           "KEYWORD(SUBSTRING)",
@@ -1295,6 +1298,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "COLUMN(EMPNO)\n"
             + "COLUMN(ENAME)\n"
             + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EVERY)\n"
             + "KEYWORD(EXISTS)\n"
             + "KEYWORD(EXP)\n"
             + "KEYWORD(EXTRACT)\n"
@@ -1308,6 +1312,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "COLUMN(EMPNO)\n"
             + "COLUMN(ENAME)\n"
             + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EVERY)\n"
             + "KEYWORD(EXISTS)\n"
             + "KEYWORD(EXP)\n"
             + "KEYWORD(EXTRACT)\n"
@@ -1321,6 +1326,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "COLUMN(EMPNO)\n"
             + "COLUMN(ENAME)\n"
             + "KEYWORD(ELEMENT)\n"
+            + "KEYWORD(EVERY)\n"
             + "KEYWORD(EXISTS)\n"
             + "KEYWORD(EXP)\n"
             + "KEYWORD(EXTRACT)\n"

@@ -6944,6 +6944,28 @@ public abstract class SqlOperatorBaseTest {
 
   @Test public void testFusionFunc() {
     tester.setFor(SqlStdOperatorTable.FUSION, VM_FENNEL, VM_JAVA);
+    tester.checkFails("fusion(^*^)", "Unknown identifier '\\*'", false);
+    checkAggType(tester, "fusion(MULTISET[1,2,3])", "INTEGER NOT NULL MULTISET NOT NULL");
+    strictTester.checkFails("^fusion(12)^",
+        "Cannot apply 'FUSION' to arguments of type .*", false);
+    final String[] values1 = {"MULTISET[0]", "MULTISET[1]", "MULTISET[2]", "MULTISET[3]"};
+    tester.checkAgg("fusion(x)", values1, "[0, 1, 2, 3]", 0);
+    final String[] values2 = {"MULTISET[0,1]", "MULTISET[1, 2]"};
+    tester.checkAgg("fusion(x)", values2, "[0, 1, 1, 2]", 0);
+  }
+
+  @Test public void testIntersectionFunc() {
+    tester.setFor(SqlStdOperatorTable.INTERSECTION, VM_FENNEL, VM_JAVA);
+    tester.checkFails("intersection(^*^)", "Unknown identifier '\\*'", false);
+    checkAggType(tester, "intersection(MULTISET[1,2,3])", "INTEGER NOT NULL MULTISET NOT NULL");
+    strictTester.checkFails("^intersection(12)^",
+        "Cannot apply 'INTERSECTION' to arguments of type .*", false);
+    final String[] values1 = {"MULTISET[0]", "MULTISET[1]", "MULTISET[2]", "MULTISET[3]"};
+    tester.checkAgg("intersection(x)", values1, "[]", 0);
+    final String[] values2 = {"MULTISET[0, 1]", "MULTISET[1, 2]"};
+    tester.checkAgg("intersection(x)", values2, "[1]", 0);
+    final String[] values3 = {"MULTISET[0, 1, 1]", "MULTISET[0, 1, 2]"};
+    tester.checkAgg("intersection(x)", values3, "[0, 1, 1]", 0);
   }
 
   @Test public void testYear() {
@@ -8867,6 +8889,63 @@ public abstract class SqlOperatorBaseTest {
         Arrays.asList("foo "),
         0d);
   }
+
+  @Test public void testEveryFunc() {
+    tester.setFor(SqlStdOperatorTable.EVERY, VM_EXPAND);
+    tester.checkFails(
+        "every(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("every(1 = 1)", "BOOLEAN");
+    tester.checkType("every(1.2 = 1.2)", "BOOLEAN");
+    tester.checkType("every(1.5 = 1.4)", "BOOLEAN");
+    tester.checkFails(
+        "^every()^",
+        "Invalid number of arguments to function 'EVERY'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^every(1, 2)^",
+        "Invalid number of arguments to function 'EVERY'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg(
+        "every(x = 2)",
+        values,
+        "false",
+        0d);
+  }
+
+  @Test public void testSomeAggFunc() {
+    tester.setFor(SqlStdOperatorTable.SOME, VM_EXPAND);
+    tester.checkFails(
+        "some(^*^)",
+        "Unknown identifier '\\*'",
+        false);
+    tester.checkType("some(1 = 1)", "BOOLEAN");
+    tester.checkType("some(1.2 = 1.2)", "BOOLEAN");
+    tester.checkType("some(1.5 = 1.4)", "BOOLEAN");
+    tester.checkFails(
+        "^some()^",
+        "Invalid number of arguments to function 'SOME'. Was expecting 1 arguments",
+        false);
+    tester.checkFails(
+        "^some(1, 2)^",
+        "Invalid number of arguments to function 'SOME'. Was expecting 1 arguments",
+        false);
+    final String[] values = {"0", "CAST(null AS INTEGER)", "2", "2"};
+    if (!enable) {
+      return;
+    }
+    tester.checkAgg(
+        "some(x = 2)",
+        values,
+        "true",
+        0d);
+  }
+
 
   @Test public void testAnyValueFunc() {
     tester.setFor(SqlStdOperatorTable.ANY_VALUE, VM_EXPAND);
