@@ -3205,6 +3205,13 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test public void testSomeAndEveryAggregateFunctions() throws Exception {
+    final String sql = "SELECT some(empno = 130) as someempnoexists,\n"
+        + " every(empno > 0) as everyempnogtzero\n"
+        + " FROM emp AS e group by e.sal";
+    sql(sql).ok();
+  }
+
   private Tester getExtendedTester() {
     return tester.withCatalogReaderFactory(MockCatalogReaderExtended::new);
   }

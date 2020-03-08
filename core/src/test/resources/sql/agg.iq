@@ -159,6 +159,28 @@ select stddev_samp(deptno) as s from emp;
 
 !ok
 
+# [CALCITE-3815] Add missing SQL standard aggregate
+# functions: EVERY, SOME, INTERSECTION
+select some(deptno = 100), every(deptno > 0), intersection(multiset[1, 2]) from emp;
++--------+--------+--------+
+| EXPR$0 | EXPR$1 | EXPR$2 |
++--------+--------+--------+
+| false  | true   | [1, 2] |
++--------+--------+--------+
+(1 row)
+
+!ok
+
+select some(deptno > 100), every(deptno > 0) from emp where deptno > 1000;
++--------+--------+
+| EXPR$0 | EXPR$1 |
++--------+--------+
+|        |        |
++--------+--------+
+(1 row)
+
+!ok
+
 # stddev_pop
 select stddev_pop(deptno) as s from emp;
 +----+

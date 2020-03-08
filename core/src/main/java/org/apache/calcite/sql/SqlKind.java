@@ -966,6 +966,9 @@ public enum SqlKind {
   /** The {@code FUSION} aggregate function. */
   FUSION,
 
+  /** The {@code INTERSECTION} aggregate function. */
+  INTERSECTION,
+
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
 
@@ -1161,7 +1164,8 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR, LISTAGG);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
+          LISTAGG, INTERSECTION, ANY_VALUE);
 
   /**
    * Category consisting of all DML operators.

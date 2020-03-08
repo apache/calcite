@@ -7831,6 +7831,16 @@ public class SqlValidatorTest extends SqlValidatorTestCase {
     sql("SELECT MAX(5) FROM emp").ok();
   }
 
+  @Test public void testSomeEveryAndIntersectionFunctions() {
+    sql("select some(sal = 100), every(sal > 0), intersection(multiset[1,2]) from emp").ok();
+    sql("select some(sal = 100), ^empno^ from emp")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select every(sal > 0), ^empno^ from emp")
+        .fails("Expression 'EMPNO' is not being grouped");
+    sql("select intersection(multiset[1]), ^empno^ from emp")
+        .fails("Expression 'EMPNO' is not being grouped");
+  }
+
   @Test public void testAnyValueFunction() {
     sql("SELECT any_value(ename) from emp").ok();
   }

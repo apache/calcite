@@ -6052,6 +6052,19 @@ LogicalProject(C1=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSomeAndEveryAggregateFunctions">
+        <Resource name="sql">
+            <![CDATA[]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(SOMEEMPNOEXISTS=[$1], EVERYEMPNOGTZERO=[$2])
+  LogicalAggregate(group=[{0}], SOMEEMPNOEXISTS=[SOME($1)], EVERYEMPNOGTZERO=[EVERY($2)])
+    LogicalProject(SAL=[$5], $f1=[=($0, 130)], $f2=[>($0, 0)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testAnyValueAggregateFunctionNoGroupBy">
         <Resource name="sql">
             <![CDATA[SELECT any_value(empno) as anyempno FROM emp AS e]]>
