@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -93,7 +94,8 @@ import java.util.stream.Collectors;
  * is the same as the type of the resulting cast expression
  * </ul>
  */
-public abstract class ReduceExpressionsRule extends RelOptRule {
+public abstract class ReduceExpressionsRule extends RelOptRule
+    implements SubstitutionRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /**

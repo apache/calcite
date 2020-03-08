@@ -1306,20 +1306,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    *
    * @param rel      Relational expression which has just been created (or maybe
    *                 from the queue)
-   * @param deferred If true, each time a rule matches, just add an entry to
-   *                 the queue.
    */
-  void fireRules(
-      RelNode rel,
-      boolean deferred) {
+  void fireRules(RelNode rel) {
     for (RelOptRuleOperand operand : classOperands.get(rel.getClass())) {
       if (operand.matches(rel)) {
         final VolcanoRuleCall ruleCall;
-        if (deferred) {
-          ruleCall = new DeferringRuleCall(this, operand);
-        } else {
-          ruleCall = new VolcanoRuleCall(this, operand);
-        }
+        ruleCall = new DeferringRuleCall(this, operand);
         ruleCall.match(rel);
       }
     }
@@ -1568,11 +1560,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // Queue up all rules triggered by this relexp's creation.
-    fireRules(rel, true);
+    fireRules(rel);
 
     // It's a new subset.
     if (set.subsets.size() > subsetBeforeCount) {
-      fireRules(subset, true);
+      fireRules(subset);
     }
 
     return subset;
