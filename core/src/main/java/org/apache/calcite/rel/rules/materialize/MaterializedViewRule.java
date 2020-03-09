@@ -1175,7 +1175,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
    */
   protected RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
-      final RelNode node, final Mapping rewritingMapping) {
+      final RelNode node, final Multimap<Integer, Integer> rewritingMapping) {
     try {
       RexShuttle visitor =
           new RexShuttle() {
@@ -1187,11 +1187,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);
@@ -1207,11 +1207,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);
@@ -1227,11 +1227,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   return super.visitCall(call);
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);
