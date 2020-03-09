@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
  */
 public class RelDistributions {
-  private static final ImmutableIntList EMPTY = ImmutableIntList.of();
+  public static final ImmutableIntList EMPTY = ImmutableIntList.of();
 
   /** The singleton singleton distribution. */
   public static final RelDistribution SINGLETON =
@@ -78,6 +78,10 @@ public class RelDistributions {
     RelDistributionImpl trait =
         new RelDistributionImpl(RelDistribution.Type.RANGE_DISTRIBUTED, list);
     return RelDistributionTraitDef.INSTANCE.canonize(trait);
+  }
+
+  public static RelDistribution with(RelDistribution.Type type, ImmutableIntList keys) {
+    return new RelDistributionImpl(type, keys);
   }
 
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */

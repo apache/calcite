@@ -19,6 +19,8 @@ package org.apache.calcite.plan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -62,19 +64,21 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import static java.util.Arrays.asList;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
@@ -349,6 +353,37 @@ public class RelWriterTest {
       + "  ]\n"
       + "}";
 
+  public static final String XX3 = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalSortExchange\",\n"
+      + "      \"distribution\": {\n"
+      + "        \"type\": \"HASH_DISTRIBUTED\",\n"
+      + "        \"keys\": [\n"
+      + "          0\n"
+      + "        ]\n"
+      + "      },\n"
+      + "      \"collation\": [\n"
+      + "        {\n"
+      + "          \"field\": 0,\n"
+      + "          \"direction\": \"ASCENDING\",\n"
+      + "          \"nulls\": \"LAST\"\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table and a
@@ -362,7 +397,7 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")),
+                      asList("hr", "emps")),
                   ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           LogicalFilter filter =
@@ -407,7 +442,7 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")),
+                      asList("hr", "emps")),
                   ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           final RelDataType bigIntType =
@@ -842,5 +877,40 @@ public class RelWriterTest {
                 true, true, false, false, false))
         .build();
     return rel;
+  }
+
+  @Test public void testWriteSortExchangeWithHashDistribution() {
+    final RelNode root = createSortPlan(RelDistributions.hash(Lists.newArrayList(0)));
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    assertThat(json, is(XX3));
+
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test public void testWriteSortExchangeWithRandomDistribution() {
+    final RelNode root = createSortPlan(RelDistributions.RANDOM_DISTRIBUTED);
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[random], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  private RelNode createSortPlan(RelDistribution distribution) {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    return builder.scan("EMP")
+            .sortExchange(distribution,
+                RelCollations.of(0))
+            .build();
   }
 }
