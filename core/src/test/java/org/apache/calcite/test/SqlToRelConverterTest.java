@@ -1195,6 +1195,17 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(DEDUP(dept.deptno, dept.name))").ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3847">[CALCITE-3847]
+   * Decorrelation for join with lateral table outputs wrong plan if the join
+   * condition contains correlation variables</a>. */
+  @Test public void testJoinLateralTableWithConditionCorrelated() {
+    final String sql = "select deptno, r.num from dept join\n"
+        + " lateral table(ramp(dept.deptno)) as r(num)\n"
+        + " on deptno=num";
+    sql(sql).ok();
+  }
+
   @Test public void testSample() {
     final String sql =
         "select * from emp tablesample substitute('DATASET1') where empno > 5";
