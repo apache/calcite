@@ -63,6 +63,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
@@ -366,7 +367,6 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
           rexBuilder.makeInputRef(relBuilder.peek(),
               aggregate.getGroupCount() + i);
       aggregateCalls.add(
-          // TODO: handle aggregate ordering
           relBuilder.aggregateCall(rollupAgg, operand)
               .distinct(aggCall.isDistinct())
               .approximate(aggCall.isApproximate())
@@ -528,7 +528,10 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
 
     // Generate result rewriting
     final List<RexNode> additionalViewExprs = new ArrayList<>();
-    Mapping rewritingMapping = null;
+
+    // multipmap is required since a column in view's project could map to multiple columns
+    // in query
+    ImmutableMultimap.Builder<Integer, Integer> rewritingMapping = null;
     RelNode result = relBuilder.push(input).build();
     // We create view expressions that will be used in a Project on top of the
     // view in case we need to rollup the expression
@@ -542,9 +545,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
         return null;
       }
       // Target is coarser level of aggregation. Generate an aggregate.
-      rewritingMapping = Mappings.create(MappingType.FUNCTION,
-          topViewProject.getRowType().getFieldCount() + viewAggregateAdditionalFieldCount,
-          queryAggregate.getRowType().getFieldCount());
+      rewritingMapping = ImmutableMultimap.builder();
       final ImmutableBitSet.Builder groupSetB = ImmutableBitSet.builder();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
         int targetIdx = aggregateMapping.getTargetOpt(i);
@@ -580,7 +581,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
           }
           // We create the new node pointing to the index
           groupSetB.set(inputViewExprs.size());
-          rewritingMapping.set(inputViewExprs.size(), i);
+          rewritingMapping.put(inputViewExprs.size(), i);
           additionalViewExprs.add(
               new RexInputRef(targetIdx, targetNode.getType()));
           // We need to create the rollup expression
@@ -597,7 +598,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
             int ref = ((RexInputRef) n).getIndex();
             if (ref == targetIdx) {
               groupSetB.set(k);
-              rewritingMapping.set(k, i);
+              rewritingMapping.put(k, i);
               added = true;
             }
           }
@@ -636,10 +637,9 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
               // Cannot rollup this aggregate, bail out
               return null;
             }
-            rewritingMapping.set(k, queryAggregate.getGroupCount() + aggregateCalls.size());
+            rewritingMapping.put(k, queryAggregate.getGroupCount() + aggregateCalls.size());
             final RexInputRef operand = rexBuilder.makeInputRef(input, k);
             aggregateCalls.add(
-                // TODO: handle aggregate ordering
                 relBuilder.aggregateCall(rollupAgg, operand)
                     .approximate(queryAggCall.isApproximate())
                     .distinct(queryAggCall.isDistinct())
@@ -670,11 +670,11 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       }
       // We introduce a project on top, as group by columns order is lost
       List<RexNode> projects = new ArrayList<>();
-      Mapping inverseMapping = rewritingMapping.inverse();
+      final ImmutableMultimap<Integer, Integer> inverseMapping = rewritingMapping.build().inverse();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
         projects.add(
             rexBuilder.makeInputRef(result,
-                groupSet.indexOf(inverseMapping.getTarget(i))));
+                groupSet.indexOf(inverseMapping.get(i).iterator().next())));
       }
       // We add aggregate functions that are present in result to projection list
       for (int i = queryAggregate.getGroupCount(); i < result.getRowType().getFieldCount(); i++) {
@@ -714,6 +714,9 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       viewExprs.put(additionalViewExpr, numberViewExprs++);
     }
     final List<RexNode> rewrittenExprs = new ArrayList<>(topExprs.size());
+    final ImmutableMultimap<Integer, Integer> shuttleRewriteMappingMap
+        = rewritingMapping == null ? null : rewritingMapping.build();
+
     for (RexNode expr : topExprs) {
       // First map through the aggregate
       RexNode rewrittenExpr = shuttleReferences(rexBuilder, expr, aggregateMapping);
@@ -723,7 +726,7 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       }
       // Next map through the last project
       rewrittenExpr =
-          shuttleReferences(rexBuilder, rewrittenExpr, viewExprs, result, rewritingMapping);
+          shuttleReferences(rexBuilder, rewrittenExpr, viewExprs, result, shuttleRewriteMappingMap);
       if (rewrittenExpr == null) {
         // Cannot map expression
         return null;

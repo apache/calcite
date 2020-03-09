@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules.materialize;
 
+
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -61,6 +62,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -1175,7 +1177,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
    */
   protected RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
-      final RelNode node, final Mapping rewritingMapping) {
+      final RelNode node, final ImmutableMultimap<Integer, Integer> rewritingMapping) {
     try {
       RexShuttle visitor =
           new RexShuttle() {
@@ -1187,11 +1189,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);
@@ -1207,11 +1209,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);
@@ -1227,11 +1229,11 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
-                if (pos == -1) {
+                if (!rewritingMapping.containsKey(pos)) {
                   // Cannot map expression
                   return super.visitCall(call);
                 }
+                pos = rewritingMapping.get(pos).iterator().next();
               }
               if (node != null) {
                 return rexBuilder.makeInputRef(node, pos);

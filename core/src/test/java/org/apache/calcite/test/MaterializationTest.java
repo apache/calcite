@@ -2515,6 +2515,21 @@ public class MaterializationTest {
         .ok();
   }
 
+  @Test public void testAggregateOnJoinKeys() {
+    sql("select \"deptno\", \"empid\", \"salary\" "
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\", \"salary\"",
+        "select \"empid\", \"depts\".\"deptno\" "
+            + "from \"emps\"\n"
+            + "join \"depts\" on \"depts\".\"deptno\" = \"empid\" group by \"empid\", \"depts\".\"deptno\"")
+        .withResultContains(
+            "EnumerableCalc(expr#0=[{inputs}], empid=[$t0], empid0=[$t0])\n"
+                + "  EnumerableAggregate(group=[{1}])\n"
+                + "    EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
+                + "      EnumerableTableScan(table=[[hr, m0]])")
+        .ok();
+  }
+
   @Test public void testViewMaterialization() {
     sql("select \"depts\".\"name\"\n"
             + "from \"emps\"\n"
