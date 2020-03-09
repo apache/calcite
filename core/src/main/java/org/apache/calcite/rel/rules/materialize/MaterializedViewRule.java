@@ -1175,7 +1175,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
    */
   protected RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
-      final RelNode node, final Mapping rewritingMapping) {
+      final RelNode node, final Multimap<Integer, Integer> rewritingMapping) {
     try {
       RexShuttle visitor =
           new RexShuttle() {
@@ -1187,7 +1187,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
+                pos = rewritingMapping.get(pos).iterator().next();
                 if (pos == -1) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
@@ -1207,7 +1207,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
+                pos = rewritingMapping.get(pos).iterator().next();
                 if (pos == -1) {
                   // Cannot map expression
                   throw Util.FoundOne.NULL;
@@ -1227,7 +1227,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
               }
               int pos = c.iterator().next();
               if (rewritingMapping != null) {
-                pos = rewritingMapping.getTargetOpt(pos);
+                pos = rewritingMapping.get(pos).iterator().next();
                 if (pos == -1) {
                   // Cannot map expression
                   return super.visitCall(call);
