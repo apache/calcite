@@ -1973,8 +1973,8 @@ public abstract class EnumerableDefaults {
       final Function2<TSource, TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
-    return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null,
-        resultSelector, generateNullsOnLeft, generateNullsOnRight);
+    return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
+        generateNullsOnLeft, generateNullsOnRight, null);
   }
 
   /**
@@ -1988,6 +1988,8 @@ public abstract class EnumerableDefaults {
    *                       and not applying a filter on top of the join results, because the latter
    *                       strategy can only work on inner joins, and we aim to support other join
    *                       types in the future (e.g. semi or anti joins).
+   * @param comparator key comparator, possibly null (in which case {@link Comparable#compareTo}
+   *                   will be used).
    *
    * NOTE: The current API is experimental and subject to change without notice.
    */
@@ -2000,7 +2002,8 @@ public abstract class EnumerableDefaults {
       final Predicate2<TSource, TInner> extraPredicate,
       final Function2<TSource, TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
-      boolean generateNullsOnRight) {
+      boolean generateNullsOnRight,
+      Comparator<TKey> comparator) {
     if (generateNullsOnLeft) {
       throw new UnsupportedOperationException(
         "not implemented, mergeJoin with generateNullsOnLeft");
@@ -2012,7 +2015,7 @@ public abstract class EnumerableDefaults {
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
         return new MergeJoinEnumerator<>(outer, inner, outerKeySelector, innerKeySelector,
-            extraPredicate, resultSelector);
+            extraPredicate, resultSelector, comparator);
       }
     };
   }
@@ -3836,6 +3839,8 @@ public abstract class EnumerableDefaults {
     // extra predicate in case of non equi-join, in case of equi-join it will be null
     private final Predicate2<TSource, TInner> extraPredicate;
     private final Function2<TSource, TInner, TResult> resultSelector;
+    // key comparator, possibly null (Comparable#compareTo to be used in that case)
+    private final Comparator<TKey> comparator;
     private boolean done;
     private Enumerator<TResult> results;
 
@@ -3844,13 +3849,15 @@ public abstract class EnumerableDefaults {
         Function1<TSource, TKey> outerKeySelector,
         Function1<TInner, TKey> innerKeySelector,
         Predicate2<TSource, TInner> extraPredicate,
-        Function2<TSource, TInner, TResult> resultSelector) {
+        Function2<TSource, TInner, TResult> resultSelector,
+        Comparator<TKey> comparator) {
       this.leftEnumerable = leftEnumerable;
       this.rightEnumerable = rightEnumerable;
       this.outerKeySelector = outerKeySelector;
       this.innerKeySelector = innerKeySelector;
       this.extraPredicate = extraPredicate;
       this.resultSelector = resultSelector;
+      this.comparator = comparator;
       start();
     }
 
@@ -3877,6 +3884,10 @@ public abstract class EnumerableDefaults {
       }
     }
 
+    private int compare(TKey key1, TKey key2) {
+      return comparator != null ? comparator.compare(key1, key2) : key1.compareTo(key2);
+    }
+
     /** Moves to the next key that is present in both sides. Populates
      * lefts and rights with the rows. Restarts the cross-join
      * enumerator. */
@@ -3892,7 +3903,7 @@ public abstract class EnumerableDefaults {
           done = true;
           return false;
         }
-        int c = leftKey.compareTo(rightKey);
+        int c = compare(leftKey, rightKey);
         if (c == 0) {
           break;
         }
@@ -3925,7 +3936,7 @@ public abstract class EnumerableDefaults {
           done = true;
           break;
         }
-        int c = leftKey.compareTo(leftKey2);
+        int c = compare(leftKey, leftKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
@@ -3949,7 +3960,7 @@ public abstract class EnumerableDefaults {
           done = true;
           break;
         }
-        int c = rightKey.compareTo(rightKey2);
+        int c = compare(rightKey, rightKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(

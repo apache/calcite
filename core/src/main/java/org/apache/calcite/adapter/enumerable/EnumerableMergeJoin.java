@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
@@ -164,6 +165,18 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final PhysType rightKeyPhysType =
         rightResult.physType.project(joinInfo.rightKeys, JavaRowFormat.LIST);
+
+    // Generate the appropriate key Comparator (keys must be sorted in ascending order, nulls last).
+    final int keysSize = joinInfo.leftKeys.size();
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>(keysSize);
+    for (int i = 0; i < keysSize; i++) {
+      fieldCollations.add(
+          new RelFieldCollation(i, RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.LAST));
+    }
+    final RelCollation collation = RelCollations.of(fieldCollations);
+    final Expression comparator = leftKeyPhysType.generateComparator(collation);
+
     return implementor.result(
         physType,
         builder.append(
@@ -184,6 +197,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                     Expressions.constant(
                         joinType.generatesNullsOnLeft()),
                     Expressions.constant(
-                        joinType.generatesNullsOnRight())))).toBlock());
+                        joinType.generatesNullsOnRight()),
+                    comparator))).toBlock());
   }
 }
