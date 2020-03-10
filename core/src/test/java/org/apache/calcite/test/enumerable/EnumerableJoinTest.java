@@ -221,6 +221,44 @@ public class EnumerableJoinTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3846">[CALCITE-3846]
+   * EnumerableMergeJoin: wrong comparison of composite key with null values</a>. */
+  @Test public void testMergeJoinWithCompositeKeyAndNullValues() {
+    tester(false, new JdbcTest.HrSchema())
+        .query("?")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
+          planner.addRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+        })
+        .withRel(builder -> builder
+            .scan("s", "emps")
+            .sort(builder.field("deptno"), builder.field("commission"))
+            .scan("s", "emps")
+            .sort(builder.field("deptno"), builder.field("commission"))
+            .join(JoinRelType.INNER,
+                builder.and(
+                    builder.equals(
+                        builder.field(2, 0, "deptno"),
+                        builder.field(2, 1, "deptno")),
+                    builder.equals(
+                        builder.field(2, 0, "commission"),
+                        builder.field(2, 1, "commission"))))
+            .project(
+                builder.field("empid"))
+            .build())
+        .explainHookMatches("" // It is important that we have MergeJoin in the plan
+            + "EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0])\n"
+            + "  EnumerableMergeJoin(condition=[AND(=($1, $3), =($2, $4))], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}], commission=[$t4])\n"
+            + "        EnumerableTableScan(table=[[s, emps]])\n"
+            + "    EnumerableSort(sort0=[$0], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], deptno=[$t1], commission=[$t4])\n"
+            + "        EnumerableTableScan(table=[[s, emps]])\n")
+        .returnsUnordered("empid=100\nempid=110\nempid=150\nempid=200");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3820">[CALCITE-3820]
    * EnumerableDefaults#orderBy should be lazily computed + support enumerator
    * re-initialization</a>. */
