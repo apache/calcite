@@ -1208,7 +1208,7 @@ public class MaterializationTest {
                     SqlStdOperatorTable.AND,
                     i0_eq_0,
                     i1_eq_1)));
-    checkSatisfiable(e6, "AND(=($0, 0), OR(<>($0, 0), <>($1, 1)))");
+    checkSatisfiable(e6, "AND(=($0, 0), <>($1, 1))");
 
     // "$0 = 0 AND ($1 = 1 AND NOT ($0 = 0))" is not satisfiable.
     final RexNode e7 =
