@@ -1560,18 +1560,55 @@ public class RexSimplify {
     return RexUtil.composeConjunction(rexBuilder, terms);
   }
 
+  private RexNode simplifyNotEqual(RexNode e) {
+    final Comparison comparison = Comparison.of(e);
+    if (comparison == null) {
+      return e;
+    }
+
+    for (RexNode node: predicates.pulledUpPredicates) {
+      final Comparison predicate = Comparison.of(node);
+      if (predicate == null
+          || predicate.kind != SqlKind.EQUALS
+          || !predicate.ref.equals(comparison.ref)) {
+        continue;
+      }
+
+      // Given x=5, x!=5 can be simplified to 'null and x is null' and x!=3 can
+      // be simplified to 'null or x is not null'.
+      RexNode simplified;
+      if (predicate.literal.equals(comparison.literal)) {
+        simplified = rexBuilder.makeCall(SqlStdOperatorTable.AND,
+            rexBuilder.makeNullLiteral(e.getType()),
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NULL, comparison.ref));
+      } else {
+        simplified = rexBuilder.makeCall(SqlStdOperatorTable.OR,
+            rexBuilder.makeNullLiteral(e.getType()),
+            rexBuilder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, comparison.ref));
+      }
+      return simplify(simplified);
+    }
+
+    return e;
+  }
+
   private <C extends Comparable<C>> RexNode simplifyUsingPredicates(RexNode e,
       Class<C> clazz) {
     if (predicates.pulledUpPredicates.isEmpty()) {
       return e;
     }
+
+    if (e.getKind() == SqlKind.NOT_EQUALS) {
+      return simplifyNotEqual(e);
+    }
+
     final Comparison comparison = Comparison.of(e);
     // Check for comparison with null values
     if (comparison == null
-        || comparison.kind == SqlKind.NOT_EQUALS
         || comparison.literal.getValue() == null) {
       return e;
     }
+
     final C v0 = comparison.literal.getValueAs(clazz);
     final Range<C> range = range(comparison.kind, v0);
     final Range<C> range2 =
