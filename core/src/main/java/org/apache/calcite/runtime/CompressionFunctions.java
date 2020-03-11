@@ -18,6 +18,8 @@ package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,8 +35,19 @@ public class CompressionFunctions {
   private CompressionFunctions() {
   }
 
+  /**
+   * MySql Compression is based on zlib.
+   * <a href="https://docs.oracle.com/javase/8/docs/api/java/util/zip/Deflater.html">Deflater</a>
+   * is used to implement compression.
+   */
   public static ByteString compress(String data) {
     try {
+      if (data == null) {
+        return null;
+      }
+      if (StringUtils.isEmpty(data)) {
+        return new ByteString(new byte[0]);
+      }
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
       ByteBuffer dataLength = ByteBuffer.allocate(4);
       dataLength.order(ByteOrder.LITTLE_ENDIAN);
