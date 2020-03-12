@@ -585,13 +585,6 @@ public class SqlParserTest {
     return new TesterImpl();
   }
 
-  @Deprecated // to be removed before 1.23
-  protected void check(
-      String sql,
-      String expected) {
-    sql(sql).ok(expected);
-  }
-
   protected Sql sql(String sql) {
     return new Sql(sql, false, null, parser -> { });
   }
@@ -630,32 +623,6 @@ public class SqlParserTest {
     final SqlParser.Config config =
         transform.apply(configBuilder).build();
     return SqlParser.create(source, config);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkExp(
-      String sql,
-      String expected) {
-    expr(sql).ok(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkExpSame(String sql) {
-    expr(sql).same();
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkFails(
-      String sql,
-      String expectedMsgPattern) {
-    sql(sql).fails(expectedMsgPattern);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkExpFails0(
-      String sql,
-      String expectedMsgPattern) {
-    expr(sql).fails(expectedMsgPattern);
   }
 
   /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a

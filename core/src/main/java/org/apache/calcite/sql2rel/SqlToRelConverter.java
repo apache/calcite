@@ -5778,19 +5778,6 @@ public class SqlToRelConverter {
     /** Default configuration. */
     Config DEFAULT = configBuilder().build();
 
-    /** Returns the {@code convertTableAccess} option. Controls whether table
-     * access references are converted to physical rels immediately. The
-     * optimizer doesn't like leaf rels to have {@link Convention#NONE}.
-     * However, if we are doing further conversion passes (e.g.
-     * {@link RelStructuredTypeFlattener}), then we may need to defer
-     * conversion.
-     *
-     * @deprecated Table access references are always converted to
-     * logical relational expressions during sql-to-rel conversion.
-     * */
-    @Deprecated // to be removed before 1.23
-    boolean isConvertTableAccess();
-
     /** Returns the {@code decorrelationEnabled} option. Controls whether to
      * disable sub-query decorrelation when needed. e.g. if outer joins are not
      * supported. */
@@ -5857,11 +5844,6 @@ public class SqlToRelConverter {
       this.inSubQueryThreshold = config.getInSubQueryThreshold();
       this.relBuilderFactory = config.getRelBuilderFactory();
       this.hintStrategyTable = config.getHintStrategyTable();
-      return this;
-    }
-
-    @Deprecated // to be removed before 1.23
-    public ConfigBuilder withConvertTableAccess(boolean convertTableAccess) {
       return this;
     }
 

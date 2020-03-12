@@ -126,87 +126,6 @@ public class SqlValidatorTestCase {
     return winSql("select " + sql + " from emp");
   }
 
-  @Deprecated // to be removed before 1.23
-  public void check(String sql) {
-    sql(sql).ok();
-  }
-
-  @Deprecated // to be removed before 1.23
-  public void checkExp(String sql) {
-    expr(sql).ok();
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkFails(
-      String sql,
-      String expected) {
-    sql(sql).fails(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkExpFails(
-      String sql,
-      String expected) {
-    expr(sql).fails(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkWholeExpFails(
-      String sql,
-      String expected) {
-    wholeExpr(sql).fails(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkExpType(
-      String sql,
-      String expected) {
-    expr(sql).columnType(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkColumnType(
-      String sql,
-      String expected) {
-    sql(sql).columnType(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkResultType(
-      String sql,
-      String expected) {
-    sql(sql).type(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public final void checkIntervalConv(
-      String sql,
-      String expected) {
-    expr(sql).intervalConv(expected);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected final void assertExceptionIsThrown(
-      String sql,
-      String expectedMsgPattern) {
-    sql(sql).fails(expectedMsgPattern);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public void checkCharset(
-      String sql,
-      Charset expectedCharset) {
-    sql(sql).charset(expectedCharset);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public void checkCollation(
-      String sql,
-      String expectedCollationName,
-      SqlCollation.Coercibility expectedCoercibility) {
-    sql(sql).collation(expectedCollationName, expectedCoercibility);
-  }
-
   /**
    * Encapsulates differences between test environments, for example, which
    * SQL parser or validator to use.
@@ -348,11 +267,6 @@ public class SqlValidatorTestCase {
       this.query = query;
       this.sql = sql;
       this.whole = whole;
-    }
-
-    @Deprecated // to be removed before 1.23
-    Sql tester(SqlTester tester) {
-      return withTester(t -> tester);
     }
 
     Sql withTester(UnaryOperator<SqlTester> transform) {

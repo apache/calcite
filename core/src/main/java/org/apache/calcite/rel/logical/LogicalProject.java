@@ -123,18 +123,6 @@ public final class LogicalProject extends Project {
     return new LogicalProject(cluster, traitSet, hints, input, projects, rowType);
   }
 
-  @Deprecated // to be removed before 1.23
-  public static LogicalProject create(final RelNode input,
-      final List<? extends RexNode> projects, List<String> fieldNames) {
-    return create(input, ImmutableList.of(), projects, fieldNames);
-  }
-
-  @Deprecated // to be removed before 1.23
-  public static LogicalProject create(final RelNode input,
-      final List<? extends RexNode> projects, RelDataType rowType) {
-    return create(input, ImmutableList.of(), projects, rowType);
-  }
-
   @Override public LogicalProject copy(RelTraitSet traitSet, RelNode input,
       List<RexNode> projects, RelDataType rowType) {
     return new LogicalProject(getCluster(), traitSet, hints, input, projects, rowType);
