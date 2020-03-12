@@ -4601,6 +4601,12 @@ public abstract class SqlOperatorBaseTest {
             + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
         false);
 
+    tester.checkFails("^map_filter(null, (b)->2+2*a)^",
+        "Cannot apply 'MAP_FILTER' to arguments of type "
+            + "'MAP_FILTER\\(<NULL>, <LAMBDA>\\)'\\. "
+            + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
+        false);
+
     tester.checkString("map_filter(map[1, 2, 5, 4], (a,b)->a>b)",
         "{5=4}",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
