@@ -119,12 +119,14 @@ public class MockCatalogReaderExtended extends MockCatalogReaderSimple {
     registerSchema(virtualColumnsSchema);
     final MockTable virtualColumnsTable1 =
         MockTable.create(this, virtualColumnsSchema, "VC_T1", false, 100,
-            null, new VirtualColumnsExpressionFactory(), false);
+            null, new VirtualColumnsExpressionFactory(), true);
     virtualColumnsTable1.addColumn("A", f.intTypeNull);
     virtualColumnsTable1.addColumn("B", f.bigintType);
     virtualColumnsTable1.addColumn("C", f.varchar10Type);
     virtualColumnsTable1.addColumn("D", f.intTypeNull);
-    virtualColumnsTable1.addColumn("E", f.bigintType);
+    // Column E has the same type as column A because it's a virtual column
+    // with expression that references column A.
+    virtualColumnsTable1.addColumn("E", f.intTypeNull);
     // Same schema with VC_T1 but with different table name.
     final MockTable virtualColumnsTable2 =
         MockTable.create(this, virtualColumnsSchema, "VC_T2", false, 100,

@@ -1121,13 +1121,20 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql("select * from dept, lateral table(ramp(deptno))").ok();
   }
 
-  @Test public void testSnapshotOnTemporalTable() {
+  @Test public void testSnapshotOnTemporalTable1() {
     final String sql = "select * from products_temporal "
         + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
     sql(sql).ok();
   }
 
-  @Test public void testJoinTemporalTableOnSpecificTime() {
+  @Test public void testSnapshotOnTemporalTable2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select * from VIRTUALCOLUMNS.VC_T1 "
+        + "for system_time as of TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).with(getExtendedTester()).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnSpecificTime1() {
     final String sql = "select stream *\n"
         + "from orders,\n"
         + "  products_temporal for system_time as of\n"
@@ -1135,12 +1142,30 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testJoinTemporalTableOnColumnReference() {
+  @Test public void testJoinTemporalTableOnSpecificTime2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select stream *\n"
+        + "from orders,\n"
+        + "  VIRTUALCOLUMNS.VC_T1 for system_time as of\n"
+        + "    TIMESTAMP '2011-01-02 00:00:00'";
+    sql(sql).with(getExtendedTester()).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnColumnReference1() {
     final String sql = "select stream *\n"
         + "from orders\n"
         + "join products_temporal for system_time as of orders.rowtime\n"
         + "on orders.productid = products_temporal.productid";
     sql(sql).ok();
+  }
+
+  @Test public void testJoinTemporalTableOnColumnReference2() {
+    // Test temporal table with virtual columns.
+    final String sql = "select stream *\n"
+        + "from orders\n"
+        + "join VIRTUALCOLUMNS.VC_T1 for system_time as of orders.rowtime\n"
+        + "on orders.productid = VIRTUALCOLUMNS.VC_T1.a";
+    sql(sql).with(getExtendedTester()).ok();
   }
 
   /**
