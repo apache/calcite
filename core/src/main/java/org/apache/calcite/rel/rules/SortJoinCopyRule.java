@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -51,12 +52,12 @@ public class SortJoinCopyRule extends RelOptRule {
 
   public static final SortJoinCopyRule INSTANCE =
       new SortJoinCopyRule(LogicalSort.class,
-          Join.class, RelFactories.LOGICAL_BUILDER);
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   /** Creates a SortJoinCopyRule. */
-  protected SortJoinCopyRule(Class<? extends Sort> sortClass,
+  public SortJoinCopyRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass, RelBuilderFactory relBuilderFactory) {
     super(
         operand(sortClass,
