@@ -141,7 +141,7 @@ public class RelDistributions {
       return getTraitDef().canonize(
           new RelDistributionImpl(type,
               ImmutableIntList.copyOf(
-                  Mappings.apply((Mapping) mapping, keys))));
+                  Mappings.apply2((Mapping) mapping, keys))));
     }
 
     public boolean satisfies(RelTrait trait) {
