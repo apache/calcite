@@ -4607,6 +4607,16 @@ public abstract class SqlOperatorBaseTest {
             + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
         false);
 
+    tester.checkFails("map_filter(map[1, 2, 5, 4], (a,b)->2+2*^c^)",
+        "Column 'C' not found in any table",
+        false);
+
+    tester.checkFails("^map_filter(map[1, 2, 5, 4], (a,b)->2)^",
+        "Cannot apply 'MAP_FILTER' to arguments of type "
+            + "'MAP_FILTER\\(\\<\\(INTEGER, INTEGER\\) MAP\\>, <LAMBDA>\\)'. "
+            + "Supported form\\(s\\): MAP_FILTER\\(<ANY>, <LAMBDA\\(BOOLEAN, ANY, ANY\\)\\>\\)",
+        false);
+
     tester.checkString("map_filter(map[1, 2, 5, 4], (a,b)->a>b)",
         "{5=4}",
         "(INTEGER NOT NULL, INTEGER NOT NULL) MAP NOT NULL");
