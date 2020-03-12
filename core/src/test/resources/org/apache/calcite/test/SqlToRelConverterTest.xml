@@ -323,7 +323,7 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], I=[$2])
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testSnapshotOnTemporalTable">
+    <TestCase name="testSnapshotOnTemporalTable1">
         <Resource name="sql">
             <![CDATA[select * from products_temporal for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>
         </Resource>
@@ -335,7 +335,20 @@ LogicalProject(PRODUCTID=[$0], NAME=[$1], SUPPLIERID=[$2], SYS_START=[$3], SYS_E
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJoinTemporalTableOnSpecificTime">
+    <TestCase name="testSnapshotOnTemporalTable2">
+        <Resource name="sql">
+            <![CDATA[select * from VIRTUALCOLUMNS.VC_T1 for system_time as of TIMESTAMP '2011-01-02 00:00:00']]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], E=[$4])
+  LogicalSnapshot(period=[2011-01-02 00:00:00])
+    LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], $f4=[+($0, 1)])
+      LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinTemporalTableOnSpecificTime1">
         <Resource name="sql">
             <![CDATA[select stream *
 from orders,
@@ -353,7 +366,26 @@ LogicalDelta
 ]]>
         </Resource>
     </TestCase>
-    <TestCase name="testJoinTemporalTableOnColumnReference">
+    <TestCase name="testJoinTemporalTableOnSpecificTime2">
+        <Resource name="sql">
+            <![CDATA[select stream *
+from orders,
+  VIRTUALCOLUMNS.VC_T1 for system_time as of
+    TIMESTAMP '2011-01-02 00:00:00']]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], A=[$3], B=[$4], C=[$5], D=[$6], E=[$7])
+    LogicalJoin(condition=[true], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalSnapshot(period=[2011-01-02 00:00:00])
+        LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], $f4=[+($0, 1)])
+          LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinTemporalTableOnColumnReference1">
         <Resource name="sql">
             <![CDATA[select stream *
 from orders
@@ -369,6 +401,26 @@ LogicalDelta
       LogicalFilter(condition=[=($cor0.PRODUCTID, $0)])
         LogicalSnapshot(period=[$cor0.ROWTIME])
           LogicalTableScan(table=[[CATALOG, SALES, PRODUCTS_TEMPORAL]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testJoinTemporalTableOnColumnReference2">
+        <Resource name="sql">
+            <![CDATA[select stream *
+from orders
+join VIRTUALCOLUMNS.VC_T1 for system_time as of orders.rowtime
+on orders.productid = VIRTUALCOLUMNS.VC_T1.a]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalDelta
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], A=[$3], B=[$4], C=[$5], D=[$6], E=[$7])
+    LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{0, 1}])
+      LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
+      LogicalFilter(condition=[=($cor0.PRODUCTID, $0)])
+        LogicalSnapshot(period=[$cor0.ROWTIME])
+          LogicalProject(A=[$0], B=[$1], C=[$2], D=[$3], $f4=[+($0, 1)])
+            LogicalTableScan(table=[[CATALOG, VIRTUALCOLUMNS, VC_T1]])
 ]]>
         </Resource>
     </TestCase>
