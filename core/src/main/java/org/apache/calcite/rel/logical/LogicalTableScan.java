@@ -114,12 +114,6 @@ public final class LogicalTableScan extends TableScan {
     return new LogicalTableScan(cluster, traitSet, hints, relOptTable);
   }
 
-  @Deprecated // to be removed before 1.23
-  public static LogicalTableScan create(RelOptCluster cluster,
-      final RelOptTable relOptTable) {
-    return create(cluster, relOptTable, ImmutableList.of());
-  }
-
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalTableScan(getCluster(), traitSet, hintList, table);
   }

@@ -122,11 +122,5 @@ public class PigRelFactories {
       Util.discard(semiJoinDone);
       return new PigJoin(left.getCluster(), left.getTraitSet(), left, right, condition, joinType);
     }
-
-    @SuppressWarnings("deprecation")
-    @Override public RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped, boolean semiJoinDone) {
-      return new PigJoin(left.getCluster(), left.getTraitSet(), left, right, condition, joinType);
-    }
   }
 }

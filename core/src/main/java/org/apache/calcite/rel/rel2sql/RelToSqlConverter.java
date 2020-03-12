@@ -631,7 +631,10 @@ public class RelToSqlConverter extends SqlImplementor
           final Sort sort2 =
               LogicalSort.create(aggregate, collation, e.offset, e.fetch);
           final Project project2 =
-              LogicalProject.create(sort2, project.getProjects(),
+              LogicalProject.create(
+                  sort2,
+                  ImmutableList.of(),
+                  project.getProjects(),
                   project.getRowType());
           return visit(project2);
         }

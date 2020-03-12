@@ -170,36 +170,6 @@ public final class LogicalJoin extends Join {
         variablesSet, joinType, semiJoinDone, systemFieldList);
   }
 
-  @Deprecated // to be removed before 1.23
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    return create(left, right, ImmutableList.of(), condition, variablesSet,
-        joinType, false, ImmutableList.of());
-  }
-
-  @Deprecated // to be removed before 1.23
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
-      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
-    return create(left, right, ImmutableList.of(), condition, variablesSet,
-        joinType, semiJoinDone, systemFieldList);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped,
-      boolean semiJoinDone, ImmutableList<RelDataTypeField> systemFieldList) {
-    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
-        joinType, semiJoinDone, systemFieldList);
-  }
-
-  @Deprecated // to be removed before 2.0
-  public static LogicalJoin create(RelNode left, RelNode right,
-      RexNode condition, JoinRelType joinType, Set<String> variablesStopped) {
-    return create(left, right, condition, CorrelationId.setOf(variablesStopped),
-        joinType, false, ImmutableList.of());
-  }
-
   //~ Methods ----------------------------------------------------------------
 
   @Override public LogicalJoin copy(RelTraitSet traitSet, RexNode conditionExpr,

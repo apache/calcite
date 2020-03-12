@@ -83,13 +83,6 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
         SqlToRelConverter.Config.DEFAULT, tester.getConformance());
   }
 
-  @Deprecated // to be removed before 1.23
-  protected final void check(
-      String sql,
-      String plan) {
-    sql(sql).convertsTo(plan);
-  }
-
   @Test public void testDotLiteralAfterNestedRow() {
     final String sql = "select ((1,2),(3,4,5)).\"EXPR$1\".\"EXPR$2\" from emp";
     sql(sql).ok();

@@ -22,7 +22,6 @@ import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -49,7 +48,6 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -162,12 +160,6 @@ public class RelFactories {
      */
     RelNode createProject(RelNode input, List<RelHint> hints,
         List<? extends RexNode> childExprs, List<String> fieldNames);
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createProject(RelNode input,
-        List<? extends RexNode> childExprs, List<String> fieldNames) {
-      return createProject(input, ImmutableList.of(), childExprs, fieldNames);
-    }
   }
 
   /**
@@ -296,20 +288,6 @@ public class RelFactories {
     /** Creates an aggregate. */
     RelNode createAggregate(RelNode input, List<RelHint> hints, ImmutableBitSet groupSet,
         ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
-        ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-      return createAggregate(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
-    }
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createAggregate(RelNode input, boolean indicator,
-        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-        List<AggregateCall> aggCalls) {
-      Aggregate.checkIndicator(indicator);
-      return createAggregate(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
-    }
   }
 
   /**
@@ -386,22 +364,6 @@ public class RelFactories {
     RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
         RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
         boolean semiJoinDone);
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        Set<CorrelationId> variablesSet, JoinRelType joinType,
-        boolean semiJoinDone) {
-      return createJoin(left, right, ImmutableList.of(), condition, variablesSet,
-          joinType, semiJoinDone);
-    }
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
-      return createJoin(left, right, ImmutableList.of(), condition,
-          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
-    }
   }
 
   /**
@@ -479,8 +441,8 @@ public class RelFactories {
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
-      return LogicalJoin.create(left, right, condition, ImmutableSet.of(), JoinRelType.SEMI,
-          false, ImmutableList.of());
+      return LogicalJoin.create(left, right, ImmutableList.of(), condition,
+          ImmutableSet.of(), JoinRelType.SEMI, false, ImmutableList.of());
     }
   }
 
@@ -517,11 +479,6 @@ public class RelFactories {
      * Creates a {@link TableScan}.
      */
     RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table);
-
-    @Deprecated // to be removed before 1.23
-    default RelNode createScan(RelOptCluster cluster, RelOptTable table) {
-      return createScan(ViewExpanders.simpleContext(cluster), table);
-    }
   }
 
   /**
@@ -532,38 +489,6 @@ public class RelFactories {
     public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
       return table.toRel(toRelContext);
     }
-  }
-
-  /**
-   * Creates a {@link TableScanFactory} that uses a
-   * {@link org.apache.calcite.plan.RelOptTable.ViewExpander} to handle
-   * {@link TranslatableTable} instances, and falls back to a default
-   * factory for other tables.
-   *
-   * @param viewExpander View expander
-   * @param tableScanFactory Factory for non-translatable tables
-   * @return Table scan factory
-   *
-   * @deprecated Use the custom context {@code Contexts.of(viewExpander) } for RelBuilder.
-   *
-   */
-  @Deprecated // to be removed before 1.23
-  @Nonnull public static TableScanFactory expandingScanFactory(
-      @Nonnull RelOptTable.ViewExpander viewExpander,
-      @Nonnull TableScanFactory tableScanFactory) {
-    return (toRelContext, table) -> {
-      final TranslatableTable translatableTable =
-          table.unwrap(TranslatableTable.class);
-      final RelOptTable.ToRelContext newToRelContext =
-          ViewExpanders.toRelContext(
-              viewExpander,
-              toRelContext.getCluster(),
-              toRelContext.getTableHints());
-      if (translatableTable != null) {
-        return translatableTable.toRel(newToRelContext, table);
-      }
-      return tableScanFactory.createScan(newToRelContext, table);
-    };
   }
 
   /**
