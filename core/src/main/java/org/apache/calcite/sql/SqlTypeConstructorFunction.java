@@ -17,11 +17,10 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeConstructorOperandTypeChecker;
+import org.apache.calcite.sql.type.ExplicitOperandTypeChecker;
 
 /**
- * Type Constructor function
+ * Type Constructor function.
  *
  * <p>Created by the parser, then it is rewritten to proper SqlFunction by
  * the validator to a function defined in a Calcite schema.</p>
@@ -34,14 +33,14 @@ public class SqlTypeConstructorFunction extends SqlFunction {
    * Creates a constructor function for types.
    *
    * @param identifier possibly qualified identifier for function
-   * @param type type of data.
+   * @param type type of data
    */
   public SqlTypeConstructorFunction(SqlIdentifier identifier,
       RelDataType type) {
     super(identifier,
         null,
         null,
-        new SqlTypeConstructorOperandTypeChecker(type),
+        new ExplicitOperandTypeChecker(type),
         null,
         SqlFunctionCategory.SYSTEM);
     this.type = type;
@@ -49,10 +48,5 @@ public class SqlTypeConstructorFunction extends SqlFunction {
 
   @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     return type;
-  }
-
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
-    return super.createCall(functionQualifier, pos, operands);
   }
 }

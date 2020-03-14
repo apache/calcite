@@ -251,12 +251,12 @@ public class ServerTest {
     try (Connection c = connect();
         Statement s = c.createStatement()) {
       boolean b = s.execute("create type mytype as (i int, j int)");
-      assertThat(b, is(false));
+      assertFalse(b);
       b = s.execute("create table w (i int not null, j mytype)");
-      assertThat(b, is(false));
+      assertFalse(b);
       int x = s.executeUpdate("insert into w "
           + "values (1, mytype(1, 1))");
-      assertThat(x, is(1));
+      assertEquals(x, 1);
 
       try (ResultSet r = s.executeQuery("select * from w")) {
         assertTrue(r.next());

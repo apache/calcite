@@ -26,14 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Parameter type-checking strategy for SqlTypeConstructor
+ * Parameter type-checking strategy for Explicit Type.
  */
-public class SqlTypeConstructorOperandTypeChecker implements SqlOperandTypeChecker {
+public class ExplicitOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 
   private RelDataType type;
 
-  public SqlTypeConstructorOperandTypeChecker(RelDataType type) {
+  public ExplicitOperandTypeChecker(RelDataType type) {
     this.type = type;
   }
 
@@ -66,7 +66,7 @@ public class SqlTypeConstructorOperandTypeChecker implements SqlOperandTypeCheck
   }
 
   public String getAllowedSignatures(SqlOperator op, String opName) {
-    return "<TYPE_CONSTRUCTOR> " + opName + " <TYPE_CONSTRUCTOR>";
+    return "<TYPE> " + opName + " <TYPE>";
   }
 
   public Consistency getConsistency() {
