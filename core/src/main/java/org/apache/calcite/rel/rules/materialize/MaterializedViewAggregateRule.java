@@ -673,15 +673,21 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       rewritingMapping = rewritingMappingB.build();
       final ImmutableMultimap<Integer, Integer> inverseMapping = rewritingMapping.inverse();
       final List<RexNode> projects = new ArrayList<>();
+
+      final ImmutableBitSet.Builder addedProjects = ImmutableBitSet.builder();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
+        int pos = groupSet.indexOf(inverseMapping.get(i).iterator().next());
+        addedProjects.set(pos);
         projects.add(
-            rexBuilder.makeInputRef(result,
-                groupSet.indexOf(inverseMapping.get(i).iterator().next())));
+            rexBuilder.makeInputRef(result, pos));
       }
+
+      ImmutableBitSet projectedCols = addedProjects.build();
       // We add aggregate functions that are present in result to projection list
-      for (int i = queryAggregate.getGroupCount(); i < result.getRowType().getFieldCount(); i++) {
-        projects.add(
-            rexBuilder.makeInputRef(result, i));
+      for (int i = 0; i < result.getRowType().getFieldCount(); i++) {
+        if (!projectedCols.get(i)) {
+          projects.add(rexBuilder.makeInputRef(result, i));
+        }
       }
       result = relBuilder
           .push(result)
