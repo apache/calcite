@@ -18,6 +18,17 @@
 !use mysqlfunc
 !set outputformat mysql
 
+# BIT_NOT
+select bit_not(3);
++--------+
+| EXPR$0 |
++--------+
+|     -4 |
++--------+
+(1 row)
+
+!ok
+
 # MATH Functions
 
 # CBRT

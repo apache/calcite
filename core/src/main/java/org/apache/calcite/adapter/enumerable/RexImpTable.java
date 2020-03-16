@@ -96,6 +96,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.NotEqual;
 import static org.apache.calcite.linq4j.tree.ExpressionType.OrElse;
 import static org.apache.calcite.linq4j.tree.ExpressionType.Subtract;
 import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.BIT_NOT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COMPRESS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.COSH;
@@ -420,6 +421,9 @@ public class RexImpTable {
     defineMethod(TRUNCATE, "struncate", NullPolicy.STRICT);
 
     map.put(PI, (translator, call, nullAs) -> Expressions.constant(Math.PI));
+
+    // bitwise
+    defineMethod(BIT_NOT, BuiltInMethod.BIT_NOT.method, NullPolicy.STRICT);
 
     // datetime
     defineImplementor(DATETIME_PLUS, NullPolicy.STRICT,

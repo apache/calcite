@@ -1079,6 +1079,12 @@ public class SqlFunctions {
     return b0 & b1;
   }
 
+  // ~
+  /** Helper function for implementing <code>BIT_NOT</code> */
+  public static long bitNot(long b) {
+    return ~b;
+  }
+
   // |
   /** Helper function for implementing <code>BIT_OR</code> */
   public static long bitOr(long b0, long b1) {

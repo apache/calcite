@@ -2320,6 +2320,7 @@ semantics.
 | C | Operator syntax                                | Description
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
+| m | BIT_NOT(value)                                 | Returns the bitwise NOT of non-null *numeric*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
 | o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
 | m o p | CONCAT(string [, string ]*)                | Concatenates two or more strings
