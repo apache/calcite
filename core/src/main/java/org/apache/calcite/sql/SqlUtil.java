@@ -645,6 +645,13 @@ public abstract class SqlUtil {
           } else {
             permutedArgTypes = Lists.newArrayList(argTypes);
           }
+
+          if (permutedParamTypes.size() < permutedArgTypes.size()) {
+            permutedParamTypes.addAll(Stream.generate(() -> paramTypes.get(paramTypes.size() - 1))
+                .limit(permutedArgTypes.size() - permutedParamTypes.size())
+                .collect(Collectors.toList()));
+          }
+
           for (Pair<RelDataType, RelDataType> p
               : Pair.zip(permutedParamTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
@@ -677,16 +684,17 @@ public abstract class SqlUtil {
           argType.e.getPrecedenceList();
       final RelDataType bestMatch = bestMatch(sqlFunctions, argType.i, precList);
       if (bestMatch != null) {
-        sqlFunctions = sqlFunctions.stream()
-            .filter(function -> {
-              final List<RelDataType> paramTypes = function.getParamTypes();
-              if (paramTypes == null) {
-                return false;
-              }
-              final RelDataType paramType = paramTypes.get(argType.i);
-              return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
-            })
-            .collect(Collectors.toList());
+        sqlFunctions = sqlFunctions.stream().filter(function -> {
+          final List<RelDataType> paramTypes = function.getParamTypes();
+          if (paramTypes == null) {
+            return false;
+          }
+          int paramIndex = function.isVarArgs() ? (argType.i > paramTypes.size() - 1
+              ? paramTypes.size() - 1
+              : argType.i) : argType.i;
+          final RelDataType paramType = paramTypes.get(paramIndex);
+          return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
+        }).collect(Collectors.toList());
       }
     }
     //noinspection unchecked
@@ -701,14 +709,14 @@ public abstract class SqlUtil {
       if (paramTypes == null) {
         continue;
       }
-      final RelDataType paramType = paramTypes.get(i);
+      int paramIndex = function.isVarArgs() ? (i > paramTypes.size() - 1
+          ? paramTypes.size() - 1
+          : i) : i;
+      final RelDataType paramType = paramTypes.get(paramIndex);
       if (bestMatch == null) {
         bestMatch = paramType;
       } else {
-        int c =
-            precList.compareTypePrecedence(
-                bestMatch,
-                paramType);
+        int c = precList.compareTypePrecedence(bestMatch, paramType);
         if (c < 0) {
           bestMatch = paramType;
         }

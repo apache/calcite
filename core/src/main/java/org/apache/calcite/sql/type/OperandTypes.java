@@ -77,8 +77,8 @@ public abstract class OperandTypes {
    * corresponding family, and allows specified parameters to be optional.
    */
   public static FamilyOperandTypeChecker family(List<SqlTypeFamily> families,
-      Predicate<Integer> optional, boolean varArgs) {
-    return new FamilyOperandTypeChecker(families, optional, varArgs);
+      Predicate<Integer> optional, Predicate<Integer> varArg) {
+    return new FamilyOperandTypeChecker(families, optional, varArg);
   }
 
   /**

@@ -97,6 +97,18 @@ public class UdfTest {
         + "'\n"
         + "         },\n"
         + "         {\n"
+        + "           name: 'VAR_ARGS',\n"
+        + "           className: '"
+        + Smalls.VarArgs1Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
+        + "           name: 'VAR_ARGS',\n"
+        + "           className: '"
+        + Smalls.VarArgs2Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
         + "           name: 'MY_LEFT',\n"
         + "           className: '"
         + Smalls.MyLeftFunction.class.getName()
@@ -192,14 +204,27 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunction() throws Exception {
-    final String sql = "select \"adhoc\".var_args(\"deptno\", 100) as p\n"
+    final String sql = "select \"adhoc\".var_args(\"deptno\", 100, 20.0) as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.VarArgs2Function.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=130.0",
+        "P=140.0",
+        "P=130.0",
+        "P=130.0");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  @Test public void testVarArgsUserDefinedFunctionWithoutVarArgInputs() throws Exception {
+    final String sql = "select \"adhoc\".var_args(\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
     final int before = c.get();
-    withUdf().query(sql).returnsUnordered("P=110",
-        "P=120",
-        "P=110",
-        "P=110");
+    withUdf().query(sql).returnsUnordered("P=10",
+        "P=10",
+        "P=10",
+        "P=20");
     final int after = c.get();
     assertThat(after, is(before + 4));
   }
@@ -207,14 +232,14 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunctionWithNameParameters() throws Exception {
-    final String sql = "select \"adhoc\".var_args(y=>100, x=>\"deptno\") as p\n"
+    final String sql = "select \"adhoc\".var_args(y=>20, y_1=>100, x=>\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.VarArgsFunction.INSTANCE_COUNT;
     final int before = c.get();
-    withUdf().query(sql).returnsUnordered("P=110",
-        "P=120",
-        "P=110",
-        "P=110");
+    withUdf().query(sql).returnsUnordered("P=130",
+        "P=140",
+        "P=130",
+        "P=130");
     final int after = c.get();
     assertThat(after, is(before + 4));
   }
