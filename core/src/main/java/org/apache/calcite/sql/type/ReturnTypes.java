@@ -560,15 +560,12 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference DECIMAL_TRUNCATE = opBinding -> {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
-    // passing random value for scale2
-    // since the default behaviour is to have the return type of result as the first operand
     Integer scale2 = 0;
     try {
       scale2 = opBinding.getOperandLiteralValue(1, Integer.class);
     } catch (Exception e) {
       //ignore
     }
-
     return typeFactory.getTypeSystem().deriveDecimalTruncateType(typeFactory, type1, scale2);
   };
 
@@ -592,9 +589,13 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference DECIMAL_ROUND = opBinding -> {
     RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
     RelDataType type1 = opBinding.getOperandType(0);
-    // passing random value for scale2
-    // since the default behaviour is to have the return type of result as the first operand
-    return typeFactory.getTypeSystem().deriveDecimalRoundType(typeFactory, type1, 0);
+    Integer scale2 = 0;
+    try {
+      scale2 = opBinding.getOperandLiteralValue(1, Integer.class);
+    } catch (Exception e) {
+      //ignore
+    }
+    return typeFactory.getTypeSystem().deriveDecimalRoundType(typeFactory, type1, scale2);
   };
 
   /**
