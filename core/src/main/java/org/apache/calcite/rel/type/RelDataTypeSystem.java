@@ -418,13 +418,11 @@ public interface RelDataTypeSystem {
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
-   * <li>Let s2 be the scale value to truncate</li>
    * <li>Let p, s be the precision and scale of the result</li>
-   * <li>Let d be the number of whole digits in the result</li>
    * <li>Then the result type is a decimal with:
    *   <ul>
-   *   <li>s = s2</li>
    *   <li>p = p1</li>
+   *   <li>s = s1</li>
    *   </ul>
    * </li>
    * <li>p and s are capped at their maximum values</li>
@@ -445,11 +443,7 @@ public interface RelDataTypeSystem {
             ? typeFactory.decimalOf(type1)
             : type1;
 
-        int precision = type1.getPrecision();
-        int scale = type1.getScale();
-
-        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
-            precision, scale);
+        return type1;
       }
     }
     return null;
@@ -468,7 +462,6 @@ public interface RelDataTypeSystem {
    *
    * <ul>
    * <li>Let p1, s1 be the precision and scale of the first operand</li>
-   * <li>Let s2 be the scale value to round</li>
    * <li>Let p, s be the precision and scale of the result</li>
    * <li>Then the result type is a decimal with:
    *   <ul>
@@ -494,11 +487,7 @@ public interface RelDataTypeSystem {
             ? typeFactory.decimalOf(type1)
             : type1;
 
-        int precision = type1.getPrecision();
-        int scale = type1.getScale();
-
-        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
-            precision, scale);
+        return type1;
       }
     }
     return null;
