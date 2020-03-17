@@ -105,6 +105,6 @@ public class AggregateValuesRule extends RelOptRule implements SubstitutionRule 
             .build());
 
     // New plan is absolutely better than old plan.
-    call.getPlanner().setImportance(aggregate, 0.0);
+    call.getPlanner().prune(aggregate);
   }
 }

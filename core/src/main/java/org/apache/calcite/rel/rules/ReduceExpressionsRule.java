@@ -215,7 +215,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
       }
 
       // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(filter, 0.0);
+      call.getPlanner().prune(filter);
     }
 
     /**
@@ -273,7 +273,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
             call.transformTo(createEmptyRelOrEquivalent(call, filter));
           }
           // New plan is absolutely better than old plan.
-          call.getPlanner().setImportance(filter, 0.0);
+          call.getPlanner().prune(filter);
         }
       }
     }
@@ -313,7 +313,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
                 .build());
 
         // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(project, 0.0);
+        call.getPlanner().prune(project);
       }
     }
   }
@@ -361,7 +361,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
               join.isSemiJoinDone()));
 
       // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(join, 0.0);
+      call.getPlanner().prune(join);
     }
   }
 
@@ -436,7 +436,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
             calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram()));
 
         // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(calc, 0.0);
+        call.getPlanner().prune(calc);
       }
     }
 
@@ -529,7 +529,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
         call.transformTo(LogicalWindow
             .create(window.getTraitSet(), window.getInput(),
                 window.getConstants(), window.getRowType(), groups));
-        call.getPlanner().setImportance(window, 0);
+        call.getPlanner().prune(window);
       }
     }
   }

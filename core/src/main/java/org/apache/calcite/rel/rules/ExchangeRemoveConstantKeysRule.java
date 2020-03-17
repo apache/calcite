@@ -117,7 +117,7 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule
               ? RelDistributions.SINGLETON
               : RelDistributions.hash(distributionKeys))
           .build());
-      call.getPlanner().setImportance(exchange, 0.0);
+      call.getPlanner().prune(exchange);
     }
   }
 
@@ -194,7 +194,7 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule
             .push(sortExchange.getInput())
             .sortExchange(distribution, collation)
             .build());
-        call.getPlanner().setImportance(sortExchange, 0.0);
+        call.getPlanner().prune(sortExchange);
       }
     }
   }

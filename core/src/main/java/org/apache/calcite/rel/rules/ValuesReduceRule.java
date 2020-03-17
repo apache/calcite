@@ -250,7 +250,7 @@ public abstract class ValuesReduceRule extends RelOptRule {
     // changeCount == 0, we've proved that the filter was trivial, and that
     // can send the volcano planner into a loop; see dtbug 2070.)
     if (filter != null) {
-      call.getPlanner().setImportance(filter, 0.0);
+      call.getPlanner().prune(filter);
     }
   }
 

@@ -349,8 +349,7 @@ class RelSet {
 
     Set<RelNode> parentRels = new HashSet<>(parents);
     for (RelNode otherRel : otherSet.rels) {
-      Double importance = planner.getImportance(otherRel);
-      if (importance != null && importance == 0d) {
+      if (planner.prunedNodes.contains(otherRel)) {
         continue;
       }
 
@@ -366,7 +365,7 @@ class RelSet {
       }
 
       if (pruned) {
-        planner.setImportance(otherRel, 0d);
+        planner.prune(otherRel);
       } else {
         planner.reregister(this, otherRel);
       }

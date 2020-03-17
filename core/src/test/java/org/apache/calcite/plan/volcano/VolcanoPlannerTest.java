@@ -63,6 +63,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -452,6 +453,33 @@ public class VolcanoPlannerTest {
         + "  EnumerableValues(tuples=[[{ '1', 'x' }, { '2', 'y' }]])\n";
     assertThat("Merge join + sort is expected", plan,
         isLinux(RelOptUtil.toString(bestExp)));
+  }
+
+  @Test public void testPruneNode() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+
+    planner.addRule(new PhysLeafRule());
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel =
+        new NoneLeafRel(
+            cluster,
+            "a");
+    planner.setRoot(leafRel);
+
+    // prune the node
+    planner.prune(leafRel);
+
+    // verify that the rule match cannot be popped,
+    // as the related node has been pruned
+    while (true) {
+      VolcanoRuleMatch ruleMatch = planner.ruleQueue.popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      if (ruleMatch == null) {
+        break;
+      }
+      assertFalse(ruleMatch.rels[0] == leafRel);
+    }
   }
 
   /**

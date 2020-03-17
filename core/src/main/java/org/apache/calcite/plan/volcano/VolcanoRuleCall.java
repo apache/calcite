@@ -126,12 +126,12 @@ public class VolcanoRuleCall extends RelOptRuleCall {
 
       final RelNode relCopy = rel;
       if (rels[0].getInputs().stream().anyMatch(n -> n == relCopy)) {
-        volcanoPlanner.setImportance(rels[0], 0d);
+        volcanoPlanner.prune(rels[0]);
       }
 
       if (this.getRule() instanceof SubstitutionRule
           && ((SubstitutionRule) getRule()).autoPruneOld()) {
-        volcanoPlanner.setImportance(rels[0], 0d);
+        volcanoPlanner.prune(rels[0]);
       }
 
       // Registering the root relational expression implicitly registers
@@ -194,9 +194,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
           return;
         }
 
-        final Double importance =
-            volcanoPlanner.relImportances.get(rel);
-        if ((importance != null) && (importance == 0d)) {
+        if (volcanoPlanner.prunedNodes.contains(rel)) {
           LOGGER.debug("Rule [{}] not fired because operand #{} ({}) has importance=0",
               getRule(), i, rel);
           return;

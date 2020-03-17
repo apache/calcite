@@ -135,16 +135,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       new IdentityHashMap<>();
 
   /**
-   * The importance of relational expressions.
+   * The nodes to be pruned.
    *
-   * <p>The map contains only RelNodes whose importance has been overridden
-   * using {@link RelOptPlanner#setImportance(RelNode, double)}. Other
-   * RelNodes are presumed to have 'normal' importance.
-   *
-   * <p>If a RelNode has 0 importance, all {@link RelOptRuleCall}s using it
+   * <p>If a RelNode is pruned, all {@link RelOptRuleCall}s using it
    * are ignored, and future RelOptRuleCalls are not queued up.
    */
-  final Map<RelNode, Double> relImportances = new HashMap<>();
+  final Set<RelNode> prunedNodes = new HashSet<>();
 
   /**
    * List of all schemas which have been registered.
@@ -390,7 +386,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.allSets.clear();
     this.mapDigestToRel.clear();
     this.mapRel2Subset.clear();
-    this.relImportances.clear();
+    this.prunedNodes.clear();
     this.ruleQueue.clear();
     this.ruleNames.clear();
     this.materializations.clear();
@@ -914,16 +910,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return converted;
   }
 
+  @Deprecated // to be removed before 1.24
   public void setImportance(RelNode rel, double importance) {
     assert rel != null;
     if (importance == 0d) {
-      relImportances.put(rel, importance);
+      prunedNodes.add(rel);
     }
   }
 
-  Double getImportance(RelNode rel) {
-    assert rel != null;
-    return relImportances.get(rel);
+  @Override public void prune(RelNode rel) {
+    prunedNodes.add(rel);
   }
 
   /**
@@ -1003,9 +999,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               }
             }
           }
-          Double importance = relImportances.get(rel);
-          if (importance != null) {
-            pw.print(", importance=" + importance);
+          if (prunedNodes.contains(rel)) {
+            pw.print(", pruned");
           }
           RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
           pw.print(", rowcount=" + mq.getRowCount(rel));
