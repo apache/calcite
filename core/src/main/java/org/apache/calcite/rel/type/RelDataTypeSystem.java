@@ -482,7 +482,7 @@ public interface RelDataTypeSystem {
    * @param typeFactory TypeFactory used to create output type
    * @param type1       Type of the first operand
    * @param scale2      Scale value to round to
-   * @return Result type for a decimal truncate
+   * @return Result type for a decimal round
    */
   default RelDataType deriveDecimalRoundType(RelDataTypeFactory typeFactory,
       RelDataType type1, Integer scale2) {

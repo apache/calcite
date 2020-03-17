@@ -244,7 +244,7 @@ public class RelDataTypeSystemTest {
     RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 3);
     RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
 
-    RelDataType dataType = SqlStdOperatorTable.TRUNCATE.inferReturnType(TYPE_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.ROUND.inferReturnType(TYPE_FACTORY, Lists
         .newArrayList(operand1, operand2));
     assertEquals(10, dataType.getPrecision());
     assertEquals(3, dataType.getScale());
@@ -254,7 +254,7 @@ public class RelDataTypeSystemTest {
     RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 12);
     RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.INTEGER);
 
-    RelDataType dataType = SqlStdOperatorTable.TRUNCATE.inferReturnType(CUSTOM_FACTORY, Lists
+    RelDataType dataType = SqlStdOperatorTable.ROUND.inferReturnType(CUSTOM_FACTORY, Lists
         .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(28, dataType.getPrecision());
