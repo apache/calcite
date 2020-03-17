@@ -557,6 +557,32 @@ public abstract class ReturnTypes {
   public static final SqlReturnTypeInference NULLABLE_MOD =
           chain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE);
 
+  public static final SqlReturnTypeInference DECIMAL_TRUNCATE = opBinding -> {
+    RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+    RelDataType type1 = opBinding.getOperandType(0);
+    Integer scale = 0;
+    if (opBinding.getOperandCount() > 1) {
+      scale = opBinding.getOperandLiteralValue(1, Integer.class);
+    }
+    return typeFactory.getTypeSystem().deriveDecimalTruncateType(typeFactory, type1, scale);
+  };
+
+  /**
+   * Type-inference strategy whereby the result type of a call is the decimal
+   * truncate of two exact numeric operands where at least one of the operands is a
+   * decimal.
+   */
+  public static final SqlReturnTypeInference DECIMAL_TRUNCATE_NULLABLE =
+      cascade(DECIMAL_TRUNCATE, SqlTypeTransforms.TO_NULLABLE);
+
+  /**
+   * Type-inference strategy whereby the result type of a call is
+   * {@link #DECIMAL_TRUNCATE_NULLABLE} with a fallback to {@link #ARG0_NULLABLE}
+   * These rules are used for truncate.
+   */
+  public static final SqlReturnTypeInference NULLABLE_TRUNCATE =
+      chain(DECIMAL_TRUNCATE_NULLABLE, ARG0_NULLABLE);
+
   /**
    * Type-inference strategy whereby the result type of a call is
    *

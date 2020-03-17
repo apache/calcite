@@ -1741,7 +1741,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "TRUNCATE",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.NULLABLE_TRUNCATE,
           null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
