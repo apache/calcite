@@ -432,7 +432,7 @@ public interface RelDataTypeSystem {
    *
    * @param typeFactory TypeFactory used to create output type
    * @param type1       Type of the first operand
-   * @param scale       scale value to truncate
+   * @param scale2      Scale value to truncate to
    * @return Result type for a decimal truncate
    */
   default RelDataType deriveDecimalTruncateType(RelDataTypeFactory typeFactory,

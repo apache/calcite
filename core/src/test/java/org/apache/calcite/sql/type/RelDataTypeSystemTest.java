@@ -112,6 +112,19 @@ public class RelDataTypeSystemTest {
       return type1;
     }
 
+    @Override public RelDataType deriveDecimalTruncateType(RelDataTypeFactory typeFactory,
+        RelDataType type1, Integer scale) {
+      if (!SqlTypeUtil.isExactNumeric(type1)) {
+        return null;
+      }
+      if (!SqlTypeUtil.isDecimal(type1)) {
+        return null;
+      }
+
+      return typeFactory.createSqlType(SqlTypeName.DECIMAL,
+          type1.getPrecision(), 10);
+    }
+
     @Override public int getMaxNumericPrecision() {
       return 38;
     }
@@ -188,6 +201,27 @@ public class RelDataTypeSystemTest {
 
     RelDataType dataType = SqlStdOperatorTable.MOD.inferReturnType(CUSTOM_FACTORY, Lists
             .newArrayList(operand1, operand2));
+    assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
+    assertEquals(28, dataType.getPrecision());
+    assertEquals(10, dataType.getScale());
+  }
+
+  @Test public void testDecimalTruncateReturnTypeInference() {
+    RelDataType operand1 = TYPE_FACTORY.createSqlType(SqlTypeName.DECIMAL, 10, 3);
+    RelDataType operand2 = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    RelDataType dataType = SqlStdOperatorTable.TRUNCATE.inferReturnType(TYPE_FACTORY, Lists
+        .newArrayList(operand1, operand2));
+    assertEquals(10, dataType.getPrecision());
+    assertEquals(3, dataType.getScale());
+  }
+
+  @Test public void testCustomDecimalTruncateReturnTypeInference() {
+    RelDataType operand1 = CUSTOM_FACTORY.createSqlType(SqlTypeName.DECIMAL, 28, 12);
+    RelDataType operand2 = CUSTOM_FACTORY.createSqlType(SqlTypeName.INTEGER);
+
+    RelDataType dataType = SqlStdOperatorTable.TRUNCATE.inferReturnType(CUSTOM_FACTORY, Lists
+        .newArrayList(operand1, operand2));
     assertEquals(SqlTypeName.DECIMAL, dataType.getSqlTypeName());
     assertEquals(28, dataType.getPrecision());
     assertEquals(10, dataType.getScale());
