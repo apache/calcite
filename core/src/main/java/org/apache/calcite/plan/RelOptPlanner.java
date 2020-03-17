@@ -307,8 +307,23 @@ public interface RelOptPlanner {
    *
    * @param rel        Relational expression
    * @param importance Importance
+   *
+   * @deprecated This API will be removed in a future release, as we no longer
+   * support the concept of node importance. Please use
+   * {@link RelOptPlanner#prune(RelNode)} method instead.
    */
+  @Deprecated // to be removed before 1.24
   void setImportance(RelNode rel, double importance);
+
+  /**
+   * Prunes a node from the planner.
+   *
+   * <p>When a node is pruned, the related pending rule
+   * calls are cancelled, and future rules will not fire.
+   * This can be used to reduce the search space. </p>
+   * @param rel the node to prune.
+   */
+  void prune(RelNode rel);
 
   /**
    * Registers a class of RelNode. If this class of RelNode has been seen

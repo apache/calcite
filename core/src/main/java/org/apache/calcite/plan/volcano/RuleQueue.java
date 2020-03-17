@@ -237,8 +237,7 @@ class RuleQueue {
    * {@link RelNode}s have importance zero. */
   private boolean skipMatch(VolcanoRuleMatch match) {
     for (RelNode rel : match.rels) {
-      Double importance = planner.relImportances.get(rel);
-      if (importance != null && importance == 0d) {
+      if (planner.prunedNodes.contains(rel)) {
         return true;
       }
     }

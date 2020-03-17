@@ -221,7 +221,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return 0;
   }
 
+  @Deprecated // to be removed before 1.24
   public void setImportance(RelNode rel, double importance) {
+  }
+
+  @Override public void prune(RelNode rel) {
   }
 
   public void registerClass(RelNode node) {

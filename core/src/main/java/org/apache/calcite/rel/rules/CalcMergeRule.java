@@ -89,7 +89,7 @@ public class CalcMergeRule extends RelOptRule {
         && newCalc.getRowType().equals(bottomCalc.getRowType())) {
       // newCalc is equivalent to bottomCalc, which means that topCalc
       // must be trivial. Take it out of the game.
-      call.getPlanner().setImportance(topCalc, 0.0);
+      call.getPlanner().prune(topCalc);
     }
 
     call.transformTo(newCalc);

@@ -138,7 +138,7 @@ public class AggregateCaseToFilterRule extends RelOptRule {
         .convert(aggregate.getRowType(), false);
 
     call.transformTo(relBuilder.build());
-    call.getPlanner().setImportance(aggregate, 0.0);
+    call.getPlanner().prune(aggregate);
   }
 
   private @Nullable AggregateCall transform(AggregateCall aggregateCall,
