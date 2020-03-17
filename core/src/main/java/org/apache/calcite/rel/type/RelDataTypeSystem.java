@@ -455,4 +455,53 @@ public interface RelDataTypeSystem {
     return null;
   }
 
+  /**
+   * Infers the return type of a decimal round operation. Decimal round
+   * involves at least one decimal operand.
+   *
+   * <p>The default implementation is SQL:2003 compliant: the declared type of
+   * the result is the declared type of the first operand (decimal to be rounded).
+   *
+   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
+   *
+   * <p>Rules:
+   *
+   * <ul>
+   * <li>Let p1, s1 be the precision and scale of the first operand</li>
+   * <li>Let s2 be the scale value to round</li>
+   * <li>Let p, s be the precision and scale of the result</li>
+   * <li>Then the result type is a decimal with:
+   *   <ul>
+   *   <li>p = p1</li>
+   *   <li>s = s1</li>
+   *   </ul>
+   * </li>
+   * <li>p and s are capped at their maximum values</li>
+   * </ul>
+   *
+   * @param typeFactory TypeFactory used to create output type
+   * @param type1       Type of the first operand
+   * @param scale2      Scale value to round to
+   * @return Result type for a decimal truncate
+   */
+  default RelDataType deriveDecimalRoundType(RelDataTypeFactory typeFactory,
+      RelDataType type1, Integer scale2) {
+    if (SqlTypeUtil.isExactNumeric(type1)) {
+      if (SqlTypeUtil.isDecimal(type1)) {
+        // Java numeric will always have invalid precision/scale,
+        // use its default decimal precision/scale instead.
+        type1 = RelDataTypeFactoryImpl.isJavaType(type1)
+            ? typeFactory.decimalOf(type1)
+            : type1;
+
+        int precision = type1.getPrecision();
+        int scale = type1.getScale();
+
+        return typeFactory.createSqlType(SqlTypeName.DECIMAL,
+            precision, scale);
+      }
+    }
+    return null;
+  }
+
 }

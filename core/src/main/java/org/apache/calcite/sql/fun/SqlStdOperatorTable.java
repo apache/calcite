@@ -1705,7 +1705,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "ROUND",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0_NULLABLE,
+          ReturnTypes.NULLABLE_ROUND,
           null,
           OperandTypes.NUMERIC_OPTIONAL_INTEGER,
           SqlFunctionCategory.NUMERIC);
