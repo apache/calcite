@@ -409,11 +409,6 @@ public interface RelDataTypeSystem {
    * Infers the return type of a decimal truncate operation. Decimal truncate
    * involves at least one decimal operand.
    *
-   * <p>The default implementation is SQL:2003 compliant: the declared type of
-   * the result is the declared type of the first operand (decimal to be truncated).
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
-   *
    * <p>Rules:
    *
    * <ul>
@@ -452,11 +447,6 @@ public interface RelDataTypeSystem {
   /**
    * Infers the return type of a decimal round operation. Decimal round
    * involves at least one decimal operand.
-   *
-   * <p>The default implementation is SQL:2003 compliant: the declared type of
-   * the result is the declared type of the first operand (decimal to be rounded).
-   *
-   * @see Glossary#SQL2003 SQL:2003 Part 2 Section 6.27
    *
    * <p>Rules:
    *
