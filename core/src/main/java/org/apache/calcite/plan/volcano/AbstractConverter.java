@@ -81,6 +81,10 @@ public class AbstractConverter extends ConverterImpl {
     return pw;
   }
 
+  @Override public boolean isEnforcer() {
+    return true;
+  }
+
   //~ Inner Classes ----------------------------------------------------------
 
   /**

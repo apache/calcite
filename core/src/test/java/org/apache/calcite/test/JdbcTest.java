@@ -1129,11 +1129,13 @@ public class JdbcTest {
             + "and p.\"brand_name\" = 'Washington'")
         .explainMatches("including all attributes ",
             CalciteAssert.checkMaskedResultContains(""
-                + "EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {1.0640240216183146E9 rows, 777302.0 cpu, 0.0 io}\n"
-                + "  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.117504719375143E7 rows, 724261.0 cpu, 0.0 io}\n"
-                + "    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
-                + "    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
-                + "      EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
+                + "EnumerableMergeJoin(condition=[=($0, $38)], joinType=[inner]): rowcount = 7.050660528307499E8, cumulative cost = {7.656040129282498E8 rows, 5.0023949296644424E10 cpu, 0.0 io}\n"
+                + "  EnumerableSort(sort0=[$0], dir0=[ASC]): rowcount = 2.0087351932499997E7, cumulative cost = {4.044858016499999E7 rows, 5.0023896255644424E10 cpu, 0.0 io}\n"
+                + "    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner]): rowcount = 2.0087351932499997E7, cumulative cost = {2.0361228232499994E7 rows, 3.232400376004586E7 cpu, 0.0 io}\n"
+                + "      EnumerableSort(sort0=[$2], dir0=[ASC]): rowcount = 86837.0, cumulative cost = {173674.0 rows, 3.168658076004586E7 cpu, 0.0 io}\n"
+                + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]]): rowcount = 86837.0, cumulative cost = {86837.0 rows, 86838.0 cpu, 0.0 io}\n"
+                + "      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30]): rowcount = 1542.1499999999999, cumulative cost = {11823.15 rows, 637423.0 cpu, 0.0 io}\n"
+                + "        EnumerableTableScan(table=[[foodmart2, customer]]): rowcount = 10281.0, cumulative cost = {10281.0 rows, 10282.0 cpu, 0.0 io}\n"
                 + "  EnumerableCalc(expr#0..14=[{inputs}], expr#15=['Washington':VARCHAR(60)], expr#16=[=($t2, $t15)], proj#0..14=[{exprs}], $condition=[$t16]): rowcount = 234.0, cumulative cost = {1794.0 rows, 53041.0 cpu, 0.0 io}\n"
                 + "    EnumerableTableScan(table=[[foodmart2, product]]): rowcount = 1560.0, cumulative cost = {1560.0 rows, 1561.0 cpu, 0.0 io}\n"));
   }
@@ -1836,7 +1838,7 @@ public class JdbcTest {
     //   13   116 - OOM did not complete
     checkJoinNWay(1);
     checkJoinNWay(3);
-    checkJoinNWay(6);
+    checkJoinNWay(13);
   }
 
   private static void checkJoinNWay(int n) {
@@ -2737,11 +2739,13 @@ public class JdbcTest {
             + " join \"hr\".\"depts\" using (\"deptno\")")
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t0], deptno=[$t2], name=[$t3])\n"
-            + "  EnumerableHashJoin(condition=[=($1, $2)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, emps]])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
-            + "      EnumerableTableScan(table=[[hr, depts]])")
+            + "  EnumerableMergeJoin(condition=[=($1, $2)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$1], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "        EnumerableTableScan(table=[[hr, emps]])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])\n"
+            + "        EnumerableTableScan(table=[[hr, depts]])")
         .returns("empid=100; deptno=10; name=Sales\n"
             + "empid=150; deptno=10; name=Sales\n"
             + "empid=110; deptno=10; name=Sales\n");

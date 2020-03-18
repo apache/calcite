@@ -408,6 +408,17 @@ public interface RelNode extends RelOptNode, Cloneable {
   void register(RelOptPlanner planner);
 
   /**
+   * Indicates whether it is an enforcer operator, e.g. PhysicalSort,
+   * PhysicalHashDistribute, etc. As an enforcer, the operator must be
+   * created only when required traitSet is not satisfied by its input.
+   *
+   * @return Whether it is an enforcer operator
+   */
+  default boolean isEnforcer() {
+    return false;
+  }
+
+  /**
    * Returns whether the result of this relational expression is uniquely
    * identified by this columns with the given ordinals.
    *

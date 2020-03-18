@@ -405,7 +405,8 @@ class SqlTest {
         + " NAME,\n"
         + " \"DATE\".JOINEDAT\n"
         + " from \"DATE\"\n"
-        + "join emps on emps.empno = \"DATE\".EMPNO limit 3";
+        + "join emps on emps.empno = \"DATE\".EMPNO\n"
+        + "order by empno, name, joinedat limit 3";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; JOINEDAT=1996-08-03",
         "EMPNO=110; NAME=Eric; JOINEDAT=2001-01-01",

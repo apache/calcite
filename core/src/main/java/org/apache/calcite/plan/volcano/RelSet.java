@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptUtil;
@@ -38,6 +39,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -160,107 +162,106 @@ class RelSet {
   public RelSubset add(RelNode rel) {
     assert equivalentSet == null : "adding to a dead set";
     final RelTraitSet traitSet = rel.getTraitSet().simplify();
-    final RelSubset subset = getOrCreateSubset(rel.getCluster(), traitSet);
+    final RelSubset subset = getOrCreateSubset(
+        rel.getCluster(), traitSet, rel.isEnforcer());
     subset.add(rel);
     return subset;
   }
 
+  /**
+   * If the subset is required, convert derived subsets to this subset.
+   * Otherwise, convert this subset to required subsets in this RelSet.
+   * The subset can be both required and derived.
+   */
   private void addAbstractConverters(
-      VolcanoPlanner planner, RelOptCluster cluster, RelSubset subset, boolean subsetToOthers) {
-    // Converters from newly introduced subset to all the remaining one (vice versa), only if
-    // we can convert.  No point adding converters if it is not possible.
-    for (RelSubset other : subsets) {
+      RelOptCluster cluster, RelSubset subset, boolean required) {
+    List<RelSubset> others = subsets.stream().filter(
+        n -> required ? n.isDerived() : n.isRequired())
+        .collect(Collectors.toList());
 
+    for (RelSubset other : others) {
       assert other.getTraitSet().size() == subset.getTraitSet().size();
+      RelSubset from = subset;
+      RelSubset to = other;
 
-      if ((other == subset)
-          || (subsetToOthers
-              && !subset.getConvention().useAbstractConvertersForConversion(
-                  subset.getTraitSet(), other.getTraitSet()))
-          || (!subsetToOthers
-              && !other.getConvention().useAbstractConvertersForConversion(
-                  other.getTraitSet(), subset.getTraitSet()))) {
+      if (required) {
+        from = other;
+        to = subset;
+      }
+
+      if (from == to || !from.getConvention()
+          .useAbstractConvertersForConversion(
+              from.getTraitSet(), to.getTraitSet())) {
         continue;
       }
 
       final ImmutableList<RelTrait> difference =
-          subset.getTraitSet().difference(other.getTraitSet());
+          to.getTraitSet().difference(from.getTraitSet());
 
-      boolean addAbstractConverter = true;
-      int numTraitNeedConvert = 0;
+      boolean needsConverter = false;
 
-      for (RelTrait curOtherTrait : difference) {
-        RelTraitDef traitDef = curOtherTrait.getTraitDef();
-        RelTrait curRelTrait = subset.getTraitSet().getTrait(traitDef);
+      for (RelTrait fromTrait : difference) {
+        RelTraitDef traitDef = fromTrait.getTraitDef();
+        RelTrait toTrait = to.getTraitSet().getTrait(traitDef);
 
-        if (curRelTrait == null) {
-          addAbstractConverter = false;
+        if (toTrait == null || !traitDef.canConvert(
+            cluster.getPlanner(), fromTrait, toTrait, from)) {
+          needsConverter = false;
           break;
         }
 
-        assert curRelTrait.getTraitDef() == traitDef;
-
-        boolean canConvert = false;
-        boolean needConvert = false;
-        if (subsetToOthers) {
-          // We can convert from subset to other.  So, add converter with subset as child and
-          // traitset as the other's traitset.
-          canConvert = traitDef.canConvert(
-              cluster.getPlanner(), curRelTrait, curOtherTrait, subset);
-          needConvert = !curRelTrait.satisfies(curOtherTrait);
-        } else {
-          // We can convert from others to subset.
-          canConvert = traitDef.canConvert(
-              cluster.getPlanner(), curOtherTrait, curRelTrait, other);
-          needConvert = !curOtherTrait.satisfies(curRelTrait);
-        }
-
-        if (!canConvert) {
-          addAbstractConverter = false;
-          break;
-        }
-
-        if (needConvert) {
-          numTraitNeedConvert++;
+        if (!fromTrait.satisfies(toTrait)) {
+          needsConverter = true;
         }
       }
 
-      if (addAbstractConverter && numTraitNeedConvert > 0) {
-        if (subsetToOthers) {
-          final AbstractConverter converter =
-              new AbstractConverter(cluster, subset, null, other.getTraitSet());
-          planner.register(converter, other);
-        } else {
-          final AbstractConverter converter =
-              new AbstractConverter(cluster, other, null, subset.getTraitSet());
-          planner.register(converter, subset);
-        }
+      if (needsConverter) {
+        final AbstractConverter converter =
+            new AbstractConverter(cluster, from, null, to.getTraitSet());
+        cluster.getPlanner().register(converter, to);
       }
     }
   }
 
+  RelSubset getOrCreateSubset(RelOptCluster cluster, RelTraitSet traits) {
+    return getOrCreateSubset(cluster, traits, false);
+  }
+
   RelSubset getOrCreateSubset(
-      RelOptCluster cluster,
-      RelTraitSet traits) {
+      RelOptCluster cluster, RelTraitSet traits, boolean required) {
+    boolean needsConverter = false;
     RelSubset subset = getSubset(traits);
+
     if (subset == null) {
+      needsConverter = true;
       subset = new RelSubset(cluster, this, traits);
 
-      final VolcanoPlanner planner =
-          (VolcanoPlanner) cluster.getPlanner();
-
-      addAbstractConverters(planner, cluster, subset, true);
-
-      // Need to first add to subset before adding the abstract converters (for others->subset)
-      // since otherwise during register() the planner will try to add this subset again.
+      // Need to first add to subset before adding the abstract
+      // converters (for others->subset), since otherwise during
+      // register() the planner will try to add this subset again.
       subsets.add(subset);
 
-      addAbstractConverters(planner, cluster, subset, false);
-
+      final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
       if (planner.listener != null) {
         postEquivalenceEvent(planner, subset);
       }
+    } else if ((required && !subset.isRequired())
+        || (!required && !subset.isDerived())) {
+      needsConverter = true;
     }
+
+    if (subset.getConvention() == Convention.NONE) {
+      needsConverter = false;
+    } else if (required) {
+      subset.setRequired();
+    } else {
+      subset.setDerived();
+    }
+
+    if (needsConverter) {
+      addAbstractConverters(cluster, subset, required);
+    }
+
     return subset;
   }
 
@@ -327,7 +328,8 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
-    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptCluster cluster = rel.getCluster();
+    RelMetadataQuery mq = cluster.getMetadataQuery();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
@@ -337,10 +339,20 @@ class RelSet {
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
-      RelSubset subset =
-          getOrCreateSubset(
-              otherSubset.getCluster(),
-              otherSubset.getTraitSet());
+      RelSubset subset = null;
+      RelTraitSet otherTraits = otherSubset.getTraitSet();
+
+      // If it is logical or derived physical traitSet
+      if (otherSubset.isDerived() || !otherSubset.isRequired()) {
+        subset = getOrCreateSubset(cluster, otherTraits, false);
+      }
+
+      // It may be required only, or both derived and required,
+      // in which case, register again.
+      if (otherSubset.isRequired()) {
+        subset = getOrCreateSubset(cluster, otherTraits, true);
+      }
+
       // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
         changedSubsets.put(subset, otherSubset.best);

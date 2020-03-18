@@ -16,14 +16,19 @@
  */
 package org.apache.calcite.test.enumerable;
 
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.JdbcTest;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.function.Consumer;
 
 /**
  * Unit test for
@@ -36,6 +41,8 @@ class EnumerableHashJoinTest {
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts "
                 + "d on e.deptno=d.deptno")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+        planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
         .explainContains("EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], "
             + "name=[$t2], dept=[$t4])\n"
             + "  EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])\n"
