@@ -566,7 +566,7 @@ public abstract class SqlImplementor {
           return SqlLiteral.createDate(literal.getValueAs(DateString.class),
               POS);
         case TIME:
-          return SqlLiteral.createTime(literal.getValueAs(TimeString.class),
+          return dialect.getTimeLiteral(literal.getValueAs(TimeString.class),
               literal.getType().getPrecision(), POS);
         case TIMESTAMP:
           return SqlLiteral.createTimestamp(
@@ -684,16 +684,15 @@ public abstract class SqlImplementor {
             SqlNode fieldOperand = field(ordinal);
             return SqlStdOperatorTable.CURSOR.createCall(SqlParserPos.ZERO, fieldOperand);
           }
+          assert nodeList.size() == 1;
           if (ignoreCast) {
-            assert nodeList.size() == 1;
             return nodeList.get(0);
           } else {
-            nodeList.add(dialect.getCastSpec(call.getType()));
+            RelDataType castFrom = call.operands.get(0).getType();
+            RelDataType castTo = call.getType();
+            return dialect.getCastCall(nodeList.get(0), castFrom, castTo);
           }
-          break;
         case PLUS:
-          op = dialect.getTargetFunc(call);
-          break;
         case MINUS:
           op = dialect.getTargetFunc(call);
           break;

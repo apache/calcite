@@ -18,12 +18,14 @@ package org.apache.calcite.sql.dialect;
 
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDateTimeFormat;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIntervalLiteral;
 import org.apache.calcite.sql.SqlKind;
@@ -39,22 +41,58 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.CastCallBuilder;
 import org.apache.calcite.util.ToNumberUtils;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.AMPM;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFWEEK;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DAYOFYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.DDMMYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FOURDIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFIVE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONFOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONSIX;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTHREE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.FRACTIONTWO;
+import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
+import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
+import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.PARSE_DATE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_EXTRACT_ALL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SUBSTR;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SESSION_USER;
+
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -88,6 +126,37 @@ public class BigQuerySqlDialect extends SqlDialect {
               "STRUCT", "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE",
               "UNBOUNDED", "UNION", "UNNEST", "USING", "WHEN", "WHERE",
               "WINDOW", "WITH", "WITHIN"));
+
+  private static final Map<SqlDateTimeFormat, String> DATE_TIME_FORMAT_MAP =
+      new HashMap<SqlDateTimeFormat, String>() {{
+        put(DAYOFMONTH, "%d");
+        put(DAYOFYEAR, "%j");
+        put(NUMERICMONTH, "%m");
+        put(ABBREVIATEDMONTH, "%b");
+        put(MONTHNAME, "%B");
+        put(TWODIGITYEAR, "%y");
+        put(FOURDIGITYEAR, "%Y");
+        put(DDMMYYYY, "%d%m%Y");
+        put(DDMMYY, "%d%m%y");
+        put(MMDDYYYY, "%m%d%Y");
+        put(MMDDYY, "%m%d%y");
+        put(YYYYMMDD, "%Y%m%d");
+        put(YYMMDD, "%y%m%d");
+        put(DAYOFWEEK, "%A");
+        put(ABBREVIATEDDAYOFWEEK, "%a");
+        put(TWENTYFOURHOUR, "%H");
+        put(HOUR, "%I");
+        put(MINUTE, "%M");
+        put(SECOND, "%S");
+        put(FRACTIONONE, "1S");
+        put(FRACTIONTWO, "2S");
+        put(FRACTIONTHREE, "3S");
+        put(FRACTIONFOUR, "4S");
+        put(FRACTIONFIVE, "5S");
+        put(FRACTIONSIX, "6S");
+        put(AMPM, "%p");
+        put(TIMEZONE, "%Z");
+      }};
 
   /** An unquoted BigQuery identifier must start with a letter and be followed
    * by zero or more letters, digits or _. */
@@ -172,6 +241,28 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       return super.getTargetFunc(call);
     }
+  }
+
+  @Override public SqlNode getCastCall(
+      SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+    if (castTo.getSqlTypeName() == SqlTypeName.TIMESTAMP && castTo.getPrecision() > 0) {
+      return new CastCallBuilder(this).makCastCallForTimestampWithPrecision(operandToCast,
+          castTo.getPrecision());
+    } else if (castTo.getSqlTypeName() == SqlTypeName.TIME && castTo.getPrecision() > 0) {
+      return makCastCallForTimeWithPrecision(operandToCast, castTo.getPrecision());
+    }
+    return super.getCastCall(operandToCast, castFrom, castTo);
+  }
+
+  private SqlNode makCastCallForTimeWithPrecision(SqlNode operandToCast, int precision) {
+    SqlParserPos pos = SqlParserPos.ZERO;
+    SqlNode timeWithoutPrecision =
+        getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIME));
+    SqlCall castedTimeNode = CAST.createCall(pos, operandToCast, timeWithoutPrecision);
+    SqlCharStringLiteral timeFormat = SqlLiteral.createCharString(String.format
+        (Locale.ROOT, "%s%s%s", "HH24:MI:SS.S(", precision, ")"), pos);
+    SqlCall formattedCall = FORMAT_TIME.createCall(pos, timeFormat, castedTimeNode);
+    return CAST.createCall(pos, formattedCall, timeWithoutPrecision);
   }
 
   @Override public void unparseCall(final SqlWriter writer, final SqlCall call, final int leftPrec,
@@ -289,25 +380,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
   }
 
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "CURRENT_TIMESTAMP":
-      if (((SqlBasicCall) call).getOperands().length > 0) {
-        unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
-      } else {
-        super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-      break;
-    case "CURRENT_USER":
-    case "SESSION_USER":
-      final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
-      writer.endFunCall(sessionUserFunc);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-    }
-  }
-
   @Override public SqlNode rewriteSingleValueExpr(SqlNode aggCall) {
     return ((SqlBasicCall) aggCall).operand(0);
   }
@@ -356,14 +428,6 @@ public class BigQuerySqlDialect extends SqlDialect {
     default:
       REGEXP_EXTRACT.unparse(writer, call, leftPrec, rightPrec);
     }
-  }
-
-  private void unparseCurrentTimestamp(SqlWriter writer, SqlCall call, int leftPrec,
-                                       int rightPrec) {
-    CurrentTimestampHandler timestampHandler = new CurrentTimestampHandler(this);
-    SqlCall formatTimestampCall = timestampHandler.makeFormatTimestampCall(call);
-    SqlCall castCall = timestampHandler.makeCastCall(formatTimestampCall);
-    unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
   private void writeOffset(SqlWriter writer, SqlCall call) {
@@ -537,6 +601,53 @@ public class BigQuerySqlDialect extends SqlDialect {
     }
     return intervalOperand.operand(0);
   }
+
+  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
+    switch (call.getOperator().getName()) {
+    case "CURRENT_TIMESTAMP":
+      if (((SqlBasicCall) call).getOperands().length > 0) {
+        new CurrentTimestampHandler(this)
+            .unparseCurrentTimestamp(writer, call, leftPrec, rightPrec);
+      } else {
+        super.unparseCall(writer, call, leftPrec, rightPrec);
+      }
+      break;
+    case "CURRENT_USER":
+    case "SESSION_USER":
+      final SqlWriter.Frame sessionUserFunc = writer.startFunCall(SESSION_USER.getName());
+      writer.endFunCall(sessionUserFunc);
+      break;
+    case "FORMAT_TIMESTAMP":
+    case "FORMAT_TIME":
+    case "FORMAT_DATE":
+      call.setOperand(0, creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+      break;
+    case "STR_TO_DATE":
+      SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,
+          creteDateTimeFormatSqlCharLiteral(call.operand(1).toString()), call.operand(0));
+      unparseCall(writer, parseDateCall, leftPrec, rightPrec);
+      break;
+    default:
+      super.unparseCall(writer, call, leftPrec, rightPrec);
+    }
+  }
+
+  private SqlCharStringLiteral creteDateTimeFormatSqlCharLiteral(String format) {
+    String formatString = getDateTimeFormatString(unquoteStringLiteral(format),
+        DATE_TIME_FORMAT_MAP);
+    return SqlLiteral.createCharString(formatString, SqlParserPos.ZERO);
+  }
+
+  @Override protected String getDateTimeFormatString(
+      String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
+    String dateTimeFormat = super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
+    return dateTimeFormat
+        .replaceAll("(?i)B", " ")
+        .replace("%Y-%m-%d", "%F")
+        .replace("%S.", "%E");
+  }
+
 }
 
 // End BigQuerySqlDialect.java

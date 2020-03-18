@@ -221,18 +221,32 @@ public abstract class SqlLibraryOperators {
       null, OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
 
-  @LibraryOperator(libraries = {BIGQUERY})
+  @LibraryOperator(libraries = {STANDARD})
   public static final SqlFunction FORMAT_TIMESTAMP = new SqlFunction("FORMAT_TIMESTAMP",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
       OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIMESTAMP),
       SqlFunctionCategory.TIMEDATE);
 
-  @LibraryOperator(libraries = {HIVE})
+  @LibraryOperator(libraries = {HIVE, SPARK})
   public static final SqlFunction DATE_FORMAT = new SqlFunction("DATE_FORMAT",
       SqlKind.OTHER_FUNCTION,
       ReturnTypes.VARCHAR_2000_NULLABLE, null,
       OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction FORMAT_DATE = new SqlFunction("FORMAT_DATE",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE, null,
+      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATE),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction FORMAT_TIME = new SqlFunction("FORMAT_TIME",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.VARCHAR_2000_NULLABLE, null,
+      OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.TIME),
       SqlFunctionCategory.TIMEDATE);
 
   /** The "MONTHNAME(datetime)" function; returns the name of the month,
@@ -520,6 +534,64 @@ public abstract class SqlLibraryOperators {
           ReturnTypes.VARCHAR_2000_NULLABLE, null,
           OperandTypes.STRING_INTEGER_OPTIONAL_STRING,
           SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction STR_TO_DATE = new SqlFunction(
+      "STR_TO_DATE",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.DATE_NULLABLE,
+      null,
+      OperandTypes.STRING_STRING,
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {BIGQUERY})
+  public static final SqlFunction PARSE_DATE =
+      new SqlFunction(
+          "PARSE_DATE",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.DATE_NULLABLE, null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction UNIX_TIMESTAMP =
+      new SqlFunction(
+      "UNIX_TIMESTAMP",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.BIGINT_NULLABLE, null,
+      OperandTypes.family(ImmutableList.of(SqlTypeFamily.STRING, SqlTypeFamily.STRING),
+          // both the operands are optional
+          number -> number == 0 || number == 1),
+      SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction FROM_UNIXTIME =
+      new SqlFunction(
+          "FROM_UNIXTIME",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.family(ImmutableList.of(SqlTypeFamily.INTEGER, SqlTypeFamily.STRING),
+              // Second operand is optional
+              number -> number == 1),
+          SqlFunctionCategory.TIMEDATE);
+
+  @LibraryOperator(libraries = {STANDARD})
+  public static final SqlFunction STRING_SPLIT = new SqlFunction(
+      "STRING_SPLIT",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.MULTISET_NULLABLE,
+      null,
+      OperandTypes.STRING_STRING,
+      SqlFunctionCategory.STRING);
+
+  @LibraryOperator(libraries = {HIVE, SPARK})
+  public static final SqlFunction SPLIT = new SqlFunction(
+      "SPLIT",
+      SqlKind.OTHER_FUNCTION,
+      ReturnTypes.MULTISET_NULLABLE,
+      null,
+      OperandTypes.STRING_STRING,
+      SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java

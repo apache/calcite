@@ -23,12 +23,12 @@ import org.apache.calcite.sql.SqlCharStringLiteral;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.util.Locale;
 
-import static org.apache.calcite.sql.fun.SqlLibraryOperators.DATE_FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIMESTAMP;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
@@ -39,37 +39,20 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CURRENT_TIMESTAMP;
 public class CurrentTimestampHandler {
 
   private SqlDialect sqlDialect;
-  public static final String DEFAULT_DATE_FORMAT_FOR_HIVE = "yyyy-MM-dd HH:mm:ss";
-  public static final String DEFAULT_DATE_FORMAT_FOR_BIGQUERY = "%F %H:%M:%E";
+
   public CurrentTimestampHandler(SqlDialect sqlDialect) {
     this.sqlDialect = sqlDialect;
   }
 
-  public SqlCall makeDateFormatCall(SqlCall call) {
-    SqlCharStringLiteral formatNode = makeSqlNodeForDateFormat(call);
-    SqlNode timestampCall = new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY,
-            SqlParserPos.ZERO);
-    SqlNode[] formatTimestampOperands = new SqlNode[]{timestampCall, formatNode};
-    return new SqlBasicCall(DATE_FORMAT, formatTimestampOperands,
-        SqlParserPos.ZERO);
+  public void unparseCurrentTimestamp(
+      SqlWriter writer, SqlCall call, int leftPrec,
+      int rightPrec) {
+    SqlCall formatTimestampCall = makeFormatTimestampCall(call);
+    SqlCall castCall = makeCastCall(formatTimestampCall);
+    sqlDialect.unparseCall(writer, castCall, leftPrec, rightPrec);
   }
 
-  private SqlCharStringLiteral makeSqlNodeForDateFormat(SqlCall call) {
-    Integer precision = Integer.parseInt(((SqlLiteral) call.operand(0)).getValue().toString());
-    StringBuilder fractionPart = new StringBuilder();
-    for (int i = 0; i < precision; i++) {
-      fractionPart.append('s');
-    }
-    return SqlLiteral.createCharString
-            (buildDatetimeFormat(precision, fractionPart.toString()), SqlParserPos.ZERO);
-  }
-
-  private String buildDatetimeFormat(Integer precision, String fractionPart) {
-    return precision > 0
-            ? DEFAULT_DATE_FORMAT_FOR_HIVE + "." + fractionPart : DEFAULT_DATE_FORMAT_FOR_HIVE;
-  }
-
-  public SqlCall makeFormatTimestampCall(SqlCall call) {
+  private SqlCall makeFormatTimestampCall(SqlCall call) {
     SqlCharStringLiteral formatNode = makeSqlNodeForFormatTimestamp(call);
     SqlNode timestampCall = new SqlBasicCall(CURRENT_TIMESTAMP, SqlNode.EMPTY_ARRAY,
             SqlParserPos.ZERO);
@@ -80,11 +63,11 @@ public class CurrentTimestampHandler {
   private SqlCharStringLiteral makeSqlNodeForFormatTimestamp(SqlCall call) {
     String precision = ((SqlLiteral) call.operand(0)).getValue().toString();
     String dateFormat = String.format
-            (Locale.ROOT, "%s%s%s", DEFAULT_DATE_FORMAT_FOR_BIGQUERY, precision, "S");
+            (Locale.ROOT, "%s%s%s", "YYYY-MM-DDBHH24:MI:SS.S(", precision, ")");
     return SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO);
   }
 
-  public SqlCall makeCastCall(SqlCall call) {
+  private SqlCall makeCastCall(SqlCall call) {
     SqlNode sqlTypeNode = sqlDialect.getCastSpec(
             new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlNode[] castOperands = new SqlNode[]{call, sqlTypeNode};

@@ -39,6 +39,8 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.TimeString;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -51,14 +53,17 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CAST;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.DIVIDE;
 
 /**
@@ -137,6 +142,17 @@ public class SqlDialect {
           .add(SqlStdOperatorTable.TAN)
           .build();
 
+  /** Valid Date Time Separators. */
+  private static final List<Character> DATE_FORMAT_SEPARATORS = new ArrayList<Character>() {{
+      add('-');
+      add('/');
+      add('B');
+      add('b');
+      add(',');
+      add('.');
+      add(':');
+      add(' ');
+    }};
 
   //~ Instance fields --------------------------------------------------------
 
@@ -802,6 +818,14 @@ public class SqlDialect {
     return SqlTypeUtil.convertTypeToSpec(type);
   }
 
+  public SqlNode getCastCall(SqlNode operandToCast, RelDataType castFrom, RelDataType castTo) {
+    return CAST.createCall(SqlParserPos.ZERO, operandToCast, this.getCastSpec(castTo));
+  }
+
+  public SqlNode getTimeLiteral(TimeString timeString, int precision, SqlParserPos pos) {
+    return SqlLiteral.createTime(timeString, precision, pos);
+  }
+
   /** Rewrite SINGLE_VALUE into expression based on database variants
    *  E.g. HSQLDB, MYSQL, ORACLE, etc
    */
@@ -1218,6 +1242,49 @@ public class SqlDialect {
     }
   }
 
+  protected String getDateTimeFormatString(
+      String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
+    Pair<List<String>, List<Character>> dateTimeTokensWithSeparators =
+        getDateTimeTokensWithSeparators(standardDateFormat);
+    return getFinalFormat(dateTimeTokensWithSeparators.left,
+        dateTimeTokensWithSeparators.right, dateTimeFormatMap);
+  }
+
+  private Pair<List<String>, List<Character>> getDateTimeTokensWithSeparators(
+      String standardDateFormat) {
+    List<String> dateTimeTokens = new ArrayList<>();
+    List<Character> separators = new ArrayList<>();
+    int startIndex = 0;
+    int lastIndex = standardDateFormat.length() - 1;
+    for (int i = 0; i <= lastIndex; i++) {
+      if (DATE_FORMAT_SEPARATORS.contains(standardDateFormat.charAt(i))) {
+        separators.add(standardDateFormat.charAt(i));
+        dateTimeTokens.add(standardDateFormat.substring(startIndex, i));
+        startIndex = i + 1;
+      }
+    }
+    if (lastIndex > startIndex) {
+      dateTimeTokens.add(standardDateFormat.substring(startIndex));
+    }
+    return new Pair<>(dateTimeTokens, separators);
+  }
+
+  private String getFinalFormat(
+      List<String> dateTimeTokens, List<Character> separators,
+      Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
+    StringBuilder finalFormatBuilder = new StringBuilder();
+    for (String token : dateTimeTokens) {
+      finalFormatBuilder.append(token.equals("") ? token
+          : dateTimeFormatMap.get(SqlDateTimeFormat.of(token)));
+      String sep = "";
+      if (!separators.isEmpty()) {
+        sep = separators.get(0).toString();
+        separators.remove(0);
+      }
+      finalFormatBuilder.append(sep);
+    }
+    return finalFormatBuilder.toString();
+  }
 
   /** Whether this JDBC driver needs you to pass a Calendar object to methods
    * such as {@link ResultSet#getTimestamp(int, java.util.Calendar)}. */

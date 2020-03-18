@@ -5527,6 +5527,201 @@ public class RelToSqlConverterTest {
         .ok(expected);
   }
 
+
+  @Test public void testCastToTimestamp() {
+    String query = "SELECT cast(\"birth_date\" as TIMESTAMP) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT CAST(birth_date AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expected);
+  }
+
+  @Test public void testCastToTimestampWithPrecision() {
+    String query = "SELECT cast(\"birth_date\" as TIMESTAMP(3)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT CAST(DATE_FORMAT(CAST(birth_date AS TIMESTAMP(0)), "
+        + "'yyyy-MM-dd HH:mm:ss.sss') AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIMESTAMP('%F %H:%M:%E3S', CAST"
+        + "(birth_date AS TIMESTAMP(0))) AS TIMESTAMP(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTime() {
+    String query = "SELECT cast(\"hire_date\" as TIME) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expected = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss'), ' ')[1]\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT CAST(hire_date AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expected)
+        .withSpark()
+        .ok(expected)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecision() {
+    String query = "SELECT cast(\"hire_date\" as TIME(5)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT SPLIT(DATE_FORMAT(hire_date, 'yyyy-MM-dd HH:mm:ss.sss'), "
+        + "' ')[1]\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(hire_date AS TIME"
+        + "(0))) AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecisionWithStringInput() {
+    String query = "SELECT cast('12:00'||':05' as TIME(5)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT CONCAT('12:00', ':05')\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT CAST(FORMAT_TIME('%H:%M:%E3S', CAST(CONCAT('12:00', "
+        + "':05') AS TIME(0))) AS TIME(0))\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testCastToTimeWithPrecisionWithStringLiteral() {
+    String query = "SELECT cast('12:00:05' as TIME(3)) "
+        + "FROM \"foodmart\".\"employee\"";
+    final String expectedHive = "SELECT '12:00:05'\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = expectedHive;
+    final String expectedBigQuery = "SELECT TIME '12:00:05.000'\n"
+        + "FROM foodmart.employee";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery);
+  }
+
+  @Test public void testFormatDateRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatDateRexNode = builder.call(SqlLibraryOperators.FORMAT_DATE,
+        builder.literal("YYYY-MM-DD"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatDateRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_DATE('YYYY-MM-DD', \"HIREDATE\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_DATE('%F', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testFormatTimestampRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimestampRexNode = builder.call(SqlLibraryOperators.FORMAT_TIMESTAMP,
+        builder.literal("YYYY-MM-DDbHH:MI:SS.S(5)"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimestampRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIMESTAMP('YYYY-MM-DDbHH:MI:SS.S(5)', \"HIREDATE\") "
+        + "AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIMESTAMP('%F %I:%M:%E5S', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'yyyy-MM-dd hh:mm:ss.sssss') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testFormatTimeRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode formatTimeRexNode = builder.call(SqlLibraryOperators.FORMAT_TIME,
+        builder.literal("HH:MI:SS"), builder.scan("EMP").field(4));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(formatTimeRexNode, "FD"))
+        .build();
+    final String expectedSql = "SELECT FORMAT_TIME('HH:MI:SS', \"HIREDATE\") AS \"FD\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT FORMAT_TIME('%I:%M:%S', HIREDATE) AS FD\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT DATE_FORMAT(HIREDATE, 'hh:mm:ss') FD\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
+  @Test public void testStrToDateRelToSql() {
+    final RelBuilder builder = relBuilder();
+    final RexNode strToDateNode1 = builder.call(SqlLibraryOperators.STR_TO_DATE,
+        builder.literal("20181106"), builder.literal("YYYYMMDD"));
+    final RexNode strToDateNode2 = builder.call(SqlLibraryOperators.STR_TO_DATE,
+        builder.literal("2018/11/06"), builder.literal("YYYY/MM/DD"));
+    final RelNode root = builder
+        .scan("EMP")
+        .project(builder.alias(strToDateNode1, "date1"), builder.alias(strToDateNode2, "date2"))
+        .build();
+    final String expectedSql = "SELECT STR_TO_DATE('20181106', 'YYYYMMDD') AS \"date1\", "
+        + "STR_TO_DATE('2018/11/06', 'YYYY/MM/DD') AS \"date2\"\n"
+        + "FROM \"scott\".\"EMP\"";
+    final String expectedBiqQuery = "SELECT PARSE_DATE('%Y%m%d', '20181106') AS date1, "
+        + "PARSE_DATE('%Y/%m/%d', '2018/11/06') AS date2\n"
+        + "FROM scott.EMP";
+    final String expectedHive = "SELECT CAST(FROM_UNIXTIME("
+        + "UNIX_TIMESTAMP('20181106', 'yyyyMMdd'), 'yyyy-MM-dd') AS DATE) date1, "
+        + "CAST(FROM_UNIXTIME(UNIX_TIMESTAMP('2018/11/06', 'yyyy/MM/dd'), 'yyyy-MM-dd') AS DATE) date2\n"
+        + "FROM scott.EMP";
+    final String expectedSpark = expectedHive;
+    assertThat(toSql(root, DatabaseProduct.CALCITE.getDialect()), isLinux(expectedSql));
+    assertThat(toSql(root, DatabaseProduct.BIG_QUERY.getDialect()), isLinux(expectedBiqQuery));
+    assertThat(toSql(root, DatabaseProduct.HIVE.getDialect()), isLinux(expectedHive));
+    assertThat(toSql(root, DatabaseProduct.SPARK.getDialect()), isLinux(expectedSpark));
+  }
+
   /** Fluid interface to run tests. */
   static class Sql {
     private final SchemaPlus schema;
