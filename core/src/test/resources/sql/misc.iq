@@ -291,11 +291,13 @@ and e."name" <> d."name";
 
 !ok
 EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
-  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
-    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
-      EnumerableTableScan(table=[[hr, emps]])
-    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
-      EnumerableTableScan(table=[[hr, depts]])
+  EnumerableMergeJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
+        EnumerableTableScan(table=[[hr, emps]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
+        EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Same query, expressed using WHERE.
@@ -315,11 +317,13 @@ and e."name" <> d."name";
 
 !ok
 EnumerableCalc(expr#0..4=[{inputs}], empid=[$t0], name=[$t4], name0=[$t2])
-  EnumerableHashJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
-    EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
-      EnumerableTableScan(table=[[hr, emps]])
-    EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
-      EnumerableTableScan(table=[[hr, depts]])
+  EnumerableMergeJoin(condition=[AND(=($1, $3), <>(CAST($2):VARCHAR, CAST($4):VARCHAR))], joinType=[inner])
+    EnumerableSort(sort0=[$1], dir0=[ASC])
+      EnumerableCalc(expr#0..4=[{inputs}], proj#0..2=[{exprs}])
+        EnumerableTableScan(table=[[hr, emps]])
+    EnumerableSort(sort0=[$0], dir0=[ASC])
+      EnumerableCalc(expr#0..3=[{inputs}], proj#0..1=[{exprs}])
+        EnumerableTableScan(table=[[hr, depts]])
 !plan
 
 # Un-correlated EXISTS
@@ -660,11 +664,13 @@ from "sales_fact_1997" as s
   join "customer" as c on s."customer_id" = c."customer_id"
   join "product" as p on s."product_id" = p."product_id"
 where c."city" = 'San Francisco';
-EnumerableHashJoin(condition=[=($0, $38)], joinType=[inner])
-  EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner])
-    EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
-    EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
-      EnumerableTableScan(table=[[foodmart2, customer]])
+EnumerableMergeJoin(condition=[=($0, $38)], joinType=[inner])
+  EnumerableSort(sort0=[$0], dir0=[ASC])
+    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner])
+      EnumerableSort(sort0=[$2], dir0=[ASC])
+        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
+      EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
+        EnumerableTableScan(table=[[foodmart2, customer]])
   EnumerableTableScan(table=[[foodmart2, product]])
 !plan
 
@@ -689,8 +695,9 @@ EnumerableCalc(expr#0..56=[{inputs}], product_id0=[$t20], time_id=[$t21], custom
       EnumerableCalc(expr#0..4=[{inputs}], expr#5=['Snacks':VARCHAR(30)], expr#6=[=($t3, $t5)], proj#0..4=[{exprs}], $condition=[$t6])
         EnumerableTableScan(table=[[foodmart2, product_class]])
       EnumerableTableScan(table=[[foodmart2, product]])
-    EnumerableHashJoin(condition=[=($2, $8)], joinType=[inner])
-      EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
+    EnumerableMergeJoin(condition=[=($2, $8)], joinType=[inner])
+      EnumerableSort(sort0=[$2], dir0=[ASC])
+        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])
       EnumerableCalc(expr#0..28=[{inputs}], expr#29=['San Francisco':VARCHAR(30)], expr#30=[=($t9, $t29)], proj#0..28=[{exprs}], $condition=[$t30])
         EnumerableTableScan(table=[[foodmart2, customer]])
 !plan

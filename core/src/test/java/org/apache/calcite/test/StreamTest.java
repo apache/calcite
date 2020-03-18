@@ -286,15 +286,17 @@ public class StreamTest {
             + "      LogicalTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .explainContains(""
             + "EnumerableCalc(expr#0..6=[{inputs}], proj#0..1=[{exprs}], SUPPLIERID=[$t6])\n"
-            + "  EnumerableHashJoin(condition=[=($4, $5)], joinType=[inner])\n"
-            + "    EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
-            + "      EnumerableInterpreter\n"
-            + "        BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
-            + "    EnumerableTableScan(table=[[STREAM_JOINS, PRODUCTS]])")
+            + "  EnumerableMergeJoin(condition=[=($4, $5)], joinType=[inner])\n"
+            + "    EnumerableSort(sort0=[$4], dir0=[ASC])\n"
+            + "      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[CAST($t2):VARCHAR(32) NOT NULL], proj#0..4=[{exprs}])\n"
+            + "        EnumerableInterpreter\n"
+            + "          BindableTableScan(table=[[STREAM_JOINS, ORDERS, (STREAM)]])\n"
+            + "    EnumerableSort(sort0=[$0], dir0=[ASC])\n"
+            + "      EnumerableTableScan(table=[[STREAM_JOINS, PRODUCTS]])\n")
         .returns(
-            startsWith("ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
-                "ROWTIME=2015-02-15 10:24:15; ORDERID=2; SUPPLIERID=0",
-                "ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1"));
+            startsWith("ROWTIME=2015-02-15 10:24:45; ORDERID=3; SUPPLIERID=1",
+                "ROWTIME=2015-02-15 10:15:00; ORDERID=1; SUPPLIERID=1",
+                "ROWTIME=2015-02-15 10:58:00; ORDERID=4; SUPPLIERID=1"));
   }
 
   @Disabled

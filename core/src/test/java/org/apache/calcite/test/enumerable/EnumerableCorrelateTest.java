@@ -93,6 +93,7 @@ class EnumerableCorrelateTest {
           // instead of EnumerableHashJoin(SEMI)
           planner.addRule(JoinToCorrelateRule.INSTANCE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"
@@ -122,6 +123,7 @@ class EnumerableCorrelateTest {
           planner.addRule(JoinToCorrelateRule.INSTANCE);
           planner.addRule(FilterCorrelateRule.INSTANCE);
           planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
+          planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE);
         })
         .explainContains(""
             + "EnumerableCalc(expr#0..3=[{inputs}], empid=[$t1], name=[$t3])\n"

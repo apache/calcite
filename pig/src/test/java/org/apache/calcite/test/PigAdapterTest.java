@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.util.Sources;
 
 import com.google.common.collect.ImmutableMap;
@@ -145,6 +148,8 @@ class PigAdapterTest extends AbstractPigTest {
     CalciteAssert.that()
         .with(MODEL)
         .query("select * from \"t\" join \"s\" on \"tc1\"=\"sc0\"")
+        .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner ->
+            planner.removeRule(EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE))
         .explainContains("PigToEnumerableConverter\n"
             + "  PigJoin(condition=[=($1, $2)], joinType=[inner])\n"
             + "    PigTableScan(table=[[PIG, t]])\n"
