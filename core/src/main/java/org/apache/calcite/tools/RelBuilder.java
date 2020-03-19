@@ -1755,7 +1755,7 @@ public class RelBuilder {
           newProjects.add(project.getProjects().get(i));
           builder.add(project.getRowType().getFieldList().get(i));
         }
-        r = project.copy(r.getTraitSet(), project.getInput(), newProjects,
+        r = project.copy(cluster.traitSet(), project.getInput(), newProjects,
             builder.build());
       }
     }
