@@ -205,7 +205,7 @@ class RelSet {
         RelTrait toTrait = to.getTraitSet().getTrait(traitDef);
 
         if (toTrait == null || !traitDef.canConvert(
-            cluster.getPlanner(), fromTrait, toTrait, from)) {
+            cluster.getPlanner(), fromTrait, toTrait)) {
           needsConverter = false;
           break;
         }
