@@ -52,10 +52,31 @@ public class OracleSqlDialect extends SqlDialect {
         @Override public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {
           case VARCHAR:
-            // Maximum size of 4000 bytes for varchar2.
+            // The standard maximum size of 4000 bytes for varchar2.
+            // Since Oracle Database 12c, you can uses the MAX_STRING_SIZE parameter for controlling
+            // the maximum size. If you specify the maximum size of 32767 for the
+            // VARCHAR2 data type. you can create a new oracle type system to override the
+            // maximum size.
             return 4000;
+          case CHAR:
+            return 2000;
           default:
             return super.getMaxPrecision(typeName);
+          }
+        }
+        @Override public int getDefaultPrecision(SqlTypeName typeName) {
+          switch (typeName) {
+          case VARCHAR:
+            // The standard maximum size of 4000 bytes for varchar2.
+            // Since Oracle Database 12c, you can uses the MAX_STRING_SIZE parameter for controlling
+            // the maximum size. If you specify the maximum size of 32767 for the
+            // VARCHAR2 data type. you can create a new oracle type system to override the
+            // maximum size.
+            // Because Oracle does not allow VARCHAR with unspecified precision, set the maximum
+            // precision as the default precision of VARCHAR.
+            return 4000;
+          default:
+            return super.getDefaultPrecision(typeName);
           }
         }
       };
@@ -82,6 +103,19 @@ public class OracleSqlDialect extends SqlDialect {
       return false;
     default:
       return super.supportsDataType(type);
+    }
+  }
+
+  /**
+   * Oracle does not allow the type VARCHAR with unspecified precision. When use cast(node as
+   * varchar), we should specify the precision of VARCHAR. For example, cast(node as varchar(256)).
+   */
+  @Override public boolean allowsTypeWithUnspecifiedPrecision(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+    case VARCHAR:
+      return false;
+    default:
+      return true;
     }
   }
 

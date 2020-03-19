@@ -1015,17 +1015,20 @@ public abstract class SqlTypeUtil {
    * @param type         type descriptor
    * @param charSetName  charSet name
    * @param maxPrecision The max allowed precision.
+   * @param explicitPrecision If explicitPrecision is specified, use it as the type's precision.
+   *                          When explicitPrecision is not specified, it should be -1.
    * @return corresponding parse representation
    */
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
-      String charSetName, int maxPrecision) {
+      String charSetName, int maxPrecision, int explicitPrecision) {
     SqlTypeName typeName = type.getSqlTypeName();
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
     // interval types, multiset types, etc
     assert typeName != null;
 
-    int precision = typeName.allowsPrec() ? type.getPrecision() : -1;
+    int precision = typeName.allowsPrec()
+        ? (explicitPrecision != -1 ? explicitPrecision : type.getPrecision()) : -1;
     // fix up the precision.
     if (maxPrecision > 0 && precision > maxPrecision) {
       precision = maxPrecision;
@@ -1057,7 +1060,19 @@ public abstract class SqlTypeUtil {
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type) {
     // TODO jvs 28-Dec-2004:  collation
     String charSetName = inCharFamily(type) ? type.getCharset().name() : null;
-    return convertTypeToSpec(type, charSetName, -1);
+    return convertTypeToSpec(type, charSetName, -1, -1);
+  }
+
+  /**
+   * Converts an instance of RelDataType to an instance of SqlDataTypeSpec.
+   * @param type type descriptor
+   * @param charSetName  charSet name
+   * @param maxPrecision The max allowed precision.
+   * @return corresponding parse representation
+   */
+  public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
+      String charSetName, int maxPrecision) {
+    return convertTypeToSpec(type, charSetName, maxPrecision, -1);
   }
 
   public static RelDataType createMultisetType(
