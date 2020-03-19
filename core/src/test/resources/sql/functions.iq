@@ -54,6 +54,19 @@ SELECT ExtractValue('<a>c</a>', '//a');
 
 !ok
 
+# STRING Functions
+
+#CONCAT
+SELECT CONCAT('c', 'h', 'a', 'r');
++--------+
+| EXPR$0 |
++--------+
+| char   |
++--------+
+(1 row)
+
+!ok
+
 # Compression Functions
 
 SELECT COMPRESS('sample');
@@ -98,6 +111,17 @@ select sinh(1);
 +--------------------+
 | 1.1752011936438014 |
 +--------------------+
+(1 row)
+
+!ok
+
+#CONCAT
+select concat('a', 'b');
++--------+
+| EXPR$0 |
++--------+
+| ab     |
++--------+
 (1 row)
 
 !ok

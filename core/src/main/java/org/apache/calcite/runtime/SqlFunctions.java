@@ -460,6 +460,11 @@ public class SqlFunctions {
     return s0.concat(s1);
   }
 
+  /** SQL {@code concat(arg0, arg1, arg2, ...)} function. */
+  public static String concat(String... args) {
+    return String.join("", args);
+  }
+
   /** SQL {@code RTRIM} function applied to string. */
   public static String rtrim(String s) {
     return trim(false, true, " ", s);
