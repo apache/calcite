@@ -62,8 +62,12 @@ public class CurrentTimestampHandler {
 
   private SqlCharStringLiteral makeSqlNodeForFormatTimestamp(SqlCall call) {
     String precision = ((SqlLiteral) call.operand(0)).getValue().toString();
-    String dateFormat = String.format
-            (Locale.ROOT, "%s%s%s", "YYYY-MM-DDBHH24:MI:SS.S(", precision, ")");
+    String dateFormat;
+    if (precision.equals("0")) {
+      dateFormat = "YYYY-MM-DD HH24:MI:SS";
+    } else {
+      dateFormat = String.format(Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")");
+    }
     return SqlLiteral.createCharString(dateFormat, SqlParserPos.ZERO);
   }
 

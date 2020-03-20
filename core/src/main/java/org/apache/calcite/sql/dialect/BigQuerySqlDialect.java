@@ -643,7 +643,6 @@ public class BigQuerySqlDialect extends SqlDialect {
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
     String dateTimeFormat = super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
     return dateTimeFormat
-        .replaceAll("(?i)B", " ")
         .replace("%Y-%m-%d", "%F")
         .replace("%S.", "%E");
   }

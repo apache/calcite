@@ -123,7 +123,7 @@ public class HiveSqlDialect extends SqlDialect {
         put(HOUR, "hh");
         put(MINUTE, "mm");
         put(SECOND, "ss");
-        put(FRACTIONONE, "ss");
+        put(FRACTIONONE, "s");
         put(FRACTIONTWO, "ss");
         put(FRACTIONTHREE, "sss");
         put(FRACTIONFOUR, "ssss");
@@ -640,8 +640,7 @@ public class HiveSqlDialect extends SqlDialect {
 
   @Override protected String getDateTimeFormatString(
       String standardDateFormat, Map<SqlDateTimeFormat, String> dateTimeFormatMap) {
-    String dateTimeFormat = super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
-    return dateTimeFormat.replaceAll("(?i)B", " ");
+    return super.getDateTimeFormatString(standardDateFormat, dateTimeFormatMap);
   }
 
 }

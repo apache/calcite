@@ -52,7 +52,7 @@ public class CastCallBuilder {
     SqlCall castedTimestampNode = CAST.createCall(POS, operandToCast,
         timestampWithoutPrecision);
     SqlCharStringLiteral timestampFormat = SqlLiteral.createCharString(String.format
-        (Locale.ROOT, "%s%s%s", "YYYY-MM-DDBHH24:MI:SS.S(", precision, ")"), POS);
+        (Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")"), POS);
     SqlCall formattedCall = FORMAT_TIMESTAMP.createCall(POS, timestampFormat,
         castedTimestampNode);
     return CAST.createCall(POS, formattedCall, timestampWithoutPrecision);
@@ -61,10 +61,10 @@ public class CastCallBuilder {
   public SqlNode makCastCallForTimeWithPrecision(SqlNode operandToCast, int precision) {
     SqlCharStringLiteral timestampFormat;
     if (precision == 0) {
-      timestampFormat = SqlLiteral.createCharString("YYYY-MM-DDBHH24:MI:SS", POS);
+      timestampFormat = SqlLiteral.createCharString("YYYY-MM-DD HH24:MI:SS", POS);
     } else {
       timestampFormat = SqlLiteral.createCharString(String.format
-          (Locale.ROOT, "%s%s%s", "YYYY-MM-DDBHH24:MI:SS.S(", precision, ")"), POS);
+          (Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")"), POS);
     }
     SqlCall formattedCall = FORMAT_TIMESTAMP.createCall(POS, timestampFormat, operandToCast);
     SqlCall splitFunctionCall = STRING_SPLIT.createCall(POS, formattedCall,
