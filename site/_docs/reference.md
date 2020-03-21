@@ -2363,6 +2363,7 @@ semantics.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| m | UNCOMPRESS(binary)                             | UnCompresses binary using zlib decompression and returns the result as a string.
 | o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
 
 Note:

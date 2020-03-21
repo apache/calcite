@@ -5227,7 +5227,24 @@ public abstract class SqlOperatorBaseTest {
         "07000000789c4bad48cc2dc84905000bc002ed", "VARBINARY NOT NULL");
   }
 
-  @Test void testExtractValue() {
+  @Test public void testUncompress() {
+    SqlTester sqlTester = tester(SqlLibrary.MYSQL);
+    sqlTester.checkNull("UNCOMPRESS(NULL)");
+    sqlTester.checkNull("UNCOMPRESS(x'')");
+
+    sqlTester.checkString("UNCOMPRESS(COMPRESS('test'))",
+        "test", "VARCHAR");
+
+    sqlTester.checkString("UNCOMPRESS(x'10000000789c4b4c44050033980611')",
+        "aaaaaaaaaaaaaaaa", "VARCHAR");
+
+    sqlTester.checkString("UNCOMPRESS(x'06000000789c2b4ecc2dc849050008de0283' )",
+        "sample", "VARCHAR");
+    sqlTester.checkString("UNCOMPRESS(x'07000000789c4bad48cc2dc84905000bc002ed')",
+        "example", "VARCHAR");
+  }
+
+  @Test public void testExtractValue() {
     SqlTester mySqlTester = tester(SqlLibrary.MYSQL);
     mySqlTester.checkNull("ExtractValue(NULL, '//b')");
     mySqlTester.checkNull("ExtractValue('', NULL)");
