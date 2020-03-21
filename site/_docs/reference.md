@@ -2286,6 +2286,17 @@ Note:
 * If `ORDER BY` clause is provided, `JSON_ARRAYAGG` sorts the
   input rows into the specified order before performing aggregation.
 
+
+#### Declaring Objects For Types Defined In Schema
+After an object type is defined and installed in the schema, you can use it to declare objects in any SQL block. For example, you can use the object type to specify the datatype of an attribute, column, variable, bind variable, record field, table element, formal parameter, or function result. At run time, instances of the object type are created; that is, objects of that type are instantiated. Each object can hold different values.
+
+e.g.:
+```SQL
+employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
+        '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+         address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
+```
+
 #### Comparison Operators
 
 | Operator syntax                   | Description
