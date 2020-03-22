@@ -328,7 +328,8 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
-    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptCluster cluster = rel.getCluster();
+    RelMetadataQuery mq = cluster.getMetadataQuery();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
@@ -338,11 +339,20 @@ class RelSet {
 
     // merge subsets
     for (RelSubset otherSubset : otherSet.subsets) {
-      RelSubset subset =
-          getOrCreateSubset(
-              otherSubset.getCluster(),
-              otherSubset.getTraitSet());
-      // TODO: should we merge the required/derived state?
+      RelSubset subset = null;
+      RelTraitSet otherTraits = otherSubset.getTraitSet();
+
+      // if it is logical or derived physical traitSet
+      if (otherSubset.state == 0 || otherSubset.isDerived()) {
+        subset = getOrCreateSubset(cluster, otherTraits, false);
+      }
+
+      // it may be required only, or both derived and required,
+      // in which case, register again.
+      if (otherSubset.isRequired()) {
+        subset = getOrCreateSubset(cluster, otherTraits, true);
+      }
+
       // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
         changedSubsets.put(subset, otherSubset.best);
