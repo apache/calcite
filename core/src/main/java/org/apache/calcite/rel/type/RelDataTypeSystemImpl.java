@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.type;
 
+import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -217,6 +218,21 @@ public abstract class RelDataTypeSystemImpl implements RelDataTypeSystem {
 
   @Override public RelDataType deriveSumType(RelDataTypeFactory typeFactory,
       RelDataType argumentType) {
+    if (argumentType instanceof BasicSqlType) {
+      SqlTypeName typeName = argumentType.getSqlTypeName();
+      if (typeName.allowsPrec()
+          && argumentType.getPrecision() != RelDataType.PRECISION_NOT_SPECIFIED) {
+        int precision = typeFactory.getTypeSystem().getMaxPrecision(typeName);
+        if (typeName.allowsScale()) {
+          argumentType = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(typeName, precision, argumentType.getScale()),
+              argumentType.isNullable());
+        } else {
+          argumentType = typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(typeName, precision), argumentType.isNullable());
+        }
+      }
+    }
     return argumentType;
   }
 

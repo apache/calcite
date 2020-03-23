@@ -260,7 +260,10 @@ public interface SqlSplittableAggFunction {
         RelDataType inputRowType, AggregateCall aggregateCall) {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataTypeField field = inputRowType.getFieldList().get(arg);
-      return rexBuilder.makeInputRef(field.getType(), arg);
+      final RelDataType fieldType = field.getType();
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      RelDataType type = typeFactory.getTypeSystem().deriveSumType(typeFactory, fieldType);
+      return rexBuilder.makeInputRef(type, arg);
     }
 
     public AggregateCall split(AggregateCall aggregateCall,
@@ -346,7 +349,9 @@ public interface SqlSplittableAggFunction {
         RelDataType inputRowType, AggregateCall aggregateCall) {
       final int arg = aggregateCall.getArgList().get(0);
       final RelDataType type = inputRowType.getFieldList().get(arg).getType();
-      final RexNode inputRef = rexBuilder.makeInputRef(type, arg);
+      final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();
+      final RelDataType type1 = typeFactory.getTypeSystem().deriveSumType(typeFactory, type);
+      final RexNode inputRef = rexBuilder.makeInputRef(type1, arg);
       if (type.isNullable()) {
         return rexBuilder.makeCall(SqlStdOperatorTable.COALESCE, inputRef,
             rexBuilder.makeExactLiteral(BigDecimal.ZERO, type));
