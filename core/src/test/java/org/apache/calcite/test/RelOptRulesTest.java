@@ -557,6 +557,67 @@ class RelOptRulesTest extends RelOptTestBase {
     SqlToRelTestBase.assertValid(output);
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3887">[CALCITE-3887]
+   * Filter and Join conditions may not need to retain nullability during simplifications</a>. */
+  @Test void testPushSemiJoinConditions() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    RelNode left = relBuilder.scan("EMP")
+        .project(
+            relBuilder.field("DEPTNO"),
+            relBuilder.field("ENAME"))
+        .build();
+    RelNode right = relBuilder.scan("DEPT")
+        .project(
+            relBuilder.field("DEPTNO"),
+            relBuilder.field("DNAME"))
+        .build();
+
+    relBuilder.push(left).push(right);
+
+    RexInputRef ref1 = relBuilder.field(2, 0, "DEPTNO");
+    RexInputRef ref2 = relBuilder.field(2, 1, "DEPTNO");
+    RexInputRef ref3 = relBuilder.field(2, 0, "ENAME");
+    RexInputRef ref4 = relBuilder.field(2, 1, "DNAME");
+
+    // ref1 IS NOT DISTINCT FROM ref2
+    RexCall cond1 = (RexCall) relBuilder.call(
+        SqlStdOperatorTable.OR,
+        relBuilder.call(SqlStdOperatorTable.EQUALS, ref1, ref2),
+        relBuilder.call(SqlStdOperatorTable.AND,
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref1),
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref2)));
+
+    // ref3 IS NOT DISTINCT FROM ref4
+    RexCall cond2 = (RexCall) relBuilder.call(
+        SqlStdOperatorTable.OR,
+        relBuilder.call(SqlStdOperatorTable.EQUALS, ref3, ref4),
+        relBuilder.call(SqlStdOperatorTable.AND,
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref3),
+            relBuilder.call(SqlStdOperatorTable.IS_NULL, ref4)));
+
+    RexNode cond = relBuilder.call(SqlStdOperatorTable.AND, cond1, cond2);
+    RelNode relNode = relBuilder.semiJoin(cond)
+        .project(relBuilder.field(0))
+        .build();
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(JoinPushExpressionsRule.INSTANCE)
+        .addRuleInstance(SemiJoinProjectTransposeRule.INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
+        .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
   @Test void testFullOuterJoinSimplificationToLeftOuter() {
     final String sql = "select 1 from sales.dept d full outer join sales.emp e\n"
         + "on d.deptno = e.deptno\n"
