@@ -464,7 +464,7 @@ EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
 with t (a, b) as (select * from (values (60, 'b')))
 select * from t where a in (select deptno from "scott".dept);
 EnumerableCalc(expr#0..2=[{inputs}], proj#0..1=[{exprs}])
-  EnumerableMergeJoin(condition=[=($0, $2)], joinType=[inner])
+  EnumerableHashJoin(condition=[=($0, $2)], joinType=[inner])
     EnumerableValues(tuples=[[{ 60, 'b' }]])
     EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
       EnumerableTableScan(table=[[scott, DEPT]])

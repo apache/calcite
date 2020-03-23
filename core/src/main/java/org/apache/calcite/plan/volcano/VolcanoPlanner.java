@@ -157,11 +157,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   private final List<RelTraitDef> traitDefs = new ArrayList<>();
 
-  /**
-   * Set of all registered rules.
-   */
-  protected final Set<RelOptRule> ruleSet = new HashSet<>();
-
   private int nextSetId = 0;
 
   /**
@@ -197,11 +192,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
   private final RelOptCost zeroCost;
-
-  /** Maps rule classes to their name, to ensure that the names are unique and
-   * conform to rules. */
-  private final Map<String, RelOptRule> ruleNames = new HashMap<>();
-
 
   //~ Constructors -----------------------------------------------------------
 
@@ -379,7 +369,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   @Override public void clear() {
     super.clear();
-    for (RelOptRule rule : ImmutableList.copyOf(ruleSet)) {
+    for (RelOptRule rule : getRules()) {
       removeRule(rule);
     }
     this.classOperands.clear();
@@ -388,34 +378,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.mapRel2Subset.clear();
     this.prunedNodes.clear();
     this.ruleQueue.clear();
-    this.ruleNames.clear();
     this.materializations.clear();
     this.latticeByName.clear();
     this.provenanceMap.clear();
-  }
-
-  public List<RelOptRule> getRules() {
-    return ImmutableList.copyOf(ruleSet);
   }
 
   public boolean addRule(RelOptRule rule) {
     if (locked) {
       return false;
     }
-    if (ruleSet.contains(rule)) {
-      // Rule already exists.
+
+    if (!super.addRule(rule)) {
       return false;
     }
-    final boolean added = ruleSet.add(rule);
-    assert added;
-
-    final String ruleName = rule.toString();
-    if (ruleNames.put(ruleName, rule) != null) {
-      throw new RuntimeException("Rule description '" + ruleName
-          + "' is not unique. ");
-    }
-
-    mapRuleDescription(rule);
 
     // Each of this rule's operands is an 'entry point' for a rule call.
     // Register each operand against all concrete sub-classes that could match
@@ -444,16 +419,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   public boolean removeRule(RelOptRule rule) {
-    if (!ruleSet.remove(rule)) {
+    // Remove description.
+    if (!super.removeRule(rule)) {
       // Rule was not present.
       return false;
     }
-
-    // Remove rule name.
-    ruleNames.remove(rule.toString());
-
-    // Remove description.
-    unmapRuleDescription(rule);
 
     // Remove operands.
     classOperands.values().removeIf(entry -> entry.getRule().equals(rule));
@@ -477,7 +447,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Create mappings so that instances of this class will match existing
     // operands.
     final Class<? extends RelNode> clazz = node.getClass();
-    for (RelOptRule rule : ruleSet) {
+    for (RelOptRule rule : mapDescToRule.values()) {
       for (RelOptRuleOperand operand : rule.getOperands()) {
         if (operand.getMatchedClass().isAssignableFrom(clazz)) {
           classOperands.put(clazz, operand);
