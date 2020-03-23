@@ -111,7 +111,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    * {@link org.apache.calcite.rel.logical.LogicalFilter}.
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
-      new FilterReduceExpressionsRule(LogicalFilter.class, true,
+      new FilterReduceExpressionsRule(LogicalFilter.class, false,
           RelFactories.LOGICAL_BUILDER);
 
   /**
@@ -127,7 +127,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    * {@link org.apache.calcite.rel.core.Join}.
    */
   public static final ReduceExpressionsRule JOIN_INSTANCE =
-      new JoinReduceExpressionsRule(Join.class, true,
+      new JoinReduceExpressionsRule(Join.class, false,
           RelFactories.LOGICAL_BUILDER);
 
   /**

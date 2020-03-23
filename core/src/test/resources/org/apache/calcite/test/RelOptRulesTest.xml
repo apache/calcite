@@ -6773,6 +6773,18 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushSemiJoinConditions">
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DEPTNO=[$0])
+  LogicalProject(DEPTNO=[$7], ENAME=[$1])
+    LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($7, $8), IS NOT DISTINCT FROM($1, $9))], joinType=[semi])
+      LogicalTableScan(table=[[scott, EMP]])
+      LogicalProject(DEPTNO=[$0], DNAME=[$1])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSemiJoinRuleExists">
         <Resource name="sql">
             <![CDATA[select * from dept where exists (

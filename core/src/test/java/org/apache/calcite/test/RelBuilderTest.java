@@ -1956,6 +1956,27 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  /** Checks if simplification is run in {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for join conditions */
+  @Test void testJoinConditionSimplification() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .scan("DEPT")
+            .join(JoinRelType.INNER,
+                builder.or(builder.literal(null),
+                    builder.and(
+                        builder.equals(builder.field(2, 0, "DEPTNO"), builder.literal(1)),
+                        builder.equals(builder.field(2, 0, "DEPTNO"), builder.literal(2)),
+                        builder.equals(builder.field(2, 1, "DEPTNO"),
+                            builder.field(2, 0, "DEPTNO")))))
+            .build();
+    assertThat(
+        root, hasTree(
+        "LogicalJoin(condition=[false], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+  }
+
   @Test void testJoinCartesian() {
     // Equivalent SQL:
     //   SELECT * emp CROSS JOIN dept
@@ -3154,6 +3175,22 @@ public class RelBuilderTest {
             .filter(ImmutableSet.<CorrelationId>of())
             .build();
     assertThat(root, hasTree("LogicalTableScan(table=[[scott, EMP]])\n"));
+  }
+
+  /** Checks if simplification is run in {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for filter conditions */
+  @Test void testFilterSimplification() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .filter(
+                builder.or(
+                     builder.literal(null),
+                     builder.and(
+                         builder.equals(builder.field(2), builder.literal(1)),
+                         builder.equals(builder.field(2), builder.literal(2))
+             )))
+            .build();
+    assertThat(root, hasTree("LogicalValues(tuples=[[]])\n"));
   }
 
   @Test void testRelBuilderToString() {

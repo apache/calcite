@@ -175,6 +175,10 @@ public class RexSimplify {
     if (e2.getType() == e.getType()) {
       return e2;
     }
+    if (!matchNullability
+        && SqlTypeUtil.equalSansNullability(rexBuilder.typeFactory, e2.getType(), e.getType())) {
+      return e2;
+    }
     final RexNode e3 = rexBuilder.makeCast(e.getType(), e2, matchNullability);
     if (e3.equals(e)) {
       return e;
