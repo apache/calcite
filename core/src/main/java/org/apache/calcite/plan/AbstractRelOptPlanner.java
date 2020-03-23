@@ -30,8 +30,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,18 +44,13 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Abstract base for implementations of the {@link RelOptPlanner} interface.
  */
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
-  //~ Static fields/initializers ---------------------------------------------
-
-  /** Regular expression for integer. */
-  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
-
   //~ Instance fields --------------------------------------------------------
 
   /**
    * Maps rule description to rule, just to ensure that rules' descriptions
    * are unique.
    */
-  private final Map<String, RelOptRule> mapDescToRule = new HashMap<>();
+  protected final Map<String, RelOptRule> mapDescToRule = new LinkedHashMap<>();
 
   protected final RelOptCostFactory costFactory;
 
@@ -67,7 +62,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private final Set<Class<? extends RelNode>> classes = new HashSet<>();
 
-  private final Set<RelTrait> traits = new HashSet<>();
+  private final Set<Convention> conventions = new HashSet<>();
 
   /** External context. Never null. */
   protected final Context context;
@@ -125,29 +120,19 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  /**
-   * Registers a rule's description.
-   *
-   * @param rule Rule
-   */
-  protected void mapRuleDescription(RelOptRule rule) {
-    // Check that there isn't a rule with the same description,
-    // also validating description string.
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(mapDescToRule.values());
+  }
 
+  public boolean addRule(RelOptRule rule) {
+    // Check that there isn't a rule with the same description
     final String description = rule.toString();
     assert description != null;
-    assert !description.contains("$")
-        : "Rule's description should not contain '$': "
-        + description;
-    assert !INTEGER_PATTERN.matcher(description).matches()
-        : "Rule's description should not be an integer: "
-        + rule.getClass().getName() + ", " + description;
 
     RelOptRule existingRule = mapDescToRule.put(description, rule);
     if (existingRule != null) {
-      if (existingRule == rule) {
-        throw new AssertionError(
-            "Rule should not already be registered");
+      if (existingRule.equals(rule)) {
+        return false;
       } else {
         // This rule has the same description as one previously
         // registered, yet it is not equal. You may need to fix the
@@ -156,16 +141,13 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
             + "existing rule=" + existingRule + "; new rule=" + rule);
       }
     }
+    return true;
   }
 
-  /**
-   * Removes the mapping between a rule and its description.
-   *
-   * @param rule Rule
-   */
-  protected void unmapRuleDescription(RelOptRule rule) {
+  public boolean removeRule(RelOptRule rule) {
     String description = rule.toString();
-    mapDescToRule.remove(description);
+    RelOptRule removed = mapDescToRule.remove(description);
+    return removed != null;
   }
 
   /**
@@ -233,10 +215,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    for (RelTrait trait : node.getTraitSet()) {
-      if (traits.add(trait)) {
-        trait.register(this);
-      }
+    if (conventions.add(node.getConvention())) {
+      node.getConvention().register(this);
     }
   }
 
