@@ -26,6 +26,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.rules.AggregateJoinTransposeRule;
+import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
+import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.calcite.rel.rules.UnionMergeRule;
@@ -2751,7 +2754,38 @@ class RelToSqlConverterTest {
     sql(query6).optimize(rules, hepPlanner).ok(expected6);
   }
 
-  @Test void testRankFunctionForPrintingOfFrameBoundary() {
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3866">[CALCITE-3866]
+   * "numeric field overflow" when running the generated SQL in PostgreSQL </a>.
+   */
+  @Test public void testSumReturnType() {
+    String query =
+        "select sum(e1.\"store_sales\"), sum(e2.\"store_sales\") from \"sales_fact_dec_1998\" as "
+            + "e1 , \"sales_fact_dec_1998\" as e2 where e1.\"product_id\" = e2.\"product_id\"";
+
+    String expect = "SELECT SUM(CAST(\"t\".\"EXPR$0\" * \"t0\".\"$f1\" AS DECIMAL"
+        + "(19, 4))), SUM(CAST(\"t\".\"$f2\" * \"t0\".\"EXPR$1\" AS DECIMAL(19, 4)))\n"
+        + "FROM (SELECT \"product_id\", SUM(\"store_sales\") AS \"EXPR$0\", COUNT(*) AS \"$f2\"\n"
+        + "FROM \"foodmart\".\"sales_fact_dec_1998\"\n"
+        + "GROUP BY \"product_id\") AS \"t\"\n"
+        + "INNER JOIN "
+        + "(SELECT \"product_id\", COUNT(*) AS \"$f1\", SUM(\"store_sales\") AS \"EXPR$1\"\n"
+        + "FROM \"foodmart\".\"sales_fact_dec_1998\"\n"
+        + "GROUP BY \"product_id\") AS \"t0\" ON \"t\".\"product_id\" = \"t0\".\"product_id\"";
+
+    HepProgramBuilder builder = new HepProgramBuilder();
+    builder.addRuleClass(FilterJoinRule.class);
+    builder.addRuleClass(AggregateProjectMergeRule.class);
+    builder.addRuleClass(AggregateJoinTransposeRule.class);
+    HepPlanner hepPlanner = new HepPlanner(builder.build());
+    RuleSet rules = RuleSets.ofList(FilterJoinRule.FILTER_ON_JOIN, FilterJoinRule.JOIN,
+        AggregateProjectMergeRule.INSTANCE,
+        AggregateJoinTransposeRule.EXTENDED);
+    sql(query).withPostgresql().optimize(rules, hepPlanner).ok(expect);
+  }
+
+  @Test public void testRankFunctionForPrintingOfFrameBoundary() {
     String query = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expected = "SELECT RANK() OVER (ORDER BY \"hire_date\")\n"
         + "FROM \"foodmart\".\"employee\"";

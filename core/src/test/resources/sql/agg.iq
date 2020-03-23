@@ -1235,7 +1235,7 @@ select deptno,
 from "scott".emp
 group by deptno;
 DEPTNO TINYINT(3)
-SAL_10 DECIMAL(7, 2)
+SAL_10 DECIMAL(19, 2)
 !type
 +--------+---------+
 | DEPTNO | SAL_10  |

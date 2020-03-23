@@ -8469,8 +8469,8 @@ public abstract class SqlOperatorBaseTest {
         false);
     tester.checkType("sum('name')", "DECIMAL(19, 19)");
     checkAggType(tester, "sum(1)", "INTEGER NOT NULL");
-    checkAggType(tester, "sum(1.2)", "DECIMAL(2, 1) NOT NULL");
-    checkAggType(tester, "sum(DISTINCT 1.5)", "DECIMAL(2, 1) NOT NULL");
+    checkAggType(tester, "sum(1.2)", "DECIMAL(19, 1) NOT NULL");
+    checkAggType(tester, "sum(DISTINCT 1.5)", "DECIMAL(19, 1) NOT NULL");
     tester.checkFails(
         "^sum()^",
         "Invalid number of arguments to function 'SUM'. Was expecting 1 arguments",
