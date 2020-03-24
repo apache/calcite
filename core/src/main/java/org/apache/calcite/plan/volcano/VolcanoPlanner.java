@@ -51,6 +51,7 @@ import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -801,6 +802,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   RelNode changeTraitsUsingConverters(
+      RelBuilder builder,
       RelNode rel,
       RelTraitSet toTraits) {
     final RelTraitSet fromTraits = rel.getTraitSet();
@@ -818,6 +820,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // will be left as is.  Finally, any null entries in toTraits are
     // ignored.
     RelNode converted = rel;
+    Convention conventionTrait = null;
+    for (RelTrait trait : toTraits) {
+      if (trait instanceof  Convention) {
+        conventionTrait = (Convention)trait;
+        break;
+      }
+    }
     for (int i = 0; (converted != null) && (i < toTraits.size()); i++) {
       RelTrait fromTrait = converted.getTraitSet().getTrait(i);
       final RelTraitDef traitDef = fromTrait.getTraitDef();
@@ -836,8 +845,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       rel =
           traitDef.convert(
               this,
+              builder,
               converted,
               toTrait,
+              conventionTrait,
               allowInfiniteCostConverters);
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);

@@ -123,6 +123,7 @@ public class AbstractConverter extends ConverterImpl {
       final RelNode child = converter.getInput();
       RelNode converted =
           planner.changeTraitsUsingConverters(
+              call.builder(),
               child,
               converter.traitSet);
       if (converted != null) {

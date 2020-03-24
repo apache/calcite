@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.tools;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.core.RelFactories;
 
 /** A partially-created RelBuilder.
@@ -33,7 +31,22 @@ import org.apache.calcite.rel.core.RelFactories;
  *
  * @see RelFactories#LOGICAL_BUILDER
  */
-public interface RelBuilderFactory {
+public class RelBuilderFactory {
+
+  private RelFactories.FactoryStructWithConvention factories;
+
+  public RelBuilderFactory(RelFactories.FactoryStructWithConvention factories) {
+    this.factories = factories;
+  }
+
   /** Creates a RelBuilder. */
-  RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
+  public RelBuilder create(RelOptCluster cluster, RelOptSchema schema) {
+    return new RelBuilder(Contexts.of(this.factories), cluster, schema);
+  }
+
+  public RelBuilderFactory registerFactoriesWithConvention(Convention convention,
+                                                    RelFactories.Struct struct) {
+    this.factories.registerFactories(convention, struct);
+    return this;
+  }
 }

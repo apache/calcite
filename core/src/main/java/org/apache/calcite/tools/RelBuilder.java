@@ -152,7 +152,8 @@ public class RelBuilder {
   private final RexSimplify simplifier;
   private final Config config;
   private final RelOptTable.ViewExpander viewExpander;
-  private final RelFactories.Struct struct;
+  private final RelFactories.FactoryStructWithConvention factoriesWithConvention;
+  private Convention convention;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -163,8 +164,8 @@ public class RelBuilder {
     }
     this.config = getConfig(context);
     this.viewExpander = getViewExpander(cluster, context);
-    this.struct =
-        Objects.requireNonNull(RelFactories.Struct.fromContext(context));
+    this.factoriesWithConvention =
+        Objects.requireNonNull(RelFactories.FactoryStructWithConvention.fromContext(context));
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
@@ -202,6 +203,147 @@ public class RelBuilder {
     return config.withSimplify(simplify);
   }
 
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
+  private RelFactories.FilterFactory getFilterFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).filterFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).filterFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).filterFactory;
+  }
+
+  /** Get ProjectFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
+  private RelFactories.ProjectFactory getProjectFactory() {
+    if (factoriesWithConvention.factories.containsKey(convention) &&
+        factoriesWithConvention.factories.get(convention).projectFactory != null) {
+      return factoriesWithConvention.factories.get(convention).projectFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).projectFactory;
+  }
+
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
+  private RelFactories.AggregateFactory getAggregateFactory() {
+    if (factoriesWithConvention.factories.containsKey(convention) &&
+        factoriesWithConvention.factories.get(this.convention).aggregateFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).aggregateFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).aggregateFactory;
+  }
+
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
+  private RelFactories.SortFactory getSortFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).sortFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).sortFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).sortFactory;
+  }
+
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convetion. */
+  private RelFactories.ExchangeFactory getExchangeFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).exchangeFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).exchangeFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).exchangeFactory;
+  }
+
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convetion. */
+  private RelFactories.SortExchangeFactory getSortExchangeFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).sortExchangeFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).sortExchangeFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).sortExchangeFactory;
+  }
+
+  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convetion. */
+  private RelFactories.SetOpFactory getSetOpFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).setOpFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).setOpFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).setOpFactory;
+  }
+
+  private RelFactories.JoinFactory getJoinFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).joinFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).joinFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).joinFactory;
+  }
+  private RelFactories.CorrelateFactory getCorrelateFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).correlateFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).correlateFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).correlateFactory;
+  }
+
+  private RelFactories.ValuesFactory getValuesFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).valuesFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).valuesFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).valuesFactory;
+  }
+
+  private RelFactories.TableScanFactory getTableScanFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).scanFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).scanFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).scanFactory;
+  }
+
+  private RelFactories.TableFunctionScanFactory getTableFunctionScanFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).tableFunctionScanFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).tableFunctionScanFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).tableFunctionScanFactory;
+  }
+
+  private RelFactories.SnapshotFactory getSnapshotFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).snapshotFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).snapshotFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).snapshotFactory;
+  }
+
+  private RelFactories.MatchFactory getMatchFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).matchFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).matchFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).matchFactory;
+  }
+
+  private RelFactories.SpoolFactory getSpoolFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).spoolFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).spoolFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).spoolFactory;
+  }
+
+  private RelFactories.RepeatUnionFactory getRepeatUnionFactory() {
+    if (factoriesWithConvention.factories.containsKey(this.convention) &&
+        factoriesWithConvention.factories.get(this.convention).repeatUnionFactory != null) {
+      return factoriesWithConvention.factories.get(this.convention).repeatUnionFactory;
+    }
+    return factoriesWithConvention.factories.get(Convention.NONE).repeatUnionFactory;
+  }
+
   /** Creates a RelBuilder. */
   public static RelBuilder create(FrameworkConfig config) {
     return Frameworks.withPrepare(config,
@@ -209,11 +351,16 @@ public class RelBuilder {
             new RelBuilder(config.getContext(), cluster, relOptSchema));
   }
 
+  public RelBuilder withConvention(Convention convention) {
+    this.convention = convention;
+    return this;
+  }
+
   /** Creates a copy of this RelBuilder, with the same state as this, applying
    * a transform to the config. */
   public RelBuilder transform(UnaryOperator<Config> transform) {
     final Context context =
-        Contexts.of(struct, transform.apply(config));
+        Contexts.of(factoriesWithConvention, transform.apply(config));
     return new RelBuilder(context, cluster, relOptSchema);
   }
 
@@ -238,7 +385,8 @@ public class RelBuilder {
   /** Creates a {@link RelBuilderFactory}, a partially-created RelBuilder.
    * Just add a {@link RelOptCluster} and a {@link RelOptSchema} */
   public static RelBuilderFactory proto(final Context context) {
-    return (cluster, schema) -> new RelBuilder(context, cluster, schema);
+    return new RelBuilderFactory(
+        Objects.requireNonNull(RelFactories.FactoryStructWithConvention.fromContext(context)));
   }
 
   /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */
@@ -255,7 +403,7 @@ public class RelBuilder {
   }
 
   public RelFactories.TableScanFactory getScanFactory() {
-    return struct.scanFactory;
+    return getTableScanFactory();
   }
 
   // Methods for manipulating the stack
@@ -1043,7 +1191,7 @@ public class RelBuilder {
       throw RESOURCE.tableNotFound(String.join(".", names)).ex();
     }
     final RelNode scan =
-        struct.scanFactory.createScan(
+        getTableScanFactory().createScan(
             ViewExpanders.toRelContext(viewExpander, cluster),
             relOptTable);
     push(scan);
@@ -1079,7 +1227,7 @@ public class RelBuilder {
   public RelBuilder snapshot(RexNode period) {
     final Frame frame = stack.pop();
     final RelNode snapshot =
-        struct.snapshotFactory.createSnapshot(frame.rel, period);
+        getSnapshotFactory().createSnapshot(frame.rel, period);
     stack.push(new Frame(snapshot, frame.fields));
     return this;
   }
@@ -1139,7 +1287,7 @@ public class RelBuilder {
 
     final RexNode call = call(operator, ImmutableList.copyOf(operands));
     final RelNode functionScan =
-        struct.tableFunctionScanFactory.createTableFunctionScan(cluster,
+        getTableFunctionScanFactory().createTableFunctionScan(cluster,
             inputs, call, null, getColumnMappings(operator));
     push(functionScan);
     return this;
@@ -1194,7 +1342,7 @@ public class RelBuilder {
     if (!simplifiedPredicates.isAlwaysTrue()) {
       final Frame frame = stack.pop();
       final RelNode filter =
-          struct.filterFactory.createFilter(frame.rel,
+          getFilterFactory().createFilter(frame.rel,
               simplifiedPredicates, ImmutableSet.copyOf(variablesSet));
       stack.push(new Frame(filter, frame.fields));
     }
@@ -1461,7 +1609,7 @@ public class RelBuilder {
       return this;
     }
     final RelNode project =
-        struct.projectFactory.createProject(frame.rel,
+        getProjectFactory().createProject(frame.rel,
             ImmutableList.copyOf(hints),
             ImmutableList.copyOf(nodeList),
             fieldNameList);
@@ -1821,7 +1969,7 @@ public class RelBuilder {
       List<AggregateCall> aggregateCalls, List<RexNode> extraNodes,
       List<Field> inFields) {
     final RelNode aggregate =
-        struct.aggregateFactory.createAggregate(input,
+        getAggregateFactory().createAggregate(input,
             ImmutableList.of(), groupSet, groupSets, aggregateCalls);
 
     // build field list
@@ -1879,7 +2027,7 @@ public class RelBuilder {
     case 1:
       return push(inputs.get(0));
     default:
-      return push(struct.setOpFactory.createSetOp(kind, inputs, all));
+      return push(getSetOpFactory().createSetOp(kind, inputs, all));
     }
   }
 
@@ -1965,7 +2113,7 @@ public class RelBuilder {
         transientTable,
         ImmutableList.of(tableName));
     RelNode scan =
-        struct.scanFactory.createScan(
+        getTableScanFactory().createScan(
             ViewExpanders.toRelContext(viewExpander, cluster),
             relOptTable);
     push(scan);
@@ -1983,7 +2131,7 @@ public class RelBuilder {
   private RelBuilder tableSpool(Spool.Type readType, Spool.Type writeType,
       RelOptTable table) {
     RelNode spool =
-        struct.spoolFactory.createTableSpool(peek(), readType, writeType,
+        getSpoolFactory().createTableSpool(peek(), readType, writeType,
             table);
     replaceTop(spool);
     return this;
@@ -2041,7 +2189,7 @@ public class RelBuilder {
     RelNode iterative = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
     RelNode seed = tableSpool(Spool.Type.LAZY, Spool.Type.LAZY, finder.relOptTable).build();
     RelNode repeatUnion =
-        struct.repeatUnionFactory.createRepeatUnion(seed, iterative, all,
+        getRepeatUnionFactory().createRepeatUnion(seed, iterative, all,
             iterationLimit);
     return push(repeatUnion);
   }
@@ -2124,11 +2272,11 @@ public class RelBuilder {
         postCondition = condition;
       }
       join =
-          struct.correlateFactory.createCorrelate(left.rel, right.rel, id,
+          getCorrelateFactory().createCorrelate(left.rel, right.rel, id,
               requiredColumns, joinType);
     } else {
       join =
-          struct.joinFactory.createJoin(left.rel, right.rel,
+          getJoinFactory().createJoin(left.rel, right.rel,
               ImmutableList.of(), condition, variablesSet, joinType, false);
     }
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
@@ -2163,7 +2311,7 @@ public class RelBuilder {
     Frame left = stack.pop();
 
     final RelNode correlate =
-        struct.correlateFactory.createCorrelate(left.rel, right.rel,
+        getCorrelateFactory().createCorrelate(left.rel, right.rel,
             correlationId, ImmutableBitSet.of(requiredOrdinals), joinType);
 
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
@@ -2214,7 +2362,7 @@ public class RelBuilder {
   public RelBuilder semiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode semiJoin =
-        struct.joinFactory.createJoin(peek(),
+        getJoinFactory().createJoin(peek(),
             right.rel,
             ImmutableList.of(),
             and(conditions),
@@ -2251,7 +2399,7 @@ public class RelBuilder {
   public RelBuilder antiJoin(Iterable<? extends RexNode> conditions) {
     final Frame right = stack.pop();
     final RelNode antiJoin =
-        struct.joinFactory.createJoin(peek(),
+        getJoinFactory().createJoin(peek(),
             right.rel,
             ImmutableList.of(),
             and(conditions),
@@ -2371,7 +2519,7 @@ public class RelBuilder {
   public RelBuilder empty() {
     final Frame frame = stack.pop();
     final RelNode values =
-        struct.valuesFactory.createValues(cluster, frame.rel.getRowType(),
+        getValuesFactory().createValues(cluster, frame.rel.getRowType(),
             ImmutableList.of());
     stack.push(new Frame(values, frame.fields));
     return this;
@@ -2390,7 +2538,7 @@ public class RelBuilder {
     final ImmutableList<ImmutableList<RexLiteral>> tupleList =
         tupleList(rowType.getFieldCount(), columnValues);
     RelNode values =
-        struct.valuesFactory.createValues(cluster, rowType,
+        getValuesFactory().createValues(cluster, rowType,
             ImmutableList.copyOf(tupleList));
     push(values);
     return this;
@@ -2408,7 +2556,7 @@ public class RelBuilder {
   public RelBuilder values(Iterable<? extends List<RexLiteral>> tupleList,
       RelDataType rowType) {
     RelNode values =
-        struct.valuesFactory.createValues(cluster, rowType,
+        getValuesFactory().createValues(cluster, rowType,
             copy(tupleList));
     push(values);
     return this;
@@ -2454,7 +2602,7 @@ public class RelBuilder {
   /** Creates an Exchange by distribution. */
   public RelBuilder exchange(RelDistribution distribution) {
     RelNode exchange =
-        struct.exchangeFactory.createExchange(peek(), distribution);
+        getExchangeFactory().createExchange(peek(), distribution);
     replaceTop(exchange);
     return this;
   }
@@ -2463,7 +2611,7 @@ public class RelBuilder {
   public RelBuilder sortExchange(RelDistribution distribution,
       RelCollation collation) {
     RelNode exchange =
-        struct.sortExchangeFactory.createSortExchange(peek(), distribution,
+        getSortExchangeFactory().createSortExchange(peek(), distribution,
             collation);
     replaceTop(exchange);
     return this;
@@ -2474,6 +2622,15 @@ public class RelBuilder {
    * <p>Negative fields mean descending: -1 means field(0) descending,
    * -2 means field(1) descending, etc.
    */
+  public RelBuilder sort(List<RelFieldCollation> collations) {
+    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
+    for (RelFieldCollation collation : collations) {
+      builder.add(collation.direction.isDescending() ?
+          desc(field(collation.getFieldIndex())) : field(collation.getFieldIndex()));
+    }
+    return sortLimit(-1, -1, builder.build());
+  }
+
   public RelBuilder sort(int... fields) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     for (int field : fields) {
@@ -2526,7 +2683,7 @@ public class RelBuilder {
         if (sort2.offset == null && sort2.fetch == null) {
           replaceTop(sort2.getInput());
           final RelNode sort =
-              struct.sortFactory.createSort(peek(), sort2.collation,
+              getSortFactory().createSort(peek(), sort2.collation,
                   offsetNode, fetchNode);
           replaceTop(sort);
           return this;
@@ -2538,10 +2695,10 @@ public class RelBuilder {
           final Sort sort2 = (Sort) project.getInput();
           if (sort2.offset == null && sort2.fetch == null) {
             final RelNode sort =
-                struct.sortFactory.createSort(sort2.getInput(),
+                getSortFactory().createSort(sort2.getInput(),
                     sort2.collation, offsetNode, fetchNode);
             replaceTop(
-                struct.projectFactory.createProject(sort,
+                getProjectFactory().createProject(sort,
                     project.getHints(),
                     project.getProjects(),
                     Pair.right(project.getNamedProjects())));
@@ -2554,7 +2711,7 @@ public class RelBuilder {
       project(registrar.extraNodes);
     }
     final RelNode sort =
-        struct.sortFactory.createSort(peek(),
+        getSortFactory().createSort(peek(),
             RelCollations.of(fieldCollations), offsetNode, fetchNode);
     replaceTop(sort);
     if (registrar.addedFieldCount() > 0) {
@@ -2600,7 +2757,7 @@ public class RelBuilder {
     final RelNode r = build();
     final RelNode r2 =
         RelOptUtil.createCastRel(r, castRowType, rename,
-            struct.projectFactory);
+            getProjectFactory());
     push(r2);
     return this;
   }
@@ -2661,7 +2818,7 @@ public class RelBuilder {
     }
 
     final RelNode match =
-        struct.matchFactory.createMatch(peek(), pattern,
+        getMatchFactory().createMatch(peek(), pattern,
             typeBuilder.build(), strictStart, strictEnd, patternDefinitions,
             measures.build(), after, subsets, allRows,
             partitionBitSet, RelCollations.of(fieldCollations), interval);

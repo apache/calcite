@@ -16,11 +16,15 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
+import org.apache.calcite.adapter.enumerable.EnumerableSort;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Definition of the ordering trait.
@@ -61,18 +65,21 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
 
   public RelNode convert(
       RelOptPlanner planner,
+      RelBuilder builder,
       RelNode rel,
       RelCollation toCollation,
+      Convention toConvention,
       boolean allowInfiniteCostConverters) {
     if (toCollation.getFieldCollations().isEmpty()) {
       // An empty sort doesn't make sense.
       return null;
     }
 
-    // Create a logical sort, then ask the planner to convert its remaining
-    // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
-    // convention)
-    final Sort sort = LogicalSort.create(rel, toCollation, null, null);
+    // Create a sort operator based on given convention
+    RelNode sort = builder.withConvention(toConvention)
+                          .push(rel)
+                          .sort(toCollation.getFieldCollations())
+                          .build();
     RelNode newRel = planner.register(sort, rel);
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);
     if (!newRel.getTraitSet().equals(newTraitSet)) {

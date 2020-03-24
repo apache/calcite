@@ -22,6 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
+import org.apache.calcite.tools.RelBuilder;
+
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:
@@ -115,14 +117,17 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param planner                     the planner requesting the conversion
    * @param rel                         RelNode to convert
    * @param toTrait                     RelTrait to convert to
+   * @param conventionTrait             Target convention to convert to
    * @param allowInfiniteCostConverters flag indicating whether infinite cost
    *                                    converters are allowed
    * @return a converted RelNode or null if conversion is not possible
    */
   public abstract RelNode convert(
       RelOptPlanner planner,
+      RelBuilder builder,
       RelNode rel,
       T toTrait,
+      Convention conventionTrait,
       boolean allowInfiniteCostConverters);
 
   /**

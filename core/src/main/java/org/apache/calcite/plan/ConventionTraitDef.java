@@ -19,6 +19,7 @@ package org.apache.calcite.plan;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -124,8 +125,10 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   // implement RelTraitDef
   public RelNode convert(
       RelOptPlanner planner,
+      RelBuilder builder,
       RelNode rel,
       Convention toConvention,
+      Convention targetConvention,
       boolean allowInfiniteCostConverters) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ConversionData conversionData = getConversionData(planner);

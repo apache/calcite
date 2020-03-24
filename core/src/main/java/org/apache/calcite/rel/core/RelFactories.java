@@ -17,11 +17,7 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.function.Experimental;
-import org.apache.calcite.plan.Context;
-import org.apache.calcite.plan.Contexts;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -58,11 +54,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
+import java.util.*;
 import javax.annotation.Nonnull;
 
 /**
@@ -138,7 +130,7 @@ public class RelFactories {
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
-      RelBuilder.proto(Contexts.of(DEFAULT_STRUCT));
+      new RelBuilderFactory(new FactoryStructWithConvention(Convention.NONE, DEFAULT_STRUCT));
 
   private RelFactories() {
   }
@@ -666,13 +658,25 @@ public class RelFactories {
       this.spoolFactory = Objects.requireNonNull(spoolFactory);
       this.repeatUnionFactory = Objects.requireNonNull(repeatUnionFactory);
     }
+  }
 
-    public static @Nonnull Struct fromContext(Context context) {
-      Struct struct = context.unwrap(Struct.class);
-      if (struct != null) {
-        return struct;
+  public static class FactoryStructWithConvention {
+    public final Map<Convention, Struct> factories = new IdentityHashMap<>();
+
+    private FactoryStructWithConvention(Convention c, Struct s) {
+      factories.put(c, s);
+    }
+
+    public void registerFactories(Convention convention, Struct s) {
+      factories.put(convention, s);
+    }
+
+    public static @Nonnull FactoryStructWithConvention fromContext(Context context) {
+      FactoryStructWithConvention factories = context.unwrap(FactoryStructWithConvention.class);
+      if (factories != null) {
+        return factories;
       }
-      return new Struct(
+      Struct s = new Struct(
           Util.first(context.unwrap(FilterFactory.class),
               DEFAULT_FILTER_FACTORY),
           Util.first(context.unwrap(ProjectFactory.class),
@@ -705,6 +709,7 @@ public class RelFactories {
               DEFAULT_SPOOL_FACTORY),
           Util.first(context.unwrap(RepeatUnionFactory.class),
               DEFAULT_REPEAT_UNION_FACTORY));
+      return new FactoryStructWithConvention(Convention.NONE, s);
     }
   }
 }

@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.logical.LogicalExchange;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Definition of the distribution trait.
@@ -48,8 +50,9 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     return RelDistributions.ANY;
   }
 
-  public RelNode convert(RelOptPlanner planner, RelNode rel,
-      RelDistribution toDistribution, boolean allowInfiniteCostConverters) {
+  public RelNode convert(RelOptPlanner planner, RelBuilder builder, RelNode rel,
+      RelDistribution toDistribution, Convention toConvention,
+      boolean allowInfiniteCostConverters) {
     if (toDistribution == RelDistributions.ANY) {
       return rel;
     }
