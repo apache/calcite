@@ -207,7 +207,7 @@ public class RelJson {
       }
       list = ImmutableIntList.copyOf(keys);
     }
-    return RelDistributions.with(type, list);
+    return RelDistributions.of(type, list);
   }
 
   private Object toJson(RelDistribution relDistribution) {

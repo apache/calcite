@@ -71,14 +71,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-
-import static java.util.Arrays.asList;
 
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
@@ -397,7 +396,7 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      asList("hr", "emps")),
+                      Arrays.asList("hr", "emps")),
                   ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           LogicalFilter filter =
@@ -442,7 +441,7 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      asList("hr", "emps")),
+                      Arrays.asList("hr", "emps")),
                   ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           final RelDataType bigIntType =

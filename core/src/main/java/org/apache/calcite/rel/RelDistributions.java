@@ -80,7 +80,7 @@ public class RelDistributions {
     return RelDistributionTraitDef.INSTANCE.canonize(trait);
   }
 
-  public static RelDistribution with(RelDistribution.Type type, ImmutableIntList keys) {
+  public static RelDistribution of(RelDistribution.Type type, ImmutableIntList keys) {
     return new RelDistributionImpl(type, keys);
   }
 
