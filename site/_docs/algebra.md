@@ -187,6 +187,21 @@ final RelNode result = builder
   .build();
 {% endhighlight %}
 
+### Switch Convention
+
+The default RelBuilder creates logical RelNode without coventions. But you could
+switch to use a different convention through `adoptConvention()`:
+
+{% highlight java %}
+final RelNode result = builder
+  .push(input)
+  .adoptConvention(EnumerableConvention.INSTANCE)
+  .sort(toCollation)
+  .build();
+{% endhighlight %}
+
+In this case, we create an EnumerableSort on top of the input RelNode.
+
 ### Field names and ordinals
 
 You can reference a field by name or ordinal.

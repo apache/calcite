@@ -152,7 +152,7 @@ public class RelBuilder {
   private final RexSimplify simplifier;
   private final Config config;
   private final RelOptTable.ViewExpander viewExpander;
-  private final RelFactories.Struct struct;
+  private RelFactories.Struct struct;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -228,6 +228,13 @@ public class RelBuilder {
   /** Returns the type factory. */
   public RelDataTypeFactory getTypeFactory() {
     return cluster.getTypeFactory();
+  }
+
+  /** Returns new RelBuilder that adopts the convention provided.
+   * RelNode will be created with such convention if corresponding factory is provided. */
+  public RelBuilder adoptConvention(Convention convention) {
+    this.struct = convention.getRelFactories();
+    return this;
   }
 
   /** Returns the builder for {@link RexNode} expressions. */
@@ -2495,6 +2502,15 @@ public class RelBuilder {
   /** Creates a {@link Sort} by expressions, with limit and offset. */
   public RelBuilder sortLimit(int offset, int fetch, RexNode... nodes) {
     return sortLimit(offset, fetch, ImmutableList.copyOf(nodes));
+  }
+
+  /** Creates a {@link Sort} by specifying collations.
+   */
+  public RelBuilder sort(RelCollation collation) {
+    final RelNode sort =
+        struct.sortFactory.createSort(peek(), collation, null, null);
+    replaceTop(sort);
+    return this;
   }
 
   /** Creates a {@link Sort} by a list of expressions, with limit and offset.

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -25,6 +26,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 
 /**
  * Family of calling conventions that return results as an
@@ -83,5 +85,14 @@ public enum EnumerableConvention implements Convention {
   public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return true;
+  }
+
+  public RelFactories.Struct getRelFactories() {
+    return RelFactories.Struct.fromContext(
+            Contexts.of(
+                EnumerableRelFactories.ENUMERABLE_TABLE_SCAN_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_PROJECT_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_FILTER_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_SORT_FACTORY));
   }
 }

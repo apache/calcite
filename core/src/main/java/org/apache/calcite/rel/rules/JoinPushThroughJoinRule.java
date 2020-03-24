@@ -87,7 +87,7 @@ public class JoinPushThroughJoinRule extends RelOptRule implements Transformatio
     super(
         operand(clazz,
             operand(clazz, any()),
-            operand(RelNode.class, any())),
+            operandJ(RelNode.class, null, n -> !n.isEnforcer(), any())),
         relBuilderFactory, description);
     this.right = right;
   }
