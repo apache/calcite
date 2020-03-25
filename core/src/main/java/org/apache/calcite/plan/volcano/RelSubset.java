@@ -106,7 +106,7 @@ public class RelSubset extends AbstractRelNode {
    * 2: traitSet REQUIRED from parent operators
    * 3: both DERIVED and REQUIRED
    */
-  int state = 0;
+  private int state = 0;
 
   //~ Constructors -----------------------------------------------------------
 

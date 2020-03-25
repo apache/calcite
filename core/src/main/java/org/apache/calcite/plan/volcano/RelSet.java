@@ -224,7 +224,7 @@ class RelSet {
   }
 
   RelSubset getOrCreateSubset(RelOptCluster cluster, RelTraitSet traits) {
-    return getOrCreateSubset(cluster, traits, false /* required */);
+    return getOrCreateSubset(cluster, traits, false);
   }
 
   RelSubset getOrCreateSubset(
@@ -342,12 +342,12 @@ class RelSet {
       RelSubset subset = null;
       RelTraitSet otherTraits = otherSubset.getTraitSet();
 
-      // if it is logical or derived physical traitSet
-      if (otherSubset.state == 0 || otherSubset.isDerived()) {
+      // If it is logical or derived physical traitSet
+      if (otherSubset.isDerived() || !otherSubset.isRequired()) {
         subset = getOrCreateSubset(cluster, otherTraits, false);
       }
 
-      // it may be required only, or both derived and required,
+      // It may be required only, or both derived and required,
       // in which case, register again.
       if (otherSubset.isRequired()) {
         subset = getOrCreateSubset(cluster, otherTraits, true);
