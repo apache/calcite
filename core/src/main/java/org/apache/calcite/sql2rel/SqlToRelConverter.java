@@ -5827,7 +5827,7 @@ public class SqlToRelConverter {
     private boolean trimUnusedFields = false;
     private boolean createValuesRel = true;
     private boolean explain;
-    private boolean expand = true;
+    private boolean expand = false;
     private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
     private RelBuilderFactory relBuilderFactory = RelFactories.LOGICAL_BUILDER;
     private HintStrategyTable hintStrategyTable = HintStrategyTable.EMPTY;
