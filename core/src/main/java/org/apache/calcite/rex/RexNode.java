@@ -17,10 +17,9 @@
 package org.apache.calcite.rex;
 
 import org.apache.calcite.config.CalciteSystemProperty;
+import org.apache.calcite.linq4j.API;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
-
-import org.apiguardian.api.API;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
