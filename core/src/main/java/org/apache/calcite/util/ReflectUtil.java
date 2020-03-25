@@ -403,71 +403,40 @@ public abstract class ReflectUtil {
   }
 
   /**
-   * Creates a dispatcher for calls to {@link #lookupVisitMethod}. The
-   * dispatcher caches methods between invocations.
+   * Creates a dispatcher for calls to {@link #lookupVisitMethod}. By default the
+   * dispatcher caches methods globally. If caching methods between invocations
+   * is preferred, use the overridden method {@link #createDispatcher(Class, Class, boolean)}.
    *
-   * @param visitorBaseClazz Visitor base class
-   * @param visiteeBaseClazz Visitee base class
+   * @param visitorBaseClazz        Visitor base class
+   * @param visiteeBaseClazz        Visitee base class
    * @return cache of methods
    */
   public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
+    return createDispatcher(visitorBaseClazz, visiteeBaseClazz, true);
+  }
+
+  /**
+   * Creates a dispatcher for calls to {@link #lookupVisitMethod}.
+   *
+   * @param visitorBaseClazz        Visitor base class
+   * @param visiteeBaseClazz        Visitee base class
+   * @param useGlobalMethodCache    If set to true, the created dispatchers will
+   *                                share a globally cache to store methods to
+   *                                mitigating reflection invocation overhead
+   *                                when looking up method. If set to false, every
+   *                                dispatcher instance will only cache methods
+   *                                between invocations individually.
+   * @return cache of methods
+   */
+  public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
+      final Class<R> visitorBaseClazz,
+      final Class<E> visiteeBaseClazz,
+      final boolean useGlobalMethodCache) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
-    return new ReflectiveVisitDispatcher<R, E>() {
-      final Map<List<Object>, Method> map = new HashMap<>();
-
-      public Method lookupVisitMethod(
-          Class<? extends R> visitorClass,
-          Class<? extends E> visiteeClass,
-          String visitMethodName) {
-        return lookupVisitMethod(
-            visitorClass,
-            visiteeClass,
-            visitMethodName,
-            Collections.emptyList());
-      }
-
-      public Method lookupVisitMethod(
-          Class<? extends R> visitorClass,
-          Class<? extends E> visiteeClass,
-          String visitMethodName,
-          List<Class> additionalParameterTypes) {
-        final List<Object> key =
-            ImmutableList.of(
-                visitorClass,
-                visiteeClass,
-                visitMethodName,
-                additionalParameterTypes);
-        Method method = map.get(key);
-        if (method == null) {
-          if (map.containsKey(key)) {
-            // We already looked for the method and found nothing.
-          } else {
-            method =
-                ReflectUtil.lookupVisitMethod(
-                    visitorClass,
-                    visiteeClass,
-                    visitMethodName,
-                    additionalParameterTypes);
-            map.put(key, method);
-          }
-        }
-        return method;
-      }
-
-      public boolean invokeVisitor(
-          R visitor,
-          E visitee,
-          String visitMethodName) {
-        return ReflectUtil.invokeVisitor(
-            visitor,
-            visitee,
-            visiteeBaseClazz,
-            visitMethodName);
-      }
-    };
+    return new ReflectVisitDispatcherImpl<R, E>(visiteeBaseClazz, useGlobalMethodCache);
   }
 
   /**

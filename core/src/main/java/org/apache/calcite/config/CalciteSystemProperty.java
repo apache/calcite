@@ -332,6 +332,23 @@ public final class CalciteSystemProperty<T> {
       intProperty("calcite.bindable.cache.concurrencyLevel", 1,
           v -> v >= 1 && v <= Integer.MAX_VALUE);
 
+  /**
+   * The maximum size of the cache used for storing methods by
+   * {@link org.apache.calcite.util.ReflectiveVisitDispatcher}.
+   *
+   * <p>The default value is 128.</p>
+   *
+   * <p>The property can take any value between [1, 256] inclusive. If the
+   * value is not valid (or not specified) then the default value is used.</p>
+   *
+   * <p>Looking up method by reflection invocation is slow, caching technique will
+   * mitigating the overhead.</p>
+   */
+  public static final CalciteSystemProperty<Integer>
+      REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE =
+      intProperty("calcite.reflect.visit.dispatcher.method.cache.maxSize", 128,
+          v -> v > 0 && v <= 256);
+
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
     // Note that "" -> true (convenient for command-lines flags like '-Dflag')
