@@ -352,12 +352,12 @@ public class ReflectUtilTest {
       this.value = value;
     }
 
-    Result increment(IntDelta delta) {
+    public Result increment(IntDelta delta) {
       value += delta.delta;
       return new Result(value);
     }
 
-    Result increment(LongDelta delta) {
+    public Result increment(LongDelta delta) {
       value += delta.delta;
       return new Result(value);
     }
