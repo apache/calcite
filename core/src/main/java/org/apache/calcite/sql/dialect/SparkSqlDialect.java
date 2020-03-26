@@ -245,7 +245,6 @@ public class SparkSqlDialect extends SqlDialect {
         SqlSyntax.BINARY.unparse(writer, op, call, leftPrec, rightPrec);
         break;
       case CHAR_LENGTH:
-      case CHARACTER_LENGTH:
         final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
         call.operand(0).unparse(writer, leftPrec, rightPrec);
         writer.endFunCall(lengthFrame);

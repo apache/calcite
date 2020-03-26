@@ -1452,13 +1452,17 @@ public class RelToSqlConverterTest {
     final String query = "select char_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT LENGTH('xyz')\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
       .withHive()
       .ok(expected)
       .withBigQuery()
       .ok(expected)
       .withSpark()
-      .ok(expected);
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test
@@ -1466,13 +1470,17 @@ public class RelToSqlConverterTest {
     final String query = "select character_length('xyz') from \"product\"";
     final String expected = "SELECT LENGTH('xyz')\n"
         + "FROM foodmart.product";
+    final String expectedSnowFlake = "SELECT LENGTH('xyz')\n"
+            + "FROM \"foodmart\".\"product\"";
     sql(query)
       .withHive()
       .ok(expected)
       .withBigQuery()
       .ok(expected)
       .withSpark()
-      .ok(expected);
+      .ok(expected)
+      .withSnowflake()
+      .ok(expectedSnowFlake);
   }
 
   @Test public void testMysqlCastToBigint() {
