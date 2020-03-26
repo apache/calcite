@@ -62,20 +62,30 @@ public class RexShuttle implements RexVisitor<RexNode> {
         visitFieldCollations(window.orderKeys, update);
     List<RexNode> clonedPartitionKeys =
         visitList(window.partitionKeys, update);
-    RexWindowBound lowerBound = window.getLowerBound().accept(this);
-    RexWindowBound upperBound = window.getUpperBound().accept(this);
-    if (update[0]
-        || (lowerBound != window.getLowerBound() && lowerBound != null)
-        || (upperBound != window.getUpperBound() && upperBound != null)) {
-      return new RexWindow(
-          clonedPartitionKeys,
-          clonedOrderKeys,
-          lowerBound,
-          upperBound,
-          window.isRows());
-    } else {
+    final RexWindowBound lowerBound = window.getLowerBound().accept(this);
+    final RexWindowBound upperBound = window.getUpperBound().accept(this);
+    if (lowerBound == null
+        || upperBound == null
+        || !update[0]
+        && lowerBound == window.getLowerBound()
+        && upperBound == window.getUpperBound()) {
       return window;
     }
+    boolean rows = window.isRows();
+    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
+        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   is equivalent to
+      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   but we prefer "RANGE"
+      rows = false;
+    }
+    return new RexWindow(
+        clonedPartitionKeys,
+        clonedOrderKeys,
+        lowerBound,
+        upperBound,
+        rows);
   }
 
   public RexNode visitSubQuery(RexSubQuery subQuery) {

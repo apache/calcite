@@ -5105,8 +5105,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public SqlWindow resolveWindow(
       SqlNode windowOrRef,
-      SqlValidatorScope scope,
-      boolean populateBounds) {
+      SqlValidatorScope scope) {
     SqlWindow window;
     if (windowOrRef instanceof SqlIdentifier) {
       window = getWindowByName((SqlIdentifier) windowOrRef, scope);
@@ -5126,9 +5125,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       window = window.overlay(refWindow, this);
     }
 
-    if (populateBounds) {
-      window.populateBounds();
-    }
     return window;
   }
 

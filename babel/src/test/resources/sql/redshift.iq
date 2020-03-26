@@ -603,11 +603,11 @@ EMPNO, EXPR$1
 select dense_rank() over () from emp where deptno = 30;
 EXPR$0
 6
-6
-6
-6
-6
-6
+1
+2
+3
+4
+5
 !ok
 
 select dense_rank() over (partition by deptno) from emp;
@@ -617,15 +617,15 @@ EXPR$0
 3
 5
 5
-5
-5
-5
 6
-6
-6
-6
-6
-6
+1
+1
+1
+2
+2
+2
+4
+4
 !ok
 
 select dense_rank() over (partition by deptno order by sal) from emp;
@@ -685,19 +685,19 @@ select percent_rank() over (partition by deptno order by sal) from emp;
 select rank() over () from emp;
 EXPR$0
 14
-14
-14
-14
-14
-14
-14
-14
-14
-14
-14
-14
-14
-14
+1
+10
+11
+12
+13
+2
+3
+4
+5
+6
+7
+8
+9
 !ok
 
 select rank() over (partition by deptno) from emp;
@@ -707,15 +707,15 @@ EXPR$0
 3
 5
 5
-5
-5
-5
 6
-6
-6
-6
-6
-6
+1
+1
+1
+2
+2
+2
+4
+4
 !ok
 
 select rank() over (partition by deptno order by sal) from emp;

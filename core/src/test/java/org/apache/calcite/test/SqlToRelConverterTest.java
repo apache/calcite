@@ -607,7 +607,7 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     // Checks to see if <aggregate>(DISTINCT x) is set and preserved
     // as a flag for the aggregate call.
     final String sql = "select SUM(DISTINCT deptno)\n"
-        + "over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)\n"
+        + "over (ORDER BY empno ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)\n"
         + "from emp\n";
     sql(sql).ok();
   }
@@ -1809,6 +1809,28 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testOverDefaultBracket() {
+    // c2 and c3 are equivalent to c1;
+    // c5 is equivalent to c4;
+    // c7 is equivalent to c6.
+    final String sql = "select\n"
+        + "  count(*) over (order by deptno) c1,\n"
+        + "  count(*) over (order by deptno\n"
+        + "    range unbounded preceding) c2,\n"
+        + "  count(*) over (order by deptno\n"
+        + "    range between unbounded preceding and current row) c3,\n"
+        + "  count(*) over (order by deptno\n"
+        + "    rows unbounded preceding) c4,\n"
+        + "  count(*) over (order by deptno\n"
+        + "    rows between unbounded preceding and current row) c5,\n"
+        + "  count(*) over (order by deptno\n"
+        + "    range between unbounded preceding and unbounded following) c6,\n"
+        + " count(*) over (order by deptno\n"
+        + "    rows between unbounded preceding and unbounded following) c7\n"
+        + "from emp";
+    sql(sql).ok();
+  }
+
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-750">[CALCITE-750]
    * Allow windowed aggregate on top of regular aggregate</a>. */
@@ -2226,41 +2248,41 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
   }
 
   @Test public void testInsertExtendedColumn() {
-    final String sql = "insert into empdefaults(updated TIMESTAMP)"
-        + " (ename, deptno, empno, updated, sal)"
+    final String sql = "insert into empdefaults(updated TIMESTAMP)\n"
+        + " (ename, deptno, empno, updated, sal)\n"
         + " values ('Fred', 456, 44, timestamp '2017-03-12 13:03:05', 999999)";
     sql(sql).ok();
   }
 
   @Test public void testInsertBindExtendedColumn() {
-    final String sql = "insert into empdefaults(updated TIMESTAMP)"
-        + " (ename, deptno, empno, updated, sal)"
+    final String sql = "insert into empdefaults(updated TIMESTAMP)\n"
+        + " (ename, deptno, empno, updated, sal)\n"
         + " values ('Fred', 456, 44, ?, 999999)";
     sql(sql).ok();
   }
 
   @Test public void testInsertExtendedColumnModifiableView() {
-    final String sql = "insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)"
-        + " (ename, deptno, empno, updated, sal)"
+    final String sql = "insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)\n"
+        + " (ename, deptno, empno, updated, sal)\n"
         + " values ('Fred', 20, 44, timestamp '2017-03-12 13:03:05', 999999)";
     sql(sql).with(getExtendedTester()).ok();
   }
 
   @Test public void testInsertBindExtendedColumnModifiableView() {
-    final String sql = "insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)"
-        + " (ename, deptno, empno, updated, sal)"
+    final String sql = "insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)\n"
+        + " (ename, deptno, empno, updated, sal)\n"
         + " values ('Fred', 20, 44, ?, 999999)";
     sql(sql).with(getExtendedTester()).ok();
   }
 
   @Test public void testInsertWithSort() {
-    final String sql = "insert into empnullables (empno, ename) "
+    final String sql = "insert into empnullables (empno, ename)\n"
         + "select deptno, ename from emp order by ename";
     sql(sql).ok();
   }
 
   @Test public void testInsertWithLimit() {
-    final String sql = "insert into empnullables (empno, ename) "
+    final String sql = "insert into empnullables (empno, ename)\n"
         + "select deptno, ename from emp order by ename limit 10";
     sql(sql).ok();
   }

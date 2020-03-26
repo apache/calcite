@@ -42,12 +42,11 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -458,10 +457,8 @@ public class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBound.create(
-                              SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
-                          RexWindowBound.create(
-                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+                          RexWindowBounds.UNBOUNDED_PRECEDING,
+                          RexWindowBounds.CURRENT_ROW,
                           true, true, false, false, false),
                       rexBuilder.makeOver(bigIntType,
                           SqlStdOperatorTable.SUM,
@@ -470,12 +467,9 @@ public class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBound.create(
-                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
-                          RexWindowBound.create(null,
-                              rexBuilder.makeCall(
-                                  SqlWindow.FOLLOWING_OPERATOR,
-                                  rexBuilder.makeExactLiteral(BigDecimal.ONE))),
+                          RexWindowBounds.CURRENT_ROW,
+                          RexWindowBounds.following(
+                              rexBuilder.makeExactLiteral(BigDecimal.ONE)),
                           false, true, false, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
@@ -535,10 +529,10 @@ public class RelWriterTest {
 
     assertThat(s,
         isLinux("LogicalProject(field0=[$0],"
-            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST ROWS BETWEEN"
-            + " UNBOUNDED PRECEDING AND CURRENT ROW)],"
-            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST RANGE BETWEEN"
-            + " CURRENT ROW AND 1 FOLLOWING)])\n"
+            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
+            + "ROWS UNBOUNDED PRECEDING)],"
+            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
+            + "RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)])\n"
             + "  LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
@@ -738,8 +732,8 @@ public class RelWriterTest {
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST ROWS"
-        + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST "
+        + "ROWS UNBOUNDED PRECEDING)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -751,8 +745,7 @@ public class RelWriterTest {
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER"
-        + " (PARTITION BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+        + "LogicalProject($f0=[COUNT() OVER (PARTITION BY $7)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
@@ -869,10 +862,8 @@ public class RelWriterTest {
                 ImmutableList.of(),
                 partitionKeys,
                 ImmutableList.copyOf(orderKeys),
-                RexWindowBound.create(
-                    SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
-                RexWindowBound.create(
-                    SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+                RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.CURRENT_ROW,
                 true, true, false, false, false))
         .build();
     return rel;

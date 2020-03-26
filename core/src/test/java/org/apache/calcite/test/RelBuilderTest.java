@@ -853,12 +853,11 @@ public class RelBuilderTest {
             over(b,
                 ImmutableList.of(
                     new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of()))))
+                        ImmutableSet.of())),
+                "x"))
         .build();
     final String expected = ""
-        + "LogicalProject(DEPTNO=[$7], "
-        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED PRECEDING "
-        + "AND UNBOUNDED FOLLOWING)])\n"
+        + "LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
@@ -871,33 +870,33 @@ public class RelBuilderTest {
             over(b,
                 ImmutableList.of(
                     new RexFieldCollation(b.field("EMPNO"),
-                        ImmutableSet.of()))))
+                        ImmutableSet.of())),
+                "x"))
         .project(b.field("DEPTNO"),
             over(b,
                 ImmutableList.of(
                     new RexFieldCollation(b.field("DEPTNO"),
-                        ImmutableSet.of()))))
+                        ImmutableSet.of())),
+                "y"))
         .build();
-    final String expected = "LogicalProject(DEPTNO=[$0], "
-        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED "
-        + "PRECEDING AND UNBOUNDED FOLLOWING)])\n"
-        + "  LogicalProject(DEPTNO=[$7], "
-        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED "
-        + "PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$0], y=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
+        + "  LogicalProject(DEPTNO=[$7], x=[ROW_NUMBER() OVER (ORDER BY $0)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
   private RexNode over(RelBuilder b,
-      ImmutableList<RexFieldCollation> fieldCollations) {
+      ImmutableList<RexFieldCollation> fieldCollations, String alias) {
     final RelDataType intType =
         b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
-    return b.getRexBuilder()
-        .makeOver(intType, SqlStdOperatorTable.ROW_NUMBER,
-            ImmutableList.of(), ImmutableList.of(), fieldCollations,
-            RexWindowBounds.UNBOUNDED_PRECEDING,
-            RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
-            false, false);
+    return b.alias(
+        b.getRexBuilder()
+            .makeOver(intType, SqlStdOperatorTable.ROW_NUMBER,
+                ImmutableList.of(), ImmutableList.of(), fieldCollations,
+                RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+                false, false), alias);
   }
 
   @Test public void testRename() {

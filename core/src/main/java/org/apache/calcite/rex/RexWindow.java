@@ -18,12 +18,11 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.util.Pair;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
-import javax.annotation.Nullable;
+import java.util.Objects;
 
 /**
  * Specification of the window of rows over which a {@link RexOver} windowed
@@ -49,20 +48,42 @@ public class RexWindow {
    *
    * <p>If you need to create a window from outside this package, use
    * {@link RexBuilder#makeOver}.
+   *
+   * <p>If {@code orderKeys} is empty the bracket will usually be
+   * "BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING".
+   *
+   * <p>The digest assumes 'default' brackets, and does not print brackets or
+   * bounds that are the default.
+   *
+   * <p>If {@code orderKeys} is empty, assumes the bracket is "RANGE BETWEEN
+   * UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING" and does not print the
+   * bracket.
+   *
+   *<li>If {@code orderKeys} is not empty, the default top is "CURRENT ROW".
+   * The default bracket is "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+   * which will be printed as blank.
+   * "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW" is different, and is
+   * printed as "ROWS UNBOUNDED PRECEDING".
+   * "ROWS BETWEEN 5 PRECEDING AND CURRENT ROW" is printed as
+   * "ROWS 5 PRECEDING".
    */
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,
-      @Nullable RexWindowBound lowerBound,
-      @Nullable RexWindowBound upperBound,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
       boolean isRows) {
     this.partitionKeys = ImmutableList.copyOf(partitionKeys);
     this.orderKeys = ImmutableList.copyOf(orderKeys);
-    this.lowerBound = lowerBound;
-    this.upperBound = upperBound;
+    this.lowerBound = Objects.requireNonNull(lowerBound);
+    this.upperBound = Objects.requireNonNull(upperBound);
     this.isRows = isRows;
     this.nodeCount = computeCodeCount();
     this.digest = computeDigest();
+    Preconditions.checkArgument(
+        !(lowerBound.isUnbounded() && lowerBound.isPreceding()
+            && upperBound.isUnbounded() && upperBound.isFollowing() && isRows),
+        "use RANGE for unbounded, not ROWS");
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -84,61 +105,76 @@ public class RexWindow {
   }
 
   private String computeDigest() {
-    StringWriter sw = new StringWriter();
-    PrintWriter pw = new PrintWriter(sw);
-    int clauseCount = 0;
+    return appendDigest_(new StringBuilder(), true).toString();
+  }
+
+  StringBuilder appendDigest(StringBuilder sb, boolean allowFraming) {
+    if (allowFraming) {
+      // digest was calculated with allowFraming=true; reuse it
+      return sb.append(digest);
+    } else {
+      return appendDigest_(sb, allowFraming);
+    }
+  }
+
+  private StringBuilder appendDigest_(StringBuilder sb, boolean allowFraming) {
+    final int initialLength = sb.length();
     if (partitionKeys.size() > 0) {
-      if (clauseCount++ > 0) {
-        pw.print(' ');
-      }
-      pw.print("PARTITION BY ");
+      sb.append("PARTITION BY ");
       for (int i = 0; i < partitionKeys.size(); i++) {
         if (i > 0) {
-          pw.print(", ");
+          sb.append(", ");
         }
-        RexNode partitionKey = partitionKeys.get(i);
-        pw.print(partitionKey.toString());
+        sb.append(partitionKeys.get(i));
       }
     }
     if (orderKeys.size() > 0) {
-      if (clauseCount++ > 0) {
-        pw.print(' ');
-      }
-      pw.print("ORDER BY ");
+      sb.append(sb.length() > initialLength ? " ORDER BY " : "ORDER BY ");
       for (int i = 0; i < orderKeys.size(); i++) {
         if (i > 0) {
-          pw.print(", ");
+          sb.append(", ");
         }
-        RexFieldCollation orderKey = orderKeys.get(i);
-        pw.print(orderKey.toString());
+        sb.append(orderKeys.get(i));
       }
     }
-    if (lowerBound == null) {
+    // There are 3 reasons to skip the ROWS/RANGE clause.
+    // 1. If this window is being used with a RANK-style function that does not
+    //    allow framing, or
+    // 2. If there is no ORDER BY (in which case a frame is invalid), or
+    // 3. If the ROWS/RANGE clause is the default, "RANGE BETWEEN UNBOUNDED
+    //    PRECEDING AND CURRENT ROW"
+    if (!allowFraming // 1
+        || orderKeys.isEmpty() // 2
+        || (lowerBound.isUnbounded() // 3
+            && lowerBound.isPreceding()
+            && upperBound.isCurrentRow()
+            && !isRows)) {
       // No ROWS or RANGE clause
-    } else if (upperBound == null) {
-      if (clauseCount++ > 0) {
-        pw.print(' ');
-      }
-      if (isRows) {
-        pw.print("ROWS ");
-      } else {
-        pw.print("RANGE ");
-      }
-      pw.print(lowerBound.toString());
+    } else if (upperBound.isCurrentRow()) {
+      // Per MSSQL: If ROWS/RANGE is specified and <window frame preceding>
+      // is used for <window frame extent> (short syntax) then this
+      // specification is used for the window frame boundary starting point and
+      // CURRENT ROW is used for the boundary ending point. For example
+      // "ROWS 5 PRECEDING" is equal to "ROWS BETWEEN 5 PRECEDING AND CURRENT
+      // ROW".
+      //
+      // By similar reasoning to (3) above, we print the shorter option if it is
+      // the default. If the RexWindow is, say, "ROWS BETWEEN 5 PRECEDING AND
+      // CURRENT ROW", we output "ROWS 5 PRECEDING" because it is equivalent and
+      // is shorter.
+      sb.append(sb.length() > initialLength
+          ? (isRows ? " ROWS " : " RANGE ")
+          : (isRows ? "ROWS " : "RANGE "))
+          .append(lowerBound);
     } else {
-      if (clauseCount++ > 0) {
-        pw.print(' ');
-      }
-      if (isRows) {
-        pw.print("ROWS BETWEEN ");
-      } else {
-        pw.print("RANGE BETWEEN ");
-      }
-      pw.print(lowerBound.toString());
-      pw.print(" AND ");
-      pw.print(upperBound.toString());
+      sb.append(sb.length() > initialLength
+          ? (isRows ? " ROWS BETWEEN " : " RANGE BETWEEN ")
+          : (isRows ? "ROWS BETWEEN " : "RANGE BETWEEN "))
+          .append(lowerBound)
+          .append(" AND ")
+          .append(upperBound);
     }
-    return sw.toString();
+    return sb;
   }
 
   public RexWindowBound getLowerBound() {

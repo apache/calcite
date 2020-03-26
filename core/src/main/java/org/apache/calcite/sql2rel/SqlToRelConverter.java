@@ -89,6 +89,7 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.schema.ModifiableView;
@@ -1943,13 +1944,33 @@ public class SqlToRelConverter {
 
     SqlNode windowOrRef = call.operand(1);
     final SqlWindow window =
-        validator.resolveWindow(windowOrRef, bb.scope, true);
+        validator.resolveWindow(windowOrRef, bb.scope);
 
-    // ROW_NUMBER() expects specific kind of framing.
-    if (aggCall.getKind() == SqlKind.ROW_NUMBER) {
-      window.setLowerBound(SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO));
-      window.setUpperBound(SqlWindow.createCurrentRow(SqlParserPos.ZERO));
-      window.setRows(SqlLiteral.createBoolean(true, SqlParserPos.ZERO));
+    SqlNode sqlLowerBound = window.getLowerBound();
+    SqlNode sqlUpperBound = window.getUpperBound();
+    boolean rows = window.isRows();
+    SqlNodeList orderList = window.getOrderList();
+
+    if (!aggCall.getOperator().allowsFraming()) {
+      // If the operator does not allow framing, bracketing is implicitly
+      // everything up to the current row.
+      sqlLowerBound = SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO);
+      sqlUpperBound = SqlWindow.createCurrentRow(SqlParserPos.ZERO);
+      if (aggCall.getKind() == SqlKind.ROW_NUMBER) {
+        // ROW_NUMBER() expects specific kind of framing.
+        rows = true;
+      }
+    } else if (orderList.size() == 0) {
+      // Without ORDER BY, there must be no bracketing.
+      sqlLowerBound = SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO);
+      sqlUpperBound = SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO);
+    } else if (sqlLowerBound == null && sqlUpperBound == null) {
+      sqlLowerBound = SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO);
+      sqlUpperBound = SqlWindow.createCurrentRow(SqlParserPos.ZERO);
+    } else if (sqlUpperBound == null) {
+      sqlUpperBound = SqlWindow.createCurrentRow(SqlParserPos.ZERO);
+    } else if (sqlLowerBound == null) {
+      sqlLowerBound = SqlWindow.createCurrentRow(SqlParserPos.ZERO);
     }
     final SqlNodeList partitionList = window.getPartitionList();
     final ImmutableList.Builder<RexNode> partitionKeys =
@@ -1957,10 +1978,9 @@ public class SqlToRelConverter {
     for (SqlNode partition : partitionList) {
       partitionKeys.add(bb.convertExpression(partition));
     }
-    RexNode lowerBound = bb.convertExpression(window.getLowerBound());
-    RexNode upperBound = bb.convertExpression(window.getUpperBound());
-    SqlNodeList orderList = window.getOrderList();
-    if ((orderList.size() == 0) && !window.isRows()) {
+    final RexNode lowerBound = bb.convertExpression(sqlLowerBound);
+    final RexNode upperBound = bb.convertExpression(sqlUpperBound);
+    if (orderList.size() == 0 && !rows) {
       // A logical range requires an ORDER BY clause. Use the implicit
       // ordering of this relation. There must be one, otherwise it would
       // have failed validation.
@@ -2000,14 +2020,13 @@ public class SqlToRelConverter {
       final RexShuttle visitor =
           new HistogramShuttle(
               partitionKeys.build(), orderKeys.build(),
-              RexWindowBound.create(window.getLowerBound(), lowerBound),
-              RexWindowBound.create(window.getUpperBound(), upperBound),
-              window,
+              RexWindowBounds.create(sqlLowerBound, lowerBound),
+              RexWindowBounds.create(sqlUpperBound, upperBound),
+              rows,
+              window.isAllowPartial(),
               isDistinct,
               ignoreNulls);
-      RexNode overNode = rexAgg.accept(visitor);
-
-      return overNode;
+      return rexAgg.accept(visitor);
     } finally {
       bb.window = null;
     }
@@ -5521,7 +5540,8 @@ public class SqlToRelConverter {
     private final ImmutableList<RexFieldCollation> orderKeys;
     private final RexWindowBound lowerBound;
     private final RexWindowBound upperBound;
-    private final SqlWindow window;
+    private final boolean rows;
+    private final boolean allowPartial;
     private final boolean distinct;
     private final boolean ignoreNulls;
 
@@ -5529,14 +5549,16 @@ public class SqlToRelConverter {
         List<RexNode> partitionKeys,
         ImmutableList<RexFieldCollation> orderKeys,
         RexWindowBound lowerBound, RexWindowBound upperBound,
-        SqlWindow window,
+        boolean rows,
+        boolean allowPartial,
         boolean distinct,
         boolean ignoreNulls) {
       this.partitionKeys = partitionKeys;
       this.orderKeys = orderKeys;
       this.lowerBound = lowerBound;
       this.upperBound = upperBound;
-      this.window = window;
+      this.rows = rows;
+      this.allowPartial = allowPartial;
       this.distinct = distinct;
       this.ignoreNulls = ignoreNulls;
     }
@@ -5592,8 +5614,8 @@ public class SqlToRelConverter {
                 orderKeys,
                 lowerBound,
                 upperBound,
-                window.isRows(),
-                window.isAllowPartial(),
+                rows,
+                allowPartial,
                 false,
                 distinct,
                 ignoreNulls);
@@ -5634,8 +5656,8 @@ public class SqlToRelConverter {
             orderKeys,
             lowerBound,
             upperBound,
-            window.isRows(),
-            window.isAllowPartial(),
+            rows,
+            allowPartial,
             needSum0,
             distinct,
             ignoreNulls);

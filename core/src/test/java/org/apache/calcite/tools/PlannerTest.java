@@ -664,7 +664,7 @@ public class PlannerTest {
         + "order by deptno",
         "EnumerableSort(sort0=[$2], dir0=[ASC])\n"
         + "  EnumerableProject(emp_cnt=[$5], EXPR$1=[+($0, $1)], deptno=[$1])\n"
-        + "    EnumerableWindow(window#0=[window(partition {1} order by [] range between UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING aggs [COUNT()])])\n"
+        + "    EnumerableWindow(window#0=[window(partition {1} aggs [COUNT()])])\n"
         + "      EnumerableTableScan(table=[[hr, emps]])\n");
   }
 

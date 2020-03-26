@@ -508,8 +508,8 @@ LogicalProject(DEPTNO=[$0], NAME=[$1], NAME0=[$2])
     <TestCase name="testJoinLateralTableWithConditionCorrelated">
         <Resource name="sql">
             <![CDATA[select deptno, r.num from dept join
-lateral table(ramp(dept.deptno)) as r(num)
-on deptno=num]]>
+ lateral table(ramp(dept.deptno)) as r(num)
+ on deptno=num]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -596,13 +596,13 @@ LogicalProject(DEPTNO=[$0], NAME=[$1])
     <TestCase name="testSelectOverDistinct">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), 0), $SUM0(DISTINCT $7) OVER (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW), null:INTEGER)])
+LogicalProject(EXPR$0=[CASE(>(COUNT(DISTINCT $7) OVER (ORDER BY $0 ROWS 10 PRECEDING), 0), $SUM0(DISTINCT $7) OVER (ORDER BY $0 ROWS 10 PRECEDING), null:INTEGER)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
         <Resource name="sql">
             <![CDATA[select SUM(DISTINCT deptno)
-over (ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)
+over (ORDER BY empno ROWS BETWEEN 10 PRECEDING AND CURRENT ROW)
 from emp
 ]]>
         </Resource>
@@ -611,7 +611,7 @@ from emp
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(C=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000:INTERVAL SECOND PRECEDING AND CURRENT ROW)], C2=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C3=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalProject(C=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE 1000:INTERVAL SECOND PRECEDING)], C2=[COUNT(DISTINCT $2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C3=[COUNT($2) OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
     LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -958,7 +958,7 @@ LogicalProject(EXPR$0=[NOT(LIKE('a', 'b', 'c'))])
     <TestCase name="testOverMultiple">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), null:INTEGER), null:NULL)])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:INTEGER)], EXPR$1=[CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:INTEGER)], EXPR$2=[CASE(>=(COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS 3 PRECEDING), 2), CASE(>(COUNT($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS 3 PRECEDING), 0), $SUM0($7) OVER (PARTITION BY $2 ORDER BY $4 ROWS 3 PRECEDING), null:INTEGER), null:NULL)])
   LogicalFilter(condition=[>(-($7, $5), 999)])
     LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
@@ -1151,7 +1151,7 @@ LogicalProject(C_NATIONKEY=[$1], FAKE_COL3=[$2])
     <TestCase name="testOverAvg">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))):INTEGER])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:INTEGER)], EXPR$1=[CAST(/(CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:INTEGER), COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING))):INTEGER])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1165,7 +1165,7 @@ window w1 as (partition by job order by hiredate rows 2 preceding)]]>
     <TestCase name="testOverCountStar">
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)], EXPR$1=[COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)])
+LogicalProject(EXPR$0=[COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)], EXPR$1=[COUNT() OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1615,7 +1615,7 @@ from emp
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+LogicalProject(EXPR$0=[LAST_VALUE($7) OVER (ORDER BY $0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1640,7 +1640,7 @@ window w as (order by empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[LEAD($7, 1) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$1=[LEAD($7, 2) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[LEAD($7, 3) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$3=[LEAD($7, 1) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$4=[LAG($7, 2) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$5=[LAG($7, 2) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$6=[FIRST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$7=[FIRST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$8=[FIRST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$9=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$10=[LAST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$11=[LAST_VALUE($7) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+LogicalProject(EXPR$0=[LEAD($7, 1) OVER (ORDER BY $0)], EXPR$1=[LEAD($7, 2) IGNORE NULLS OVER (ORDER BY $0)], EXPR$2=[LEAD($7, 3) OVER (ORDER BY $0)], EXPR$3=[LEAD($7, 1) OVER (ORDER BY $0)], EXPR$4=[LAG($7, 2) IGNORE NULLS OVER (ORDER BY $0)], EXPR$5=[LAG($7, 2) OVER (ORDER BY $0)], EXPR$6=[FIRST_VALUE($7) OVER (ORDER BY $0)], EXPR$7=[FIRST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0)], EXPR$8=[FIRST_VALUE($7) OVER (ORDER BY $0)], EXPR$9=[LAST_VALUE($7) OVER (ORDER BY $0)], EXPR$10=[LAST_VALUE($7) IGNORE NULLS OVER (ORDER BY $0)], EXPR$11=[LAST_VALUE($7) OVER (ORDER BY $0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1680,7 +1680,7 @@ window w1 as (partition by job order by hiredate rows 2 preceding)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:INTEGER)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 0), $SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), null:REAL), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS BETWEEN 2 PRECEDING AND CURRENT ROW))])
+LogicalProject(EXPR$0=[CASE(>(COUNT($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0($5) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:INTEGER)], EXPR$1=[/(CASE(>(COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), 0), $SUM0(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING), null:REAL), COUNT(CAST($5):REAL NOT NULL) OVER (PARTITION BY $2 ORDER BY $4 ROWS 2 PRECEDING))])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -1922,8 +1922,7 @@ LogicalProject(DEPTNO=[$7], NAME=[$10])
             <![CDATA[select (coord).x from
 customer.contact_peek t1
 join customer.contact_peek t2
-using (coord)
-]]>
+using (coord)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1938,9 +1937,10 @@ LogicalProject(EXPR$0=[COALESCE(ROW($4, $5, $6), ROW($14, $15, $16)).X])
     </TestCase>
     <TestCase name="testJoinUsingWithAggregate">
         <Resource name="sql">
-            <![CDATA[SELECT deptno, name
-FROM emp JOIN dept using (deptno)
-]]>
+            <![CDATA[select deptno, count(*)
+from emp
+full join dept using (deptno)
+group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1959,8 +1959,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
 grouping(deptno, job), count(*)
 from emp
 join dept using (deptno)
-group by grouping sets ((deptno), (deptno, job))
-]]>
+group by grouping sets ((deptno), (deptno, job))]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -1977,8 +1976,7 @@ LogicalProject(DEPTNO=[$0], EXPR$1=[$2], EXPR$2=[$3], EXPR$3=[$4])
         <Resource name="sql">
             <![CDATA[SELECT deptno, ename
 FROM emp JOIN dept using (deptno)
-JOIN (values ('Calcite', 200)) as s(ename, salary) using (ename)
-]]>
+JOIN (values ('Calcite', 200)) as s(ename, salary) using (ename)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -2509,7 +2507,7 @@ group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
+LogicalProject(EXPR$0=[CAST(/(SUM(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0), COUNT(+(+($1, *(2, $2)), *(3, $3))) OVER (PARTITION BY $0))):INTEGER NOT NULL])
   LogicalAggregate(group=[{0}], agg#0=[SUM($1)], agg#1=[MIN($2)], agg#2=[AVG($2)])
     LogicalProject(DEPTNO=[$7], SAL=[$5], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -3506,7 +3504,7 @@ from orders]]>
         <Resource name="plan">
             <![CDATA[
 LogicalDelta
-  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE BETWEEN 1000:INTERVAL SECOND PRECEDING AND CURRENT ROW)])
+  LogicalProject(ROWTIME=[$0], PRODUCTID=[$1], ORDERID=[$2], C=[COUNT() OVER (PARTITION BY $1 ORDER BY $0 RANGE 1000:INTERVAL SECOND PRECEDING)])
     LogicalTableScan(table=[[CATALOG, SALES, ORDERS]])
 ]]>
         </Resource>
@@ -3916,7 +3914,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     <TestCase name="testInsertWithSort">
         <Resource name="sql">
             <![CDATA[insert into empnullables (empno, ename)
- select deptno, ename from emp order by ename]]>
+select deptno, ename from emp order by ename]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3931,7 +3929,7 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     <TestCase name="testInsertWithLimit">
         <Resource name="sql">
             <![CDATA[insert into empnullables (empno, ename)
- select deptno, ename from emp order by ename limit 10]]>
+select deptno, ename from emp order by ename limit 10]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3958,7 +3956,9 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPNULLABLES]], operation=[INSERT], f
     </TestCase>
     <TestCase name="testInsertBindExtendedColumn">
         <Resource name="sql">
-            <![CDATA[insert into empdefaults(updated TIMESTAMP) (ename, deptno, empno, updated, sal) values ('Fred', 456, 44, ?, 999999)]]>
+            <![CDATA[insert into empdefaults(updated TIMESTAMP)
+ (ename, deptno, empno, updated, sal)
+ values ('Fred', 456, 44, ?, 999999)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3970,7 +3970,9 @@ LogicalTableModify(table=[[CATALOG, SALES, EMPDEFAULTS]], operation=[INSERT], fl
     </TestCase>
     <TestCase name="testInsertExtendedColumnModifiableView">
         <Resource name="sql">
-            <![CDATA[insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP) (ename, deptno, empno, updated, sal) values ('Fred', 20, 44, timestamp '2017-03-12 13:03:05', 999999)]]>
+            <![CDATA[insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)
+ (ename, deptno, empno, updated, sal)
+ values ('Fred', 20, 44, timestamp '2017-03-12 13:03:05', 999999)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -3983,7 +3985,9 @@ LogicalTableModify(table=[[SALES, EMPDEFAULTS]], operation=[INSERT], flattened=[
     </TestCase>
     <TestCase name="testInsertBindExtendedColumnModifiableView">
         <Resource name="sql">
-            <![CDATA[insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP) (ename, deptno, empno, updated, sal) values ('Fred', 20, 44, ?, 999999)]]>
+            <![CDATA[insert into EMP_MODIFIABLEVIEW2(updated TIMESTAMP)
+ (ename, deptno, empno, updated, sal)
+ values ('Fred', 20, 44, ?, 999999)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -4358,7 +4362,7 @@ from emp group by deptno, empno
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1)], EXPR$2=[MAX($1) OVER (PARTITION BY $0)])
   LogicalAggregate(group=[{0, 1}], EXPR$0=[MIN($0)])
     LogicalProject(DEPTNO=[$7], EMPNO=[$0])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4373,7 +4377,7 @@ group by deptno]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CAST(/(SUM($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING), COUNT($0) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))):INTEGER NOT NULL])
+LogicalProject(EXPR$0=[CAST(/(SUM($0) OVER (), COUNT($0) OVER ())):INTEGER NOT NULL])
   LogicalAggregate(group=[{0}])
     LogicalProject(DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4391,7 +4395,7 @@ group by d.deptno, e.empno, e.deptno
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[$3], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $2 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+LogicalProject(EXPR$0=[$3], EXPR$1=[RANK() OVER (ORDER BY $1)], EXPR$2=[MAX($1) OVER (PARTITION BY $2)])
   LogicalAggregate(group=[{0, 1, 2}], EXPR$0=[MIN($0)])
     LogicalProject(DEPTNO0=[$9], EMPNO=[$0], DEPTNO=[$7])
       LogicalFilter(condition=[=($7, $9)])
@@ -4411,7 +4415,7 @@ having empno < 10 and min(deptno) < 20
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+LogicalProject(EXPR$0=[$2], EXPR$1=[RANK() OVER (ORDER BY $1)], EXPR$2=[MAX($1) OVER (PARTITION BY $0)])
   LogicalFilter(condition=[AND(<($1, 10), <($2, 20))])
     LogicalAggregate(group=[{0, 1}], EXPR$0=[MIN($0)])
       LogicalProject(DEPTNO=[$7], EMPNO=[$0])
@@ -4434,7 +4438,7 @@ from (select min(deptno) as x,
             <![CDATA[
 LogicalProject(X=[$0], Y=[$1], Z=[$2], EMPNO=[$3])
   LogicalJoin(condition=[AND(=($0, $10), =($1, $12))], joinType=[inner])
-    LogicalProject(X=[$2], Y=[RANK() OVER (ORDER BY $1 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], Z=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+    LogicalProject(X=[$2], Y=[RANK() OVER (ORDER BY $1)], Z=[MAX($1) OVER (PARTITION BY $0)])
       LogicalAggregate(group=[{0, 1}], X=[MIN($0)])
         LogicalProject(DEPTNO=[$7], EMPNO=[$0])
           LogicalTableScan(table=[[CATALOG, SALES, EMP]])
@@ -4452,7 +4456,7 @@ from emp order by row_number() over(partition by empno order by deptno)]]>
             <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalSort(sort0=[$2], dir0=[ASC])
-    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -4669,6 +4673,31 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW2]], operation=[DEL
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testOverDefaultBracket">
+        <Resource name="sql">
+            <![CDATA[select
+  count(*) over (order by deptno) c1,
+  count(*) over (order by deptno
+    range unbounded preceding) c2,
+  count(*) over (order by deptno
+    range between unbounded preceding and current row) c3,
+  count(*) over (order by deptno
+    rows unbounded preceding) c4,
+  count(*) over (order by deptno
+    rows between unbounded preceding and current row) c5,
+  count(*) over (order by deptno
+    range between unbounded preceding and unbounded following) c6,
+ count(*) over (order by deptno
+    rows between unbounded preceding and unbounded following) c7
+from emp]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(C1=[COUNT() OVER (ORDER BY $7)], C2=[COUNT() OVER (ORDER BY $7)], C3=[COUNT() OVER (ORDER BY $7)], C4=[COUNT() OVER (ORDER BY $7 ROWS UNBOUNDED PRECEDING)], C5=[COUNT() OVER (ORDER BY $7 ROWS UNBOUNDED PRECEDING)], C6=[COUNT() OVER (ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)], C7=[COUNT() OVER (ORDER BY $7 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSelectWithoutFrom">
         <Resource name="sql">
             <![CDATA[select 2+2]]>
@@ -4858,7 +4887,9 @@ LogicalTableModify(table=[[CATALOG, SALES, EMP_MODIFIABLEVIEW3]], operation=[UPD
     </TestCase>
     <TestCase name="testInsertExtendedColumn">
         <Resource name="sql">
-            <![CDATA[insert into empdefaults(updated TIMESTAMP) (ename, deptno, empno, updated, sal) values ('Fred', 456, 44, timestamp '2017-03-12 13:03:05', 999999)]]>
+            <![CDATA[insert into empdefaults(updated TIMESTAMP)
+ (ename, deptno, empno, updated, sal)
+ values ('Fred', 456, 44, timestamp '2017-03-12 13:03:05', 999999)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -5941,7 +5972,7 @@ order by row_number() over(partition by empno order by deptno)]]>
             <![CDATA[
 LogicalProject(DEPTNO=[$0], EXPR$1=[$1])
   LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])
-    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+    LogicalProject(DEPTNO=[$7], EXPR$1=[RANK() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST)], EXPR$2=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $7 NULLS FIRST)])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -5954,7 +5985,7 @@ WINDOW w AS (PARTITION BY REGION ORDER BY n_nationkey)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 0), $SUM0(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY') RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), null:ANY)])
+LogicalProject(EXPR$0=[CASE(>(COUNT(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY')), 0), $SUM0(ITEM($0, 'N_NATIONKEY')) OVER (PARTITION BY ITEM($0, 'REGION') ORDER BY ITEM($0, 'N_NATIONKEY')), null:ANY)])
   LogicalTableScan(table=[[CATALOG, SALES, NATION]])
 ]]>
         </Resource>
@@ -5969,7 +6000,7 @@ GROUP BY n_regionkey]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(N_REGIONKEY=[$0], EXPR$1=[MAX($1) OVER (PARTITION BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+LogicalProject(N_REGIONKEY=[$0], EXPR$1=[MAX($1) OVER (PARTITION BY $0)])
   LogicalAggregate(group=[{0}], agg#0=[MIN($1)])
     LogicalProject(N_REGIONKEY=[ITEM($0, 'N_REGIONKEY')], $f1=[ITEM($0, 'N_NATIONKEY')])
       LogicalTableScan(table=[[CATALOG, SALES, NATION]])
@@ -6054,7 +6085,9 @@ LogicalProject(C1=[$1])
     </TestCase>
     <TestCase name="testSomeAndEveryAggregateFunctions">
         <Resource name="sql">
-            <![CDATA[]]>
+            <![CDATA[SELECT some(empno = 130) as someempnoexists,
+ every(empno > 0) as everyempnogtzero
+ FROM emp AS e group by e.sal]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
@@ -6570,7 +6603,7 @@ from emp window w as (order by empno)]]>
         </Resource>
         <Resource name="plan">
             <![CDATA[
-LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORDER BY $0 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORDER BY $0)])
   LogicalTableScan(table=[[CATALOG, SALES, EMP]])
 ]]>
         </Resource>
@@ -6580,8 +6613,8 @@ LogicalProject(EXPR$0=[IGNORE NULLS(LEAD($5, 4))], EXPR$1=[LEAD($5, 4) OVER (ORD
             <![CDATA[select
   CASE WHEN job IN ('810000', '820000') THEN job
   ELSE 'error'
-  END AS job_name,\n"
-  count(empno)\n"
+  END AS job_name,
+  count(empno)
 FROM emp
 where job <> '' or job IN ('810000', '820000')
 GROUP by deptno, job]]>

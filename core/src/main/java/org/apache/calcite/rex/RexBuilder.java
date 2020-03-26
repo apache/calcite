@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Factory for row expressions.
@@ -347,39 +348,35 @@ public class RexBuilder {
       List<RexNode> exprs, List<RexNode> partitionKeys,
       ImmutableList<RexFieldCollation> orderKeys,
       RexWindowBound lowerBound, RexWindowBound upperBound,
-      boolean physical, boolean allowPartial, boolean nullWhenCountZero,
+      boolean rows, boolean allowPartial, boolean nullWhenCountZero,
       boolean distinct) {
     return makeOver(type, operator, exprs, partitionKeys, orderKeys, lowerBound,
-        upperBound, physical, allowPartial, nullWhenCountZero, distinct, false);
+        upperBound, rows, allowPartial, nullWhenCountZero, distinct, false);
   }
 
   /**
    * Creates a call to a windowed agg.
    */
   public RexNode makeOver(
-      RelDataType type,
-      SqlAggFunction operator,
-      List<RexNode> exprs,
-      List<RexNode> partitionKeys,
-      ImmutableList<RexFieldCollation> orderKeys,
-      RexWindowBound lowerBound,
-      RexWindowBound upperBound,
-      boolean physical,
+      @Nonnull RelDataType type,
+      @Nonnull SqlAggFunction operator,
+      @Nonnull List<RexNode> exprs,
+      @Nonnull List<RexNode> partitionKeys,
+      @Nonnull ImmutableList<RexFieldCollation> orderKeys,
+      @Nonnull RexWindowBound lowerBound,
+      @Nonnull RexWindowBound upperBound,
+      boolean rows,
       boolean allowPartial,
       boolean nullWhenCountZero,
       boolean distinct,
       boolean ignoreNulls) {
-    assert operator != null;
-    assert exprs != null;
-    assert partitionKeys != null;
-    assert orderKeys != null;
     final RexWindow window =
         makeWindow(
             partitionKeys,
             orderKeys,
             lowerBound,
             upperBound,
-            physical);
+            rows);
     final RexOver over = new RexOver(type, operator, exprs, window,
         distinct, ignoreNulls);
     RexNode result = over;
@@ -411,7 +408,7 @@ public class RexBuilder {
           makeNullLiteral(type));
     }
     if (!allowPartial) {
-      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(rows, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
       // todo: read bound
@@ -444,7 +441,7 @@ public class RexBuilder {
    * @param orderKeys     Order keys
    * @param lowerBound    Lower bound
    * @param upperBound    Upper bound
-   * @param isRows        Whether physical. True if row-based, false if
+   * @param rows          Whether physical. True if row-based, false if
    *                      range-based
    * @return window specification
    */
@@ -453,13 +450,21 @@ public class RexBuilder {
       ImmutableList<RexFieldCollation> orderKeys,
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
-      boolean isRows) {
+      boolean rows) {
+    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
+        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   is equivalent to
+      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   but we prefer "RANGE"
+      rows = false;
+    }
     return new RexWindow(
         partitionKeys,
         orderKeys,
         lowerBound,
         upperBound,
-        isRows);
+        rows);
   }
 
   /**

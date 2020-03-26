@@ -497,9 +497,7 @@ public class JdbcAdapterTest {
         + " last_value(\"time_id\") over () as \"last_version\"\n"
         + "from \"expense_fact\"";
     final String explain = "PLAN="
-        + "EnumerableWindow(window#0=[window(partition {} "
-        + "order by [] range between UNBOUNDED PRECEDING and "
-        + "UNBOUNDED FOLLOWING aggs [LAST_VALUE($3)])])\n"
+        + "EnumerableWindow(window#0=[window(aggs [LAST_VALUE($3)])])\n"
         + "  JdbcToEnumerableConverter\n"
         + "    JdbcTableScan(table=[[foodmart, expense_fact]])\n";
     CalciteAssert

@@ -379,17 +379,28 @@ public interface SqlValidator {
    * @param windowOrRef    Either the name of a window (a {@link SqlIdentifier})
    *                       or a window specification (a {@link SqlWindow}).
    * @param scope          Scope in which to resolve window names
-   * @param populateBounds Whether to populate bounds. Doing so may alter the
-   *                       definition of the window. It is recommended that
-   *                       populate bounds when translating to physical algebra,
-   *                       but not when validating.
    * @return A window
    * @throws RuntimeException Validation exception if window does not exist
    */
   SqlWindow resolveWindow(
       SqlNode windowOrRef,
+      SqlValidatorScope scope);
+
+  /** @deprecated Use {@link #resolveWindow(SqlNode, SqlValidatorScope)}, which
+   * does not have the deprecated {@code populateBounds} parameter.
+   *
+   * @param populateBounds Whether to populate bounds. Doing so may alter the
+   *                       definition of the window. It is recommended that
+   *                       populate bounds when translating to physical algebra,
+   *                       but not when validating.
+   */
+  @Deprecated // to be removed before 2.0
+  default SqlWindow resolveWindow(
+      SqlNode windowOrRef,
       SqlValidatorScope scope,
-      boolean populateBounds);
+      boolean populateBounds) {
+    return resolveWindow(windowOrRef, scope);
+  };
 
   /**
    * Finds the namespace corresponding to a given node.

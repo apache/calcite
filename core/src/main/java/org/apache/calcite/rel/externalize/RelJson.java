@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -52,7 +53,6 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -633,26 +633,18 @@ public class RelJson {
     }
 
     final String type = (String) map.get("type");
+    final RexBuilder rexBuilder = input.getCluster().getRexBuilder();
     switch (type) {
     case "CURRENT_ROW":
-      return RexWindowBound.create(
-          SqlWindow.createCurrentRow(SqlParserPos.ZERO), null);
+      return RexWindowBounds.CURRENT_ROW;
     case "UNBOUNDED_PRECEDING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_PRECEDING;
     case "UNBOUNDED_FOLLOWING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_FOLLOWING;
     case "PRECEDING":
-      RexNode precedingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.PRECEDING_OPERATOR, precedingOffset));
+      return RexWindowBounds.preceding(toRex(input, map.get("offset")));
     case "FOLLOWING":
-      RexNode followingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.FOLLOWING_OPERATOR, followingOffset));
+      return RexWindowBounds.following(toRex(input, map.get("offset")));
     default:
       throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
     }

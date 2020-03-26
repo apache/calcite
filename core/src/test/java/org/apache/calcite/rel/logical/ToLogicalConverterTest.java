@@ -429,14 +429,12 @@ public class ToLogicalConverterTest {
     String sql = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expectedPhysical = ""
         + "EnumerableProject($0=[$17])\n"
-        + "  EnumerableWindow(window#0=[window(partition {} order by [9] range between "
-        + "UNBOUNDED PRECEDING and CURRENT ROW aggs [RANK()])])\n"
+        + "  EnumerableWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    JdbcToEnumerableConverter\n"
         + "      JdbcTableScan(table=[[foodmart, employee]])\n";
     String expectedLogical = ""
         + "LogicalProject($0=[$17])\n"
-        + "  LogicalWindow(window#0=[window(partition {} order by [9] range between UNBOUNDED"
-        + " PRECEDING and CURRENT ROW aggs [RANK()])])\n"
+        + "  LogicalWindow(window#0=[window(order by [9] aggs [RANK()])])\n"
         + "    LogicalTableScan(table=[[foodmart, employee]])\n";
     verify(rel(sql), expectedPhysical, expectedLogical);
   }

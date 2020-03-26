@@ -1143,15 +1143,14 @@ public class PigRelOpTest extends PigRelTestBase {
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     final String optimizedPlan = ""
         + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
-        + "  LogicalWindow(window#0=[window(partition {} order by [2, 1 DESC] "
-        + "range between UNBOUNDED PRECEDING and CURRENT ROW aggs [RANK()])])\n"
+        + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
+        + "aggs [RANK()])])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
 
     final String script = base + "C = RANK B BY DEPTNO ASC, JOB DESC;\n";
     final String plan = ""
-        + "LogicalProject(rank_C=[RANK() OVER (ORDER BY $2, "
-        + "$1 DESC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)" + "], "
+        + "LogicalProject(rank_C=[RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result = ""
@@ -1181,16 +1180,13 @@ public class PigRelOpTest extends PigRelTestBase {
     final String script2 = base + "C = RANK B BY DEPTNO ASC, JOB DESC DENSE;\n";
     final String optimizedPlan2 = ""
         + "LogicalProject(rank_C=[$3], EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
-        + "  LogicalWindow(window#0=[window(partition {} "
-        + "order by [2, 1 DESC] "
-        + "range between UNBOUNDED PRECEDING and CURRENT ROW "
+        + "  LogicalWindow(window#0=[window(order by [2, 1 DESC] "
         + "aggs [DENSE_RANK()])"
         + "])\n"
         + "    LogicalProject(EMPNO=[$0], JOB=[$2], DEPTNO=[$7])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
     final String plan2 = ""
-        + "LogicalProject(rank_C=[DENSE_RANK() OVER (ORDER BY $2, "
-        + "$1 DESC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT" + " ROW)], "
+        + "LogicalProject(rank_C=[DENSE_RANK() OVER (ORDER BY $2, $1 DESC)], "
         + "EMPNO=[$0], JOB=[$1], DEPTNO=[$2])\n"
         + basePlan;
     final String result2 = ""

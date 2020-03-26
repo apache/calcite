@@ -111,8 +111,8 @@ public class RexOver extends RexCall {
       sb.append(":");
       sb.append(type.getFullTypeString());
     }
-    sb.append(" OVER (")
-        .append(window)
+    sb.append(" OVER (");
+    window.appendDigest(sb, op.allowsFraming())
         .append(")");
     return sb.toString();
   }
