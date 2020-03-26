@@ -97,9 +97,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
       break;
-    case OTHER_FUNCTION:
-      unparseOtherFunction(writer, call, leftPrec, rightPrec);
-      break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);
     }
@@ -214,22 +211,6 @@ public class SnowflakeSqlDialect extends SqlDialect {
       return intervalOperand.operand(1);
     }
     return intervalOperand.operand(0);
-  }
-
-  private void unparseOtherFunction(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-    switch (call.getOperator().getName()) {
-    case "LOG10":
-      final SqlWriter.Frame logFrame = writer.startFunCall("LOG");
-      writer.literal("10");
-      writer.sep(",", true);
-      call.operand(0).unparse(writer, leftPrec, rightPrec);
-      writer.endFunCall(logFrame);
-      break;
-    default:
-      super.unparseCall(writer, call, leftPrec, rightPrec);
-
-    }
-
   }
 
 }
