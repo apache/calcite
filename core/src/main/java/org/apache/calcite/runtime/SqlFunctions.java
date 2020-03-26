@@ -1079,6 +1079,11 @@ public class SqlFunctions {
     return b0 & b1;
   }
 
+  /** Helper function for implementing <code>BITCOUNT</code> */
+  public static long bitCount(long b) {
+    return Long.bitCount(b);
+  }
+
   // |
   /** Helper function for implementing <code>BIT_OR</code> */
   public static long bitOr(long b0, long b1) {

@@ -18,6 +18,17 @@
 !use mysqlfunc
 !set outputformat mysql
 
+# BIT_COUNT
+select bit_count(8);
++--------+
+| EXPR$0 |
++--------+
+|      1 |
++--------+
+(1 row)
+
+!ok
+
 # MATH Functions
 
 # CBRT
