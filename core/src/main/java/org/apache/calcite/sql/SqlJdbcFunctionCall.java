@@ -359,6 +359,14 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * LONGVARBINARY, LONGVARCHAR, REAL, SMALLINT, TIME, TIMESTAMP, TINYINT,
  * VARBINARY, or VARCHAR</td>
  * </tr>
+ * <tr>
+ * <td>LPAD(value, paddingLength, pattern[optional])</td>
+ * <td>Append padding of pattern to the beginning of the value</td>
+ * </tr>
+ * <tr>
+ * <td>RPAD(value, paddingLength, pattern[optional])</td>
+ * <td>Append padding of pattern to the end of the value</td>
+ * </tr>
  * </table>
  */
 public class SqlJdbcFunctionCall extends SqlFunction {
@@ -762,6 +770,8 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               return super.createCall(pos, operands[0], jdbcType.createDataType(typeOperand.pos));
             }
           });
+      map.put("LPAD", simple(SqlLibraryOperators.LPAD));
+      map.put("RPAD", simple(SqlLibraryOperators.RPAD));
       this.map = map.build();
     }
 

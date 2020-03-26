@@ -7109,6 +7109,36 @@ public class JdbcTest {
     }
   }
 
+  @Test public void testLPAD() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select LPAD('pilot', 9, 'auto') as \"result\"")
+        .returns("result=autopilot\n");
+  }
+
+  @Test public void testRPAD() {
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "hive")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "spark")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
+    CalciteAssert.that(CalciteAssert.Config.REGULAR)
+        .with(CalciteConnectionProperty.FUN, "bigquery")
+        .query("select RPAD('auto', 9, 'pilot') as \"result\"")
+        .returns("result=autopilot\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {

@@ -43,6 +43,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.CastCallBuilder;
+import org.apache.calcite.util.PaddingFunctionUtil;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.ToNumberUtils;
@@ -50,7 +51,6 @@ import org.apache.calcite.util.ToNumberUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-
 
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDDAYOFWEEK;
 import static org.apache.calcite.sql.SqlDateTimeFormat.ABBREVIATEDMONTH;
@@ -616,6 +616,10 @@ public class HiveSqlDialect extends SqlDialect {
       break;
     case "STR_TO_DATE":
       unparseStrToDate(writer, call, leftPrec, rightPrec);
+      break;
+    case "RPAD":
+    case "LPAD":
+      PaddingFunctionUtil.unparseCall(writer, call, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

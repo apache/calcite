@@ -40,11 +40,13 @@ import static org.apache.calcite.runtime.SqlFunctions.ifNull;
 import static org.apache.calcite.runtime.SqlFunctions.initcap;
 import static org.apache.calcite.runtime.SqlFunctions.lesser;
 import static org.apache.calcite.runtime.SqlFunctions.lower;
+import static org.apache.calcite.runtime.SqlFunctions.lpad;
 import static org.apache.calcite.runtime.SqlFunctions.ltrim;
 import static org.apache.calcite.runtime.SqlFunctions.md5;
 import static org.apache.calcite.runtime.SqlFunctions.nvl;
 import static org.apache.calcite.runtime.SqlFunctions.posixRegex;
 import static org.apache.calcite.runtime.SqlFunctions.regexpReplace;
+import static org.apache.calcite.runtime.SqlFunctions.rpad;
 import static org.apache.calcite.runtime.SqlFunctions.rtrim;
 import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
@@ -963,6 +965,24 @@ public class SqlFunctionsTest {
     assertThat(ifNull(null, null), nullValue());
     assertThat(ifNull(1, 1), is(1));
     assertThat(ifNull(substring("abc", 1, 1), "b"), is("a"));
+  }
+
+  /** Test for {@link SqlFunctions#lpad}. */
+  @Test public void testLPAD() {
+    assertThat(lpad("123", 6, "%"), is("%%%123"));
+    assertThat(lpad("123", 6), is("   123"));
+    assertThat(lpad("123", 6, "456"), is("456123"));
+    assertThat(lpad("pilot", 4, "auto"), is("pilo"));
+    assertThat(lpad("pilot", 9, "auto"), is("autopilot"));
+  }
+
+  /** Test for {@link SqlFunctions#rpad}. */
+  @Test public void testRPAD() {
+    assertThat(rpad("123", 6, "%"), is("123%%%"));
+    assertThat(rpad("123", 6), is("123   "));
+    assertThat(rpad("123", 6, "456"), is("123456"));
+    assertThat(rpad("pilot", 4, "auto"), is("pilo"));
+    assertThat(rpad("auto", 9, "pilot"), is("autopilot"));
   }
 }
 

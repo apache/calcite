@@ -42,6 +42,7 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -2794,6 +2795,55 @@ public class SqlFunctions {
     } else {
       return second;
     }
+  }
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append whitespace at the beginning of the str
+   *
+   * @return String
+   */
+  public static String lpad(String str, Integer size) {
+    return lpad(str, size, StringUtils.SPACE);
+  }
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append padStr at the beginning of the str
+   *
+   * @return String
+   */
+  public static String lpad(String str, Integer size, String padStr) {
+    int strLen = str.length();
+    if (strLen > size) {
+      return str.substring(0, size);
+    }
+    return StringUtils.leftPad(str, size, padStr);
+  }
+
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append whitespace at the end of the str
+   *
+   * @return String
+   */
+  public static String rpad(String str, Integer size) {
+    return rpad(str, size, StringUtils.SPACE);
+  }
+
+  /***
+   * If size is less than the str, then return substring of str
+   * Append padStr at the end of the str
+   *
+   * @return String
+   */
+  public static String rpad(String str, Integer size, String padStr) {
+    int strLen = str.length();
+    if (strLen > size) {
+      return str.substring(0, size);
+    }
+    return StringUtils.rightPad(str, size, padStr);
   }
 
 }
