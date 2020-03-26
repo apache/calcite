@@ -406,7 +406,7 @@ public abstract class ReflectUtil {
 
   /**
    * Creates a dispatcher for calls to {@link #lookupVisitMethod}. The created
-   * dispatchers will share a globally cache to store methods to mitigating
+   * dispatchers will share a globally cache to store methods to mitigate
    * reflection invocation overhead when looking up method.
    *
    * @param  visitorBaseClazz Visitor base class

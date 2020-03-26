@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Looking up methods relating to reflective visitation. Caching reflect
  * method globally, every instance of the class shares the global cache to
- * mitigating java reflection invocation overhead.
+ * mitigate java reflection invocation overhead.
  *
  * @param <E> Argument type
  * @param <R> Return type
@@ -39,7 +39,7 @@ public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
 
   /**
    * Global singleton cache with limited size used to cache methods. Every instance
-   * of the class will share this cache to mitigating java reflection invocation
+   * of the class will share this cache to mitigate java reflection invocation
    * overhead when looking up methods.
    * <p>Note that there should be multiple ways to implement caching, for example,
    * <p>1) Passing <em>Cache</em> between objects and hopefully using Java's

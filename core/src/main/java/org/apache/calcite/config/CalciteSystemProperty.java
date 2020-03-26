@@ -342,7 +342,7 @@ public final class CalciteSystemProperty<T> {
    * value is not valid (or not specified) then the default value is used.</p>
    *
    * <p>Looking up method by reflection invocation is slow, caching technique will
-   * mitigating the overhead.</p>
+   * mitigate the overhead.</p>
    */
   public static final CalciteSystemProperty<Integer>
       REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE =
