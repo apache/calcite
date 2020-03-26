@@ -591,7 +591,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         coerced = coerceOperandType(scope, (SqlCall) operand, 0,
             paramTypes.get(formalIndex)) || coerced;
       } else {
-        int formalIndex = i < varArgIndex ? i : varArgIndex;
+        int formalIndex = varArgs ? (i < varArgIndex ? i : varArgIndex) : i;
         coerced = coerceOperandType(scope, call, i, paramTypes.get(formalIndex)) || coerced;
       }
     }

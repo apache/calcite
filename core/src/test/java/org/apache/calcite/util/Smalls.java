@@ -62,6 +62,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -438,6 +439,25 @@ public class Smalls {
       return x;
     }
   }
+
+  public static class VarArgs3Function {
+
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public VarArgs3Function() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public String eval(
+        @Parameter(name = "x") String... strs) {
+      if (strs != null && strs.length > 0) {
+        return  Stream.of(strs).collect(Collectors.joining());
+      }
+      return null;
+    }
+  }
+
 
 
   /** Example of a UDF with a non-static {@code eval} method,

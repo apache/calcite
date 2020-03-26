@@ -68,6 +68,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.VarArgUtil.isVarArgParameterName;
 
 /**
  * Contains utility functions related to SQL parsing, all static.
@@ -621,12 +622,10 @@ public abstract class SqlUtil {
             for (Ord<String> argName : Ord.zip(argNames)) {
               final int i = paramNames.indexOf(argName.e.toUpperCase(Locale.ROOT));
               if (i < 0) {
-                if (varArgs) {
-                  if (argName.e.toUpperCase(Locale.ROOT).startsWith(varArgParamName)) {
-                    List<Integer> argIndexes = map.computeIfAbsent(varArgIndex,
-                        integer -> new ArrayList<>());
-                    argIndexes.add(argName.i);
-                  }
+                if (varArgs && isVarArgParameterName(argName.e, varArgParamName)) {
+                  List<Integer> argIndexes = map.computeIfAbsent(varArgIndex,
+                      integer -> new ArrayList<>());
+                  argIndexes.add(argName.i);
                 } else {
                   return false;
                 }

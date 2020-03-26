@@ -21,17 +21,20 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Static utilities for VarArg process .
  */
-public class VarArgUtil {
+public abstract class VarArgUtil {
 
-  public static boolean isVarArgParameterName(String name, String varArgParamName) {
+  /**
+   * Determines whether the argName is a variadic parameter name.
+   */
+  public static boolean isVarArgParameterName(String argName, String varArgParamName) {
 
-    if (StringUtils.equalsIgnoreCase(name, varArgParamName)) {
+    if (StringUtils.equalsIgnoreCase(argName, varArgParamName)) {
       return true;
     }
 
     String varArgParamPrefix = varArgParamName + "_";
-    if (StringUtils.startsWith(name, varArgParamPrefix)) {
-      String index = StringUtils.substringAfter(name, varArgParamPrefix);
+    if (StringUtils.startsWith(argName, varArgParamPrefix)) {
+      String index = StringUtils.substringAfter(argName, varArgParamPrefix);
       if (StringUtils.isNumeric(index)) {
         return true;
       }

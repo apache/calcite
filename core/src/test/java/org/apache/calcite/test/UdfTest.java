@@ -109,6 +109,12 @@ public class UdfTest {
         + "'\n"
         + "         },\n"
         + "         {\n"
+        + "           name: 'CONCAT_VAR_ARGS',\n"
+        + "           className: '"
+        + Smalls.VarArgs3Function.class.getName()
+        + "'\n"
+        + "         },\n"
+        + "         {\n"
         + "           name: 'MY_LEFT',\n"
         + "           className: '"
         + Smalls.MyLeftFunction.class.getName()
@@ -201,7 +207,7 @@ public class UdfTest {
   }
 
 
-  /** Tests a user-defined function that is defined in terms of a class with
+  /** Tests a variable arguments user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Test public void testVarArgsUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".var_args(\"deptno\", 100, 20.0) as p\n"
@@ -229,8 +235,6 @@ public class UdfTest {
     assertThat(after, is(before + 4));
   }
 
-  /** Tests a user-defined function that is defined in terms of a class with
-   * non-static methods. */
   @Test public void testVarArgsUserDefinedFunctionWithNameParameters() throws Exception {
     final String sql = "select \"adhoc\".var_args(y=>20, y_1=>100, x=>\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
@@ -240,6 +244,19 @@ public class UdfTest {
         "P=140",
         "P=130",
         "P=130");
+    final int after = c.get();
+    assertThat(after, is(before + 4));
+  }
+
+  @Test public void testVarArgsUserDefinedFunctionWithCoercion() throws Exception {
+    final String sql = "select \"adhoc\".concat_var_args(x_2=>20, x_1=>100, x=>\"deptno\") as p\n"
+        + "from \"adhoc\".EMPLOYEES";
+    final AtomicInteger c = Smalls.VarArgs3Function.INSTANCE_COUNT;
+    final int before = c.get();
+    withUdf().query(sql).returnsUnordered("P=2010010",
+        "P=2010010",
+        "P=2010010",
+        "P=2010020");
     final int after = c.get();
     assertThat(after, is(before + 4));
   }
