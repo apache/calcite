@@ -16,11 +16,11 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.config.CalciteSystemProperty;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableList;
-
-import org.apache.calcite.config.CalciteSystemProperty;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -57,13 +57,15 @@ public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
           .maximumSize(CalciteSystemProperty.REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE.value())
           .build();
 
-  /** visitE class */
+  /**
+   * visitE class
+   */
   private Class<E> visiteeBaseClazz;
 
   /**
    * Create an instance.
    *
-   * @param visiteeBaseClazz  visitee base class
+   * @param visiteeBaseClazz visitee base class
    */
   public ReflectVisitDispatcherImpl(Class<E> visiteeBaseClazz) {
     this.visiteeBaseClazz = visiteeBaseClazz;
@@ -94,14 +96,17 @@ public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
     Method method = GLOBAL_METHOD_CACHE.getIfPresent(key);
     if (method == null) {
       //  Maybe we already looked for the method but found nothing,
-      //  which usually will not happen. So we will look up again
-      //  since Guava cache does not support containsKey method,
+      //  which usually will not happen. Because Guava cache does
+      //  not support containsKey method and does not allow null value.
+      //  So we will look up whenever not found.
       method = ReflectUtil.lookupVisitMethod(
-            visitorClass,
-            visiteeClass,
-            visitMethodName,
-            additionalParameterTypes);
+          visitorClass,
+          visiteeClass,
+          visitMethodName,
+          additionalParameterTypes);
+      if (method != null) {
         GLOBAL_METHOD_CACHE.put(key, method);
+      }
     }
     return method;
   }

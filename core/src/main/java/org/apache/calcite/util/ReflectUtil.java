@@ -320,7 +320,9 @@ public abstract class ReflectUtil {
     // the original visiteeClass has a diamond-shaped interface inheritance
     // graph. (This is common, for example, in JMI.) The idea is to avoid
     // iterating over a single interface's method more than once in a call.
-    Map<Class<?>, Method> cache = new HashMap<>();
+    // Because in most cases, the cache is usually not big, we make a small
+    // initial capacity.
+    Map<Class<?>, Method> cache = new HashMap<>(4);
 
     return lookupVisitMethod(
         visitorClass,
@@ -403,40 +405,20 @@ public abstract class ReflectUtil {
   }
 
   /**
-   * Creates a dispatcher for calls to {@link #lookupVisitMethod}. By default the
-   * dispatcher caches methods globally. If caching methods between invocations
-   * is preferred, use the overridden method {@link #createDispatcher(Class, Class, boolean)}.
+   * Creates a dispatcher for calls to {@link #lookupVisitMethod}. The created
+   * dispatchers will share a globally cache to store methods to mitigating
+   * reflection invocation overhead when looking up method.
    *
-   * @param visitorBaseClazz        Visitor base class
-   * @param visiteeBaseClazz        Visitee base class
+   * @param  visitorBaseClazz Visitor base class
+   * @param  visiteeBaseClazz Visitee base class
    * @return cache of methods
    */
   public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
-    return createDispatcher(visitorBaseClazz, visiteeBaseClazz, true);
-  }
-
-  /**
-   * Creates a dispatcher for calls to {@link #lookupVisitMethod}.
-   *
-   * @param visitorBaseClazz        Visitor base class
-   * @param visiteeBaseClazz        Visitee base class
-   * @param useGlobalMethodCache    If set to true, the created dispatchers will
-   *                                share a globally cache to store methods to
-   *                                mitigating reflection invocation overhead
-   *                                when looking up method. If set to false, every
-   *                                dispatcher instance will only cache methods
-   *                                between invocations individually.
-   * @return cache of methods
-   */
-  public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
-      final Class<R> visitorBaseClazz,
-      final Class<E> visiteeBaseClazz,
-      final boolean useGlobalMethodCache) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
-    return new ReflectVisitDispatcherImpl<R, E>(visiteeBaseClazz, useGlobalMethodCache);
+    return new ReflectVisitDispatcherImpl<R, E>(visiteeBaseClazz);
   }
 
   /**
