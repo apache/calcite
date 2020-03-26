@@ -100,12 +100,6 @@ public class ReflectUtilTest {
     Delta delta2 = new LongDelta(50L);
     Result result2 = dispatcher.invoke(delta2);
     assertThat(result2.result, is(80L));
-
-    try {
-      dispatcher.invoke("wrong arg");
-    } catch (Exception e) {
-      assertThat(e.getClass(), is(IllegalArgumentException.class));
-    }
   }
 
   @Test public void testCreateMethodDispatcherAndInvokeWrongArgument() {
@@ -120,7 +114,7 @@ public class ReflectUtilTest {
   @Test public void testCreateMethodDispatcherAndInvokeNotImplement() {
     ReflectUtil.MethodDispatcher<Result> dispatcher = getResultMethodDispatcher();
     try {
-      dispatcher.invoke(new DoubleDelta(100.0));
+      dispatcher.invoke(new DoubleDelta(100.0D));
     } catch (Exception e) {
       assertThat(e.getClass(), is(IllegalArgumentException.class));
     }
