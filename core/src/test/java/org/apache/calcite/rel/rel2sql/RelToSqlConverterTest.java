@@ -6029,7 +6029,50 @@ public class RelToSqlConverterTest {
             + "FROM \"foodmart\".\"employee\"\n"
             + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
     sql(query).ok(expected);
+
   }
+
+  @Test
+  public void testLog10Function() {
+    final String query = "SELECT LOG10(1233)";
+    final String expectedHive = "SELECT LOG10(1233)";
+    final String expectedSpark = "SELECT LOG10(1233)";
+    final String expectedBigQuery = "SELECT LOG10(1233)";
+    final String expectedSnowFlake = "SELECT LOG(10, 1233)";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
+  @Test
+  public void testLog10FunctionWithColumn() {
+    final String query = "select LOG10(\"salary\") "
+        + "from \"employee\"";
+    final String expectedHive = "SELECT LOG10(salary)\n"
+        + "FROM foodmart.employee";
+    final String expectedSpark = "SELECT LOG10(salary)\n"
+        + "FROM foodmart.employee";
+    final String expectedBigQuery = "SELECT LOG10(salary)\n"
+        + "FROM foodmart.employee";
+    final String expectedSnowFlake = "SELECT LOG(10, \"salary\")\n"
+        + "FROM \"foodmart\".\"employee\"";
+    sql(query)
+        .withHive()
+        .ok(expectedHive)
+        .withSpark()
+        .ok(expectedSpark)
+        .withBigQuery()
+        .ok(expectedBigQuery)
+        .withSnowflake()
+        .ok(expectedSnowFlake);
+  }
+
 }
 
 // End RelToSqlConverterTest.java
