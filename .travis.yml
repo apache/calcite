@@ -23,6 +23,7 @@ matrix:
   include:
     - jdk: openjdk8
     - jdk: openjdk11
+    - jdk: openjdk14
 branches:
   only:
     - master
