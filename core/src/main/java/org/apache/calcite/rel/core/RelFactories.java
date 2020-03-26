@@ -130,7 +130,7 @@ public class RelFactories {
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
-      new RelBuilderFactory(new FactoryStructWithConvention(Convention.NONE, DEFAULT_STRUCT));
+      new RelBuilderFactory(new StructsWithConvention(Convention.NONE, DEFAULT_STRUCT));
 
   private RelFactories() {
   }
@@ -624,7 +624,7 @@ public class RelFactories {
     public final SpoolFactory spoolFactory;
     public final RepeatUnionFactory repeatUnionFactory;
 
-    private Struct(FilterFactory filterFactory,
+    public Struct(FilterFactory filterFactory,
         ProjectFactory projectFactory,
         AggregateFactory aggregateFactory,
         SortFactory sortFactory,
@@ -640,39 +640,43 @@ public class RelFactories {
         MatchFactory matchFactory,
         SpoolFactory spoolFactory,
         RepeatUnionFactory repeatUnionFactory) {
-      this.filterFactory = Objects.requireNonNull(filterFactory);
-      this.projectFactory = Objects.requireNonNull(projectFactory);
-      this.aggregateFactory = Objects.requireNonNull(aggregateFactory);
-      this.sortFactory = Objects.requireNonNull(sortFactory);
-      this.exchangeFactory = Objects.requireNonNull(exchangeFactory);
-      this.sortExchangeFactory = Objects.requireNonNull(sortExchangeFactory);
-      this.setOpFactory = Objects.requireNonNull(setOpFactory);
-      this.joinFactory = Objects.requireNonNull(joinFactory);
-      this.correlateFactory = Objects.requireNonNull(correlateFactory);
-      this.valuesFactory = Objects.requireNonNull(valuesFactory);
-      this.scanFactory = Objects.requireNonNull(scanFactory);
-      this.tableFunctionScanFactory =
-          Objects.requireNonNull(tableFunctionScanFactory);
-      this.snapshotFactory = Objects.requireNonNull(snapshotFactory);
-      this.matchFactory = Objects.requireNonNull(matchFactory);
-      this.spoolFactory = Objects.requireNonNull(spoolFactory);
-      this.repeatUnionFactory = Objects.requireNonNull(repeatUnionFactory);
+      this.filterFactory = filterFactory;
+      this.projectFactory = projectFactory;
+      this.aggregateFactory = aggregateFactory;
+      this.sortFactory = sortFactory;
+      this.exchangeFactory = exchangeFactory;
+      this.sortExchangeFactory = sortExchangeFactory;
+      this.setOpFactory = setOpFactory;
+      this.joinFactory = joinFactory;
+      this.correlateFactory = correlateFactory;
+      this.valuesFactory = valuesFactory;
+      this.scanFactory = scanFactory;
+      this.tableFunctionScanFactory = tableFunctionScanFactory;
+      this.snapshotFactory = snapshotFactory;
+      this.matchFactory = matchFactory;
+      this.spoolFactory = spoolFactory;
+      this.repeatUnionFactory = repeatUnionFactory;
     }
   }
 
-  public static class FactoryStructWithConvention {
-    public final Map<Convention, Struct> factories = new IdentityHashMap<>();
+  public static class StructsWithConvention {
+    public final Map<Convention, Struct> structs = new IdentityHashMap<>();
 
-    private FactoryStructWithConvention(Convention c, Struct s) {
-      factories.put(c, s);
+    private StructsWithConvention(Convention c, Struct s) {
+      structs.put(c, s);
     }
 
-    public void registerFactories(Convention convention, Struct s) {
-      factories.put(convention, s);
+    public void registerStrcut(Convention convention, Struct s) {
+      structs.put(convention, s);
     }
 
-    public static @Nonnull FactoryStructWithConvention fromContext(Context context) {
-      FactoryStructWithConvention factories = context.unwrap(FactoryStructWithConvention.class);
+    public Struct getStruct(Convention convention) {
+      return structs.get(convention);
+    }
+
+    public static @Nonnull
+    StructsWithConvention fromContext(Context context) {
+      StructsWithConvention factories = context.unwrap(StructsWithConvention.class);
       if (factories != null) {
         return factories;
       }
@@ -709,7 +713,7 @@ public class RelFactories {
               DEFAULT_SPOOL_FACTORY),
           Util.first(context.unwrap(RepeatUnionFactory.class),
               DEFAULT_REPEAT_UNION_FACTORY));
-      return new FactoryStructWithConvention(Convention.NONE, s);
+      return new StructsWithConvention(Convention.NONE, s);
     }
   }
 }

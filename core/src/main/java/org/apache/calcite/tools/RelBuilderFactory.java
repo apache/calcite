@@ -33,9 +33,9 @@ import org.apache.calcite.rel.core.RelFactories;
  */
 public class RelBuilderFactory {
 
-  private RelFactories.FactoryStructWithConvention factories;
+  private RelFactories.StructsWithConvention factories;
 
-  public RelBuilderFactory(RelFactories.FactoryStructWithConvention factories) {
+  public RelBuilderFactory(RelFactories.StructsWithConvention factories) {
     this.factories = factories;
   }
 
@@ -46,7 +46,7 @@ public class RelBuilderFactory {
 
   public RelBuilderFactory registerFactoriesWithConvention(Convention convention,
                                                     RelFactories.Struct struct) {
-    this.factories.registerFactories(convention, struct);
+    this.factories.registerStrcut(convention, struct);
     return this;
   }
 }

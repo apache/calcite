@@ -152,8 +152,10 @@ public class RelBuilder {
   private final RexSimplify simplifier;
   private final Config config;
   private final RelOptTable.ViewExpander viewExpander;
-  private final RelFactories.FactoryStructWithConvention factoriesWithConvention;
+  private final RelFactories.StructsWithConvention structs;
+  private final RelFactories.Struct defaultStruct;
   private Convention convention;
+  private RelFactories.Struct structWithConvention;
 
   protected RelBuilder(Context context, RelOptCluster cluster,
       RelOptSchema relOptSchema) {
@@ -164,8 +166,9 @@ public class RelBuilder {
     }
     this.config = getConfig(context);
     this.viewExpander = getViewExpander(cluster, context);
-    this.factoriesWithConvention =
-        Objects.requireNonNull(RelFactories.FactoryStructWithConvention.fromContext(context));
+    this.structs =
+        Objects.requireNonNull(RelFactories.StructsWithConvention.fromContext(context));
+    structWithConvention = defaultStruct = this.structs.getStruct(Convention.NONE);
     final RexExecutor executor =
         Util.first(context.unwrap(RexExecutor.class),
             Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR));
@@ -206,142 +209,145 @@ public class RelBuilder {
   /** Get FilterFactory based on given convention. If it's not existed, return the factory
    *  for NONE convention. */
   private RelFactories.FilterFactory getFilterFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).filterFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).filterFactory;
+    if (structWithConvention.filterFactory != null) {
+      return structWithConvention.filterFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).filterFactory;
+    return defaultStruct.filterFactory;
   }
 
   /** Get ProjectFactory based on given convention. If it's not existed, return the factory
    *  for NONE convention. */
   private RelFactories.ProjectFactory getProjectFactory() {
-    if (factoriesWithConvention.factories.containsKey(convention) &&
-        factoriesWithConvention.factories.get(convention).projectFactory != null) {
-      return factoriesWithConvention.factories.get(convention).projectFactory;
+    if (structWithConvention.projectFactory != null) {
+      return structWithConvention.projectFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).projectFactory;
+    return defaultStruct.projectFactory;
   }
 
-  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+  /** Get AggregateFactory based on given convention. If it's not existed, return the factory
    *  for NONE convention. */
   private RelFactories.AggregateFactory getAggregateFactory() {
-    if (factoriesWithConvention.factories.containsKey(convention) &&
-        factoriesWithConvention.factories.get(this.convention).aggregateFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).aggregateFactory;
+    if (structWithConvention.aggregateFactory != null) {
+      return structWithConvention.aggregateFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).aggregateFactory;
+    return defaultStruct.aggregateFactory;
   }
 
-  /** Get FilterFactory based on given convention. If it's not existed, return the factory
+  /** Get SortFactory based on given convention. If it's not existed, return the factory
    *  for NONE convention. */
   private RelFactories.SortFactory getSortFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).sortFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).sortFactory;
+    if (structWithConvention.sortFactory != null) {
+      return structWithConvention.sortFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).sortFactory;
+    return defaultStruct.sortFactory;
   }
 
-  /** Get FilterFactory based on given convention. If it's not existed, return the factory
-   *  for NONE convetion. */
+  /** Get ExchangeFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.ExchangeFactory getExchangeFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).exchangeFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).exchangeFactory;
+    if (structWithConvention.exchangeFactory != null) {
+      return structWithConvention.exchangeFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).exchangeFactory;
+    return defaultStruct.exchangeFactory;
   }
 
-  /** Get FilterFactory based on given convention. If it's not existed, return the factory
-   *  for NONE convetion. */
+  /** Get SortExchangeFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.SortExchangeFactory getSortExchangeFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).sortExchangeFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).sortExchangeFactory;
+    if (structWithConvention.sortExchangeFactory != null) {
+      return structWithConvention.sortExchangeFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).sortExchangeFactory;
+    return defaultStruct.sortExchangeFactory;
   }
 
-  /** Get FilterFactory based on given convention. If it's not existed, return the factory
-   *  for NONE convetion. */
+  /** Get SetOpFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.SetOpFactory getSetOpFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).setOpFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).setOpFactory;
+    if (structWithConvention.setOpFactory != null) {
+      return structWithConvention.setOpFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).setOpFactory;
+    return defaultStruct.setOpFactory;
   }
 
+  /** Get JoinFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.JoinFactory getJoinFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).joinFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).joinFactory;
+    if (structWithConvention.joinFactory != null) {
+      return structWithConvention.joinFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).joinFactory;
+    return defaultStruct.joinFactory;
   }
+
+  /** Get CorrelateFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.CorrelateFactory getCorrelateFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).correlateFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).correlateFactory;
+    if (structWithConvention.correlateFactory != null) {
+      return structWithConvention.correlateFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).correlateFactory;
+    return defaultStruct.correlateFactory;
   }
 
+  /** Get ValuesFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.ValuesFactory getValuesFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).valuesFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).valuesFactory;
+    if (structWithConvention.valuesFactory != null) {
+      return structWithConvention.valuesFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).valuesFactory;
+    return defaultStruct.valuesFactory;
   }
 
+  /** Get TableScanFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.TableScanFactory getTableScanFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).scanFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).scanFactory;
+    if (structWithConvention.scanFactory != null) {
+      return structWithConvention.scanFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).scanFactory;
+    return defaultStruct.scanFactory;
   }
 
+  /** Get TableFunctionScanFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.TableFunctionScanFactory getTableFunctionScanFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).tableFunctionScanFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).tableFunctionScanFactory;
+    if (structWithConvention.tableFunctionScanFactory != null) {
+      return structWithConvention.tableFunctionScanFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).tableFunctionScanFactory;
+    return defaultStruct.tableFunctionScanFactory;
   }
 
+  /** Get SnapshotFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.SnapshotFactory getSnapshotFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).snapshotFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).snapshotFactory;
+    if (structWithConvention.snapshotFactory != null) {
+      return structWithConvention.snapshotFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).snapshotFactory;
+    return defaultStruct.snapshotFactory;
   }
 
+  /** Get MatchFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.MatchFactory getMatchFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).matchFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).matchFactory;
+    if (structWithConvention.matchFactory != null) {
+      return structWithConvention.matchFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).matchFactory;
+    return defaultStruct.matchFactory;
   }
 
+  /** Get SpoolFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.SpoolFactory getSpoolFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).spoolFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).spoolFactory;
+    if (structWithConvention.spoolFactory != null) {
+      return structWithConvention.spoolFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).spoolFactory;
+    return defaultStruct.spoolFactory;
   }
 
+  /** Get RepeatUnionFactory based on given convention. If it's not existed, return the factory
+   *  for NONE convention. */
   private RelFactories.RepeatUnionFactory getRepeatUnionFactory() {
-    if (factoriesWithConvention.factories.containsKey(this.convention) &&
-        factoriesWithConvention.factories.get(this.convention).repeatUnionFactory != null) {
-      return factoriesWithConvention.factories.get(this.convention).repeatUnionFactory;
+    if (structWithConvention.repeatUnionFactory != null) {
+      return structWithConvention.repeatUnionFactory;
     }
-    return factoriesWithConvention.factories.get(Convention.NONE).repeatUnionFactory;
+    return defaultStruct.repeatUnionFactory;
   }
 
   /** Creates a RelBuilder. */
@@ -353,6 +359,10 @@ public class RelBuilder {
 
   public RelBuilder withConvention(Convention convention) {
     this.convention = convention;
+    this.structWithConvention = structs.getStruct(convention);
+    if (structWithConvention == null) {
+      structWithConvention = defaultStruct;
+    }
     return this;
   }
 
@@ -360,7 +370,7 @@ public class RelBuilder {
    * a transform to the config. */
   public RelBuilder transform(UnaryOperator<Config> transform) {
     final Context context =
-        Contexts.of(factoriesWithConvention, transform.apply(config));
+        Contexts.of(structs, transform.apply(config));
     return new RelBuilder(context, cluster, relOptSchema);
   }
 
@@ -386,7 +396,7 @@ public class RelBuilder {
    * Just add a {@link RelOptCluster} and a {@link RelOptSchema} */
   public static RelBuilderFactory proto(final Context context) {
     return new RelBuilderFactory(
-        Objects.requireNonNull(RelFactories.FactoryStructWithConvention.fromContext(context)));
+        Objects.requireNonNull(RelFactories.StructsWithConvention.fromContext(context)));
   }
 
   /** Creates a {@link RelBuilderFactory} that uses a given set of factories. */

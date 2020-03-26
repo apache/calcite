@@ -16,9 +16,7 @@
  */
 package org.apache.calcite.plan;
 
-import org.apache.calcite.adapter.enumerable.EnumerableBindable;
-import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
-import org.apache.calcite.adapter.enumerable.EnumerableRules;
+import org.apache.calcite.adapter.enumerable.*;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.interpreter.Bindables;
@@ -1998,6 +1996,12 @@ public abstract class RelOptUtil {
     // todo: rule which makes Project({OrdinalRef}) disappear
   }
 
+  private static void registerEnumerableRelNodeFactories() {
+    RelBuilderFactory factory = RelFactories.LOGICAL_BUILDER;
+    factory.registerFactoriesWithConvention(EnumerableConvention.INSTANCE,
+        EnumerableRelFactories.DEFAULT_STRUCT);
+  }
+
   private static void registerEnumerableRules(RelOptPlanner planner) {
     EnumerableRules.ENUMERABLE_RULES.forEach(planner::addRule);
   }
@@ -2055,6 +2059,7 @@ public abstract class RelOptUtil {
 
     if (CalciteSystemProperty.ENABLE_ENUMERABLE.value()) {
       registerEnumerableRules(planner);
+      registerEnumerableRelNodeFactories();
       planner.addRule(EnumerableInterpreterRule.INSTANCE);
     }
 
