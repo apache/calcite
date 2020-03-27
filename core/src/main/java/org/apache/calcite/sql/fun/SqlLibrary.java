@@ -58,7 +58,9 @@ public enum SqlLibrary {
   /** A collection of operators that are in Spark but not in standard SQL. */
   SPARK("s"),
   /** A collection of operators that are in Teradata but not in standard SQL. */
-  TERADATA("t");
+  TERADATA("t"),
+  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  SNOWFLAKE("sf");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;

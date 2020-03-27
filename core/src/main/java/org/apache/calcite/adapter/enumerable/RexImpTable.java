@@ -95,6 +95,7 @@ import static org.apache.calcite.linq4j.tree.ExpressionType.UnaryPlus;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.CHR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DAYNAME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.DIFFERENCE;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
@@ -117,6 +118,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.SHA1;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SOUNDEX;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.SPACE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.TO_VARCHAR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ABS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.ACOS;
@@ -323,6 +325,8 @@ public class RexImpTable {
     defineMethod(IFNULL, BuiltInMethod.IFNULL.method, NullPolicy.NONE);
     defineMethod(RPAD, BuiltInMethod.RPAD.method, NullPolicy.NONE);
     defineMethod(LPAD, BuiltInMethod.LPAD.method, NullPolicy.NONE);
+    defineMethod(FORMAT, BuiltInMethod.FORMAT.method, NullPolicy.ARG0);
+    defineMethod(TO_VARCHAR, BuiltInMethod.TO_VARCHAR.method, NullPolicy.ARG0);
 
     final TrimImplementor trimImplementor = new TrimImplementor();
     defineImplementor(TRIM, NullPolicy.STRICT, trimImplementor, false);

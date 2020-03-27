@@ -315,6 +315,8 @@ public enum BuiltInMethod {
   IFNULL(SqlFunctions.class, "ifNull", Object.class, Object.class),
   LPAD(SqlFunctions.class, "lpad", String.class, Integer.class, String.class),
   RPAD(SqlFunctions.class, "rpad", String.class, Integer.class, String.class),
+  FORMAT(SqlFunctions.class, "format", Object.class, Object.class),
+  TO_VARCHAR(SqlFunctions.class, "toVarchar", Object.class, Object.class),
   LEFT(SqlFunctions.class, "left", String.class, int.class),
   RIGHT(SqlFunctions.class, "right", String.class, int.class),
   TO_BASE64(SqlFunctions.class, "toBase64", String.class),

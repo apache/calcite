@@ -34,6 +34,7 @@ import static org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate;
 import static org.apache.calcite.runtime.SqlFunctions.addMonths;
 import static org.apache.calcite.runtime.SqlFunctions.charLength;
 import static org.apache.calcite.runtime.SqlFunctions.concat;
+import static org.apache.calcite.runtime.SqlFunctions.format;
 import static org.apache.calcite.runtime.SqlFunctions.fromBase64;
 import static org.apache.calcite.runtime.SqlFunctions.greater;
 import static org.apache.calcite.runtime.SqlFunctions.ifNull;
@@ -52,6 +53,7 @@ import static org.apache.calcite.runtime.SqlFunctions.sha1;
 import static org.apache.calcite.runtime.SqlFunctions.substring;
 import static org.apache.calcite.runtime.SqlFunctions.subtractMonths;
 import static org.apache.calcite.runtime.SqlFunctions.toBase64;
+import static org.apache.calcite.runtime.SqlFunctions.toVarchar;
 import static org.apache.calcite.runtime.SqlFunctions.trim;
 import static org.apache.calcite.runtime.SqlFunctions.upper;
 import static org.apache.calcite.test.Matchers.within;
@@ -983,6 +985,20 @@ public class SqlFunctionsTest {
     assertThat(rpad("123", 6, "456"), is("123456"));
     assertThat(rpad("pilot", 4, "auto"), is("pilo"));
     assertThat(rpad("auto", 9, "pilot"), is("autopilot"));
+  }
+
+  /** Test for {@link SqlFunctions#format}. */
+  @Test public void testFormat() {
+    assertThat(format("%4d", 23), is("  23"));
+    assertThat(format("%4.1f", 1.5), is(" 1.5"));
+  }
+
+  /** Test for {@link SqlFunctions#toVarchar}. */
+  @Test public void testToVarchar() {
+    assertThat(toVarchar(null, null), nullValue());
+    assertThat(toVarchar(23, "99"), is("23"));
+    assertThat(toVarchar(123, "999"), is("123"));
+    assertThat(toVarchar(1.5, "9.99"), is("1.50"));
   }
 }
 

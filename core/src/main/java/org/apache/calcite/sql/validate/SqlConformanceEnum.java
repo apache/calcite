@@ -77,7 +77,11 @@ public enum SqlConformanceEnum implements SqlConformance {
 
   /** Conformance value that instructs Calcite to use SQL semantics
    * consistent with Apache Hive. */
-  HIVE;
+  HIVE,
+
+  /** Conformance value that instructs Calcite to use SQL semantics
+   * consistent with Snowflake. */
+  SNOWFLAKE;
 
   public boolean isLiberal() {
     switch (this) {

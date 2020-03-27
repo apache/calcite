@@ -44,6 +44,7 @@ import static org.apache.calcite.sql.fun.SqlLibrary.HIVE;
 import static org.apache.calcite.sql.fun.SqlLibrary.MYSQL;
 import static org.apache.calcite.sql.fun.SqlLibrary.ORACLE;
 import static org.apache.calcite.sql.fun.SqlLibrary.POSTGRESQL;
+import static org.apache.calcite.sql.fun.SqlLibrary.SNOWFLAKE;
 import static org.apache.calcite.sql.fun.SqlLibrary.SPARK;
 import static org.apache.calcite.sql.fun.SqlLibrary.STANDARD;
 import static org.apache.calcite.sql.fun.SqlLibrary.TERADATA;
@@ -592,6 +593,17 @@ public abstract class SqlLibraryOperators {
       null,
       OperandTypes.STRING_STRING,
       SqlFunctionCategory.STRING);
+
+  /** The "TO_VARCHAR(numeric, string)" function; casts string
+   * Format first_operand to specified in second operand. */
+  @LibraryOperator(libraries = {SNOWFLAKE})
+  public static final SqlFunction TO_VARCHAR =
+      new SqlFunction(
+          "TO_VARCHAR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.VARCHAR_2000_NULLABLE, null,
+          OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.STRING),
+          SqlFunctionCategory.STRING);
 }
 
 // End SqlLibraryOperators.java

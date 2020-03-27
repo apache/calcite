@@ -29,6 +29,8 @@ import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+import org.apache.calcite.util.FormatFunctionUtil;
 import org.apache.calcite.util.ToNumberUtils;
 
 /**
@@ -39,7 +41,8 @@ public class SnowflakeSqlDialect extends SqlDialect {
       new SnowflakeSqlDialect(EMPTY_CONTEXT
           .withDatabaseProduct(DatabaseProduct.SNOWFLAKE)
           .withIdentifierQuoteString("\"")
-          .withUnquotedCasing(Casing.TO_UPPER));
+          .withUnquotedCasing(Casing.TO_UPPER)
+          .withConformance(SqlConformanceEnum.SNOWFLAKE));
 
   /** Creates a SnowflakeSqlDialect. */
   public SnowflakeSqlDialect(Context context) {
@@ -96,6 +99,11 @@ public class SnowflakeSqlDialect extends SqlDialect {
       final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
       writer.endFunCall(lengthFrame);
+      break;
+    case FORMAT:
+      FormatFunctionUtil ffu = new FormatFunctionUtil();
+      SqlCall sqlCall = ffu.fetchSqlCallForFormat(call);
+      super.unparseCall(writer, sqlCall, leftPrec, rightPrec);
       break;
     default:
       super.unparseCall(writer, call, leftPrec, rightPrec);

@@ -115,6 +115,7 @@ public class DocumentationTest {
       case HIVE:
       case SPARK:
       case TERADATA:
+      case SNOWFLAKE:
         continue;
       }
       addOperators(map, "\\| [^|]*" + library.abbrev + "[^|]* ",

@@ -53,6 +53,8 @@ here to appease testAllFunctionsAreDocumented:
 | CONV()         | Converts the given number n from one base to another base
 | LPAD()         | Append paddingString to the beginning of the string
 | RPAD()         | Append paddingString to the end of the string
+| FORMAT         | Format the value as per the pattern defined
+| TO_VARCHAR     | Derives the value as per the pattern defined
 {% endcomment %}
 -->
 
@@ -2225,6 +2227,7 @@ The 'C' (compatibility) column contains value
 'm' for MySQL ('fun=mysql' in the connect string),
 'o' for Oracle ('fun=oracle' in the connect string),
 'p' for PostgreSQL ('fun=postgresql' in the connect string).
+'sf' for Snowflake ('fun=snowflake' in the connect string).
 
 One operator name may correspond to multiple SQL dialects, but with different
 semantics.
@@ -2271,6 +2274,7 @@ semantics.
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| sf  | TO_VARCHAR(value, format)                    | Returns formatted value based on the format operand to the value operand
 
 Note:
 
