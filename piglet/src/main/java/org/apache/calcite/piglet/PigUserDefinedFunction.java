@@ -44,7 +44,7 @@ public class PigUserDefinedFunction extends SqlUserDefinedFunction {
       List<RelDataType> paramTypes,
       Function function,
       FuncSpec funcSpec) {
-    super(opName, returnTypeInference, operandTypeInference, operandTypeChecker, paramTypes,
+    super(opName, returnTypeInference, operandTypeInference, operandTypeChecker, paramTypes, false,
         function,
         SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR);
     this.funcSpec = funcSpec;

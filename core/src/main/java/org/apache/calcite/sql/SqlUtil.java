@@ -18,7 +18,6 @@ package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.linq4j.Ord;
-import org.apache.calcite.linq4j.function.Functions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.Hintable;
@@ -65,8 +64,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+import static org.apache.calcite.util.VarArgUtil.isVarArgParameterName;
 
 /**
  * Contains utility functions related to SQL parsing, all static.
@@ -194,7 +196,7 @@ public abstract class SqlUtil {
   public static boolean isNull(SqlNode node) {
     return isNullLiteral(node, false)
         || node.getKind() == SqlKind.CAST
-            && isNull(((SqlCall) node).operand(0));
+        && isNull(((SqlCall) node).operand(0));
   }
 
   /**
@@ -602,33 +604,55 @@ public abstract class SqlUtil {
             // the type coerce will not work here.
             return true;
           }
+          // convert to mutable list.
+          List<RelDataType> permutedParamTypes = Lists.newArrayList(paramTypes);
           final List<RelDataType> permutedArgTypes;
+          boolean varArgs = function.isVarArgs();
+          List<String> paramNames = function.getParamNames()
+              .stream()
+              .map(p -> p.toUpperCase(Locale.ROOT))
+              .collect(Collectors.toList());
+          final int varArgIndex = varArgs ? paramNames.size() - 1 : -1;
+          String varArgParamName = varArgs ? paramNames.get(varArgIndex) : "";
+
           if (argNames != null) {
             // Arguments passed by name. Make sure that the function has
             // parameters of all of these names.
-            final Map<Integer, Integer> map = new HashMap<>();
+            final Map<Integer, List<Integer>> map = new HashMap<>();
             for (Ord<String> argName : Ord.zip(argNames)) {
-              final int i = function.getParamNames().indexOf(argName.e);
+              final int i = paramNames.indexOf(argName.e.toUpperCase(Locale.ROOT));
               if (i < 0) {
-                return false;
+                if (varArgs && isVarArgParameterName(argName.e, varArgParamName)) {
+                  List<Integer> argIndexes = map.computeIfAbsent(varArgIndex,
+                      integer -> new ArrayList<>());
+                  argIndexes.add(argName.i);
+                } else {
+                  return false;
+                }
               }
-              map.put(i, argName.i);
+              map.put(i, Lists.newArrayList(argName.i));
             }
-            permutedArgTypes = Functions.generate(paramTypes.size(), a0 -> {
-              if (map.containsKey(a0)) {
-                return argTypes.get(map.get(a0));
+
+            permutedArgTypes = IntStream.range(0, paramTypes.size()).boxed().flatMap(idx -> {
+              if (map.containsKey(idx)) {
+                List<Integer> argIndexes = map.get(idx);
+                return argIndexes.stream().map(i -> argTypes.get(i));
               } else {
-                return null;
+                return Stream.generate(() -> (RelDataType) null).limit(1);
               }
-            });
+            }).collect(Collectors.toList());
           } else {
             permutedArgTypes = Lists.newArrayList(argTypes);
-            while (permutedArgTypes.size() < argTypes.size()) {
-              paramTypes.add(null);
-            }
           }
+
+          if (permutedParamTypes.size() < permutedArgTypes.size()) {
+            permutedParamTypes.addAll(Stream.generate(() -> paramTypes.get(paramTypes.size() - 1))
+                .limit(permutedArgTypes.size() - permutedParamTypes.size())
+                .collect(Collectors.toList()));
+          }
+
           for (Pair<RelDataType, RelDataType> p
-              : Pair.zip(paramTypes, permutedArgTypes)) {
+              : Pair.zip(permutedParamTypes, permutedArgTypes)) {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
             if (argType != null
@@ -659,16 +683,17 @@ public abstract class SqlUtil {
           argType.e.getPrecedenceList();
       final RelDataType bestMatch = bestMatch(sqlFunctions, argType.i, precList);
       if (bestMatch != null) {
-        sqlFunctions = sqlFunctions.stream()
-            .filter(function -> {
-              final List<RelDataType> paramTypes = function.getParamTypes();
-              if (paramTypes == null) {
-                return false;
-              }
-              final RelDataType paramType = paramTypes.get(argType.i);
-              return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
-            })
-            .collect(Collectors.toList());
+        sqlFunctions = sqlFunctions.stream().filter(function -> {
+          final List<RelDataType> paramTypes = function.getParamTypes();
+          if (paramTypes == null) {
+            return false;
+          }
+          int paramIndex = function.isVarArgs() ? (argType.i > paramTypes.size() - 1
+              ? paramTypes.size() - 1
+              : argType.i) : argType.i;
+          final RelDataType paramType = paramTypes.get(paramIndex);
+          return precList.compareTypePrecedence(paramType, bestMatch) >= 0;
+        }).collect(Collectors.toList());
       }
     }
     //noinspection unchecked
@@ -683,14 +708,14 @@ public abstract class SqlUtil {
       if (paramTypes == null) {
         continue;
       }
-      final RelDataType paramType = paramTypes.get(i);
+      int paramIndex = function.isVarArgs() ? (i > paramTypes.size() - 1
+          ? paramTypes.size() - 1
+          : i) : i;
+      final RelDataType paramType = paramTypes.get(paramIndex);
       if (bestMatch == null) {
         bestMatch = paramType;
       } else {
-        int c =
-            precList.compareTypePrecedence(
-                bestMatch,
-                paramType);
+        int c = precList.compareTypePrecedence(bestMatch, paramType);
         if (c < 0) {
           bestMatch = paramType;
         }

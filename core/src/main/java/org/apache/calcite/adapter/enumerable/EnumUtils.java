@@ -47,6 +47,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.lang.reflect.Method;
@@ -248,24 +249,43 @@ public class EnumUtils {
     return operand;
   }
 
+  /**
+   * Build expression list.
+   * If varArgs is true, the last targetType will be replaced by its component type.
+   */
   static List<Expression> fromInternal(Class<?>[] targetTypes,
-      List<Expression> expressions) {
+      List<Expression> expressions, boolean varArgs) {
+
     final List<Expression> list = new ArrayList<>();
-    if (targetTypes.length == expressions.size()) {
+
+    if (varArgs) {
+      Class<?> varTargetType = targetTypes[targetTypes.length - 1];
+      Preconditions.checkArgument(varTargetType != null && varTargetType.isArray(),
+          "the var target type should not null and it must be an array.");
+
+      Class<?> varArgsType = varTargetType.getComponentType();
       for (int i = 0; i < expressions.size(); i++) {
-        list.add(fromInternal(expressions.get(i), targetTypes[i]));
+        list.add(
+            fromInternal(expressions.get(i),
+                i < targetTypes.length - 1 ? targetTypes[i] : varArgsType));
       }
     } else {
-      int j = 0;
-      for (int i = 0; i < expressions.size(); i++) {
-        Class<?> type;
-        if (!targetTypes[j].isArray()) {
-          type = targetTypes[j];
-          j++;
-        } else {
-          type = targetTypes[j].getComponentType();
+      if (targetTypes.length == expressions.size()) {
+        for (int i = 0; i < expressions.size(); i++) {
+          list.add(fromInternal(expressions.get(i), targetTypes[i]));
         }
-        list.add(fromInternal(expressions.get(i), type));
+      } else {
+        int j = 0;
+        for (int i = 0; i < expressions.size(); i++) {
+          Class<?> type;
+          if (!targetTypes[j].isArray()) {
+            type = targetTypes[j];
+            j++;
+          } else {
+            type = targetTypes[j].getComponentType();
+          }
+          list.add(fromInternal(expressions.get(i), type));
+        }
       }
     }
     return list;
@@ -556,23 +576,37 @@ public class EnumUtils {
    * @return Input expressions with probable type conversion
    */
   static List<Expression> convertAssignableTypes(Class<?>[] targetTypes,
-      List<Expression> arguments) {
+      List<Expression> arguments, boolean varArgs) {
     final List<Expression> list = new ArrayList<>();
-    if (targetTypes.length == arguments.size()) {
+
+    if (varArgs) {
+      Class<?> varTargetType = targetTypes[targetTypes.length - 1];
+      Preconditions.checkArgument(varTargetType != null && varTargetType.isArray(),
+          "the var target type should not null and it must be an array.");
+
+      Class<?> varArgsType = varTargetType.getComponentType();
       for (int i = 0; i < arguments.size(); i++) {
-        list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
+        list.add(
+            convertAssignableType(arguments.get(i),
+                i < targetTypes.length - 1 ? targetTypes[i] : varArgsType));
       }
     } else {
-      int j = 0;
-      for (Expression argument: arguments) {
-        Class<?> type;
-        if (!targetTypes[j].isArray()) {
-          type = targetTypes[j];
-          j++;
-        } else {
-          type = targetTypes[j].getComponentType();
+      if (targetTypes.length == arguments.size()) {
+        for (int i = 0; i < arguments.size(); i++) {
+          list.add(convertAssignableType(arguments.get(i), targetTypes[i]));
         }
-        list.add(convertAssignableType(argument, type));
+      } else {
+        int j = 0;
+        for (Expression argument : arguments) {
+          Class<?> type;
+          if (!targetTypes[j].isArray()) {
+            type = targetTypes[j];
+            j++;
+          } else {
+            type = targetTypes[j].getComponentType();
+          }
+          list.add(convertAssignableType(argument, type));
+        }
       }
     }
     return list;

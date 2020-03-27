@@ -62,6 +62,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -379,6 +383,82 @@ public class Smalls {
       return "{n=" + n + ", s=" + s + "}";
     }
   }
+
+
+  /** Example of a UDF with named parameters. */
+  public static class VarArgsFunction {
+
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public VarArgsFunction() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public int eval(@Parameter(name = "x") int x, @Parameter(name = "y") int... integers) {
+      if (integers != null && integers.length > 0) {
+        return IntStream.concat(IntStream.of(x), IntStream.of(integers)).sum();
+      }
+      return x;
+    }
+  }
+
+  public static class VarArgs1Function {
+
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public VarArgs1Function() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public double eval(@Parameter(name = "x") double x, @Parameter(name = "y") double... doubles) {
+      if (doubles != null && doubles.length > 0) {
+        return DoubleStream.concat(DoubleStream.of(x), DoubleStream.of(doubles)).sum();
+      }
+      return x;
+    }
+  }
+
+  public static class VarArgs2Function {
+
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public VarArgs2Function() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public BigDecimal eval(@Parameter(name = "x") BigDecimal x,
+        @Parameter(name = "y") BigDecimal... numerics) {
+      if (numerics != null && numerics.length > 0) {
+        return Stream.concat(Stream.of(x), Stream.of(numerics))
+            .reduce((v1, v2) -> v1.add(v2))
+            .get();
+      }
+      return x;
+    }
+  }
+
+  public static class VarArgs3Function {
+
+    public static final AtomicInteger INSTANCE_COUNT = new AtomicInteger(0);
+
+    // Note: Not marked @Deterministic
+    public VarArgs3Function() {
+      INSTANCE_COUNT.incrementAndGet();
+    }
+
+    public String eval(
+        @Parameter(name = "x") String... strs) {
+      if (strs != null && strs.length > 0) {
+        return  Stream.of(strs).collect(Collectors.joining());
+      }
+      return null;
+    }
+  }
+
+
 
   /** Example of a UDF with a non-static {@code eval} method,
    * and named parameters. */

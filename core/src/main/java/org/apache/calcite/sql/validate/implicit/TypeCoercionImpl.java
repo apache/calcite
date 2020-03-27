@@ -44,7 +44,10 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.util.VarArgUtil.isVarArgParameterName;
 
 /**
  * Default implementation of Calcite implicit type cast.
@@ -565,12 +568,22 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     final List<RelDataType> paramTypes = function.getParamTypes();
     assert paramTypes != null;
     boolean coerced = false;
+    boolean varArgs = function.isVarArgs();
+    List<String> paramNames = function.getParamNames()
+        .stream()
+        .map(p -> p.toUpperCase(Locale.ROOT))
+        .collect(Collectors.toList());
+    final int varArgIndex = varArgs ? paramNames.size() - 1 : -1;
+    String varArgParamName = varArgs ? paramNames.get(varArgIndex) : "";
+
     for (int i = 0; i < call.operandCount(); i++) {
       SqlNode operand = call.operand(i);
       if (operand.getKind() == SqlKind.ARGUMENT_ASSIGNMENT) {
         final List<SqlNode> operandList = ((SqlCall) operand).getOperandList();
         String name = ((SqlIdentifier) operandList.get(1)).getSimple();
-        int formalIndex = function.getParamNames().indexOf(name);
+        int formalIndex = isVarArgParameterName(name, varArgParamName)
+            ? varArgIndex
+            : function.getParamNames().indexOf(name);
         if (formalIndex < 0) {
           return false;
         }
@@ -578,7 +591,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         coerced = coerceOperandType(scope, (SqlCall) operand, 0,
             paramTypes.get(formalIndex)) || coerced;
       } else {
-        coerced = coerceOperandType(scope, call, i, paramTypes.get(i)) || coerced;
+        int formalIndex = varArgs ? (i < varArgIndex ? i : varArgIndex) : i;
+        coerced = coerceOperandType(scope, call, i, paramTypes.get(formalIndex)) || coerced;
       }
     }
     return coerced;

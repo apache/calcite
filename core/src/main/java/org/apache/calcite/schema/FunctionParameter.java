@@ -62,4 +62,9 @@ public interface FunctionParameter {
    * allow functions to specify other default values.
    */
   boolean isOptional();
+
+  /**
+   * Returns the parameter's count is variable.
+   */
+  boolean isVarArgs();
 }
