@@ -1522,9 +1522,16 @@ public class RelMetadataTest extends SqlToRelTestBase {
         rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.INNER);
     collations =
         RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,
-            rightKeys);
+            rightKeys, JoinRelType.INNER);
     assertThat(collations,
         equalTo(join.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
+    final EnumerableMergeJoin semiJoin = EnumerableMergeJoin.create(project, deptSort,
+        rexBuilder.makeLiteral(true), leftKeys, rightKeys, JoinRelType.SEMI);
+    collations =
+        RelMdCollation.mergeJoin(mq, project, deptSort, leftKeys,
+            rightKeys, JoinRelType.SEMI);
+    assertThat(collations,
+        equalTo(semiJoin.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
 
     // Values (empty)
     collations = RelMdCollation.values(mq, empTable.getRowType(),

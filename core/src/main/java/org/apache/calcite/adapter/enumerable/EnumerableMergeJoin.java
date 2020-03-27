@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -66,6 +67,14 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);
+    if (!isMergeJoinSupported(joinType)) {
+      throw new UnsupportedOperationException(
+          "EnumerableMergeJoin unsupported for join type " + joinType);
+    }
+  }
+
+  public static boolean isMergeJoinSupported(JoinRelType joinType) {
+    return EnumerableDefaults.isMergeJoinSupported(EnumUtils.toLinq4jJoinType(joinType));
   }
 
   @Deprecated // to be removed before 2.0
@@ -93,7 +102,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
-          RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys);
+          RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys, joinType);
       traitSet = traitSet.replace(collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
@@ -194,10 +203,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         physType,
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)),
-                    Expressions.constant(
-                        joinType.generatesNullsOnLeft()),
-                    Expressions.constant(
-                        joinType.generatesNullsOnRight()),
+                    Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
                     comparator))).toBlock());
   }
 }
