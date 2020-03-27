@@ -5230,7 +5230,9 @@ public abstract class SqlOperatorBaseTest {
   @Test public void testUncompress() {
     SqlTester sqlTester = tester(SqlLibrary.MYSQL);
     sqlTester.checkNull("UNCOMPRESS(NULL)");
-    sqlTester.checkNull("UNCOMPRESS(x'')");
+    sqlTester.checkString("UNCOMPRESS(x'')", "", "VARCHAR");
+
+    sqlTester.checkNull("UNCOMPRESS(x'1233')");
 
     sqlTester.checkString("UNCOMPRESS(COMPRESS('test'))",
         "test", "VARCHAR");

@@ -72,8 +72,10 @@ public class CompressionFunctions {
    */
   public static String uncompress(ByteString data) {
     try {
-      if (data == null || data.length() == 0) {
+      if (data == null) {
         return null;
+      } else if (data.length() == 0) {
+        return "";
       }
       InflaterInputStream inflaterStream = new InflaterInputStream(
           new ByteArrayInputStream(data.getBytes(), 4, data.length()));
