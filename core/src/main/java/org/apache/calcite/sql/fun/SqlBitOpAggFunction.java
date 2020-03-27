@@ -30,8 +30,8 @@ import com.google.common.base.Preconditions;
  * Definition of the <code>BIT_AND</code> and <code>BIT_OR</code> aggregate functions,
  * returning the bitwise AND/OR of all non-null input values, or null if none.
  *
- * <p>Only INTEGER types are supported:
- * tinyint, smallint, int, bigint
+ * <p>INTEGER and BINARY types are supported:
+ * tinyint, smallint, int, bigint, binary, varbinary
  */
 public class SqlBitOpAggFunction extends SqlAggFunction {
 
@@ -44,7 +44,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.INTEGER,
+        OperandTypes.or(OperandTypes.INTEGER, OperandTypes.BINARY),
         SqlFunctionCategory.NUMERIC,
         false,
         false,

@@ -918,4 +918,7 @@ public interface CalciteResource {
 
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);
+
+  @BaseMessage("Different length for bitwise operands: the first: {0,number,#}, the second: {1,number,#}")
+  ExInst<CalciteException> differentLengthForBitwiseOperands(int l0, int l1);
 }
