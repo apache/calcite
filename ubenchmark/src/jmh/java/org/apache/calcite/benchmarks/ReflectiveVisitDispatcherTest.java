@@ -48,9 +48,10 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class ReflectiveVisitDispatcherTest {
 
+  private ReflectiveVisitor visitor = new People();
+
   @Benchmark
   public String testReflectiveVisitorDispatcherInvoke() {
-    ReflectiveVisitor visitor = new People();
     ReflectUtil.MethodDispatcher<String> dispatcher = ReflectUtil.createMethodDispatcher(
         String.class, visitor, "say", String.class);
     String result = dispatcher.invoke("hello");
