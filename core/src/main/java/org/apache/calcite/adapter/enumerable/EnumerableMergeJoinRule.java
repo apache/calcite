@@ -26,7 +26,6 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.JoinInfo;
-import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -53,8 +52,8 @@ class EnumerableMergeJoinRule extends ConverterRule {
   @Override public RelNode convert(RelNode rel) {
     LogicalJoin join = (LogicalJoin) rel;
     final JoinInfo info = join.analyzeCondition();
-    if (join.getJoinType() != JoinRelType.INNER) {
-      // EnumerableMergeJoin only supports inner join.
+    if (!EnumerableMergeJoin.isMergeJoinSupported(join.getJoinType())) {
+      // EnumerableMergeJoin only supports certain join types.
       return null;
     }
     if (info.pairs().size() == 0) {
