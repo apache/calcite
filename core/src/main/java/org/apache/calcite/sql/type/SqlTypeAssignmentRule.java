@@ -63,10 +63,6 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
       rules.add(interval, SqlTypeName.DAY_INTERVAL_TYPES);
     }
-    for (SqlTypeName interval : SqlTypeName.DAY_INTERVAL_TYPES) {
-      final Set<SqlTypeName> dayIntervalTypes = SqlTypeName.DAY_INTERVAL_TYPES;
-      rules.add(interval, dayIntervalTypes);
-    }
 
     // MULTISET is assignable from...
     rules.add(SqlTypeName.MULTISET, EnumSet.of(SqlTypeName.MULTISET));
