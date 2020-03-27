@@ -241,7 +241,7 @@ public class EnumerablesTest {
             e1 -> e1.name,
             e2 -> e2.name,
             (e1, e2) -> e1.deptno < e2.deptno,
-            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + "-" + v1, false, false, null).toList().toString(),
         equalTo("["
             + "Emp(1, Fred)-Emp(2, Fred), "
             + "Emp(1, Fred)-Emp(3, Fred), "
@@ -257,7 +257,7 @@ public class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno > e1.deptno,
-            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + "-" + v1, false, false, null).toList().toString(),
         equalTo("["
             + "Emp(2, Fred)-Emp(1, Fred), "
             + "Emp(3, Fred)-Emp(1, Fred), "
@@ -273,7 +273,7 @@ public class EnumerablesTest {
             e1 -> e1.name,
             e2 -> e2.name,
             (e1, e2) -> e1.deptno == e2.deptno * 2,
-            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + "-" + v1, false, false, null).toList().toString(),
         equalTo("[]"));
 
     assertThat(
@@ -283,7 +283,7 @@ public class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno == e1.deptno * 2,
-            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + "-" + v1, false, false, null).toList().toString(),
         equalTo("[Emp(2, Fred)-Emp(1, Fred)]"));
 
     assertThat(
@@ -293,7 +293,7 @@ public class EnumerablesTest {
             e2 -> e2.name,
             e1 -> e1.name,
             (e2, e1) -> e2.deptno == e1.deptno + 2,
-            (v0, v1) -> v0 + "-" + v1, false, false).toList().toString(),
+            (v0, v1) -> v0 + "-" + v1, false, false, null).toList().toString(),
         equalTo("[Emp(3, Fred)-Emp(1, Fred), Emp(5, Joe)-Emp(3, Joe)]"));
   }
 
