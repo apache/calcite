@@ -5234,6 +5234,8 @@ public abstract class SqlOperatorBaseTest {
 
     sqlTester.checkNull("UNCOMPRESS(x'1233')");
 
+    sqlTester.checkFails("UNCOMPRESS('test')","(?s).*Only ByteString.*", true);
+
     sqlTester.checkString("UNCOMPRESS(COMPRESS('test'))",
         "test", "VARCHAR");
 
