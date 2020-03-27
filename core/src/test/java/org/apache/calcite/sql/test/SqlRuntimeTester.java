@@ -50,6 +50,16 @@ class SqlRuntimeTester extends AbstractSqlTester {
     assertExceptionIsThrown(sql, expectedError, runtime);
   }
 
+  @Override public void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime) {
+    String query =
+        SqlTests.generateAggQuery(expr, inputValues);
+    assertExceptionIsThrown(query, expectedError, runtime);
+  }
+
   public void assertExceptionIsThrown(
       String sql,
       String expectedMsgPattern) {

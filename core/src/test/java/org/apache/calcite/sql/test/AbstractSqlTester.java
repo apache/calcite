@@ -526,6 +526,22 @@ public abstract class AbstractSqlTester implements SqlTester, AutoCloseable {
     assertExceptionIsThrown(sql, expectedError);
   }
 
+  @Override public void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime) {
+    final String sql =
+        SqlTests.generateAggQuery(expr, inputValues);
+    if (runtime) {
+      SqlValidator validator = getValidator();
+      SqlNode n = parseAndValidate(validator, sql);
+      assertNotNull(n);
+    } else {
+      checkQueryFails(sql, expectedError);
+    }
+  }
+
   public void checkQuery(String sql) {
     assertExceptionIsThrown(sql, null);
   }

@@ -73,6 +73,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BinaryOperator;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
@@ -1109,22 +1110,64 @@ public class SqlFunctions {
         op, b1.getClass().toString()).ex();
   }
 
-  // &
-  /** Helper function for implementing <code>BIT_AND</code>. */
+  /** Bitwise function <code>BIT_AND</code> applied to integer values. */
   public static long bitAnd(long b0, long b1) {
     return b0 & b1;
   }
 
-  // |
-  /** Helper function for implementing <code>BIT_OR</code>. */
+  /** Bitwise function <code>BIT_AND</code> applied to binary values. */
+  public static ByteString bitAnd(ByteString b0, ByteString b1) {
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
+  }
+
+  /** Bitwise function <code>BIT_OR</code> applied to integer values. */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
   }
 
-  // ^
-  /** Helper function for implementing <code>BIT_XOR</code>. */
+  /** Bitwise function <code>BIT_OR</code> applied to binary values. */
+  public static ByteString bitOr(ByteString b0, ByteString b1) {
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x | y));
+  }
+
+  /** Bitwise function <code>BIT_XOR</code> applied to integer values. */
   public static long bitXor(long b0, long b1) {
     return b0 ^ b1;
+  }
+
+  /** Bitwise function <code>BIT_XOR</code> applied to binary values. */
+  public static ByteString bitXor(ByteString b0, ByteString b1) {
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x ^ y));
+  }
+
+  /**
+   * Utility for bitwise function applied to two byteString values.
+   *
+   * @param b0 The first byteString value operand of bitwise function.
+   * @param b1 The second byteString value operand of bitwise function.
+   * @param bitOp BitWise binary operator.
+   * @return ByteString after bitwise operation.
+   */
+  private static ByteString binaryOperator(
+      ByteString b0, ByteString b1, BinaryOperator<Byte> bitOp) {
+    if (b0.length() == 0) {
+      return b1;
+    }
+    if (b1.length() == 0) {
+      return b0;
+    }
+
+    if (b0.length() != b1.length()) {
+      throw RESOURCE.differentLengthForBitwiseOperands(
+          b0.length(), b1.length()).ex();
+    }
+
+    final byte[] result = new byte[b0.length()];
+    for (int i = 0; i < b0.length(); i++) {
+      result[i] = bitOp.apply(b0.byteAt(i), b1.byteAt(i));
+    }
+
+    return new ByteString(result);
   }
 
   // EXP

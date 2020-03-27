@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
@@ -1231,8 +1232,13 @@ public class RexImpTable {
   static class BitOpImplementor extends StrictAggImplementor {
     @Override protected void implementNotNullReset(AggContext info,
         AggResetContext reset) {
-      Object initValue = info.aggregation() == BIT_AND ? -1 : 0;
-      Expression start = Expressions.constant(initValue, info.returnType());
+      Expression start;
+      if (SqlTypeUtil.isBinary(info.returnRelType())) {
+        start = Expressions.field(null, ByteString.class, "EMPTY");
+      } else {
+        Object initValue = info.aggregation() == BIT_AND ? -1L : 0;
+        start = Expressions.constant(initValue, info.returnType());
+      }
 
       reset.currentBlock().add(
           Expressions.statement(

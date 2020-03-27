@@ -371,6 +371,20 @@ public interface SqlTester extends AutoCloseable, SqlValidatorTestCase.Tester {
       double delta);
 
   /**
+   * Tests that an aggregate expression fails at run time.
+   * @param expr An aggregate expression
+   * @param inputValues Array of input values
+   * @param expectedError Pattern for expected error
+   * @param runtime       If true, must fail at runtime; if false, must fail at
+   *                      validate time
+   */
+  void checkAggFails(
+      String expr,
+      String[] inputValues,
+      String expectedError,
+      boolean runtime);
+
+  /**
    * Tests that a scalar SQL expression fails at run time.
    *
    * @param expression    SQL scalar expression
