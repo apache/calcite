@@ -16,38 +16,51 @@
  */
 package org.apache.calcite.benchmarks;
 
-import com.google.common.base.Preconditions;
+import org.apache.calcite.benchmarks.helper.People;
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.ReflectiveVisitor;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.util.concurrent.TimeUnit;
+
 /**
- * Checks if silent precondition has noticeable overhead
+ * Benchmark for {@link org.apache.calcite.util.ReflectiveVisitDispatcherImpl}
  */
+@Fork(value = 1)
+@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 1, time = 10, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Benchmark)
-public class PreconditionTest {
-  boolean fire = true;
-  String param = "world";
+public class ReflectiveVisitDispatcherTest {
 
   @Benchmark
-  public void testPrecondition() {
-    Preconditions.checkState(fire, "Hello %s", param);
+  public String testReflectiveVisitorDispatcherInvoke() {
+    ReflectiveVisitor visitor = new People();
+    ReflectUtil.MethodDispatcher<String> dispatcher = ReflectUtil.createMethodDispatcher(
+        String.class, visitor, "say", String.class);
+    String result = dispatcher.invoke("hello");
+    return result;
   }
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(PreconditionTest.class.getSimpleName())
+        .include(ReflectiveVisitDispatcherTest.class.getSimpleName())
         .addProfiler(GCProfiler.class)
-        .detectJvmArgs()
         .build();
 
     new Runner(opt).run();

@@ -34,7 +34,7 @@ import java.util.List;
  * @param <E> Argument type
  * @param <R> Return type
  */
-public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
+public class ReflectiveVisitDispatcherImpl<R extends ReflectiveVisitor, E>
     implements ReflectiveVisitDispatcher<R, E> {
 
   /**
@@ -46,7 +46,7 @@ public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
    * <em>RAII (Resource Acquisition Is Initialization)</em> like try-finally to
    * garbage collect.
    * <p>2) Using <code>ThreadLocal</code> to store cache per thread.
-   * <p>3) Use global caching.
+   * <p>3) Using global cache.
    * <p>Solution 1) and 2) could introduce complexity to the main course and it only
    * works per instance or per thread.
    * Solution 3) which introduces a controllable global small sized cache is a
@@ -67,7 +67,7 @@ public class ReflectVisitDispatcherImpl<R extends ReflectiveVisitor, E>
    *
    * @param visiteeBaseClazz visitee base class
    */
-  public ReflectVisitDispatcherImpl(Class<E> visiteeBaseClazz) {
+  public ReflectiveVisitDispatcherImpl(Class<E> visiteeBaseClazz) {
     this.visiteeBaseClazz = visiteeBaseClazz;
   }
 

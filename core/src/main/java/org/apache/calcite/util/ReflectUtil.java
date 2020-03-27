@@ -418,7 +418,7 @@ public abstract class ReflectUtil {
       final Class<E> visiteeBaseClazz) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
-    return new ReflectVisitDispatcherImpl<R, E>(visiteeBaseClazz);
+    return new ReflectiveVisitDispatcherImpl<R, E>(visiteeBaseClazz);
   }
 
   /**
