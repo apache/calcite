@@ -778,6 +778,14 @@ public class Linq4jTest {
     checkCast(enumerator);
   }
 
+  @Test public void testIterableExtendedCast() {
+    final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5L);
+    final Enumerator<Integer> enumerator =
+        Linq4j.extendedCast(numbers, Integer.class)
+            .enumerator();
+    checkCast(enumerator);
+  }
+
   private void checkCast(Enumerator<Integer> enumerator) {
     assertTrue(enumerator.moveNext());
     assertEquals(Integer.valueOf(2), enumerator.current());

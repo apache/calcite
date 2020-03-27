@@ -230,6 +230,41 @@ public interface ExtendedEnumerable<TSource> {
   <T2> Enumerable<T2> cast(Class<T2> clazz);
 
   /**
+   * Converts the elements of this Enumerable to the specified type.
+   *
+   * <p>This method is the extension of {@link #cast(Class)}.</p>
+   *
+   * <p>Besides the things what {@link #cast(Class)} can do, this method supports the
+   * cast between these types:
+   * <ol>
+   *   <li>{@link Short}</li>
+   *   <li>{@link Byte}</li>
+   *   <li>{@link Integer}</li>
+   *   <li>{@link Long}</li>
+   *   <li>{@link Double}</li>
+   *   <li>{@link java.math.BigDecimal}</li>
+   *   <li>{@link Float}</li>
+   *   <li>{@code int}</li>
+   *   <li>{@code long}</li>
+   *   <li>{@code short}</li>
+   *   <li>{@code byte}</li>
+   *   <li>{@code double}</li>
+   *   <li>{@code float}</li>
+   * </ol>
+   *
+   * <p>If an element cannot be cast to type TResult, the
+   * {@link Enumerator#current()} method will throw a
+   * {@link ClassCastException} a exception when the element it accessed. To
+   * obtain only those elements that can be cast to type TResult, use the
+   * {@link #ofType(Class)} method instead.
+   *
+   * @see EnumerableDefaults#extendedCast(Enumerable, Class)
+   * @see #ofType(Class)
+   * @see #cast(Class)
+   */
+  <T2> Enumerable<T2> extendedCast(Class<T2> clazz);
+
+  /**
    * Concatenates two sequences.
    */
   Enumerable<TSource> concat(Enumerable<TSource> enumerable1);

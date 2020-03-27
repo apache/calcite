@@ -223,6 +223,7 @@ public enum BuiltInMethod {
       Comparator.class),
   UNION(ExtendedEnumerable.class, "union", Enumerable.class),
   CONCAT(ExtendedEnumerable.class, "concat", Enumerable.class),
+  EXTENDED_CAST(ExtendedEnumerable.class, "extendedCast", Class.class),
   REPEAT_UNION(EnumerableDefaults.class, "repeatUnion", Enumerable.class,
       Enumerable.class, int.class, boolean.class, EqualityComparer.class),
   LAZY_COLLECTION_SPOOL(EnumerableDefaults.class, "lazyCollectionSpool", Collection.class,

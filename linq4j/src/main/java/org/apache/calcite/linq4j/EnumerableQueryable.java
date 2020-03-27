@@ -161,6 +161,10 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.cast(getThis(), clazz).asQueryable();
   }
 
+  public <T2> Queryable<T2> extendedCast(Class<T2> clazz) {
+    return EnumerableDefaults.extendedCast(getThis(), clazz).asQueryable();
+  }
+
   // Queryable methods
 
   public Type getElementType() {

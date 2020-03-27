@@ -3504,6 +3504,238 @@ public class JdbcTest {
             "empid=110; name=Theodore");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3216">[CALCITE-3216]
+   * ClassCastException when running aggregate function and window function over Union.</a>. */
+  @Test public void testAggregateOrWindowOverUnion() {
+    String query;
+    CalciteAssert.AssertThat assertThat = CalciteAssert.that()
+        .with(CalciteAssert.Config.JDBC_FOODMART);
+
+    query = "select count(*) as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(2)) \"foo\"(\"id\"))";
+    // cast Byte to int,Integer
+    assertThat.query(query).returns("C=2\n");
+
+    query = "select count(*) as C from (\n"
+        + "select \"id\" from (VALUES(CAST(null AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(2)) \"foo\"(\"id\"))";
+    // cast Byte to int,Integer
+    assertThat.query(query).returns("C=2\n");
+
+    query = "select count(*) over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(2)) \"foo\"(\"id\"))";
+    // cast Byte to Integer
+    assertThat.query(query).returns("C=1\nC=1\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(1)) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS SMALLINT))) \"foo\"(\"id\"))";
+    // cast Short to Integer
+    assertThat.query(query).returns("C=1\nC=2\n");
+
+    query = "select count(*) as C from (\n"
+        + "select \"id\" from (VALUES(1)) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS SMALLINT))) \"foo\"(\"id\"))";
+    // cast Short to int, Integer
+    assertThat.query(query).returns("C=2\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS SMALLINT))) \"foo\"(\"id\"))";
+    // cast Byte to Short
+    assertThat.query(query).returns("C=1\nC=2\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS SMALLINT))) \"foo\"(\"id\"))";
+    // cast Short to Long
+    assertThat.query(query).returns("C=1\nC=2\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS TINYINT))) \"foo\"(\"id\"))";
+    // cast Byte to Long
+    assertThat.query(query).returns("C=1\nC=2\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS INTEGER))) \"foo\"(\"id\"))";
+    // cast Integer to Long
+    assertThat.query(query).returns("C=1\nC=2\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Byte to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS SMALLINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Short to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS INTEGER))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Integer to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Long to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS DECIMAL))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast BigDecimal to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS REAL))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Float to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS REAL))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(null AS DOUBLE))) \"foo\"(\"id\"))";
+    // cast Float to Double
+    assertThat.query(query).returns("C=1.0\nC=null\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Byte to Float
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS SMALLINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Short to Float
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS INTEGER))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Integer to Float
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Long to Float
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Long to Float
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(null AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(null AS REAL))) \"foo\"(\"id\"))";
+    // cast Long to Float
+    assertThat.query(query).returns("C=null\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS DECIMAL))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Float to Double, cast BigDecimal to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS FLOAT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS REAL))) \"foo\"(\"id\"))";
+    // cast Float to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS TINYINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast Byte to BigDecimal
+    assertThat.query(query).returns("C=2\nC=1\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS SMALLINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast Short to BigDecimal
+    assertThat.query(query).returns("C=2\nC=1\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS INTEGER))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast Integer to BigDecimal
+    assertThat.query(query).returns("C=2\nC=1\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS BIGINT))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast Long to BigDecimal
+    assertThat.query(query).returns("C=2\nC=1\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS REAL))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast Float to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select sum(\"id\") over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(CAST(1 AS Double))) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(2 AS DECIMAL))) \"foo\"(\"id\"))";
+    // cast BigDecimal to Double
+    assertThat.query(query).returns("C=1.0\nC=2.0\n");
+
+    query = "select count(*) over (partition by \"id\") as C from (\n"
+        + "select \"id\" from (VALUES(DATE '2018-02-03')) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(TIMESTAMP '2008-03-31 12:23:34')) \"foo\"(\"id\"))";
+    // cast Long to Integer
+    assertThat.query(query).returns("C=1\nC=1\n");
+
+    query = "select * from (\n"
+        + "select \"id\" from (VALUES(1.2)) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(cast(1.2 as INT))) \"foo\"(\"id\"))";
+    assertThat.query(query).returns("id=1.2\nid=1\n");
+  }
+
   /** Tests that SUM and AVG over empty set return null. COUNT returns 0. */
   @Test public void testAggregateEmpty() {
     CalciteAssert.hr()

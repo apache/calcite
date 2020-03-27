@@ -325,6 +325,24 @@ public abstract class EnumerableDefaults {
   }
 
   /**
+   * <p>The extension of {@link #cast(Enumerable, Class)}. It can do more things than
+   * {@link #cast(Enumerable, Class)} method.</p>
+   *
+   * @param clazz Target type
+   * @param <T2> Target type
+   *
+   * @return Collection of T2
+   */
+  public static <TSource, T2> Enumerable<T2> extendedCast(
+      final Enumerable<TSource> source, final Class<T2> clazz) {
+    return new AbstractEnumerable<T2>() {
+      public Enumerator<T2> enumerator() {
+        return new ExtendedCastingEnumerator<>(source.enumerator(), clazz);
+      }
+    };
+  }
+
+  /**
    * Concatenates two sequences.
    */
   public static <TSource> Enumerable<TSource> concat(
@@ -3647,6 +3665,68 @@ public abstract class EnumerableDefaults {
 
     public void close() {
       enumerator.close();
+    }
+  }
+
+  /** Extended casting Enumerator that casts each value.
+   * This Enumerator is the extension of CastingEnumerator.
+   * As for sql type, most of the numeric types are compatible, and are assignable from other
+   * numeric types. But after these sql types have been translated to Java types, the original
+   * compatible types cannot cast directly. This Enumerator can help these compatible types cast.
+   *
+   * @param <T> element type */
+  static class ExtendedCastingEnumerator<T> implements Enumerator<T> {
+    private final Enumerator<?> enumerator;
+    private final Class<T> clazz;
+
+    ExtendedCastingEnumerator(Enumerator<?> enumerator, Class<T> clazz) {
+      this.enumerator = enumerator;
+      this.clazz = clazz;
+    }
+
+    public T current() {
+      return extendedCast(enumerator.current());
+    }
+
+    public boolean moveNext() {
+      return enumerator.moveNext();
+    }
+
+    public void reset() {
+      enumerator.reset();
+    }
+
+    public void close() {
+      enumerator.close();
+    }
+
+    public T extendedCast(Object obj) {
+      List<Class> castClassNullable = ImmutableList.of(Short.class, Byte.class, Integer.class,
+          Long.class, Double.class, BigDecimal.class, Float.class);
+      List<Class> castClassNotNullable = ImmutableList.of(int.class, long.class, short.class,
+          byte.class, double.class, float.class);
+      if (castClassNullable.contains(clazz)) {
+        try {
+          // Use the Constructor to realize the type cast.
+          return clazz.getConstructor(String.class).newInstance(obj.toString());
+        } catch (Exception ignored) {
+          // If cast failed, ignore the exception, turn to the general type cast.
+          return clazz.cast(obj);
+        }
+      } else if (castClassNotNullable.contains(clazz)
+          && castClassNullable.contains(obj.getClass())) {
+        try {
+          // In general, in order to cast to primitive data types, we can use methods
+          // such as intValue, floatValue, doubleValue and so on.
+          final String methodName = clazz.getName() + "Value";
+          return (T) obj.getClass().getMethod(methodName).invoke(obj);
+        } catch (Exception ignored) {
+          // If cast failed, ignore the exception, turn to the general type cast.
+          return clazz.cast(obj);
+        }
+      } else {
+        return clazz.cast(obj);
+      }
     }
   }
 
