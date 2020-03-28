@@ -5978,7 +5978,7 @@ public abstract class SqlOperatorBaseTest {
         "^sign('abc')^",
         "Cannot apply 'SIGN' to arguments of type 'SIGN\\(<CHAR\\(3\\)>\\)'\\. Supported form\\(s\\): 'SIGN\\(<NUMERIC>\\)'",
         false);
-    tester.checkType("sign('abc')", "DECIMAL(19, 19) NOT NULL");
+    tester.checkType("sign('abc')", "DECIMAL(19, 0) NOT NULL");
     tester.checkScalar(
         "sign(1)",
         1,
@@ -5993,6 +5993,24 @@ public abstract class SqlOperatorBaseTest {
         "FLOAT NOT NULL");
     tester.checkNull("sign(cast(null as integer))");
     tester.checkNull("sign(cast(null as double))");
+    tester.checkType("sign(cast(0.1 as float))", "FLOAT NOT NULL");
+    tester.checkType("sign(cast(.1 as decimal))", "DECIMAL(19, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(0.1)",
+        1,
+        "DECIMAL(2, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(cast(-0.1 as decimal(2, 0)))",
+        BigDecimal.valueOf(-1),
+        "DECIMAL(2, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(cast(-.1 as decimal(1, 0)))",
+        BigDecimal.valueOf(-1),
+        "DECIMAL(1, 0) NOT NULL");
+    tester.checkScalar(
+        "sign(cast(0.1 as float))",
+        1d,
+        "FLOAT NOT NULL");
   }
 
   @Test void testSinFunc() {

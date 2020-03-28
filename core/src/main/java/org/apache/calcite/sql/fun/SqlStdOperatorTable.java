@@ -1714,7 +1714,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
       new SqlFunction(
           "SIGN",
           SqlKind.OTHER_FUNCTION,
-          ReturnTypes.ARG0,
+          ReturnTypes.ARG0_OR_EXACT_NO_SCALE,
           null,
           OperandTypes.NUMERIC,
           SqlFunctionCategory.NUMERIC);
