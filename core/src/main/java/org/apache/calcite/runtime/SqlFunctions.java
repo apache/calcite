@@ -73,6 +73,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1094,6 +1095,40 @@ public class SqlFunctions {
   /** Helper function for implementing <code>BIT_XOR</code> */
   public static long bitXor(long b0, long b1) {
     return b0 ^ b1;
+  }
+
+  // BITNOT
+
+  /** SQL <code>BITNOT</code> operator applied to byte values */
+  public static byte bitNot(byte b0) {
+    return (byte) ~b0;
+  }
+
+  /** SQL <code>BITNOT</code> operator applied to short values */
+  public static short bitNot(short b0) {
+    return (short) ~b0;
+  }
+
+  /** SQL <code>BITNOT</code> operator applied to int values */
+  public static int bitNot(int b0) {
+    return ~b0;
+  }
+
+  /** SQL <code>BITNOT</code> operator applied to long values */
+  public static long bitNot(long b0) {
+    return ~b0;
+  }
+
+  /** SQL <code>BITNOT</code> operator applied to ByteString values */
+  public static ByteString bitNot(ByteString b0) {
+    byte[] bytes = b0.getBytes();
+    byte[] result = new byte[b0.length()];
+
+    IntStream.range(0, bytes.length).forEach(i -> {
+      result[i] = (byte) ~bytes[i];
+    });
+    return new ByteString(result);
+
   }
 
   // EXP

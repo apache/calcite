@@ -48,9 +48,10 @@ public enum SqlLibrary {
   MYSQL("m"),
   /** A collection of operators that are in Oracle but not in standard SQL. */
   ORACLE("o"),
-  /** A collection of operators that are in PostgreSQL but not in standard
-   * SQL. */
-  POSTGRESQL("p");
+  /** A collection of operators that are in PostgreSQL but not in standard SQL. */
+  POSTGRESQL("p"),
+  /** A collection of operators that are in Snowflake but not in standard SQL. */
+  SNOWFLAKE("s");
 
   /** Abbreviation for the library used in SQL reference. */
   public final String abbrev;
