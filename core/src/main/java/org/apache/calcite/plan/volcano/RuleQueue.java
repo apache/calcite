@@ -34,6 +34,7 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -140,11 +141,7 @@ class RuleQueue {
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
-      if (match.getRule() instanceof SubstitutionRule) {
-        matchList.list.offerFirst(match);
-      } else {
-        matchList.list.offer(match);
-      }
+      matchList.offer(match);
 
       matchList.matchMap.put(
           planner.getSubset(match.rels[0]), match);
@@ -173,11 +170,11 @@ class RuleQueue {
 
     VolcanoRuleMatch match;
     for (;;) {
-      if (phaseMatchList.list.isEmpty()) {
+      if (phaseMatchList.size() == 0) {
         return null;
       }
 
-      match = phaseMatchList.list.poll();
+      match = phaseMatchList.poll();
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -272,14 +269,19 @@ class RuleQueue {
     final VolcanoPlannerPhase phase;
 
     /**
-     * Current list of VolcanoRuleMatches for this phase. New rule-matches
-     * are appended to the end of this list.
-     * The rules are not sorted in any way.
+     * Rule match queue for SubstitutionRule
      */
-    final Deque<VolcanoRuleMatch> list = new LinkedList<>();
+    private final Queue<VolcanoRuleMatch> preQueue = new LinkedList<>();
 
     /**
-     * A set of rule-match names contained in {@link #list}. Allows fast
+     * Current list of VolcanoRuleMatches for this phase. New rule-matches
+     * are appended to the end of this queue.
+     * The rules are not sorted in any way.
+     */
+    private final Queue<VolcanoRuleMatch> queue = new LinkedList<>();
+
+    /**
+     * A set of rule-match names contained in {@link #queue}. Allows fast
      * detection of duplicate rule-matches.
      */
     final Set<String> names = new HashSet<>();
@@ -294,8 +296,29 @@ class RuleQueue {
       this.phase = phase;
     }
 
+    int size() {
+      return preQueue.size() + queue.size();
+    }
+
+    VolcanoRuleMatch poll() {
+      VolcanoRuleMatch match = preQueue.poll();
+      if (match == null) {
+        match = queue.poll();
+      }
+      return match;
+    }
+
+    void offer(VolcanoRuleMatch match) {
+      if (match.getRule() instanceof SubstitutionRule) {
+        preQueue.offer(match);
+      } else {
+        queue.offer(match);
+      }
+    }
+
     void clear() {
-      list.clear();
+      preQueue.clear();
+      queue.clear();
       names.clear();
       matchMap.clear();
     }

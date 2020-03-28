@@ -140,7 +140,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         }
       }
 
-      if (this.getRule() instanceof SubstitutionRule) {
+      if (this.getRule() instanceof SubstitutionRule
+          && ((SubstitutionRule) getRule()).autoPruneOld()) {
         volcanoPlanner.setImportance(rels[0], 0d);
       }
 
