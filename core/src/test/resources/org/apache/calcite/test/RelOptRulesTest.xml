@@ -5468,6 +5468,22 @@ LogicalUnion(all=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testProjectMergeShouldIgnoreOver">
+        <Resource name="sql">
+            <![CDATA[select row_number() over (order by deptno), col1
+from (
+  select deptno,
+    sum(100) over (partition by  deptno order by sal) as col1
+  from emp)]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(EXPR$0=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)], COL1=[$1])
+  LogicalProject(DEPTNO=[$7], COL1=[SUM(100) OVER (PARTITION BY $7 ORDER BY $5 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testPushFilterPastAggFour">
         <Resource name="sql">
             <![CDATA[select emp.deptno, count(*) from emp where emp.sal > '12'

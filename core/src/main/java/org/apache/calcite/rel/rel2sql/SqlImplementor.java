@@ -1439,6 +1439,14 @@ public abstract class SqlImplementor {
         return true;
       }
 
+      if (rel instanceof Project
+          && RexOver.containsOver(((Project) rel).getProjects(), null)
+          && maxClause == Clause.SELECT) {
+        // Cannot merge a Project that contains windowed functions onto an
+        // underlying Project
+        return true;
+      }
+
       if (rel instanceof Aggregate) {
         final Aggregate agg = (Aggregate) rel;
         final boolean hasNestedAgg = hasNestedAggregations(agg);

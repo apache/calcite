@@ -38,8 +38,11 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.ViewTable;
@@ -164,6 +167,12 @@ public class RelBuilderTest {
     return Frameworks.newConfigBuilder().defaultSchema(root);
   }
 
+  /** Creates a RelBuilder with default config. */
+  static RelBuilder createBuilder() {
+    return createBuilder(c -> c);
+  }
+
+  /** Creates a RelBuilder with transformed config. */
   static RelBuilder createBuilder(UnaryOperator<RelBuilder.Config> transform) {
     final Frameworks.ConfigBuilder configBuilder = config();
     configBuilder.context(
@@ -781,7 +790,7 @@ public class RelBuilderTest {
         + "  LogicalProject(v=[CASE(=($7, 0), 'zero', =($7, 1), "
         + "'one', =($7, 2), 'two', 'other')])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withBloat(0))),
         hasTree(expectedNeg));
     assertThat(f.apply(createBuilder(c -> c.withBloat(-1))),
@@ -813,7 +822,7 @@ public class RelBuilderTest {
     final String expectedNeg = "LogicalProject($f0=[*($1, $2)], SAL=[$1])\n"
         + "  LogicalProject(DEPTNO=[$7], SAL=[$5], PLUS=[+($7, $0)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withBloat(0))),
         hasTree(expected));
     assertThat(f.apply(createBuilder(c -> c.withBloat(-1))),
@@ -833,6 +842,62 @@ public class RelBuilderTest {
     list.add(nodes.length % 2 == 1 ? nodes[nodes.length - 1]
         : b.literal(null));
     return b.call(SqlStdOperatorTable.CASE, list);
+  }
+
+  /** Creates a {@link Project} that contains a windowed aggregate function. As
+   * {@link RelBuilder} not explicitly support for {@link RexOver} the syntax is
+   * a bit cumbersome. */
+  @Test public void testProjectOver() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            over(b,
+                ImmutableList.of(
+                    new RexFieldCollation(b.field("EMPNO"),
+                        ImmutableSet.of()))))
+        .build();
+    final String expected = ""
+        + "LogicalProject(DEPTNO=[$7], "
+        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED PRECEDING "
+        + "AND UNBOUNDED FOLLOWING)])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  /** Tests that RelBuilder does not merge a Project that contains a windowed
+   * aggregate function into a lower Project. */
+  @Test public void testProjectOverOver() {
+    final Function<RelBuilder, RelNode> f = b -> b.scan("EMP")
+        .project(b.field("DEPTNO"),
+            over(b,
+                ImmutableList.of(
+                    new RexFieldCollation(b.field("EMPNO"),
+                        ImmutableSet.of()))))
+        .project(b.field("DEPTNO"),
+            over(b,
+                ImmutableList.of(
+                    new RexFieldCollation(b.field("DEPTNO"),
+                        ImmutableSet.of()))))
+        .build();
+    final String expected = "LogicalProject(DEPTNO=[$0], "
+        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+        + "  LogicalProject(DEPTNO=[$7], "
+        + "$f1=[ROW_NUMBER() OVER (ORDER BY $0 ROWS BETWEEN UNBOUNDED "
+        + "PRECEDING AND UNBOUNDED FOLLOWING)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+  }
+
+  private RexNode over(RelBuilder b,
+      ImmutableList<RexFieldCollation> fieldCollations) {
+    final RelDataType intType =
+        b.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    return b.getRexBuilder()
+        .makeOver(intType, SqlStdOperatorTable.ROW_NUMBER,
+            ImmutableList.of(), ImmutableList.of(), fieldCollations,
+            RexWindowBounds.UNBOUNDED_PRECEDING,
+            RexWindowBounds.UNBOUNDED_FOLLOWING, true, true, false,
+            false, false);
   }
 
   @Test public void testRename() {
@@ -997,7 +1062,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{0, 1}], C=[COUNT()], S=[SUM($2)])\n"
         + "  LogicalProject(ENAME=[$1], $f8=[+($4, $3)], $f9=[+($3, 1)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now without pruning
     final String expected2 = ""
@@ -1100,7 +1165,7 @@ public class RelBuilderTest {
         + "  LogicalAggregate(group=[{0}], agg#0=[SUM($1)])\n"
         + "    LogicalProject(ENAME=[$1], SAL=[$5])\n"
         + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
   }
 
   /** Tests that {@link RelBuilder#aggregate} eliminates duplicate aggregate
@@ -1207,7 +1272,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{0}], groups=[[{0}, {}]], C=[COUNT() FILTER $1])\n"
         + "  LogicalProject(DEPTNO=[$7], $f8=[>($0, 100)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now without pruning
     final String expected2 = ""
@@ -1260,7 +1325,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{1}], C=[SUM($0) FILTER $2])\n"
         + "  LogicalProject(SAL=[$5], DEPTNO=[$7], $f8=[IS TRUE(<($6, 100))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now without pruning
     final String expected2 = ""
@@ -1308,7 +1373,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{0}])\n"
         + "  LogicalProject(d3=[+($7, 3)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now without pruning
     final String expected2 = ""
@@ -1353,7 +1418,7 @@ public class RelBuilderTest {
         + "LogicalAggregate(group=[{0}], agg#0=[SUM($1) FILTER $2])\n"
         + "  LogicalProject(DEPTNO=[$7], SAL=[$5], $f4=[IS TRUE(=($2, 'CLERK'))])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)),
+    assertThat(f.apply(createBuilder()),
         hasTree(expected));
 
     // now with pruning disabled
@@ -1394,7 +1459,7 @@ public class RelBuilderTest {
         + "LogicalProject(C=[$0], C2=[$0])\n"
         + "  LogicalAggregate(group=[{}], C=[COUNT()])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now with pruning disabled
     final String expected2 = ""
@@ -1547,7 +1612,7 @@ public class RelBuilderTest {
     final String expected = "LogicalAggregate(group=[{}])\n"
         + "  LogicalFilter(condition=[IS NULL($6)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(f.apply(createBuilder(c -> c)), hasTree(expected));
+    assertThat(f.apply(createBuilder()), hasTree(expected));
 
     // now without pruning
     // (The empty LogicalProject is dubious, but it's what we've always done)

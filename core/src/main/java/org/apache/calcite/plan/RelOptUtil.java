@@ -2989,6 +2989,12 @@ public abstract class RelOptUtil {
       // If bloat is negative never merge.
       return null;
     }
+    if (RexOver.containsOver(nodes, null)
+        && RexOver.containsOver(project.getProjects(), null)) {
+      // Is it valid relational algebra to apply windowed function to a windowed
+      // function? Possibly. But it's invalid SQL, so don't go there.
+      return null;
+    }
     final List<RexNode> list = pushPastProject(nodes, project);
     final int bottomCount = RexUtil.nodeCount(project.getProjects());
     final int topCount = RexUtil.nodeCount(nodes);

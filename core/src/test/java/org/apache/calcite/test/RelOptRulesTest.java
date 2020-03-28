@@ -4229,6 +4229,17 @@ public class RelOptRulesTest extends RelOptTestBase {
     sql(sql).with(program).check();
   }
 
+  /** While it's probably valid relational algebra for a Project to contain
+   * a RexOver inside a RexOver, ProjectMergeRule should not bring it about. */
+  @Test public void testProjectMergeShouldIgnoreOver() {
+    final String sql = "select row_number() over (order by deptno), col1\n"
+        + "from (\n"
+        + "  select deptno,\n"
+        + "    sum(100) over (partition by  deptno order by sal) as col1\n"
+        + "  from emp)";
+    sql(sql).withRule(ProjectMergeRule.INSTANCE).checkUnchanged();
+  }
+
   @Test public void testAggregateProjectPullUpConstants() {
     final String sql = "select job, empno, sal, sum(sal) as s\n"
         + "from emp where empno = 10\n"
