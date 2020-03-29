@@ -213,7 +213,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
         enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
     // Use the Volcano because it can handle the traits.
-    final VolcanoPlanner planner = new VolcanoPlanner();
+    final RelOptPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     final SqlToRelConverter.ConfigBuilder configBuilder =

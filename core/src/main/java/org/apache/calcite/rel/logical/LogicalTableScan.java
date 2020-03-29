@@ -91,7 +91,7 @@ public final class LogicalTableScan extends TableScan {
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
-    return this;
+    return new LogicalTableScan(getCluster(), traitSet, getHints(), getTable());
   }
 
   /** Creates a LogicalTableScan.

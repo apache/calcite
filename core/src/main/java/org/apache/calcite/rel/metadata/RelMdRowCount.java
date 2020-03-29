@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
+import org.apache.calcite.plan.cascades.RelSubGroup;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -70,6 +71,23 @@ public class RelMdRowCount
   public Double getRowCount(RelSubset subset, RelMetadataQuery mq) {
     if (!Bug.CALCITE_1048_FIXED) {
       return mq.getRowCount(Util.first(subset.getBest(), subset.getOriginal()));
+    }
+    Double v = null;
+    for (RelNode r : subset.getRels()) {
+      try {
+        v = NumberUtil.min(v, mq.getRowCount(r));
+      } catch (CyclicMetadataException e) {
+        // ignore this rel; there will be other, non-cyclic ones
+      } catch (Throwable e) {
+        e.printStackTrace();
+      }
+    }
+    return Util.first(v, 1e6d); // if set is empty, estimate large
+  }
+
+  public Double getRowCount(RelSubGroup subset, RelMetadataQuery mq) {
+    if (!Bug.CALCITE_1048_FIXED) {
+      return mq.getRowCount(Util.first(subset.cheapestSoFar(), subset.getOriginal()));
     }
     Double v = null;
     for (RelNode r : subset.getRels()) {

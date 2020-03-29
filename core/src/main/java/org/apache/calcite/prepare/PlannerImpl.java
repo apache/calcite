@@ -32,6 +32,8 @@ import org.apache.calcite.plan.RelOptTable.ViewExpander;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.cascades.CascadesPlanner;
+import org.apache.calcite.plan.cascades.Enforcer;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -80,6 +82,8 @@ public class PlannerImpl implements Planner, ViewExpander {
   private final SqlValidator.Config sqlValidatorConfig;
   private final SqlToRelConverter.Config sqlToRelConverterConfig;
   private final SqlRexConvertletTable convertletTable;
+  private final List<Enforcer> enforcers;
+  private final boolean useCascadesPlanner;
 
   private State state;
 
@@ -115,6 +119,8 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.executor = config.getExecutor();
     this.context = config.getContext();
     this.connectionConfig = connConfig();
+    this.enforcers = config.getEnforcers();
+    this.useCascadesPlanner = config.useCascadesPlanner();
     reset();
   }
 
@@ -175,10 +181,14 @@ public class PlannerImpl implements Planner, ViewExpander {
         connectionConfig.typeSystem(RelDataTypeSystem.class,
             RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
-    planner = new VolcanoPlanner(costFactory, context);
-    RelOptUtil.registerDefaultRules(planner,
-        connectionConfig.materializationsEnabled(),
-        Hook.ENABLE_BINDABLE.get(false));
+    planner = useCascadesPlanner
+        ? new CascadesPlanner(costFactory, context)
+        : new VolcanoPlanner(costFactory, context);
+    if (planner instanceof VolcanoPlanner) { // TODO rules for CascadesPlanner
+      RelOptUtil.registerDefaultRules(planner,
+          connectionConfig.materializationsEnabled(),
+          Hook.ENABLE_BINDABLE.get(false));
+    }
     planner.setExecutor(executor);
 
     state = State.STATE_2_READY;
@@ -193,6 +203,12 @@ public class PlannerImpl implements Planner, ViewExpander {
     } else {
       for (RelTraitDef def : this.traitDefs) {
         planner.addRelTraitDef(def);
+      }
+    }
+
+    if (planner instanceof CascadesPlanner) {
+      for (Enforcer enforcer : enforcers) {
+        ((CascadesPlanner) planner).addEnforcer(enforcer);
       }
     }
   }

@@ -58,6 +58,11 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     // traits (e.g. convert it to an EnumerableSortRel if rel is enumerable
     // convention)
     final Exchange exchange = LogicalExchange.create(rel, toDistribution);
+
+    if (planner == null) {
+      return exchange;
+    }
+
     RelNode newRel = planner.register(exchange, rel);
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toDistribution);
     if (!newRel.getTraitSet().equals(newTraitSet)) {
@@ -68,6 +73,10 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
 
   public boolean canConvert(RelOptPlanner planner, RelDistribution fromTrait,
       RelDistribution toTrait) {
+    return true;
+  }
+
+  public boolean multiple() {
     return true;
   }
 }

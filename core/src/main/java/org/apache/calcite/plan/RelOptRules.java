@@ -114,7 +114,7 @@ public class RelOptRules {
           FilterCalcMergeRule.INSTANCE,
           ProjectCalcMergeRule.INSTANCE);
 
-  static final List<RelOptRule> BASE_RULES = ImmutableList.of(
+  public static final List<RelOptRule> BASE_RULES = ImmutableList.of(
       AggregateStarTableRule.INSTANCE,
       AggregateStarTableRule.INSTANCE2,
       CalciteSystemProperty.COMMUTE.value()
@@ -141,7 +141,7 @@ public class RelOptRules {
       ExchangeRemoveConstantKeysRule.EXCHANGE_INSTANCE,
       ExchangeRemoveConstantKeysRule.SORT_EXCHANGE_INSTANCE);
 
-  static final List<RelOptRule> ABSTRACT_RULES = ImmutableList.of(
+  public static final List<RelOptRule> ABSTRACT_RULES = ImmutableList.of(
       AggregateProjectPullUpConstantsRule.INSTANCE2,
       UnionPullUpConstantsRule.INSTANCE,
       PruneEmptyRules.UNION_INSTANCE,
@@ -162,7 +162,7 @@ public class RelOptRules {
       DateRangeRules.FILTER_INSTANCE,
       IntersectToDistinctRule.INSTANCE);
 
-  static final List<RelOptRule> ABSTRACT_RELATIONAL_RULES = ImmutableList.of(
+  public static final List<RelOptRule> ABSTRACT_RELATIONAL_RULES = ImmutableList.of(
       FilterJoinRule.FILTER_ON_JOIN,
       FilterJoinRule.JOIN,
       AbstractConverter.ExpandConversionRule.INSTANCE,

@@ -64,14 +64,14 @@ public class Statistics {
   /** Returns a statistic with a given set of referential constraints. */
   public static Statistic of(final List<RelReferentialConstraint> referentialConstraints) {
     return of(null, ImmutableList.of(),
-        referentialConstraints, ImmutableList.of());
+        referentialConstraints, ImmutableList.of(), null);
   }
 
   /** Returns a statistic with a given row count and set of unique keys. */
   public static Statistic of(final double rowCount,
       final List<ImmutableBitSet> keys) {
     return of(rowCount, keys, ImmutableList.of(),
-        ImmutableList.of());
+        ImmutableList.of(), null);
   }
 
   /** Returns a statistic with a given row count, set of unique keys,
@@ -79,7 +79,15 @@ public class Statistics {
   public static Statistic of(final double rowCount,
       final List<ImmutableBitSet> keys,
       final List<RelCollation> collations) {
-    return of(rowCount, keys, ImmutableList.of(), collations);
+    return of(rowCount, keys, ImmutableList.of(), collations, null);
+  }
+
+  /** Returns a statistic with a given row count, distribution,
+   * and collations. */
+  public static Statistic of(final double rowCount,
+      final List<RelCollation> collations,
+      RelDistribution distribution) {
+    return of(rowCount, ImmutableList.of(), ImmutableList.of(), collations, distribution);
   }
 
   /** Returns a statistic with a given row count, set of unique keys,
@@ -87,7 +95,8 @@ public class Statistics {
   public static Statistic of(final Double rowCount,
       final List<ImmutableBitSet> keys,
       final List<RelReferentialConstraint> referentialConstraints,
-      final List<RelCollation> collations) {
+      final List<RelCollation> collations,
+      final RelDistribution distribution) {
     return new Statistic() {
       public Double getRowCount() {
         return rowCount;
@@ -115,7 +124,7 @@ public class Statistics {
       }
 
       public RelDistribution getDistribution() {
-        return RelDistributionTraitDef.INSTANCE.getDefault();
+        return distribution == null ? RelDistributionTraitDef.INSTANCE.getDefault() : distribution;
       }
     };
   }

@@ -17,9 +17,11 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.cascades.RelSubGroup;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
@@ -42,6 +44,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * RelMdCollation supplies a default implementation of
@@ -110,6 +113,10 @@ public class RelMdDistribution
     return mq.distribution(rel.getCurrentRel());
   }
 
+  public RelDistribution distribution(RelSubGroup rel, RelMetadataQuery mq) {
+    return relSubGroup(rel, mq);
+  }
+
   // Helper methods
 
   /** Helper method to determine a
@@ -160,9 +167,15 @@ public class RelMdDistribution
   public static RelDistribution project(RelMetadataQuery mq, RelNode input,
       List<? extends RexNode> projects) {
     final RelDistribution inputDistribution = mq.distribution(input);
+    // TODO more solid handling.
     final Mappings.TargetMapping mapping =
-        Project.getPartialMapping(input.getRowType().getFieldCount(),
+        Project.getMapping(input.getRowType().getFieldCount(),
             projects);
+
+    if (mapping == null) {
+      return RelDistributionTraitDef.INSTANCE.getDefault();
+    }
+
     return inputDistribution.apply(mapping);
   }
 
@@ -178,5 +191,14 @@ public class RelMdDistribution
    * or {@link org.apache.calcite.rel.core.SortExchange}'s distribution. */
   public static RelDistribution exchange(RelDistribution distribution) {
     return distribution;
+  }
+
+  /** Helper method to determine a
+   * {@link RelSubGroup}'s distribution. */
+  public static RelDistribution relSubGroup(RelSubGroup rel, RelMetadataQuery mq) {
+    Set<RelDistribution> distr = rel.getGroup().traitsFlatten(RelDistributionTraitDef.INSTANCE);
+    return distr.isEmpty()
+        ? mq.distribution(rel.getGroup().originalRel())
+        : distr.iterator().next();
   }
 }

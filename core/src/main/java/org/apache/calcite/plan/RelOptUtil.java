@@ -2020,14 +2020,14 @@ public abstract class RelOptUtil {
 
   @Experimental
   public static void registerDefaultRules(RelOptPlanner planner,
-      boolean enableMaterialziations, boolean enableBindable) {
+      boolean enableMaterializations, boolean enableBindable) {
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       registerAbstractRelationalRules(planner);
     }
     registerAbstractRules(planner);
     registerBaseRules(planner);
 
-    if (enableMaterialziations) {
+    if (enableMaterializations) {
       registerMaterializationRules(planner);
     }
     if (enableBindable) {

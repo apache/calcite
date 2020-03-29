@@ -24,6 +24,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
@@ -66,6 +67,17 @@ public class JoinAssociateRule extends RelOptRule {
         relBuilderFactory, null);
   }
 
+    /**
+     * Creates a JoinAssociateRule.
+     */
+  public JoinAssociateRule(Class<LogicalJoin> joinClass, RelBuilderFactory relBuilderFactory) {
+    super(
+        operand(joinClass,
+            operand(joinClass, any()),
+            operand(RelNode.class, any())),
+        relBuilderFactory, null);
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   public void onMatch(final RelOptRuleCall call) {
@@ -73,7 +85,7 @@ public class JoinAssociateRule extends RelOptRule {
     final Join bottomJoin = call.rel(1);
     final RelNode relA = bottomJoin.getLeft();
     final RelNode relB = bottomJoin.getRight();
-    final RelSubset relC = call.rel(2);
+    final RelNode relC = call.rel(2);
     final RelOptCluster cluster = topJoin.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
 

@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.cascades.Enforcer;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.prepare.PlannerImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
@@ -228,6 +229,8 @@ public class Frameworks {
     private boolean evolveLattice;
     private SqlStatisticProvider statisticProvider;
     private RelOptTable.ViewExpander viewExpander;
+    private ImmutableList<Enforcer> enforcers;
+    private boolean useCascadesPlanner;
 
     /** Creates a ConfigBuilder, initializing to defaults. */
     private ConfigBuilder() {
@@ -241,6 +244,8 @@ public class Frameworks {
       typeSystem = RelDataTypeSystem.DEFAULT;
       evolveLattice = false;
       statisticProvider = QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE;
+      enforcers = ImmutableList.of();
+      useCascadesPlanner = false;
     }
 
     /** Creates a ConfigBuilder, initializing from an existing config. */
@@ -259,13 +264,15 @@ public class Frameworks {
       typeSystem = config.getTypeSystem();
       evolveLattice = config.isEvolveLattice();
       statisticProvider = config.getStatisticProvider();
+      enforcers = config.getEnforcers();
+      useCascadesPlanner = config.useCascadesPlanner();
     }
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
           programs, traitDefs, parserConfig, sqlValidatorConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
-          statisticProvider, viewExpander);
+          statisticProvider, viewExpander, enforcers, useCascadesPlanner);
     }
 
     public ConfigBuilder context(Context c) {
@@ -368,6 +375,16 @@ public class Frameworks {
       this.viewExpander = viewExpander;
       return this;
     }
+
+    public ConfigBuilder enforcers(List<Enforcer> enforcers) {
+      this.enforcers = ImmutableList.copyOf(enforcers);
+      return this;
+    }
+
+    public ConfigBuilder useCascadesPlanner(boolean useCascadesPlanner) {
+      this.useCascadesPlanner = useCascadesPlanner;
+      return this;
+    }
   }
 
   /**
@@ -390,6 +407,8 @@ public class Frameworks {
     private final boolean evolveLattice;
     private final SqlStatisticProvider statisticProvider;
     private final RelOptTable.ViewExpander viewExpander;
+    private final ImmutableList<Enforcer> enforcers;
+    private final boolean useCascadesPlanner;
 
     StdFrameworkConfig(Context context,
         SqlRexConvertletTable convertletTable,
@@ -405,7 +424,9 @@ public class Frameworks {
         RexExecutor executor,
         boolean evolveLattice,
         SqlStatisticProvider statisticProvider,
-        RelOptTable.ViewExpander viewExpander) {
+        RelOptTable.ViewExpander viewExpander,
+        ImmutableList<Enforcer> enforcers,
+        boolean useCascadesPlanner) {
       this.context = context;
       this.convertletTable = convertletTable;
       this.operatorTable = operatorTable;
@@ -421,6 +442,8 @@ public class Frameworks {
       this.evolveLattice = evolveLattice;
       this.statisticProvider = statisticProvider;
       this.viewExpander = viewExpander;
+      this.enforcers = enforcers;
+      this.useCascadesPlanner = useCascadesPlanner;
     }
 
     public SqlParser.Config getParserConfig() {
@@ -481,6 +504,14 @@ public class Frameworks {
 
     public RelOptTable.ViewExpander getViewExpander() {
       return viewExpander;
+    }
+
+    @Override public boolean useCascadesPlanner() {
+      return useCascadesPlanner;
+    }
+
+    @Override public ImmutableList<Enforcer> getEnforcers() {
+      return enforcers;
     }
   }
 }

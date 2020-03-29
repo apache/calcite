@@ -113,7 +113,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   }
 
   //~ Methods ----------------------------------------------------------------
-
   public void clear() {}
 
   public Context getContext() {

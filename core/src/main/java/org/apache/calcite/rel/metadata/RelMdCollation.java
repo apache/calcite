@@ -23,6 +23,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
 import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.cascades.RelSubGroup;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelCollation;
@@ -67,6 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -219,6 +221,12 @@ public class RelMdCollation
     return ImmutableList.copyOf(
         Objects.requireNonNull(
             rel.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE)));
+  }
+
+  public ImmutableList<RelCollation> collations(RelSubGroup rel,
+      RelMetadataQuery mq) {
+    Set<RelCollation> traitSets = rel.getGroup().traitsFlatten(RelCollationTraitDef.INSTANCE);
+    return ImmutableList.copyOf(traitSets);
   }
 
   // Helper methods
