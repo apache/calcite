@@ -704,7 +704,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (equivRel != null) {
         final RelSubset equivSubset = getSubset(equivRel);
         if (subset.set != equivSubset.set) {
-          merge(subset.set, equivSubset.set, !(rel instanceof RelSubset));
+          merge(equivSubset.set, subset.set);
         }
       }
       result = subset;
@@ -1249,7 +1249,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           assert equivSubset.getTraitSet().equals(
               subset.getTraitSet());
           assert equivSubset.set != subset.set;
-          merge(equivSubset.set, subset.set, true);
+          merge(equivSubset.set, subset.set);
         }
       }
     }
@@ -1340,7 +1340,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return changeCount > 0;
   }
 
-  private RelSet merge(RelSet set, RelSet set2, boolean enableSwap) {
+  private RelSet merge(RelSet set, RelSet set2) {
     assert set != set2 : "pre: set != set2";
 
     // Find the root of set2's equivalence tree.
@@ -1354,8 +1354,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
 
     // If necessary, swap the sets, so we're always merging the newer set
-    // into the older.
-    if (enableSwap && set.id > set2.id) {
+    // into the older or merging parent set into child set.
+    if (set2.getChildSets(this).contains(set)) {
+      // No-op
+    } else if (set.getChildSets(this).contains(set2)
+        || set.id > set2.id) {
       RelSet t = set;
       set = set2;
       set2 = t;
@@ -1493,7 +1496,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         LOGGER.trace(
             "Register #{} {} (and merge sets, because it is a conversion)",
             rel.getId(), rel.getDigest());
-        merge(set, childSet, true);
+        merge(set, childSet);
 
         // During the mergers, the child set may have changed, and since
         // we're not registered yet, we won't have been informed. So
@@ -1597,8 +1600,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         && (set != null)
         && (set.equivalentSet == null)) {
       LOGGER.trace("Register #{} {}, and merge sets", subset.getId(), subset);
-      boolean enableSwap = !set.getChildSets(this).contains(subset.set);
-      merge(subset.set, set, enableSwap);
+      merge(set, subset.set);
     }
     return subset;
   }
