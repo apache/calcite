@@ -28,6 +28,8 @@ import com.google.common.collect.Multimap;
 
 import org.slf4j.Logger;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.EnumMap;
@@ -162,6 +164,8 @@ class RuleQueue {
    *                              {@link #phaseCompleted(VolcanoPlannerPhase)}.
    */
   VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
+    dumpPlannerState();
+
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
     if (phaseMatchList == null) {
       throw new AssertionError("Used match list for phase " + phase
@@ -173,6 +177,8 @@ class RuleQueue {
       if (phaseMatchList.size() == 0) {
         return null;
       }
+
+      dumpRuleQueue(phaseMatchList);
 
       match = phaseMatchList.poll();
 
@@ -192,6 +198,39 @@ class RuleQueue {
 
     LOGGER.debug("Pop match: {}", match);
     return match;
+  }
+
+  /**
+   * Dumps rules queue to the logger when debug level is set to {@code TRACE}.
+   */
+  private void dumpRuleQueue(PhaseMatchList phaseMatchList) {
+    if (LOGGER.isTraceEnabled()) {
+      StringBuilder b = new StringBuilder();
+      b.append("Rule queue:");
+      for (VolcanoRuleMatch rule : phaseMatchList.preQueue) {
+        b.append("\n");
+        b.append(rule);
+      }
+      for (VolcanoRuleMatch rule : phaseMatchList.queue) {
+        b.append("\n");
+        b.append(rule);
+      }
+      LOGGER.trace(b.toString());
+    }
+  }
+
+  /**
+   * Dumps planner's state to the logger when debug level is set to {@code TRACE}.
+   */
+  private void dumpPlannerState() {
+    if (LOGGER.isTraceEnabled()) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      planner.dump(pw);
+      pw.flush();
+      LOGGER.trace(sw.toString());
+      planner.getRoot().getCluster().invalidateMetadataQuery();
+    }
   }
 
   /** Returns whether to skip a match. This happens if any of the
