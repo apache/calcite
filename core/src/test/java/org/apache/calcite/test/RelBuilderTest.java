@@ -19,7 +19,6 @@ package org.apache.calcite.test;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
@@ -50,7 +49,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql2rel.RelFieldTrimmer;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -3363,90 +3361,5 @@ public class RelBuilderTest {
             builder.literal(1),
             builder.literal(5));
     assertThat(call.toStringRaw(), is("BETWEEN ASYMMETRIC($0, 1, 5)"));
-  }
-
-  @Test public void testSortExchangeFieldTrimmer() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
-            .sortExchange(RelDistributions.hash(Lists.newArrayList(1)), RelCollations.of(0))
-            .project(builder.field("EMPNO"), builder.field("ENAME"))
-            .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
-    RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
-    RelNode trimmed = fieldTrimmer.trim(root);
-
-    final String expected = ""
-        + "LogicalSortExchange(distribution=[hash[1]], collation=[[0]])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(trimmed, hasTree(expected));
-  }
-
-  @Test public void testSortExchangeFieldTrimmerWhenProjectCannotBeMerged() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
-            .sortExchange(RelDistributions.hash(Lists.newArrayList(1)), RelCollations.of(0))
-            .project(builder.field("EMPNO"))
-            .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
-    RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
-    RelNode trimmed = fieldTrimmer.trim(root);
-
-    final String expected = ""
-        + "LogicalProject(EMPNO=[$0])\n"
-        + "  LogicalSortExchange(distribution=[hash[1]], collation=[[0]])\n"
-        + "    LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(trimmed, hasTree(expected));
-  }
-
-  @Test public void testSortExchangeFieldTrimmerWithEmptyCollation() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
-            .sortExchange(RelDistributions.hash(Lists.newArrayList(1)), RelCollations.EMPTY)
-            .project(builder.field("EMPNO"), builder.field("ENAME"))
-            .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
-    RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
-    RelNode trimmed = fieldTrimmer.trim(root);
-
-    final String expected = ""
-        + "LogicalSortExchange(distribution=[hash[1]], collation=[[]])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(trimmed, hasTree(expected));
-  }
-
-  @Test public void testSortExchangeFieldTrimmerWithSingletonDistribution() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
-            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
-            .sortExchange(RelDistributions.SINGLETON, RelCollations.of(0))
-            .project(builder.field("EMPNO"), builder.field("ENAME"))
-            .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
-    RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
-    RelNode trimmed = fieldTrimmer.trim(root);
-
-    final String expected = ""
-        + "LogicalSortExchange(distribution=[single], collation=[[0]])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
-        + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(trimmed, hasTree(expected));
   }
 }
