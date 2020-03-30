@@ -1990,6 +1990,9 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar("{fn TIMESTAMPDIFF(HOUR,"
         + " TIMESTAMP '2014-03-29 12:34:56',"
         + " TIMESTAMP '2014-03-29 12:34:56')}", "0", "INTEGER NOT NULL");
+    tester.checkScalar("{fn TIMESTAMPDIFF(MONTH,"
+        + " TIMESTAMP '2019-09-01 00:00:00',"
+        + " TIMESTAMP '2020-03-01 00:00:00')}", "6", "INTEGER NOT NULL");
 
     if (Bug.CALCITE_2539_FIXED) {
       tester.checkFails("{fn WEEK(DATE '2014-12-10')}",
@@ -8283,6 +8286,14 @@ public abstract class SqlOperatorBaseTest {
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",
         "24", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MONTH, "
+        + "timestamp '2019-09-01 00:00:00', "
+        + "timestamp '2020-03-01 00:00:00')",
+        "6", "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MONTH, "
+        + "timestamp '2019-09-01 00:00:00', "
+        + "timestamp '2016-08-01 00:00:00')",
+        "-37", "INTEGER NOT NULL");
     tester.checkScalar("timestampdiff(QUARTER, "
         + "timestamp '2014-02-24 12:42:25', "
         + "timestamp '2016-02-24 12:42:25')",
@@ -8304,6 +8315,12 @@ public abstract class SqlOperatorBaseTest {
     tester.checkScalar(
         "timestampdiff(MONTH, date '2016-03-15', date '2016-06-14')",
         "2",
+        "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MONTH, date '2019-09-01', date '2020-03-01')",
+        "6",
+        "INTEGER NOT NULL");
+    tester.checkScalar("timestampdiff(MONTH, date '2019-09-01', date '2016-08-01')",
+        "-37",
         "INTEGER NOT NULL");
     tester.checkScalar(
         "timestampdiff(DAY, date '2016-06-15', date '2016-06-14')",
