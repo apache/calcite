@@ -298,6 +298,8 @@ public class SqlFunctionsTest {
     checkAddMonths(2016, 3, 31, 2016, 2, 29, -1);
     checkAddMonths(2016, 3, 31, 2116, 3, 31, 1200);
     checkAddMonths(2016, 2, 28, 2116, 2, 28, 1200);
+    checkAddMonths(2019, 9, 1, 2020, 3, 1, 6);
+    checkAddMonths(2019, 9, 1, 2016, 8, 1, -37);
   }
 
   private void checkAddMonths(int y0, int m0, int d0, int y1, int m1, int d1,
