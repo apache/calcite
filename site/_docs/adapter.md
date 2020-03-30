@@ -540,7 +540,7 @@ to another.
 
 If data needs to be converted from one calling convention to another, Calcite
 uses a special sub-class of relational expression called a converter
-(see [<code>class Converter</code>]({{ site.apiRoot }}/org/apache/calcite/rel/convert/Converter.html)).
+(see [<code>interface Converter</code>]({{ site.apiRoot }}/org/apache/calcite/rel/convert/Converter.html)).
 But of course converting data has a runtime cost.
 
 When planning a query that uses multiple engines, Calcite "colors" regions of
@@ -568,7 +568,7 @@ How does Calcite implement SQL, if an adapter does not implement all of the core
 relational operators?
 
 The answer is a particular built-in calling convention,
-[<code>EnumerableConvention</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/EnumerableConvention.html).
+[<code>EnumerableConvention</code>]({{ site.apiRoot }}/org/apache/calcite/adapter/enumerable/EnumerableConvention.html).
 Relational expressions of enumerable convention are implemented as "built-ins":
 Calcite generates Java code, compiles it, and executes inside its own JVM.
 Enumerable convention is less efficient than, say, a distributed engine
@@ -583,7 +583,7 @@ Calcite has a metadata system that allow you to define cost functions and
 statistics about relational operators, collectively referred to as *metadata*.
 Each kind of metadata has an interface with (usually) one method.
 For example, selectivity is defined by
-[<code>interface RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
+[<code>class RelMdSelectivity</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMdSelectivity.html)
 and the method
 [<code>getSelectivity(RelNode rel, RexNode predicate)</code>]({{ site.apiRoot }}/org/apache/calcite/rel/metadata/RelMetadataQuery.html#getSelectivity-org.apache.calcite.rel.RelNode-org.apache.calcite.rex.RexNode-).
 
