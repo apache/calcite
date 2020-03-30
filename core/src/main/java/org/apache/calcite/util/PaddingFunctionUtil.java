@@ -39,7 +39,7 @@ public class PaddingFunctionUtil {
 
   public static void unparseCall(SqlWriter writer, SqlCall call,
       int leftPrec, int rightPrec) {
-    SqlFunction sqlFunction = call.getOperator().getName() == RPAD.getName() ? RPAD : LPAD;
+    SqlFunction sqlFunction = call.getOperator().getName().equals(RPAD.getName()) ? RPAD : LPAD;
     if (((SqlBasicCall) call).operands.length == 2) {
       SqlCharStringLiteral blankLiteral = SqlLiteral.createCharString(StringUtils.SPACE,
           SqlParserPos.ZERO);
