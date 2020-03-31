@@ -31,6 +31,11 @@ Downloads are available on the
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / under development
 {: #v1-23-0}
 
+Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
+using Oracle JDK 8, 9, 10, 11, 12, 13, 14 and OpenJDK 8, 9, 10, 11, 12, 13, 14;
+Guava versions 19.0 to 28.2-jre; Apache Flink 1.10.0;
+other software versions as specified in gradle.properties.
+
 #### Breaking Changes
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-3877">CALCITE-3877</a>]
