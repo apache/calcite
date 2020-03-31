@@ -28,12 +28,15 @@ import com.google.common.collect.Multimap;
 
 import org.slf4j.Logger;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -140,11 +143,7 @@ class RuleQueue {
 
       LOGGER.trace("{} Rule-match queued: {}", matchList.phase.toString(), matchName);
 
-      if (match.getRule() instanceof SubstitutionRule) {
-        matchList.list.offerFirst(match);
-      } else {
-        matchList.list.offer(match);
-      }
+      matchList.offer(match);
 
       matchList.matchMap.put(
           planner.getSubset(match.rels[0]), match);
@@ -165,6 +164,8 @@ class RuleQueue {
    *                              {@link #phaseCompleted(VolcanoPlannerPhase)}.
    */
   VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
+    dumpPlannerState();
+
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
     if (phaseMatchList == null) {
       throw new AssertionError("Used match list for phase " + phase
@@ -173,11 +174,13 @@ class RuleQueue {
 
     VolcanoRuleMatch match;
     for (;;) {
-      if (phaseMatchList.list.isEmpty()) {
+      if (phaseMatchList.size() == 0) {
         return null;
       }
 
-      match = phaseMatchList.list.poll();
+      dumpRuleQueue(phaseMatchList);
+
+      match = phaseMatchList.poll();
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -195,6 +198,39 @@ class RuleQueue {
 
     LOGGER.debug("Pop match: {}", match);
     return match;
+  }
+
+  /**
+   * Dumps rules queue to the logger when debug level is set to {@code TRACE}.
+   */
+  private void dumpRuleQueue(PhaseMatchList phaseMatchList) {
+    if (LOGGER.isTraceEnabled()) {
+      StringBuilder b = new StringBuilder();
+      b.append("Rule queue:");
+      for (VolcanoRuleMatch rule : phaseMatchList.preQueue) {
+        b.append("\n");
+        b.append(rule);
+      }
+      for (VolcanoRuleMatch rule : phaseMatchList.queue) {
+        b.append("\n");
+        b.append(rule);
+      }
+      LOGGER.trace(b.toString());
+    }
+  }
+
+  /**
+   * Dumps planner's state to the logger when debug level is set to {@code TRACE}.
+   */
+  private void dumpPlannerState() {
+    if (LOGGER.isTraceEnabled()) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      planner.dump(pw);
+      pw.flush();
+      LOGGER.trace(sw.toString());
+      planner.getRoot().getCluster().invalidateMetadataQuery();
+    }
   }
 
   /** Returns whether to skip a match. This happens if any of the
@@ -272,14 +308,19 @@ class RuleQueue {
     final VolcanoPlannerPhase phase;
 
     /**
-     * Current list of VolcanoRuleMatches for this phase. New rule-matches
-     * are appended to the end of this list.
-     * The rules are not sorted in any way.
+     * Rule match queue for SubstitutionRule
      */
-    final Deque<VolcanoRuleMatch> list = new LinkedList<>();
+    private final Queue<VolcanoRuleMatch> preQueue = new LinkedList<>();
 
     /**
-     * A set of rule-match names contained in {@link #list}. Allows fast
+     * Current list of VolcanoRuleMatches for this phase. New rule-matches
+     * are appended to the end of this queue.
+     * The rules are not sorted in any way.
+     */
+    private final Queue<VolcanoRuleMatch> queue = new LinkedList<>();
+
+    /**
+     * A set of rule-match names contained in {@link #queue}. Allows fast
      * detection of duplicate rule-matches.
      */
     final Set<String> names = new HashSet<>();
@@ -294,8 +335,29 @@ class RuleQueue {
       this.phase = phase;
     }
 
+    int size() {
+      return preQueue.size() + queue.size();
+    }
+
+    VolcanoRuleMatch poll() {
+      VolcanoRuleMatch match = preQueue.poll();
+      if (match == null) {
+        match = queue.poll();
+      }
+      return match;
+    }
+
+    void offer(VolcanoRuleMatch match) {
+      if (match.getRule() instanceof SubstitutionRule) {
+        preQueue.offer(match);
+      } else {
+        queue.offer(match);
+      }
+    }
+
     void clear() {
-      list.clear();
+      preQueue.clear();
+      queue.clear();
       names.clear();
       matchMap.clear();
     }

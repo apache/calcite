@@ -58,6 +58,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
@@ -72,6 +73,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.calcite.rel.RelDistributions.EMPTY;
 
 /**
  * Utilities for converting {@link org.apache.calcite.rel.RelNode}
@@ -190,8 +193,35 @@ public class RelJson {
     return new RelFieldCollation(field, direction, nullDirection);
   }
 
-  public RelDistribution toDistribution(Object o) {
-    return RelDistributions.ANY; // TODO:
+  public RelDistribution toDistribution(Map<String, Object> map) {
+    final RelDistribution.Type type =
+        Util.enumVal(RelDistribution.Type.class,
+            (String) map.get("type"));
+
+    ImmutableIntList list = EMPTY;
+    if (map.containsKey("keys")) {
+      List<Object> keysJson = (List<Object>) map.get("keys");
+      ArrayList<Integer> keys = new ArrayList<>(keysJson.size());
+      for (Object o : keysJson) {
+        keys.add((Integer) o);
+      }
+      list = ImmutableIntList.copyOf(keys);
+    }
+    return RelDistributions.of(type, list);
+  }
+
+  private Object toJson(RelDistribution relDistribution) {
+    final Map<String, Object> map = jsonBuilder.map();
+    map.put("type", relDistribution.getType().name());
+
+    if (!relDistribution.getKeys().isEmpty()) {
+      List<Object> keys = new ArrayList<>(relDistribution.getKeys().size());
+      for (Integer key : relDistribution.getKeys()) {
+        keys.add(toJson(key));
+      }
+      map.put("keys", keys);
+    }
+    return map;
   }
 
   public RelDataType toType(RelDataTypeFactory typeFactory, Object o) {
@@ -285,6 +315,8 @@ public class RelJson {
       return toJson((RelDataType) value);
     } else if (value instanceof RelDataTypeField) {
       return toJson((RelDataTypeField) value);
+    } else if (value instanceof RelDistribution) {
+      return toJson((RelDistribution) value);
     } else {
       throw new UnsupportedOperationException("type not serializable: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");

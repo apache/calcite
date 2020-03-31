@@ -62,6 +62,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * building of {@link PigRel} relational expressions using {@link RelBuilder} and
  * associated factories in {@link PigRelFactories}.
  */
+@Disabled
 public class PigRelBuilderStyleTest extends AbstractPigTest {
 
   public PigRelBuilderStyleTest() {
@@ -153,6 +154,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
   }
 
+  @Disabled("CALCITE-3660")
   @Test public void testImplWithGroupByCountDistinct() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);

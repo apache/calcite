@@ -655,6 +655,59 @@ public abstract class ReturnTypes {
         return ret;
       };
 
+
+  /**
+   * Type-inference strategy for String concatenation.
+   * Result is varying if either input is; otherwise fixed.
+   * For example,
+   *
+   * <p>concat(cast('a' as varchar(2)), cast('b' as varchar(3)),cast('c' as varchar(2)))
+   * returns varchar(7).</p>
+   *
+   * <p>concat(cast('a' as varchar), cast('b' as varchar(2), cast('c' as varchar(2))))
+   * returns varchar.</p>
+   *
+   * <p>concat(cast('a' as varchar(65535)), cast('b' as varchar(2)), cast('c' as varchar(2)))
+   * returns varchar.</p>
+   */
+  public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION =
+      opBinding -> {
+        boolean hasPrecisionNotSpecifiedOperand = false;
+        boolean precisionOverflow = false;
+        int typePrecision;
+        long amount = 0;
+        List<RelDataType> operandTypes = opBinding.collectOperandTypes();
+        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+        final RelDataTypeSystem typeSystem = typeFactory.getTypeSystem();
+        for (RelDataType operandType: operandTypes) {
+          int operandPrecision = operandType.getPrecision();
+          amount = (long) operandPrecision + amount;
+          if (operandPrecision == RelDataType.PRECISION_NOT_SPECIFIED) {
+            hasPrecisionNotSpecifiedOperand = true;
+            break;
+          }
+          if (amount > typeSystem.getMaxPrecision(SqlTypeName.VARCHAR)) {
+            precisionOverflow = true;
+            break;
+          }
+        }
+        if (hasPrecisionNotSpecifiedOperand || precisionOverflow) {
+          typePrecision = RelDataType.PRECISION_NOT_SPECIFIED;
+        } else {
+          typePrecision = (int) amount;
+        }
+
+        return opBinding.getTypeFactory()
+            .createSqlType(SqlTypeName.VARCHAR, typePrecision);
+      };
+
+  /**
+   * Same as {@link #MULTIVALENT_STRING_SUM_PRECISION} and using
+   * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE}.
+   */
+  public static final SqlReturnTypeInference MULTIVALENT_STRING_SUM_PRECISION_NULLABLE =
+      cascade(MULTIVALENT_STRING_SUM_PRECISION, SqlTypeTransforms.TO_NULLABLE);
+
   /**
    * Same as {@link #DYADIC_STRING_SUM_PRECISION} and using
    * {@link org.apache.calcite.sql.type.SqlTypeTransforms#TO_NULLABLE},
