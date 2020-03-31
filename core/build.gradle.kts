@@ -52,7 +52,6 @@ dependencies {
     implementation("com.yahoo.datasketches:sketches-core")
     implementation("commons-codec:commons-codec")
     implementation("net.hydromatic:aggdesigner-algorithm")
-    implementation("org.apache.calcite.avatica:avatica-server")
     implementation("org.apache.commons:commons-dbcp2")
     implementation("org.apache.commons:commons-lang3")
     implementation("commons-io:commons-io")
@@ -69,6 +68,7 @@ dependencies {
     testImplementation("net.hydromatic:foodmart-queries")
     testImplementation("net.hydromatic:quidem")
     testImplementation("net.hydromatic:scott-data-hsqldb")
+    testImplementation("org.apache.calcite.avatica:avatica-server")
     testImplementation("org.apache.commons:commons-pool2")
     testImplementation("log4j:log4j") {
         because("SqlHintsConverterTest needs to implement a MockAppender")
