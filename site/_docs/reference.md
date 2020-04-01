@@ -2806,43 +2806,6 @@ to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
 
 
-
-#### Declaring Objects For Types Defined In Schema
-After an object type is defined and installed in the schema, you can use it to declare objects in any SQL block. For example, you can use the object type to specify the datatype of an attribute, column, variable, bind variable, record field, table element, formal parameter, or function result. At run time, instances of the object type are created; that is, objects of that type are instantiated. Each object can hold different values.
-
-Example: For declared types `address_typ` and `employee_typ`
-```SQL
-CREATE TYPE address_typ AS OBJECT (
-   street          VARCHAR2(30),
-   city            VARCHAR2(20),
-   state           CHAR(2),
-   postal_code     VARCHAR2(6) );
-
-CREATE TYPE employee_typ AS OBJECT (
-  employee_id       NUMBER(6),
-  first_name        VARCHAR2(20),
-  last_name         VARCHAR2(25),
-  email             VARCHAR2(25),
-  phone_number      VARCHAR2(20),
-  hire_date         DATE,
-  job_id            VARCHAR2(10),
-  salary            NUMBER(8,2),
-  commission_pct    NUMBER(2,2),
-  manager_id        NUMBER(6),
-  department_id     NUMBER(4),
-  address           address_typ
-);
-```
-
-We can declare objects of type `employee_typ` and `address_typ` :
-
-```SQL
-employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
-        '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
-         address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
-```
-
-
 {% highlight sql %}
 ddlStatement:
       createSchemaStatement
@@ -2963,3 +2926,39 @@ generated column, `VIRTUAL` is the default.
 
 In *createFunctionStatement* and *usingFile*, *classNameLiteral*
 and *filePathLiteral* are character literals.
+
+
+#### Declaring Objects For Types Defined In Schema
+After an object type is defined and installed in the schema, you can use it to declare objects in any SQL block. For example, you can use the object type to specify the datatype of an attribute, column, variable, bind variable, record field, table element, formal parameter, or function result. At run time, instances of the object type are created; that is, objects of that type are instantiated. Each object can hold different values.
+
+Example: For declared types `address_typ` and `employee_typ`
+```SQL
+CREATE TYPE address_typ AS OBJECT (
+   street          VARCHAR2(30),
+   city            VARCHAR2(20),
+   state           CHAR(2),
+   postal_code     VARCHAR2(6) );
+
+CREATE TYPE employee_typ AS OBJECT (
+  employee_id       NUMBER(6),
+  first_name        VARCHAR2(20),
+  last_name         VARCHAR2(25),
+  email             VARCHAR2(25),
+  phone_number      VARCHAR2(20),
+  hire_date         DATE,
+  job_id            VARCHAR2(10),
+  salary            NUMBER(8,2),
+  commission_pct    NUMBER(2,2),
+  manager_id        NUMBER(6),
+  department_id     NUMBER(4),
+  address           address_typ
+);
+```
+
+We can declare objects of type `employee_typ` and `address_typ` :
+
+```SQL
+employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
+        '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+         address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
+```
