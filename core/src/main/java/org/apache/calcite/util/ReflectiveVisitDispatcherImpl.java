@@ -54,6 +54,7 @@ public class ReflectiveVisitDispatcherImpl<R extends ReflectiveVisitor, E>
    */
   private static final Cache<List<Object>, Method> GLOBAL_METHOD_CACHE =
       CacheBuilder.newBuilder()
+          .softValues()
           .maximumSize(CalciteSystemProperty.REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE.value())
           .build();
 
@@ -93,6 +94,15 @@ public class ReflectiveVisitDispatcherImpl<R extends ReflectiveVisitor, E>
             visiteeClass,
             visitMethodName,
             additionalParameterTypes);
+
+    if (CalciteSystemProperty.REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE.value() == 0) {
+      return ReflectUtil.lookupVisitMethod(
+          visitorClass,
+          visiteeClass,
+          visitMethodName,
+          additionalParameterTypes);
+    }
+
     Method method = GLOBAL_METHOD_CACHE.getIfPresent(key);
     if (method == null) {
       //  Maybe we already looked for the method but found nothing,

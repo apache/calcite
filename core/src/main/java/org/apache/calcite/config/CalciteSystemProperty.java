@@ -338,16 +338,18 @@ public final class CalciteSystemProperty<T> {
    *
    * <p>The default value is 128.</p>
    *
-   * <p>The property can take any value between [1, 256] inclusive. If the
+   * <p>The property can take any value between [0, 256] inclusive. If the
    * value is not valid (or not specified) then the default value is used.</p>
    *
    * <p>Looking up method by reflection invocation is slow, caching technique will
    * mitigate the overhead.</p>
+   *
+   * <p>Setting this property to 0 disables the cache.</p>
    */
   public static final CalciteSystemProperty<Integer>
       REFLECT_VISIT_DISPATCHER_METHOD_CACHE_MAX_SIZE =
       intProperty("calcite.reflect.visit.dispatcher.method.cache.maxSize", 128,
-          v -> v > 0 && v <= 256);
+          v -> v >= 0 && v <= 256);
 
   private static CalciteSystemProperty<Boolean> booleanProperty(String key,
       boolean defaultValue) {
