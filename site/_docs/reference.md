@@ -2286,7 +2286,6 @@ Note:
 * If `ORDER BY` clause is provided, `JSON_ARRAYAGG` sorts the
   input rows into the specified order before performing aggregation.
 
-
 #### Comparison Operators
 
 | Operator syntax                   | Description
@@ -2804,7 +2803,6 @@ To enable, include `calcite-server.jar` in your class path, and add
 `parserFactory=org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl#FACTORY`
 to the JDBC connect string (see connect string property
 [parserFactory]({{ site.apiRoot }}/org/apache/calcite/config/CalciteConnectionProperty.html#PARSER_FACTORY)).
-
 
 {% highlight sql %}
 ddlStatement:
