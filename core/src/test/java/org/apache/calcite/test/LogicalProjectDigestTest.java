@@ -33,11 +33,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Verifies digest for {@link LogicalProject}.
  */
-public class LogicalProjectDigestTest {
+class LogicalProjectDigestTest {
   /**
    * Planner does not compare
    */
-  @Test public void fieldNamesDoNotInfluenceDigest() {
+  @Test void fieldNamesDoNotInfluenceDigest() {
     final RelBuilder rb = RelBuilder.create(Frameworks.newConfigBuilder().build());
     final RelNode xAsEmpid = rb.values(new String[]{"x", "y", "z"}, 1, 2, 3)
         .project(
@@ -68,7 +68,7 @@ public class LogicalProjectDigestTest {
             + "  LogicalValues(tuples=[[{ 1, 2, 3 }]])\n"));
   }
 
-  @Test public void testProjectDigestWithOneTrivialField() {
+  @Test void testProjectDigestWithOneTrivialField() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RelNode rel = builder

@@ -23,12 +23,12 @@ import org.apache.calcite.config.Lex;
 import org.junit.jupiter.api.Test;
 
 /** Test case for CALCITE-2894 */
-public class RelMdPercentageOriginalRowsTest {
+class RelMdPercentageOriginalRowsTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2894">[CALCITE-2894]
    * NullPointerException thrown by RelMdPercentageOriginalRows when explaining
    * plan with all attributes</a>. */
-  @Test public void testExplainAllAttributesSemiJoinUnionCorrelate() {
+  @Test void testExplainAllAttributesSemiJoinUnionCorrelate() {
     CalciteAssert.that()
             .with(CalciteConnectionProperty.LEX, Lex.JAVA)
             .with(CalciteConnectionProperty.FORCE_DECORRELATE, false)

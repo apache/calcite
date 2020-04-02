@@ -37,7 +37,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * SqlValidatorFeatureTest verifies that features can be independently enabled
  * or disabled.
  */
-public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
+class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   private static final String FEATURE_DISABLED = "feature_disabled";
 
   private Feature disabledFeature;
@@ -46,13 +46,13 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
     return new SqlValidatorTester(SqlTestFactory.INSTANCE.withValidator(FeatureValidator::new));
   }
 
-  @Test public void testDistinct() {
+  @Test void testDistinct() {
     checkFeature(
         "select ^distinct^ name from dept",
         RESOURCE.sQLFeature_E051_01());
   }
 
-  @Test public void testOrderByDesc() {
+  @Test void testOrderByDesc() {
     checkFeature(
         "select name from dept order by ^name desc^",
         RESOURCE.sQLConformance_OrderByDesc());
@@ -61,19 +61,19 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
   // NOTE jvs 6-Mar-2006:  carets don't come out properly placed
   // for INTERSECT/EXCEPT, so don't bother
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     checkFeature(
         "^select name from dept intersect select name from dept^",
         RESOURCE.sQLFeature_F302());
   }
 
-  @Test public void testExcept() {
+  @Test void testExcept() {
     checkFeature(
         "^select name from dept except select name from dept^",
         RESOURCE.sQLFeature_E071_03());
   }
 
-  @Test public void testMultiset() {
+  @Test void testMultiset() {
     checkFeature(
         "values ^multiset[1]^",
         RESOURCE.sQLFeature_S271());
@@ -83,7 +83,7 @@ public class SqlValidatorFeatureTest extends SqlValidatorTestCase {
         RESOURCE.sQLFeature_S271());
   }
 
-  @Test public void testTablesample() {
+  @Test void testTablesample() {
     checkFeature(
         "select name from ^dept tablesample bernoulli(50)^",
         RESOURCE.sQLFeature_T613());

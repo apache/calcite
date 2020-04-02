@@ -29,10 +29,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
  */
-public class RelCollationTest {
+class RelCollationTest {
   /** Unit test for {@link RelCollations#contains}. */
   @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
-  @Test public void testCollationContains() {
+  @Test void testCollationContains() {
     final RelCollation collation21 =
         RelCollations.of(
             new RelFieldCollation(2, RelFieldCollation.Direction.ASCENDING),
@@ -78,7 +78,7 @@ public class RelCollationTest {
 
   /** Unit test for
    *  {@link org.apache.calcite.rel.RelCollationImpl#compareTo}. */
-  @Test public void testCollationCompare() {
+  @Test void testCollationCompare() {
     assertThat(collation(1, 2).compareTo(collation(1, 2)), equalTo(0));
     assertThat(collation(1, 2).compareTo(collation(1)), equalTo(1));
     assertThat(collation(1).compareTo(collation(1, 2)), equalTo(-1));

@@ -68,12 +68,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * <p>Developers, please use {@link org.hamcrest.MatcherAssert#assertThat assertThat}
  * rather than {@code assertEquals}.
  */
-public class SqlFunctionsTest {
-  @Test public void testCharLength() {
+class SqlFunctionsTest {
+  @Test void testCharLength() {
     assertThat(charLength("xyz"), is(3));
   }
 
-  @Test public void testToString() {
+  @Test void testToString() {
     assertThat(SqlFunctions.toString(0f), is("0E0"));
     assertThat(SqlFunctions.toString(1f), is("1"));
     assertThat(SqlFunctions.toString(1.5f), is("1.5"));
@@ -102,7 +102,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.toString(new BigDecimal("-5e-12")), is("-5E-12"));
   }
 
-  @Test public void testConcat() {
+  @Test void testConcat() {
     assertThat(concat("a b", "cd"), is("a bcd"));
     // The code generator will ensure that nulls are never passed in. If we
     // pass in null, it is treated like the string "null", as the following
@@ -112,7 +112,7 @@ public class SqlFunctionsTest {
     assertThat(concat(null, "b"), is("nullb"));
   }
 
-  @Test public void testPosixRegex() {
+  @Test void testPosixRegex() {
     assertThat(posixRegex("abc", "abc", true), is(true));
     assertThat(posixRegex("abc", "^a", true), is(true));
     assertThat(posixRegex("abc", "(b|d)", true), is(true));
@@ -132,7 +132,7 @@ public class SqlFunctionsTest {
     assertThat(posixRegex("abcq", "[[:xdigit:]]", false), is(true));
   }
 
-  @Test public void testRegexpReplace() {
+  @Test void testRegexpReplace() {
     assertThat(regexpReplace("a b c", "b", "X"), is("a X c"));
     assertThat(regexpReplace("abc def ghi", "[g-z]+", "X"), is("abc def X"));
     assertThat(regexpReplace("abc def ghi", "[a-z]+", "X"), is("X X X"));
@@ -169,11 +169,11 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testLower() {
+  @Test void testLower() {
     assertThat(lower("A bCd Iijk"), is("a bcd iijk"));
   }
 
-  @Test public void testFromBase64() {
+  @Test void testFromBase64() {
     final List<String> expectedList =
         Arrays.asList("", "\0", "0", "a", " ", "\n", "\r\n", "\u03C0",
             "hello\tword");
@@ -186,7 +186,7 @@ public class SqlFunctionsTest {
     assertThat(fromBase64("-1"), nullValue());
   }
 
-  @Test public void testToBase64() {
+  @Test void testToBase64() {
     final String s = ""
         + "This is a test String. check resulte out of 76This is a test String."
         + "This is a test String.This is a test String.This is a test String."
@@ -209,11 +209,11 @@ public class SqlFunctionsTest {
     assertThat(toBase64(""), is(""));
   }
 
-  @Test public void testUpper() {
+  @Test void testUpper() {
     assertThat(upper("A bCd iIjk"), is("A BCD IIJK"));
   }
 
-  @Test public void testInitcap() {
+  @Test void testInitcap() {
     assertThat(initcap("aA"), is("Aa"));
     assertThat(initcap("zz"), is("Zz"));
     assertThat(initcap("AZ"), is("Az"));
@@ -223,7 +223,7 @@ public class SqlFunctionsTest {
     assertThat(initcap(" b0123B"), is(" B0123b"));
   }
 
-  @Test public void testLesser() {
+  @Test void testLesser() {
     assertThat(lesser("a", "bc"), is("a"));
     assertThat(lesser("bc", "ac"), is("ac"));
     try {
@@ -236,7 +236,7 @@ public class SqlFunctionsTest {
     assertThat(lesser((String) null, null), nullValue());
   }
 
-  @Test public void testGreater() {
+  @Test void testGreater() {
     assertThat(greater("a", "bc"), is("bc"));
     assertThat(greater("bc", "ac"), is("bc"));
     try {
@@ -250,7 +250,7 @@ public class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#rtrim}. */
-  @Test public void testRtrim() {
+  @Test void testRtrim() {
     assertThat(rtrim(""), is(""));
     assertThat(rtrim("    "), is(""));
     assertThat(rtrim("   x  "), is("   x"));
@@ -261,7 +261,7 @@ public class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#ltrim}. */
-  @Test public void testLtrim() {
+  @Test void testLtrim() {
     assertThat(ltrim(""), is(""));
     assertThat(ltrim("    "), is(""));
     assertThat(ltrim("   x  "), is("x  "));
@@ -272,7 +272,7 @@ public class SqlFunctionsTest {
   }
 
   /** Test for {@link SqlFunctions#trim}. */
-  @Test public void testTrim() {
+  @Test void testTrim() {
     assertThat(trimSpacesBoth(""), is(""));
     assertThat(trimSpacesBoth("    "), is(""));
     assertThat(trimSpacesBoth("   x  "), is("x"));
@@ -286,7 +286,7 @@ public class SqlFunctionsTest {
     return trim(true, true, " ", s);
   }
 
-  @Test public void testAddMonths() {
+  @Test void testAddMonths() {
     checkAddMonths(2016, 1, 1, 2016, 2, 1, 1);
     checkAddMonths(2016, 1, 1, 2017, 1, 1, 12);
     checkAddMonths(2016, 1, 1, 2017, 2, 1, 13);
@@ -325,7 +325,7 @@ public class SqlFunctionsTest {
     return date * DateTimeUtils.MILLIS_PER_DAY + millis;
   }
 
-  @Test public void testFloor() {
+  @Test void testFloor() {
     checkFloor(0, 10, 0);
     checkFloor(27, 10, 20);
     checkFloor(30, 10, 30);
@@ -343,7 +343,7 @@ public class SqlFunctionsTest {
         is(BigDecimal.valueOf(result)));
   }
 
-  @Test public void testCeil() {
+  @Test void testCeil() {
     checkCeil(0, 10, 0);
     checkCeil(27, 10, 30);
     checkCeil(30, 10, 30);
@@ -364,7 +364,7 @@ public class SqlFunctionsTest {
 
   /** Unit test for
    * {@link Utilities#compare(java.util.List, java.util.List)}. */
-  @Test public void testCompare() {
+  @Test void testCompare() {
     final List<String> ac = Arrays.asList("a", "c");
     final List<String> abc = Arrays.asList("a", "b", "c");
     final List<String> a = Collections.singletonList("a");
@@ -379,7 +379,7 @@ public class SqlFunctionsTest {
     assertThat(Utilities.compare(empty, empty), is(0));
   }
 
-  @Test public void testTruncateLong() {
+  @Test void testTruncateLong() {
     assertThat(SqlFunctions.truncate(12345L, 1000L), is(12000L));
     assertThat(SqlFunctions.truncate(12000L, 1000L), is(12000L));
     assertThat(SqlFunctions.truncate(12001L, 1000L), is(12000L));
@@ -391,7 +391,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.truncate(-11999L, 1000L), is(-12000L));
   }
 
-  @Test public void testTruncateInt() {
+  @Test void testTruncateInt() {
     assertThat(SqlFunctions.truncate(12345, 1000), is(12000));
     assertThat(SqlFunctions.truncate(12000, 1000), is(12000));
     assertThat(SqlFunctions.truncate(12001, 1000), is(12000));
@@ -408,7 +408,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.round(-12845, 1000), is(-13000));
   }
 
-  @Test public void testSTruncateDouble() {
+  @Test void testSTruncateDouble() {
     assertThat(SqlFunctions.struncate(12.345d, 3), within(12.345d, 0.001));
     assertThat(SqlFunctions.struncate(12.345d, 2), within(12.340d, 0.001));
     assertThat(SqlFunctions.struncate(12.345d, 1), within(12.300d, 0.001));
@@ -433,7 +433,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.struncate(-12000d, -5), within(0d, 0.001));
   }
 
-  @Test public void testSTruncateLong() {
+  @Test void testSTruncateLong() {
     assertThat(SqlFunctions.struncate(12345L, -3), within(12000d, 0.001));
     assertThat(SqlFunctions.struncate(12000L, -3), within(12000d, 0.001));
     assertThat(SqlFunctions.struncate(12001L, -3), within(12000d, 0.001));
@@ -448,7 +448,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.struncate(-12000L, -5), within(0d, 0.001));
   }
 
-  @Test public void testSTruncateInt() {
+  @Test void testSTruncateInt() {
     assertThat(SqlFunctions.struncate(12345, -3), within(12000d, 0.001));
     assertThat(SqlFunctions.struncate(12000, -3), within(12000d, 0.001));
     assertThat(SqlFunctions.struncate(12001, -3), within(12000d, 0.001));
@@ -463,7 +463,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.struncate(-12000, -5), within(0d, 0.001));
   }
 
-  @Test public void testSRoundDouble() {
+  @Test void testSRoundDouble() {
     assertThat(SqlFunctions.sround(12.345d, 3), within(12.345d, 0.001));
     assertThat(SqlFunctions.sround(12.345d, 2), within(12.350d, 0.001));
     assertThat(SqlFunctions.sround(12.345d, 1), within(12.300d, 0.001));
@@ -496,7 +496,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.sround(-12000d, -5), within(0d, 0.001));
   }
 
-  @Test public void testSRoundLong() {
+  @Test void testSRoundLong() {
     assertThat(SqlFunctions.sround(12345L, -1), within(12350d, 0.001));
     assertThat(SqlFunctions.sround(12345L, -2), within(12300d, 0.001));
     assertThat(SqlFunctions.sround(12345L, -3), within(12000d, 0.001));
@@ -515,7 +515,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.sround(-12000L, -5), within(0d, 0.001));
   }
 
-  @Test public void testSRoundInt() {
+  @Test void testSRoundInt() {
     assertThat(SqlFunctions.sround(12345, -1), within(12350d, 0.001));
     assertThat(SqlFunctions.sround(12345, -2), within(12300d, 0.001));
     assertThat(SqlFunctions.sround(12345, -3), within(12000d, 0.001));
@@ -534,7 +534,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.sround(-12000, -5), within(0d, 0.001));
   }
 
-  @Test public void testByteString() {
+  @Test void testByteString() {
     final byte[] bytes = {(byte) 0xAB, (byte) 0xFF};
     final ByteString byteString = new ByteString(bytes);
     assertThat(byteString.length(), is(2));
@@ -609,7 +609,7 @@ public class SqlFunctionsTest {
     assertThat(byteString, equalTo(byteString1));
   }
 
-  @Test public void testEqWithAny() {
+  @Test void testEqWithAny() {
     // Non-numeric same type equality check
     assertThat(SqlFunctions.eqAny("hello", "hello"), is(true));
 
@@ -627,7 +627,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.eqAny("2", 2), is(false));
   }
 
-  @Test public void testNeWithAny() {
+  @Test void testNeWithAny() {
     // Non-numeric same type inequality check
     assertThat(SqlFunctions.neAny("hello", "world"), is(true));
 
@@ -645,7 +645,7 @@ public class SqlFunctionsTest {
     assertThat(SqlFunctions.neAny("2", 2), is(true));
   }
 
-  @Test public void testLtWithAny() {
+  @Test void testLtWithAny() {
     // Non-numeric same type "less then" check
     assertThat(SqlFunctions.ltAny("apple", "banana"), is(true));
 
@@ -671,7 +671,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testLeWithAny() {
+  @Test void testLeWithAny() {
     // Non-numeric same type "less or equal" check
     assertThat(SqlFunctions.leAny("apple", "banana"), is(true));
     assertThat(SqlFunctions.leAny("apple", "apple"), is(true));
@@ -706,7 +706,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testGtWithAny() {
+  @Test void testGtWithAny() {
     // Non-numeric same type "greater then" check
     assertThat(SqlFunctions.gtAny("banana", "apple"), is(true));
 
@@ -732,7 +732,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testGeWithAny() {
+  @Test void testGeWithAny() {
     // Non-numeric same type "greater or equal" check
     assertThat(SqlFunctions.geAny("banana", "apple"), is(true));
     assertThat(SqlFunctions.geAny("apple", "apple"), is(true));
@@ -767,7 +767,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testPlusAny() {
+  @Test void testPlusAny() {
     // null parameters
     assertThat(SqlFunctions.plusAny(null, null), nullValue());
     assertThat(SqlFunctions.plusAny(null, 1), nullValue());
@@ -797,7 +797,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testMinusAny() {
+  @Test void testMinusAny() {
     // null parameters
     assertThat(SqlFunctions.minusAny(null, null), nullValue());
     assertThat(SqlFunctions.minusAny(null, 1), nullValue());
@@ -827,7 +827,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testMultiplyAny() {
+  @Test void testMultiplyAny() {
     // null parameters
     assertThat(SqlFunctions.multiplyAny(null, null), nullValue());
     assertThat(SqlFunctions.multiplyAny(null, 1), nullValue());
@@ -859,7 +859,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testDivideAny() {
+  @Test void testDivideAny() {
     // null parameters
     assertThat(SqlFunctions.divideAny(null, null), nullValue());
     assertThat(SqlFunctions.divideAny(null, 1), nullValue());
@@ -892,7 +892,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testMultiset() {
+  @Test void testMultiset() {
     final List<String> abacee = Arrays.asList("a", "b", "a", "c", "e", "e");
     final List<String> adaa = Arrays.asList("a", "d", "a", "a");
     final List<String> addc = Arrays.asList("a", "d", "c", "d", "c");
@@ -945,7 +945,7 @@ public class SqlFunctionsTest {
         is(Arrays.asList("a", "c", "d")));
   }
 
-  @Test public void testMd5() {
+  @Test void testMd5() {
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5("")));
     assertThat("d41d8cd98f00b204e9800998ecf8427e", is(md5(ByteString.of("", 16))));
     assertThat("902fbdd2b1df0c4f70b4a5d23525e932", is(md5("ABC")));
@@ -959,7 +959,7 @@ public class SqlFunctionsTest {
     }
   }
 
-  @Test public void testSha1() {
+  @Test void testSha1() {
     assertThat("da39a3ee5e6b4b0d3255bfef95601890afd80709", is(sha1("")));
     assertThat("da39a3ee5e6b4b0d3255bfef95601890afd80709", is(sha1(ByteString.of("", 16))));
     assertThat("3c01bdbb26f358bab27f267924aa2c9a03fcfdb8", is(sha1("ABC")));

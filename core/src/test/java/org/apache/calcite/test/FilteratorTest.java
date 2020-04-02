@@ -35,10 +35,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link Filterator}.
  */
-public class FilteratorTest {
+class FilteratorTest {
   //~ Methods ----------------------------------------------------------------
 
-  @Test public void testOne() {
+  @Test void testOne() {
     final List<String> tomDickHarry = Arrays.asList("tom", "dick", "harry");
     final Filterator<String> filterator =
         new Filterator<String>(tomDickHarry.iterator(), String.class);
@@ -56,7 +56,7 @@ public class FilteratorTest {
     assertFalse(filterator.hasNext());
   }
 
-  @Test public void testNulls() {
+  @Test void testNulls() {
     // Nulls don't cause an error - but are not emitted, because they
     // fail the instanceof test.
     final List<String> tomDickHarry = Arrays.asList("paul", null, "ringo");
@@ -67,7 +67,7 @@ public class FilteratorTest {
     assertFalse(filterator.hasNext());
   }
 
-  @Test public void testSubtypes() {
+  @Test void testSubtypes() {
     final ArrayList arrayList = new ArrayList();
     final HashSet hashSet = new HashSet();
     final LinkedList linkedList = new LinkedList();
@@ -92,7 +92,7 @@ public class FilteratorTest {
     assertFalse(filterator.hasNext());
   }
 
-  @Test public void testBox() {
+  @Test void testBox() {
     final Number[] numbers = {1, 2, 3.14, 4, null, 6E23};
     List<Integer> result = new ArrayList<Integer>();
     for (int i : Util.filter(Arrays.asList(numbers), Integer.class)) {

@@ -44,9 +44,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link org.apache.calcite.util.ImmutableBitSet}.
  */
-public class ImmutableBitSetTest {
+class ImmutableBitSetTest {
   /** Tests the method {@link ImmutableBitSet#iterator()}. */
-  @Test public void testIterator() {
+  @Test void testIterator() {
     assertToIterBitSet("", ImmutableBitSet.of());
     assertToIterBitSet("0", ImmutableBitSet.of(0));
     assertToIterBitSet("0, 1", ImmutableBitSet.of(0, 1));
@@ -75,7 +75,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#toList()}.
    */
-  @Test public void testToList() {
+  @Test void testToList() {
     assertThat(ImmutableBitSet.of().toList(),
         equalTo(Collections.<Integer>emptyList()));
     assertThat(ImmutableBitSet.of(5).toList(), equalTo(Arrays.asList(5)));
@@ -93,7 +93,7 @@ public class ImmutableBitSetTest {
   /**
    * Tests the method {@link BitSets#range(int, int)}.
    */
-  @Test public void testRange() {
+  @Test void testRange() {
     assertEquals(ImmutableBitSet.range(0, 4).toList(),
         Arrays.asList(0, 1, 2, 3));
     assertEquals(ImmutableBitSet.range(1, 4).toList(),
@@ -134,7 +134,7 @@ public class ImmutableBitSetTest {
     assertTrue(ImmutableBitSet.builder().build() == ImmutableBitSet.of());
   }
 
-  @Test public void testCompare() {
+  @Test void testCompare() {
     final List<ImmutableBitSet> sorted = getSortedList();
     for (int i = 0; i < sorted.size(); i++) {
       for (int j = 0; j < sorted.size(); j++) {
@@ -152,7 +152,7 @@ public class ImmutableBitSetTest {
     }
   }
 
-  @Test public void testCompare2() {
+  @Test void testCompare2() {
     final List<ImmutableBitSet> sorted = getSortedList();
     sorted.sort(ImmutableBitSet.COMPARATOR);
     assertThat(sorted.toString(),
@@ -174,7 +174,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#toArray}.
    */
-  @Test public void testToArray() {
+  @Test void testToArray() {
     int[][] arrays = {{}, {0}, {0, 2}, {1, 65}, {100}};
     for (int[] array : arrays) {
       assertThat(ImmutableBitSet.of(array).toArray(), equalTo(array));
@@ -187,7 +187,7 @@ public class ImmutableBitSetTest {
    * {@link org.apache.calcite.util.ImmutableBitSet#asList} and
    * {@link org.apache.calcite.util.ImmutableBitSet#asSet}.
    */
-  @Test public void testAsList() {
+  @Test void testAsList() {
     final List<ImmutableBitSet> list = getSortedList();
 
     // create a set of integers in and not in the lists
@@ -228,7 +228,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#union(ImmutableBitSet)}.
    */
-  @Test public void testUnion() {
+  @Test void testUnion() {
     assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3)).toString(),
         equalTo("{1, 3}"));
     assertThat(ImmutableBitSet.of(1).union(ImmutableBitSet.of(3, 100))
@@ -244,7 +244,7 @@ public class ImmutableBitSetTest {
     assertThat(x.toString(), equalTo("{1, 2, 3}"));
   }
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     assertThat(ImmutableBitSet.of(1, 2, 3, 100, 200)
         .intersect(ImmutableBitSet.of(2, 100)).toString(), equalTo("{2, 100}"));
     assertTrue(ImmutableBitSet.of(1, 3, 5, 101, 20001)
@@ -255,7 +255,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#contains(org.apache.calcite.util.ImmutableBitSet)}.
    */
-  @Test public void testBitSetsContains() {
+  @Test void testBitSetsContains() {
     assertTrue(ImmutableBitSet.range(0, 5)
         .contains(ImmutableBitSet.range(2, 4)));
     assertTrue(ImmutableBitSet.range(0, 5).contains(ImmutableBitSet.range(4)));
@@ -277,7 +277,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#of(org.apache.calcite.util.ImmutableIntList)}.
    */
-  @Test public void testBitSetOfImmutableIntList() {
+  @Test void testBitSetOfImmutableIntList() {
     ImmutableIntList list = ImmutableIntList.of();
     assertThat(ImmutableBitSet.of(list), equalTo(ImmutableBitSet.of()));
 
@@ -290,7 +290,7 @@ public class ImmutableBitSetTest {
    * Tests the method
    * {@link org.apache.calcite.util.ImmutableBitSet#previousClearBit(int)}.
    */
-  @Test public void testPreviousClearBit() {
+  @Test void testPreviousClearBit() {
     assertThat(ImmutableBitSet.of().previousClearBit(10), equalTo(10));
     assertThat(ImmutableBitSet.of().previousClearBit(0), equalTo(0));
     assertThat(ImmutableBitSet.of().previousClearBit(-1), equalTo(-1));
@@ -308,7 +308,7 @@ public class ImmutableBitSetTest {
     assertThat(ImmutableBitSet.of(1, 3, 4).previousClearBit(1), equalTo(0));
   }
 
-  @Test public void testBuilder() {
+  @Test void testBuilder() {
     assertThat(ImmutableBitSet.builder().set(9)
             .set(100)
             .set(1000)
@@ -322,7 +322,7 @@ public class ImmutableBitSetTest {
 
   /** Unit test for
    * {@link org.apache.calcite.util.ImmutableBitSet.Builder#build(ImmutableBitSet)}. */
-  @Test public void testBuilderUseOriginal() {
+  @Test void testBuilderUseOriginal() {
     final ImmutableBitSet fives = ImmutableBitSet.of(5, 10, 15);
     final ImmutableBitSet fives1 =
         fives.rebuild().clear(2).set(10).build();
@@ -337,7 +337,7 @@ public class ImmutableBitSetTest {
     assertTrue(fives3.equals(fives2));
   }
 
-  @Test public void testIndexOf() {
+  @Test void testIndexOf() {
     assertThat(ImmutableBitSet.of(0, 2, 4).indexOf(0), equalTo(0));
     assertThat(ImmutableBitSet.of(0, 2, 4).indexOf(2), equalTo(1));
     assertThat(ImmutableBitSet.of(0, 2, 4).indexOf(3), equalTo(-1));
@@ -352,7 +352,7 @@ public class ImmutableBitSetTest {
   }
 
   /** Tests {@link ImmutableBitSet.Builder#buildAndReset()}. */
-  @Test public void testReset() {
+  @Test void testReset() {
     final ImmutableBitSet.Builder builder = ImmutableBitSet.builder();
     builder.set(2);
     assertThat(builder.build().toString(), is("{2}"));
@@ -384,7 +384,7 @@ public class ImmutableBitSetTest {
     assertThat(builder2.buildAndReset().toString(), is("{3, 151}"));
   }
 
-  @Test public void testNth() {
+  @Test void testNth() {
     assertThat(ImmutableBitSet.of(0, 2, 4).nth(0), equalTo(0));
     assertThat(ImmutableBitSet.of(0, 2, 4).nth(1), equalTo(2));
     assertThat(ImmutableBitSet.of(0, 2, 4).nth(2), equalTo(4));
@@ -422,7 +422,7 @@ public class ImmutableBitSetTest {
 
   /** Tests the method
    * {@link org.apache.calcite.util.BitSets#closure(java.util.SortedMap)}. */
-  @Test public void testClosure() {
+  @Test void testClosure() {
     final SortedMap<Integer, ImmutableBitSet> empty = new TreeMap<>();
     assertThat(ImmutableBitSet.closure(empty), equalTo(empty));
 
@@ -459,7 +459,7 @@ public class ImmutableBitSetTest {
     assertThat("argument modified", map2.toString(), equalTo(original2));
   }
 
-  @Test public void testPowerSet() {
+  @Test void testPowerSet() {
     final ImmutableBitSet empty = ImmutableBitSet.of();
     assertThat(Iterables.size(empty.powerSet()), equalTo(1));
     assertThat(empty.powerSet().toString(), equalTo("[{}]"));
@@ -476,7 +476,7 @@ public class ImmutableBitSetTest {
     assertThat(Iterables.size(seventeen.powerSet()), equalTo(131072));
   }
 
-  @Test public void testCreateLongs() {
+  @Test void testCreateLongs() {
     assertThat(ImmutableBitSet.valueOf(0L), equalTo(ImmutableBitSet.of()));
     assertThat(ImmutableBitSet.valueOf(0xAL),
         equalTo(ImmutableBitSet.of(1, 3)));
@@ -486,7 +486,7 @@ public class ImmutableBitSetTest {
         equalTo(ImmutableBitSet.of(129, 131)));
   }
 
-  @Test public void testCreateLongBuffer() {
+  @Test void testCreateLongBuffer() {
     assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(new long[] {})),
         equalTo(ImmutableBitSet.of()));
     assertThat(ImmutableBitSet.valueOf(LongBuffer.wrap(new long[] {0xAL})),
@@ -496,7 +496,7 @@ public class ImmutableBitSetTest {
         equalTo(ImmutableBitSet.of(129, 131)));
   }
 
-  @Test public void testToLongArray() {
+  @Test void testToLongArray() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     assertThat(ImmutableBitSet.valueOf(bitSet.toLongArray()),
         equalTo(bitSet));
@@ -504,7 +504,7 @@ public class ImmutableBitSetTest {
         equalTo(bitSet));
   }
 
-  @Test public void testSet() {
+  @Test void testSet() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     final ImmutableBitSet bitSet2 = ImmutableBitSet.of(29, 4, 1969, 30);
     assertThat(bitSet.set(30), equalTo(bitSet2));
@@ -514,7 +514,7 @@ public class ImmutableBitSetTest {
     assertThat(bitSet.setIf(30, true), equalTo(bitSet2));
   }
 
-  @Test public void testClear() {
+  @Test void testClear() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     final ImmutableBitSet bitSet2 = ImmutableBitSet.of(4, 1969);
     assertThat(bitSet.clear(29), equalTo(bitSet2));
@@ -525,7 +525,7 @@ public class ImmutableBitSetTest {
     assertThat(bitSet.clearIf(29, true), equalTo(bitSet2));
   }
 
-  @Test public void testSet2() {
+  @Test void testSet2() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     final ImmutableBitSet bitSet2 = ImmutableBitSet.of(29, 4, 1969, 30);
     assertThat(bitSet.set(30, false), sameInstance(bitSet));
@@ -533,7 +533,7 @@ public class ImmutableBitSetTest {
     assertThat(bitSet.set(29, true), sameInstance(bitSet));
   }
 
-  @Test public void testShift() {
+  @Test void testShift() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     assertThat(bitSet.shift(0), is(bitSet));
     assertThat(bitSet.shift(1), is(ImmutableBitSet.of(30, 5, 1970)));
@@ -548,7 +548,7 @@ public class ImmutableBitSetTest {
     assertThat(empty.shift(-100), is(empty));
   }
 
-  @Test public void testGet2() {
+  @Test void testGet2() {
     final ImmutableBitSet bitSet = ImmutableBitSet.of(29, 4, 1969);
     assertThat(bitSet.get(0, 8), is(ImmutableBitSet.of(4)));
     assertThat(bitSet.get(0, 5), is(ImmutableBitSet.of(4)));

@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
 /**
  * Unit tests for the Babel SQL parser.
  */
-public class BabelQuidemTest extends QuidemTest {
+class BabelQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:

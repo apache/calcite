@@ -86,7 +86,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests that determine whether trait propagation work in Volcano Planner.
  */
-public class TraitPropagationTest {
+class TraitPropagationTest {
   static final Convention PHYSICAL =
       new Convention.Impl("PHYSICAL", Phys.class);
   static final RelCollation COLLATION =
@@ -103,7 +103,7 @@ public class TraitPropagationTest {
           SortRemoveRule.INSTANCE,
           ExpandConversionRule.INSTANCE);
 
-  @Test public void testOne() throws Exception {
+  @Test void testOne() throws Exception {
     RelNode planned = run(new PropAction(), RULES);
     if (CalciteSystemProperty.DEBUG.value()) {
       System.out.println(

@@ -39,9 +39,9 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 
 /** Unit tests for {@link DateRangeRules} algorithms. */
-public class DruidDateRangeRulesTest {
+class DruidDateRangeRulesTest {
 
-  @Test public void testExtractYearAndMonthFromDateColumn() {
+  @Test void testExtractYearAndMonthFromDateColumn() {
     final Fixture2 f = new Fixture2();
     // AND(>=($8, 2014-01-01), <($8, 2015-01-01), >=($8, 2014-06-01), <($8, 2014-07-01))
     checkDateRange(f,
@@ -49,7 +49,7 @@ public class DruidDateRangeRulesTest {
         is("[2014-06-01T00:00:00.000Z/2014-07-01T00:00:00.000Z]"));
   }
 
-  @Test public void testRangeCalc() {
+  @Test void testRangeCalc() {
     final Fixture2 f = new Fixture2();
     checkDateRange(f,
         f.and(
@@ -58,7 +58,7 @@ public class DruidDateRangeRulesTest {
         is("[2011-01-01T00:00:00.000Z/2012-02-02T00:00:00.001Z]"));
   }
 
-  @Test public void testExtractYearAndDayFromDateColumn() {
+  @Test void testExtractYearAndDayFromDateColumn() {
     final Fixture2 f = new Fixture2();
     // AND(AND(>=($8, 2010-01-01), <($8, 2011-01-01)),
     //     OR(AND(>=($8, 2010-01-31), <($8, 2010-02-01)),
@@ -79,7 +79,7 @@ public class DruidDateRangeRulesTest {
             + "2010-12-31T00:00:00.000Z/2011-01-01T00:00:00.000Z]"));
   }
 
-  @Test public void testExtractYearMonthDayFromDateColumn() {
+  @Test void testExtractYearMonthDayFromDateColumn() {
     final Fixture2 f = new Fixture2();
     // AND(>=($8, 2011-01-01),"
     //     AND(>=($8, 2011-01-01), <($8, 2020-01-01)),
@@ -101,7 +101,7 @@ public class DruidDateRangeRulesTest {
             + "2016-02-29T00:00:00.000Z/2016-03-01T00:00:00.000Z]"));
   }
 
-  @Test public void testExtractYearMonthDayFromTimestampColumn() {
+  @Test void testExtractYearMonthDayFromTimestampColumn() {
     final Fixture2 f = new Fixture2();
     // AND(>=($9, 2011-01-01),
     //     AND(>=($9, 2011-01-01), <($9, 2020-01-01)),
@@ -127,7 +127,7 @@ public class DruidDateRangeRulesTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1738">[CALCITE-1738]
    * Push CAST of literals to Druid</a>. */
-  @Test public void testFilterWithCast() {
+  @Test void testFilterWithCast() {
     final Fixture2 f = new Fixture2();
     final Calendar c = Util.calendar();
     c.clear();

@@ -42,7 +42,7 @@ import java.util.Map;
  * Checks renaming of fields (also upper, lower cases) during projections
  */
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class ProjectionTest {
+class ProjectionTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
@@ -85,7 +85,7 @@ public class ProjectionTest {
     };
   }
 
-  @Test public void projection() {
+  @Test void projection() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select * from view")

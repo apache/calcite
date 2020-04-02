@@ -112,28 +112,28 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit test for {@link Util} and other classes in this package.
  */
 @LocaleEnUs
-public class UtilTest {
-  @Test public void testPrintEquals() {
+class UtilTest {
+  @Test void testPrintEquals() {
     assertPrintEquals("\"x\"", "x", true);
   }
 
-  @Test public void testPrintEquals2() {
+  @Test void testPrintEquals2() {
     assertPrintEquals("\"x\"", "x", false);
   }
 
-  @Test public void testPrintEquals3() {
+  @Test void testPrintEquals3() {
     assertPrintEquals("null", null, true);
   }
 
-  @Test public void testPrintEquals4() {
+  @Test void testPrintEquals4() {
     assertPrintEquals("", null, false);
   }
 
-  @Test public void testPrintEquals5() {
+  @Test void testPrintEquals5() {
     assertPrintEquals("\"\\\\\\\"\\r\\n\"", "\\\"\r\n", true);
   }
 
-  @Test public void testScientificNotation() {
+  @Test void testScientificNotation() {
     BigDecimal bd;
 
     bd = new BigDecimal("0.001234");
@@ -184,7 +184,7 @@ public class UtilTest {
         Util.toScientificNotation(bd));
   }
 
-  @Test public void testToJavaId() throws UnsupportedEncodingException {
+  @Test void testToJavaId() throws UnsupportedEncodingException {
     assertEquals(
         "ID$0$foo",
         Util.toJavaId("foo", 0));
@@ -244,7 +244,7 @@ public class UtilTest {
   /**
    * Unit-test for {@link Util#tokenize(String, String)}.
    */
-  @Test public void testTokenize() {
+  @Test void testTokenize() {
     final List<String> list = new ArrayList<>();
     for (String s : Util.tokenize("abc,de,f", ",")) {
       list.add(s);
@@ -256,7 +256,7 @@ public class UtilTest {
   /**
    * Unit-test for {@link BitString}.
    */
-  @Test public void testBitString() {
+  @Test void testBitString() {
     // Powers of two, minimal length.
     final BitString b0 = new BitString("", 0);
     final BitString b1 = new BitString("1", 1);
@@ -386,7 +386,7 @@ public class UtilTest {
   /**
    * Tests {@link org.apache.calcite.util.CastingList} and {@link Util#cast}.
    */
-  @Test public void testCastingList() {
+  @Test void testCastingList() {
     final List<Number> numberList = new ArrayList<>();
     numberList.add(1);
     numberList.add(null);
@@ -417,7 +417,7 @@ public class UtilTest {
     }
   }
 
-  @Test public void testCons() {
+  @Test void testCons() {
     final List<String> abc0 = Arrays.asList("a", "b", "c");
 
     final List<String> abc = ConsList.of("a", ImmutableList.of("b", "c"));
@@ -468,7 +468,7 @@ public class UtilTest {
     assertThat(a, is(Collections.singletonList("a")));
   }
 
-  @Test public void testConsPerformance() {
+  @Test void testConsPerformance() {
     final int n = 2000000;
     final int start = 10;
     List<Integer> list = makeConsList(start, n + start);
@@ -521,7 +521,7 @@ public class UtilTest {
     return list;
   }
 
-  @Test public void testIterableProperties() {
+  @Test void testIterableProperties() {
     Properties properties = new Properties();
     properties.put("foo", "george");
     properties.put("bar", "ringo");
@@ -549,7 +549,7 @@ public class UtilTest {
   /**
    * Tests the difference engine, {@link DiffTestCase#diff}.
    */
-  @Test public void testDiffLines() {
+  @Test void testDiffLines() {
     String[] before = {
         "Get a dose of her in jackboots and kilt",
         "She's killer-diller when she's dressed to the hilt",
@@ -584,7 +584,7 @@ public class UtilTest {
   /**
    * Tests the {@link Util#toPosix(TimeZone, boolean)} method.
    */
-  @Test public void testPosixTimeZone() {
+  @Test void testPosixTimeZone() {
     // NOTE jvs 31-July-2007:  First two tests are disabled since
     // not everyone may have patched their system yet for recent
     // DST change.
@@ -646,7 +646,7 @@ public class UtilTest {
    * Tests the methods {@link Util#enumConstants(Class)} and
    * {@link Util#enumVal(Class, String)}.
    */
-  @Test public void testEnumConstants() {
+  @Test void testEnumConstants() {
     final Map<String, MemoryType> memoryTypeMap =
         Util.enumConstants(MemoryType.class);
     assertEquals(2, memoryTypeMap.size());
@@ -667,7 +667,7 @@ public class UtilTest {
   /**
    * Tests SQL builders.
    */
-  @Test public void testSqlBuilder() {
+  @Test void testSqlBuilder() {
     final SqlBuilder buf = new SqlBuilder(CalciteSqlDialect.DEFAULT);
     assertEquals(0, buf.length());
     buf.append("select ");
@@ -709,7 +709,7 @@ public class UtilTest {
   /**
    * Unit test for {@link org.apache.calcite.util.CompositeList}.
    */
-  @Test public void testCompositeList() {
+  @Test void testCompositeList() {
     // Made up of zero lists
     //noinspection unchecked
     List<String> list = CompositeList.of(new List[0]);
@@ -777,7 +777,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Template}.
    */
-  @Test public void testTemplate() {
+  @Test void testTemplate() {
     // Regular java message format.
     assertThat(
         new MessageFormat("Hello, {0}, what a nice {1}.", Locale.ROOT)
@@ -844,7 +844,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Util#parseLocale(String)} method.
    */
-  @Test public void testParseLocale() {
+  @Test void testParseLocale() {
     Locale[] locales = {
         Locale.CANADA,
         Locale.CANADA_FRENCH,
@@ -865,7 +865,7 @@ public class UtilTest {
     }
   }
 
-  @Test public void testSpaces() {
+  @Test void testSpaces() {
     assertEquals("", Spaces.of(0));
     assertEquals(" ", Spaces.of(1));
     assertEquals(" ", Spaces.of(1));
@@ -874,7 +874,7 @@ public class UtilTest {
     assertEquals(1000, Spaces.of(1000).length());
   }
 
-  @Test public void testSpaceString() {
+  @Test void testSpaceString() {
     assertThat(Spaces.sequence(0).toString(), equalTo(""));
     assertThat(Spaces.sequence(1).toString(), equalTo(" "));
     assertThat(Spaces.sequence(9).toString(), equalTo("         "));
@@ -908,7 +908,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Pair#zip(java.util.List, java.util.List)}.
    */
-  @Test public void testPairZip() {
+  @Test void testPairZip() {
     List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
     List<Integer> integers = Arrays.asList(1942, 1943, 1940);
     List<Pair<String, Integer>> zip = Pair.zip(strings, integers);
@@ -925,7 +925,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Pair#forEach(Iterable, Iterable, BiConsumer)}.
    */
-  @Test public void testPairForEach() {
+  @Test void testPairForEach() {
     List<String> strings = Arrays.asList("paul", "george", "john", "ringo");
     List<Integer> integers = Arrays.asList(1942, 1943, 1940);
 
@@ -976,7 +976,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Pair#adjacents(Iterable)}.
    */
-  @Test public void testPairAdjacents() {
+  @Test void testPairAdjacents() {
     List<String> strings = Arrays.asList("a", "b", "c");
     List<String> result = new ArrayList<>();
     for (Pair<String, String> pair : Pair.adjacents(strings)) {
@@ -1001,7 +1001,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Pair#firstAnd(Iterable)}.
    */
-  @Test public void testPairFirstAnd() {
+  @Test void testPairFirstAnd() {
     List<String> strings = Arrays.asList("a", "b", "c");
     List<String> result = new ArrayList<>();
     for (Pair<String, String> pair : Pair.firstAnd(strings)) {
@@ -1027,7 +1027,7 @@ public class UtilTest {
    * Unit test for {@link Util#quotientList(java.util.List, int, int)}
    * and {@link Util#pairs(List)}.
    */
-  @Test public void testQuotientList() {
+  @Test void testQuotientList() {
     List<String> beatles = Arrays.asList("john", "paul", "george", "ringo");
     final List list0 = Util.quotientList(beatles, 3, 0);
     assertEquals(2, list0.size());
@@ -1085,7 +1085,7 @@ public class UtilTest {
     assertThat(list7.size(), is(0));
   }
 
-  @Test public void testImmutableIntList() {
+  @Test void testImmutableIntList() {
     final ImmutableIntList list = ImmutableIntList.of();
     assertEquals(0, list.size());
     assertEquals(list, Collections.<Integer>emptyList());
@@ -1118,7 +1118,7 @@ public class UtilTest {
   /**
    * Unit test for {@link IntegerIntervalSet}.
    */
-  @Test public void testIntegerIntervalSet() {
+  @Test void testIntegerIntervalSet() {
     checkIntegerIntervalSet("1,5", 1, 5);
 
     // empty
@@ -1149,7 +1149,7 @@ public class UtilTest {
    * Tests that flat lists behave like regular lists in terms of equals
    * and hashCode.
    */
-  @Test public void testFlatList() {
+  @Test void testFlatList() {
     final List<String> emp = FlatLists.of();
     final List<String> emp0 = Collections.emptyList();
     assertEquals(emp, emp0);
@@ -1200,7 +1200,7 @@ public class UtilTest {
     assertThat(cab.compareTo(anb) > 0, is(true));
   }
 
-  @Test public void testFlatList2() {
+  @Test void testFlatList2() {
     checkFlatList(0);
     checkFlatList(1);
     checkFlatList(2);
@@ -1321,14 +1321,14 @@ public class UtilTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2287">[CALCITE-2287]
    * FlatList.equals throws StackOverflowError</a>. */
-  @Test public void testFlat34Equals() {
+  @Test void testFlat34Equals() {
     List f3list = FlatLists.of(1, 2, 3);
     List f4list = FlatLists.of(1, 2, 3, 4);
     assertThat(f3list.equals(f4list), is(false));
   }
 
   @SuppressWarnings("unchecked")
-  @Test public void testFlatListN() {
+  @Test void testFlatListN() {
     List<List<Object>> list = new ArrayList<>();
     list.add(FlatLists.of());
     list.add(FlatLists.<Object>copyOf());
@@ -1375,7 +1375,7 @@ public class UtilTest {
     }
   }
 
-  @Test public void testFlatListProduct() {
+  @Test void testFlatListProduct() {
     final List<Enumerator<List<String>>> list = new ArrayList<>();
     list.add(Linq4j.enumerator(l2(l1("a"), l1("b"))));
     list.add(Linq4j.enumerator(l3(l2("x", "p"), l2("y", "q"), l2("z", "r"))));
@@ -1401,7 +1401,7 @@ public class UtilTest {
   /**
    * Unit test for {@link AvaticaUtils#toCamelCase(String)}.
    */
-  @Test public void testToCamelCase() {
+  @Test void testToCamelCase() {
     assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("MY_JDBC_DRIVER"));
     assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("MY_JDBC__DRIVER"));
     assertEquals("myJdbcDriver", AvaticaUtils.toCamelCase("my_jdbc_driver"));
@@ -1412,7 +1412,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link AvaticaUtils#camelToUpper(String)}. */
-  @Test public void testCamelToUpper() {
+  @Test void testCamelToUpper() {
     assertEquals("MY_JDBC_DRIVER", AvaticaUtils.camelToUpper("myJdbcDriver"));
     assertEquals("MY_J_D_B_C_DRIVER",
         AvaticaUtils.camelToUpper("myJDBCDriver"));
@@ -1424,7 +1424,7 @@ public class UtilTest {
   /**
    * Unit test for {@link Util#isDistinct(java.util.List)}.
    */
-  @Test public void testDistinct() {
+  @Test void testDistinct() {
     assertTrue(Util.isDistinct(Collections.emptyList()));
     assertTrue(Util.isDistinct(Arrays.asList("a")));
     assertTrue(Util.isDistinct(Arrays.asList("a", "b", "c")));
@@ -1435,7 +1435,7 @@ public class UtilTest {
 
   /** Unit test for
    * {@link Util#intersects(java.util.Collection, java.util.Collection)}. */
-  @Test public void testIntersects() {
+  @Test void testIntersects() {
     final List<String> empty = Collections.emptyList();
     final List<String> listA = Collections.singletonList("a");
     final List<String> listC = Collections.singletonList("c");
@@ -1453,7 +1453,7 @@ public class UtilTest {
   /**
    * Unit test for {@link org.apache.calcite.util.JsonBuilder}.
    */
-  @Test public void testJsonBuilder() {
+  @Test void testJsonBuilder() {
     JsonBuilder builder = new JsonBuilder();
     Map<String, Object> map = builder.map();
     map.put("foo", 1);
@@ -1484,7 +1484,7 @@ public class UtilTest {
         builder.toJsonString(map));
   }
 
-  @Test public void testCompositeMap() {
+  @Test void testCompositeMap() {
     String[] beatles = {"john", "paul", "george", "ringo"};
     Map<String, Integer> beatleMap = new LinkedHashMap<String, Integer>();
     for (String beatle : beatles) {
@@ -1540,7 +1540,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Util#commaList(java.util.List)}. */
-  @Test public void testCommaList() {
+  @Test void testCommaList() {
     try {
       String s = Util.commaList(null);
       fail("expected NPE, got " + s);
@@ -1555,7 +1555,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link Util#firstDuplicate(java.util.List)}. */
-  @Test public void testFirstDuplicate() {
+  @Test void testFirstDuplicate() {
     assertThat(Util.firstDuplicate(ImmutableList.of()), equalTo(-1));
     assertThat(Util.firstDuplicate(ImmutableList.of(5)), equalTo(-1));
     assertThat(Util.firstDuplicate(ImmutableList.of(5, 6)), equalTo(-1));
@@ -1573,7 +1573,7 @@ public class UtilTest {
   /** Benchmark for {@link Util#isDistinct}. Has determined that map-based
    * implementation is better than nested loops implementation if list is larger
    * than about 15. */
-  @Test public void testIsDistinctBenchmark() {
+  @Test void testIsDistinctBenchmark() {
     // Run a much quicker form of the test during regular testing.
     final int limit = Benchmark.enabled() ? 1000000 : 10;
     final int zMax = 100;
@@ -1604,7 +1604,7 @@ public class UtilTest {
 
   /** Unit test for {@link Util#distinctList(List)}
    * and {@link Util#distinctList(Iterable)}. */
-  @Test public void testDistinctList() {
+  @Test void testDistinctList() {
     assertThat(Util.distinctList(Arrays.asList(1, 2)), is(Arrays.asList(1, 2)));
     assertThat(Util.distinctList(Arrays.asList(1, 2, 1)),
         is(Arrays.asList(1, 2)));
@@ -1632,7 +1632,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link Utilities#hashCode(double)}. */
-  @Test public void testHash() {
+  @Test void testHash() {
     checkHash(0d);
     checkHash(1d);
     checkHash(-2.5d);
@@ -1657,7 +1657,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link Util#startsWith}. */
-  @Test public void testStartsWithList() {
+  @Test void testStartsWithList() {
     assertThat(Util.startsWith(list("x"), list()), is(true));
     assertThat(Util.startsWith(list("x"), list("x")), is(true));
     assertThat(Util.startsWith(list("x"), list("y")), is(false));
@@ -1671,7 +1671,7 @@ public class UtilTest {
     return Arrays.asList(xs);
   }
 
-  @Test public void testResources() {
+  @Test void testResources() {
     Resources.validate(Static.RESOURCE);
     checkResourceMethodNames(Static.RESOURCE);
   }
@@ -1686,7 +1686,7 @@ public class UtilTest {
   }
 
   /** Tests that sorted sets behave the way we expect. */
-  @Test public void testSortedSet() {
+  @Test void testSortedSet() {
     final TreeSet<String> treeSet = new TreeSet<String>();
     Collections.addAll(treeSet, "foo", "bar", "fOo", "FOO", "pug");
     assertThat(treeSet.size(), equalTo(5));
@@ -1723,7 +1723,7 @@ public class UtilTest {
   }
 
   /** Test for {@link org.apache.calcite.util.ImmutableNullableList}. */
-  @Test public void testImmutableNullableList() {
+  @Test void testImmutableNullableList() {
     final List<String> arrayList = Arrays.asList("a", null, "c");
     final List<String> list = ImmutableNullableList.copyOf(arrayList);
     assertThat(list.size(), equalTo(arrayList.size()));
@@ -1778,7 +1778,7 @@ public class UtilTest {
   }
 
   /** Test for {@link org.apache.calcite.util.UnmodifiableArrayList}. */
-  @Test public void testUnmodifiableArrayList() {
+  @Test void testUnmodifiableArrayList() {
     final String[] strings = {"a", null, "c"};
     final List<String> arrayList = Arrays.asList(strings);
     final List<String> list = UnmodifiableArrayList.of(strings);
@@ -1812,7 +1812,7 @@ public class UtilTest {
   }
 
   /** Test for {@link org.apache.calcite.util.ImmutableNullableList.Builder}. */
-  @Test public void testImmutableNullableListBuilder() {
+  @Test void testImmutableNullableListBuilder() {
     final ImmutableNullableList.Builder<String> builder =
         ImmutableNullableList.builder();
     builder.add("a")
@@ -1823,7 +1823,7 @@ public class UtilTest {
     assertThat(arrayList.equals(list), is(true));
   }
 
-  @Test public void testHuman() {
+  @Test void testHuman() {
     assertThat(Util.human(0D), equalTo("0"));
     assertThat(Util.human(1D), equalTo("1"));
     assertThat(Util.human(19D), equalTo("19"));
@@ -1865,7 +1865,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Util#immutableCopy(Iterable)}. */
-  @Test public void testImmutableCopy() {
+  @Test void testImmutableCopy() {
     final List<Integer> list3 = Arrays.asList(1, 2, 3);
     final List<Integer> immutableList3 = ImmutableList.copyOf(list3);
     final List<Integer> list0 = Arrays.asList();
@@ -1900,7 +1900,7 @@ public class UtilTest {
     assertThat(list301d.get(2), sameInstance(immutableList1));
   }
 
-  @Test public void testAsIndexView() {
+  @Test void testAsIndexView() {
     final List<String> values  = Lists.newArrayList("abCde", "X", "y");
     final Map<String, String> map =
         Util.asIndexMapJ(values, input -> input.toUpperCase(Locale.ROOT));
@@ -1917,11 +1917,11 @@ public class UtilTest {
     assertThat(map.get("Y"), equalTo("y"));
   }
 
-  @Test public void testRelBuilderExample() {
+  @Test void testRelBuilderExample() {
     new RelBuilderExample(false).runAllExamples();
   }
 
-  @Test public void testOrdReverse() {
+  @Test void testOrdReverse() {
     checkOrdReverse(Ord.reverse(Arrays.asList("a", "b", "c")));
     checkOrdReverse(Ord.reverse("a", "b", "c"));
     assertThat(Ord.reverse(ImmutableList.<String>of()).iterator().hasNext(),
@@ -1941,7 +1941,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Ord#forEach(Iterable, ObjIntConsumer)}. */
-  @Test public void testOrdForEach() {
+  @Test void testOrdForEach() {
     final String[] strings = {"ab", "", "cde"};
     final StringBuilder b = new StringBuilder();
     final String expected = "0:ab;1:;2:cde;";
@@ -1957,7 +1957,7 @@ public class UtilTest {
   }
 
   /** Tests {@link org.apache.calcite.util.ReflectUtil#getParameterName}. */
-  @Test public void testParameterName() throws NoSuchMethodException {
+  @Test void testParameterName() throws NoSuchMethodException {
     final Method method = UtilTest.class.getMethod("foo", int.class, int.class);
     assertThat(ReflectUtil.getParameterName(method, 0), is("arg0"));
     assertThat(ReflectUtil.getParameterName(method, 1), is("j"));
@@ -1967,7 +1967,7 @@ public class UtilTest {
   public static void foo(int i, @Parameter(name = "j") int j) {
   }
 
-  @Test public void testListToString() {
+  @Test void testListToString() {
     checkListToString("x");
     checkListToString("");
     checkListToString();
@@ -1992,7 +1992,7 @@ public class UtilTest {
    * <p>TryThreadLocal was introduced to fix
    * <a href="https://issues.apache.org/jira/browse/CALCITE-915">[CALCITE-915]
    * Tests do not unset ThreadLocal values on exit</a>. */
-  @Test public void testTryThreadLocal() {
+  @Test void testTryThreadLocal() {
     final TryThreadLocal<String> local1 = TryThreadLocal.of("foo");
     assertThat(local1.get(), is("foo"));
     TryThreadLocal.Memo memo1 = local1.push("bar");
@@ -2026,7 +2026,7 @@ public class UtilTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1264">[CALCITE-1264]
    * Litmus argument interpolation</a>. */
-  @Test public void testLitmus() {
+  @Test void testLitmus() {
     boolean b = checkLitmus(2, Litmus.THROW);
     assertThat(b, is(true));
     b = checkLitmus(2, Litmus.IGNORE);
@@ -2050,7 +2050,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link org.apache.calcite.util.NameSet}. */
-  @Test public void testNameSet() {
+  @Test void testNameSet() {
     final NameSet names = new NameSet();
     assertThat(names.contains("foo", true), is(false));
     assertThat(names.contains("foo", false), is(false));
@@ -2242,7 +2242,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link org.apache.calcite.util.NameMap}. */
-  @Test public void testNameMap() {
+  @Test void testNameMap() {
     final NameMap<Integer> map = new NameMap<>();
     assertThat(map.containsKey("foo", true), is(false));
     assertThat(map.containsKey("foo", false), is(false));
@@ -2299,7 +2299,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link org.apache.calcite.util.NameMultimap}. */
-  @Test public void testNameMultimap() {
+  @Test void testNameMultimap() {
     final NameMultimap<Integer> map = new NameMultimap<>();
     assertThat(map.containsKey("foo", true), is(false));
     assertThat(map.containsKey("foo", false), is(false));
@@ -2358,7 +2358,7 @@ public class UtilTest {
     assertThat(map.containsKey("zyMurgy", false), is(true));
   }
 
-  @Test public void testNlsStringClone() {
+  @Test void testNlsStringClone() {
     final NlsString s = new NlsString("foo", "LATIN1", SqlCollation.IMPLICIT);
     assertThat(s.toString(), is("_LATIN1'foo'"));
     final Object s2 = s.clone();
@@ -2367,7 +2367,7 @@ public class UtilTest {
     assertThat(s2.toString(), is(s.toString()));
   }
 
-  @Test public void testXmlOutput() {
+  @Test void testXmlOutput() {
     final StringWriter w = new StringWriter();
     final XmlOutput o = new XmlOutput(w);
     o.beginBeginTag("root");
@@ -2395,7 +2395,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link Matchers#compose}. */
-  @Test public void testComposeMatcher() {
+  @Test void testComposeMatcher() {
     assertThat("x", is("x"));
     assertThat(is("x").matches("x"), is(true));
     assertThat(is("X").matches("x"), is(false));
@@ -2409,7 +2409,7 @@ public class UtilTest {
   }
 
   /** Unit test for {@link Matchers#isLinux}. */
-  @Test public void testIsLinux() {
+  @Test void testIsLinux() {
     assertThat("xy", isLinux("xy"));
     assertThat("x\ny", isLinux("x\ny"));
     assertThat("x\r\ny", isLinux("x\ny"));
@@ -2428,7 +2428,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Util#transform(List, java.util.function.Function)}. */
-  @Test public void testTransform() {
+  @Test void testTransform() {
     final List<String> beatles =
         Arrays.asList("John", "Paul", "George", "Ringo");
     final List<String> empty = Collections.emptyList();
@@ -2445,7 +2445,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Util#filter(Iterable, java.util.function.Predicate)}. */
-  @Test public void testFilter() {
+  @Test void testFilter() {
     final List<String> beatles =
         Arrays.asList("John", "Paul", "George", "Ringo");
     final List<String> empty = Collections.emptyList();
@@ -2467,7 +2467,7 @@ public class UtilTest {
   }
 
   /** Tests {@link Util#select(List, List)}. */
-  @Test public void testSelect() {
+  @Test void testSelect() {
     final List<String> beatles =
         Arrays.asList("John", "Paul", "George", "Ringo");
     final List<String> nullBeatles =
@@ -2500,7 +2500,7 @@ public class UtilTest {
         isIterable(Arrays.asList(null, "Ringo", null)));
   }
 
-  @Test public void testEquivalenceSet() {
+  @Test void testEquivalenceSet() {
     final EquivalenceSet<String> c = new EquivalenceSet<>();
     assertThat(c.size(), is(0));
     assertThat(c.classCount(), is(0));
@@ -2538,7 +2538,7 @@ public class UtilTest {
     assertThat(c.classCount(), is(0));
   }
 
-  @Test public void testBlackHoleMap() {
+  @Test void testBlackHoleMap() {
     final Map<Integer, Integer> map = BlackholeMap.of();
 
     for (int i = 0; i < 100; i++) {

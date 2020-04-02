@@ -41,14 +41,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * Tests for the {@code org.apache.calcite.adapter.jdbc} package.
  */
-public class JdbcAdapterTest {
+class JdbcAdapterTest {
 
   /** Ensures that tests that are modifying data (doing DML) do not run at the
    * same time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
 
   /** VALUES is not pushed down, currently. */
-  @Test public void testValuesPlan() {
+  @Test void testValuesPlan() {
     final String sql = "select * from \"days\", (values 1, 2) as t(c)";
     final String explain = "PLAN="
         + "EnumerableNestedLoopJoin(condition=[true], joinType=[inner])\n"
@@ -66,7 +66,7 @@ public class JdbcAdapterTest {
         .planHasSql(jdbcSql);
   }
 
-  @Test public void testUnionPlan() {
+  @Test void testUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from \"sales_fact_1997\"\n"
             + "union all\n"
@@ -89,7 +89,7 @@ public class JdbcAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3115">[CALCITE-3115]
    * Cannot add JdbcRules which have different JdbcConvention
    * to same VolcanoPlanner's RuleSet.</a>*/
-  @Test public void testUnionPlan2() {
+  @Test void testUnionPlan2() {
     CalciteAssert.model(JdbcTest.FOODMART_SCOTT_MODEL)
         .query("select \"store_name\" from \"foodmart\".\"store\" where \"store_id\" < 10\n"
             + "union all\n"
@@ -113,7 +113,7 @@ public class JdbcAdapterTest {
                 + "WHERE \"EMPNO\" > 10");
   }
 
-  @Test public void testFilterUnionPlan() {
+  @Test void testFilterUnionPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select * from (\n"
             + "  select * from \"sales_fact_1997\"\n"
@@ -131,7 +131,7 @@ public class JdbcAdapterTest {
             + "WHERE \"product_id\" = 1");
   }
 
-  @Test public void testInPlan() {
+  @Test void testInPlan() {
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
         .query("select \"store_id\", \"store_name\" from \"store\"\n"
             + "where \"store_name\" in ('Store 1', 'Store 10', 'Store 11', 'Store 15', 'Store 16', 'Store 24', 'Store 3', 'Store 7')")
@@ -154,7 +154,7 @@ public class JdbcAdapterTest {
             + "store_id=24; store_name=Store 24\n");
   }
 
-  @Test public void testEquiJoinPlan() {
+  @Test void testEquiJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, e.deptno, dname\n"
             + "from scott.emp e inner join scott.dept d\n"
@@ -177,7 +177,7 @@ public class JdbcAdapterTest {
             + "ON \"t\".\"DEPTNO\" = \"t0\".\"DEPTNO\"");
   }
 
-  @Test public void testPushDownSort() {
+  @Test void testPushDownSort() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select ename\n"
             + "from scott.emp\n"
@@ -196,7 +196,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3751">[CALCITE-3751]
    * JDBC adapter wrongly pushes ORDER BY into sub-query</a>. */
-  @Test public void testOrderByPlan() {
+  @Test void testOrderByPlan() {
     final String sql = "select deptno, job, sum(sal)\n"
         + "from \"EMP\"\n"
         + "group by deptno, job\n"
@@ -221,7 +221,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-631">[CALCITE-631]
    * Push theta joins down to JDBC adapter</a>. */
-  @Test public void testNonEquiJoinPlan() {
+  @Test void testNonEquiJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, grade\n"
             + "from scott.emp e inner join scott.salgrade s\n"
@@ -242,7 +242,7 @@ public class JdbcAdapterTest {
             + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
-  @Test public void testNonEquiJoinReverseConditionPlan() {
+  @Test void testNonEquiJoinReverseConditionPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, grade\n"
             + "from scott.emp e inner join scott.salgrade s\n"
@@ -262,7 +262,7 @@ public class JdbcAdapterTest {
             + "AND \"t\".\"SAL\" <= \"SALGRADE\".\"HISAL\"");
   }
 
-  @Test public void testMixedJoinPlan() {
+  @Test void testMixedJoinPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select e.empno, e.ename, e.empno, e.ename\n"
             + "from scott.emp e inner join scott.emp m on\n"
@@ -285,7 +285,7 @@ public class JdbcAdapterTest {
             + "ON \"t\".\"MGR\" = \"t0\".\"EMPNO\" AND \"t\".\"SAL\" > \"t0\".\"SAL\"");
   }
 
-  @Test public void testMixedJoinWithOrPlan() {
+  @Test void testMixedJoinWithOrPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select e.empno, e.ename, e.empno, e.ename\n"
             + "from scott.emp e inner join scott.emp m on\n"
@@ -309,7 +309,7 @@ public class JdbcAdapterTest {
             + "AND (\"t\".\"SAL\" > \"t0\".\"SAL\" OR \"t\".\"HIREDATE\" < \"t0\".\"HIREDATE\")");
   }
 
-  @Test public void testJoin3TablesPlan() {
+  @Test void testJoin3TablesPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select  empno, ename, dname, grade\n"
             + "from scott.emp e inner join scott.dept d\n"
@@ -338,7 +338,7 @@ public class JdbcAdapterTest {
             + "AND \"t\".\"SAL\" < \"SALGRADE\".\"HISAL\"");
   }
 
-  @Test public void testCrossJoinWithJoinKeyPlan() {
+  @Test void testCrossJoinWithJoinKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d\n"
@@ -360,7 +360,7 @@ public class JdbcAdapterTest {
   }
 
   // JdbcJoin not used for this
-  @Test public void testCartesianJoinWithoutKeyPlan() {
+  @Test void testCartesianJoinWithoutKeyPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d")
@@ -376,7 +376,7 @@ public class JdbcAdapterTest {
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.HSQLDB);
   }
 
-  @Test public void testCrossJoinWithJoinKeyAndFilterPlan() {
+  @Test void testCrossJoinWithJoinKeyAndFilterPlan() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("select empno, ename, d.deptno, dname\n"
             + "from scott.emp e,scott.dept d\n"
@@ -404,7 +404,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-893">[CALCITE-893]
    * Theta join in JdbcAdapter</a>. */
-  @Test public void testJoinPlan() {
+  @Test void testJoinPlan() {
     final String sql = "SELECT T1.\"brand_name\"\n"
         + "FROM \"foodmart\".\"product\" AS T1\n"
         + " INNER JOIN \"foodmart\".\"product_class\" AS T2\n"
@@ -420,7 +420,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1372">[CALCITE-1372]
    * JDBC adapter generates SQL with wrong field names</a>. */
-  @Test public void testJoinPlan2() {
+  @Test void testJoinPlan2() {
     final String sql = "SELECT v1.deptno, v2.deptno\n"
         + "FROM Scott.dept v1 LEFT JOIN Scott.emp v2 ON v1.deptno = v2.deptno\n"
         + "WHERE v2.job LIKE 'PRESIDENT'";
@@ -430,13 +430,13 @@ public class JdbcAdapterTest {
         .returnsCount(1);
   }
 
-  @Test public void testJoinCartesian() {
+  @Test void testJoinCartesian() {
     final String sql = "SELECT *\n"
         + "FROM Scott.dept, Scott.emp";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returnsCount(56);
   }
 
-  @Test public void testJoinCartesianCount() {
+  @Test void testJoinCartesianCount() {
     final String sql = "SELECT count(*) as c\n"
         + "FROM Scott.dept, Scott.emp";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL).query(sql).returns("C=56\n");
@@ -445,7 +445,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-657">[CALCITE-657]
    * NullPointerException when executing JdbcAggregate implement method</a>. */
-  @Test public void testJdbcAggregate() throws Exception {
+  @Test void testJdbcAggregate() throws Exception {
     final String url = MultiJdbcSchemaJoinTest.TempDb.INSTANCE.getUrl();
     Connection baseConnection = DriverManager.getConnection(url);
     Statement baseStmt = baseConnection.createStatement();
@@ -491,7 +491,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2206">[CALCITE-2206]
    * JDBC adapter incorrectly pushes windowed aggregates down to HSQLDB</a>. */
-  @Test public void testOverNonSupportedDialect() {
+  @Test void testOverNonSupportedDialect() {
     final String sql = "select \"store_id\", \"account_id\", \"exp_date\",\n"
         + " \"time_id\", \"category_id\", \"currency_id\", \"amount\",\n"
         + " last_value(\"time_id\") over () as \"last_version\"\n"
@@ -510,7 +510,7 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
-  @Test public void testTablesNoCatalogSchema() {
+  @Test void testTablesNoCatalogSchema() {
     final String model =
         JdbcTest.FOODMART_MODEL
             .replace("jdbcCatalog: 'foodmart'", "jdbcCatalog: null")
@@ -544,7 +544,7 @@ public class JdbcAdapterTest {
    *
    * <p>Test runs only on Postgres; the default database, Hsqldb, does not
    * support OVER. */
-  @Test public void testOverDefault() {
+  @Test void testOverDefault() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -570,7 +570,7 @@ public class JdbcAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2305">[CALCITE-2305]
    * JDBC adapter generates invalid casts on PostgreSQL, because PostgreSQL does
    * not have TINYINT and DOUBLE types</a>. */
-  @Test public void testCast() {
+  @Test void testCast() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -583,7 +583,7 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
-  @Test public void testOverRowsBetweenBoundFollowingAndFollowing() {
+  @Test void testOverRowsBetweenBoundFollowingAndFollowing() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -607,7 +607,7 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
-  @Test public void testOverRowsBetweenBoundPrecedingAndCurrent() {
+  @Test void testOverRowsBetweenBoundPrecedingAndCurrent() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -631,7 +631,7 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
-  @Test public void testOverDisallowPartial() {
+  @Test void testOverDisallowPartial() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -661,7 +661,7 @@ public class JdbcAdapterTest {
             + "FROM \"foodmart\".\"expense_fact\"");
   }
 
-  @Test public void testLastValueOver() {
+  @Test void testLastValueOver() {
     CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == CalciteAssert.DatabaseInstance.POSTGRESQL)
@@ -689,7 +689,7 @@ public class JdbcAdapterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-259">[CALCITE-259]
    * Using sub-queries in CASE statement against JDBC tables generates invalid
    * Oracle SQL</a>. */
-  @Test public void testSubQueryWithSingleValue() {
+  @Test void testSubQueryWithSingleValue() {
     final String expected;
     switch (CalciteAssert.DB) {
     case MYSQL:
@@ -711,7 +711,7 @@ public class JdbcAdapterTest {
    * Unknown table type causes NullPointerException in JdbcSchema</a>. The issue
    * occurred because of the "SYSTEM_INDEX" table type when run against
    * PostgreSQL. */
-  @Test public void testMetadataTables() throws Exception {
+  @Test void testMetadataTables() throws Exception {
     // The troublesome tables occur in PostgreSQL's system schema.
     final String model =
         JdbcTest.FOODMART_MODEL.replace("jdbcSchema: 'foodmart'",
@@ -732,7 +732,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-666">[CALCITE-666]
    * Anti-semi-joins against JDBC adapter give wrong results</a>. */
-  @Test public void testScalarSubQuery() {
+  @Test void testScalarSubQuery() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query("SELECT COUNT(empno) AS cEmpNo FROM \"SCOTT\".\"EMP\" "
             + "WHERE DEPTNO <> (SELECT * FROM (VALUES 1))")
@@ -795,7 +795,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1527">[CALCITE-1527]
    * Support DML in the JDBC adapter</a>. */
-  @Test public void testTableModifyInsert() throws Exception {
+  @Test void testTableModifyInsert() throws Exception {
     final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
         + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
         + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -828,7 +828,7 @@ public class JdbcAdapterTest {
     });
   }
 
-  @Test public void testTableModifyInsertMultiValues() throws Exception {
+  @Test void testTableModifyInsertMultiValues() throws Exception {
     final String sql = "INSERT INTO \"foodmart\".\"expense_fact\"(\n"
         + " \"store_id\", \"account_id\", \"exp_date\", \"time_id\","
         + " \"category_id\", \"currency_id\", \"amount\")\n"
@@ -867,7 +867,7 @@ public class JdbcAdapterTest {
     });
   }
 
-  @Test public void testTableModifyInsertWithSubQuery() throws Exception {
+  @Test void testTableModifyInsertWithSubQuery() throws Exception {
     final AssertThat that = CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
@@ -904,7 +904,7 @@ public class JdbcAdapterTest {
     });
   }
 
-  @Test public void testTableModifyUpdate() throws Exception {
+  @Test void testTableModifyUpdate() throws Exception {
     final AssertThat that = CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
@@ -932,7 +932,7 @@ public class JdbcAdapterTest {
     });
   }
 
-  @Test public void testTableModifyDelete() throws Exception {
+  @Test void testTableModifyDelete() throws Exception {
     final AssertThat that = CalciteAssert
         .model(JdbcTest.FOODMART_MODEL)
         .enable(CalciteAssert.DB == DatabaseInstance.HSQLDB);
@@ -959,7 +959,7 @@ public class JdbcAdapterTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1572">[CALCITE-1572]
    * JdbcSchema throws exception when detecting nullable columns</a>. */
-  @Test public void testColumnNullability() throws Exception {
+  @Test void testColumnNullability() throws Exception {
     final String sql = "select \"employee_id\", \"position_id\"\n"
         + "from \"foodmart\".\"employee\" limit 10";
     CalciteAssert.model(JdbcTest.FOODMART_MODEL)
@@ -969,7 +969,7 @@ public class JdbcAdapterTest {
         .typeIs("[employee_id INTEGER NOT NULL, position_id INTEGER]");
   }
 
-  @Test public void pushBindParameters() throws Exception {
+  @Test void pushBindParameters() throws Exception {
     final String sql = "select empno, ename from emp where empno = ?";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
         .query(sql)

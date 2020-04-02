@@ -35,7 +35,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test for {@link PigRelBuilder}.
  */
-public class PigRelBuilderTest {
+class PigRelBuilderTest {
   /** Creates a config based on the "scott" schema. */
   public static Frameworks.ConfigBuilder config() {
     return RelBuilderTest.config();
@@ -54,7 +54,7 @@ public class PigRelBuilderTest {
     return Util.toLinux(RelOptUtil.toString(r));
   }
 
-  @Test public void testScan() {
+  @Test void testScan() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -66,11 +66,11 @@ public class PigRelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  @Test public void testCogroup() {}
-  @Test public void testCross() {}
-  @Test public void testCube() {}
-  @Test public void testDefine() {}
-  @Test public void testDistinct() {
+  @Test void testCogroup() {}
+  @Test void testCross() {}
+  @Test void testCube() {}
+  @Test void testDefine() {}
+  @Test void testDistinct() {
     // Syntax:
     //   alias = DISTINCT alias [PARTITION BY partitioner] [PARALLEL n];
     final PigRelBuilder builder = PigRelBuilder.create(config().build());
@@ -85,7 +85,7 @@ public class PigRelBuilderTest {
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testFilter() {
+  @Test void testFilter() {
     // Syntax:
     //  FILTER name BY expr
     // Example:
@@ -100,9 +100,9 @@ public class PigRelBuilderTest {
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testForeach() {}
+  @Test void testForeach() {}
 
-  @Test public void testGroup() {
+  @Test void testGroup() {
     // Syntax:
     //   alias = GROUP alias { ALL | BY expression}
     //     [, alias ALL | BY expression ...] [USING 'collected' | 'merge']
@@ -131,7 +131,7 @@ public class PigRelBuilderTest {
         is(plan2));
   }
 
-  @Test public void testGroup2() {
+  @Test void testGroup2() {
     // Equivalent to Pig Latin:
     //   r = GROUP e BY deptno, d BY deptno;
     final PigRelBuilder builder = PigRelBuilder.create(config().build());
@@ -152,12 +152,12 @@ public class PigRelBuilderTest {
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testImport() {}
-  @Test public void testJoinInner() {}
-  @Test public void testJoinOuter() {}
-  @Test public void testLimit() {}
+  @Test void testImport() {}
+  @Test void testJoinInner() {}
+  @Test void testJoinOuter() {}
+  @Test void testLimit() {}
 
-  @Test public void testLoad() {
+  @Test void testLoad() {
     // Syntax:
     //   LOAD 'data' [USING function] [AS schema];
     // Equivalent to Pig Latin:
@@ -170,11 +170,11 @@ public class PigRelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  @Test public void testMapReduce() {}
-  @Test public void testOrderBy() {}
-  @Test public void testRank() {}
-  @Test public void testSample() {}
-  @Test public void testSplit() {}
-  @Test public void testStore() {}
-  @Test public void testUnion() {}
+  @Test void testMapReduce() {}
+  @Test void testOrderBy() {}
+  @Test void testRank() {}
+  @Test void testSample() {}
+  @Test void testSplit() {}
+  @Test void testStore() {}
+  @Test void testUnion() {}
 }

@@ -27,14 +27,14 @@ import org.junit.jupiter.api.Test;
  * Unit test for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableCalc}
  */
-public class EnumerableCalcTest {
+class EnumerableCalcTest {
 
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3536">[CALCITE-3536]
    * NPE when executing plan with Coalesce due to wrong NullAs strategy</a>.
    */
-  @Test public void testCoalesceImplementation() {
+  @Test void testCoalesceImplementation() {
     CalciteAssert.that()
         .withSchema("s", new ReflectiveSchema(new JdbcTest.HrSchema()))
         .query("?")

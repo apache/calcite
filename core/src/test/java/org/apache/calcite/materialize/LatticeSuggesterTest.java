@@ -62,11 +62,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-public class LatticeSuggesterTest {
+class LatticeSuggesterTest {
 
   /** Some basic query patterns on the Scott schema with "EMP" and "DEPT"
    * tables. */
-  @Test public void testEmpDept() throws Exception {
+  @Test void testEmpDept() throws Exception {
     final Tester t = new Tester();
     final String q0 = "select dept.dname, count(*), sum(sal)\n"
         + "from emp\n"
@@ -137,7 +137,7 @@ public class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test public void testFoodmart() throws Exception {
+  @Test void testFoodmart() throws Exception {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"t\".\"quarter\" as \"c1\",\n"
@@ -177,7 +177,7 @@ public class LatticeSuggesterTest {
     assertThat(t.s.space.g.toString(), is(expected));
   }
 
-  @Test public void testAggregateExpression() throws Exception {
+  @Test void testAggregateExpression() throws Exception {
     final Tester t = new Tester().foodmart();
     final String q = "select \"t\".\"the_year\" as \"c0\",\n"
         + " \"pc\".\"product_family\" as \"c1\",\n"
@@ -242,7 +242,7 @@ public class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test public void testSharedSnowflake() throws Exception {
+  @Test void testSharedSnowflake() throws Exception {
     final Tester t = new Tester().foodmart();
     // foodmart query 5827 (also 5828, 5830, 5832) uses the "region" table
     // twice: once via "store" and once via "customer";
@@ -273,7 +273,7 @@ public class LatticeSuggesterTest {
         isGraphs(g, "[SUM(sales_fact_1997.unit_sales)]"));
   }
 
-  @Test public void testExpressionInAggregate() throws Exception {
+  @Test void testExpressionInAggregate() throws Exception {
     final Tester t = new Tester().withEvolve(true).foodmart();
     final FoodMartQuerySet set = FoodMartQuerySet.instance();
     for (int id : new int[]{392, 393}) {
@@ -394,16 +394,16 @@ public class LatticeSuggesterTest {
   }
 
   @Tag("slow")
-  @Test public void testFoodMartAll() throws Exception {
+  @Test void testFoodMartAll() throws Exception {
     checkFoodMartAll(false);
   }
 
   @Tag("slow")
-  @Test public void testFoodMartAllEvolve() throws Exception {
+  @Test void testFoodMartAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
 
-  @Test public void testContains() throws Exception {
+  @Test void testContains() throws Exception {
     final Tester t = new Tester().foodmart();
     final LatticeRootNode fNode = t.node("select *\n"
         + "from \"sales_fact_1997\"");
@@ -425,7 +425,7 @@ public class LatticeSuggesterTest {
     assertThat(fcpNode.contains(fcpNode), is(true));
   }
 
-  @Test public void testEvolve() throws Exception {
+  @Test void testEvolve() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select count(*)\n"
@@ -488,7 +488,7 @@ public class LatticeSuggesterTest {
         is(l3));
   }
 
-  @Test public void testExpression() throws Exception {
+  @Test void testExpression() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -515,7 +515,7 @@ public class LatticeSuggesterTest {
 
   /** As {@link #testExpression()} but with multiple queries.
    * Some expressions are measures in one query and dimensions in another. */
-  @Test public void testExpressionEvolution() throws Exception {
+  @Test void testExpressionEvolution() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     // q0 uses n10 as a measure, n11 as a measure, n12 as a dimension
@@ -571,7 +571,7 @@ public class LatticeSuggesterTest {
     assertThat(lattice.isAlwaysMeasure(dc0), is(alwaysMeasure));
   }
 
-  @Test public void testExpressionInJoin() throws Exception {
+  @Test void testExpressionInJoin() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "select\n"
@@ -597,7 +597,7 @@ public class LatticeSuggesterTest {
     assertThat(derivedColumns.get(1).tables, is(tables));
   }
 
-  @Test public void testRedshiftDialect() throws Exception {
+  @Test void testRedshiftDialect() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true)
         .withDialect(SqlDialect.DatabaseProduct.REDSHIFT.getDialect())
         .withLibrary(SqlLibrary.POSTGRESQL);
@@ -619,7 +619,7 @@ public class LatticeSuggesterTest {
 
   /** A tricky case involving a CTE (WITH), a join condition that references an
    * expression, a complex WHERE clause, and some other queries. */
-  @Test public void testJoinUsingExpression() throws Exception {
+  @Test void testJoinUsingExpression() throws Exception {
     final Tester t = new Tester().foodmart().withEvolve(true);
 
     final String q0 = "with c as (select\n"
@@ -655,7 +655,7 @@ public class LatticeSuggesterTest {
     assertThat(t.s.latticeMap.size(), is(3));
   }
 
-  @Test public void testDerivedColRef() throws Exception {
+  @Test void testDerivedColRef() throws Exception {
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(Tester.schemaFrom(CalciteAssert.SchemaSpec.SCOTT))
         .statisticProvider(QuerySqlStatisticProvider.SILENT_CACHING_INSTANCE)
@@ -689,7 +689,7 @@ public class LatticeSuggesterTest {
    * <p>The query has a join, and so we have to execute statistics queries
    * to deduce the direction of the foreign key.
    */
-  @Test public void testFoodmartSimpleJoin() throws Exception {
+  @Test void testFoodmartSimpleJoin() throws Exception {
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.JDBC_FOODMART);
     checkFoodmartSimpleJoin(CalciteAssert.SchemaSpec.FAKE_FOODMART);
   }
@@ -709,7 +709,7 @@ public class LatticeSuggesterTest {
     assertThat(t.addQuery(q), isGraphs(g, "[]"));
   }
 
-  @Test public void testUnion() throws Exception {
+  @Test void testUnion() throws Exception {
     checkUnion("union");
     checkUnion("union all");
     checkUnion("intersect");

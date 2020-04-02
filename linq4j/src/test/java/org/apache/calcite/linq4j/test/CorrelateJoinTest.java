@@ -36,11 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 /**
  * Tests {@link ExtendedEnumerable#correlateJoin(JoinType, Function1, Function2)}
  */
-public class CorrelateJoinTest {
+class CorrelateJoinTest {
   static final Function2<Integer, Integer, Integer[]> SELECT_BOTH =
       (v0, v1) -> new Integer[]{v0, v1};
 
-  @Test public void testInner() {
+  @Test void testInner() {
     testJoin(JoinType.INNER, new Integer[][]{
         {2, 20},
         {3, -30},
@@ -50,7 +50,7 @@ public class CorrelateJoinTest {
         {30, -600}});
   }
 
-  @Test public void testLeft() {
+  @Test void testLeft() {
     testJoin(JoinType.LEFT, new Integer[][]{
         {1, null},
         {2, 20},
@@ -62,7 +62,7 @@ public class CorrelateJoinTest {
         {30, -600}});
   }
 
-  @Test public void testSemi() {
+  @Test void testSemi() {
     testJoin(JoinType.SEMI, new Integer[][]{
         {2, null},
         {3, null},
@@ -70,7 +70,7 @@ public class CorrelateJoinTest {
         {30, null}});
   }
 
-  @Test public void testAnti() {
+  @Test void testAnti() {
     testJoin(JoinType.ANTI, new Integer[][]{
         {1, null},
         {10, null}});

@@ -68,11 +68,11 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit tests for {@link RexProgram} and
  * {@link org.apache.calcite.rex.RexProgramBuilder}.
  */
-public class RexProgramTest extends RexProgramTestBase {
+class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests construction of a RexProgram.
    */
-  @Test public void testBuildProgram() {
+  @Test void testBuildProgram() {
     final RexProgramBuilder builder = createProg(0);
     final RexProgram program = builder.getProgram(false);
     final String programString = program.toString();
@@ -97,7 +97,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests construction and normalization of a RexProgram.
    */
-  @Test public void testNormalize() {
+  @Test void testNormalize() {
     final RexProgramBuilder builder = createProg(0);
     final String program = builder.getProgram(true).toString();
     TestUtil.assertEqualsVerbose(
@@ -110,7 +110,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests construction and normalization of a RexProgram.
    */
-  @Test public void testElimDups() {
+  @Test void testElimDups() {
     final RexProgramBuilder builder = createProg(1);
     final String unnormalizedProgram = builder.getProgram(false).toString();
     TestUtil.assertEqualsVerbose(
@@ -132,7 +132,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests how the condition is simplified.
    */
-  @Test public void testSimplifyCondition() {
+  @Test void testSimplifyCondition() {
     final RexProgram program = createProg(3).getProgram(false);
     assertThat(program.toString(),
         is("(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
@@ -152,7 +152,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /**
    * Tests how the condition is simplified.
    */
-  @Test public void testSimplifyCondition2() {
+  @Test void testSimplifyCondition2() {
     final RexProgram program = createProg(4).getProgram(false);
     assertThat(program.toString(),
         is("(expr#0..1=[{inputs}], expr#2=[+($0, 1)], expr#3=[77], "
@@ -173,7 +173,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /**
    * Checks translation of AND(x, x).
    */
-  @Test public void testDuplicateAnd() {
+  @Test void testDuplicateAnd() {
     // RexProgramBuilder used to translate AND(x, x) to x.
     // Now it translates it to AND(x, x).
     // The optimization of AND(x, x) => x occurs at a higher level.
@@ -347,7 +347,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for {@link org.apache.calcite.plan.Strong}. */
-  @Test public void testStrong() {
+  @Test void testStrong() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
 
     final ImmutableBitSet c = ImmutableBitSet.of();
@@ -471,7 +471,7 @@ public class RexProgramTest extends RexProgramTestBase {
 
   }
 
-  @Test public void testItemStrong() {
+  @Test void testItemStrong() {
     final ImmutableBitSet c0 = ImmutableBitSet.of(0);
     RexNode item = item(input(tArray(tInt()), 0), literal(0));
 
@@ -485,7 +485,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(Strong.isNull(item, c0), is(true));
   }
 
-  @Test public void xAndNotX() {
+  @Test void xAndNotX() {
     checkSimplify2(
         and(vBool(), not(vBool()),
             vBool(1), not(vBool(1))),
@@ -505,7 +505,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   @Disabled("CALCITE-3457: AssertionError in RexSimplify.validateStrongPolicy")
-  @Test public void reproducerFor3457() {
+  @Test void reproducerFor3457() {
     // Identified with RexProgramFuzzyTest#testFuzzy, seed=4887662474363391810L
     checkSimplify(
         eq(unaryMinus(abstractCast(literal(1), tInt(true))),
@@ -513,7 +513,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test public void testNoCommonReturnTypeFails() {
+  @Test void testNoCommonReturnTypeFails() {
     try {
       final RexNode node = coalesce(vVarchar(1), vInt(2));
       fail("expected exception, got " + node);
@@ -525,7 +525,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#toCnf}. */
-  @Test public void testCnf() {
+  @Test void testCnf() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -602,7 +602,7 @@ public class RexProgramTest extends RexProgramTestBase {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-394">[CALCITE-394]
    * Add RexUtil.toCnf, to convert expressions to conjunctive normal form
    * (CNF)</a>. */
-  @Test public void testCnf2() {
+  @Test void testCnf2() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("x", intType)
@@ -670,7 +670,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1290">[CALCITE-1290]
    * When converting to CNF, fail if the expression exceeds a threshold</a>. */
-  @Test public void testThresholdCnf() {
+  @Test void testThresholdCnf() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("x", intType)
@@ -713,7 +713,7 @@ public class RexProgramTest extends RexProgramTestBase {
 
   /** Tests formulas of various sizes whose size is exponential when converted
    * to CNF. */
-  @Test public void testCnfExponential() {
+  @Test void testCnfExponential() {
     // run out of memory if limit is higher than about 20
     int limit = 16;
     for (int i = 2; i < limit; i++) {
@@ -750,7 +750,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Unit test for {@link org.apache.calcite.rex.RexUtil#pullFactors}. */
-  @Test public void testPullFactors() {
+  @Test void testPullFactors() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -820,7 +820,7 @@ public class RexProgramTest extends RexProgramTestBase {
                                and(gRef, or(trueLiteral, falseLiteral)))))))));
   }
 
-  @Test public void testSimplify() {
+  @Test void testSimplify() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -1040,7 +1040,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "IS NOT NULL(?0.int1)");
   }
 
-  @Test public void simplifyStrong() {
+  @Test void simplifyStrong() {
     checkSimplify(ge(trueLiteral, falseLiteral), "true");
     checkSimplify3(ge(trueLiteral, nullBool), "null:BOOLEAN", "false", "true");
     checkSimplify3(ge(nullBool, nullBool), "null:BOOLEAN", "false", "true");
@@ -1058,7 +1058,7 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplify(div(vInt(), nullInt), "null:INTEGER");
   }
 
-  @Test public void testSimplifyFilter() {
+  @Test void testSimplifyFilter() {
     final RelDataType booleanType =
         typeFactory.createSqlType(SqlTypeName.BOOLEAN);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -1253,7 +1253,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
    * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test public void testSimplifyOrNotEqualsNotNullable() {
+  @Test void testSimplifyOrNotEqualsNotNullable() {
     checkSimplify(
         or(
             ne(vIntNotNull(), literal(1)),
@@ -1264,7 +1264,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
    * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test public void testSimplifyOrNotEqualsNotNullable2() {
+  @Test void testSimplifyOrNotEqualsNotNullable2() {
     checkSimplify(
         or(
             ne(vIntNotNull(0), literal(1)),
@@ -1276,7 +1276,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
    * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test public void testSimplifyOrNotEqualsNullable() {
+  @Test void testSimplifyOrNotEqualsNullable() {
     checkSimplify3(
         or(
             ne(vInt(), literal(1)),
@@ -1287,7 +1287,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3198">[CALCITE-3198]
    * Enhance RexSimplify to handle (x&lt;&gt;a or x&lt;&gt;b)</a>. */
-  @Test public void testSimplifyOrNotEqualsNullable2() {
+  @Test void testSimplifyOrNotEqualsNullable2() {
     checkSimplify3(
         or(
             ne(vInt(0), literal(1)),
@@ -1298,7 +1298,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test public void testSimplifyAndPush() {
+  @Test void testSimplifyAndPush() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("a", intType)
@@ -1369,7 +1369,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "false");
   }
 
-  @Test public void testSimplifyOrTerms() {
+  @Test void testSimplifyOrTerms() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("a", intType).nullable(false)
@@ -1462,7 +1462,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test public void testSimplifyItemRangeTerms() {
+  @Test void testSimplifyItemRangeTerms() {
     RexNode item = item(input(tArray(tInt()), 3), literal(1));
     // paranoid validation doesn't support array types, disable it for a moment
     simplify = this.simplify.withParanoid(false);
@@ -1476,7 +1476,7 @@ public class RexProgramTest extends RexProgramTestBase {
     simplify = simplify.withParanoid(true);
   }
 
-  @Test public void testSimplifyNotAnd() {
+  @Test void testSimplifyNotAnd() {
     final RexNode e = or(
         le(
             vBool(1),
@@ -1487,7 +1487,7 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplify(e, "OR(<=(?0.bool1, true), ?0.bool1)");
   }
 
-  @Test public void testSimplifyUnknown() {
+  @Test void testSimplifyUnknown() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("a", intType).nullable(true)
@@ -1539,7 +1539,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test public void testSimplifyAnd3() {
+  @Test void testSimplifyAnd3() {
     // in the case of 3-valued logic, the result must be unknown if a is unknown
     checkSimplify2(
         and(vBool(), not(vBool())),
@@ -1550,7 +1550,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2840">[CALCITE-2840]
    * Simplification should use more specific UnknownAs modes during simplification</a>. */
-  @Test public void testNestedAndSimplification() {
+  @Test void testNestedAndSimplification() {
     // to have the correct mode for the AND at the bottom,
     // both the OR and AND parent should retain the UnknownAs mode
     checkSimplify2(
@@ -1565,21 +1565,21 @@ public class RexProgramTest extends RexProgramTestBase {
         "AND(=(?0.int2, 2), OR(=(?0.int3, 3), =(?0.int0, 1)))");
   }
 
-  @Test public void fieldAccessEqualsHashCode() {
+  @Test void fieldAccessEqualsHashCode() {
     assertEquals(vBool(), vBool(), "vBool() instances should be equal");
     assertEquals(vBool().hashCode(), vBool().hashCode(), "vBool().hashCode()");
     assertNotSame(vBool(), vBool(), "vBool() is expected to produce new RexFieldAccess");
     assertNotEquals(vBool(0), vBool(1), "vBool(0) != vBool(1)");
   }
 
-  @Test public void testSimplifyDynamicParam() {
+  @Test void testSimplifyDynamicParam() {
     checkSimplify(or(vBool(), vBool()), "?0.bool0");
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1289">[CALCITE-1289]
    * RexUtil.simplifyCase() should account for nullability</a>. */
-  @Test public void testSimplifyCaseNotNullableBoolean() {
+  @Test void testSimplifyCaseNotNullableBoolean() {
     RexNode condition = eq(vVarchar(), literal("S"));
     RexCall caseNode = (RexCall) case_(condition, trueLiteral, falseLiteral);
 
@@ -1591,7 +1591,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(result.getOperands().get(0), is(condition));
   }
 
-  @Test public void testSimplifyCaseNullableBoolean() {
+  @Test void testSimplifyCaseNullableBoolean() {
     RexNode condition = eq(input(tVarchar(), 0), literal("S"));
     RexNode caseNode = case_(condition, trueLiteral, falseLiteral);
 
@@ -1602,7 +1602,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(result, is(condition));
   }
 
-  @Test public void testSimplifyRecurseIntoArithmetics() {
+  @Test void testSimplifyRecurseIntoArithmetics() {
     checkSimplify(
         plus(literal(1),
             case_(
@@ -1612,7 +1612,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "+(1, 2)");
   }
 
-  @Test public void testSimplifyCaseBranchesCollapse() {
+  @Test void testSimplifyCaseBranchesCollapse() {
     // case when x is true then 1 when x is not true then 1 else 2 end
     // => case when x is true or x is not true then 1 else 2 end
     checkSimplify(
@@ -1623,7 +1623,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "CASE(OR(?0.bool0, IS NOT TRUE(?0.bool0)), 1, 2)");
   }
 
-  @Test public void testSimplifyCaseBranchesCollapse2() {
+  @Test void testSimplifyCaseBranchesCollapse2() {
     // case when x is true then 1 when true then 1 else 2 end
     // => 1
     checkSimplify(
@@ -1634,7 +1634,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "1");
   }
 
-  @Test public void testSimplifyCaseNullableVarChar() {
+  @Test void testSimplifyCaseNullableVarChar() {
     RexNode condition = eq(input(tVarchar(), 0), literal("S"));
     RexNode caseNode = case_(condition, literal("A"), literal("B"));
 
@@ -1645,7 +1645,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(result, is(caseNode));
   }
 
-  @Test public void testSimplifyCaseCasting() {
+  @Test void testSimplifyCaseCasting() {
     RexNode caseNode = case_(eq(vIntNotNull(), literal(3)), nullBool, falseLiteral);
 
     checkSimplify3(caseNode, "AND(=(?0.notNullInt0, 3), null)",
@@ -1653,7 +1653,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "=(?0.notNullInt0, 3)");
   }
 
-  @Test public void testSimplifyCaseAndNotSimplicationIsInAction() {
+  @Test void testSimplifyCaseAndNotSimplicationIsInAction() {
     RexNode caseNode = case_(
         eq(vIntNotNull(), literal(0)), falseLiteral,
         eq(vIntNotNull(), literal(1)), trueLiteral,
@@ -1661,7 +1661,7 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplify(caseNode, "=(?0.notNullInt0, 1)");
   }
 
-  @Test public void testSimplifyCaseBranchRemovalStrengthensType() {
+  @Test void testSimplifyCaseBranchRemovalStrengthensType() {
     RexNode caseNode =
         case_(falseLiteral, nullBool, eq(div(vInt(), literal(2)), literal(3)), trueLiteral,
             falseLiteral);
@@ -1672,17 +1672,17 @@ public class RexProgramTest extends RexProgramTestBase {
         res.getType().isNullable(), is(false));
   }
 
-  @Test public void testSimplifyCaseCompaction() {
+  @Test void testSimplifyCaseCompaction() {
     RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(0), vInt(1));
     checkSimplify(caseNode, "CASE(OR(?0.bool0, ?0.bool1), ?0.int0, ?0.int1)");
   }
 
-  @Test public void testSimplifyCaseCompaction2() {
+  @Test void testSimplifyCaseCompaction2() {
     RexNode caseNode = case_(vBool(0), vInt(0), vBool(1), vInt(1), vInt(1));
     checkSimplify(caseNode, "CASE(?0.bool0, ?0.int0, ?0.int1)");
   }
 
-  @Test public void testSimplifyCaseCompactionDiv() {
+  @Test void testSimplifyCaseCompactionDiv() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
     simplify = simplify.withParanoid(false);
     RexNode caseNode = case_(vBool(0), vInt(0),
@@ -1693,7 +1693,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Tests a CASE value branch that contains division. */
-  @Test public void testSimplifyCaseDiv1() {
+  @Test void testSimplifyCaseDiv1() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
     simplify = simplify.withParanoid(false);
     RexNode caseNode = case_(
@@ -1704,7 +1704,7 @@ public class RexProgramTest extends RexProgramTestBase {
   }
 
   /** Tests a CASE condition that contains division, */
-  @Test public void testSimplifyCaseDiv2() {
+  @Test void testSimplifyCaseDiv2() {
     // FIXME: RexInterpreter currently evaluates children beforehand.
     simplify = simplify.withParanoid(false);
     RexNode caseNode = case_(
@@ -1714,14 +1714,14 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplifyUnchanged(caseNode);
   }
 
-  @Test public void testSimplifyCaseFirstBranchIsSafe() {
+  @Test void testSimplifyCaseFirstBranchIsSafe() {
     RexNode caseNode = case_(
         gt(div(vIntNotNull(), literal(1)), literal(1)), falseLiteral,
         trueLiteral);
     checkSimplify(caseNode, "<=(/(?0.notNullInt0, 1), 1)");
   }
 
-  @Test public void testPushNotIntoCase() {
+  @Test void testPushNotIntoCase() {
     checkSimplify(
         not(
             case_(
@@ -1731,13 +1731,13 @@ public class RexProgramTest extends RexProgramTestBase {
         "CASE(?0.bool0, NOT(?0.bool1), >(/(?0.notNullInt0, 2), 1), NOT(?0.bool2), NOT(?0.bool3))");
   }
 
-  @Test public void testNotRecursion() {
+  @Test void testNotRecursion() {
     checkSimplify(
         not(coalesce(nullBool, trueLiteral)),
         "false");
   }
 
-  @Test public void testSimplifyAnd() {
+  @Test void testSimplifyAnd() {
     RelDataType booleanNotNullableType =
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), false);
@@ -1754,7 +1754,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(result.getType().getSqlTypeName(), is(SqlTypeName.BOOLEAN));
   }
 
-  @Test public void testSimplifyIsNotNull() {
+  @Test void testSimplifyIsNotNull() {
     RelDataType intType =
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.INTEGER), false);
@@ -1794,18 +1794,18 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2929">[CALCITE-2929]
    * Simplification of IS NULL checks are incorrectly assuming that CAST-s are possible</a>. */
-  @Test public void testSimplifyCastIsNull() {
+  @Test void testSimplifyCastIsNull() {
     checkSimplifyUnchanged(isNull(cast(vVarchar(), tInt(true))));
   }
 
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2929">[CALCITE-2929]
    * Simplification of IS NULL checks are incorrectly assuming that CAST-s are possible</a>. */
-  @Test public void testSimplifyCastIsNull2() {
+  @Test void testSimplifyCastIsNull2() {
     checkSimplifyUnchanged(isNull(cast(vVarcharNotNull(), tInt(false))));
   }
 
-  @Test public void checkSimplifyDynamicParam() {
+  @Test void checkSimplifyDynamicParam() {
     checkSimplify(isNotNull(lt(vInt(0), vInt(1))),
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))");
     checkSimplify(isNotNull(lt(vInt(0), vIntNotNull(2))),
@@ -1816,7 +1816,7 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplify(isNotNull(lt(vInt(0), null_(tInt()))), "false");
   }
 
-  @Test public void testSimplifyCastLiteral() {
+  @Test void testSimplifyCastLiteral() {
     final List<RexLiteral> literals = new ArrayList<>();
     literals.add(
         rexBuilder.makeExactLiteral(BigDecimal.ONE,
@@ -1914,7 +1914,7 @@ public class RexProgramTest extends RexProgramTestBase {
     }
   }
 
-  @Test public void testCastLiteral() {
+  @Test void testCastLiteral() {
     assertNode("cast(literal int not null)",
         "42:INTEGER NOT NULL", cast(literal(42), tInt()));
     assertNode("cast(literal int)",
@@ -1926,7 +1926,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "CAST(42):INTEGER", abstractCast(literal(42), nullable(tInt())));
   }
 
-  @Test public void testSimplifyCastLiteral2() {
+  @Test void testSimplifyCastLiteral2() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
     final RexLiteral literalOne = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -1952,7 +1952,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "1970-01-01 00:00:00"); // different from Hive
   }
 
-  @Test public void testSimplifyCastLiteral3() {
+  @Test void testSimplifyCastLiteral3() {
     // Default TimeZone is "America/Los_Angeles" (DummyDataContext)
     final RexLiteral literalDate = rexBuilder.makeDateLiteral(new DateString("2011-07-20"));
     final RexLiteral literalTime = rexBuilder.makeTimeLiteral(new TimeString("12:34:56"), 0);
@@ -2028,14 +2028,14 @@ public class RexProgramTest extends RexProgramTestBase {
         "2011-07-20 01:23:45:TIMESTAMP_WITH_LOCAL_TIME_ZONE(0)");
   }
 
-  @Test public void testRemovalOfNullabilityWideningCast() {
+  @Test void testRemovalOfNullabilityWideningCast() {
     RexNode expr = cast(isTrue(vBoolNotNull()), tBool(true));
     assertThat(expr.getType().isNullable(), is(true));
     RexNode result = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
     assertThat(result.getType().isNullable(), is(false));
   }
 
-  @Test public void testCompareTimestampWithTimeZone() {
+  @Test void testCompareTimestampWithTimeZone() {
     final TimestampWithTimeZoneString timestampLTZChar1 =
         new TimestampWithTimeZoneString("2011-07-20 10:34:56 America/Los_Angeles");
     final TimestampWithTimeZoneString timestampLTZChar2 =
@@ -2050,7 +2050,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(timestampLTZChar1.equals(timestampLTZChar4), is(true));
   }
 
-  @Test public void testSimplifyLiterals() {
+  @Test void testSimplifyLiterals() {
     final RexLiteral literalAbc = rexBuilder.makeLiteral("abc");
     final RexLiteral literalDef = rexBuilder.makeLiteral("def");
 
@@ -2118,7 +2118,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2421">[CALCITE-2421]
    * to-be-filled </a>. */
-  @Test public void testSelfComparisions() {
+  @Test void testSelfComparisions() {
     checkSimplify3(and(eq(vInt(), vInt()), eq(vInt(1), vInt(1))),
         "AND(OR(null, IS NOT NULL(?0.int0)), OR(null, IS NOT NULL(?0.int1)))",
         "AND(IS NOT NULL(?0.int0), IS NOT NULL(?0.int1))",
@@ -2129,7 +2129,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "AND(IS NULL(?0.int0), IS NULL(?0.int1))");
   }
 
-  @Test public void testBooleanComparisions() {
+  @Test void testBooleanComparisions() {
     checkSimplify(eq(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ge(vBool(), trueLiteral), "?0.bool0");
     checkSimplify(ne(vBool(), trueLiteral), "NOT(?0.bool0)");
@@ -2152,7 +2152,7 @@ public class RexProgramTest extends RexProgramTestBase {
     checkSimplify(lt(vBoolNotNull(), falseLiteral), "false");
   }
 
-  @Test public void testSimpleDynamicVars() {
+  @Test void testSimpleDynamicVars() {
     assertTypeAndToString(
         vBool(2), "?0.bool2", "BOOLEAN");
     assertTypeAndToString(
@@ -2176,7 +2176,7 @@ public class RexProgramTest extends RexProgramTestBase {
         + (rexNode.getType().isNullable() ? "" : " NOT NULL"), "type of " + rexNode);
   }
 
-  @Test public void testIsDeterministic() {
+  @Test void testIsDeterministic() {
     SqlOperator ndc = new SqlSpecialOperator(
             "NDC",
             SqlKind.OTHER_FUNCTION,
@@ -2194,7 +2194,7 @@ public class RexProgramTest extends RexProgramTestBase {
             RexUtil.retainDeterministic(RelOptUtil.conjunctions(n)).size());
   }
 
-  @Test public void testConstantMap() {
+  @Test void testConstantMap() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
     final RelDataType rowType = typeFactory.builder()
         .add("a", intType)
@@ -2239,7 +2239,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
   }
 
-  @Test public void notDistinct() {
+  @Test void notDistinct() {
     checkSimplify(
         isFalse(isNotDistinctFrom(vBool(0), vBool(1))),
         "IS DISTINCT FROM(?0.bool0, ?0.bool1)");
@@ -2248,7 +2248,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2505">[CALCITE-2505]
    * RexSimplify wrongly simplifies "COALESCE(+(NULL), x)" to "NULL"</a>. */
-  @Test public void testSimplifyCoalesce() {
+  @Test void testSimplifyCoalesce() {
     checkSimplify(coalesce(vIntNotNull(), vInt()), // first arg not null
         "?0.notNullInt0");
     checkSimplifyUnchanged(coalesce(vInt(), vIntNotNull()));
@@ -2273,7 +2273,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "COALESCE(?0.int0, ?0.int1)");
   }
 
-  @Test public void simplifyNull() {
+  @Test void simplifyNull() {
     checkSimplify3(nullBool, "null:BOOLEAN", "false", "true");
     // null int must not be simplified to false
     checkSimplifyUnchanged(nullInt);
@@ -2289,7 +2289,7 @@ public class RexProgramTest extends RexProgramTestBase {
     return map2.toString();
   }
 
-  @Test public void testSimplifyFalse() {
+  @Test void testSimplifyFalse() {
     final RelDataType booleanNullableType =
         typeFactory.createTypeWithNullability(
             typeFactory.createSqlType(SqlTypeName.BOOLEAN), true);
@@ -2312,7 +2312,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(result2.getOperands().get(0), is(booleanInput));
   }
 
-  @Test public void testSimplifyNot() {
+  @Test void testSimplifyNot() {
     // "NOT(NOT(x))" => "x"
     checkSimplify(not(not(vBool())), "?0.bool0");
     // "NOT(true)"  => "false"
@@ -2339,7 +2339,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "AND(NOT(?0.bool0), NOT(?0.bool1))");
   }
 
-  @Test public void testSimplifyAndNot() {
+  @Test void testSimplifyAndNot() {
     // "x > 1 AND NOT (y > 2)" -> "x > 1 AND y <= 2"
     checkSimplify(and(gt(vInt(1), literal(1)), not(gt(vInt(2), literal(2)))),
         "AND(>(?0.int1, 1), <=(?0.int2, 2))");
@@ -2360,7 +2360,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "true");
   }
 
-  @Test public void testSimplifyOrNot() {
+  @Test void testSimplifyOrNot() {
     // "x > 1 OR NOT (y > 2)" -> "x > 1 OR y <= 2"
     checkSimplify(or(gt(vInt(1), literal(1)), not(gt(vInt(2), literal(2)))),
         "OR(>(?0.int1, 1), <=(?0.int2, 2))");
@@ -2382,7 +2382,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "IS NULL(?0.int1)");
   }
 
-  @Test public void testInterpreter() {
+  @Test void testInterpreter() {
     assertThat(eval(trueLiteral), is(true));
     assertThat(eval(nullInt), is(NullSentinel.INSTANCE));
     assertThat(eval(eq(nullInt, nullInt)),
@@ -2399,28 +2399,28 @@ public class RexProgramTest extends RexProgramTestBase {
         is(false));
   }
 
-  @Test public void testIsNullRecursion() {
+  @Test void testIsNullRecursion() {
     // make sure that simplifcation is visiting below isX expressions
     checkSimplify(
         isNull(or(coalesce(nullBool, trueLiteral), falseLiteral)),
         "false");
   }
 
-  @Test public void testRedundantIsTrue() {
+  @Test void testRedundantIsTrue() {
     checkSimplify2(
         isTrue(isTrue(vBool())),
         "IS TRUE(?0.bool0)",
         "?0.bool0");
   }
 
-  @Test public void testRedundantIsFalse() {
+  @Test void testRedundantIsFalse() {
     checkSimplify2(
         isTrue(isFalse(vBool())),
         "IS FALSE(?0.bool0)",
         "NOT(?0.bool0)");
   }
 
-  @Test public void testRedundantIsNotTrue() {
+  @Test void testRedundantIsNotTrue() {
     checkSimplify3(
         isNotFalse(isNotTrue(vBool())),
         "IS NOT TRUE(?0.bool0)",
@@ -2428,7 +2428,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "NOT(?0.bool0)");
   }
 
-  @Test public void testRedundantIsNotFalse() {
+  @Test void testRedundantIsNotFalse() {
     checkSimplify3(
         isNotFalse(isNotFalse(vBool())),
         "IS NOT FALSE(?0.bool0)",
@@ -2439,57 +2439,57 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit tests for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2438">[CALCITE-2438]
    * RexCall#isAlwaysTrue returns incorrect result</a>. */
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisFalse() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNotNullisFalse() {
     // "((x IS NULL) IS NOT NULL) IS FALSE" -> false
     checkIs(isFalse(isNotNull(isNull(vBool()))), false);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisFalse() {
+  @Test void testIsAlwaysTrueAndFalseNotXisNullisNotNullisFalse() {
     // "(NOT ((x IS NULL) IS NOT NULL)) IS FALSE" -> true
     checkIs(isFalse(not(isNotNull(isNull(vBool())))), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisTrue() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNotNullisTrue() {
     // "((x IS NULL) IS NOT NULL) IS TRUE" -> true
     checkIs(isTrue(isNotNull(isNull(vBool()))), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisTrue() {
+  @Test void testIsAlwaysTrueAndFalseNotXisNullisNotNullisTrue() {
     // "(NOT ((x IS NULL) IS NOT NULL)) IS TRUE" -> false
     checkIs(isTrue(not(isNotNull(isNull(vBool())))), false);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseNotXisNullisNotNullisNotTrue() {
+  @Test void testIsAlwaysTrueAndFalseNotXisNullisNotNullisNotTrue() {
     // "(NOT ((x IS NULL) IS NOT NULL)) IS NOT TRUE" -> true
     checkIs(isNotTrue(not(isNotNull(isNull(vBool())))), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNull() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNotNull() {
     // "(x IS NULL) IS NOT NULL" -> true
     checkIs(isNotNull(isNull(vBool())), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNotNullisNotNull() {
+  @Test void testIsAlwaysTrueAndFalseXisNotNullisNotNull() {
     // "(x IS NOT NULL) IS NOT NULL" -> true
     checkIs(isNotNull(isNotNull(vBool())), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNull() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNull() {
     // "(x IS NULL) IS NULL" -> false
     checkIs(isNull(isNull(vBool())), false);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNotNullisNull() {
+  @Test void testIsAlwaysTrueAndFalseXisNotNullisNull() {
     // "(x IS NOT NULL) IS NULL" -> false
     checkIs(isNull(isNotNull(vBool())), false);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisNotFalse() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNotNullisNotFalse() {
     // "((x IS NULL) IS NOT NULL) IS NOT FALSE" -> true
     checkIs(isNotFalse(isNotNull(isNull(vBool()))), true);
   }
 
-  @Test public void testIsAlwaysTrueAndFalseXisNullisNotNullisNotTrue() {
+  @Test void testIsAlwaysTrueAndFalseXisNullisNotNullisNotTrue() {
     // "((x IS NULL) IS NOT NULL) IS NOT TRUE" -> false
     checkIs(isNotTrue(isNotNull(isNull(vBool()))), false);
   }
@@ -2497,7 +2497,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2842">[CALCITE-2842]
    * Computing digest of IN expressions leads to Exceptions</a>. */
-  @Test public void testInDigest() {
+  @Test void testInDigest() {
     RexNode e = in(vInt(), literal(1), literal(2));
     assertThat(e.toString(), is("IN(?0.int0, 1, 2)"));
   }
@@ -2505,7 +2505,7 @@ public class RexProgramTest extends RexProgramTestBase {
   /** Unit test for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3192">[CALCITE-3192]
    * Simplify OR incorrectly weaks condition</a>. */
-  @Test public void testOrSimplificationNotWeakensCondition() {
+  @Test void testOrSimplificationNotWeakensCondition() {
     // "1 < a or (a < 3 and b = 2)" can't be simplified if a is nullable.
     checkSimplifyUnchanged(
         or(
@@ -2515,7 +2515,7 @@ public class RexProgramTest extends RexProgramTestBase {
                 vBoolNotNull(2))));
   }
 
-  @Test public void testIsNullSimplificationWithUnaryPlus() {
+  @Test void testIsNullSimplificationWithUnaryPlus() {
     RexNode expr =
         isNotNull(coalesce(unaryPlus(vInt(1)), vIntNotNull(0)));
     RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
@@ -2524,7 +2524,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(s, is(trueLiteral));
   }
 
-  @Test public void testIsNullSimplificationWithIsDistinctFrom() {
+  @Test void testIsNullSimplificationWithIsDistinctFrom() {
     RexNode expr =
         isNotNull(
             case_(vBool(),
@@ -2536,7 +2536,7 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(s, is(trueLiteral));
   }
 
-  @Test public void testSimplifyCastUnaryMinus() {
+  @Test void testSimplifyCastUnaryMinus() {
     RexNode expr =
         isNull(ne(unaryMinus(cast(unaryMinus(vIntNotNull(1)), nullable(tInt()))), vIntNotNull(1)));
     RexNode s = simplify.simplifyUnknownAs(expr, RexUnknownAs.UNKNOWN);
@@ -2544,14 +2544,14 @@ public class RexProgramTest extends RexProgramTestBase {
     assertThat(s, is(falseLiteral));
   }
 
-  @Test public void testSimplifyRangeWithMultiPredicates() {
+  @Test void testSimplifyRangeWithMultiPredicates() {
     final RexNode ref = input(tInt(), 0);
     RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
         ImmutableList.of(gt(ref, literal(1)), le(ref, literal(5))));
     checkSimplifyFilter(gt(ref, literal(9)), relOptPredicateList, "false");
   }
 
-  @Test public void testSimplifyNotEqual() {
+  @Test void testSimplifyNotEqual() {
     RexNode ref = input(tInt(), 0);
     RelOptPredicateList relOptPredicateList = RelOptPredicateList.of(rexBuilder,
         ImmutableList.of(eq(ref, literal(9))));
@@ -2565,7 +2565,7 @@ public class RexProgramTest extends RexProgramTestBase {
         "OR(null, IS NOT NULL($0))");
   }
 
-  @Test public void testSimplifyNonDeterministicFunction() {
+  @Test void testSimplifyNonDeterministicFunction() {
     final SqlOperator ndc = new SqlSpecialOperator(
         "NDC",
         SqlKind.OTHER_FUNCTION,

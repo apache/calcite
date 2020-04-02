@@ -50,7 +50,7 @@ import static java.lang.System.getProperty;
  * Unit tests for FileReader.
  */
 @ExtendWith(RequiresNetworkExtension.class)
-public class FileReaderTest {
+class FileReaderTest {
 
   private static final Source CITIES_SOURCE =
       Sources.url("http://en.wikipedia.org/wiki/List_of_United_States_cities_by_population");
@@ -109,7 +109,7 @@ public class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - malformed URL. */
-  @Test public void testFileReaderMalUrl() throws FileReaderException {
+  @Test void testFileReaderMalUrl() throws FileReaderException {
     try {
       final Source badSource = Sources.url("bad" + CITIES_SOURCE.url());
       fail("expected exception, got " + badSource);
@@ -120,7 +120,7 @@ public class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad URL. */
-  @Test public void testFileReaderBadUrl() {
+  @Test void testFileReaderBadUrl() {
     final String uri =
         "http://ex.wikipedia.org/wiki/List_of_United_States_cities_by_population";
     assertThrows(FileReaderException.class, () -> {
@@ -130,7 +130,7 @@ public class FileReaderTest {
   }
 
   /** Tests failed {@link FileReader} instantiation - bad selector. */
-  @Test public void testFileReaderBadSelector() {
+  @Test void testFileReaderBadSelector() {
     final Source source = resource("tableOK.html");
     assertThrows(FileReaderException.class, () -> {
       FileReader t = new FileReader(source, "table:eq(1)");
@@ -139,7 +139,7 @@ public class FileReaderTest {
   }
 
   /** Test {@link FileReader} with static file - headings. */
-  @Test public void testFileReaderHeadings() throws FileReaderException {
+  @Test void testFileReaderHeadings() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
@@ -147,7 +147,7 @@ public class FileReaderTest {
   }
 
   /** Test {@link FileReader} with static file - data. */
-  @Test public void testFileReaderData() throws FileReaderException {
+  @Test void testFileReaderData() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -158,7 +158,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with bad static file - headings. */
-  @Test public void testFileReaderHeadingsBadFile() throws FileReaderException {
+  @Test void testFileReaderHeadingsBadFile() throws FileReaderException {
     final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Elements headings = t.getHeadings();
@@ -166,7 +166,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with bad static file - data. */
-  @Test public void testFileReaderDataBadFile() throws FileReaderException {
+  @Test void testFileReaderDataBadFile() throws FileReaderException {
     final Source source = resource("tableNoTheadTbody.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -177,7 +177,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} with no headings static file - data. */
-  @Test public void testFileReaderDataNoTh() throws FileReaderException {
+  @Test void testFileReaderDataNoTh() throws FileReaderException {
     final Source source = resource("tableNoTH.html");
     FileReader t = new FileReader(source);
     Iterator<Elements> i = t.iterator();
@@ -186,7 +186,7 @@ public class FileReaderTest {
   }
 
   /** Tests {@link FileReader} iterator with static file, */
-  @Test public void testFileReaderIterator() throws FileReaderException {
+  @Test void testFileReaderIterator() throws FileReaderException {
     final Source source = resource("tableOK.html");
     FileReader t = new FileReader(source);
     Elements row = null;
@@ -200,7 +200,7 @@ public class FileReaderTest {
   /** Tests reading a CSV file via the file adapter. Based on the test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1952">[CALCITE-1952]
    * NPE in planner</a>. */
-  @Test public void testCsvFile() throws Exception {
+  @Test void testCsvFile() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-csv");
     final String model = "inline:"
@@ -240,7 +240,7 @@ public class FileReaderTest {
   /**
    * Tests reading a JSON file via the file adapter.
    */
-  @Test public void testJsonFile() throws Exception {
+  @Test void testJsonFile() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-json");
     final String model = "inline:"
@@ -280,7 +280,7 @@ public class FileReaderTest {
   /**
    * Tests reading two JSON file with join via the file adapter.
    */
-  @Test public void testJsonFileWithJoin() throws Exception {
+  @Test void testJsonFileWithJoin() throws Exception {
     Properties info = new Properties();
     final String path = resourcePath("sales-json");
     final String model = "inline:"

@@ -37,7 +37,7 @@ import java.util.List;
 /**
  * Utility to generate a SQL script from validator test.
  */
-public class SqlTestGen {
+class SqlTestGen {
   private SqlTestGen() {}
 
   //~ Methods ----------------------------------------------------------------

@@ -69,16 +69,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link VolcanoPlanner the optimizer}.
  */
-public class VolcanoPlannerTest {
-
-  public VolcanoPlannerTest() {
-  }
+class VolcanoPlannerTest {
 
   //~ Methods ----------------------------------------------------------------
   /**
    * Tests transformation of a leaf from NONE to PHYS.
    */
-  @Test public void testTransformLeaf() {
+  @Test void testTransformLeaf() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -102,7 +99,7 @@ public class VolcanoPlannerTest {
   /**
    * Tests transformation of a single+leaf from NONE to PHYS.
    */
-  @Test public void testTransformSingleGood() {
+  @Test void testTransformSingleGood() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -131,7 +128,7 @@ public class VolcanoPlannerTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3118">[CALCITE-3118]
    * VolcanoRuleCall should look at RelSubset rather than RelSet
    * when checking child ordinal of a parent operand</a>. */
-  @Test public void testMatchedOperandsDifferent() {
+  @Test void testMatchedOperandsDifferent() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     RelOptCluster cluster = newCluster(planner);
@@ -178,7 +175,7 @@ public class VolcanoPlannerTest {
     }
   }
 
-  @Test public void testMultiInputsParentOpMatching() {
+  @Test void testMultiInputsParentOpMatching() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     RelOptCluster cluster = newCluster(planner);
@@ -209,7 +206,7 @@ public class VolcanoPlannerTest {
    * Tests a rule that is fired once per subset (whereas most rules are fired
    * once per rel in a set or rel in a subset)
    */
-  @Test public void testSubsetRule() {
+  @Test void testSubsetRule() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
@@ -261,7 +258,7 @@ public class VolcanoPlannerTest {
    * this one didn't work due to the definition of ReformedSingleRule.
    */
   @Disabled // broken, because ReformedSingleRule matches child traits strictly
-  @Test public void testTransformSingleReformed() {
+  @Test void testTransformSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -337,13 +334,13 @@ public class VolcanoPlannerTest {
   }
 
   // NOTE:  this used to fail but now works
-  @Test public void testWithRemoveTrivialProject() {
+  @Test void testWithRemoveTrivialProject() {
     removeTrivialProject(true);
   }
 
   // NOTE:  this always worked; it's here as contrast to
   // testWithRemoveTrivialProject()
-  @Test public void testWithoutRemoveTrivialProject() {
+  @Test void testWithoutRemoveTrivialProject() {
     removeTrivialProject(false);
   }
 
@@ -352,7 +349,7 @@ public class VolcanoPlannerTest {
    * pattern which spans calling conventions.
    */
   @Disabled // broken, because ReformedSingleRule matches child traits strictly
-  @Test public void testRemoveSingleReformed() {
+  @Test void testRemoveSingleReformed() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -386,7 +383,7 @@ public class VolcanoPlannerTest {
    * uses a completely-physical pattern (requiring GoodSingleRule to fire
    * first).
    */
-  @Test public void testRemoveSingleGood() {
+  @Test void testRemoveSingleGood() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -417,7 +414,7 @@ public class VolcanoPlannerTest {
   }
 
   @Disabled("CALCITE-2592 EnumerableMergeJoin is never taken")
-  @Test public void testMergeJoin() {
+  @Test void testMergeJoin() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -458,7 +455,7 @@ public class VolcanoPlannerTest {
    * Tests whether planner correctly notifies listeners of events.
    */
   @Disabled
-  @Test public void testListener() {
+  @Test void testListener() {
     TestListener listener = new TestListener();
 
     VolcanoPlanner planner = new VolcanoPlanner();

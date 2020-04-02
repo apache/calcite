@@ -31,9 +31,9 @@ import java.util.Arrays;
  * <a href="https://issues.apache.org/jira/browse/CALCITE-2812">[CALCITE-2812]
  * Add algebraic operators to allow expressing recursive queries</a>.
  */
-public class EnumerableRepeatUnionTest {
+class EnumerableRepeatUnionTest {
 
-  @Test public void testGenerateNumbers() {
+  @Test void testGenerateNumbers() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -59,7 +59,7 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9", "i=10");
   }
 
-  @Test public void testGenerateNumbers2() {
+  @Test void testGenerateNumbers2() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -87,7 +87,7 @@ public class EnumerableRepeatUnionTest {
         .returnsOrdered("i=0", "i=1", "i=2", "i=3", "i=4", "i=5", "i=6", "i=7", "i=8", "i=9");
   }
 
-  @Test public void testGenerateNumbers3() {
+  @Test void testGenerateNumbers3() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -125,7 +125,7 @@ public class EnumerableRepeatUnionTest {
             "i=9; j=0");
   }
 
-  @Test public void testFactorial() {
+  @Test void testFactorial() {
     CalciteAssert.that()
         .query("?")
         .withRel(
@@ -165,7 +165,7 @@ public class EnumerableRepeatUnionTest {
             "n=7; fact=5040");
   }
 
-  @Test public void testGenerateNumbersNestedRecursion() {
+  @Test void testGenerateNumbersNestedRecursion() {
     CalciteAssert.that()
         .query("?")
         .withRel(

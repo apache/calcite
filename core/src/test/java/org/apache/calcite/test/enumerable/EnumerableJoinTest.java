@@ -37,12 +37,12 @@ import java.util.function.Consumer;
 /**
  * Unit tests for the different Enumerable Join implementations.
  */
-public class EnumerableJoinTest {
+class EnumerableJoinTest {
 
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
-  @Test public void equiAntiJoin() {
+  @Test void equiAntiJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withRel(
@@ -68,7 +68,7 @@ public class EnumerableJoinTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
-  @Test public void nonEquiAntiJoin() {
+  @Test void nonEquiAntiJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withRel(
@@ -101,7 +101,7 @@ public class EnumerableJoinTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2968">[CALCITE-2968]
    * New AntiJoin relational expression</a>. */
-  @Test public void equiAntiJoinWithNullValues() {
+  @Test void equiAntiJoinWithNullValues() {
     final Integer salesDeptNo = 10;
     tester(false, new JdbcTest.HrSchema())
         .query("?")
@@ -140,7 +140,7 @@ public class EnumerableJoinTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3170">[CALCITE-3170]
    * ANTI join on conditions push down generates wrong plan</a>. */
-  @Test public void testCanNotPushAntiJoinConditionsToLeft() {
+  @Test void testCanNotPushAntiJoinConditionsToLeft() {
     tester(false, new JdbcTest.HrSchema())
         .query("?").withRel(
             // build a rel equivalent to sql:
@@ -170,7 +170,7 @@ public class EnumerableJoinTest {
   /**
    * The test verifies if {@link EnumerableMergeJoin} can implement a join with non-equi conditions.
    */
-  @Test public void testSortMergeJoinWithNonEquiCondition() {
+  @Test void testSortMergeJoinWithNonEquiCondition() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -223,7 +223,7 @@ public class EnumerableJoinTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3846">[CALCITE-3846]
    * EnumerableMergeJoin: wrong comparison of composite key with null values</a>. */
-  @Test public void testMergeJoinWithCompositeKeyAndNullValues() {
+  @Test void testMergeJoinWithCompositeKeyAndNullValues() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -262,7 +262,7 @@ public class EnumerableJoinTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3820">[CALCITE-3820]
    * EnumerableDefaults#orderBy should be lazily computed + support enumerator
    * re-initialization</a>. */
-  @Test public void testRepeatUnionWithMergeJoin() {
+  @Test void testRepeatUnionWithMergeJoin() {
     tester(false, new HierarchySchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {

@@ -85,7 +85,7 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableHashJoin() throws Exception {
+  @Test void removeSortOverEnumerableHashJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,
@@ -116,7 +116,7 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableNestedLoopJoin() throws Exception {
+  @Test void removeSortOverEnumerableNestedLoopJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,
@@ -150,7 +150,7 @@ public final class SortRemoveRuleTest {
    *
    * <p>Until CALCITE-2018 is fixed we can add back EnumerableRules.ENUMERABLE_SORT_RULE
    */
-  @Test public void removeSortOverEnumerableCorrelate() throws Exception {
+  @Test void removeSortOverEnumerableCorrelate() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,
@@ -181,7 +181,7 @@ public final class SortRemoveRuleTest {
    * <p>Since join inputs are sorted, and this join preserves the order of the
    * left input, there shouldn't be any sort operator above the join.
    */
-  @Test public void removeSortOverEnumerableSemiJoin() throws Exception {
+  @Test void removeSortOverEnumerableSemiJoin() throws Exception {
     RuleSet prepareRules =
         RuleSets.ofList(
             SortProjectTransposeRule.INSTANCE,

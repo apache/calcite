@@ -22,12 +22,12 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for Piglet. */
-public class PigletTest {
+class PigletTest {
   private static Fluent pig(String pig) {
     return new Fluent(pig);
   }
 
-  @Test public void testParseLoad() throws ParseException {
+  @Test void testParseLoad() throws ParseException {
     final String s = "A = LOAD 'Emp';";
     final String expected = "{op: PROGRAM, stmts: [\n"
         + "  {op: LOAD, target: A, name: Emp}]}";
@@ -35,7 +35,7 @@ public class PigletTest {
   }
 
   /** Tests parsing and un-parsing all kinds of operators. */
-  @Test public void testParse2() throws ParseException {
+  @Test void testParse2() throws ParseException {
     final String s = "A = LOAD 'Emp';\n"
         + "DESCRIBE A;\n"
         + "DUMP A;\n"
@@ -81,13 +81,13 @@ public class PigletTest {
     pig(s).parseContains(expected);
   }
 
-  @Test public void testScan() throws ParseException {
+  @Test void testScan() throws ParseException {
     final String s = "A = LOAD 'EMP';";
     final String expected = "LogicalTableScan(table=[[scott, EMP]])\n";
     pig(s).explainContains(expected);
   }
 
-  @Test public void testDump() throws ParseException {
+  @Test void testDump() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "DUMP A;";
     final String expected = "LogicalTableScan(table=[[scott, DEPT]])\n";
@@ -100,7 +100,7 @@ public class PigletTest {
 
   /** VALUES is an extension to Pig. You can achieve the same effect in standard
    * Pig by creating a text file. */
-  @Test public void testDumpValues() throws ParseException {
+  @Test void testDumpValues() throws ParseException {
     final String s = "A = VALUES (1, 'a'), (2, 'b') AS (x: int, y: string);\n"
         + "DUMP A;";
     final String expected =
@@ -109,7 +109,7 @@ public class PigletTest {
     pig(s).explainContains(expected).returns(out);
   }
 
-  @Test public void testForeach() throws ParseException {
+  @Test void testForeach() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = FOREACH A GENERATE DNAME, $2;";
     final String expected = "LogicalProject(DNAME=[$1], LOC=[$2])\n"
@@ -118,7 +118,7 @@ public class PigletTest {
   }
 
   @Disabled // foreach nested not implemented yet
-  @Test public void testForeachNested() throws ParseException {
+  @Test void testForeachNested() throws ParseException {
     final String s = "A = LOAD 'EMP';\n"
         + "B = GROUP A BY DEPTNO;\n"
         + "C = FOREACH B {\n"
@@ -131,7 +131,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testGroup() throws ParseException {
+  @Test void testGroup() throws ParseException {
     final String s = "A = LOAD 'EMP';\n"
         + "B = GROUP A BY DEPTNO;";
     final String expected = ""
@@ -141,7 +141,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testGroupExample() throws ParseException {
+  @Test void testGroupExample() throws ParseException {
     final String pre = "A = VALUES ('John',18,4.0F),\n"
         + "('Mary',19,3.8F),\n"
         + "('Bill',20,3.9F),\n"
@@ -155,7 +155,7 @@ public class PigletTest {
         "(20,{(Bill,20,3.9F)})");
   }
 
-  @Test public void testDistinctExample() throws ParseException {
+  @Test void testDistinctExample() throws ParseException {
     final String pre = "A = VALUES (8,3,4),\n"
         + "(1,2,3),\n"
         + "(4,3,3),\n"
@@ -169,7 +169,7 @@ public class PigletTest {
         "(8,3,4)");
   }
 
-  @Test public void testFilter() throws ParseException {
+  @Test void testFilter() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = FILTER A BY DEPTNO;";
     final String expected = "LogicalFilter(condition=[$0])\n"
@@ -177,7 +177,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testFilterExample() throws ParseException {
+  @Test void testFilterExample() throws ParseException {
     final String pre = "A = VALUES (1,2,3),\n"
         + "(4,2,1),\n"
         + "(8,3,4),\n"
@@ -203,7 +203,7 @@ public class PigletTest {
     pig(x2).returns(expected2);
   }
 
-  @Test public void testLimit() throws ParseException {
+  @Test void testLimit() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = LIMIT A 3;";
     final String expected = "LogicalSort(fetch=[3])\n"
@@ -211,7 +211,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testLimitExample() throws ParseException {
+  @Test void testLimitExample() throws ParseException {
     final String pre = "A = VALUES (1,2,3),\n"
         + "(4,2,1),\n"
         + "(8,3,4),\n"
@@ -237,7 +237,7 @@ public class PigletTest {
     pig(x2).returns(expected2);
   }
 
-  @Test public void testOrder() throws ParseException {
+  @Test void testOrder() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = ORDER A BY DEPTNO DESC, DNAME;";
     final String expected = ""
@@ -246,7 +246,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testOrderStar() throws ParseException {
+  @Test void testOrderStar() throws ParseException {
     final String s = "A = LOAD 'DEPT';\n"
         + "B = ORDER A BY * DESC;";
     final String expected = ""
@@ -255,7 +255,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testOrderExample() throws ParseException {
+  @Test void testOrderExample() throws ParseException {
     final String pre = "A = VALUES (1,2,3),\n"
         + "(4,2,1),\n"
         + "(8,3,4),\n"
@@ -277,7 +277,7 @@ public class PigletTest {
 
   /** VALUES is an extension to Pig. You can achieve the same effect in standard
    * Pig by creating a text file. */
-  @Test public void testValues() throws ParseException {
+  @Test void testValues() throws ParseException {
     final String s = "A = VALUES (1, 'a'), (2, 'b') AS (x: int, y: string);\n"
         + "DUMP A;";
     final String expected =
@@ -285,7 +285,7 @@ public class PigletTest {
     pig(s).explainContains(expected);
   }
 
-  @Test public void testValuesNested() throws ParseException {
+  @Test void testValuesNested() throws ParseException {
     final String s = "A = VALUES (1, {('a', true), ('b', false)}),\n"
         + " (2, {})\n"
         + "AS (x: int, y: bag {tuple(a: string, b: boolean)});\n"

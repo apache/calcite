@@ -42,21 +42,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for {@link org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.TypeFinder}
  */
-public class TypeFinderTest {
+class TypeFinderTest {
 
-  @Test public void testConstantExpression() {
+  @Test void testConstantExpression() {
     ConstantExpression expr = Expressions.constant(null, Integer.class);
     assertJavaCodeContains("(Integer) null\n", expr);
     assertTypeContains(Integer.class, expr);
   }
 
-  @Test public void testConvertExpression() {
+  @Test void testConvertExpression() {
     UnaryExpression expr = Expressions.convert_(Expressions.new_(String.class), Object.class);
     assertJavaCodeContains("(Object) new String()\n", expr);
     assertTypeContains(Arrays.asList(String.class, Object.class), expr);
   }
 
-  @Test public void testFunctionExpression1() {
+  @Test void testFunctionExpression1() {
     ParameterExpression param = Expressions.parameter(String.class, "input");
     FunctionExpression expr = Expressions.lambda(Function1.class,
         Expressions.block(
@@ -74,7 +74,7 @@ public class TypeFinderTest {
     assertTypeContains(String.class, expr);
   }
 
-  @Test public void testFunctionExpression2() {
+  @Test void testFunctionExpression2() {
     FunctionExpression expr = Expressions.lambda(Function1.class,
         Expressions.block(
             Expressions.return_(null, Expressions.constant(1L, Long.class))),

@@ -52,33 +52,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link MutableRel} sub-classes.
  */
-public class MutableRelTest {
+class MutableRelTest {
 
-  @Test public void testConvertAggregate() {
+  @Test void testConvertAggregate() {
     checkConvertMutableRel(
         "Aggregate",
         "select empno, sum(sal) from emp group by empno");
   }
 
-  @Test public void testConvertFilter() {
+  @Test void testConvertFilter() {
     checkConvertMutableRel(
         "Filter",
         "select * from emp where ename = 'DUMMY'");
   }
 
-  @Test public void testConvertProject() {
+  @Test void testConvertProject() {
     checkConvertMutableRel(
         "Project",
         "select ename from emp");
   }
 
-  @Test public void testConvertSort() {
+  @Test void testConvertSort() {
     checkConvertMutableRel(
         "Sort",
         "select * from emp order by ename");
   }
 
-  @Test public void testConvertCalc() {
+  @Test void testConvertCalc() {
     checkConvertMutableRel(
         "Calc",
         "select * from emp where ename = 'DUMMY'",
@@ -86,7 +86,7 @@ public class MutableRelTest {
         ImmutableList.of(FilterToCalcRule.INSTANCE));
   }
 
-  @Test public void testConvertWindow() {
+  @Test void testConvertWindow() {
     checkConvertMutableRel(
         "Window",
         "select sal, avg(sal) over (partition by deptno) from emp",
@@ -94,49 +94,49 @@ public class MutableRelTest {
         ImmutableList.of(ProjectToWindowRule.PROJECT));
   }
 
-  @Test public void testConvertCollect() {
+  @Test void testConvertCollect() {
     checkConvertMutableRel(
         "Collect",
         "select multiset(select deptno from dept) from (values(true))");
   }
 
-  @Test public void testConvertUncollect() {
+  @Test void testConvertUncollect() {
     checkConvertMutableRel(
         "Uncollect",
         "select * from unnest(multiset[1,2])");
   }
 
-  @Test public void testConvertTableModify() {
+  @Test void testConvertTableModify() {
     checkConvertMutableRel(
         "TableModify",
         "insert into dept select empno, ename from emp");
   }
 
-  @Test public void testConvertSample() {
+  @Test void testConvertSample() {
     checkConvertMutableRel(
         "Sample",
         "select * from emp tablesample system(50) where empno > 5");
   }
 
-  @Test public void testConvertTableFunctionScan() {
+  @Test void testConvertTableFunctionScan() {
     checkConvertMutableRel(
         "TableFunctionScan",
         "select * from table(ramp(3))");
   }
 
-  @Test public void testConvertValues() {
+  @Test void testConvertValues() {
     checkConvertMutableRel(
         "Values",
         "select * from (values (1, 2))");
   }
 
-  @Test public void testConvertJoin() {
+  @Test void testConvertJoin() {
     checkConvertMutableRel(
         "Join",
         "select * from emp join dept using (deptno)");
   }
 
-  @Test public void testConvertSemiJoin() {
+  @Test void testConvertSemiJoin() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"
         + "  where emp.deptno = dept.deptno\n"
@@ -152,7 +152,7 @@ public class MutableRelTest {
             SemiJoinRule.PROJECT));
   }
 
-  @Test public void testConvertCorrelate() {
+  @Test void testConvertCorrelate() {
     final String sql = "select * from dept where exists (\n"
         + "  select * from emp\n"
         + "  where emp.deptno = dept.deptno\n"
@@ -160,28 +160,28 @@ public class MutableRelTest {
     checkConvertMutableRel("Correlate", sql);
   }
 
-  @Test public void testConvertUnion() {
+  @Test void testConvertUnion() {
     checkConvertMutableRel(
         "Union",
         "select * from emp where deptno = 10"
         + "union select * from emp where ename like 'John%'");
   }
 
-  @Test public void testConvertMinus() {
+  @Test void testConvertMinus() {
     checkConvertMutableRel(
         "Minus",
         "select * from emp where deptno = 10"
         + "except select * from emp where ename like 'John%'");
   }
 
-  @Test public void testConvertIntersect() {
+  @Test void testConvertIntersect() {
     checkConvertMutableRel(
         "Intersect",
         "select * from emp where deptno = 10"
         + "intersect select * from emp where ename like 'John%'");
   }
 
-  @Test public void testUpdateInputOfUnion() {
+  @Test void testUpdateInputOfUnion() {
     MutableRel mutableRel = createMutableRel(
         "select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
@@ -200,7 +200,7 @@ public class MutableRelTest {
     MatcherAssert.assertThat(actual, Matchers.isLinux(expected));
   }
 
-  @Test public void testParentInfoOfUnion() {
+  @Test void testParentInfoOfUnion() {
     MutableRel mutableRel = createMutableRel(
         "select sal from emp where deptno = 10"
             + "union select sal from emp where ename like 'John%'");
@@ -209,7 +209,7 @@ public class MutableRelTest {
     }
   }
 
-  @Test public void testMutableTableFunctionScanEquals() {
+  @Test void testMutableTableFunctionScanEquals() {
     final String sql = "SELECT * FROM TABLE(RAMP(3))";
     final MutableRel mutableRel1 = createMutableRel(sql);
     final MutableRel mutableRel2 = createMutableRel(sql);

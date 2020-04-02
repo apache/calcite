@@ -51,7 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for {@link LatticeSuggester}.
  */
-public class TpcdsLatticeSuggesterTest {
+class TpcdsLatticeSuggesterTest {
 
   private String number(String s) {
     final StringBuilder b = new StringBuilder();
@@ -129,12 +129,12 @@ public class TpcdsLatticeSuggesterTest {
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test public void testTpcdsAll() throws Exception {
+  @Test void testTpcdsAll() throws Exception {
     checkFoodMartAll(false);
   }
 
   @Disabled("Throws NPE with both Maven and Gradle")
-  @Test public void testTpcdsAllEvolve() throws Exception {
+  @Test void testTpcdsAllEvolve() throws Exception {
     checkFoodMartAll(true);
   }
 

@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * HTML tables over HTTP.
  */
 @ExtendWith(RequiresNetworkExtension.class)
-public class SqlTest {
+class SqlTest {
   // helper functions
 
   private Fluent sql(String model, String sql) {
@@ -169,7 +169,7 @@ public class SqlTest {
   // tests
 
   /** Reads from a local file and checks the result. */
-  @Test public void testFileSelect() throws SQLException {
+  @Test void testFileSelect() throws SQLException {
     final String sql = "select H1 from T1 where H0 = 'R1C0'";
     sql("testModel", sql).returns("H1=R1C1").ok();
   }
@@ -183,7 +183,7 @@ public class SqlTest {
 
   /** Reads from a local file - finds larger table even without &lt;TH&gt;
    * elements. */
-  @Test public void testFindBiggerNoTh() throws SQLException {
+  @Test void testFindBiggerNoTh() throws SQLException {
     final String sql = "select \"col4\" from TABLEX2 where \"col0\" like 'R1%'";
     sql("testModel", sql).returns("col4=R1C4").ok();
   }
@@ -197,7 +197,7 @@ public class SqlTest {
   }
 
   /** Reads the EMPS table. */
-  @Test public void testSalesEmps() throws SQLException {
+  @Test void testSalesEmps() throws SQLException {
     final String sql = "select * from sales.emps";
     sql("sales", sql)
         .returns("EMPNO=100; NAME=Fred; DEPTNO=30",
@@ -209,7 +209,7 @@ public class SqlTest {
   }
 
   /** Reads the DEPTS table. */
-  @Test public void testSalesDepts() throws SQLException {
+  @Test void testSalesDepts() throws SQLException {
     final String sql = "select * from sales.depts";
     sql("sales", sql)
         .returns("DEPTNO=10; NAME=Sales",
@@ -219,7 +219,7 @@ public class SqlTest {
   }
 
   /** Reads the DEPTS table from the CSV schema. */
-  @Test public void testCsvSalesDepts() throws SQLException {
+  @Test void testCsvSalesDepts() throws SQLException {
     final String sql = "select * from sales.depts";
     sql("sales-csv", sql)
         .returns("DEPTNO=10; NAME=Sales",
@@ -229,7 +229,7 @@ public class SqlTest {
   }
 
   /** Reads the EMPS table from the CSV schema. */
-  @Test public void testCsvSalesEmps() throws SQLException {
+  @Test void testCsvSalesEmps() throws SQLException {
     final String sql = "select * from sales.emps";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
@@ -243,7 +243,7 @@ public class SqlTest {
 
   /** Reads the HEADER_ONLY table from the CSV schema. The CSV file has one
    * line - the column headers - but no rows of data. */
-  @Test public void testCsvSalesHeaderOnly() throws SQLException {
+  @Test void testCsvSalesHeaderOnly() throws SQLException {
     final String sql = "select * from sales.header_only";
     sql("sales-csv", sql).returns().ok();
   }
@@ -251,7 +251,7 @@ public class SqlTest {
   /** Reads the EMPTY table from the CSV schema. The CSV file has no lines,
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
-  @Test public void testCsvSalesEmpty() throws SQLException {
+  @Test void testCsvSalesEmpty() throws SQLException {
     final String sql = "select * from sales.\"EMPTY\"";
     checkSql(sql, "sales-csv", resultSet -> {
       try {
@@ -273,7 +273,7 @@ public class SqlTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1754">[CALCITE-1754]
    * In Csv adapter, convert DATE and TIME values to int, and TIMESTAMP values
    * to long</a>. */
-  @Test public void testCsvGroupByTimestampAdd() throws SQLException {
+  @Test void testCsvGroupByTimestampAdd() throws SQLException {
     final String sql = "select count(*) as c,\n"
         + "  {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT) } as t\n"
         + "from EMPS group by {fn timestampadd(SQL_TSI_DAY, 1, JOINEDAT ) } ";
@@ -344,7 +344,7 @@ public class SqlTest {
   }
 
   /** Reads the DEPTS table from the JSON schema. */
-  @Test public void testJsonSalesDepts() throws SQLException {
+  @Test void testJsonSalesDepts() throws SQLException {
     final String sql = "select * from sales.depts";
     sql("sales-json", sql)
         .returns("DEPTNO=10; NAME=Sales",
@@ -354,7 +354,7 @@ public class SqlTest {
   }
 
   /** Reads the EMPS table from the JSON schema. */
-  @Test public void testJsonSalesEmps() throws SQLException {
+  @Test void testJsonSalesEmps() throws SQLException {
     final String sql = "select * from sales.emps";
     final String[] lines = {
         "EMPNO=100; NAME=Fred; DEPTNO=10; GENDER=; CITY=; EMPID=30; AGE=25; SLACKER=true; MANAGER=false; JOINEDAT=1996-08-03",
@@ -369,7 +369,7 @@ public class SqlTest {
   /** Reads the EMPTY table from the JSON schema. The JSON file has no lines,
    * therefore the table has a system-generated column called
    * "EmptyFileHasNoColumns". */
-  @Test public void testJsonSalesEmpty() throws SQLException {
+  @Test void testJsonSalesEmpty() throws SQLException {
     final String sql = "select * from sales.\"EMPTY\"";
     checkSql(sql, "sales-json", resultSet -> {
       try {
@@ -388,7 +388,7 @@ public class SqlTest {
   }
 
   /** Test returns the result of two json file joins. */
-  @Test public void testJsonJoinOnString() {
+  @Test void testJsonJoinOnString() {
     final String sql = "select emps.EMPNO, emps.NAME, depts.deptno from emps\n"
         + "join depts on emps.deptno = depts.deptno";
     final String[] lines = {
@@ -400,7 +400,7 @@ public class SqlTest {
   }
 
   /** The folder contains both JSON files and CSV files joins. */
-  @Test public void testJsonWithCsvJoin() {
+  @Test void testJsonWithCsvJoin() {
     final String sql = "select emps.empno,\n"
         + " NAME,\n"
         + " \"DATE\".JOINEDAT\n"

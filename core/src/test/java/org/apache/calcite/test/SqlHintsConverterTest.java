@@ -96,7 +96,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
  */
-public class SqlHintsConverterTest extends SqlToRelTestBase {
+class SqlHintsConverterTest extends SqlToRelTestBase {
 
   protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(SqlHintsConverterTest.class);
@@ -104,7 +104,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
 
   //~ Tests ------------------------------------------------------------------
 
-  @Test public void testQueryHint() {
+  @Test void testQueryHint() {
     final String sql = HintTools.withHint("select /*+ %s */ *\n"
         + "from emp e1\n"
         + "inner join dept d1 on e1.deptno = d1.deptno\n"
@@ -112,40 +112,40 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testQueryHintWithLiteralOptions() {
+  @Test void testQueryHintWithLiteralOptions() {
     final String sql = "select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *\n"
         + "from emp";
     sql(sql).ok();
   }
 
-  @Test public void testNestedQueryHint() {
+  @Test void testNestedQueryHint() {
     final String sql = "select /*+ resource(parallelism='3'), repartition(10) */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)";
     sql(sql).ok();
   }
 
-  @Test public void testTwoLevelNestedQueryHint() {
+  @Test void testTwoLevelNestedQueryHint() {
     final String sql = "select /*+ resource(parallelism='3'), no_hash_join */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
     sql(sql).ok();
   }
 
-  @Test public void testThreeLevelNestedQueryHint() {
+  @Test void testThreeLevelNestedQueryHint() {
     final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
         + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno\n"
         + "join emp e2 on d1.name = e2.job";
     sql(sql).ok();
   }
 
-  @Test public void testFourLevelNestedQueryHint() {
+  @Test void testFourLevelNestedQueryHint() {
     final String sql = "select /*+ index(idx1), no_hash_join */ * from emp /*+ index(empno) */\n"
         + "e1 join dept/*+ index(deptno) */ d1 on e1.deptno = d1.deptno join\n"
         + "(select max(sal) as sal from emp /*+ index(empno) */) e2 on e1.sal = e2.sal";
     sql(sql).ok();
   }
 
-  @Test public void testAggregateHints() {
+  @Test void testAggregateHints() {
     final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE), RESOURCE(mem='1024') */\n"
         + "count(deptno), avg_sal from (\n"
         + "select /*+ AGG_STRATEGY(ONE_PHASE) */ avg(sal) as avg_sal, deptno\n"
@@ -153,7 +153,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testHintsInSubQueryWithDecorrelation() {
+  @Test void testHintsInSubQueryWithDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3'), AGG_STRATEGY(TWO_PHASE) */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
         + "where e1.deptno = d1.deptno\n"
@@ -162,7 +162,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
   }
 
-  @Test public void testHintsInSubQueryWithDecorrelation2() {
+  @Test void testHintsInSubQueryWithDecorrelation2() {
     final String sql = "select /*+ properties(k1='v1', k2='v2'), index(ename), no_hash_join */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
         + "where e1.deptno = d1.deptno\n"
@@ -174,7 +174,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
   }
 
-  @Test public void testHintsInSubQueryWithDecorrelation3() {
+  @Test void testHintsInSubQueryWithDecorrelation3() {
     final String sql = "select /*+ resource(parallelism='3'), index(ename), no_hash_join */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
         + "where e1.deptno = d1.deptno\n"
@@ -186,7 +186,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).withTester(t -> t.withDecorrelation(true)).ok();
   }
 
-  @Test public void testHintsInSubQueryWithoutDecorrelation() {
+  @Test void testHintsInSubQueryWithoutDecorrelation() {
     final String sql = "select /*+ resource(parallelism='3') */\n"
         + "sum(e1.empno) from emp e1, dept d1\n"
         + "where e1.deptno = d1.deptno\n"
@@ -195,7 +195,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testInvalidQueryHint() {
+  @Test void testInvalidQueryHint() {
     final String sql = "select /*+ weird_hint */ empno\n"
         + "from (select /*+ resource(mem='20Mb')*/ empno, ename\n"
         + "from emp left join dept on emp.deptno = dept.deptno)";
@@ -223,7 +223,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         .fails(error2);
   }
 
-  @Test public void testTableHintsInJoin() {
+  @Test void testTableHintsInJoin() {
     final String sql = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ index(idx1, idx2) */\n"
@@ -232,12 +232,12 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testTableHintsInSelect() {
+  @Test void testTableHintsInSelect() {
     final String sql = HintTools.withHint("select * from emp /*+ %s */");
     sql(sql).ok();
   }
 
-  @Test public void testSameHintsWithDifferentInheritPath() {
+  @Test void testSameHintsWithDifferentInheritPath() {
     final String sql = "select /*+ properties(k1='v1', k2='v2') */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ index(idx1, idx2) */\n"
@@ -246,7 +246,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testTableHintsInInsert() throws Exception {
+  @Test void testTableHintsInInsert() throws Exception {
     final String sql = HintTools.withHint("insert into dept /*+ %s */ (deptno, name) "
         + "select deptno, name from dept");
     final SqlInsert insert = (SqlInsert) tester.parseQuery(sql);
@@ -262,7 +262,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testTableHintsInUpdate() throws Exception {
+  @Test void testTableHintsInUpdate() throws Exception {
     final String sql = HintTools.withHint("update emp /*+ %s */ "
         + "set name = 'test' where deptno = 1");
     final SqlUpdate sqlUpdate = (SqlUpdate) tester.parseQuery(sql);
@@ -278,7 +278,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testTableHintsInDelete() throws Exception {
+  @Test void testTableHintsInDelete() throws Exception {
     final String sql = HintTools.withHint("delete from emp /*+ %s */ where deptno = 1");
     final SqlDelete sqlDelete = (SqlDelete) tester.parseQuery(sql);
     assert sqlDelete.getTargetTable() instanceof SqlTableRef;
@@ -293,7 +293,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testTableHintsInMerge() throws Exception {
+  @Test void testTableHintsInMerge() throws Exception {
     final String sql = "merge into emps\n"
         + "/*+ %s */ e\n"
         + "using tempemps as t\n"
@@ -317,7 +317,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         hints);
   }
 
-  @Test public void testInvalidTableHints() {
+  @Test void testInvalidTableHints() {
     final String sql = "select\n"
         + "ename, job, sal, dept.name\n"
         + "from emp /*+ weird_hint(idx1, idx2) */\n"
@@ -333,7 +333,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql1).warns("Hint: WEIRD_KV_HINT should be registered in the HintStrategyTable");
   }
 
-  @Test public void testJoinHintRequiresSpecificInputs() {
+  @Test void testJoinHintRequiresSpecificInputs() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
@@ -341,7 +341,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  @Test public void testHintsForCalc() {
+  @Test void testHintsForCalc() {
     final String sql = "select /*+ resource(mem='1024MB')*/ ename, sal, deptno from emp";
     final RelNode rel = tester.convertSqlToRel(sql).rel;
     final RelHint hint = RelHint.builder("RESOURCE")
@@ -357,7 +357,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     new ValidateHintVisitor(hint, Calc.class).go(newRel);
   }
 
-  @Test public void testHintsPropagationInHepPlannerRules() {
+  @Test void testHintsPropagationInHepPlannerRules() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
@@ -377,7 +377,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     new ValidateHintVisitor(hint, Join.class).go(newRel);
   }
 
-  @Test public void testHintsPropagationInVolcanoPlannerRules() {
+  @Test void testHintsPropagationInVolcanoPlannerRules() {
     final String sql = "select /*+ use_hash_join(r, s), use_hash_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";
@@ -414,7 +414,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
         Collections.emptyList(), Collections.emptyList());
   }
 
-  @Test public void testHintsPropagateWithDifferentKindOfRels() {
+  @Test void testHintsPropagateWithDifferentKindOfRels() {
     final String sql = "select /*+ AGG_STRATEGY(TWO_PHASE) */\n"
         + "ename, avg(sal)\n"
         + "from emp group by ename";
@@ -434,7 +434,7 @@ public class SqlHintsConverterTest extends SqlToRelTestBase {
     new ValidateHintVisitor(hint, Aggregate.class).go(newRel);
   }
 
-  @Test public void testUseMergeJoin() {
+  @Test void testUseMergeJoin() {
     final String sql = "select /*+ use_merge_join(emp, dept) */\n"
         + "ename, job, sal, dept.name\n"
         + "from emp join dept on emp.deptno = dept.deptno";

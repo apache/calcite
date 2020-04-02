@@ -37,11 +37,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * @see Mapping
  * @see Mappings
  */
-public class MappingTest {
-  public MappingTest() {
-  }
-
-  @Test public void testMappings() {
+class MappingTest {
+  @Test void testMappings() {
     assertTrue(Mappings.isIdentity(Mappings.createIdentity(0)));
     assertTrue(Mappings.isIdentity(Mappings.createIdentity(5)));
     assertFalse(
@@ -58,7 +55,7 @@ public class MappingTest {
   /**
    * Unit test for {@link Mappings#createShiftMapping}.
    */
-  @Test public void testMappingsCreateShiftMapping() {
+  @Test void testMappingsCreateShiftMapping() {
     assertEquals(
         "[size=5, sourceCount=20, targetCount=13, elements=[6:3, 7:4, 15:10, 16:11, 17:12]]",
         Mappings.createShiftMapping(
@@ -80,7 +77,7 @@ public class MappingTest {
   /**
    * Unit test for {@link Mappings#append}.
    */
-  @Test public void testMappingsAppend() {
+  @Test void testMappingsAppend() {
     assertTrue(
         Mappings.isIdentity(
             Mappings.append(
@@ -98,7 +95,7 @@ public class MappingTest {
   /**
    * Unit test for {@link Mappings#offsetSource}.
    */
-  @Test public void testMappingsOffsetSource() {
+  @Test void testMappingsOffsetSource() {
     final Mappings.TargetMapping mapping =
         Mappings.target(ImmutableMap.of(0, 5, 1, 7), 2, 8);
     assertEquals(
@@ -135,7 +132,7 @@ public class MappingTest {
 
   /** Unit test for {@link Mappings#source(List, int)}
    * and its converse, {@link Mappings#asList(Mappings.TargetMapping)}. */
-  @Test public void testSource() {
+  @Test void testSource() {
     List<Integer> targets = Arrays.asList(3, 1, 4, 5, 8);
     final Mapping mapping = Mappings.source(targets, 10);
     assertThat(mapping.getTarget(0), equalTo(3));
@@ -154,7 +151,7 @@ public class MappingTest {
   }
 
   /** Unit test for {@link Mappings#target(List, int)}. */
-  @Test public void testTarget() {
+  @Test void testTarget() {
     List<Integer> sources = Arrays.asList(3, 1, 4, 5, 8);
     final Mapping mapping = Mappings.target(sources, 10);
     assertThat(mapping.getTarget(3), equalTo(0));
@@ -175,7 +172,7 @@ public class MappingTest {
   }
 
   /** Unit test for {@link Mappings#bijection(List)}. */
-  @Test public void testBijection() {
+  @Test void testBijection() {
     List<Integer> targets = Arrays.asList(3, 0, 1, 2);
     final Mapping mapping = Mappings.bijection(targets);
     assertThat(mapping.size(), equalTo(4));

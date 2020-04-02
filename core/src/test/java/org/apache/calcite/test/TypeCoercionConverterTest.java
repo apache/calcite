@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * or <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
  * for conversion details.
  */
-public class TypeCoercionConverterTest extends SqlToRelTestBase {
+class TypeCoercionConverterTest extends SqlToRelTestBase {
 
   @Override protected DiffRepository getDiffRepos() {
     return DiffRepository.lookup(TypeCoercionConverterTest.class);
@@ -37,7 +37,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
   }
 
   /** Test case for {@link TypeCoercion#commonTypeForBinaryComparison}. */
-  @Test public void testBinaryComparison() {
+  @Test void testBinaryComparison() {
     // for constant cast, there is reduce rule
     checkPlanEquals("select\n"
         + "1<'1' as f0,\n"
@@ -53,7 +53,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
   }
 
   /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
-  @Test public void testInOperation() {
+  @Test void testInOperation() {
     checkPlanEquals("select\n"
         + "1 in ('1', '2', '3') as f0,\n"
         + "(1, 2) in (('1', '2')) as f1,\n"
@@ -63,7 +63,7 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
 
   /** Test cases for
    * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl#booleanEquality}. */
-  @Test public void testBooleanEquality() {
+  @Test void testBooleanEquality() {
     // REVIEW Danny 2018-05-16: Now we do not support cast between numeric <-> boolean for
     // Calcite execution runtime, but we still add cast in the plan so other systems
     // using Calcite can rewrite Cast operator implementation.
@@ -78,19 +78,19 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "from t1");
   }
 
-  @Test public void testCaseWhen() {
+  @Test void testCaseWhen() {
     checkPlanEquals("select case when 1 > 0 then t2_bigint else t2_decimal end from t2");
   }
 
-  @Test public void testBuiltinFunctionCoercion() {
+  @Test void testBuiltinFunctionCoercion() {
     checkPlanEquals("select 1||'a' from (values true)");
   }
 
-  @Test public void testStarImplicitTypeCoercion() {
+  @Test void testStarImplicitTypeCoercion() {
     checkPlanEquals("select * from (values(1, '3')) union select * from (values('2', 4))");
   }
 
-  @Test public void testSetOperation() {
+  @Test void testSetOperation() {
     // int decimal smallint double
     // char decimal float bigint
     // char decimal float double
@@ -102,13 +102,13 @@ public class TypeCoercionConverterTest extends SqlToRelTestBase {
     checkPlanEquals(sql);
   }
 
-  @Test public void testInsertQuerySourceCoercion() {
+  @Test void testInsertQuerySourceCoercion() {
     final String sql = "insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,\n"
         + "t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2";
     checkPlanEquals(sql);
   }
 
-  @Test public void testUpdateQuerySourceCoercion() {
+  @Test void testUpdateQuerySourceCoercion() {
     final String sql = "update t1 set t1_varchar20=123, "
         + "t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3";
     checkPlanEquals(sql);

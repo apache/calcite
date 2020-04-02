@@ -30,7 +30,7 @@ import static java.util.Comparator.naturalOrder;
 /**
  * Tests {@link org.apache.calcite.runtime.BinarySearch}.
  */
-public class BinarySearchTest {
+class BinarySearchTest {
   private void search(int key, int lower, int upper, Integer... array) {
     assertEquals(lower, lowerBound(array, key, naturalOrder()),
         () -> "lower bound of " + key + " in " + Arrays.toString(array));
@@ -38,35 +38,35 @@ public class BinarySearchTest {
         () -> "upper bound of " + key + " in " + Arrays.toString(array));
   }
 
-  @Test public void testSimple() {
+  @Test void testSimple() {
     search(1, 0, 0, 1, 2, 3);
     search(2, 1, 1, 1, 2, 3);
     search(3, 2, 2, 1, 2, 3);
   }
 
-  @Test public void testRepeated() {
+  @Test void testRepeated() {
     search(1, 0, 1, 1, 1, 2, 2, 3, 3);
     search(2, 2, 3, 1, 1, 2, 2, 3, 3);
     search(3, 4, 5, 1, 1, 2, 2, 3, 3);
   }
 
-  @Test public void testMissing() {
+  @Test void testMissing() {
     search(0, -1, -1, 1, 2, 4);
     search(3, 2, 1, 1, 2, 4);
     search(5, 3, 3, 1, 2, 4);
   }
 
-  @Test public void testEmpty() {
+  @Test void testEmpty() {
     search(42, -1, -1);
   }
 
-  @Test public void testSingle() {
+  @Test void testSingle() {
     search(41, -1, -1, 42);
     search(42, 0, 0, 42);
     search(43, 1, 1, 42);
   }
 
-  @Test public void testAllTheSame() {
+  @Test void testAllTheSame() {
     search(1, 0, 3, 1, 1, 1, 1);
     search(0, -1, -1, 1, 1, 1, 1);
     search(2, 4, 4, 1, 1, 1, 1);

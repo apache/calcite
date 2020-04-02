@@ -37,11 +37,11 @@ import java.util.function.Consumer;
  * Unit test for
  * {@link EnumerableCorrelate}.
  */
-public class EnumerableCorrelateTest {
+class EnumerableCorrelateTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2605">[CALCITE-2605]
    * NullPointerException when left outer join implemented with EnumerableCorrelate</a> */
-  @Test public void leftOuterJoinCorrelate() {
+  @Test void leftOuterJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e left outer join depts d on e.deptno=d.deptno")
@@ -65,7 +65,7 @@ public class EnumerableCorrelateTest {
             "empid=200; name=Eric; dept=null");
   }
 
-  @Test public void simpleCorrelateDecorrelated() {
+  @Test void simpleCorrelateDecorrelated() {
     tester(true, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
@@ -84,7 +84,7 @@ public class EnumerableCorrelateTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2621">[CALCITE-2621]
    * Add rule to execute semi joins with correlation</a> */
-  @Test public void semiJoinCorrelate() {
+  @Test void semiJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where e.deptno in (select d.deptno from depts d)")
@@ -111,7 +111,7 @@ public class EnumerableCorrelateTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2930">[CALCITE-2930]
    * FilterCorrelateRule on a Correlate with SemiJoinType SEMI (or ANTI)
    * throws IllegalStateException</a> */
-  @Test public void semiJoinCorrelateWithFilterCorrelateRule() {
+  @Test void semiJoinCorrelateWithFilterCorrelateRule() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where e.deptno in (select d.deptno from depts d) and e.empid > 100")
@@ -135,7 +135,7 @@ public class EnumerableCorrelateTest {
             "empid=150; name=Sebastian");
   }
 
-  @Test public void simpleCorrelate() {
+  @Test void simpleCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select empid, name from emps e where exists (select 1 from depts d where d.deptno=e.deptno)")
@@ -153,7 +153,7 @@ public class EnumerableCorrelateTest {
             "empid=150; name=Sebastian");
   }
 
-  @Test public void simpleCorrelateWithConditionIncludingBoxedPrimitive() {
+  @Test void simpleCorrelateWithConditionIncludingBoxedPrimitive() {
     final String sql = "select empid from emps e where not exists (\n"
         + "  select 1 from depts d where d.deptno=e.commission)";
     tester(false, new JdbcTest.HrSchema())
@@ -168,7 +168,7 @@ public class EnumerableCorrelateTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
    * RelBuilder: new method to create an anti-join</a>. */
-  @Test public void antiJoinCorrelate() {
+  @Test void antiJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -197,7 +197,7 @@ public class EnumerableCorrelateTest {
             "deptno=40; name=HR");
   }
 
-  @Test public void nonEquiAntiJoinCorrelate() {
+  @Test void nonEquiAntiJoinCorrelate() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -236,7 +236,7 @@ public class EnumerableCorrelateTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2920">[CALCITE-2920]
    * RelBuilder: new method to create an antijoin</a> */
-  @Test public void antiJoinCorrelateWithNullValues() {
+  @Test void antiJoinCorrelateWithNullValues() {
     final Integer salesDeptNo = 10;
     tester(false, new JdbcTest.HrSchema())
         .query("?")

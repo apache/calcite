@@ -66,7 +66,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *   <li>./sqlsh select \* from vmstat
  * </ul>
  */
-public class OsAdapterTest {
+class OsAdapterTest {
   private static boolean isWindows() {
     return System.getProperty("os.name").startsWith("Windows");
   }
@@ -107,7 +107,7 @@ public class OsAdapterTest {
     }
   }
 
-  @Test public void testDu() {
+  @Test void testDu() {
     assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du")
@@ -123,7 +123,7 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testDuFilterSortLimit() {
+  @Test void testDuFilterSortLimit() {
     assumeFalse(isWindows(), "Skip: the 'du' table does not work on Windows");
     assumeToolExists("du");
     sql("select * from du where path like '%/src/test/java/%'\n"
@@ -142,14 +142,14 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testFiles() {
+  @Test void testFiles() {
     assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
     sql("select distinct type from files")
         .returnsUnordered("type=d",
             "type=f");
   }
 
-  @Test public void testPs() {
+  @Test void testPs() {
     assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select * from ps")
@@ -169,7 +169,7 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testPsDistinct() {
+  @Test void testPsDistinct() {
     assumeFalse(isWindows(), "Skip: the 'ps' table does not work on Windows");
     assumeToolExists("ps");
     sql("select distinct `user` from ps")
@@ -184,7 +184,7 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testGitCommits() {
+  @Test void testGitCommits() {
     assumeTrue(hasGit(), "no git");
     sql("select count(*) from git_commits")
         .returns(r -> {
@@ -198,7 +198,7 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testGitCommitsTop() {
+  @Test void testGitCommitsTop() {
     assumeTrue(hasGit(), "no git");
     final String q = "select author from git_commits\n"
         + "group by 1 order by count(*) desc limit 2";
@@ -206,7 +206,7 @@ public class OsAdapterTest {
         "author=Julian Hyde <jhyde@apache.org>");
   }
 
-  @Test public void testJps() {
+  @Test void testJps() {
     final String q = "select pid, info from jps";
     sql(q).returns(r -> {
       try {
@@ -220,7 +220,7 @@ public class OsAdapterTest {
     });
   }
 
-  @Test public void testVmstat() {
+  @Test void testVmstat() {
     assumeFalse(isWindows(), "Skip: the 'files' table does not work on Windows");
     assumeToolExists("vmstat");
     sql("select * from vmstat")
@@ -238,7 +238,7 @@ public class OsAdapterTest {
         });
   }
 
-  @Test public void testStdin() throws SQLException {
+  @Test void testStdin() throws SQLException {
     try (Hook.Closeable ignore = Hook.STANDARD_STREAMS.addThread(
         (Consumer<Holder<Object[]>>) o -> {
           final Object[] values = o.get();
@@ -255,7 +255,7 @@ public class OsAdapterTest {
     }
   }
 
-  @Test public void testStdinExplain() {
+  @Test void testStdinExplain() {
     // Can't execute stdin, because junit's stdin never ends;
     // so just run explain
     final String explain = "PLAN="
@@ -267,7 +267,7 @@ public class OsAdapterTest {
         .explainContains(explain);
   }
 
-  @Test public void testSqlShellFormat() throws SQLException {
+  @Test void testSqlShellFormat() throws SQLException {
     final String q = "select * from (values (-1, true, 'a'),"
         + " (2, false, 'b, c'),"
         + " (3, unknown, cast(null as char(1)))) as t(x, y, z)";
@@ -357,7 +357,7 @@ public class OsAdapterTest {
     return Util.toLinux(outSw.toString());
   }
 
-  @Test public void testSqlShellHelp() throws SQLException {
+  @Test void testSqlShellHelp() throws SQLException {
     final String help = "Usage: sqlsh [OPTION]... SQL\n"
         + "Execute a SQL command\n"
         + "\n"

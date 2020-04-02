@@ -85,12 +85,12 @@ public class ConcurrentTestCommandGenerator {
   /**
    * Describes a thread that failed
    */
-  public static class FailedThread {
+  static class FailedThread {
     public final String name;
     public final String location;
     public final Throwable failure;
 
-    public FailedThread(String name, String location, Throwable failure) {
+    FailedThread(String name, String location, Throwable failure) {
       this.name = name;
       this.location = location;
       this.failure = failure;

@@ -29,9 +29,9 @@ import org.junit.jupiter.api.Test;
  * Unit test for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableHashJoin}.
  */
-public class EnumerableHashJoinTest {
+class EnumerableHashJoinTest {
 
-  @Test public void innerJoin() {
+  @Test void innerJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts "
@@ -49,7 +49,7 @@ public class EnumerableHashJoinTest {
             "empid=150; name=Sebastian; dept=Sales");
   }
 
-  @Test public void innerJoinWithPredicate() {
+  @Test void innerJoinWithPredicate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e join depts d"
@@ -67,7 +67,7 @@ public class EnumerableHashJoinTest {
             "empid=110; name=Theodore; dept=Sales");
   }
 
-  @Test public void leftOuterJoin() {
+  @Test void leftOuterJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e  left outer "
@@ -86,7 +86,7 @@ public class EnumerableHashJoinTest {
             "empid=200; name=Eric; dept=null");
   }
 
-  @Test public void rightOuterJoin() {
+  @Test void rightOuterJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e  right outer "
@@ -106,7 +106,7 @@ public class EnumerableHashJoinTest {
             "empid=null; name=null; dept=HR");
   }
 
-  @Test public void leftOuterJoinWithPredicate() {
+  @Test void leftOuterJoinWithPredicate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e left outer "
@@ -127,7 +127,7 @@ public class EnumerableHashJoinTest {
             "empid=200; name=Eric; dept=null");
   }
 
-  @Test public void rightOuterJoinWithPredicate() {
+  @Test void rightOuterJoinWithPredicate() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.empid, e.name, d.name as dept from emps e right outer "
@@ -148,7 +148,7 @@ public class EnumerableHashJoinTest {
   }
 
 
-  @Test public void semiJoin() {
+  @Test void semiJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "SELECT d.deptno, d.name FROM depts d WHERE d.deptno in (SELECT e.deptno FROM emps e)")
@@ -161,7 +161,7 @@ public class EnumerableHashJoinTest {
             "deptno=10; name=Sales");
   }
 
-  @Test public void semiJoinWithPredicate() {
+  @Test void semiJoinWithPredicate() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withRel(

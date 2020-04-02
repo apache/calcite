@@ -37,7 +37,7 @@ import static org.hamcrest.core.Is.is;
 /**
  * Unit tests for Babel framework.
  */
-public class BabelTest {
+class BabelTest {
 
   static final String URL = "jdbc:calcite:";
 
@@ -75,7 +75,7 @@ public class BabelTest {
     return DriverManager.getConnection(URL, info);
   }
 
-  @Test public void testInfixCast() throws SQLException {
+  @Test void testInfixCast() throws SQLException {
     try (Connection connection = connect(useLibraryList("standard,postgresql"));
          Statement statement = connection.createStatement()) {
       checkInfixCast(statement, "integer", Types.INTEGER);

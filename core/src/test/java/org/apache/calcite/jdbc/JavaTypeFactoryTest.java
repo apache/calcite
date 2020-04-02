@@ -40,7 +40,7 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithOneFieldStructDataTypeV1() {
+  @Test void testGetJavaClassWithOneFieldStructDataTypeV1() {
     RelDataType structWithOneField = TYPE_FACTORY.createStructType(OneFieldStruct.class);
     assertEquals(OneFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithOneField));
   }
@@ -48,7 +48,7 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithOneFieldStructDataTypeV2() {
+  @Test void testGetJavaClassWithOneFieldStructDataTypeV2() {
     RelDataType structWithOneField = TYPE_FACTORY.createStructType(
         ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
         ImmutableList.of("intField"));
@@ -58,7 +58,7 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithTwoFieldsStructDataType() {
+  @Test void testGetJavaClassWithTwoFieldsStructDataType() {
     RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(TwoFieldStruct.class);
     assertEquals(TwoFieldStruct.class, TYPE_FACTORY.getJavaClass(structWithTwoFields));
   }
@@ -66,7 +66,7 @@ public final class JavaTypeFactoryTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testGetJavaClassWithTwoFieldsStructDataTypeV2() {
+  @Test void testGetJavaClassWithTwoFieldsStructDataTypeV2() {
     RelDataType structWithTwoFields = TYPE_FACTORY.createStructType(
         ImmutableList.of(
             TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
@@ -79,7 +79,7 @@ public final class JavaTypeFactoryTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3029">[CALCITE-3029]
    * Java-oriented field type is wrongly forced to be NOT NULL after being converted to
    * SQL-oriented</a>. */
-  @Test public void testFieldNullabilityAfterConvertingToSqlStructType() {
+  @Test void testFieldNullabilityAfterConvertingToSqlStructType() {
     RelDataType javaStructType = TYPE_FACTORY.createStructType(
         ImmutableList.of(
             TYPE_FACTORY.createJavaType(Integer.class),

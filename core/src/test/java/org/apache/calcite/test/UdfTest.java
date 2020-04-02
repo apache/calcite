@@ -60,7 +60,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  *
  * @see Smalls
  */
-public class UdfTest {
+class UdfTest {
   private CalciteAssert.AssertThat withUdf() {
     final String model = "{\n"
         + "  version: '1.0',\n"
@@ -185,7 +185,7 @@ public class UdfTest {
   /** Tests a user-defined function that is defined in terms of a class with
    * non-static methods. */
   @Disabled("[CALCITE-1561] Intermittent test failures")
-  @Test public void testUserDefinedFunction() throws Exception {
+  @Test void testUserDefinedFunction() throws Exception {
     final String sql = "select \"adhoc\".my_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.MyPlusFunction.INSTANCE_COUNT.get();
@@ -202,7 +202,7 @@ public class UdfTest {
    * instantiated exactly once, per
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1548">[CALCITE-1548]
    * Instantiate function objects once per query</a>. */
-  @Test public void testUserDefinedFunctionInstanceCount() throws Exception {
+  @Test void testUserDefinedFunctionInstanceCount() throws Exception {
     final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 100) as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
@@ -215,7 +215,7 @@ public class UdfTest {
     assertThat(after, is(before + 1));
   }
 
-  @Test public void testUserDefinedFunctionB() throws Exception {
+  @Test void testUserDefinedFunctionB() throws Exception {
     final String sql = "select \"adhoc\".my_double(\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final String expected = "P=20\n"
@@ -225,7 +225,7 @@ public class UdfTest {
     withUdf().query(sql).returns(expected);
   }
 
-  @Test public void testUserDefinedFunctionWithNull() throws Exception {
+  @Test void testUserDefinedFunctionWithNull() throws Exception {
     final String sql = "select \"adhoc\".my_det_plus(\"deptno\", 1 + null) as p\n"
         + "from \"adhoc\".EMPLOYEES where 1 > 0 or nullif(null, 1) is null";
     final AtomicInteger c = Smalls.MyDeterministicPlusFunction.INSTANCE_COUNT.get();
@@ -243,7 +243,7 @@ public class UdfTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3195">[CALCITE-3195]
    * Handle a UDF that throws checked exceptions in the Enumerable code generator</a>. */
-  @Test public void testUserDefinedFunctionWithException() throws Exception {
+  @Test void testUserDefinedFunctionWithException() throws Exception {
     final String sql1 = "select \"adhoc\".my_exception(\"deptno\") as p\n"
         + "from \"adhoc\".EMPLOYEES";
     final String expected1 = "P=20\n"
@@ -272,7 +272,7 @@ public class UdfTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-937">[CALCITE-937]
    * User-defined function within view</a>. */
-  @Test public void testUserDefinedFunctionInView() throws Exception {
+  @Test void testUserDefinedFunctionInView() throws Exception {
     Class.forName("org.apache.calcite.jdbc.Driver");
     Connection connection = DriverManager.getConnection("jdbc:calcite:");
     CalciteConnection calciteConnection =
@@ -315,7 +315,7 @@ public class UdfTest {
    * Tests that IS NULL/IS NOT NULL is properly implemented for non-strict
    * functions.
    */
-  @Test public void testNotNullImplementor() {
+  @Test void testNotNullImplementor() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query(
         "select upper(\"adhoc\".my_str(\"name\")) as p from \"adhoc\".EMPLOYEES")
@@ -359,7 +359,7 @@ public class UdfTest {
    * Thus, a nasty function is more unpredictable.
    *
    * @see SemiStrict */
-  @Test public void testSemiStrict() {
+  @Test void testSemiStrict() {
     final CalciteAssert.AssertThat with = withUdf();
     final String sql = "select\n"
         + "  \"adhoc\".null4(upper(\"name\")) as p\n"
@@ -391,7 +391,7 @@ public class UdfTest {
   }
 
   /** Tests derived return type of user-defined function. */
-  @Test public void testUdfDerivedReturnType() {
+  @Test void testUdfDerivedReturnType() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query(
         "select max(\"adhoc\".my_double(\"deptno\")) as p from \"adhoc\".EMPLOYEES")
@@ -403,7 +403,7 @@ public class UdfTest {
   }
 
   /** Tests a user-defined function that has multiple overloads. */
-  @Test public void testUdfOverloaded() {
+  @Test void testUdfOverloaded() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(0),\n"
@@ -416,7 +416,7 @@ public class UdfTest {
         .returns("P0=0; P1=1; P2=2\n");
   }
 
-  @Test public void testUdfOverloadedNullable() {
+  @Test void testUdfOverloadedNullable() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values (\"adhoc\".count_args(),\n"
         + " \"adhoc\".count_args(cast(null as smallint)),\n"
@@ -425,7 +425,7 @@ public class UdfTest {
   }
 
   /** Tests passing parameters to user-defined function by name. */
-  @Test public void testUdfArgumentName() {
+  @Test void testUdfArgumentName() {
     final CalciteAssert.AssertThat with = withUdf();
     // arguments in physical order
     with.query("values (\"adhoc\".my_left(\"s\" => 'hello', \"n\" => 3))")
@@ -458,7 +458,7 @@ public class UdfTest {
 
   /** Tests calling a user-defined function some of whose parameters are
    * optional. */
-  @Test public void testUdfArgumentOptional() {
+  @Test void testUdfArgumentOptional() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values (\"adhoc\".abcde(a=>1,b=>2,c=>3,d=>4,e=>5))")
         .returns("EXPR$0={a: 1, b: 2, c: 3, d: 4, e: 5}\n");
@@ -501,14 +501,14 @@ public class UdfTest {
 
   /** Test for
    * {@link org.apache.calcite.runtime.CalciteResource#requireDefaultConstructor(String)}. */
-  @Test public void testUserDefinedFunction2() throws Exception {
+  @Test void testUserDefinedFunction2() throws Exception {
     withBadUdf(Smalls.AwkwardFunction.class)
         .connectThrows(
             "Declaring class 'org.apache.calcite.util.Smalls$AwkwardFunction' of non-static user-defined function must have a public constructor with zero parameters");
   }
 
   /** Tests user-defined function, with multiple methods per class. */
-  @Test public void testUserDefinedFunctionWithMethodName() throws Exception {
+  @Test void testUserDefinedFunctionWithMethodName() throws Exception {
     // java.lang.Math has abs(int) and abs(double).
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values abs(-4)").returnsValue("4");
@@ -525,7 +525,7 @@ public class UdfTest {
   }
 
   /** Tests user-defined aggregate function. */
-  @Test public void testUserDefinedAggregateFunction() throws Exception {
+  @Test void testUserDefinedAggregateFunction() throws Exception {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
     final String sum = Smalls.MyStaticSumFunction.class.getName();
     final String sum2 = Smalls.MySumFunction.class.getName();
@@ -585,7 +585,7 @@ public class UdfTest {
   }
 
   /** Tests user-defined aggregate function. */
-  @Test public void testUserDefinedAggregateFunctionWithMultipleParameters() throws Exception {
+  @Test void testUserDefinedAggregateFunctionWithMultipleParameters() throws Exception {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
     final String sum21 = Smalls.MyTwoParamsSumFunctionFilter1.class.getName();
     final String sum22 = Smalls.MyTwoParamsSumFunctionFilter2.class.getName();
@@ -661,7 +661,7 @@ public class UdfTest {
 
   /** Test for
    * {@link org.apache.calcite.runtime.CalciteResource#firstParameterOfAdd(String)}. */
-  @Test public void testUserDefinedAggregateFunction3() throws Exception {
+  @Test void testUserDefinedAggregateFunction3() throws Exception {
     withBadUdf(Smalls.SumFunctionBadIAdd.class).connectThrows(
         "Caused by: java.lang.RuntimeException: In user-defined aggregate class 'org.apache.calcite.util.Smalls$SumFunctionBadIAdd', first parameter to 'add' method must be the accumulator (the return type of the 'init' method)");
   }
@@ -670,7 +670,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1434">[CALCITE-1434]
    * AggregateFunctionImpl doesnt work if the class implements a generic
    * interface</a>. */
-  @Test public void testUserDefinedAggregateFunctionImplementsInterface() {
+  @Test void testUserDefinedAggregateFunctionImplementsInterface() {
     final String empDept = JdbcTest.EmpDeptTableFactory.class.getName();
     final String mySum3 = Smalls.MySum3.class.getName();
     final String model = "{\n"
@@ -753,7 +753,7 @@ public class UdfTest {
   /** Tests user-defined aggregate function with FILTER.
    *
    * <p>Also tests that we do not try to push ADAF to JDBC source. */
-  @Test public void testUserDefinedAggregateFunctionWithFilter() throws Exception {
+  @Test void testUserDefinedAggregateFunctionWithFilter() throws Exception {
     final String sum = Smalls.MyStaticSumFunction.class.getName();
     final String sum2 = Smalls.MySumFunction.class.getName();
     final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
@@ -797,7 +797,7 @@ public class UdfTest {
   }
 
   /** Tests resolution of functions using schema paths. */
-  @Test public void testPath() throws Exception {
+  @Test void testPath() throws Exception {
     final String name = Smalls.MyPlusFunction.class.getName();
     final CalciteAssert.AssertThat with = CalciteAssert.model("{\n"
         + "  version: '1.0',\n"
@@ -862,7 +862,7 @@ public class UdfTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-986">[CALCITE-986]
    * User-defined function with Date or Timestamp parameters</a>. */
-  @Test public void testDate() {
+  @Test void testDate() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"dateFun\"(DATE '1970-01-01')")
         .returnsValue("0");
@@ -887,7 +887,7 @@ public class UdfTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
    * User-defined function returns DATE or TIMESTAMP value</a>. */
-  @Test public void testReturnDate() {
+  @Test void testReturnDate() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDateFun\"(0)")
         .returnsValue("1970-01-01");
@@ -913,7 +913,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1881">[CALCITE-1881]
    * Can't distinguish overloaded user-defined functions that have DATE and
    * TIMESTAMP arguments</a>. */
-  @Test public void testDateAndTimestamp() {
+  @Test void testDateAndTimestamp() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toLong\"(DATE '1970-01-15')")
         .returns("EXPR$0=1209600000\n");
@@ -939,7 +939,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2053">[CALCITE-2053]
    * Overloaded user-defined functions that have Double and BigDecimal arguments
    * will goes wrong </a>. */
-  @Test public void testBigDecimalAndLong() {
+  @Test void testBigDecimalAndLong() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("values \"adhoc\".\"toDouble\"(cast(1.0 as double))")
             .returns("EXPR$0=1.0\n");
@@ -958,7 +958,7 @@ public class UdfTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1041">[CALCITE-1041]
    * User-defined function returns DATE or TIMESTAMP value</a>. */
-  @Test public void testReturnDate2() {
+  @Test void testReturnDate2() {
     final CalciteAssert.AssertThat with = withUdf();
     with.query("select * from (values 0) as t(c)\n"
         + "where \"adhoc\".\"toTimestampFun\"(c) in (\n"
@@ -982,7 +982,7 @@ public class UdfTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1834">[CALCITE-1834]
    * User-defined function for Arrays</a>.
    */
-  @Test public void testArrayUserDefinedFunction() throws Exception {
+  @Test void testArrayUserDefinedFunction() throws Exception {
     try (Connection connection = DriverManager.getConnection("jdbc:calcite:")) {
       CalciteConnection calciteConnection =
           connection.unwrap(CalciteConnection.class);

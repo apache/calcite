@@ -42,7 +42,7 @@ import java.util.Map;
  * Test of different boolean expressions (some more complex than others).
  */
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class BooleanLogicTest {
+class BooleanLogicTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
@@ -90,7 +90,7 @@ public class BooleanLogicTest {
     };
   }
 
-  @Test public void expressions() {
+  @Test void expressions() {
     assertSingle("select * from view");
     assertSingle("select * from view where a = 'a'");
     assertEmpty("select * from view where a <> 'a'");
@@ -138,7 +138,7 @@ public class BooleanLogicTest {
   /**
    * Tests negations ({@code NOT} operator).
    */
-  @Test public void notExpression() {
+  @Test void notExpression() {
     assertEmpty("select * from view where not a = 'a'");
     assertSingle("select * from view where not not a = 'a'");
     assertEmpty("select * from view where not not not a = 'a'");

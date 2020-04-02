@@ -52,7 +52,7 @@ import static org.hamcrest.core.Is.is;
 /**
  * Testing {@link SqlValidator} and {@link Lex} quoting.
  */
-public class LexEscapeTest {
+class LexEscapeTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       Config parserConfig, Program... programs) {
@@ -92,33 +92,33 @@ public class LexEscapeTest {
     assertThat(fields.get(3).getType().getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
   }
 
-  @Test public void testCalciteEscapeOracle()
+  @Test void testCalciteEscapeOracle()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select \"localtime\", localtime, "
         + "\"current_timestamp\", current_timestamp from TMP";
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test public void testCalciteEscapeMySql()
+  @Test void testCalciteEscapeMySql()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select `localtime`, localtime, `current_timestamp`, current_timestamp from TMP";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test public void testCalciteEscapeMySqlAnsi()
+  @Test void testCalciteEscapeMySqlAnsi()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select \"localtime\", localtime, "
         + "\"current_timestamp\", current_timestamp from TMP";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test public void testCalciteEscapeSqlServer()
+  @Test void testCalciteEscapeSqlServer()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select [localtime], localtime, [current_timestamp], current_timestamp from TMP";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test public void testCalciteEscapeJava()
+  @Test void testCalciteEscapeJava()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select `localtime`, localtime, `current_timestamp`, current_timestamp from TMP";
     runProjectQueryWithLex(Lex.JAVA, sql);

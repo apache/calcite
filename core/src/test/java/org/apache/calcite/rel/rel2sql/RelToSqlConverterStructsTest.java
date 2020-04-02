@@ -51,7 +51,7 @@ import java.util.Set;
  * Tests for {@link RelToSqlConverter} on a schema that has nested structures of multiple
  * levels.
  */
-public class RelToSqlConverterStructsTest {
+class RelToSqlConverterStructsTest {
 
   private static final Schema SCHEMA = new Schema() {
     @Override public Table getTable(String name) {
@@ -185,7 +185,7 @@ public class RelToSqlConverterStructsTest {
         RelToSqlConverterTest.DEFAULT_REL_CONFIG, null, ImmutableList.of());
   }
 
-  @Test public void testNestedSchemaSelectStar() {
+  @Test void testNestedSchemaSelectStar() {
     String query = "SELECT * FROM \"myTable\"";
     String expected = "SELECT \"a\", "
         + "ROW(ROW(\"n1\".\"n11\".\"b\"), ROW(\"n1\".\"n12\".\"c\")) AS \"n1\", "
@@ -195,7 +195,7 @@ public class RelToSqlConverterStructsTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testNestedSchemaRootColumns() {
+  @Test void testNestedSchemaRootColumns() {
     String query = "SELECT \"a\", \"e\" FROM \"myTable\"";
     String expected = "SELECT \"a\", "
         + "\"e\"\n"
@@ -203,7 +203,7 @@ public class RelToSqlConverterStructsTest {
     sql(query).ok(expected);
   }
 
-  @Test public void testNestedSchemaNestedColumns() {
+  @Test void testNestedSchemaNestedColumns() {
     String query = "SELECT \"a\", \"e\", "
         + "\"myTable\".\"n1\".\"n11\".\"b\", "
         + "\"myTable\".\"n2\".\"d\" "

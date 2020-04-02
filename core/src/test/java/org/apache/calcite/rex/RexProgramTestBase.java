@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RexProgramTestBase extends RexProgramBuilderBase {
+class RexProgramTestBase extends RexProgramBuilderBase {
 
   protected void checkDigest(RexNode node, String expected) {
     assertEquals(expected, node.toString(), () -> "Digest of " + node.toStringRaw());

@@ -38,7 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit tests for example user-defined functions.
  */
-public class ExampleFunctionTest {
+class ExampleFunctionTest {
   public static final Method MAZE_METHOD =
       Types.lookupMethod(MazeTable.class, "generate", int.class, int.class,
           int.class);
@@ -47,7 +47,7 @@ public class ExampleFunctionTest {
           int.class);
 
   /** Unit test for {@link MazeTable}. */
-  @Test public void testMazeTableFunction()
+  @Test void testMazeTableFunction()
       throws SQLException, ClassNotFoundException {
     final String maze = ""
         + "+--+--+--+--+--+\n"
@@ -61,7 +61,7 @@ public class ExampleFunctionTest {
   }
 
   /** Unit test for {@link MazeTable}. */
-  @Test public void testMazeTableFunctionWithSolution()
+  @Test void testMazeTableFunctionWithSolution()
       throws SQLException, ClassNotFoundException {
     final String maze = ""
         + "+--+--+--+--+--+\n"

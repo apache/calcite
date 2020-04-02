@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /**
  * Tests for {@link Source}.
  */
-public class SourceTest {
+class SourceTest {
   private static final String ROOT_PREFIX = getRootPrefix();
 
   private static String getRootPrefix() {
@@ -67,7 +67,7 @@ public class SourceTest {
     }
   }
 
-  @Test public void testAppendWithSpaces() {
+  @Test void testAppendWithSpaces() {
     String fooRelative = "fo o+";
     String fooAbsolute = ROOT_PREFIX + "fo o+";
     String barRelative = "b ar+";
@@ -97,7 +97,7 @@ public class SourceTest {
     assertAppend(url(urlFooAbsolute), file(null, barAbsolute), barAbsolute);
   }
 
-  @Test public void testAppendHttp() {
+  @Test void testAppendHttp() {
     // I've truly no idea what append of two URLs should be, yet it does something
     assertAppendUrl(url("http://fo%20o+/ba%20r+"), file(null, "no idea what I am doing+"),
         "http://fo%20o+/ba%20r+/no%20idea%20what%20I%20am%20doing+");
@@ -122,7 +122,7 @@ public class SourceTest {
         is(expected));
   }
 
-  @Test public void testSpaceInUrl() {
+  @Test void testSpaceInUrl() {
     String url = "file:" + ROOT_PREFIX + "dir%20name/test%20file.json";
     final Source foo = url(url);
     assertEquals(new File(ROOT_PREFIX + "dir name/test file.json").getAbsolutePath(),
@@ -130,7 +130,7 @@ public class SourceTest {
         () -> url + " .file().getAbsolutePath()");
   }
 
-  @Test public void testSpaceInRelativeUrl() {
+  @Test void testSpaceInRelativeUrl() {
     String url = "file:dir%20name/test%20file.json";
     final Source foo = url(url);
     assertEquals("dir name/test file.json",
@@ -138,7 +138,7 @@ public class SourceTest {
         () -> url + " .file().getAbsolutePath()");
   }
 
-  @Test public void testRelative() {
+  @Test void testRelative() {
     final Source fooBar = file(null, ROOT_PREFIX + "foo/bar");
     final Source foo = file(null, ROOT_PREFIX + "foo");
     final Source baz = file(null, ROOT_PREFIX + "baz");

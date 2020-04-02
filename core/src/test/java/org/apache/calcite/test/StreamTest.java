@@ -112,7 +112,7 @@ public class StreamTest {
       + "   ]\n"
       + "}";
 
-  @Test public void testStream() {
+  @Test void testStream() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
         .query("select stream * from orders")
@@ -127,7 +127,7 @@ public class StreamTest {
                 "ROWTIME=2015-02-15 10:24:15; ID=2; PRODUCT=paper; UNITS=5"));
   }
 
-  @Test public void testStreamFilterProject() {
+  @Test void testStreamFilterProject() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
         .query("select stream product from orders where units > 6")
@@ -145,7 +145,7 @@ public class StreamTest {
                 "PRODUCT=brush"));
   }
 
-  @Test public void testStreamGroupByHaving() {
+  @Test void testStreamGroupByHaving() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
         .query("select stream floor(rowtime to hour) as rowtime,\n"
@@ -169,7 +169,7 @@ public class StreamTest {
             startsWith("ROWTIME=2015-02-15 10:00:00; PRODUCT=paint; C=2"));
   }
 
-  @Test public void testStreamOrderBy() {
+  @Test void testStreamOrderBy() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
         .query("select stream floor(rowtime to hour) as rowtime,\n"
@@ -193,7 +193,7 @@ public class StreamTest {
   }
 
   @Disabled
-  @Test public void testStreamUnionAllOrderBy() {
+  @Test void testStreamUnionAllOrderBy() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema("STREAMS")
         .query("select stream *\n"
@@ -229,7 +229,7 @@ public class StreamTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-809">[CALCITE-809]
    * TableScan does not support large/infinite scans</a>.
    */
-  @Test public void testInfiniteStreamsDoNotBufferInMemory() {
+  @Test void testInfiniteStreamsDoNotBufferInMemory() {
     CalciteAssert.model(STREAM_MODEL)
         .withDefaultSchema(INFINITE_STREAM_SCHEMA_NAME)
         .query("select stream * from orders")
@@ -272,7 +272,7 @@ public class StreamTest {
         });
   }
 
-  @Test public void testStreamToRelationJoin() {
+  @Test void testStreamToRelationJoin() {
     CalciteAssert.model(STREAM_JOINS_MODEL)
         .withDefaultSchema(STREAM_JOINS_SCHEMA_NAME)
         .query("select stream "
@@ -298,7 +298,7 @@ public class StreamTest {
   }
 
   @Disabled
-  @Test public void testTumbleViaOver() {
+  @Test void testTumbleViaOver() {
     String sql = "WITH HourlyOrderTotals (rowtime, productId, c, su) AS (\n"
         + "  SELECT FLOOR(rowtime TO HOUR),\n"
         + "    productId,\n"

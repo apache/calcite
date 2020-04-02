@@ -41,7 +41,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
  */
 @Execution(ExecutionMode.SAME_THREAD)
 @ExtendWith(CassandraExtension.class)
-public class CassandraAdapterDataTypesTest {
+class CassandraAdapterDataTypesTest {
 
   /** Connection factory based on the "mongo-zips" model. */
   private static final ImmutableMap<String, String> DTCASSANDRA =
@@ -53,7 +53,7 @@ public class CassandraAdapterDataTypesTest {
         .load(new ClassPathCQLDataSet("datatypes.cql"));
   }
 
-  @Test public void testSimpleTypesRowType() {
+  @Test void testSimpleTypesRowType() {
     CalciteAssert.that()
             .with(DTCASSANDRA)
             .query("select * from \"test_simple\"")
@@ -79,7 +79,7 @@ public class CassandraAdapterDataTypesTest {
                 + ", f_varint INTEGER]");
   }
 
-  @Test public void testSimpleTypesValues() {
+  @Test void testSimpleTypesValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select * from \"test_simple\"")
@@ -105,21 +105,21 @@ public class CassandraAdapterDataTypesTest {
             + "; f_varint=10\n");
   }
 
-  @Test public void testCounterRowType() {
+  @Test void testCounterRowType() {
     CalciteAssert.that()
             .with(DTCASSANDRA)
             .query("select * from \"test_counter\"")
             .typeIs("[f_int INTEGER, f_counter BIGINT]");
   }
 
-  @Test public void testCounterValues() {
+  @Test void testCounterValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select * from \"test_counter\"")
         .returns("f_int=1; f_counter=1\n");
   }
 
-  @Test public void testCollectionsRowType() {
+  @Test void testCollectionsRowType() {
     CalciteAssert.that()
             .with(DTCASSANDRA)
             .query("select * from \"test_collections\"")
@@ -130,7 +130,7 @@ public class CassandraAdapterDataTypesTest {
                 + ", f_tuple STRUCT]");
   }
 
-  @Test public void testCollectionsValues() {
+  @Test void testCollectionsValues() {
     CalciteAssert.that()
             .with(DTCASSANDRA)
             .query("select * from \"test_collections\"")
@@ -142,7 +142,7 @@ public class CassandraAdapterDataTypesTest {
                 + "\n");
   }
 
-  @Test public void testCollectionsInnerRowType() {
+  @Test void testCollectionsInnerRowType() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
@@ -160,7 +160,7 @@ public class CassandraAdapterDataTypesTest {
 
   // ignored as tuple elements returns 'null' when accessed in the select statement
   @Disabled
-  @Test public void testCollectionsInnerValues() {
+  @Test void testCollectionsInnerValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select \"f_list\"[1], "
@@ -177,7 +177,7 @@ public class CassandraAdapterDataTypesTest {
   }
 
   // frozen collections should not affect the row type
-  @Test public void testFrozenCollectionsRowType() {
+  @Test void testFrozenCollectionsRowType() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select * from \"test_frozen_collections\"")
@@ -190,7 +190,7 @@ public class CassandraAdapterDataTypesTest {
   }
 
   // frozen collections should not affect the result set
-  @Test public void testFrozenCollectionsValues() {
+  @Test void testFrozenCollectionsValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
         .query("select * from \"test_frozen_collections\"")

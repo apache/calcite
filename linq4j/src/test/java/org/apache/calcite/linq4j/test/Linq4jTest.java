@@ -99,7 +99,7 @@ public class Linq4jTest {
 
   private static final Function2<Object, Object, Integer> PAIR_SELECTOR = (employee, v2) -> 1;
 
-  @Test public void testSelect() {
+  @Test void testSelect() {
     List<String> names =
         Linq4j.asEnumerable(emps)
             .select(EMP_NAME_SELECTOR)
@@ -107,7 +107,7 @@ public class Linq4jTest {
     assertEquals("[Fred, Bill, Eric, Janet]", names.toString());
   }
 
-  @Test public void testWhere() {
+  @Test void testWhere() {
     List<String> names =
         Linq4j.asEnumerable(emps)
             .where(employee -> employee.deptno < 15)
@@ -116,7 +116,7 @@ public class Linq4jTest {
     assertEquals("[Fred, Eric, Janet]", names.toString());
   }
 
-  @Test public void testWhereIndexed() {
+  @Test void testWhereIndexed() {
     // Returns every other employee.
     List<String> names =
         Linq4j.asEnumerable(emps)
@@ -126,7 +126,7 @@ public class Linq4jTest {
     assertEquals("[Fred, Eric]", names.toString());
   }
 
-  @Test public void testSelectMany() {
+  @Test void testSelectMany() {
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
             .selectMany(DEPT_EMPLOYEES_SELECTOR)
@@ -136,29 +136,29 @@ public class Linq4jTest {
         "[#0: Fred, #1: Eric, #2: Janet, #3: Bill]", nameSeqs.toString());
   }
 
-  @Test public void testCount() {
+  @Test void testCount() {
     final int count = Linq4j.asEnumerable(depts).count();
     assertEquals(3, count);
   }
 
-  @Test public void testCountPredicate() {
+  @Test void testCountPredicate() {
     final int count =
         Linq4j.asEnumerable(depts).count(v1 -> v1.employees.size() > 0);
     assertEquals(2, count);
   }
 
-  @Test public void testLongCount() {
+  @Test void testLongCount() {
     final long count = Linq4j.asEnumerable(depts).longCount();
     assertEquals(3, count);
   }
 
-  @Test public void testLongCountPredicate() {
+  @Test void testLongCountPredicate() {
     final long count =
         Linq4j.asEnumerable(depts).longCount(v1 -> v1.employees.size() > 0);
     assertEquals(2, count);
   }
 
-  @Test public void testAllPredicate() {
+  @Test void testAllPredicate() {
     Predicate1<Employee> allEmpnoGE100 = emp -> emp.empno >= 100;
 
     Predicate1<Employee> allEmpnoGT100 = emp -> emp.empno > 100;
@@ -167,13 +167,13 @@ public class Linq4jTest {
     assertFalse(Linq4j.asEnumerable(emps).all(allEmpnoGT100));
   }
 
-  @Test public void testAny() {
+  @Test void testAny() {
     List<Employee> emptyList = Collections.emptyList();
     assertFalse(Linq4j.asEnumerable(emptyList).any());
     assertTrue(Linq4j.asEnumerable(emps).any());
   }
 
-  @Test public void testAnyPredicate() {
+  @Test void testAnyPredicate() {
     Predicate1<Department> deptoNameIT = v1 -> v1.name != null && v1.name.equals("IT");
 
     Predicate1<Department> deptoNameSales = v1 -> v1.name != null && v1.name.equals("Sales");
@@ -182,51 +182,51 @@ public class Linq4jTest {
     assertTrue(Linq4j.asEnumerable(depts).any(deptoNameSales));
   }
 
-  @Test public void testAverageSelector() {
+  @Test void testAverageSelector() {
     assertEquals(
         20,
         Linq4j.asEnumerable(depts).average(DEPT_DEPTNO_SELECTOR2));
   }
 
-  @Test public void testMin() {
+  @Test void testMin() {
     assertEquals(
         10,
         (int) Linq4j.asEnumerable(depts).select(DEPT_DEPTNO_SELECTOR)
             .min());
   }
 
-  @Test public void testMinSelector() {
+  @Test void testMinSelector() {
     assertEquals(
         10,
         (int) Linq4j.asEnumerable(depts).min(DEPT_DEPTNO_SELECTOR));
   }
 
-  @Test public void testMinSelector2() {
+  @Test void testMinSelector2() {
     assertEquals(
         10,
         Linq4j.asEnumerable(depts).min(DEPT_DEPTNO_SELECTOR2));
   }
 
-  @Test public void testMax() {
+  @Test void testMax() {
     assertEquals(
         30,
         (int) Linq4j.asEnumerable(depts).select(DEPT_DEPTNO_SELECTOR)
             .max());
   }
 
-  @Test public void testMaxSelector() {
+  @Test void testMaxSelector() {
     assertEquals(
         30,
         (int) Linq4j.asEnumerable(depts).max(DEPT_DEPTNO_SELECTOR));
   }
 
-  @Test public void testMaxSelector2() {
+  @Test void testMaxSelector2() {
     assertEquals(
         30,
         Linq4j.asEnumerable(depts).max(DEPT_DEPTNO_SELECTOR2));
   }
 
-  @Test public void testAggregate() {
+  @Test void testAggregate() {
     assertEquals(
         "Sales,HR,Marketing",
         Linq4j.asEnumerable(depts)
@@ -236,7 +236,7 @@ public class Linq4jTest {
                 (Function2<String, String, String>) (v1, v2) -> v1 == null ? v2 : v1 + "," + v2));
   }
 
-  @Test public void testToMap() {
+  @Test void testToMap() {
     final Map<Integer, Employee> map =
         Linq4j.asEnumerable(emps)
             .toMap(EMP_EMPNO_SELECTOR);
@@ -244,7 +244,7 @@ public class Linq4jTest {
     assertTrue(map.get(110).name.equals("Bill"));
   }
 
-  @Test public void testToMapWithComparer() {
+  @Test void testToMapWithComparer() {
     final Map<String, String> map =
         Linq4j.asEnumerable(Arrays.asList("foo", "bar", "far"))
             .toMap(Functions.identitySelector(),
@@ -263,7 +263,7 @@ public class Linq4jTest {
     assertTrue(map.get("FOO").equals("foo"));
   }
 
-  @Test public void testToMap2() {
+  @Test void testToMap2() {
     final Map<Integer, Integer> map =
         Linq4j.asEnumerable(emps)
             .toMap(EMP_EMPNO_SELECTOR, EMP_DEPTNO_SELECTOR);
@@ -271,7 +271,7 @@ public class Linq4jTest {
     assertTrue(map.get(110) == 30);
   }
 
-  @Test public void testToMap2WithComparer() {
+  @Test void testToMap2WithComparer() {
     final Map<String, String> map =
         Linq4j.asEnumerable(Arrays.asList("foo", "bar", "far"))
             .toMap(Functions.identitySelector(),
@@ -291,7 +291,7 @@ public class Linq4jTest {
     assertTrue(map.get("FOO").equals("FOO"));
   }
 
-  @Test public void testToLookup() {
+  @Test void testToLookup() {
     final Lookup<Integer, Employee> lookup =
         Linq4j.asEnumerable(emps).toLookup(
             EMP_DEPTNO_SELECTOR);
@@ -312,7 +312,7 @@ public class Linq4jTest {
     assertEquals(n, 2);
   }
 
-  @Test public void testToLookupSelector() {
+  @Test void testToLookupSelector() {
     final Lookup<Integer, String> lookup =
         Linq4j.asEnumerable(emps).toLookup(
             EMP_DEPTNO_SELECTOR,
@@ -346,7 +346,7 @@ public class Linq4jTest {
             .toList().toString());
   }
 
-  @Test public void testContains() {
+  @Test void testContains() {
     Employee e = emps[1];
     Employee employeeClone = new Employee(e.empno, e.name, e.deptno);
     Employee employeeOther = badEmps[0];
@@ -358,7 +358,7 @@ public class Linq4jTest {
 
   }
 
-  @Test public void testContainsWithEqualityComparer() {
+  @Test void testContainsWithEqualityComparer() {
     EqualityComparer<Employee> compareByEmpno =
         new EqualityComparer<Employee>() {
           public boolean equal(Employee e1, Employee e2) {
@@ -385,7 +385,7 @@ public class Linq4jTest {
 
   }
 
-  @Test public void testFirst() {
+  @Test void testFirst() {
     Employee e = emps[0];
     assertEquals(e, emps[0]);
     assertEquals(e, Linq4j.asEnumerable(emps).first());
@@ -443,7 +443,7 @@ public class Linq4jTest {
     };
   }
 
-  @Test public void testFirstPredicate1() {
+  @Test void testFirstPredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -463,7 +463,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testFirstOrDefault() {
+  @Test void testFirstOrDefault() {
 
     String[] people = {"Brill", "Smith", "Simpsom"};
     String[] empty = {};
@@ -475,7 +475,7 @@ public class Linq4jTest {
     assertNull(Linq4j.asEnumerable(empty).firstOrDefault());
   }
 
-  @Test public void testFirstOrDefaultPredicate1() {
+  @Test void testFirstOrDefaultPredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -493,7 +493,7 @@ public class Linq4jTest {
         .firstOrDefault(startWithS));
   }
 
-  @Test public void testSingle() {
+  @Test void testSingle() {
 
     String[] person = {"Smith"};
     String[] people = {"Brill", "Smith", "Simpson"};
@@ -518,7 +518,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testSingleOrDefault() {
+  @Test void testSingleOrDefault() {
 
     String[] person = {"Smith"};
     String[] people = {"Brill", "Smith", "Simpson"};
@@ -532,7 +532,7 @@ public class Linq4jTest {
     assertNull(Linq4j.asEnumerable(numbers).singleOrDefault());
   }
 
-  @Test public void testSinglePredicate1() {
+  @Test void testSinglePredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -577,7 +577,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testSingleOrDefaultPredicate1() {
+  @Test void testSingleOrDefaultPredicate1() {
     Predicate1<String> startWithS = s -> s != null && Character.toString(s.charAt(0)).equals("S");
 
     Predicate1<Integer> numberGT15 = i -> i > 15;
@@ -609,7 +609,7 @@ public class Linq4jTest {
   }
 
   @SuppressWarnings("UnnecessaryBoxing")
-  @Test public void testIdentityEqualityComparer() {
+  @Test void testIdentityEqualityComparer() {
     final Integer one = 1000;
     final Integer one2 = Integer.valueOf(one.toString());
     assertThat(one, not(sameInstance(one2)));
@@ -620,7 +620,7 @@ public class Linq4jTest {
     assertFalse(idComparer.equal(one, two));
   }
 
-  @Test public void testSelectorEqualityComparer() {
+  @Test void testSelectorEqualityComparer() {
     final EqualityComparer<Employee> comparer =
         Functions.selectorComparer((Function1<Employee, Object>) a0 -> a0.deptno);
     assertTrue(comparer.equal(emps[0], emps[0]));
@@ -641,7 +641,7 @@ public class Linq4jTest {
     assertEquals(comparer.hashCode(null), comparer.hashCode(null));
   }
 
-  @Test public void testToLookupSelectorComparer() {
+  @Test void testToLookupSelectorComparer() {
     final Lookup<String, Employee> lookup =
         Linq4j.asEnumerable(emps).toLookup(
             EMP_NAME_SELECTOR,
@@ -678,7 +678,7 @@ public class Linq4jTest {
    * Tests the version of {@link ExtendedEnumerable#groupBy}
    * that uses an accumulator; does not build intermediate lists.
    */
-  @Test public void testGroupBy() {
+  @Test void testGroupBy() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(
@@ -700,7 +700,7 @@ public class Linq4jTest {
    * that has a result selector. Note how similar it is to
    * {@link #testGroupBy()}.
    */
-  @Test public void testAggregate2() {
+  @Test void testAggregate2() {
     String s =
         Linq4j.asEnumerable(emps)
             .aggregate(
@@ -711,7 +711,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testEmptyEnumerable() {
+  @Test void testEmptyEnumerable() {
     final Enumerable<Object> enumerable = Linq4j.emptyEnumerable();
     assertThat(enumerable.any(), is(false));
     assertThat(enumerable.longCount(), equalTo(0L));
@@ -719,7 +719,7 @@ public class Linq4jTest {
     assertThat(enumerator.moveNext(), is(false));
   }
 
-  @Test public void testSingletonEnumerable() {
+  @Test void testSingletonEnumerable() {
     final Enumerable<String> enumerable = Linq4j.singletonEnumerable("foo");
     assertThat(enumerable.any(), is(true));
     assertThat(enumerable.longCount(), equalTo(1L));
@@ -729,21 +729,21 @@ public class Linq4jTest {
     assertThat(enumerator.moveNext(), is(false));
   }
 
-  @Test public void testSingletonEnumerator() {
+  @Test void testSingletonEnumerator() {
     final Enumerator<String> enumerator = Linq4j.singletonEnumerator("foo");
     assertThat(enumerator.moveNext(), is(true));
     assertThat(enumerator.current(), equalTo("foo"));
     assertThat(enumerator.moveNext(), is(false));
   }
 
-  @Test public void testSingletonNullEnumerator() {
+  @Test void testSingletonNullEnumerator() {
     final Enumerator<String> enumerator = Linq4j.singletonNullEnumerator();
     assertThat(enumerator.moveNext(), is(true));
     assertThat(enumerator.current(), nullValue());
     assertThat(enumerator.moveNext(), is(false));
   }
 
-  @Test public void testTransformEnumerator() {
+  @Test void testTransformEnumerator() {
     final List<String> strings = Arrays.asList("one", "two", "three");
     final Function1<String, Integer> func = String::length;
     final Enumerator<Integer> enumerator =
@@ -761,7 +761,7 @@ public class Linq4jTest {
     assertThat(enumerator2.moveNext(), is(false));
   }
 
-  @Test public void testCast() {
+  @Test void testCast() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =
         Linq4j.asEnumerable(numbers)
@@ -770,7 +770,7 @@ public class Linq4jTest {
     checkCast(enumerator);
   }
 
-  @Test public void testIterableCast() {
+  @Test void testIterableCast() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =
         Linq4j.cast(numbers, Integer.class)
@@ -798,7 +798,7 @@ public class Linq4jTest {
     assertEquals(Integer.valueOf(2), enumerator.current());
   }
 
-  @Test public void testOfType() {
+  @Test void testOfType() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =
         Linq4j.asEnumerable(numbers)
@@ -807,7 +807,7 @@ public class Linq4jTest {
     checkIterable(enumerator);
   }
 
-  @Test public void testIterableOfType() {
+  @Test void testIterableOfType() {
     final List<Number> numbers = Arrays.asList((Number) 2, null, 3.14, 5);
     final Enumerator<Integer> enumerator =
         Linq4j.ofType(numbers, Integer.class)
@@ -828,7 +828,7 @@ public class Linq4jTest {
     assertEquals(Integer.valueOf(2), enumerator.current());
   }
 
-  @Test public void testConcat() {
+  @Test void testConcat() {
     assertThat(
         Linq4j.asEnumerable(emps)
             .concat(Linq4j.asEnumerable(badEmps))
@@ -836,7 +836,7 @@ public class Linq4jTest {
         is(5));
   }
 
-  @Test public void testUnion() {
+  @Test void testUnion() {
     assertThat(
         Linq4j.asEnumerable(emps)
             .union(Linq4j.asEnumerable(badEmps))
@@ -845,7 +845,7 @@ public class Linq4jTest {
         is(5));
   }
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         emps[3],
@@ -857,7 +857,7 @@ public class Linq4jTest {
         is(1));
   }
 
-  @Test public void testIntersectAll() {
+  @Test void testIntersectAll() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         emps[3],
@@ -871,7 +871,7 @@ public class Linq4jTest {
         is(1));
   }
 
-  @Test public void testExcept() {
+  @Test void testExcept() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         emps[3],
@@ -883,7 +883,7 @@ public class Linq4jTest {
         is(3));
   }
 
-  @Test public void testExceptAll() {
+  @Test void testExceptAll() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         new Employee(150, "Theodore", 10),
@@ -897,7 +897,7 @@ public class Linq4jTest {
         is(2));
   }
 
-  @Test public void testDistinct() {
+  @Test void testDistinct() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         emps[3],
@@ -911,7 +911,7 @@ public class Linq4jTest {
         is(3));
   }
 
-  @Test public void testDistinctWithEqualityComparer() {
+  @Test void testDistinctWithEqualityComparer() {
     final Employee[] emps2 = {
         new Employee(150, "Theodore", 10),
         emps[3],
@@ -934,7 +934,7 @@ public class Linq4jTest {
             .count());
   }
 
-  @Test public void testGroupJoin() {
+  @Test void testGroupJoin() {
     // Note #1: Group join is a "left join": "bad employees" are filtered
     //   out, but empty departments are not.
     // Note #2: Order of departments is preserved.
@@ -965,7 +965,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testGroupJoinWithComparer() {
+  @Test void testGroupJoinWithComparer() {
     // Note #1: Group join is a "left join": "bad employees" are filtered
     //   out, but empty departments are not.
     // Note #2: Order of departments is preserved.
@@ -1000,7 +1000,7 @@ public class Linq4jTest {
     assertEquals("[[Fred, Bill, Eric, Janet, Cedric] work(s) in Marketing]", s);
   }
 
-  @Test public void testJoin() {
+  @Test void testJoin() {
     // Note #1: Inner on both sides. Employees with bad departments,
     //   and departments with no employees are eliminated.
     // Note #2: Order of employees is preserved.
@@ -1022,7 +1022,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testLeftJoin() {
+  @Test void testLeftJoin() {
     // Note #1: Left join means emit nulls on RHS but not LHS.
     //   Employees with bad departments are not eliminated;
     //   departments with no employees are eliminated.
@@ -1047,7 +1047,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testRightJoin() {
+  @Test void testRightJoin() {
     // Note #1: Left join means emit nulls on LHS but not RHS.
     //   Employees with bad departments are eliminated;
     //   departments with no employees are not eliminated.
@@ -1072,7 +1072,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testFullJoin() {
+  @Test void testFullJoin() {
     // Note #1: Full join means emit nulls both LHS and RHS.
     //   Employees with bad departments are not eliminated;
     //   departments with no employees are not eliminated.
@@ -1098,7 +1098,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void cartesianProductWithReset() {
+  @Test void cartesianProductWithReset() {
     Enumerator<List<Integer>> product =
         Linq4j.product(
             Arrays.asList(
@@ -1130,7 +1130,7 @@ public class Linq4jTest {
     return result;
   }
 
-  @Test public void testJoinCartesianProduct() {
+  @Test void testJoinCartesianProduct() {
     int n =
         Linq4j.asEnumerable(emps)
             .<Department, Integer, Integer>hashJoin(
@@ -1143,7 +1143,7 @@ public class Linq4jTest {
   }
 
   @SuppressWarnings("unchecked")
-  @Test public void testCartesianProductEnumerator() {
+  @Test void testCartesianProductEnumerator() {
     final Enumerable<String> abc =
         Linq4j.asEnumerable(Arrays.asList("a", "b", "c"));
     final Enumerable<String> xy =
@@ -1187,7 +1187,7 @@ public class Linq4jTest {
     assertFalse(productAbcXy.moveNext());
   }
 
-  @Test public void testAsQueryable() {
+  @Test void testAsQueryable() {
     // "count" is an Enumerable method.
     final int n =
         Linq4j.asEnumerable(emps)
@@ -1248,7 +1248,7 @@ public class Linq4jTest {
     assertEquals(2, nh3.count());
   }
 
-  @Test public void testTake() {
+  @Test void testTake() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> enumerableDeptsResult =
@@ -1262,7 +1262,7 @@ public class Linq4jTest {
     assertEquals(3, enumerableDeptsResult5.size());
   }
 
-  @Test public void testTakeEnumerable() {
+  @Test void testTakeEnumerable() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> enumerableDeptsResult =
@@ -1276,7 +1276,7 @@ public class Linq4jTest {
     assertEquals(3, enumerableDeptsResult5.size());
   }
 
-  @Test public void testTakeQueryable() {
+  @Test void testTakeQueryable() {
     final Queryable<Department> querableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     final List<Department> queryableResult =
@@ -1287,7 +1287,7 @@ public class Linq4jTest {
     assertEquals(depts[1], queryableResult.get(1));
   }
 
-  @Test public void testTakeEnumerableZeroOrNegativeSize() {
+  @Test void testTakeEnumerableZeroOrNegativeSize() {
     assertEquals(
         0,
         EnumerableDefaults.take(Linq4j.asEnumerable(depts), 0)
@@ -1298,7 +1298,7 @@ public class Linq4jTest {
             .toList().size());
   }
 
-  @Test public void testTakeQueryableZeroOrNegativeSize() {
+  @Test void testTakeQueryableZeroOrNegativeSize() {
     assertEquals(
         0,
         QueryableDefaults.take(Linq4j.asEnumerable(depts).asQueryable(), 0)
@@ -1309,7 +1309,7 @@ public class Linq4jTest {
             .toList().size());
   }
 
-  @Test public void testTakeEnumerableGreaterThanLength() {
+  @Test void testTakeEnumerableGreaterThanLength() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> depList =
@@ -1320,7 +1320,7 @@ public class Linq4jTest {
     assertEquals(depts[2], depList.get(2));
   }
 
-  @Test public void testTakeQueryableGreaterThanLength() {
+  @Test void testTakeQueryableGreaterThanLength() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> depList =
@@ -1331,7 +1331,7 @@ public class Linq4jTest {
     assertEquals(depts[2], depList.get(2));
   }
 
-  @Test public void testTakeWhileEnumerablePredicate() {
+  @Test void testTakeWhileEnumerablePredicate() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
@@ -1346,7 +1346,7 @@ public class Linq4jTest {
     assertEquals(depts[0], deptList.get(0));
   }
 
-  @Test public void testTakeWhileEnumerableFunction() {
+  @Test void testTakeWhileEnumerableFunction() {
     final Enumerable<Department> enumerableDepts =
         Linq4j.asEnumerable(depts);
     final List<Department> deptList =
@@ -1366,7 +1366,7 @@ public class Linq4jTest {
     assertEquals(depts[0], deptList.get(0));
   }
 
-  @Test public void testTakeWhileQueryableFunctionExpressionPredicate() {
+  @Test void testTakeWhileQueryableFunctionExpressionPredicate() {
     final Queryable<Department> queryableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     Predicate1<Department> predicate = v1 -> "HR".equals(v1.name);
@@ -1387,7 +1387,7 @@ public class Linq4jTest {
     assertEquals(depts[0], deptList.get(0));
   }
 
-  @Test public void testTakeWhileN() {
+  @Test void testTakeWhileN() {
     final Queryable<Department> queryableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     Predicate2<Department, Integer> function2 =
@@ -1410,7 +1410,7 @@ public class Linq4jTest {
     assertEquals(depts[1], deptList.get(1));
   }
 
-  @Test public void testTakeWhileNNoMatch() {
+  @Test void testTakeWhileNNoMatch() {
     final Queryable<Department> queryableDepts =
         Linq4j.asEnumerable(depts).asQueryable();
     Predicate2<Department, Integer> function2 = Functions.falsePredicate2();
@@ -1423,7 +1423,7 @@ public class Linq4jTest {
     assertEquals(0, deptList.size());
   }
 
-  @Test public void testSkip() {
+  @Test void testSkip() {
     assertEquals(2, Linq4j.asEnumerable(depts).skip(1).count());
     assertEquals(
         2,
@@ -1456,7 +1456,7 @@ public class Linq4jTest {
                 || v2 == 1)).count());
   }
 
-  @Test public void testOrderBy() {
+  @Test void testOrderBy() {
     // Note: sort is stable. Records occur Fred, Eric, Janet in input.
     assertEquals(
         "[Employee(name: Fred, deptno:10),"
@@ -1467,7 +1467,7 @@ public class Linq4jTest {
             .toList().toString());
   }
 
-  @Test public void testOrderByComparator() {
+  @Test void testOrderByComparator() {
     assertEquals(
         "[Employee(name: Bill, deptno:30),"
             + " Employee(name: Eric, deptno:10),"
@@ -1480,7 +1480,7 @@ public class Linq4jTest {
             .toList().toString());
   }
 
-  @Test public void testOrderByInSeries() {
+  @Test void testOrderByInSeries() {
     // OrderBy in series works because sort is stable.
     assertEquals(
         "[Employee(name: Eric, deptno:10),"
@@ -1493,7 +1493,7 @@ public class Linq4jTest {
             .toList().toString());
   }
 
-  @Test public void testOrderByDescending() {
+  @Test void testOrderByDescending() {
     assertEquals(
         "[Employee(name: Janet, deptno:10),"
             + " Employee(name: Fred, deptno:10),"
@@ -1504,7 +1504,7 @@ public class Linq4jTest {
             .toList().toString());
   }
 
-  @Test public void testReverse() {
+  @Test void testReverse() {
     assertEquals(
         "[Employee(name: Janet, deptno:10),"
             + " Employee(name: Eric, deptno:10),"
@@ -1516,7 +1516,7 @@ public class Linq4jTest {
             .toString());
   }
 
-  @Test public void testList0() {
+  @Test void testList0() {
     final List<Employee> employees = Arrays.asList(
         new Employee(100, "Fred", 10),
         new Employee(110, "Bill", 30),
@@ -1531,7 +1531,7 @@ public class Linq4jTest {
         result.toString());
   }
 
-  @Test public void testList() {
+  @Test void testList() {
     final List<Employee> employees = Arrays.asList(
         new Employee(100, "Fred", 10),
         new Employee(110, "Bill", 30),
@@ -1549,7 +1549,7 @@ public class Linq4jTest {
     assertNotNull(result.toString());
   }
 
-  @Test public void testList2() {
+  @Test void testList2() {
     final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
     final Enumerator<String> enumerator = Linq4j.enumerator(experience);
     assertThat(enumerator.getClass().getName(), endsWith("ListEnumerator"));
@@ -1570,7 +1570,7 @@ public class Linq4jTest {
     assertThat(count(iterableEnumerator), equalTo(3));
   }
 
-  @Test public void testDefaultIfEmpty() {
+  @Test void testDefaultIfEmpty() {
     final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
     final Enumerable<String> notEmptyEnumerable = Linq4j.asEnumerable(experience).defaultIfEmpty();
     final Enumerator<String> notEmptyEnumerator = notEmptyEnumerable.enumerator();
@@ -1589,7 +1589,7 @@ public class Linq4jTest {
     assertFalse(emptyEnumerator.moveNext());
   }
 
-  @Test public void testDefaultIfEmpty2() {
+  @Test void testDefaultIfEmpty2() {
     final List<String> experience = Arrays.asList("jimi", "mitch", "noel");
     final Enumerable<String> notEmptyEnumerable =
         Linq4j.asEnumerable(experience).defaultIfEmpty("dummy");
@@ -1609,7 +1609,7 @@ public class Linq4jTest {
     assertFalse(emptyEnumerator.moveNext());
   }
 
-  @Test public void testElementAt() {
+  @Test void testElementAt() {
     final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
     assertEquals("jimi", enumerable.elementAt(0));
     try {
@@ -1626,7 +1626,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testElementAtWithoutList() {
+  @Test void testElementAtWithoutList() {
     final Enumerable<String> enumerable =
         Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
     assertEquals("jimi", enumerable.elementAt(0));
@@ -1644,14 +1644,14 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testElementAtOrDefault() {
+  @Test void testElementAtOrDefault() {
     final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
     assertEquals("jimi", enumerable.elementAtOrDefault(0));
     assertNull(enumerable.elementAtOrDefault(2));
     assertNull(enumerable.elementAtOrDefault(-1));
   }
 
-  @Test public void testElementAtOrDefaultWithoutList() {
+  @Test void testElementAtOrDefaultWithoutList() {
     final Enumerable<String> enumerable =
         Linq4j.asEnumerable(Collections.unmodifiableCollection(Arrays.asList("jimi", "mitch")));
     assertEquals("jimi", enumerable.elementAt(0));
@@ -1669,7 +1669,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testLast() {
+  @Test void testLast() {
     final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
     assertEquals("mitch", enumerable.last());
 
@@ -1682,14 +1682,14 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testLastWithoutList() {
+  @Test void testLastWithoutList() {
     final Enumerable<String> enumerable =
         Linq4j.asEnumerable(
             Collections.unmodifiableCollection(Arrays.asList("jimi", "noel", "mitch")));
     assertEquals("mitch", enumerable.last());
   }
 
-  @Test public void testLastOrDefault() {
+  @Test void testLastOrDefault() {
     final Enumerable<String> enumerable = Linq4j.asEnumerable(Arrays.asList("jimi", "mitch"));
     assertEquals("mitch", enumerable.lastOrDefault());
 
@@ -1697,7 +1697,7 @@ public class Linq4jTest {
     assertNull(emptyEnumerable.lastOrDefault());
   }
 
-  @Test public void testLastWithPredicate() {
+  @Test void testLastWithPredicate() {
     final Enumerable<String> enumerable =
         Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
     assertEquals("mitch", enumerable.last(x -> x.startsWith("mit")));
@@ -1721,7 +1721,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testLastOrDefaultWithPredicate() {
+  @Test void testLastOrDefaultWithPredicate() {
     final Enumerable<String> enumerable =
         Linq4j.asEnumerable(Arrays.asList("jimi", "mitch", "ming"));
     assertEquals("mitch", enumerable.lastOrDefault(x -> x.startsWith("mit")));
@@ -1736,7 +1736,7 @@ public class Linq4jTest {
         }));
   }
 
-  @Test public void testSelectManyWithIndexableSelector() {
+  @Test void testSelectManyWithIndexableSelector() {
     final int[] indexRef = {0};
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
@@ -1751,7 +1751,7 @@ public class Linq4jTest {
         "[#0: Fred, #1: Eric, #2: Janet, #3: Bill]", nameSeqs.toString());
   }
 
-  @Test public void testSelectManyWithResultSelector() {
+  @Test void testSelectManyWithResultSelector() {
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
             .selectMany(DEPT_EMPLOYEES_SELECTOR,
@@ -1763,7 +1763,7 @@ public class Linq4jTest {
         nameSeqs.toString());
   }
 
-  @Test public void testSelectManyWithIndexableSelectorAndResultSelector() {
+  @Test void testSelectManyWithIndexableSelectorAndResultSelector() {
     final int[] indexRef = {0};
     final List<String> nameSeqs =
         Linq4j.asEnumerable(depts)
@@ -1779,7 +1779,7 @@ public class Linq4jTest {
         nameSeqs.toString());
   }
 
-  @Test public void testSequenceEqual() {
+  @Test void testSequenceEqual() {
     final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
         Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
     final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
@@ -1806,7 +1806,7 @@ public class Linq4jTest {
         .sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
   }
 
-  @Test public void testSequenceEqualWithoutCollection() {
+  @Test void testSequenceEqualWithoutCollection() {
     final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
         () -> Arrays.asList("ming", "foo", "bar").iterator());
     final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
@@ -1833,7 +1833,7 @@ public class Linq4jTest {
     assertFalse(enumerable1.sequenceEqual(enumerable2.skip(1)));
   }
 
-  @Test public void testSequenceEqualWithComparer() {
+  @Test void testSequenceEqualWithComparer() {
     final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
         Collections.unmodifiableCollection(Arrays.asList("ming", "foo", "bar")));
     final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
@@ -1870,7 +1870,7 @@ public class Linq4jTest {
         .sequenceEqual(Linq4j.asEnumerable(enumerable2.skip(1).toList()))); // Keep as collection
   }
 
-  @Test public void testSequenceEqualWithComparerWithoutCollection() {
+  @Test void testSequenceEqualWithComparerWithoutCollection() {
     final Enumerable<String> enumerable1 = Linq4j.asEnumerable(
         () -> Arrays.asList("ming", "foo", "bar").iterator());
     final Enumerable<String> enumerable2 = Linq4j.asEnumerable(
@@ -1906,7 +1906,7 @@ public class Linq4jTest {
     assertFalse(enumerable1.sequenceEqual(enumerable2.skip(1)));
   }
 
-  @Test public void testGroupByWithKeySelector() {
+  @Test void testGroupByWithKeySelector() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR)
@@ -1918,7 +1918,7 @@ public class Linq4jTest {
     assertThat(s, is("[10: Fred+Eric+Janet, 30: Bill]"));
   }
 
-  @Test public void testGroupByWithKeySelectorAndComparer() {
+  @Test void testGroupByWithKeySelectorAndComparer() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, new EqualityComparer<Integer>() {
@@ -1937,7 +1937,7 @@ public class Linq4jTest {
     assertThat(s, is("[10: Fred+Bill+Eric+Janet]"));
   }
 
-  @Test public void testGroupByWithKeySelectorAndElementSelector() {
+  @Test void testGroupByWithKeySelectorAndElementSelector() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR)
@@ -1963,7 +1963,7 @@ public class Linq4jTest {
     return sb.toString();
   }
 
-  @Test public void testGroupByWithKeySelectorAndElementSelectorAndComparer() {
+  @Test void testGroupByWithKeySelectorAndElementSelectorAndComparer() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
@@ -1985,7 +1985,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testGroupByWithKeySelectorAndResultSelector() {
+  @Test void testGroupByWithKeySelectorAndResultSelector() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(
@@ -1999,7 +1999,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testGroupByWithKeySelectorAndResultSelectorAndComparer() {
+  @Test void testGroupByWithKeySelectorAndResultSelectorAndComparer() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR,
@@ -2020,7 +2020,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelector() {
+  @Test void testGroupByWithKeySelectorAndElementSelectorAndResultSelector() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
@@ -2033,7 +2033,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testGroupByWithKeySelectorAndElementSelectorAndResultSelectorAndComparer() {
+  @Test void testGroupByWithKeySelectorAndElementSelectorAndResultSelectorAndComparer() {
     String s =
         Linq4j.asEnumerable(emps)
             .groupBy(EMP_DEPTNO_SELECTOR, EMP_NAME_SELECTOR,
@@ -2055,7 +2055,7 @@ public class Linq4jTest {
         s);
   }
 
-  @Test public void testZip() {
+  @Test void testZip() {
     final Enumerable<String> e1 = Linq4j.asEnumerable(Arrays.asList("a", "b", "c"));
     final Enumerable<String> e2 = Linq4j.asEnumerable(Arrays.asList("1", "2", "3"));
 
@@ -2067,7 +2067,7 @@ public class Linq4jTest {
     }
   }
 
-  @Test public void testZipLengthNotMatch() {
+  @Test void testZipLengthNotMatch() {
     final Enumerable<String> e1 = Linq4j.asEnumerable(Arrays.asList("a", "b"));
     final Enumerable<String> e2 = Linq4j.asEnumerable(Arrays.asList("1", "2", "3"));
 
@@ -2100,13 +2100,13 @@ public class Linq4jTest {
     return n;
   }
 
-  @Test public void testExample() {
+  @Test void testExample() {
     Linq4jExample.main(new String[0]);
   }
 
   /** We use BigDecimal to represent literals of float and double using
    * BigDecimal, because we want an exact representation. */
-  @Test public void testApproxConstant() {
+  @Test void testApproxConstant() {
     ConstantExpression c;
     c = Expressions.constant(new BigDecimal("3.1"), float.class);
     assertThat(Expressions.toString(c), equalTo("3.1F"));

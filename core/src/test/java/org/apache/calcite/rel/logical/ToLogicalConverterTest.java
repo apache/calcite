@@ -54,7 +54,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests for {@link ToLogicalConverter}.
  */
-public class ToLogicalConverterTest {
+class ToLogicalConverterTest {
   private static final ImmutableSet<RelOptRule> RULE_SET =
       ImmutableSet.of(
           ProjectToWindowRule.PROJECT,
@@ -129,7 +129,7 @@ public class ToLogicalConverterTest {
     assertThat(logical, hasTree(expectedLogical));
   }
 
-  @Test public void testValues() {
+  @Test void testValues() {
     // Equivalent SQL:
     //   VALUES (true, 1), (false, -50) AS t(a, b)
     final RelBuilder builder = builder();
@@ -142,7 +142,7 @@ public class ToLogicalConverterTest {
         "LogicalValues(tuples=[[{ true, 1 }, { false, -50 }]])\n");
   }
 
-  @Test public void testScan() {
+  @Test void testScan() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -155,7 +155,7 @@ public class ToLogicalConverterTest {
         "LogicalTableScan(table=[[scott, EMP]])\n");
   }
 
-  @Test public void testProject() {
+  @Test void testProject() {
     // Equivalent SQL:
     //   SELECT deptno
     //   FROM emp
@@ -173,7 +173,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testFilter() {
+  @Test void testFilter() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -195,7 +195,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testSort() {
+  @Test void testSort() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -214,7 +214,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testLimit() {
+  @Test void testLimit() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -233,7 +233,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testSortLimit() {
+  @Test void testSortLimit() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -253,7 +253,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testAggregate() {
+  @Test void testAggregate() {
     // Equivalent SQL:
     //   SELECT COUNT(empno) AS c
     //   FROM emp
@@ -273,7 +273,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testJoin() {
+  @Test void testJoin() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -298,7 +298,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testCorrelation() {
+  @Test void testCorrelation() {
     final RelBuilder builder = builder();
     final Holder<RexCorrelVariable> v = Holder.of(null);
     final RelNode rel = builder.scan("EMP")
@@ -322,7 +322,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testUnion() {
+  @Test void testUnion() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   UNION ALL
@@ -350,7 +350,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testIntersect() {
+  @Test void testIntersect() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   INTERSECT ALL
@@ -378,7 +378,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testMinus() {
+  @Test void testMinus() {
     // Equivalent SQL:
     //   SELECT deptno FROM emp
     //   EXCEPT ALL
@@ -406,7 +406,7 @@ public class ToLogicalConverterTest {
     verify(rel, expectedPhysical, expectedLogical);
   }
 
-  @Test public void testUncollect() {
+  @Test void testUncollect() {
     final String sql = ""
         + "select did\n"
         + "from unnest(select collect(\"department_id\") as deptid"
@@ -425,7 +425,7 @@ public class ToLogicalConverterTest {
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
-  @Test public void testWindow() {
+  @Test void testWindow() {
     String sql = "SELECT rank() over (order by \"hire_date\") FROM \"employee\"";
     String expectedPhysical = ""
         + "EnumerableProject($0=[$17])\n"
@@ -439,7 +439,7 @@ public class ToLogicalConverterTest {
     verify(rel(sql), expectedPhysical, expectedLogical);
   }
 
-  @Test public void testTableModify() {
+  @Test void testTableModify() {
     final String sql = "insert into \"employee\" select * from \"employee\"";
     final String expectedPhysial = ""
         + "JdbcToEnumerableConverter\n"

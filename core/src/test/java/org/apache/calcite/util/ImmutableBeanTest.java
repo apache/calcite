@@ -29,9 +29,9 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /** Unit test for {@link ImmutableBeans}. */
-public class ImmutableBeanTest {
+class ImmutableBeanTest {
 
-  @Test public void testSimple() {
+  @Test void testSimple() {
     final MyBean b = ImmutableBeans.create(MyBean.class);
     assertThat(b.withFoo(1).getFoo(), is(1));
     assertThat(b.withBar(false).isBar(), is(false));
@@ -58,7 +58,7 @@ public class ImmutableBeanTest {
     assertThat(b4.equals(b3), is(false));
   }
 
-  @Test public void testDefault() {
+  @Test void testDefault() {
     final Bean2 b = ImmutableBeans.create(Bean2.class);
 
     // int, no default
@@ -207,7 +207,7 @@ public class ImmutableBeanTest {
     }
   }
 
-  @Test public void testValidate() {
+  @Test void testValidate() {
     check(BeanWhoseDefaultIsBadEnumValue.class,
         is("property 'Color' is an enum but its default value YELLOW is not a "
             + "valid enum constant"));
@@ -248,7 +248,7 @@ public class ImmutableBeanTest {
         is("method 'setFoo' should have one parameter, actually has 0"));
   }
 
-  @Test public void testDefaultMethod() {
+  @Test void testDefaultMethod() {
     assertThat(ImmutableBeans.create(BeanWithDefault.class)
         .withChar('a').nTimes(2), is("aa"));
   }

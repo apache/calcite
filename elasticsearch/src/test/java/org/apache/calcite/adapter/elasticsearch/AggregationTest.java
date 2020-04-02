@@ -47,7 +47,7 @@ import java.util.Map;
  * Testing Elasticsearch aggregation transformations.
  */
 @ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
-public class AggregationTest {
+class AggregationTest {
 
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
@@ -110,7 +110,7 @@ public class AggregationTest {
     };
   }
 
-  @Test public void countStar() {
+  @Test void countStar() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select count(*) from view")
@@ -130,7 +130,7 @@ public class AggregationTest {
         .returns("EXPR$0=2\n");
   }
 
-  @Test public void all() {
+  @Test void all() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select count(*), sum(val1), sum(val2) from view")
@@ -154,7 +154,7 @@ public class AggregationTest {
         .returns("EXPR$0=1.0; EXPR$1=42.0; EXPR$2=3\n");
   }
 
-  @Test public void cat1() {
+  @Test void cat1() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, sum(val1), sum(val2) from view group by cat1")
@@ -185,7 +185,7 @@ public class AggregationTest {
                 "cat1=null; EXPR$1=1; EXPR$2=0.0; EXPR$3=5.0");
   }
 
-  @Test public void cat2() {
+  @Test void cat2() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat2, min(val1), max(val1), min(val2), max(val2) from view group by cat2")
@@ -205,7 +205,7 @@ public class AggregationTest {
                   "cat2=h; EXPR$1=1");
   }
 
-  @Test public void cat1Cat2() {
+  @Test void cat1Cat2() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, cat2, sum(val1), sum(val2) from view group by cat1, cat2")
@@ -221,7 +221,7 @@ public class AggregationTest {
             "cat1=b; cat2=h; EXPR$2=1");
   }
 
-  @Test public void cat1Cat3() {
+  @Test void cat1Cat3() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, cat3, sum(val1), sum(val2) from view group by cat1, cat3")
@@ -233,7 +233,7 @@ public class AggregationTest {
   /**
    * Testing {@link org.apache.calcite.sql.SqlKind#ANY_VALUE} aggregate function
    */
-  @Test public void anyValue() {
+  @Test void anyValue() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, any_value(cat2) from view group by cat1")
@@ -254,7 +254,7 @@ public class AggregationTest {
             "cat2=h; EXPR$1=z");
   }
 
-  @Test public void anyValueWithOtherAgg() {
+  @Test void anyValueWithOtherAgg() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat1, any_value(cat2), max(val1) from view group by cat1")
@@ -277,7 +277,7 @@ public class AggregationTest {
             "EXPR$0=h; cat1=b; EXPR$2=7.0");
   }
 
-  @Test public void cat1Cat2Cat3() {
+  @Test void cat1Cat2Cat3() {
     CalciteAssert.that()
             .with(newConnectionFactory())
             .query("select cat1, cat2, cat3, count(*), sum(val1), sum(val2) from view "
@@ -292,7 +292,7 @@ public class AggregationTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/date.html">
    * date</a> data type.
    */
-  @Test public void dateCat() {
+  @Test void dateCat() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat4, sum(val1) from view group by cat4")
@@ -306,7 +306,7 @@ public class AggregationTest {
    * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/number.html">
    * number</a> data type.
    */
-  @Test public void integerCat() {
+  @Test void integerCat() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query("select cat5, sum(val1) from view group by cat5")
@@ -318,7 +318,7 @@ public class AggregationTest {
   /**
    * Validate {@link org.apache.calcite.sql.fun.SqlStdOperatorTable#APPROX_COUNT_DISTINCT}.
    */
-  @Test public void approximateCountDistinct() {
+  @Test void approximateCountDistinct() {
     // approx_count_distinct counts distinct *non-null* values
     CalciteAssert.that()
         .with(newConnectionFactory())
@@ -347,7 +347,7 @@ public class AggregationTest {
   /**
    * {@code select max(cast(_MAP['foo'] as integer)) from tbl}
    */
-  @Test public void aggregationWithCast() {
+  @Test void aggregationWithCast() {
     CalciteAssert.that()
         .with(newConnectionFactory())
         .query(

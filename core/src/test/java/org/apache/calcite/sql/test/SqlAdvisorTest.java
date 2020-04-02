@@ -53,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * for SqlAdvisor.
  */
 @ExtendWith(SqlValidatorTestCase.LexConfiguration.class)
-public class SqlAdvisorTest extends SqlValidatorTestCase {
+class SqlAdvisorTest extends SqlValidatorTestCase {
   public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
       SqlAdvisorValidator::new);
 
@@ -596,7 +596,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     return result;
   }
 
-  @Test public void testFrom() throws Exception {
+  @Test void testFrom() throws Exception {
     String sql;
 
     sql = "select a.empno, b.deptno from ^dummy a, sales.dummy b";
@@ -613,19 +613,19 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertHint(sql, SCHEMAS, getSalesTables(), getFromKeywords()); // join
   }
 
-  @Test public void testFromComplete() {
+  @Test void testFromComplete() {
     String sql = "select a.empno, b.deptno from dummy a, sales.^";
     assertComplete(sql, getSalesTables());
   }
 
-  @Test public void testGroup() {
+  @Test void testGroup() {
     // This test is hard because the statement is not valid if you replace
     // '^' with a dummy identifier.
     String sql = "select a.empno, b.deptno from emp group ^";
     assertComplete(sql, Arrays.asList("KEYWORD(BY)"));
   }
 
-  @Test public void testJoin() throws Exception {
+  @Test void testJoin() throws Exception {
     String sql;
 
     // from
@@ -656,7 +656,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, QUANTIFIERS, EXPR_KEYWORDS); // join
   }
 
-  @Test public void testJoinKeywords() {
+  @Test void testJoinKeywords() {
     // variety of keywords possible
     List<String> list = getJoinKeywords();
     String sql = "select * from dummy join sales.emp ^";
@@ -664,13 +664,13 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, list);
   }
 
-  @Test public void testSimplifyStarAlias() {
+  @Test void testSimplifyStarAlias() {
     String sql;
     sql = "select ax^ from (select * from dummy a)";
     assertSimplify(sql, "SELECT ax _suggest_ FROM ( SELECT * FROM dummy a )");
   }
 
-  @Test public void testSimlifySubQueryStar() {
+  @Test void testSimlifySubQueryStar() {
     String sql;
     sql = "select ax^ from (select (select * from dummy) axc from dummy a)";
     assertSimplify(sql,
@@ -694,7 +694,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT _suggest_ FROM ( SELECT a.x + b.y FROM dummy a , dummy b )");
   }
 
-  @Test public void testSimlifySubQueryMultipleFrom() {
+  @Test void testSimlifySubQueryMultipleFrom() {
     String sql;
     // "dummy b" should be removed
     sql = "select axc from (select (select ^ from dummy) axc from dummy a), dummy b";
@@ -707,7 +707,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "SELECT * FROM ( SELECT ( SELECT _suggest_ FROM dummy ) axc FROM dummy a )");
   }
 
-  @Test public void testSimlifyMinus() {
+  @Test void testSimlifyMinus() {
     String sql;
     sql = "select ^ from dummy a minus select * from dummy b";
     assertSimplify(sql, "SELECT _suggest_ FROM dummy a");
@@ -716,7 +716,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, "SELECT _suggest_ FROM dummy b");
   }
 
-  @Test public void testOnCondition() throws Exception {
+  @Test void testOnCondition() throws Exception {
     String sql;
 
     sql =
@@ -745,7 +745,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, DEPT_COLUMNS); // on right
   }
 
-  @Test public void testFromWhere() throws Exception {
+  @Test void testFromWhere() throws Exception {
     String sql;
 
     sql =
@@ -788,7 +788,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         EXPR_KEYWORDS);
   }
 
-  @Test public void testWhereList() throws Exception {
+  @Test void testWhereList() throws Exception {
     String sql;
 
     sql =
@@ -817,7 +817,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, PREDICATE_KEYWORDS, WHERE_KEYWORDS);
   }
 
-  @Test public void testSelectList() throws Exception {
+  @Test void testSelectList() throws Exception {
     String sql;
 
     sql =
@@ -870,7 +870,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, EMP_COLUMNS, STAR_KEYWORD);
   }
 
-  @Test public void testOrderByList() throws Exception {
+  @Test void testOrderByList() throws Exception {
     String sql;
 
     sql = "select emp.empno from sales.emp where empno=1 order by ^dummy";
@@ -905,7 +905,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, PREDICATE_KEYWORDS, ORDER_KEYWORDS, FETCH_OFFSET);
   }
 
-  @Test public void testSubQuery() throws Exception {
+  @Test void testSubQuery() throws Exception {
     String sql;
     final List<String> xyColumns =
         Arrays.asList(
@@ -958,7 +958,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, getSelectKeywords(), tTable, EMP_COLUMNS, EXPR_KEYWORDS);
   }
 
-  @Test public void testSubQueryInWhere() {
+  @Test void testSubQueryInWhere() {
     String sql;
 
     // Aliases from enclosing sub-queries are inherited: hence A from
@@ -981,7 +981,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         EXPR_KEYWORDS);
   }
 
-  @Test public void testSimpleParserTokenizer() {
+  @Test void testSimpleParserTokenizer() {
     String sql =
         "select"
             + " 12"
@@ -1061,7 +1061,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertTokenizesTo("123", "ID(123)\n");
   }
 
-  @Test public void testSimpleParser() {
+  @Test void testSimpleParser() {
     String sql;
     String expected;
 
@@ -1244,19 +1244,19 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, expected);
   }
 
-  @WithLex(Lex.SQL_SERVER) @Test public void testSimpleParserQuotedIdSqlServer() {
+  @WithLex(Lex.SQL_SERVER) @Test void testSimpleParserQuotedIdSqlServer() {
     testSimpleParserQuotedIdImpl();
   }
 
-  @WithLex(Lex.MYSQL) @Test public void testSimpleParserQuotedIdMySql() {
+  @WithLex(Lex.MYSQL) @Test void testSimpleParserQuotedIdMySql() {
     testSimpleParserQuotedIdImpl();
   }
 
-  @WithLex(Lex.JAVA) @Test public void testSimpleParserQuotedIdJava() {
+  @WithLex(Lex.JAVA) @Test void testSimpleParserQuotedIdJava() {
     testSimpleParserQuotedIdImpl();
   }
 
-  @Test public void testSimpleParserQuotedIdDefault() {
+  @Test void testSimpleParserQuotedIdDefault() {
     testSimpleParserQuotedIdImpl();
   }
 
@@ -1292,7 +1292,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, expected);
   }
 
-  @Test public void testPartialIdentifier() {
+  @Test void testPartialIdentifier() {
     String sql = "select * from emp where e^ and emp.deptno = 10";
     String expected =
         "COLUMN(EMPNO)\n"
@@ -1407,7 +1407,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
   @Disabled("Inserts are not supported by SimpleParser yet")
-  @Test public void testInsert() throws Exception {
+  @Test void testInsert() throws Exception {
     String sql;
     sql = "insert into emp(empno, mgr) select ^ from dept a";
     assertComplete(
@@ -1429,7 +1429,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, "", null);
   }
 
-  @Test public void testNestSchema() throws Exception {
+  @Test void testNestSchema() throws Exception {
     String sql;
     sql = "select * from sales.n^";
     assertComplete(
@@ -1457,7 +1457,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
   }
 
   @Disabled("The set of completion results is empty")
-  @Test public void testNestTable1() throws Exception {
+  @Test void testNestTable1() throws Exception {
     String sql;
     // select scott.emp.deptno from scott.emp; # valid
     sql = "select catalog.sales.emp.em^ from catalog.sales.emp";
@@ -1475,7 +1475,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("TABLE(EMP)", "emp"));
   }
 
-  @Test public void testNestTable2() throws Exception {
+  @Test void testNestTable2() throws Exception {
     String sql;
     // select scott.emp.deptno from scott.emp as e; # not valid
     sql = "select catalog.sales.emp.em^ from catalog.sales.emp as e";
@@ -1487,7 +1487,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
 
 
   @Disabled("The set of completion results is empty")
-  @Test public void testNestTable3() throws Exception {
+  @Test void testNestTable3() throws Exception {
     String sql;
     // select scott.emp.deptno from emp; # valid
     sql = "select catalog.sales.emp.em^ from emp";
@@ -1505,7 +1505,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         ImmutableMap.of("TABLE(EMP)", "emp"));
   }
 
-  @Test public void testNestTable4() throws Exception {
+  @Test void testNestTable4() throws Exception {
     String sql;
     // select scott.emp.deptno from emp as emp; # not valid
     sql = "select catalog.sales.emp.em^ from catalog.sales.emp as emp";
@@ -1515,7 +1515,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "em");
   }
 
-  @Test public void testNestTableSchemaMustMatch() throws Exception {
+  @Test void testNestTableSchemaMustMatch() throws Exception {
     String sql;
     // select foo.emp.deptno from emp; # not valid
     sql = "select sales.nest.em^ from catalog.sales.emp_r";
@@ -1525,7 +1525,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
         "em");
   }
 
-  @WithLex(Lex.SQL_SERVER) @Test public void testNestSchemaSqlServer() throws Exception {
+  @WithLex(Lex.SQL_SERVER) @Test void testNestSchemaSqlServer() throws Exception {
     String sql;
     sql = "select * from SALES.N^";
     assertComplete(
@@ -1552,7 +1552,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertComplete(sql, "", "NU");
   }
 
-  @Test public void testUnion() throws Exception {
+  @Test void testUnion() throws Exception {
     // we simplify set ops such as UNION by removing other queries -
     // thereby avoiding validation errors due to mismatched select lists
     String sql =
@@ -1573,7 +1573,7 @@ public class SqlAdvisorTest extends SqlValidatorTestCase {
     assertSimplify(sql, simplified);
   }
 
-  @WithLex(Lex.SQL_SERVER) @Test public void testMssql() {
+  @WithLex(Lex.SQL_SERVER) @Test void testMssql() {
     String sql =
         "select 1 from [emp] union select 2 from [DEPT] a where ^ and deptno < 5";
     String simplified =

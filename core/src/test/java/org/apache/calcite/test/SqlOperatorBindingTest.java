@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  * Unit tests for {@link RexProgram} and
  * {@link RexProgramBuilder}.
  */
-public class SqlOperatorBindingTest {
+class SqlOperatorBindingTest {
   private RexBuilder rexBuilder;
   private RelDataType integerDataType;
   private SqlDataTypeSpec integerType;
@@ -64,7 +64,7 @@ public class SqlOperatorBindingTest {
    * Add a method to SqlOperatorBinding to determine whether operand is a
    * literal</a>.
    */
-  @Test public void testSqlNodeLiteral() {
+  @Test void testSqlNodeLiteral() {
     final SqlNode literal = SqlLiteral.createExactNumeric(
         "0",
         SqlParserPos.ZERO);
@@ -91,7 +91,7 @@ public class SqlOperatorBindingTest {
    * Add a method to SqlOperatorBinding to determine whether operand is a
    * literal</a>.
    */
-  @Test public void testRexNodeLiteral() {
+  @Test void testRexNodeLiteral() {
     final RexNode literal = rexBuilder.makeZeroLiteral(
         integerDataType);
 

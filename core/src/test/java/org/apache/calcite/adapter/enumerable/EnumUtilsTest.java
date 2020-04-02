@@ -39,7 +39,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  */
 public final class EnumUtilsTest {
 
-  @Test public void testDateTypeToInnerTypeConvert() {
+  @Test void testDateTypeToInnerTypeConvert() {
     // java.sql.Date x;
     final ParameterExpression date =
         Expressions.parameter(0, java.sql.Date.class, "x");
@@ -77,7 +77,7 @@ public final class EnumUtilsTest {
         is("org.apache.calcite.runtime.SqlFunctions.toLongOptional(x)"));
   }
 
-  @Test public void testTypeConvertFromPrimitiveToBox() {
+  @Test void testTypeConvertFromPrimitiveToBox() {
     final Expression intVariable =
         Expressions.parameter(0, int.class, "intV");
 
@@ -160,7 +160,7 @@ public final class EnumUtilsTest {
         is("Double.valueOf((double) intV)"));
   }
 
-  @Test public void testTypeConvertToString() {
+  @Test void testTypeConvertToString() {
     // Constant Expression: "null"
     final ConstantExpression nullLiteral1 = Expressions.constant(null);
     // Constant Expression: "(Object) null"
@@ -171,7 +171,7 @@ public final class EnumUtilsTest {
     assertThat(Expressions.toString(e2), is("(String) (Object) null"));
   }
 
-  @Test public void testMethodCallExpression() {
+  @Test void testMethodCallExpression() {
     // test for Object.class method parameter type
     final ConstantExpression arg0 = Expressions.constant(1, int.class);
     final ConstantExpression arg1 = Expressions.constant("x", String.class);

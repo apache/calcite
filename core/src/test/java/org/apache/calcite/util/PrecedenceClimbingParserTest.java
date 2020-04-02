@@ -26,8 +26,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test for {@link PrecedenceClimbingParser}.
  */
-public class PrecedenceClimbingParserTest {
-  @Test public void testBasic() {
+class PrecedenceClimbingParserTest {
+  @Test void testBasic() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("a")
         .infix("+", 1, true)
@@ -41,7 +41,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("(a + ((- b) * (c !)))"));
   }
 
-  @Test public void testRepeatedPrefixPostfix() {
+  @Test void testRepeatedPrefixPostfix() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .prefix("+", 3)
         .prefix("-", 3)
@@ -61,7 +61,7 @@ public class PrecedenceClimbingParserTest {
         is("((+ (- (+ (+ (a !))))) + (- (- ((b !) !))))"));
   }
 
-  @Test public void testAtom() {
+  @Test void testAtom() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("a")
         .build();
@@ -69,7 +69,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("a"));
   }
 
-  @Test public void testOnlyPrefix() {
+  @Test void testOnlyPrefix() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .prefix("-", 3)
         .prefix("-", 3)
@@ -79,7 +79,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("(- (- 1))"));
   }
 
-  @Test public void testOnlyPostfix() {
+  @Test void testOnlyPostfix() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom(1)
         .postfix("!", 33333)
@@ -89,7 +89,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("((1 !) !)"));
   }
 
-  @Test public void testLeftAssociative() {
+  @Test void testLeftAssociative() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("a")
         .infix("*", 2, true)
@@ -107,7 +107,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("((((a * b) + c) + d) + (e * f))"));
   }
 
-  @Test public void testRightAssociative() {
+  @Test void testRightAssociative() {
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("a")
         .infix("^", 3, false)
@@ -125,7 +125,7 @@ public class PrecedenceClimbingParserTest {
     assertThat(p.print(token), is("((a ^ (b ^ (c ^ d))) + (e * f))"));
   }
 
-  @Test public void testSpecial() {
+  @Test void testSpecial() {
     // price > 5 and price between 1 + 2 and 3 * 4 and price is null
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("price")
@@ -157,7 +157,7 @@ public class PrecedenceClimbingParserTest {
             + " and (price is null))"));
   }
 
-  @Test public void testEqualPrecedence() {
+  @Test void testEqualPrecedence() {
     // LIKE has same precedence as '='; LIKE is right-assoc, '=' is left
     final PrecedenceClimbingParser p = new PrecedenceClimbingParser.Builder()
         .atom("a")

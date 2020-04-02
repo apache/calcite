@@ -41,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
  *
  * @see JdbcFrontJdbcBackLinqMiddleTest
  */
-public class JdbcFrontJdbcBackTest {
-  @Test public void testWhere2() {
+class JdbcFrontJdbcBackTest {
+  @Test void testWhere2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -51,7 +51,7 @@ public class JdbcFrontJdbcBackTest {
   }
 
   @Disabled
-  @Test public void testTables() throws Exception {
+  @Test void testTables() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -72,7 +72,7 @@ public class JdbcFrontJdbcBackTest {
         });
   }
 
-  @Test public void testTablesByType() throws Exception {
+  @Test void testTablesByType() throws Exception {
     // check with the form recommended by JDBC
     checkTablesByType("SYSTEM TABLE", is("COLUMNS;TABLES;"));
     // the form we used until 1.14 no longer generates results
@@ -97,7 +97,7 @@ public class JdbcFrontJdbcBackTest {
         });
   }
 
-  @Test public void testColumns() throws Exception {
+  @Test void testColumns() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -121,7 +121,7 @@ public class JdbcFrontJdbcBackTest {
   /** Tests a JDBC method known to be not implemented (as it happens,
    * {@link java.sql.DatabaseMetaData#getPrimaryKeys}) that therefore uses
    * empty result set. */
-  @Test public void testEmpty() throws Exception {
+  @Test void testEmpty() throws Exception {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .doWithConnection(connection -> {
@@ -136,7 +136,7 @@ public class JdbcFrontJdbcBackTest {
         });
   }
 
-  @Test public void testCase() {
+  @Test void testCase() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select\n"

@@ -38,7 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for converting a Pig script file.
  */
-public class PigScriptTest extends PigRelTestBase {
+class PigScriptTest extends PigRelTestBase {
   private static String projectRootDir;
   private static String dataFile;
 
@@ -56,7 +56,7 @@ public class PigScriptTest extends PigRelTestBase {
     Files.delete(Paths.get(dataFile));
   }
 
-  @Test public void testReadScript() throws IOException {
+  @Test void testReadScript() throws IOException {
     Map<String, String> params = new HashMap<>();
     params.put("input", dataFile);
     params.put("output", "outputFile");

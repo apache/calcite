@@ -37,13 +37,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests the "Babel" SQL parser, that understands all dialects of SQL.
  */
-public class BabelParserTest extends SqlParserTest {
+class BabelParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return SqlBabelParserImpl.FACTORY;
   }
 
-  @Test public void testReservedWords() {
+  @Test void testReservedWords() {
     assertThat(isReserved("escape"), is(false));
   }
 
@@ -51,7 +51,7 @@ public class BabelParserTest extends SqlParserTest {
    *
    * <p>Copy-pasted from base method, but with some key differences.
    */
-  @Override @Test public void testMetadata() {
+  @Override @Test protected void testMetadata() {
     SqlAbstractParserImpl.Metadata metadata = getSqlParser("").getMetadata();
     assertThat(metadata.isReservedFunctionName("ABS"), is(true));
     assertThat(metadata.isReservedFunctionName("FOO"), is(false));
@@ -88,14 +88,14 @@ public class BabelParserTest extends SqlParserTest {
     assertThat(!jdbcKeywords.contains(",SELECT,"), is(true));
   }
 
-  @Test public void testSelect() {
+  @Test void testSelect() {
     final String sql = "select 1 from t";
     final String expected = "SELECT 1\n"
         + "FROM `T`";
     sql(sql).ok(expected);
   }
 
-  @Test public void testYearIsNotReserved() {
+  @Test void testYearIsNotReserved() {
     final String sql = "select 1 as year from t";
     final String expected = "SELECT 1 AS `YEAR`\n"
         + "FROM `T`";
@@ -104,7 +104,7 @@ public class BabelParserTest extends SqlParserTest {
 
   /** Tests that there are no reserved keywords. */
   @Disabled
-  @Test public void testKeywords() {
+  @Test void testKeywords() {
     final String[] reserved = {"AND", "ANY", "END-EXEC"};
     final StringBuilder sql = new StringBuilder("select ");
     final StringBuilder expected = new StringBuilder("SELECT ");
@@ -124,14 +124,14 @@ public class BabelParserTest extends SqlParserTest {
   }
 
   /** In Babel, AS is not reserved. */
-  @Test public void testAs() {
+  @Test void testAs() {
     final String expected = "SELECT `AS`\n"
         + "FROM `T`";
     sql("select as from t").ok(expected);
   }
 
   /** In Babel, DESC is not reserved. */
-  @Test public void testDesc() {
+  @Test void testDesc() {
     final String sql = "select desc\n"
         + "from t\n"
         + "order by desc asc, desc desc";
@@ -149,7 +149,7 @@ public class BabelParserTest extends SqlParserTest {
    * @see <a href="https://issues.apache.org/jira/browse/CALCITE-2847">[CALCITE-2847]
    * Optimize global LOOKAHEAD for SQL parsers</a>
    */
-  @Test public void testCaseExpressionBabel() {
+  @Test void testCaseExpressionBabel() {
     sql("case x when 2, 4 then 3 ^when^ then 5 else 4 end")
         .fails("(?s)Encountered \"when then\" at .*");
   }
@@ -157,7 +157,7 @@ public class BabelParserTest extends SqlParserTest {
   /** In Redshift, DATE is a function. It requires special treatment in the
    * parser because it is a reserved keyword.
    * (Curiously, TIMESTAMP and TIME are not functions.) */
-  @Test public void testDateFunction() {
+  @Test void testDateFunction() {
     final String expected = "SELECT `DATE`(`X`)\n"
         + "FROM `T`";
     sql("select date(x) from t").ok(expected);
@@ -166,7 +166,7 @@ public class BabelParserTest extends SqlParserTest {
   /** In Redshift, PostgreSQL the DATEADD, DATEDIFF and DATE_PART functions have
    * ordinary function syntax except that its first argument is a time unit
    * (e.g. DAY). We must not parse that first argument as an identifier. */
-  @Test public void testRedshiftFunctionsWithDateParts() {
+  @Test void testRedshiftFunctionsWithDateParts() {
     final String sql = "SELECT DATEADD(day, 1, t),\n"
         + " DATEDIFF(week, 2, t),\n"
         + " DATE_PART(year, t) FROM mytable";
@@ -179,7 +179,7 @@ public class BabelParserTest extends SqlParserTest {
 
   /** PostgreSQL and Redshift allow TIMESTAMP literals that contain only a
    * date part. */
-  @Test public void testShortTimestampLiteral() {
+  @Test void testShortTimestampLiteral() {
     sql("select timestamp '1969-07-20'")
         .ok("SELECT TIMESTAMP '1969-07-20 00:00:00'");
     // PostgreSQL allows the following. We should too.
@@ -234,7 +234,7 @@ public class BabelParserTest extends SqlParserTest {
   }
 
   /** Tests parsing PostgreSQL-style "::" cast operator. */
-  @Test public void testParseInfixCast()  {
+  @Test void testParseInfixCast()  {
     checkParseInfixCast("integer");
     checkParseInfixCast("varchar");
     checkParseInfixCast("boolean");
