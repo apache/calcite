@@ -17,7 +17,6 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.runtime.FlatLists;
-import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
@@ -320,8 +319,14 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @see org.apache.calcite.plan.RelTrait#satisfies(RelTrait)
    */
   public boolean satisfies(RelTraitSet that) {
-    for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, that.traits)) {
-      if (!pair.left.satisfies(pair.right)) {
+    final int n =
+        Math.min(
+            this.size(),
+            that.size());
+    for (int i = 0; i < n; i++) {
+      RelTrait thisTrait = this.traits[i];
+      RelTrait thatTrait = that.traits[i];
+      if (!thisTrait.satisfies(thatTrait)) {
         return false;
       }
     }
@@ -503,9 +508,16 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * RelTraitSet. */
   public ImmutableList<RelTrait> difference(RelTraitSet traitSet) {
     final ImmutableList.Builder<RelTrait> builder = ImmutableList.builder();
-    for (Pair<RelTrait, RelTrait> pair : Pair.zip(traits, traitSet.traits)) {
-      if (pair.left != pair.right) {
-        builder.add(pair.right);
+    final int n =
+        Math.min(
+            this.size(),
+            traitSet.size());
+
+    for (int i = 0; i < n; i++) {
+      RelTrait thisTrait = this.traits[i];
+      RelTrait thatTrait = traitSet.traits[i];
+      if (thisTrait != thatTrait) {
+        builder.add(thatTrait);
       }
     }
     return builder.build();
