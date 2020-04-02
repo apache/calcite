@@ -60,6 +60,7 @@ public abstract class RexProgramBuilderBase {
   protected RexLiteral nullInt;
   protected RexLiteral nullSmallInt;
   protected RexLiteral nullVarchar;
+  protected RexLiteral nullDecimal;
 
   private RelDataType nullableBool;
   private RelDataType nonNullableBool;
@@ -72,6 +73,9 @@ public abstract class RexProgramBuilderBase {
 
   private RelDataType nullableVarchar;
   private RelDataType nonNullableVarchar;
+
+  private RelDataType nullableDecimal;
+  private RelDataType nonNullableDecimal;
 
   // Note: JUnit 4 creates new instance for each test method,
   // so we initialize these structures on demand
@@ -134,6 +138,10 @@ public abstract class RexProgramBuilderBase {
     nonNullableVarchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
     nullableVarchar = typeFactory.createTypeWithNullability(nonNullableVarchar, true);
     nullVarchar = rexBuilder.makeNullLiteral(nullableVarchar);
+
+    nonNullableDecimal = typeFactory.createSqlType(SqlTypeName.DECIMAL);
+    nullableDecimal = typeFactory.createTypeWithNullability(nonNullableDecimal, true);
+    nullDecimal = rexBuilder.makeNullLiteral(nullableDecimal);
   }
 
   private RexDynamicParam getDynamicParam(RelDataType type, String fieldNamePrefix) {
@@ -402,6 +410,14 @@ public abstract class RexProgramBuilderBase {
     return nullable ? nullableSmallInt : nonNullableSmallInt;
   }
 
+  protected RelDataType tDecimal() {
+    return nonNullableDecimal;
+  }
+
+  protected RelDataType tDecimal(boolean nullable) {
+    return nullable ? nullableDecimal : nonNullableDecimal;
+  }
+
   protected RelDataType tBigInt() {
     return tBigInt(false);
   }
@@ -663,6 +679,50 @@ public abstract class RexProgramBuilderBase {
    */
   protected RexNode vVarcharNotNull(int arg) {
     return vParamNotNull("varchar", arg, nonNullableVarchar);
+  }
+
+  /**
+   * Creates {@code nullable decimal variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDecimal(int)}.
+   * The resulting node would look like {@code ?0.notNullDecimal0}
+   *
+   * @return nullable decimal with index of 0
+   */
+  protected RexNode vDecimal() {
+    return vDecimal(0);
+  }
+
+  /**
+   * Creates {@code nullable decimal variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.decimal3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return nullable decimal variable with given index (0-based)
+   */
+  protected RexNode vDecimal(int arg) {
+    return vParam("decimal", arg, nonNullableDecimal);
+  }
+
+  /**
+   * Creates {@code non-nullable decimal variable} with index of 0.
+   * If you need several distinct variables, use {@link #vDecimalNotNull(int)}.
+   * The resulting node would look like {@code ?0.notNullDecimal0}
+   *
+   * @return non-nullable decimal variable with index of 0
+   */
+  protected RexNode vDecimalNotNull() {
+    return vDecimalNotNull(0);
+  }
+
+  /**
+   * Creates {@code non-nullable decimal variable} with index of {@code arg} (0-based).
+   * The resulting node would look like {@code ?0.notNullDecimal3} if {@code arg} is {@code 3}.
+   *
+   * @param arg argument index (0-based)
+   * @return non-nullable decimal variable with given index (0-based)
+   */
+  protected RexNode vDecimalNotNull(int arg) {
+    return vParamNotNull("decimal", arg, nonNullableDecimal);
   }
 
   /**
