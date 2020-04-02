@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql2rel;
 
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
@@ -27,7 +26,6 @@ import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
@@ -59,8 +57,6 @@ class RelFieldTrimmerTest {
             .project(builder.field("EMPNO"), builder.field("ENAME"))
             .build();
 
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
     RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
     RelNode trimmed = fieldTrimmer.trim(root);
 
@@ -79,8 +75,6 @@ class RelFieldTrimmerTest {
             .sortExchange(RelDistributions.hash(Lists.newArrayList(1)), RelCollations.of(0))
             .project(builder.field("EMPNO"))
             .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
 
     RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
     RelNode trimmed = fieldTrimmer.trim(root);
@@ -102,8 +96,6 @@ class RelFieldTrimmerTest {
             .project(builder.field("EMPNO"), builder.field("ENAME"))
             .build();
 
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
-
     RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
     RelNode trimmed = fieldTrimmer.trim(root);
 
@@ -122,8 +114,6 @@ class RelFieldTrimmerTest {
             .sortExchange(RelDistributions.SINGLETON, RelCollations.of(0))
             .project(builder.field("EMPNO"), builder.field("ENAME"))
             .build();
-
-    System.out.println(Util.toLinux(RelOptUtil.toString(root)));
 
     RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
     RelNode trimmed = fieldTrimmer.trim(root);
