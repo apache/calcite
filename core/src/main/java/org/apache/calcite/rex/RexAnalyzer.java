@@ -76,6 +76,10 @@ public class RexAnalyzer {
       values.add(BigDecimal.valueOf(1L));
       values.add(BigDecimal.valueOf(1_000_000L));
       break;
+    case DECIMAL:
+      values.add(BigDecimal.valueOf(-100L));
+      values.add(BigDecimal.valueOf(100L));
+      break;
     case VARCHAR:
       values.add(new NlsString("", null, null));
       values.add(new NlsString("hello", null, null));
