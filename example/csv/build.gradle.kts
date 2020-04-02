@@ -41,11 +41,9 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
     archiveFileName.set("sqllineClasspath.jar")
     manifest {
-        manifest {
-            attributes(
-                "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
-            )
-        }
+        attributes(
+            "Main-Class" to "sqlline.SqlLine",
+            "Class-Path" to provider { sqllineClasspath.joinToString(" ") { it.absolutePath } }
+        )
     }
 }
