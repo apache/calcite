@@ -1091,7 +1091,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       } else {
         EnumerableRel enumerable = (EnumerableRel) root.rel;
         if (!root.isRefTrivial()) {
-          final List<RexNode> projects = new ArrayList<>();
+          final List<RexNode> projects = new ArrayList<>(root.fields.size());
           final RexBuilder rexBuilder = enumerable.getCluster().getRexBuilder();
           for (int field : Pair.left(root.fields)) {
             projects.add(rexBuilder.makeInputRef(enumerable, field));
