@@ -21,8 +21,10 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.runtime.Utilities;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -114,6 +116,11 @@ public class RelCollationImpl implements RelCollation {
   }
 
   public void register(RelOptPlanner planner) {}
+
+  @Override public RelCollationImpl apply(
+      final Mappings.TargetMapping mapping) {
+    return (RelCollationImpl) RexUtil.apply(mapping, this);
+  }
 
   public boolean satisfies(RelTrait trait) {
     return this == trait
