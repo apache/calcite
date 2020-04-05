@@ -33,6 +33,7 @@
 /.idea/*
 # Icon for JetBrains Toolbox
 !/.idea/icon.png
+!/.idea/vcs.xml
 *.iml
 
 settings.xml
