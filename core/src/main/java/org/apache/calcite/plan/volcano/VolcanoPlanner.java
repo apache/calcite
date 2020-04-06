@@ -802,7 +802,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   RelNode changeTraitsUsingConverters(
-      RelBuilder builder,
       RelNode rel,
       RelTraitSet toTraits) {
     final RelTraitSet fromTraits = rel.getTraitSet();
@@ -845,7 +844,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       rel =
           traitDef.convert(
               this,
-              builder,
               converted,
               toTrait,
               conventionTrait,

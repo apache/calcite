@@ -124,7 +124,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
    */
   public abstract RelNode convert(
       RelOptPlanner planner,
-      RelBuilder builder,
       RelNode rel,
       T toTrait,
       Convention conventionTrait,

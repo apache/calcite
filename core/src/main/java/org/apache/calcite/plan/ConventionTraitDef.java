@@ -125,7 +125,6 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   // implement RelTraitDef
   public RelNode convert(
       RelOptPlanner planner,
-      RelBuilder builder,
       RelNode rel,
       Convention toConvention,
       Convention targetConvention,

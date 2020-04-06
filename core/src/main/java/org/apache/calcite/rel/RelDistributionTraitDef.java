@@ -50,7 +50,7 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
     return RelDistributions.ANY;
   }
 
-  public RelNode convert(RelOptPlanner planner, RelBuilder builder, RelNode rel,
+  public RelNode convert(RelOptPlanner planner, RelNode rel,
       RelDistribution toDistribution, Convention toConvention,
       boolean allowInfiniteCostConverters) {
     if (toDistribution == RelDistributions.ANY) {
