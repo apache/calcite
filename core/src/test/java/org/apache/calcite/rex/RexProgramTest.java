@@ -2196,12 +2196,17 @@ class RexProgramTest extends RexProgramTestBase {
 
   @Test void testConstantMap() {
     final RelDataType intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
+    final RelDataType bigintType = typeFactory.createSqlType(SqlTypeName.BIGINT);
+    final RelDataType decimalType = typeFactory.createSqlType(SqlTypeName.DECIMAL, 4, 2);
+    final RelDataType charType = typeFactory.createSqlType(SqlTypeName.CHAR, 5);
     final RelDataType rowType = typeFactory.builder()
         .add("a", intType)
         .add("b", intType)
         .add("c", intType)
         .add("d", intType)
-        .add("e", intType)
+        .add("e", bigintType)
+        .add("f", decimalType)
+        .add("g", charType)
         .build();
 
     final RexDynamicParam range = rexBuilder.makeDynamicParam(rowType, 0);
@@ -2210,6 +2215,8 @@ class RexProgramTest extends RexProgramTestBase {
     final RexNode cRef = rexBuilder.makeFieldAccess(range, 2);
     final RexNode dRef = rexBuilder.makeFieldAccess(range, 3);
     final RexNode eRef = rexBuilder.makeFieldAccess(range, 4);
+    final RexNode fRef = rexBuilder.makeFieldAccess(range, 5);
+    final RexNode gRef = rexBuilder.makeFieldAccess(range, 6);
     final RexLiteral literal1 = rexBuilder.makeExactLiteral(BigDecimal.ONE);
     final RexLiteral literal2 = rexBuilder.makeExactLiteral(BigDecimal.valueOf(2));
 
@@ -2237,6 +2244,41 @@ class RexProgramTest extends RexProgramTestBase {
             ImmutableList.of(eq(aRef, literal1),
                 eq(aRef, literal2)));
     assertThat(getString(map3), is("{1=?0.a, 2=?0.a}"));
+
+    // Different precision and scale in decimal
+    final ImmutableMap<RexNode, RexNode> map4 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(
+                eq(cast(fRef, typeFactory.createSqlType(SqlTypeName.DECIMAL, 3, 1)),
+                    rexBuilder.makeExactLiteral(BigDecimal.valueOf(21.2)))));
+    assertThat(
+        getString(map4), is("{21.2:DECIMAL(3, 1)=CAST(?0.f):DECIMAL(3, 1) NOT NULL,"
+        + " CAST(?0.f):DECIMAL(3, 1) NOT NULL=21.2:DECIMAL(3, 1)}"));
+
+    // Different precision in char
+    final ImmutableMap<RexNode, RexNode> map5 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(
+                eq(cast(gRef, typeFactory.createSqlType(SqlTypeName.CHAR, 3)),
+                    rexBuilder.makeLiteral("abc"))));
+    assertThat(
+        getString(map5), is("{'abc'=CAST(?0.g):CHAR(3) NOT NULL,"
+        + " CAST(?0.g):CHAR(3) NOT NULL='abc'}"));
+
+    // Cast bigint to int
+    final ImmutableMap<RexNode, RexNode> map6 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(
+                eq(cast(eRef, typeFactory.createSqlType(SqlTypeName.INTEGER)), literal1)));
+    assertThat(
+        getString(map6), is("{1=CAST(?0.e):INTEGER NOT NULL, CAST(?0.e):INTEGER NOT NULL=1}"));
+
+    // Cast int to bigint
+    final ImmutableMap<RexNode, RexNode> map7 =
+        RexUtil.predicateConstants(RexNode.class, rexBuilder,
+            ImmutableList.of(
+                eq(cast(aRef, typeFactory.createSqlType(SqlTypeName.BIGINT)), literal1)));
+    assertThat(getString(map7), is("{1=CAST(?0.a):BIGINT NOT NULL, ?0.a=1}"));
   }
 
   @Test void notDistinct() {

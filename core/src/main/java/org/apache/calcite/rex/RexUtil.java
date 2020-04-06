@@ -422,7 +422,7 @@ public class RexUtil {
         // Convert "CAST(c) = literal" to "c = literal", as long as it is a
         // widening cast.
         final RexNode operand = ((RexCall) left).getOperands().get(0);
-        if (canAssignFrom(left.getType(), operand.getType())) {
+        if (canAssignFrom(left.getType(), operand.getType(), rexBuilder.getTypeFactory())) {
           final RexNode castRight =
               rexBuilder.makeCast(operand.getType(), constant);
           if (castRight instanceof RexLiteral) {
@@ -454,15 +454,50 @@ public class RexUtil {
    *   <li>{@code canAssignFrom(BIGINT, VARCHAR)} returns {@code false}</li>
    * </ul>
    */
-  private static boolean canAssignFrom(RelDataType type1, RelDataType type2) {
+  private static boolean canAssignFrom(RelDataType type1, RelDataType type2,
+      RelDataTypeFactory typeFactory) {
     final SqlTypeName name1 = type1.getSqlTypeName();
     final SqlTypeName name2 = type2.getSqlTypeName();
     if (name1.getFamily() == name2.getFamily()) {
       switch (name1.getFamily()) {
       case NUMERIC:
-        return name1.compareTo(name2) >= 0;
+        if (SqlTypeUtil.isExactNumeric(type1)
+            && SqlTypeUtil.isExactNumeric(type2)) {
+          int precision1;
+          int scale1;
+          if (name1 == SqlTypeName.DECIMAL) {
+            type1 = typeFactory.decimalOf(type1);
+            precision1 = type1.getPrecision();
+            scale1 = type1.getScale();
+          } else {
+            precision1 = typeFactory.getTypeSystem().getMaxPrecision(name1);
+            scale1 = typeFactory.getTypeSystem().getMaxScale(name1);
+          }
+          int precision2;
+          int scale2;
+          if (name2 == SqlTypeName.DECIMAL) {
+            type2 = typeFactory.decimalOf(type2);
+            precision2 = type2.getPrecision();
+            scale2 = type2.getScale();
+          } else {
+            precision2 = typeFactory.getTypeSystem().getMaxPrecision(name2);
+            scale2 = typeFactory.getTypeSystem().getMaxScale(name2);
+          }
+          return precision1 >= precision2
+              && scale1 >= scale2;
+        } else if (SqlTypeUtil.isApproximateNumeric(type1)
+            && SqlTypeUtil.isApproximateNumeric(type2)) {
+          return type1.getPrecision() >= type2.getPrecision()
+              && type1.getScale() >= type2.getScale();
+        }
+        break;
       default:
-        return true;
+        // getPrecision() will return:
+        // - number of decimal digits for fractional seconds for datetime types
+        // - length in characters for character types
+        // - length in bytes for binary types
+        // - RelDataType.PRECISION_NOT_SPECIFIED (-1) if not applicable for this type
+        return type1.getPrecision() >= type2.getPrecision();
       }
     }
     return false;
