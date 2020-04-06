@@ -67,13 +67,13 @@ import java.util.stream.Collectors;
  */
 public abstract class SubQueryRemoveRule extends RelOptRule implements TransformationRule {
   public static final SubQueryRemoveRule PROJECT =
-      new SubQueryProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
+      new SubQueryProjectRemoveRule(RelFactories.DEFAULT_BUILDER);
 
   public static final SubQueryRemoveRule FILTER =
-      new SubQueryFilterRemoveRule(RelFactories.LOGICAL_BUILDER);
+      new SubQueryFilterRemoveRule(RelFactories.DEFAULT_BUILDER);
 
   public static final SubQueryRemoveRule JOIN =
-      new SubQueryJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
+      new SubQueryJoinRemoveRule(RelFactories.DEFAULT_BUILDER);
 
   /**
    * Creates a SubQueryRemoveRule.

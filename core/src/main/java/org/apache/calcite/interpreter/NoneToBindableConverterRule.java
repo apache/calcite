@@ -32,7 +32,7 @@ import java.util.function.Predicate;
  */
 public class NoneToBindableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new NoneToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+      new NoneToBindableConverterRule(RelFactories.DEFAULT_BUILDER);
 
   /**
    * Creates a NoneToBindableConverterRule.

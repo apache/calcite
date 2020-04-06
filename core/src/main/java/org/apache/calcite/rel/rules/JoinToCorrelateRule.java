@@ -65,7 +65,7 @@ public class JoinToCorrelateRule extends RelOptRule implements TransformationRul
    * into a {@link org.apache.calcite.rel.logical.LogicalCorrelate}
    */
   public static final JoinToCorrelateRule INSTANCE =
-      new JoinToCorrelateRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER,
+      new JoinToCorrelateRule(LogicalJoin.class, RelFactories.DEFAULT_BUILDER,
           "JoinToCorrelateRule");
 
   /** Synonym for {@link #INSTANCE};

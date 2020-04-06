@@ -40,7 +40,7 @@ public class FilterCalcMergeRule extends RelOptRule implements TransformationRul
   //~ Static fields/initializers ---------------------------------------------
 
   public static final FilterCalcMergeRule INSTANCE =
-      new FilterCalcMergeRule(RelFactories.LOGICAL_BUILDER);
+      new FilterCalcMergeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

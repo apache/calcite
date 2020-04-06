@@ -42,7 +42,7 @@ public class JoinAddRedundantSemiJoinRule extends RelOptRule
     implements TransformationRule {
   public static final JoinAddRedundantSemiJoinRule INSTANCE =
       new JoinAddRedundantSemiJoinRule(LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

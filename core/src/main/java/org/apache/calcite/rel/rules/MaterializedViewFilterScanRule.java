@@ -43,7 +43,7 @@ import java.util.List;
  */
 public class MaterializedViewFilterScanRule extends RelOptRule implements TransformationRule {
   public static final MaterializedViewFilterScanRule INSTANCE =
-      new MaterializedViewFilterScanRule(RelFactories.LOGICAL_BUILDER);
+      new MaterializedViewFilterScanRule(RelFactories.DEFAULT_BUILDER);
 
   private final HepProgram program = new HepProgramBuilder()
       .addRuleInstance(FilterProjectTransposeRule.INSTANCE)

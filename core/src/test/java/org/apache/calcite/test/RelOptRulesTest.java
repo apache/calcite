@@ -312,7 +312,7 @@ class RelOptRulesTest extends RelOptTestBase {
     List<RelOptRule> rules = Arrays.asList(
             FilterProjectTransposeRule.INSTANCE, // default: copyFilter=true, copyProject=true
             new FilterProjectTransposeRule(Filter.class, Project.class,
-                false, false, RelFactories.LOGICAL_BUILDER));
+                false, false, RelFactories.DEFAULT_BUILDER));
 
     for (RelOptRule rule : rules) {
       RelBuilder b = RelBuilder.create(RelBuilderTest.config().build());
@@ -1682,7 +1682,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testProjectCorrelateTransposeDynamic() {
     ProjectCorrelateTransposeRule customPCTrans =
-        new ProjectCorrelateTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+        new ProjectCorrelateTransposeRule(skipItem, RelFactories.DEFAULT_BUILDER);
 
     HepProgramBuilder programBuilder = HepProgram.builder()
         .addRuleInstance(customPCTrans);
@@ -1789,7 +1789,7 @@ class RelOptRulesTest extends RelOptTestBase {
 
   @Test void testProjectCorrelateTransposeWithExprCond() {
     ProjectCorrelateTransposeRule customPCTrans =
-        new ProjectCorrelateTransposeRule(skipItem, RelFactories.LOGICAL_BUILDER);
+        new ProjectCorrelateTransposeRule(skipItem, RelFactories.DEFAULT_BUILDER);
 
     final String sql = "select t1.name, t2.ename\n"
         + "from DEPT_NESTED as t1,\n"
@@ -1817,7 +1817,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testProjectCorrelateTranspose() {
     ProjectCorrelateTransposeRule customPCTrans =
         new ProjectCorrelateTransposeRule(expr -> true,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     final String sql = "select t1.name, t2.ename\n"
         + "from DEPT_NESTED as t1,\n"
         + "unnest(t1.employees) as t2";
@@ -1872,7 +1872,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final FilterProjectTransposeRule filterProjectTransposeRule =
         new FilterProjectTransposeRule(Filter.class, filter -> true,
             Project.class, project -> true, true, true,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(filterProjectTransposeRule)
         .build();
@@ -2950,7 +2950,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final ReduceExpressionsRule.ProjectReduceExpressionsRule rule =
         new ReduceExpressionsRule.ProjectReduceExpressionsRule(
             LogicalProject.class, false,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     checkReduceNullableToNotNull(rule);
   }
 
@@ -3618,7 +3618,7 @@ class RelOptRulesTest extends RelOptTestBase {
         // Simulate the way INSERT will insert casts to the target types
         .addRuleInstance(
             new CoerceInputsRule(LogicalTableModify.class, false,
-                RelFactories.LOGICAL_BUILDER))
+                RelFactories.DEFAULT_BUILDER))
 
             // Convert projects to calcs, merge two calcs, and then
             // reduce redundant casts in merged calc.
@@ -3923,7 +3923,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     final AggregateExtractProjectRule rule =
         new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     sql(sql).withPre(pre).withRule(rule).check();
   }
 
@@ -3936,7 +3936,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     final AggregateExtractProjectRule rule =
         new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     sql(sql).withPre(pre).withRule(rule).check();
   }
 
@@ -3952,7 +3952,7 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     final AggregateExtractProjectRule rule =
         new AggregateExtractProjectRule(Aggregate.class, LogicalTableScan.class,
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     sql(sql).withPre(pre).withRule(rule).check();
   }
 
@@ -3976,7 +3976,7 @@ class RelOptRulesTest extends RelOptTestBase {
                       }
                     },
                     none())),
-            RelFactories.LOGICAL_BUILDER);
+            RelFactories.DEFAULT_BUILDER);
     sql(sql).withPre(pre).withRule(rule).checkUnchanged();
   }
 
@@ -6088,7 +6088,7 @@ class RelOptRulesTest extends RelOptTestBase {
             FilterMergeRule.INSTANCE,
             ProjectMergeRule.INSTANCE,
             new ProjectFilterTransposeRule(Project.class, Filter .class,
-                RelFactories.LOGICAL_BUILDER, exprCondition),
+                RelFactories.DEFAULT_BUILDER, exprCondition),
             EnumerableRules.ENUMERABLE_PROJECT_RULE,
             EnumerableRules.ENUMERABLE_FILTER_RULE,
             EnumerableRules.ENUMERABLE_SORT_RULE,
@@ -6464,7 +6464,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testReduceAverageWithNoReduceSum() {
     final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     final String sql = "select name, max(name), avg(deptno), min(name)\n"
         + "from sales.dept group by name";
     sql(sql).withRule(rule).check();
@@ -6473,7 +6473,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testNoReduceAverage() {
     final EnumSet<SqlKind> functionsToReduce = EnumSet.noneOf(SqlKind.class);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     String sql = "select name, max(name), avg(deptno), min(name)"
         + " from sales.dept group by name";
     sql(sql).withRule(rule).checkUnchanged();
@@ -6482,7 +6482,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testNoReduceSum() {
     final EnumSet<SqlKind> functionsToReduce = EnumSet.noneOf(SqlKind.class);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     String sql = "select name, sum(deptno)"
             + " from sales.dept group by name";
     sql(sql).withRule(rule).checkUnchanged();
@@ -6493,7 +6493,7 @@ class RelOptRulesTest extends RelOptTestBase {
     // other functions like SUM, STDDEV won't be reduced
     final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.VAR_POP);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     final String sql = "select name, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
         + "from sales.dept group by name";
@@ -6505,7 +6505,7 @@ class RelOptRulesTest extends RelOptTestBase {
     // other functions like VAR_POP, STDDEV_POP won't be reduced
     final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.SUM);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     final String sql = "select name, stddev_pop(deptno), avg(deptno),"
         + " var_pop(deptno)\n"
         + "from sales.dept group by name";
@@ -6517,7 +6517,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final EnumSet<SqlKind> functionsToReduce = EnumSet.of(SqlKind.AVG, SqlKind.SUM,
         SqlKind.STDDEV_POP, SqlKind.STDDEV_SAMP, SqlKind.VAR_POP, SqlKind.VAR_SAMP);
     final RelOptRule rule = new AggregateReduceFunctionsRule(LogicalAggregate.class,
-        RelFactories.LOGICAL_BUILDER, functionsToReduce);
+        RelFactories.DEFAULT_BUILDER, functionsToReduce);
     final String sql = "select name, stddev_pop(deptno), avg(deptno),"
         + " stddev_samp(deptno), var_pop(deptno), var_samp(deptno)\n"
         + "from sales.dept group by name";
@@ -6574,10 +6574,10 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
 
     final FilterMultiJoinMergeRule filterMultiJoinMergeRule =
-        new FilterMultiJoinMergeRule(MyFilter.class, RelFactories.LOGICAL_BUILDER);
+        new FilterMultiJoinMergeRule(MyFilter.class, RelFactories.DEFAULT_BUILDER);
 
     final ProjectMultiJoinMergeRule projectMultiJoinMergeRule =
-        new ProjectMultiJoinMergeRule(MyProject.class, RelFactories.LOGICAL_BUILDER);
+        new ProjectMultiJoinMergeRule(MyProject.class, RelFactories.DEFAULT_BUILDER);
 
     HepProgram program = new HepProgramBuilder()
         .addRuleCollection(
@@ -6699,7 +6699,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   private static class MyFilterRule extends RelOptRule {
     static final MyFilterRule INSTANCE =
-        new MyFilterRule(LogicalFilter.class, RelFactories.LOGICAL_BUILDER);
+        new MyFilterRule(LogicalFilter.class, RelFactories.DEFAULT_BUILDER);
 
     private MyFilterRule(Class<? extends Filter> clazz,
         RelBuilderFactory relBuilderFactory) {
@@ -6743,7 +6743,7 @@ class RelOptRulesTest extends RelOptTestBase {
    */
   private static class MyProjectRule extends RelOptRule {
     static final MyProjectRule INSTANCE =
-        new MyProjectRule(LogicalProject.class, RelFactories.LOGICAL_BUILDER);
+        new MyProjectRule(LogicalProject.class, RelFactories.DEFAULT_BUILDER);
 
     private MyProjectRule(Class<? extends Project> clazz,
         RelBuilderFactory relBuilderFactory) {
@@ -6930,7 +6930,7 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testProjectJoinTransposeItem() {
     ProjectJoinTransposeRule projectJoinTransposeRule =
         new ProjectJoinTransposeRule(Project.class, Join.class, skipItem, RelFactories
-          .LOGICAL_BUILDER);
+          .DEFAULT_BUILDER);
 
     String query = "select t1.c_nationkey[0], t2.c_nationkey[0] "
         + "from sales.customer as t1 left outer join sales.customer as t2 "

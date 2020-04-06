@@ -44,14 +44,14 @@ public class AggregateUnionAggregateRule extends RelOptRule implements Transform
    * {@code Union}. */
   public static final AggregateUnionAggregateRule AGG_ON_FIRST_INPUT =
       new AggregateUnionAggregateRule(LogicalAggregate.class, LogicalUnion.class,
-          LogicalAggregate.class, RelNode.class, RelFactories.LOGICAL_BUILDER,
+          LogicalAggregate.class, RelNode.class, RelFactories.DEFAULT_BUILDER,
           "AggregateUnionAggregateRule:first-input-agg");
 
   /** Instance that matches an {@code Aggregate} as the right input of
    * {@code Union}. */
   public static final AggregateUnionAggregateRule AGG_ON_SECOND_INPUT =
       new AggregateUnionAggregateRule(LogicalAggregate.class, LogicalUnion.class,
-          RelNode.class, LogicalAggregate.class, RelFactories.LOGICAL_BUILDER,
+          RelNode.class, LogicalAggregate.class, RelFactories.DEFAULT_BUILDER,
           "AggregateUnionAggregateRule:second-input-agg");
 
   /** Instance that matches an {@code Aggregate} as either input of
@@ -64,7 +64,7 @@ public class AggregateUnionAggregateRule extends RelOptRule implements Transform
   public static final AggregateUnionAggregateRule INSTANCE =
       new AggregateUnionAggregateRule(LogicalAggregate.class,
           LogicalUnion.class, RelNode.class, RelNode.class,
-          RelFactories.LOGICAL_BUILDER, "AggregateUnionAggregateRule");
+          RelFactories.DEFAULT_BUILDER, "AggregateUnionAggregateRule");
 
   //~ Constructors -----------------------------------------------------------
 

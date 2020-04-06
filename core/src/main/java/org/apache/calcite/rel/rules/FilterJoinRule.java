@@ -54,19 +54,19 @@ public abstract class FilterJoinRule extends RelOptRule implements Transformatio
 
   /** Rule that pushes predicates from a Filter into the Join below them. */
   public static final FilterJoinRule FILTER_ON_JOIN =
-      new FilterIntoJoinRule(true, RelFactories.LOGICAL_BUILDER,
+      new FilterIntoJoinRule(true, RelFactories.DEFAULT_BUILDER,
           TRUE_PREDICATE);
 
   /** Dumber version of {@link #FILTER_ON_JOIN}. Not intended for production
    * use, but keeps some tests working for which {@code FILTER_ON_JOIN} is too
    * smart. */
   public static final FilterJoinRule DUMB_FILTER_ON_JOIN =
-      new FilterIntoJoinRule(false, RelFactories.LOGICAL_BUILDER,
+      new FilterIntoJoinRule(false, RelFactories.DEFAULT_BUILDER,
           TRUE_PREDICATE);
 
   /** Rule that pushes predicates in a Join into the inputs to the join. */
   public static final FilterJoinRule JOIN =
-      new JoinConditionPushRule(RelFactories.LOGICAL_BUILDER, TRUE_PREDICATE);
+      new JoinConditionPushRule(RelFactories.DEFAULT_BUILDER, TRUE_PREDICATE);
 
   /** Whether to try to strengthen join-type. */
   private final boolean smart;

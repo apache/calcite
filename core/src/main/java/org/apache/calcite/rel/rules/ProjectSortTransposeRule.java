@@ -37,7 +37,7 @@ import com.google.common.collect.ImmutableList;
 public class ProjectSortTransposeRule extends RelOptRule implements TransformationRule {
   public static final ProjectSortTransposeRule INSTANCE =
       new ProjectSortTransposeRule(Project.class, Sort.class,
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -52,7 +52,7 @@ public class ProjectSortTransposeRule extends RelOptRule implements Transformati
 
   @Deprecated // to be removed before 2.0
   protected ProjectSortTransposeRule(RelOptRuleOperand operand) {
-    this(operand, RelFactories.LOGICAL_BUILDER, null);
+    this(operand, RelFactories.DEFAULT_BUILDER, null);
   }
 
   /** Creates a ProjectSortTransposeRule with an operand. */

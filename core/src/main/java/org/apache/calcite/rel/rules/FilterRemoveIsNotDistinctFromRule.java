@@ -43,7 +43,7 @@ public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule
 
   /** The singleton. */
   public static final FilterRemoveIsNotDistinctFromRule INSTANCE =
-      new FilterRemoveIsNotDistinctFromRule(RelFactories.LOGICAL_BUILDER);
+      new FilterRemoveIsNotDistinctFromRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

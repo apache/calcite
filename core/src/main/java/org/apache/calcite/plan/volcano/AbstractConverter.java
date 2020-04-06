@@ -106,7 +106,7 @@ public class AbstractConverter extends ConverterImpl {
    */
   public static class ExpandConversionRule extends RelOptRule {
     public static final ExpandConversionRule INSTANCE =
-        new ExpandConversionRule(RelFactories.LOGICAL_BUILDER);
+        new ExpandConversionRule(RelFactories.DEFAULT_BUILDER);
 
     /**
      * Creates an ExpandConversionRule.

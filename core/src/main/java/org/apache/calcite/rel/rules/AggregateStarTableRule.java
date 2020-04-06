@@ -64,7 +64,7 @@ public class AggregateStarTableRule extends RelOptRule implements Transformation
       new AggregateStarTableRule(
           operandJ(Aggregate.class, null, Aggregate::isSimple,
               some(operand(StarTable.StarTableScan.class, none()))),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "AggregateStarTableRule");
 
   public static final AggregateStarTableRule INSTANCE2 =
@@ -72,7 +72,7 @@ public class AggregateStarTableRule extends RelOptRule implements Transformation
           operandJ(Aggregate.class, null, Aggregate::isSimple,
               operand(Project.class,
                   operand(StarTable.StarTableScan.class, none()))),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "AggregateStarTableRule:project") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Aggregate aggregate = call.rel(0);

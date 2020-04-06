@@ -31,7 +31,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class UnionEliminatorRule extends RelOptRule
     implements SubstitutionRule {
   public static final UnionEliminatorRule INSTANCE =
-      new UnionEliminatorRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      new UnionEliminatorRule(LogicalUnion.class, RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

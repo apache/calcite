@@ -52,7 +52,7 @@ public class SortJoinCopyRule extends RelOptRule implements TransformationRule {
 
   public static final SortJoinCopyRule INSTANCE =
       new SortJoinCopyRule(LogicalSort.class,
-          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+          LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

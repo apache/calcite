@@ -366,7 +366,7 @@ public class Programs {
           planner.getContext().unwrap(CalciteConnectionConfig.class);
       if (config != null && config.forceDecorrelate()) {
         final RelBuilder relBuilder =
-            RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+            RelFactories.DEFAULT_BUILDER.create(rel.getCluster(), null);
         return RelDecorrelator.decorrelateQuery(rel, relBuilder);
       }
       return rel;
@@ -380,7 +380,7 @@ public class Programs {
         List<RelOptMaterialization> materializations,
         List<RelOptLattice> lattices) {
       final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+          RelFactories.DEFAULT_BUILDER.create(rel.getCluster(), null);
       return new RelFieldTrimmer(null, relBuilder).trim(rel);
     }
   }

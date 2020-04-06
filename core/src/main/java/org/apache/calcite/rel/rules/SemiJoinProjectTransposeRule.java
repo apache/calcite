@@ -55,7 +55,7 @@ import java.util.List;
  */
 public class SemiJoinProjectTransposeRule extends RelOptRule implements TransformationRule {
   public static final SemiJoinProjectTransposeRule INSTANCE =
-      new SemiJoinProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new SemiJoinProjectTransposeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

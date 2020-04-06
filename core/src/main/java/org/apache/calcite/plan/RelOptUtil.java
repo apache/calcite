@@ -597,7 +597,7 @@ public abstract class RelOptUtil {
       // doing a min(TRUE)
 
       final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(cluster, null);
+          RelFactories.DEFAULT_BUILDER.create(cluster, null);
       ret = relBuilder.push(ret)
           .project(extraExpr)
           .aggregate(relBuilder.groupKey(),
@@ -615,7 +615,7 @@ public abstract class RelOptUtil {
       Logic logic,
       boolean notIn) {
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(seekRel.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(seekRel.getCluster(), null);
     return createExistsPlan(seekRel, subQueryType, logic, notIn, relBuilder);
   }
 
@@ -723,7 +723,7 @@ public abstract class RelOptUtil {
               outputField.getName()));
     }
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(rel.getCluster(), null);
     return relBuilder.push(rel)
         .project(Pair.left(renames), Pair.right(renames), true)
         .build();
@@ -1923,7 +1923,7 @@ public abstract class RelOptUtil {
     }
 
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(cluster, null);
+        RelFactories.DEFAULT_BUILDER.create(cluster, null);
 
     // added project if need to produce new keys than the original input
     // fields
@@ -1958,7 +1958,7 @@ public abstract class RelOptUtil {
         && (newProjectOutputSize < joinOutputFields.size())) {
       final List<Pair<RexNode, String>> newProjects = new ArrayList<>();
       final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(joinRel.getCluster(), null);
+          RelFactories.DEFAULT_BUILDER.create(joinRel.getCluster(), null);
       final RexBuilder rexBuilder = relBuilder.getRexBuilder();
       for (int fieldIndex : outputProj) {
         final RelDataTypeField field = joinOutputFields.get(fieldIndex);
@@ -1997,7 +1997,7 @@ public abstract class RelOptUtil {
   }
 
   private static void registerEnumerableRelNodeFactories() {
-    RelBuilderFactory factory = RelFactories.LOGICAL_BUILDER;
+    RelBuilderFactory factory = RelFactories.DEFAULT_BUILDER;
     factory.registerFactoriesWithConvention(EnumerableConvention.INSTANCE,
         EnumerableRelFactories.DEFAULT_STRUCT);
   }
@@ -3213,7 +3213,7 @@ public abstract class RelOptUtil {
       List<? extends RexNode> exprList,
       List<String> fieldNameList) {
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(child.getCluster(), null);
     return relBuilder.push(child)
         .project(exprList, fieldNameList, true)
         .build();
@@ -3225,7 +3225,7 @@ public abstract class RelOptUtil {
       List<Pair<RexNode, String>> projectList,
       boolean optimize) {
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(child.getCluster(), null);
     return relBuilder.push(child)
         .projectNamed(Pair.left(projectList), Pair.right(projectList),
             !optimize)
@@ -3255,7 +3255,7 @@ public abstract class RelOptUtil {
       List<String> fieldNames,
       boolean optimize) {
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(child.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(child.getCluster(), null);
     return relBuilder.push(child)
         .projectNamed(exprs, fieldNames, !optimize)
         .build();
@@ -3292,7 +3292,7 @@ public abstract class RelOptUtil {
           }
         };
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(rel.getCluster(), null);
     return relBuilder.push(rel)
         .projectNamed(refs, fieldNames, false)
         .build();
@@ -3629,7 +3629,7 @@ public abstract class RelOptUtil {
 
   @Deprecated // to be removed before 2.0
   public static RelNode pushDownJoinConditions(Join originalJoin) {
-    return pushDownJoinConditions(originalJoin, RelFactories.LOGICAL_BUILDER);
+    return pushDownJoinConditions(originalJoin, RelFactories.DEFAULT_BUILDER);
   }
 
   @Deprecated // to be removed before 2.0

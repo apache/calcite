@@ -63,7 +63,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
           operand(Project.class,
               operandJ(TableScan.class, null, ProjectTableScanRule::test,
                   none())),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "ProjectScanRule") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Project project = call.rel(0);
@@ -79,7 +79,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
               operand(EnumerableInterpreter.class,
                   operandJ(TableScan.class, null, ProjectTableScanRule::test,
                       none()))),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "ProjectScanRule:interpreter") {
         @Override public void onMatch(RelOptRuleCall call) {
           final Project project = call.rel(0);

@@ -80,33 +80,33 @@ public class DruidRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   public static final DruidFilterRule FILTER =
-      new DruidFilterRule(RelFactories.LOGICAL_BUILDER);
+      new DruidFilterRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidProjectRule PROJECT =
-      new DruidProjectRule(RelFactories.LOGICAL_BUILDER);
+      new DruidProjectRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidAggregateRule AGGREGATE =
-      new DruidAggregateRule(RelFactories.LOGICAL_BUILDER);
+      new DruidAggregateRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidAggregateProjectRule AGGREGATE_PROJECT =
-      new DruidAggregateProjectRule(RelFactories.LOGICAL_BUILDER);
+      new DruidAggregateProjectRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidSortRule SORT =
-      new DruidSortRule(RelFactories.LOGICAL_BUILDER);
+      new DruidSortRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidSortProjectTransposeRule SORT_PROJECT_TRANSPOSE =
-      new DruidSortProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidSortProjectTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidProjectSortTransposeRule PROJECT_SORT_TRANSPOSE =
-      new DruidProjectSortTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidProjectSortTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidProjectFilterTransposeRule PROJECT_FILTER_TRANSPOSE =
-      new DruidProjectFilterTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidProjectFilterTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidFilterProjectTransposeRule FILTER_PROJECT_TRANSPOSE =
-      new DruidFilterProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidFilterProjectTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidAggregateFilterTransposeRule AGGREGATE_FILTER_TRANSPOSE =
-      new DruidAggregateFilterTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidAggregateFilterTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidFilterAggregateTransposeRule FILTER_AGGREGATE_TRANSPOSE =
-      new DruidFilterAggregateTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new DruidFilterAggregateTransposeRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidPostAggregationProjectRule POST_AGGREGATION_PROJECT =
-      new DruidPostAggregationProjectRule(RelFactories.LOGICAL_BUILDER);
+      new DruidPostAggregationProjectRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidAggregateExtractProjectRule PROJECT_EXTRACT_RULE =
-      new DruidAggregateExtractProjectRule(RelFactories.LOGICAL_BUILDER);
+      new DruidAggregateExtractProjectRule(RelFactories.DEFAULT_BUILDER);
   public static final DruidHavingFilterRule DRUID_HAVING_FILTER_RULE =
-      new DruidHavingFilterRule(RelFactories.LOGICAL_BUILDER);
+      new DruidHavingFilterRule(RelFactories.DEFAULT_BUILDER);
 
   public static final List<RelOptRule> RULES =
       ImmutableList.of(FILTER,

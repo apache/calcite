@@ -76,10 +76,10 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectToWindowRule INSTANCE =
-      new CalcToWindowRule(RelFactories.LOGICAL_BUILDER);
+      new CalcToWindowRule(RelFactories.DEFAULT_BUILDER);
 
   public static final ProjectToWindowRule PROJECT =
-      new ProjectToLogicalProjectAndWindowRule(RelFactories.LOGICAL_BUILDER);
+      new ProjectToLogicalProjectAndWindowRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

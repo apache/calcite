@@ -52,7 +52,7 @@ public class FilterProjectTransposeRule extends RelOptRule implements Transforma
    */
   public static final FilterProjectTransposeRule INSTANCE =
       new FilterProjectTransposeRule(Filter.class, Project.class, true, true,
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   private final boolean copyFilter;
   private final boolean copyProject;

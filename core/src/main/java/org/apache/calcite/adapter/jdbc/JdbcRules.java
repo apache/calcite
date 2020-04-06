@@ -214,7 +214,7 @@ public class JdbcRules {
               SNAPSHOT_FACTORY));
 
   public static List<RelOptRule> rules(JdbcConvention out) {
-    return rules(out, RelFactories.LOGICAL_BUILDER);
+    return rules(out, RelFactories.DEFAULT_BUILDER);
   }
 
   public static List<RelOptRule> rules(JdbcConvention out,
@@ -243,7 +243,7 @@ public class JdbcRules {
     JdbcConverterRule(Class<? extends RelNode> clazz, RelTrait in,
         JdbcConvention out, String description) {
       this(clazz, (Predicate<RelNode>) r -> true, in, out,
-          RelFactories.LOGICAL_BUILDER, description);
+          RelFactories.DEFAULT_BUILDER, description);
     }
 
     <R extends RelNode> JdbcConverterRule(Class<R> clazz,
@@ -268,7 +268,7 @@ public class JdbcRules {
   public static class JdbcJoinRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcJoinRule(JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcJoinRule. */
@@ -508,7 +508,7 @@ public class JdbcRules {
   public static class JdbcProjectRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcProjectRule(final JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcProjectRule. */
@@ -591,7 +591,7 @@ public class JdbcRules {
   public static class JdbcFilterRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcFilterRule(JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcFilterRule. */
@@ -649,7 +649,7 @@ public class JdbcRules {
   public static class JdbcAggregateRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcAggregateRule(JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcAggregateRule. */
@@ -741,7 +741,7 @@ public class JdbcRules {
   public static class JdbcSortRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcSortRule(JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcSortRule. */
@@ -818,7 +818,7 @@ public class JdbcRules {
   public static class JdbcUnionRule extends JdbcConverterRule {
     @Deprecated // to be removed before 2.0
     public JdbcUnionRule(JdbcConvention out) {
-      this(out, RelFactories.LOGICAL_BUILDER);
+      this(out, RelFactories.DEFAULT_BUILDER);
     }
 
     /** Creates a JdbcUnionRule. */

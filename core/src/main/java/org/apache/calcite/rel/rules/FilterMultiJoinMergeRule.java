@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class FilterMultiJoinMergeRule extends RelOptRule implements TransformationRule {
   public static final FilterMultiJoinMergeRule INSTANCE =
-      new FilterMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
+      new FilterMultiJoinMergeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

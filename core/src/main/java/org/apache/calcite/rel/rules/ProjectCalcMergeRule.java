@@ -46,7 +46,7 @@ public class ProjectCalcMergeRule extends RelOptRule implements TransformationRu
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectCalcMergeRule INSTANCE =
-      new ProjectCalcMergeRule(RelFactories.LOGICAL_BUILDER);
+      new ProjectCalcMergeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

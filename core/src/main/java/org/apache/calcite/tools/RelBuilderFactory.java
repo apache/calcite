@@ -29,7 +29,7 @@ import org.apache.calcite.rel.core.RelFactories;
  * that this particular rule instance should create {@code DrillFilter}
  * and {@code DrillProject} versus {@code HiveFilter} and {@code HiveProject}.
  *
- * @see RelFactories#LOGICAL_BUILDER
+ * @see RelFactories#DEFAULT_BUILDER
  */
 public class RelBuilderFactory {
 

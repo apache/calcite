@@ -76,7 +76,7 @@ public abstract class ValuesReduceRule extends RelOptRule implements Transformat
       new ValuesReduceRule(
           operand(LogicalFilter.class,
               operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "ValuesReduceRule(Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalFilter filter = call.rel(0);
@@ -93,7 +93,7 @@ public abstract class ValuesReduceRule extends RelOptRule implements Transformat
       new ValuesReduceRule(
           operand(LogicalProject.class,
               operandJ(LogicalValues.class, null, Values::isNotEmpty, none())),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "ValuesReduceRule(Project)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);
@@ -112,7 +112,7 @@ public abstract class ValuesReduceRule extends RelOptRule implements Transformat
               operand(LogicalFilter.class,
                   operandJ(LogicalValues.class, null, Values::isNotEmpty,
                       none()))),
-          RelFactories.LOGICAL_BUILDER,
+          RelFactories.DEFAULT_BUILDER,
           "ValuesReduceRule(Project-Filter)") {
         public void onMatch(RelOptRuleCall call) {
           LogicalProject project = call.rel(0);

@@ -131,7 +131,7 @@ public class CodeGenerationBenchmark {
       RelTraitSet desiredTraits =
           cluster.traitSet().replace(EnumerableConvention.INSTANCE);
 
-      RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
+      RelBuilder relBuilder = RelFactories.DEFAULT_BUILDER.create(cluster, null);
       // Generates queries of the following form depending on the configuration parameters.
       // SELECT `t`.`name`
       // FROM (VALUES  (1, 'Value0')) AS `t` (`id`, `name`)

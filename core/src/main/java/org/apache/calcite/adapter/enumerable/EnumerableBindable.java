@@ -87,7 +87,7 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
    */
   public static class EnumerableToBindableConverterRule extends ConverterRule {
     public static final EnumerableToBindableConverterRule INSTANCE =
-        new EnumerableToBindableConverterRule(RelFactories.LOGICAL_BUILDER);
+        new EnumerableToBindableConverterRule(RelFactories.DEFAULT_BUILDER);
 
     /**
      * Creates an EnumerableToBindableConverterRule.

@@ -48,7 +48,7 @@ import java.util.Map;
 public class UnionPullUpConstantsRule extends RelOptRule implements TransformationRule {
 
   public static final UnionPullUpConstantsRule INSTANCE =
-      new UnionPullUpConstantsRule(Union.class, RelFactories.LOGICAL_BUILDER);
+      new UnionPullUpConstantsRule(Union.class, RelFactories.DEFAULT_BUILDER);
 
   /** Creates a UnionPullUpConstantsRule. */
   public UnionPullUpConstantsRule(Class<? extends Union> unionClass,

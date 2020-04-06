@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  */
 public class EnumerableInterpreterRule extends ConverterRule {
   public static final EnumerableInterpreterRule INSTANCE =
-      new EnumerableInterpreterRule(RelFactories.LOGICAL_BUILDER);
+      new EnumerableInterpreterRule(RelFactories.DEFAULT_BUILDER);
 
   /**
    * Creates an EnumerableInterpreterRule.

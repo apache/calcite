@@ -46,7 +46,7 @@ public class CoerceInputsRule extends RelOptRule implements TransformationRule {
   public CoerceInputsRule(
       Class<? extends RelNode> consumerRelClass,
       boolean coerceNames) {
-    this(consumerRelClass, coerceNames, RelFactories.LOGICAL_BUILDER);
+    this(consumerRelClass, coerceNames, RelFactories.DEFAULT_BUILDER);
   }
 
   /**

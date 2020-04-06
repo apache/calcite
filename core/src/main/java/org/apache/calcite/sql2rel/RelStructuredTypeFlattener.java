@@ -152,7 +152,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       RexBuilder rexBuilder,
       RelOptTable.ToRelContext toRelContext,
       boolean restructure) {
-    this(RelFactories.LOGICAL_BUILDER.create(toRelContext.getCluster(), null),
+    this(RelFactories.DEFAULT_BUILDER.create(toRelContext.getCluster(), null),
         rexBuilder, toRelContext, restructure);
   }
 

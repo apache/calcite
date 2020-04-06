@@ -70,7 +70,7 @@ public class AggregateJoinJoinRemoveRule extends RelOptRule
     implements TransformationRule {
   public static final AggregateJoinJoinRemoveRule INSTANCE =
       new AggregateJoinJoinRemoveRule(LogicalAggregate.class,
-          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+          LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
 
   /** Creates an AggregateJoinJoinRemoveRule. */
   public AggregateJoinJoinRemoveRule(

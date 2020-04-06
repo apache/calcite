@@ -64,12 +64,12 @@ import java.util.TreeMap;
 public class AggregateJoinTransposeRule extends RelOptRule implements TransformationRule {
   public static final AggregateJoinTransposeRule INSTANCE =
       new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER, false);
+          RelFactories.DEFAULT_BUILDER, false);
 
   /** Extended instance of the rule that can push down aggregate functions. */
   public static final AggregateJoinTransposeRule EXTENDED =
       new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER, true);
+          RelFactories.DEFAULT_BUILDER, true);
 
   private final boolean allowFunctions;
 

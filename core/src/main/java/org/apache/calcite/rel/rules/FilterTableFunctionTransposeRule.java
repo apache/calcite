@@ -42,7 +42,7 @@ import java.util.Set;
 public class FilterTableFunctionTransposeRule extends RelOptRule
     implements TransformationRule {
   public static final FilterTableFunctionTransposeRule INSTANCE =
-      new FilterTableFunctionTransposeRule(RelFactories.LOGICAL_BUILDER);
+      new FilterTableFunctionTransposeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

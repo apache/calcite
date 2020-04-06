@@ -54,7 +54,7 @@ import java.util.Set;
  */
 public class AggregateProjectMergeRule extends RelOptRule implements TransformationRule {
   public static final AggregateProjectMergeRule INSTANCE =
-      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
+      new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.DEFAULT_BUILDER);
 
   public AggregateProjectMergeRule(
       Class<? extends Aggregate> aggregateClass,

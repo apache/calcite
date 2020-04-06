@@ -99,7 +99,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule
   /** The singleton. */
   public static final AggregateReduceFunctionsRule INSTANCE =
       new AggregateReduceFunctionsRule(operand(LogicalAggregate.class, any()),
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   private final EnumSet<SqlKind> functionsToReduce;
 

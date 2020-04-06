@@ -129,7 +129,7 @@ public class RelFactories {
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
-  public static final RelBuilderFactory LOGICAL_BUILDER =
+  public static final RelBuilderFactory DEFAULT_BUILDER =
       new RelBuilderFactory(new StructsWithConvention(Convention.NONE, DEFAULT_STRUCT));
 
   private RelFactories() {

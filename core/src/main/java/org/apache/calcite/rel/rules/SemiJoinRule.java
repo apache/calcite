@@ -52,11 +52,11 @@ public abstract class SemiJoinRule extends RelOptRule implements TransformationR
 
   public static final SemiJoinRule PROJECT =
       new ProjectToSemiJoinRule(Project.class, Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:project");
+          RelFactories.DEFAULT_BUILDER, "SemiJoinRule:project");
 
   public static final SemiJoinRule JOIN =
       new JoinToSemiJoinRule(Join.class, Aggregate.class,
-          RelFactories.LOGICAL_BUILDER, "SemiJoinRule:join");
+          RelFactories.DEFAULT_BUILDER, "SemiJoinRule:join");
 
   protected SemiJoinRule(Class<Project> projectClass, Class<Join> joinClass,
       Class<Aggregate> aggregateClass, RelBuilderFactory relBuilderFactory,

@@ -35,7 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class SemiJoinRemoveRule extends RelOptRule implements TransformationRule {
   public static final SemiJoinRemoveRule INSTANCE =
-      new SemiJoinRemoveRule(RelFactories.LOGICAL_BUILDER);
+      new SemiJoinRemoveRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

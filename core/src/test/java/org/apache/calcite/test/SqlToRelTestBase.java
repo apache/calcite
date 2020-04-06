@@ -753,7 +753,7 @@ public abstract class SqlToRelTestBase {
 
       if (trim) {
         final RelBuilder relBuilder =
-            RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+            RelFactories.DEFAULT_BUILDER.create(rel.getCluster(), null);
         final RelFieldTrimmer trimmer = createFieldTrimmer(relBuilder);
         rel = trimmer.trim(rel);
         assertNotNull(rel);

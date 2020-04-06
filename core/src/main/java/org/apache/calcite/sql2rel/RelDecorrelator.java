@@ -178,7 +178,7 @@ public class RelDecorrelator implements ReflectiveVisitor {
   @Deprecated // to be removed before 2.0
   public static RelNode decorrelateQuery(RelNode rootRel) {
     final RelBuilder relBuilder =
-        RelFactories.LOGICAL_BUILDER.create(rootRel.getCluster(), null);
+        RelFactories.DEFAULT_BUILDER.create(rootRel.getCluster(), null);
     return decorrelateQuery(rootRel, relBuilder);
   }
 

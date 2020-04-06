@@ -30,7 +30,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class FilterMergeRule extends RelOptRule implements SubstitutionRule {
   public static final FilterMergeRule INSTANCE =
-      new FilterMergeRule(RelFactories.LOGICAL_BUILDER);
+      new FilterMergeRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

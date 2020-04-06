@@ -87,14 +87,14 @@ public class JoinProjectTransposeRule extends RelOptRule implements Transformati
               operand(LogicalProject.class, any()),
               operand(LogicalProject.class, any())),
           "Join(IncludingOuter)ProjectTransposeRule(Project-Project)",
-          true, RelFactories.LOGICAL_BUILDER);
+          true, RelFactories.DEFAULT_BUILDER);
 
   public static final JoinProjectTransposeRule LEFT_PROJECT_INCLUDE_OUTER =
       new JoinProjectTransposeRule(
           operand(LogicalJoin.class,
               some(operand(LogicalProject.class, any()))),
           "Join(IncludingOuter)ProjectTransposeRule(Project-Other)",
-          true, RelFactories.LOGICAL_BUILDER);
+          true, RelFactories.DEFAULT_BUILDER);
 
   public static final JoinProjectTransposeRule RIGHT_PROJECT_INCLUDE_OUTER =
       new JoinProjectTransposeRule(
@@ -103,7 +103,7 @@ public class JoinProjectTransposeRule extends RelOptRule implements Transformati
               operand(RelNode.class, any()),
               operand(LogicalProject.class, any())),
           "Join(IncludingOuter)ProjectTransposeRule(Other-Project)",
-          true, RelFactories.LOGICAL_BUILDER);
+          true, RelFactories.DEFAULT_BUILDER);
 
   private final boolean includeOuter;
 
@@ -121,7 +121,7 @@ public class JoinProjectTransposeRule extends RelOptRule implements Transformati
   public JoinProjectTransposeRule(
       RelOptRuleOperand operand,
       String description) {
-    this(operand, description, false, RelFactories.LOGICAL_BUILDER);
+    this(operand, description, false, RelFactories.DEFAULT_BUILDER);
   }
 
   @Deprecated // to be removed before 2.0

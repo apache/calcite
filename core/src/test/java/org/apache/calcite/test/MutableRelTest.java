@@ -265,7 +265,7 @@ class MutableRelTest {
     RelNode origRel = test.createTester().convertSqlToRel(sql).rel;
     if (decorrelate) {
       final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(origRel.getCluster(), null);
+          RelFactories.DEFAULT_BUILDER.create(origRel.getCluster(), null);
       origRel = RelDecorrelator.decorrelateQuery(origRel, relBuilder);
     }
     if (rules != null) {

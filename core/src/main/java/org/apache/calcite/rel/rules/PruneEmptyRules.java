@@ -231,7 +231,7 @@ public abstract class PruneEmptyRules {
    */
   public static final RelOptRule PROJECT_INSTANCE =
       new RemoveEmptySingleRule(Project.class,
-          (Predicate<Project>) project -> true, RelFactories.LOGICAL_BUILDER,
+          (Predicate<Project>) project -> true, RelFactories.DEFAULT_BUILDER,
           "PruneEmptyProject");
 
   /**
@@ -308,7 +308,7 @@ public abstract class PruneEmptyRules {
   public static final RelOptRule AGGREGATE_INSTANCE =
       new RemoveEmptySingleRule(Aggregate.class,
           (Predicate<Aggregate>) Aggregate::isNotGrandTotal,
-          RelFactories.LOGICAL_BUILDER, "PruneEmptyAggregate");
+          RelFactories.DEFAULT_BUILDER, "PruneEmptyAggregate");
 
   /**
    * Rule that converts a {@link org.apache.calcite.rel.core.Join}

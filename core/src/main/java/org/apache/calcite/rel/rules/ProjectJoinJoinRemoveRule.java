@@ -65,7 +65,7 @@ public class ProjectJoinJoinRemoveRule extends RelOptRule
     implements SubstitutionRule {
   public static final ProjectJoinJoinRemoveRule INSTANCE =
       new ProjectJoinJoinRemoveRule(LogicalProject.class,
-          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+          LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
 
   /** Creates a ProjectJoinJoinRemoveRule. */
   public ProjectJoinJoinRemoveRule(

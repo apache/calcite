@@ -121,7 +121,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
       diffRepos.assertEquals("planMid", "${planMid}", planMid);
       SqlToRelTestBase.assertValid(r);
       final RelBuilder relBuilder =
-          RelFactories.LOGICAL_BUILDER.create(cluster, null);
+          RelFactories.DEFAULT_BUILDER.create(cluster, null);
       r = RelDecorrelator.decorrelateQuery(r, relBuilder);
     }
     final String planAfter = NL + RelOptUtil.toString(r);

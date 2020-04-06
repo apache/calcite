@@ -34,7 +34,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class UnionToDistinctRule extends RelOptRule implements TransformationRule {
   public static final UnionToDistinctRule INSTANCE =
-      new UnionToDistinctRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+      new UnionToDistinctRule(LogicalUnion.class, RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

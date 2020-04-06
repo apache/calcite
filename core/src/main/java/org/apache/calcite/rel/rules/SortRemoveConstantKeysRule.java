@@ -46,7 +46,7 @@ public class SortRemoveConstantKeysRule extends RelOptRule
   private SortRemoveConstantKeysRule() {
     super(
         operand(Sort.class, any()),
-        RelFactories.LOGICAL_BUILDER, "SortRemoveConstantKeysRule");
+        RelFactories.DEFAULT_BUILDER, "SortRemoveConstantKeysRule");
   }
 
   @Override public void onMatch(RelOptRuleCall call) {

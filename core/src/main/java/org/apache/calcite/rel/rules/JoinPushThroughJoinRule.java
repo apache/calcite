@@ -68,14 +68,14 @@ public class JoinPushThroughJoinRule extends RelOptRule implements Transformatio
   public static final RelOptRule RIGHT =
       new JoinPushThroughJoinRule(
           "JoinPushThroughJoinRule:right", true, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   /** Instance of the rule that works on logical joins only, and pushes to the
    * left. */
   public static final RelOptRule LEFT =
       new JoinPushThroughJoinRule(
           "JoinPushThroughJoinRule:left", false, LogicalJoin.class,
-          RelFactories.LOGICAL_BUILDER);
+          RelFactories.DEFAULT_BUILDER);
 
   private final boolean right;
 

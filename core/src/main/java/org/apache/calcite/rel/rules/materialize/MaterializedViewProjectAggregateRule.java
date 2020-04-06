@@ -28,7 +28,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewProjectAggregateRule extends MaterializedViewAggregateRule {
 
   public static final MaterializedViewProjectAggregateRule INSTANCE =
-      new MaterializedViewProjectAggregateRule(RelFactories.LOGICAL_BUILDER,
+      new MaterializedViewProjectAggregateRule(RelFactories.DEFAULT_BUILDER,
           true, null);
 
   public MaterializedViewProjectAggregateRule(RelBuilderFactory relBuilderFactory,

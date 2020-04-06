@@ -56,7 +56,7 @@ import java.util.Map;
 public class AggregateUnionTransposeRule extends RelOptRule implements TransformationRule {
   public static final AggregateUnionTransposeRule INSTANCE =
       new AggregateUnionTransposeRule(LogicalAggregate.class,
-          LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
+          LogicalUnion.class, RelFactories.DEFAULT_BUILDER);
 
   private static final Map<Class<? extends SqlAggFunction>, Boolean>
       SUPPORTED_AGGREGATES = new IdentityHashMap<>();

@@ -178,13 +178,13 @@ public class SubstitutionVisitor {
 
   /** Creates a SubstitutionVisitor with the default rule set. */
   public SubstitutionVisitor(RelNode target_, RelNode query_) {
-    this(target_, query_, DEFAULT_RULES, RelFactories.LOGICAL_BUILDER);
+    this(target_, query_, DEFAULT_RULES, RelFactories.DEFAULT_BUILDER);
   }
 
   /** Creates a SubstitutionVisitor with the default logical builder. */
   public SubstitutionVisitor(RelNode target_, RelNode query_,
       ImmutableList<UnifyRule> rules) {
-    this(target_, query_, rules, RelFactories.LOGICAL_BUILDER);
+    this(target_, query_, rules, RelFactories.DEFAULT_BUILDER);
   }
 
   public SubstitutionVisitor(RelNode target_, RelNode query_,

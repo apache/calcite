@@ -67,7 +67,7 @@ import java.util.TreeSet;
  */
 public class LoptOptimizeJoinRule extends RelOptRule implements TransformationRule {
   public static final LoptOptimizeJoinRule INSTANCE =
-      new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER);
+      new LoptOptimizeJoinRule(RelFactories.DEFAULT_BUILDER);
 
   /** Creates a LoptOptimizeJoinRule. */
   public LoptOptimizeJoinRule(RelBuilderFactory relBuilderFactory) {

@@ -37,7 +37,7 @@ class EnumerableCalcRule extends ConverterRule {
     super(LogicalCalc.class,
         (Predicate<Calc>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.LOGICAL_BUILDER, "EnumerableCalcRule");
+        RelFactories.DEFAULT_BUILDER, "EnumerableCalcRule");
   }
 
   public RelNode convert(RelNode rel) {

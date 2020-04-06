@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 public class ProjectJoinRemoveRule extends RelOptRule implements SubstitutionRule {
   public static final ProjectJoinRemoveRule INSTANCE =
       new ProjectJoinRemoveRule(LogicalProject.class,
-          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
+          LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
 
   /** Creates a ProjectJoinRemoveRule. */
   public ProjectJoinRemoveRule(

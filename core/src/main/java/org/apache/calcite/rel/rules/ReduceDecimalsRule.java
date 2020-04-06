@@ -68,7 +68,7 @@ import static org.apache.calcite.util.Static.RESOURCE;
  */
 public class ReduceDecimalsRule extends RelOptRule implements TransformationRule {
   public static final ReduceDecimalsRule INSTANCE =
-      new ReduceDecimalsRule(RelFactories.LOGICAL_BUILDER);
+      new ReduceDecimalsRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

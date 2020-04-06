@@ -65,7 +65,7 @@ import javax.annotation.Nullable;
 public class AggregateCaseToFilterRule extends RelOptRule
     implements TransformationRule {
   public static final AggregateCaseToFilterRule INSTANCE =
-      new AggregateCaseToFilterRule(RelFactories.LOGICAL_BUILDER, null);
+      new AggregateCaseToFilterRule(RelFactories.DEFAULT_BUILDER, null);
 
   /** Creates an AggregateCaseToFilterRule. */
   protected AggregateCaseToFilterRule(RelBuilderFactory relBuilderFactory,

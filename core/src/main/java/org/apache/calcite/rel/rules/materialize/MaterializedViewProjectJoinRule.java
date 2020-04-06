@@ -27,7 +27,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewProjectJoinRule extends MaterializedViewJoinRule {
 
   public static final MaterializedViewProjectJoinRule INSTANCE =
-      new MaterializedViewProjectJoinRule(RelFactories.LOGICAL_BUILDER,
+      new MaterializedViewProjectJoinRule(RelFactories.DEFAULT_BUILDER,
           true, null, true);
 
   public MaterializedViewProjectJoinRule(RelBuilderFactory relBuilderFactory,

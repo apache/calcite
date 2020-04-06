@@ -210,7 +210,7 @@ public abstract class MutableRels {
   }
 
   public static RelNode fromMutable(MutableRel node) {
-    return fromMutable(node, RelFactories.LOGICAL_BUILDER.create(node.cluster, null));
+    return fromMutable(node, RelFactories.DEFAULT_BUILDER.create(node.cluster, null));
   }
 
   public static RelNode fromMutable(MutableRel node, RelBuilder relBuilder) {

@@ -5856,7 +5856,7 @@ public class SqlToRelConverter {
     int getInSubQueryThreshold();
 
     /** Returns the factory to create {@link RelBuilder}, never null. Default is
-     * {@link RelFactories#LOGICAL_BUILDER}. */
+     * {@link RelFactories#DEFAULT_BUILDER}. */
     RelBuilderFactory getRelBuilderFactory();
 
     /** Returns the hint strategies used to decide how the hints are propagated to
@@ -5873,7 +5873,7 @@ public class SqlToRelConverter {
     private boolean explain;
     private boolean expand = true;
     private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
-    private RelBuilderFactory relBuilderFactory = RelFactories.LOGICAL_BUILDER;
+    private RelBuilderFactory relBuilderFactory = RelFactories.DEFAULT_BUILDER;
     private HintStrategyTable hintStrategyTable = HintStrategyTable.EMPTY;
 
     private ConfigBuilder() {}

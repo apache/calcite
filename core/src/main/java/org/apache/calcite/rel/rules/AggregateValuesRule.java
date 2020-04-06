@@ -54,7 +54,7 @@ import java.util.List;
  */
 public class AggregateValuesRule extends RelOptRule implements SubstitutionRule {
   public static final AggregateValuesRule INSTANCE =
-      new AggregateValuesRule(RelFactories.LOGICAL_BUILDER);
+      new AggregateValuesRule(RelFactories.DEFAULT_BUILDER);
 
   /**
    * Creates an AggregateValuesRule.

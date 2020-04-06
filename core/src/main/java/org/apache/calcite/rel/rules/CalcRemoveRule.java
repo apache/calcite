@@ -38,7 +38,7 @@ public class CalcRemoveRule extends RelOptRule implements SubstitutionRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final CalcRemoveRule INSTANCE =
-      new CalcRemoveRule(RelFactories.LOGICAL_BUILDER);
+      new CalcRemoveRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

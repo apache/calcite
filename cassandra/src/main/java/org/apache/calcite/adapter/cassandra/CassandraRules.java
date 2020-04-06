@@ -99,7 +99,7 @@ public class CassandraRules {
         Predicate<? super R> predicate,
         String description) {
       super(clazz, predicate, Convention.NONE,
-          CassandraRel.CONVENTION, RelFactories.LOGICAL_BUILDER, description);
+          CassandraRel.CONVENTION, RelFactories.DEFAULT_BUILDER, description);
       this.out = CassandraRel.CONVENTION;
     }
   }

@@ -99,10 +99,10 @@ class HepPlannerTest extends RelOptTestBase {
 
     planner.addRule(
         new CoerceInputsRule(LogicalUnion.class, false,
-            RelFactories.LOGICAL_BUILDER));
+            RelFactories.DEFAULT_BUILDER));
     planner.addRule(
         new CoerceInputsRule(LogicalIntersect.class, false,
-            RelFactories.LOGICAL_BUILDER));
+            RelFactories.DEFAULT_BUILDER));
 
     final String sql = "(select name from dept union select ename from emp)\n"
         + "intersect (select fname from customer.contact)";

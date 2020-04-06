@@ -51,7 +51,7 @@ public class JoinAssociateRule extends RelOptRule implements TransformationRule 
 
   /** The singleton. */
   public static final JoinAssociateRule INSTANCE =
-      new JoinAssociateRule(RelFactories.LOGICAL_BUILDER);
+      new JoinAssociateRule(RelFactories.DEFAULT_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
