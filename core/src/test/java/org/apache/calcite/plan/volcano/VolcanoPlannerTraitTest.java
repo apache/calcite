@@ -39,7 +39,6 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.HashMultimap;
@@ -328,7 +327,6 @@ class VolcanoPlannerTraitTest {
 
     public RelNode convert(
         RelOptPlanner planner,
-        RelBuilder builder,
         RelNode rel,
         AltTrait toTrait,
         Convention toConvention,

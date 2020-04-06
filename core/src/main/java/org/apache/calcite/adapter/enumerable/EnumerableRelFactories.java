@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.rel.RelCollation;
@@ -56,7 +55,8 @@ public class EnumerableRelFactories {
    * Implementation of {@link org.apache.calcite.rel.core.RelFactories.SortFactory} that
    * returns a vanilla {@link Sort}.
    */
-  private static class SortFactoryImpl implements org.apache.calcite.rel.core.RelFactories.SortFactory {
+  private static class SortFactoryImpl
+      implements org.apache.calcite.rel.core.RelFactories.SortFactory {
     public RelNode createSort(RelNode input, RelCollation collation,
                               RexNode offset, RexNode fetch) {
       return EnumerableSort.create(input, collation, offset, fetch);

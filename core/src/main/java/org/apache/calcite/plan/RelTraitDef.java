@@ -22,8 +22,6 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
-import org.apache.calcite.tools.RelBuilder;
-
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:

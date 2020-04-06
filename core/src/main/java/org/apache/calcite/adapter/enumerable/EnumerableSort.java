@@ -51,7 +51,7 @@ public class EnumerableSort extends Sort implements EnumerableRel {
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
             .replace(collation);
     return new EnumerableSort(cluster, traitSet, child,
-        (RelCollation)traitSet.getTrait(collation.getTraitDef()), offset,
+        (RelCollation) traitSet.getTrait(collation.getTraitDef()), offset,
         fetch);
   }
 

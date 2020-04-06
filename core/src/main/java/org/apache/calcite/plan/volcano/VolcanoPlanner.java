@@ -51,7 +51,6 @@ import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
@@ -822,7 +821,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     Convention conventionTrait = null;
     for (RelTrait trait : toTraits) {
       if (trait instanceof  Convention) {
-        conventionTrait = (Convention)trait;
+        conventionTrait = (Convention) trait;
         break;
       }
     }

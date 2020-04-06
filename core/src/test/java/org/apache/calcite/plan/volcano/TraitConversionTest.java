@@ -30,8 +30,6 @@ import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
-import org.apache.calcite.tools.RelBuilder;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -232,7 +230,7 @@ class TraitConversionTest {
       return "ConvertRelDistributionTraitDef";
     }
 
-    @Override public RelNode convert(RelOptPlanner planner, RelBuilder builder, RelNode rel,
+    @Override public RelNode convert(RelOptPlanner planner, RelNode rel,
         SimpleDistribution toTrait, Convention toConvention, boolean allowInfiniteCostConverters) {
       if (toTrait == SIMPLE_DISTRIBUTION_ANY) {
         return rel;

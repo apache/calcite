@@ -305,8 +305,8 @@ public class RelBuilder {
     return defaultStruct.scanFactory;
   }
 
-  /** Get TableFunctionScanFactory based on given convention. If it's not existed, return the factory
-   *  for NONE convention. */
+  /** Get TableFunctionScanFactory based on given convention. If it's not existed, return the
+   * factory for NONE convention. */
   private RelFactories.TableFunctionScanFactory getTableFunctionScanFactory() {
     if (structWithConvention.tableFunctionScanFactory != null) {
       return structWithConvention.tableFunctionScanFactory;
@@ -2635,8 +2635,8 @@ public class RelBuilder {
   public RelBuilder sort(List<RelFieldCollation> collations) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
     for (RelFieldCollation collation : collations) {
-      builder.add(collation.direction.isDescending() ?
-          desc(field(collation.getFieldIndex())) : field(collation.getFieldIndex()));
+      builder.add(collation.direction.isDescending()
+          ? desc(field(collation.getFieldIndex())) : field(collation.getFieldIndex()));
     }
     return sortLimit(-1, -1, builder.build());
   }

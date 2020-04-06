@@ -674,8 +674,7 @@ public class RelFactories {
       return structs.get(convention);
     }
 
-    public static @Nonnull
-    StructsWithConvention fromContext(Context context) {
+    public static @Nonnull StructsWithConvention fromContext(Context context) {
       StructsWithConvention factories = context.unwrap(StructsWithConvention.class);
       if (factories != null) {
         return factories;

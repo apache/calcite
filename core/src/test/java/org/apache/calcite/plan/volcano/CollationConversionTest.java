@@ -37,8 +37,6 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
-import org.apache.calcite.tools.RelBuilder;
-
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -234,7 +232,7 @@ class CollationConversionTest {
       return LEAF_COLLATION;
     }
 
-    public RelNode convert(RelOptPlanner planner, RelBuilder builder, RelNode rel,
+    public RelNode convert(RelOptPlanner planner, RelNode rel,
         RelCollation toCollation, Convention toConvention, boolean allowInfiniteCostConverters) {
       if (toCollation.getFieldCollations().isEmpty()) {
         // An empty sort doesn't make sense.

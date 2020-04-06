@@ -22,7 +22,6 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.logical.LogicalExchange;
-import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Definition of the distribution trait.
