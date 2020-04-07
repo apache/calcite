@@ -466,6 +466,7 @@ public class RexUtil {
           int precision1;
           int scale1;
           if (name1 == SqlTypeName.DECIMAL) {
+            type1 = typeFactory.decimalOf(type1);
             precision1 = type1.getPrecision();
             scale1 = type1.getScale();
           } else {
@@ -475,6 +476,7 @@ public class RexUtil {
           int precision2;
           int scale2;
           if (name2 == SqlTypeName.DECIMAL) {
+            type2 = typeFactory.decimalOf(type2);
             precision2 = type2.getPrecision();
             scale2 = type2.getScale();
           } else {
