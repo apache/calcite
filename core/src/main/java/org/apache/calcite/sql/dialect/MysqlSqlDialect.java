@@ -46,6 +46,8 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
+
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
  */
@@ -160,6 +162,13 @@ public class MysqlSqlDialect extends SqlDialect {
       return new SqlDataTypeSpec(
           new SqlAlienSystemTypeNameSpec(
               "SIGNED",
+              type.getSqlTypeName(),
+              SqlParserPos.ZERO),
+          SqlParserPos.ZERO);
+    case TIMESTAMP:
+      return new SqlDataTypeSpec(
+          new SqlAlienSystemTypeNameSpec(
+              "DATETIME",
               type.getSqlTypeName(),
               SqlParserPos.ZERO),
           SqlParserPos.ZERO);

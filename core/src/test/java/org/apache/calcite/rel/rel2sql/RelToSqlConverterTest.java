@@ -1834,6 +1834,14 @@ class RelToSqlConverterTest {
     sql(query).withMysql().ok(expected);
   }
 
+  @Test void testMySqlCastToTimestamp() {
+    final String query = "select  * from \"employee\" where  \"hire_date\" - "
+        + "INTERVAL '19800' SECOND(5) > cast(\"hire_date\" as TIMESTAMP) ";
+    final String expected = "SELECT *\nFROM `foodmart`.`employee`"
+        + "\nWHERE (`hire_date` - INTERVAL '19800' SECOND) > CAST(`hire_date` AS DATETIME)";
+    sql(query).withMysql().ok(expected);
+  }
+
   @Test void testMySqlCastToVarcharWithGreaterThanMaxPrecision() {
     final String query = "select cast(\"product_id\" as varchar(500)), \"product_id\" "
         + "from \"product\" ";
