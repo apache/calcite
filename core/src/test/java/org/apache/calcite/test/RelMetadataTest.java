@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -152,6 +153,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -188,6 +190,10 @@ public class RelMetadataTest extends SqlToRelTestBase {
   /** Ensures that tests that use a lot of memory do not run at the same
    * time. */
   private static final ReentrantLock LOCK = new ReentrantLock();
+
+  static {
+    System.setProperty("calcite.enable.regenerate.metadata.handler", "false");
+  }
 
   //~ Methods ----------------------------------------------------------------
 
@@ -3130,6 +3136,35 @@ public class RelMetadataTest extends SqlToRelTestBase {
             .get(0)
             .toString(),
         is("=($0, $1)"));
+  }
+
+  static class CustomRel extends AbstractRelNode {
+    CustomRel(RelOptCluster cluster, RelTraitSet traits) {
+      super(cluster, traits);
+    }
+  }
+
+  @Test void testRegenerateHandler() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(builder.call(NONDETERMINISTIC_OP))
+        .build();
+    RelMetadataQuery mq = filter.getCluster().getMetadataQuery();
+
+    // get row size for a known type of rel node, ok
+    mq.getAverageRowSize(filter);
+
+    RelNode customRel = new CustomRel(filter.getCluster(), filter.getTraitSet());
+
+    // get row size for an unknown type of rel node, exception will be thrown
+    if (!CalciteSystemProperty.ENABLE_REGENERATE_METADATA_HANDLER.value()) {
+      IllegalArgumentException exp = assertThrows(IllegalArgumentException.class,
+          () -> mq.getAverageRowSize(customRel));
+
+      assertEquals("Metadata handler already exists for Size", exp.getMessage());
+    }
   }
 
   /**

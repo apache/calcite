@@ -97,6 +97,8 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   private static final Set<Class<? extends RelNode>> ALL_RELS =
       new CopyOnWriteArraySet<>();
 
+  private static final Set<String> HANDLERS_GENERATED = new HashSet<>();
+
   /** Cache of pre-generated handlers by provider and kind of metadata.
    * For the cache to be effective, providers should implement identity
    * correctly. */
@@ -106,7 +108,7 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
           CalciteSystemProperty.METADATA_HANDLER_CACHE_MAXIMUM_SIZE.value())
           .build(
               CacheLoader.from(key ->
-                  load3(key.def, key.provider.handlers(key.def),
+                  checkAndLoad(key.def, key.provider.handlers(key.def),
                       key.relClasses)));
 
   // Pre-register the most common relational operators, to reduce the number of
@@ -189,6 +191,20 @@ public class JaninoRelMetadataProvider implements RelMetadataProvider {
   public <M extends Metadata> Multimap<Method, MetadataHandler<M>>
       handlers(MetadataDef<M> def) {
     return provider.handlers(def);
+  }
+
+  private static <M extends Metadata> MetadataHandler<M> checkAndLoad(
+      MetadataDef<M> def, Multimap<Method, MetadataHandler<M>> map,
+      ImmutableList<Class<? extends RelNode>> relClasses) {
+    boolean enableRegenerateHandler =
+        CalciteSystemProperty.ENABLE_REGENERATE_METADATA_HANDLER.value();
+    String handlerName = def.metadataClass.getSimpleName();
+    synchronized (HANDLERS_GENERATED) {
+      if (!enableRegenerateHandler && !HANDLERS_GENERATED.add(handlerName)) {
+        throw new IllegalArgumentException("Metadata handler already exists for " + handlerName);
+      }
+      return load3(def, map, relClasses);
+    }
   }
 
   private static <M extends Metadata> MetadataHandler<M> load3(

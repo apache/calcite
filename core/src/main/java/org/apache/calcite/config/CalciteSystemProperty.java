@@ -311,6 +311,17 @@ public final class CalciteSystemProperty<T> {
       intProperty("calcite.metadata.handler.cache.maximum.size", 1000);
 
   /**
+   * A flag to indicate if we allow regenerating metadata handlers in
+   * {@link org.apache.calcite.rel.metadata.JaninoRelMetadataProvider}.
+   *
+   * <p>It would be desirable if we never have to regenerate metadata handlers, as
+   * the regenerating process involves recompiling code by Janino, which is time-consuming.
+   * </p>
+   */
+  public static final CalciteSystemProperty<Boolean> ENABLE_REGENERATE_METADATA_HANDLER =
+      booleanProperty("calcite.enable.regenerate.metadata.handler", true);
+
+  /**
    * The maximum size of the cache used for storing Bindable objects, instantiated via
    * dynamically generated Java classes.
    *
