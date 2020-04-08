@@ -300,6 +300,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
       break;
+    case CHARACTER_LENGTH:
     case CHAR_LENGTH:
       final SqlWriter.Frame lengthFrame = writer.startFunCall("LENGTH");
       call.operand(0).unparse(writer, leftPrec, rightPrec);
