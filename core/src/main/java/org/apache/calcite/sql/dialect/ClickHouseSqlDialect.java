@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
+import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
@@ -34,6 +35,8 @@ import org.apache.calcite.sql.SqlTimestampLiteral;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.base.Preconditions;
 
@@ -41,11 +44,12 @@ import com.google.common.base.Preconditions;
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
  */
 public class ClickHouseSqlDialect extends SqlDialect {
-  public static final SqlDialect DEFAULT =
-      new ClickHouseSqlDialect(EMPTY_CONTEXT
-          .withDatabaseProduct(DatabaseProduct.CLICKHOUSE)
-          .withIdentifierQuoteString("`")
-          .withNullCollation(NullCollation.LOW));
+  public static final SqlDialect.Context DEFAULT_CONTEXT = SqlDialect.EMPTY_CONTEXT
+      .withDatabaseProduct(SqlDialect.DatabaseProduct.CLICKHOUSE)
+      .withIdentifierQuoteString("`")
+      .withNullCollation(NullCollation.LOW);
+
+  public static final SqlDialect DEFAULT = new ClickHouseSqlDialect(DEFAULT_CONTEXT);
 
   private static final SqlSpecialOperator CLICKHOUSE_SUBSTRING =
       new SqlSpecialOperator("substring", SqlKind.OTHER_FUNCTION) {
@@ -87,42 +91,38 @@ public class ClickHouseSqlDialect extends SqlDialect {
   }
 
   @Override public SqlNode getCastSpec(RelDataType type) {
-    String castSpec;
-    switch (type.getSqlTypeName()) {
-    case VARCHAR:
-      castSpec = "String";
-      break;
-    case TINYINT:
-      castSpec = "Int8";
-      break;
-    case SMALLINT:
-      castSpec = "Int16";
-      break;
-    case INTEGER:
-      castSpec = "Int32";
-      break;
-    case BIGINT:
-      castSpec = "Int64";
-      break;
-    case FLOAT:
-      castSpec = "Float32";
-      break;
-    case DOUBLE:
-      castSpec = "Float64";
-      break;
-    case DATE:
-      castSpec = "Date";
-      break;
-    case TIMESTAMP:
-    case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      castSpec = "DateTime";
-      break;
-    default:
-      return super.getCastSpec(type);
+    if (type instanceof BasicSqlType) {
+      SqlTypeName typeName = type.getSqlTypeName();
+      switch (typeName) {
+      case VARCHAR:
+        return createSqlDataTypeSpecByName("String", typeName);
+      case TINYINT:
+        return createSqlDataTypeSpecByName("Int8", typeName);
+      case SMALLINT:
+        return createSqlDataTypeSpecByName("Int16", typeName);
+      case INTEGER:
+        return createSqlDataTypeSpecByName("Int32", typeName);
+      case BIGINT:
+        return createSqlDataTypeSpecByName("Int64", typeName);
+      case FLOAT:
+        return createSqlDataTypeSpecByName("Float32", typeName);
+      case DOUBLE:
+        return createSqlDataTypeSpecByName("Float64", typeName);
+      case DATE:
+        return createSqlDataTypeSpecByName("Date", typeName);
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+        return createSqlDataTypeSpecByName("DateTime", typeName);
+      }
     }
 
-    return new SqlDataTypeSpec(new SqlIdentifier(castSpec, SqlParserPos.ZERO),
-        type.getPrecision(), -1, null, null, SqlParserPos.ZERO);
+    return super.getCastSpec(type);
+  }
+
+  private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
+    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
+        typeAlias, typeName, SqlParserPos.ZERO);
+    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
