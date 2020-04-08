@@ -65,6 +65,11 @@
   githubId: ebegoli
   org: Oak Ridge National Laboratory
   role: Committer
+- name: Feng Zhu
+  apacheId: fengzhu
+  githubId: DonnyZone
+  org: Tencent
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
