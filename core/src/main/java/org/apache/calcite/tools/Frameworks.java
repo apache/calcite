@@ -35,6 +35,7 @@ import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.sql2rel.StandardConvertletTable;
@@ -218,6 +219,7 @@ public class Frameworks {
     private Context context;
     private ImmutableList<RelTraitDef> traitDefs;
     private SqlParser.Config parserConfig;
+    private SqlValidator.Config sqlValidatorConfig;
     private SqlToRelConverter.Config sqlToRelConverterConfig;
     private SchemaPlus defaultSchema;
     private RexExecutor executor;
@@ -234,6 +236,7 @@ public class Frameworks {
       programs = ImmutableList.of();
       context = Contexts.empty();
       parserConfig = SqlParser.Config.DEFAULT;
+      sqlValidatorConfig = SqlValidator.Config.DEFAULT;
       sqlToRelConverterConfig = SqlToRelConverter.Config.DEFAULT;
       typeSystem = RelDataTypeSystem.DEFAULT;
       evolveLattice = false;
@@ -248,6 +251,7 @@ public class Frameworks {
       context = config.getContext();
       traitDefs = config.getTraitDefs();
       parserConfig = config.getParserConfig();
+      sqlValidatorConfig = config.getSqlValidatorConfig();
       sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
       defaultSchema = config.getDefaultSchema();
       executor = config.getExecutor();
@@ -259,7 +263,7 @@ public class Frameworks {
 
     public FrameworkConfig build() {
       return new StdFrameworkConfig(context, convertletTable, operatorTable,
-          programs, traitDefs, parserConfig, sqlToRelConverterConfig,
+          programs, traitDefs, parserConfig, sqlValidatorConfig, sqlToRelConverterConfig,
           defaultSchema, costFactory, typeSystem, executor, evolveLattice,
           statisticProvider, viewExpander);
     }
@@ -301,6 +305,11 @@ public class Frameworks {
 
     public ConfigBuilder parserConfig(SqlParser.Config parserConfig) {
       this.parserConfig = Objects.requireNonNull(parserConfig);
+      return this;
+    }
+
+    public ConfigBuilder sqlValidatorConfig(SqlValidator.Config sqlValidatorConfig) {
+      this.sqlValidatorConfig = Objects.requireNonNull(sqlValidatorConfig);
       return this;
     }
 
@@ -372,6 +381,7 @@ public class Frameworks {
     private final ImmutableList<Program> programs;
     private final ImmutableList<RelTraitDef> traitDefs;
     private final SqlParser.Config parserConfig;
+    private final SqlValidator.Config sqlValidatorConfig;
     private final SqlToRelConverter.Config sqlToRelConverterConfig;
     private final SchemaPlus defaultSchema;
     private final RelOptCostFactory costFactory;
@@ -387,6 +397,7 @@ public class Frameworks {
         ImmutableList<Program> programs,
         ImmutableList<RelTraitDef> traitDefs,
         SqlParser.Config parserConfig,
+        SqlValidator.Config sqlValidatorConfig,
         SqlToRelConverter.Config sqlToRelConverterConfig,
         SchemaPlus defaultSchema,
         RelOptCostFactory costFactory,
@@ -401,6 +412,7 @@ public class Frameworks {
       this.programs = programs;
       this.traitDefs = traitDefs;
       this.parserConfig = parserConfig;
+      this.sqlValidatorConfig = sqlValidatorConfig;
       this.sqlToRelConverterConfig = sqlToRelConverterConfig;
       this.defaultSchema = defaultSchema;
       this.costFactory = costFactory;
@@ -413,6 +425,10 @@ public class Frameworks {
 
     public SqlParser.Config getParserConfig() {
       return parserConfig;
+    }
+
+    public SqlValidator.Config getSqlValidatorConfig() {
+      return sqlValidatorConfig;
     }
 
     public SqlToRelConverter.Config getSqlToRelConverterConfig() {

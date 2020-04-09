@@ -428,26 +428,20 @@ public class SqlValidatorTestCase {
     }
 
     public Sql withValidatorIdentifierExpansion(boolean expansion) {
-      final UnaryOperator<SqlValidator> after = sqlValidator -> {
-        sqlValidator.setIdentifierExpansion(expansion);
-        return sqlValidator;
-      };
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withIdentifierExpansion(expansion));
       return withTester(tester -> addTransform(tester, after));
     }
 
     public Sql withValidatorCallRewrite(boolean rewrite) {
-      final UnaryOperator<SqlValidator> after = sqlValidator -> {
-        sqlValidator.setCallRewrite(rewrite);
-        return sqlValidator;
-      };
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withCallRewrite(rewrite));
       return withTester(tester -> addTransform(tester, after));
     }
 
     public Sql withValidatorColumnReferenceExpansion(boolean expansion) {
-      final UnaryOperator<SqlValidator> after = sqlValidator -> {
-        sqlValidator.setColumnReferenceExpansion(expansion);
-        return sqlValidator;
-      };
+      final UnaryOperator<SqlValidator> after = sqlValidator ->
+          sqlValidator.transform(config -> config.withColumnReferenceExpansion(expansion));
       return withTester(tester -> addTransform(tester, after));
     }
 

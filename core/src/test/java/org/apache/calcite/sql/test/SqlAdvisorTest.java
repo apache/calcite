@@ -54,8 +54,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 @ExtendWith(SqlValidatorTestCase.LexConfiguration.class)
 class SqlAdvisorTest extends SqlValidatorTestCase {
-  public static final SqlTestFactory ADVISOR_TEST_FACTORY = SqlTestFactory.INSTANCE.withValidator(
-      SqlAdvisorValidator::new);
+  public static final SqlTestFactory ADVISOR_TEST_FACTORY =
+      SqlTestFactory.INSTANCE.withValidator(SqlAdvisorValidator::new);
 
   private static final List<String> STAR_KEYWORD =
       Arrays.asList(

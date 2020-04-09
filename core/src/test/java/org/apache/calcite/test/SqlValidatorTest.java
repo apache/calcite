@@ -8368,7 +8368,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM `EMP`";
     sql(sql)
         .withValidatorCallRewrite(false)
-        .rewritesTo(tester.getValidator().shouldExpandIdentifiers()
+        .rewritesTo(tester.getValidator().config().identifierExpansion()
             ? expected1 : expected2);
   }
 
@@ -8382,7 +8382,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         + "FROM `EMP`";
     sql(sql)
         .withValidatorCallRewrite(true)
-        .rewritesTo(tester.getValidator().shouldExpandIdentifiers()
+        .rewritesTo(tester.getValidator().config().identifierExpansion()
             ? expected1 : expected2);
   }
 

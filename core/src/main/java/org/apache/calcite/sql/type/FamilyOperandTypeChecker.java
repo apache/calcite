@@ -71,7 +71,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
       return true;
     }
     if (SqlUtil.isNullLiteral(node, false)) {
-      if (callBinding.getValidator().isTypeCoercionEnabled()) {
+      if (callBinding.isTypeCoercionEnabled()) {
         return true;
       } else if (throwOnFailure) {
         throw callBinding.getValidator().newValidationError(node,
@@ -116,7 +116,7 @@ public class FamilyOperandTypeChecker implements SqlSingleOperandTypeChecker,
           false)) {
         // try to coerce type if it is allowed.
         boolean coerced = false;
-        if (callBinding.getValidator().isTypeCoercionEnabled()) {
+        if (callBinding.isTypeCoercionEnabled()) {
           TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
           ImmutableList.Builder<RelDataType> builder = ImmutableList.builder();
           for (int i = 0; i < callBinding.getOperandCount(); i++) {

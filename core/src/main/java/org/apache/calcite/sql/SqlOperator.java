@@ -674,9 +674,7 @@ public abstract class SqlOperator {
         if (operand.e != null
             && operand.e.getKind() == SqlKind.DEFAULT
             && !operandTypeChecker.isOptional(operand.i)) {
-          throw callBinding.getValidator().newValidationError(
-              callBinding.getCall(),
-              RESOURCE.defaultForOptionalParameter());
+          throw callBinding.newValidationError(RESOURCE.defaultForOptionalParameter());
         }
       }
     }

@@ -114,7 +114,7 @@ public class SqlInOperator extends SqlBinaryOperator {
       // First check that the expressions in the IN list are compatible
       // with each other. Same rules as the VALUES operator (per
       // SQL:2003 Part 2 Section 8.4, <in predicate>).
-      if (null == rightType && validator.isTypeCoercionEnabled()) {
+      if (null == rightType && validator.config().typeCoercionEnabled()) {
         // Do implicit type cast if it is allowed to.
         rightType = validator.getTypeCoercion().getWiderTypeFor(rightTypeList, true);
       }
@@ -131,7 +131,7 @@ public class SqlInOperator extends SqlBinaryOperator {
     }
     SqlCallBinding callBinding = new SqlCallBinding(validator, scope, call);
     // Coerce type first.
-    if (callBinding.getValidator().isTypeCoercionEnabled()) {
+    if (callBinding.isTypeCoercionEnabled()) {
       boolean coerced = callBinding.getValidator().getTypeCoercion()
           .inOperationCoercion(callBinding);
       if (coerced) {

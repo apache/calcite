@@ -294,4 +294,12 @@ public class SqlCallBinding extends SqlOperatorBinding {
       Resources.ExInst<SqlValidatorException> ex) {
     return validator.newValidationError(call, ex);
   }
+
+  /**
+   * Returns whether to allow implicit type coercion when validation.
+   * This is a short-cut method.
+   */
+  public boolean isTypeCoercionEnabled() {
+    return validator.config().typeCoercionEnabled();
+  }
 }

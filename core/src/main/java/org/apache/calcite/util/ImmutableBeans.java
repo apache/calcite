@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.sql.validate.SqlConformance;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 
@@ -282,7 +285,11 @@ public class ImmutableBeans {
   }
 
   private static Object convertDefault(Object defaultValue, String propertyName,
-      Class propertyType) {
+      Class<?> propertyType) {
+    if (propertyType.equals(SqlConformance.class)) {
+      // Workaround for SqlConformance because it is actually not a Enum.
+      propertyType = SqlConformanceEnum.class;
+    }
     if (defaultValue == null || !propertyType.isEnum()) {
       return defaultValue;
     }
