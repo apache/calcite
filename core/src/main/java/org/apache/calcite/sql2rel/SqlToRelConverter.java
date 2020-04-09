@@ -3061,12 +3061,10 @@ public class SqlToRelConverter {
    */
   private RelNode rewriteAggregateWithGroupId(Blackboard bb,
       AggregatingSelectScope.Resolved r, AggConverter converter) {
-    final List<AggregateCall> aggregateCalls = converter.getAggCalls();
-    final ImmutableBitSet groupSet = r.groupSet;
+    final List<AggregateCall> originalAggregateCalls = converter.getAggCalls();
     final Map<ImmutableBitSet, Integer> groupSetCount = r.groupSetCount;
-
-    final List<String> fieldNamesIfNoRewrite = createAggregate(bb, groupSet,
-        r.groupSets, aggregateCalls).getRowType().getFieldNames();
+    final RelDataType rowType = createAggregate(bb, r.groupSet,
+        r.groupSets, originalAggregateCalls).getRowType();
 
     // If n duplicates exist for a particular grouping, the {@code GROUP_ID()}
     // function produces values in the range 0 to n-1. For each value,
@@ -3092,14 +3090,11 @@ public class SqlToRelConverter {
       }
     }
 
-    // AggregateCall list without GROUP_ID function
-    final List<AggregateCall> aggregateCallsWithoutGroupId = new ArrayList<>();
-    for (AggregateCall aggregateCall : aggregateCalls) {
-      if (aggregateCall.getAggregation().kind != SqlKind.GROUP_ID) {
-        aggregateCallsWithoutGroupId.add(aggregateCall);
-      }
-    }
-    final List<RelNode> projects = new ArrayList<>();
+    final List<RelNode> projects = new ArrayList<>(maxGroupId);
+    final int groupExprLength = r.groupExprList.size();
+    final List<RelDataType> fieldTypes = rowType.getFieldList().stream().map(
+        RelDataTypeField::getType).collect(Collectors.toList());
+
     // For each group id value , we first construct an Aggregate without
     // GROUP_ID() function call, and then create a Project node on top of it.
     // The Project adds literal value for group id in right position.
@@ -3107,34 +3102,85 @@ public class SqlToRelConverter {
       // Create the Aggregate node without GROUP_ID() call
       final ImmutableList<ImmutableBitSet> groupSets =
           ImmutableList.copyOf(groupIdToGroupSets.get(groupId));
-      final RelNode aggregate = createAggregate(bb, groupSet,
-          groupSets, aggregateCallsWithoutGroupId);
+      final ImmutableBitSet groupSet =
+          r.groupSet.intersect(ImmutableBitSet.union(groupSets));
 
-      // RexLiteral for each GROUP_ID, note the type should be BIGINT
-      final RelDataType groupIdType = typeFactory.createSqlType(SqlTypeName.BIGINT);
-      final RexNode groupIdLiteral = rexBuilder.makeExactLiteral(
-          BigDecimal.valueOf(groupId), groupIdType);
-
-      relBuilder.push(aggregate);
-      final List<RexNode> selectList = new ArrayList<>();
-      final int groupExprLength = r.groupExprList.size();
-      // Project fields in group by expressions
-      for (int i = 0; i < groupExprLength; i++) {
-        selectList.add(relBuilder.field(i));
+      // AggregateCall list
+      final List<AggregateCall> aggregateCalls = new ArrayList<>();
+      final int offset = groupSet.asSet().size();
+      final Map<Integer, ImmutableBitSet> groupingArgOrdinals = new HashMap<>();
+      final Map<Integer, Long> groupingValues = new HashMap<>();
+      for (int i = 0; i < originalAggregateCalls.size(); i++) {
+        final AggregateCall aggregateCall = originalAggregateCalls.get(i);
+        final SqlKind aggKind = aggregateCall.getAggregation().kind;
+        if (aggKind == SqlKind.GROUP_ID) {
+          continue;
+        }
+        // Note: grouping and grouping_id functions take group set fields as inputs
+        // When group set changed, we need to rewrite the function accordingly
+        if (aggKind == SqlKind.GROUPING && !groupSet.equals(r.groupSet)) {
+          final AggregateCall groupingAgg = rewriteGrouping(aggregateCall,
+              r.groupSet, groupSet, i, groupingValues, groupingArgOrdinals);
+          if (groupingAgg != null) {
+            aggregateCalls.add(groupingAgg);
+          }
+          continue;
+        }
+        aggregateCalls.add(aggregateCall);
       }
-      // Project fields in aggregate calls
-      int groupIdCount = 0;
-      for (int i = 0; i < aggregateCalls.size(); i++) {
-        if (aggregateCalls.get(i).getAggregation().kind == SqlKind.GROUP_ID) {
-          selectList.add(groupIdLiteral);
-          groupIdCount++;
+
+      final RelNode aggregate = createAggregate(bb, groupSet, groupSets, aggregateCalls);
+      relBuilder.push(aggregate);
+
+      final List<RexNode> selectList = new ArrayList<>(rowType.getFieldCount());
+      // first, group fields
+      int groupExprOrdinal = 0;
+      for (int i = 0; i < groupExprLength; i++) {
+        if (groupSet.asSet().contains(i)) {
+          selectList.add(relBuilder.field(groupExprOrdinal));
+          groupExprOrdinal++;
         } else {
-          int ordinal = groupExprLength + i - groupIdCount;
-          selectList.add(relBuilder.field(ordinal));
+          final RexNode nullLiteral = rexBuilder.makeNullLiteral(fieldTypes.get(i));
+          selectList.add(nullLiteral);
         }
       }
+      // second, aggregate fields
+      int pos = offset;
+      for (int i = 0; i < originalAggregateCalls.size(); i++) {
+        final AggregateCall aggregateCall = originalAggregateCalls.get(i);
+        final SqlKind aggKind = aggregateCall.getAggregation().kind;
+        if (aggKind == SqlKind.GROUP_ID) {
+          // RexLiteral for GROUP_ID()
+          final RexNode groupIdLiteral =
+              rexBuilder.makeBigintLiteral(BigDecimal.valueOf(groupId));
+          selectList.add(groupIdLiteral);
+          continue;
+        }
+        if (aggKind == SqlKind.GROUPING && !groupSet.equals(r.groupSet)) {
+          if (groupingValues.containsKey(i)) {
+            // RexLiteral for GROUPING and GROUPING_ID
+            final long groupingValue = groupingValues.get(i);
+            final RexNode groupingValueLiteral =
+                rexBuilder.makeBigintLiteral(BigDecimal.valueOf(groupingValue));
+            selectList.add(groupingValueLiteral);
+            continue;
+          }
+          if (groupingArgOrdinals.containsKey(i)) {
+            final ImmutableBitSet argOrdinals = groupingArgOrdinals.get(i);
+            // re-compute grouping function
+            final RexNode grouping = reComputeGrouping(relBuilder.field(pos),
+                argOrdinals, groupSet.asSet().size());
+            selectList.add(grouping);
+            pos++;
+            continue;
+          }
+        }
+        selectList.add(relBuilder.field(pos));
+        pos++;
+      }
+
       final RelNode project = relBuilder.project(
-          selectList, fieldNamesIfNoRewrite).build();
+          selectList, rowType.getFieldNames()).build();
       projects.add(project);
     }
     // Skip to create Union when there is only one child, i.e., no duplicate group set.
@@ -3142,6 +3188,105 @@ public class SqlToRelConverter {
       return projects.get(0);
     }
     return LogicalUnion.create(projects, true);
+  }
+
+  /**
+   * Rewrite {@code AggregateCall} with grouping function. When a group set members removed,
+   * remove the function argument accordingly. If there is no argument left, return null.
+   * @param aggregateCall AggregateCall with grouping function
+   * @param originGroupSet original group set
+   * @param newGroupSet new group set
+   * @param aggCallOrdinal ordinal of this AggregateCall
+   * @param groupingValues grouping values computed when no argument left
+   * @param groupingArgOrdinals ordinals of the grouping arguments dropped
+   * @return AggregateCall after rewrite
+   */
+  private AggregateCall rewriteGrouping(final AggregateCall aggregateCall,
+      final ImmutableBitSet originGroupSet, final ImmutableBitSet newGroupSet,
+      final int aggCallOrdinal, final Map<Integer, Long> groupingValues,
+      final Map<Integer, ImmutableBitSet> groupingArgOrdinals) {
+    final List<Integer> originArgs = aggregateCall.getArgList();
+    final List<Integer> newArgs = new ArrayList<>();
+    final List<Integer> ordinals = new ArrayList<>();
+    final List<Integer> newGroupList = newGroupSet.asList();
+    for (int ordinal = 0; ordinal < originArgs.size(); ordinal++) {
+      int arg = originArgs.get(ordinal);
+      if (newGroupList.contains(arg)) {
+        newArgs.add(arg);
+      } else {
+        ordinals.add(ordinal);
+      }
+    }
+    if (newArgs.isEmpty()) {
+      long groupingValue = 1L << originGroupSet.asList().size() - 1;
+      groupingValues.put(aggCallOrdinal, groupingValue);
+      return null;
+    }
+    final ImmutableBitSet argsDropped = ImmutableBitSet.of(ordinals);
+    groupingArgOrdinals.put(aggCallOrdinal, argsDropped);
+    final int originFilterArg = aggregateCall.filterArg;
+    final int filterArg = newGroupList.contains(originFilterArg) ? originFilterArg : -1;
+    return AggregateCall.create(aggregateCall.getAggregation(), aggregateCall.isDistinct(),
+        aggregateCall.isApproximate(), aggregateCall.ignoreNulls(), newArgs,
+        filterArg, aggregateCall.collation, aggregateCall.type, aggregateCall.name);
+  }
+
+  /**
+   * Re-compute the initial value from grouping function (with partial arguments).
+   *
+   * <p>For example, assume the initial function is: {@code grouping(a, b, c)},
+   * when the second argument is always null (i.e., {@code b = null}), we can
+   * get the result of {@code grouping(a, b, c)} from {@code grouping(a, c)}.
+   * That is, {@code value = grouping(a, c), argOrdinals = {1}, valueLen = 2}.
+   * </p>
+   *
+   * @param groupingValue the input grouping value
+   * @param argOrdinals ordinals of grouping args dropped
+   * @param valueLen length of the input number in binary
+   * @return result of the initial grouping value
+   */
+  private RexNode reComputeGrouping(final RexNode groupingValue,
+      final ImmutableBitSet argOrdinals, final int valueLen) {
+    int resultLen = valueLen;
+    RexNode result = groupingValue;
+    for (int ordinal: argOrdinals) {
+      result = insertBitInSpecificPosition(result, ordinal, resultLen);
+      resultLen++;
+    }
+    return result;
+  }
+
+  /**
+   * Insert a bit '1' into the value at specific position
+   * For example, when input = 7 (i.e., '111'), ordinal = 2, len = 3,
+   * the result is 15 (i.e., '1111')
+   * @param input the input number
+   * @param ordinal position
+   * @param len length of the input number in binary
+   * @return number after inserting bit
+   */
+  private RexNode insertBitInSpecificPosition(final RexNode input,
+       final int ordinal, final int len) {
+    assert ordinal >= 0 && ordinal <= len;
+    final int rightLen = len - ordinal;
+    final long v = (long) Math.pow(2, rightLen);
+    final RexNode vLiteral = rexBuilder.makeBigintLiteral(BigDecimal.valueOf(v));
+    // left part: num / v
+    final RexNode left = rexBuilder.makeCall(SqlStdOperatorTable.DIVIDE, input, vLiteral);
+    // left value: left * v
+    final RexNode leftValue =
+        rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, left, vLiteral);
+    // right value: num - leftValue
+    final RexNode right =
+        rexBuilder.makeCall(SqlStdOperatorTable.MINUS, input, leftValue);
+    final RexNode shiftLiteral = rexBuilder.makeBigintLiteral(BigDecimal.valueOf(2L));
+    // shift left
+    final RexNode leftShift = rexBuilder.makeCall(
+        SqlStdOperatorTable.MULTIPLY, leftValue, shiftLiteral);
+    // Insert bit '1'
+    final RexNode leftInserted = rexBuilder.makeCall(
+        SqlStdOperatorTable.PLUS, leftShift, vLiteral);
+    return rexBuilder.makeCall(SqlStdOperatorTable.PLUS, leftInserted, right);
   }
 
   /**

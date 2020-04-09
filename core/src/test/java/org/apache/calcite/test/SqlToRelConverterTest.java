@@ -3716,6 +3716,39 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3893">[CALCITE-3893]
+   * SQL with GROUP_ID may generate wrong plan</a>. */
+  @Test public void testGroupId0() {
+    final String sql = "select deptno, group_id() as g, count(*) as c\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), ())";
+    sql(sql).ok();
+  }
+
+  @Test public void testGroupId1() {
+    final String sql = "select deptno, group_id() as g, grouping(deptno) as g1, count(*) as c\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, (), ())";
+    sql(sql).ok();
+  }
+
+  @Test public void testGroupId2() {
+    final String sql = "select deptno, group_id() as g, grouping(deptno) as g1, count(*) as c\n"
+        + "from emp\n"
+        + "group by grouping sets (deptno, deptno, ())";
+    sql(sql).ok();
+  }
+
+  @Test public void testGroupId3() {
+    final String sql = "select deptno, job, empno, ename, sum(sal) sumsal, "
+        + "group_id() as gid, grouping_id(deptno, job, empno) as g1, grouping(empno) as g2\n"
+        + "from emp\n"
+        + "group by grouping sets((deptno,job,empno,ename), "
+        + "(deptno,job), deptno, deptno, (), ())";
+    sql(sql).ok();
+  }
+
   /**
    * Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3826">[CALCITE-3826]

@@ -4534,6 +4534,29 @@ public class JdbcTest {
             "DEPTNO=null; G=2; C=14");
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3893">[CALCITE-3893]
+   * SQL with GROUP_ID may generate wrong plan</a>. */
+  @Test void testGroupId2() {
+    CalciteAssert.that()
+        .with(CalciteAssert.Config.SCOTT)
+        .query("select deptno, group_id() as g, count(*) as c\n"
+            + "from \"scott\".emp\n"
+            + "group by grouping sets (deptno, (), ())")
+        .explainContains("EnumerableUnion(all=[true])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[0:BIGINT], DEPTNO=[$t0], G=[$t2], C=[$t1])\n"
+            + "    EnumerableAggregate(group=[{7}], groups=[[{7}, {}]], C=[COUNT()])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])\n"
+            + "  EnumerableCalc(expr#0=[{inputs}], expr#1=[null:TINYINT], expr#2=[1:BIGINT], DEPTNO=[$t1], G=[$t2], C=[$t0])\n"
+            + "    EnumerableAggregate(group=[{}], C=[COUNT()])\n"
+            + "      EnumerableTableScan(table=[[scott, EMP]])")
+        .returnsUnordered("DEPTNO=10; G=0; C=3",
+            "DEPTNO=20; G=0; C=5",
+            "DEPTNO=30; G=0; C=6",
+            "DEPTNO=null; G=0; C=14",
+            "DEPTNO=null; G=1; C=14");
+  }
+
   /** Tests CALCITE-980: Not (C='a' or C='b') causes NPE */
   @Test public void testWhereOrAndNullable() {
     /* Generates the following code:
