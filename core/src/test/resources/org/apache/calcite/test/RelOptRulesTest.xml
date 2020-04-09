@@ -12460,4 +12460,25 @@ LogicalProject(**=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSwapOuterJoinFieldAccess">
+        <Resource name="sql">
+            <![CDATA[select t1.name, e.ename from DEPT_NESTED as t1 left outer join sales.emp e on t1.skill.type = e.job]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(NAME=[$1], ENAME=[$5])
+  LogicalJoin(condition=[=($2.TYPE, $6)], joinType=[left])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(NAME=[$10], ENAME=[$1])
+  LogicalJoin(condition=[=($11.TYPE, $2)], joinType=[right])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT_NESTED]])
+]]>
+        </Resource>
+    </TestCase>
 </Root>
