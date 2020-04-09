@@ -628,8 +628,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
       final SqlValidator validator =
           createSqlValidator(context, catalogReader);
-      validator.setIdentifierExpansion(true);
-      validator.setDefaultNullCollation(config.defaultNullCollation());
 
       preparedResult = preparingStmt.prepareSql(
           sqlNode, Object.class, validator, true);
@@ -709,9 +707,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final SqlOperatorTable opTab =
         ChainedSqlOperatorTable.of(opTab0, catalogReader);
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final SqlConformance conformance = context.config().conformance();
+    final CalciteConnectionConfig connectionConfig = context.config();
+    final SqlValidator.Config config = SqlValidator.Config.DEFAULT
+        .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
+        .withSqlConformance(connectionConfig.conformance())
+        .withDefaultNullCollation(connectionConfig.defaultNullCollation())
+        .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-        conformance);
+        config);
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(

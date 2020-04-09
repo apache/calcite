@@ -28,7 +28,6 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.test.RelBuilderTest;
@@ -85,7 +84,6 @@ class ToLogicalConverterTest {
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema,
         CalciteAssert.SchemaSpec.JDBC_FOODMART);
     return Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
         .sqlToRelConverterConfig(DEFAULT_REL_CONFIG)
         .build();

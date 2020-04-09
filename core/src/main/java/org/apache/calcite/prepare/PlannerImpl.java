@@ -48,7 +48,6 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
@@ -57,7 +56,6 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Planner;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Pair;
 
@@ -79,6 +77,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   private final ImmutableList<RelTraitDef> traitDefs;
 
   private final SqlParser.Config parserConfig;
+  private final SqlValidator.Config sqlValidatorConfig;
   private final SqlToRelConverter.Config sqlToRelConverterConfig;
   private final SqlRexConvertletTable convertletTable;
 
@@ -108,6 +107,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.operatorTable = config.getOperatorTable();
     this.programs = config.getPrograms();
     this.parserConfig = config.getParserConfig();
+    this.sqlValidatorConfig = config.getSqlValidatorConfig();
     this.sqlToRelConverterConfig = config.getSqlToRelConverterConfig();
     this.state = State.STATE_0_CLOSED;
     this.traitDefs = config.getTraitDefs();
@@ -222,10 +222,6 @@ public class PlannerImpl implements Planner, ViewExpander {
     return validatedSqlNode;
   }
 
-  private SqlConformance conformance() {
-    return connectionConfig.conformance();
-  }
-
   public Pair<SqlNode, RelDataType> validateAndGetType(SqlNode sqlNode)
       throws ValidationException {
     final SqlNode validatedNode = this.validate(sqlNode);
@@ -235,11 +231,11 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   @SuppressWarnings("deprecation")
-  public final RelNode convert(SqlNode sql) throws RelConversionException {
+  public final RelNode convert(SqlNode sql) {
     return rel(sql).rel;
   }
 
-  public RelRoot rel(SqlNode sql) throws RelConversionException {
+  public RelRoot rel(SqlNode sql) {
     ensure(State.STATE_4_VALIDATED);
     assert validatedSqlNode != null;
     final RexBuilder rexBuilder = createRexBuilder();
@@ -325,13 +321,16 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader) {
-    final SqlConformance conformance = conformance();
     final SqlOperatorTable opTab =
         ChainedSqlOperatorTable.of(operatorTable, catalogReader);
-    final SqlValidator validator =
-        new CalciteSqlValidator(opTab, catalogReader, typeFactory, conformance);
-    validator.setIdentifierExpansion(true);
-    return validator;
+    return new CalciteSqlValidator(opTab,
+        catalogReader,
+        typeFactory,
+        sqlValidatorConfig
+            .withDefaultNullCollation(connectionConfig.defaultNullCollation())
+            .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
+            .withSqlConformance(connectionConfig.conformance())
+            .withIdentifierExpansion(true));
   }
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {
@@ -353,7 +352,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
-      RelNode rel) throws RelConversionException {
+      RelNode rel) {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(
         new CachingRelMetadataProvider(

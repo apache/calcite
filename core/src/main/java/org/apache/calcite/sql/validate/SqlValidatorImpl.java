@@ -132,6 +132,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -261,22 +262,12 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   private final AggFinder aggOrOverOrGroupFinder;
   private final AggFinder groupFinder;
   private final AggFinder overFinder;
-  private final SqlConformance conformance;
+
+  private Config config;
+
   private final Map<SqlNode, SqlNode> originalExprs = new HashMap<>();
 
   private SqlNode top;
-
-  // REVIEW jvs 30-June-2006: subclasses may override shouldExpandIdentifiers
-  // in a way that ignores this; we should probably get rid of the protected
-  // method and always use this variable (or better, move preferences like
-  // this to a separate "parameter" class)
-  protected boolean expandIdentifiers;
-
-  protected boolean expandColumnReferences;
-
-  protected boolean lenientOperatorLookup;
-
-  private boolean rewriteCalls;
 
   private NullCollation nullCollation = NullCollation.HIGH;
 
@@ -292,9 +283,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   // TypeCoercion instance used for implicit type coercion.
   private TypeCoercion typeCoercion;
 
-  // Flag saying if we enable the implicit type coercion.
-  private boolean enableTypeCoercion;
-
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -303,23 +291,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
    * @param opTab         Operator table
    * @param catalogReader Catalog reader
    * @param typeFactory   Type factory
-   * @param conformance   Compatibility mode
+   * @param config        Config
    */
   protected SqlValidatorImpl(
       SqlOperatorTable opTab,
       SqlValidatorCatalogReader catalogReader,
       RelDataTypeFactory typeFactory,
-      SqlConformance conformance) {
+      Config config) {
     this.opTab = Objects.requireNonNull(opTab);
     this.catalogReader = Objects.requireNonNull(catalogReader);
     this.typeFactory = Objects.requireNonNull(typeFactory);
-    this.conformance = Objects.requireNonNull(conformance);
+    this.config = Objects.requireNonNull(config);
 
     unknownType = typeFactory.createUnknownType();
     booleanType = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
 
-    rewriteCalls = true;
-    expandColumnReferences = true;
     final SqlNameMatcher nameMatcher = catalogReader.nameMatcher();
     aggFinder = new AggFinder(opTab, false, true, false, null, nameMatcher);
     aggOrOverFinder =
@@ -329,17 +315,30 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     groupFinder = new AggFinder(opTab, false, false, true, null, nameMatcher);
     aggOrOverOrGroupFinder = new AggFinder(opTab, true, true, true, null,
         nameMatcher);
-    this.lenientOperatorLookup = catalogReader.getConfig() != null
-        && catalogReader.getConfig().lenientOperatorLookup();
-    this.enableTypeCoercion = catalogReader.getConfig() == null
-        || catalogReader.getConfig().typeCoercion();
-    this.typeCoercion = TypeCoercions.getTypeCoercion(this, conformance);
+    this.typeCoercion = TypeCoercions.getTypeCoercion(this, config.sqlConformance());
+  }
+
+  /**
+   * Creates a validator.
+   *
+   * @param opTab         Operator table
+   * @param catalogReader Catalog reader
+   * @param typeFactory   Type factory
+   * @param conformance   Compatibility mode
+   */
+  @Deprecated // to be removed before 1.24
+  protected SqlValidatorImpl(
+      SqlOperatorTable opTab,
+      SqlValidatorCatalogReader catalogReader,
+      RelDataTypeFactory typeFactory,
+      SqlConformance conformance) {
+    this(opTab, catalogReader, typeFactory, Config.DEFAULT.withSqlConformance(conformance));
   }
 
   //~ Methods ----------------------------------------------------------------
 
   public SqlConformance getConformance() {
-    return conformance;
+    return config.sqlConformance();
   }
 
   public SqlValidatorCatalogReader getCatalogReader() {
@@ -563,9 +562,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     final SqlIdentifier identifier = (SqlIdentifier) selectItem;
-    final SqlConformance conformance = validator.getConformance();
     if (!identifier.isSimple()) {
-      if (!conformance.allowQualifyingCommonColumn()) {
+      if (!validator.config().sqlConformance().allowQualifyingCommonColumn()) {
         validateQualifiedCommonColumn((SqlJoin) from, identifier, scope, validator);
       }
       return selectItem;
@@ -1307,7 +1305,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
           ((SqlBasicCall) call).setOperator(overloads.get(0));
         }
       }
-      if (rewriteCalls) {
+      if (config.callRewrite()) {
         node = call.getOperator().rewriteCall(this, call);
       }
     } else if (node instanceof SqlNodeList) {
@@ -1836,7 +1834,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       assert type == returnType;
     }
 
-    if (shouldExpandIdentifiers()) {
+    if (config.identifierExpansion()) {
       if (resolvedConstructor != null) {
         ((SqlBasicCall) call).setOperator(resolvedConstructor);
       } else {
@@ -1898,7 +1896,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((node instanceof SqlDynamicParam) || isNullLiteral) {
       if (inferredType.equals(unknownType)) {
         if (isNullLiteral) {
-          if (enableTypeCoercion) {
+          if (config.typeCoercionEnabled()) {
             // derive type of null literal
             deriveType(scope, node);
             return;
@@ -2021,35 +2019,35 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   // implement SqlValidator
   public void setIdentifierExpansion(boolean expandIdentifiers) {
-    this.expandIdentifiers = expandIdentifiers;
+    this.config = this.config.withIdentifierExpansion(expandIdentifiers);
   }
 
   // implement SqlValidator
   public void setColumnReferenceExpansion(
       boolean expandColumnReferences) {
-    this.expandColumnReferences = expandColumnReferences;
+    this.config = this.config.withColumnReferenceExpansion(expandColumnReferences);
   }
 
   // implement SqlValidator
   public boolean getColumnReferenceExpansion() {
-    return expandColumnReferences;
+    return this.config.columnReferenceExpansion();
   }
 
   public void setDefaultNullCollation(NullCollation nullCollation) {
-    this.nullCollation = Objects.requireNonNull(nullCollation);
+    this.config = this.config.withDefaultNullCollation(Objects.requireNonNull(nullCollation));
   }
 
   public NullCollation getDefaultNullCollation() {
-    return nullCollation;
+    return this.config.defaultNullCollation();
   }
 
   // implement SqlValidator
   public void setCallRewrite(boolean rewriteCalls) {
-    this.rewriteCalls = rewriteCalls;
+    this.config = this.config.withCallRewrite(rewriteCalls);
   }
 
   public boolean shouldExpandIdentifiers() {
-    return expandIdentifiers;
+    return this.config.identifierExpansion();
   }
 
   protected boolean shouldAllowIntermediateOrderBy() {
@@ -2165,7 +2163,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         if (alias == null) {
           alias = deriveAlias(node, nextGeneratedId++);
         }
-        if (shouldExpandIdentifiers()) {
+        if (config.identifierExpansion()) {
           newNode = SqlValidatorUtil.addAlias(node, alias);
         }
         break;
@@ -2183,7 +2181,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         // give this anonymous construct a name since later
         // query processing stages rely on it
         alias = deriveAlias(node, nextGeneratedId++);
-        if (shouldExpandIdentifiers()) {
+        if (config.identifierExpansion()) {
           // Since we're expanding identifiers, we should make the
           // aliases explicit too, otherwise the expanded query
           // will not be consistent if we convert back to SQL, e.g.
@@ -3074,7 +3072,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   public void validateIdentifier(SqlIdentifier id, SqlValidatorScope scope) {
     final SqlQualified fqId = scope.fullyQualify(id);
-    if (expandColumnReferences) {
+    if (this.config.columnReferenceExpansion()) {
       // NOTE jvs 9-Apr-2007: this doesn't cover ORDER BY, which has its
       // own ideas about qualification.
       id.assignNamesFrom(fqId.identifier);
@@ -3371,7 +3369,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     // a NATURAL keyword?
     switch (joinType) {
     case LEFT_SEMI_JOIN:
-      if (!conformance.isLiberal()) {
+      if (!this.config.sqlConformance().isLiberal()) {
         throw newValidationError(join.getJoinTypeNode(),
             RESOURCE.dialectDoesNotSupportFeature("LEFT SEMI JOIN"));
       }
@@ -3503,7 +3501,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     if (select.getFrom() == null) {
-      if (conformance.isFromRequired()) {
+      if (this.config.sqlConformance().isFromRequired()) {
         throw newValidationError(select, RESOURCE.selectMissingFrom());
       }
     } else {
@@ -3964,21 +3962,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public SqlValidator setLenientOperatorLookup(boolean lenient) {
-    this.lenientOperatorLookup = lenient;
+    this.config = this.config.withLenientOperatorLookup(lenient);
     return this;
   }
 
   public boolean isLenientOperatorLookup() {
-    return this.lenientOperatorLookup;
+    return this.config.lenientOperatorLookup();
   }
 
   public SqlValidator setEnableTypeCoercion(boolean enabled) {
-    this.enableTypeCoercion = enabled;
+    this.config = this.config.withTypeCoercionEnabled(enabled);
     return this;
   }
 
   public boolean isTypeCoercionEnabled() {
-    return this.enableTypeCoercion;
+    return this.config.typeCoercionEnabled();
   }
 
   public void setTypeCoercion(TypeCoercion typeCoercion) {
@@ -3987,12 +3985,21 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
   }
 
   public TypeCoercion getTypeCoercion() {
-    assert isTypeCoercionEnabled();
+    assert config.typeCoercionEnabled();
     return this.typeCoercion;
   }
 
   public void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules) {
     SqlTypeCoercionRule.THREAD_PROVIDERS.set(typeCoercionRules);
+  }
+
+  public Config config() {
+    return this.config;
+  }
+
+  public SqlValidator transform(UnaryOperator<Config> transform) {
+    this.config = transform.apply(this.config);
+    return this;
   }
 
   /**
@@ -4203,7 +4210,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
     final AggregatingScope havingScope =
         (AggregatingScope) getSelectScope(select);
-    if (getConformance().isHavingAlias()) {
+    if (config.sqlConformance().isHavingAlias()) {
       SqlNode newExpr = expandGroupByOrHavingExpr(having, havingScope, select, true);
       if (having != newExpr) {
         having = newExpr;
@@ -4270,7 +4277,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
         new SqlNodeList(
             expandedSelectItems,
             selectItems.getParserPosition());
-    if (shouldExpandIdentifiers()) {
+    if (config.identifierExpansion()) {
       select.setSelectList(newSelectList);
     }
     getRawSelectScope(select).setExpandedSelectList(expandedSelectItems);
@@ -4656,7 +4663,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       RelDataType targetRowType,
       SqlInsert insert) {
     if (insert.getTargetColumnList() == null
-        && conformance.isInsertSubsetColumnsAllowed()) {
+        && this.config.sqlConformance().isInsertSubsetColumnsAllowed()) {
       // Target an implicit subset of columns.
       final SqlNode source = insert.getSource();
       final RelDataType sourceRowType = getNamespace(source).getRowType();
@@ -4724,7 +4731,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Returns early if source and target row type equals sans nullability.
       return;
     }
-    if (enableTypeCoercion && !isUpdateModifiableViewTable) {
+    if (config.typeCoercionEnabled() && !isUpdateModifiableViewTable) {
       // Try type coercion first if implicit type coercion is allowed.
       boolean coerced = typeCoercion.querySourceCoercion(sourceScope,
           sourceRowType,
@@ -4963,7 +4970,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       }
 
       SqlCall rowConstructor = (SqlCall) operand;
-      if (conformance.isInsertSubsetColumnsAllowed() && targetRowType.isStruct()
+      if (this.config.sqlConformance().isInsertSubsetColumnsAllowed()
+          && targetRowType.isStruct()
           && rowConstructor.operandCount() < targetRowType.getFieldCount()) {
         targetRowType =
             typeFactory.createStructType(
@@ -5527,7 +5535,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if ((call.operandCount() == 0)
         && (operator.getSyntax() == SqlSyntax.FUNCTION_ID)
         && !call.isExpanded()
-        && !conformance.allowNiladicParentheses()) {
+        && !this.config.sqlConformance().allowNiladicParentheses()) {
       // For example, "LOCALTIME()" is illegal. (It should be
       // "LOCALTIME", which would have been handled as a
       // SqlIdentifier.)
@@ -6051,7 +6059,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
       // Ordinal markers, e.g. 'select a, b from t order by 2'.
       // Only recognize them if they are the whole expression,
       // and if the dialect permits.
-      if (literal == root && getConformance().isSortByOrdinal()) {
+      if (literal == root && config.sqlConformance().isSortByOrdinal()) {
         switch (literal.getTypeName()) {
         case DECIMAL:
         case DOUBLE:
@@ -6100,7 +6108,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     public SqlNode visit(SqlIdentifier id) {
       // Aliases, e.g. 'select a as x, b from t order by x'.
       if (id.isSimple()
-          && getConformance().isSortByAlias()) {
+          && config.sqlConformance().isSortByAlias()) {
         String alias = id.getSimple();
         final SqlValidatorNamespace selectNs = getNamespace(select);
         final RelDataType rowType =
@@ -6172,8 +6180,8 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     @Override public SqlNode visit(SqlIdentifier id) {
       if (id.isSimple()
           && (havingExpr
-              ? validator.getConformance().isHavingAlias()
-              : validator.getConformance().isGroupByAlias())) {
+              ? validator.config().sqlConformance().isHavingAlias()
+              : validator.config().sqlConformance().isGroupByAlias())) {
         String name = id.getSimple();
         SqlNode expr = null;
         final SqlNameMatcher nameMatcher =
@@ -6215,7 +6223,7 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     }
 
     public SqlNode visit(SqlLiteral literal) {
-      if (havingExpr || !validator.getConformance().isGroupByOrdinal()) {
+      if (havingExpr || !validator.config().sqlConformance().isGroupByOrdinal()) {
         return super.visit(literal);
       }
       boolean isOrdinalLiteral = literal == root;

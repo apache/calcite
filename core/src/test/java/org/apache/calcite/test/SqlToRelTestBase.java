@@ -81,7 +81,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * SqlToRelTestBase is an abstract base for tests which involve conversion from
@@ -609,7 +609,8 @@ public abstract class SqlToRelTestBase {
               catalogReader, typeFactory);
       final CalciteConnectionConfig calciteConfig = context.unwrap(CalciteConnectionConfig.class);
       if (calciteConfig != null) {
-        validator.setDefaultNullCollation(calciteConfig.defaultNullCollation());
+        validator.transform(config ->
+            config.withDefaultNullCollation(calciteConfig.defaultNullCollation()));
       }
       if (config == SqlToRelConverter.Config.DEFAULT) {
         localConfig = SqlToRelConverter.configBuilder()
@@ -690,15 +691,14 @@ public abstract class SqlToRelTestBase {
     public SqlValidator createValidator(
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory) {
-      final SqlValidator validator = new FarragoTestValidator(
+      return new FarragoTestValidator(
           getOperatorTable(),
           catalogReader,
           typeFactory,
-          getConformance());
-      // the connection config may be null, set up the flag
-      // separately.
-      validator.setEnableTypeCoercion(enableTypeCoercion);
-      return validator;
+          SqlValidator.Config.DEFAULT
+              .withSqlConformance(conformance)
+              .withTypeCoercionEnabled(enableTypeCoercion)
+              .withIdentifierExpansion(true));
     }
 
     public final SqlOperatorTable getOperatorTable() {
@@ -748,7 +748,7 @@ public abstract class SqlToRelTestBase {
       String sql2 = getDiffRepos().expand("sql", sql);
       RelNode rel = convertSqlToRel(sql2).project();
 
-      assertTrue(rel != null);
+      assertNotNull(rel);
       assertValid(rel);
 
       if (trim) {
@@ -756,7 +756,7 @@ public abstract class SqlToRelTestBase {
             RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
         final RelFieldTrimmer trimmer = createFieldTrimmer(relBuilder);
         rel = trimmer.trim(rel);
-        assertTrue(rel != null);
+        assertNotNull(rel);
         assertValid(rel);
       }
 
@@ -871,13 +871,8 @@ public abstract class SqlToRelTestBase {
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
-        SqlConformance conformance) {
-      super(opTab, catalogReader, typeFactory, conformance);
-    }
-
-    // override SqlValidator
-    public boolean shouldExpandIdentifiers() {
-      return true;
+        Config config) {
+      super(opTab, catalogReader, typeFactory, config);
     }
   }
 

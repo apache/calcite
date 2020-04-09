@@ -557,8 +557,8 @@ public class SqlWindow extends SqlCall {
 
     for (SqlNode orderItem : orderList) {
       boolean savedColumnReferenceExpansion =
-          validator.getColumnReferenceExpansion();
-      validator.setColumnReferenceExpansion(false);
+          validator.config().columnReferenceExpansion();
+      validator.transform(config -> config.withColumnReferenceExpansion(false));
       try {
         orderItem.accept(Util.OverFinder.INSTANCE);
       } catch (ControlFlowException e) {
@@ -569,8 +569,8 @@ public class SqlWindow extends SqlCall {
       try {
         orderItem.validateExpr(validator, scope);
       } finally {
-        validator.setColumnReferenceExpansion(
-            savedColumnReferenceExpansion);
+        validator.transform(config ->
+            config.withColumnReferenceExpansion(savedColumnReferenceExpansion));
       }
     }
 

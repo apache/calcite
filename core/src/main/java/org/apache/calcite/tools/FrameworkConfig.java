@@ -26,6 +26,7 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.SqlRexConvertletTable;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 
@@ -42,6 +43,11 @@ public interface FrameworkConfig {
    * The configuration of SQL parser.
    */
   SqlParser.Config getParserConfig();
+
+  /**
+   * The configuration of {@link SqlValidator}.
+   */
+  SqlValidator.Config getSqlValidatorConfig();
 
   /**
    * The configuration of {@link SqlToRelConverter}.
