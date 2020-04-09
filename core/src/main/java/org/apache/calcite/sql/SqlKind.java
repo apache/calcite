@@ -16,7 +16,7 @@
  */
 package org.apache.calcite.sql;
 
-import org.apache.calcite.linq4j.API;
+import org.apiguardian.api.API;
 
 import java.util.Collection;
 import java.util.EnumSet;

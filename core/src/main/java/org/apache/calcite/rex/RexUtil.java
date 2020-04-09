@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rex;
 
-import org.apache.calcite.linq4j.API;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
@@ -50,6 +49,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
+import org.apiguardian.api.API;
 
 import java.util.ArrayList;
 import java.util.Arrays;

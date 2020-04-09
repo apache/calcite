@@ -16,10 +16,11 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.linq4j.API;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
+
+import org.apiguardian.api.API;
 
 import java.util.List;
 

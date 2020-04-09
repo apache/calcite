@@ -16,9 +16,10 @@
  */
 package org.apache.calcite.runtime;
 
-import org.apache.calcite.linq4j.API;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.util.Holder;
+
+import org.apiguardian.api.API;
 
 import java.util.ArrayList;
 import java.util.List;
