@@ -114,7 +114,7 @@ public class CassandraSchema extends AbstractSchema {
    */
   public CassandraSchema(String host, String keyspace, String username, String password,
         SchemaPlus parentSchema, String name) {
-    this(host, DEFAULT_CASSANDRA_PORT, keyspace, null, null, parentSchema, name);
+    this(host, DEFAULT_CASSANDRA_PORT, keyspace, username, password, parentSchema, name);
   }
 
   /**
