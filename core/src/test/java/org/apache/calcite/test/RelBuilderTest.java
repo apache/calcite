@@ -1082,6 +1082,29 @@ public class RelBuilderTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3895">[CALCITE-3895]
+   * When the group sets of Aggregate is not null,
+   * union of its members should contain group key</a>. */
+  @Test void testAggregate6() {
+    // Equivalent SQL (illegal):
+    //   SELECT deptno, count(*) AS C
+    //   FROM emp
+    //   GROUP BY grouping sets (())
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final AssertionError error = assertThrows(AssertionError.class, () -> {
+      builder.scan("EMP")
+          .aggregate(
+              builder.groupKey(ImmutableBitSet.of(0),
+              (Iterable<ImmutableBitSet>) ImmutableList.of(
+                  ImmutableBitSet.of())),
+              builder.countStar("C"))
+          .build();
+    });
+    assertThat(error.getMessage(),
+        containsString("the union of group sets should equal to group set"));
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3839">[CALCITE-3839]
    * After calling RelBuilder.aggregate, cannot lookup field by name</a>. */
   @Test public void testAggregateAndThenProjectNamedField() {

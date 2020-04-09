@@ -118,7 +118,9 @@ public abstract class Aggregate extends SingleRel implements Hintable {
   /**
    * Creates an Aggregate.
    *
-   * <p>All members of {@code groupSets} must be sub-sets of {@code groupSet}.
+   * <p> The union of {@code groupSets} members should equal to {@code groupSet}. That is,
+   *  i) All members of {@code groupSets} must be sub-sets of {@code groupSet}
+   *  ii) The union of {@code groupSets} members must contain {@code groupSet}
    * For a simple {@code GROUP BY}, {@code groupSets} is a singleton list
    * containing {@code groupSet}.
    *
@@ -158,9 +160,8 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     } else {
       this.groupSets = ImmutableList.copyOf(groupSets);
       assert ImmutableBitSet.ORDERING.isStrictlyOrdered(groupSets) : groupSets;
-      for (ImmutableBitSet set : groupSets) {
-        assert groupSet.contains(set);
-      }
+      assert ImmutableBitSet.union(groupSets).equals(groupSet)
+          : "the union of group sets should equal to group set";
     }
     assert groupSet.length() <= input.getRowType().getFieldCount();
     for (AggregateCall aggCall : aggCalls) {

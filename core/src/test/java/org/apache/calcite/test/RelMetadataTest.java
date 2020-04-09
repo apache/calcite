@@ -1761,7 +1761,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         LogicalAggregate.create(join,
             ImmutableList.of(),
             ImmutableBitSet.of(2, 0),
-            ImmutableList.of(),
+            null,
             ImmutableList.of(
                 AggregateCall.create(SqlStdOperatorTable.COUNT,
                     false, false, false, ImmutableIntList.of(),
