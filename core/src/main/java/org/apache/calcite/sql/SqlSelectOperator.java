@@ -219,7 +219,6 @@ public class SqlSelectOperator extends SqlOperator {
           List<SqlNode> visitedLiteralNodeList = new ArrayList<>();
           for (SqlNode groupKey : select.groupBy.getList()) {
             if (!groupKey.toString().equalsIgnoreCase("NULL")) {
-              writer.sep(",");
               if (groupKey.getKind() == SqlKind.LITERAL
                   || groupKey.getKind() == SqlKind.DYNAMIC_PARAM
                   || groupKey.getKind() == SqlKind.MINUS_PREFIX) {
@@ -238,6 +237,7 @@ public class SqlSelectOperator extends SqlOperator {
                         }
                         if (literalNode == groupKey
                             && !visitedLiteralNodeList.contains(literalNode)) {
+                          writer.sep(",");
                           String ordinal = String.valueOf(
                               select.selectList.getList().indexOf(selectSqlNode) + 1);
                           SqlLiteral.createExactNumeric(ordinal,
@@ -247,6 +247,7 @@ public class SqlSelectOperator extends SqlOperator {
                       }
                     });
               } else {
+                writer.sep(",");
                 groupKey.unparse(writer, 2, 3);
               }
             }

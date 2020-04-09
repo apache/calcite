@@ -83,6 +83,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.TIMEZONE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWENTYFOURHOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.TWODIGITYEAR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYMMDD;
+import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMM;
 import static org.apache.calcite.sql.SqlDateTimeFormat.YYYYMMDD;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FORMAT_TIME;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.IFNULL;
@@ -141,6 +142,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(MMDDYYYY, "%m%d%Y");
         put(MMDDYY, "%m%d%y");
         put(YYYYMMDD, "%Y%m%d");
+        put(YYYYMMDD, "%Y%m%d");
         put(YYMMDD, "%y%m%d");
         put(DAYOFWEEK, "%A");
         put(ABBREVIATEDDAYOFWEEK, "%a");
@@ -156,6 +158,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(FRACTIONSIX, "6S");
         put(AMPM, "%p");
         put(TIMEZONE, "%Z");
+        put(YYYYMM, "%Y%m");
       }};
 
   /** An unquoted BigQuery identifier must start with a letter and be followed
@@ -623,8 +626,9 @@ public class BigQuerySqlDialect extends SqlDialect {
     case "FORMAT_TIMESTAMP":
     case "FORMAT_TIME":
     case "FORMAT_DATE":
-      call.setOperand(0, creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()));
-      super.unparseCall(writer, call, leftPrec, rightPrec);
+      SqlCall formatCall = call.getOperator().createCall(SqlParserPos.ZERO,
+          creteDateTimeFormatSqlCharLiteral(call.operand(0).toString()), call.operand(1));
+      super.unparseCall(writer, formatCall, leftPrec, rightPrec);
       break;
     case "STR_TO_DATE":
       SqlCall parseDateCall = PARSE_DATE.createCall(SqlParserPos.ZERO,

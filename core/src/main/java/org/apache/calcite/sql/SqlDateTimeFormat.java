@@ -36,6 +36,7 @@ public enum SqlDateTimeFormat {
   DDMMYY("DDMMYY"),
   MMDDYYYY("MMDDYYYY"),
   MMDDYY("MMDDYY"),
+  YYYYMM("YYYYMM"),
   YYYYMMDD("YYYYMMDD"),
   YYMMDD("YYMMDD"),
   DAYOFWEEK("EEEE"),
