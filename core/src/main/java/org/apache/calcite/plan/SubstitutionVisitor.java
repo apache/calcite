@@ -56,6 +56,7 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ControlFlowException;
@@ -345,13 +346,35 @@ public class SubstitutionVisitor {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL: {
       RexCall call = (RexCall) condition;
-      final RexNode left = call.getOperands().get(0);
-      final RexNode right = call.getOperands().get(1);
+      RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
+      RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
+      call = (RexCall) rexBuilder.makeCall(call.getOperator(), left, right);
+
       if (left.toString().compareTo(right.toString()) <= 0) {
         return call;
       }
       return RexUtil.invert(rexBuilder, call);
     }
+    case PLUS:
+    case TIMES:
+      RexCall call = (RexCall) condition;
+      RexNode left = call.getOperands().get(0);
+      RexNode right = call.getOperands().get(1);
+      left = canonizeNode(rexBuilder, left);
+      right = canonizeNode(rexBuilder, right);
+
+      RexNode newCall;
+      if (left.toString().compareTo(right.toString()) <= 0) {
+        newCall = rexBuilder.makeCall(call.getOperator(), left, right);
+      } else {
+        newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      }
+      // new call should not be used if its inferred type is not same as old
+      if (!SqlTypeUtil.equalSansNullability(rexBuilder.getTypeFactory(),
+          newCall.getType(), call.getType())) {
+        newCall = call;
+      }
+      return newCall;
     default:
       return condition;
     }

@@ -1297,6 +1297,35 @@ class MaterializationTest {
     final RexNode z_eq_3 =
         rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, z, i3); // $2 = 3
 
+    final RexNode x_plus_y_gt =  // x + y > 2
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.GREATER_THAN,
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS, x, y),
+            i2);
+    final RexNode y_plus_x_gt =  // y + x > 2
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.GREATER_THAN,
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS, y, x),
+            i2);
+
+    final RexNode x_times_y_gt = // x*y > 2
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.GREATER_THAN,
+            rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, x, y),
+            i2);
+
+    final RexNode y_times_x_gt = // 2 < y*x
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.LESS_THAN,
+            i2,
+            rexBuilder.makeCall(SqlStdOperatorTable.MULTIPLY, y, x));
+
+    final RexNode x_plus_x_gt =  // x + x > 2
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.GREATER_THAN,
+            rexBuilder.makeCall(SqlStdOperatorTable.PLUS, x, y),
+            i2);
+
     RexNode newFilter;
 
     // Example 1.
@@ -1416,6 +1445,36 @@ class MaterializationTest {
         x_eq_1,
         x_eq_2);
     assertNull(newFilter);
+
+    // Example 8.
+    //   condition: x + y > 2
+    //   target:    y + x > 2
+    // yields
+    //   residue:  true
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_plus_y_gt,
+        y_plus_x_gt);
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
+
+    // Example 9.
+    //   condition: x + x > 2
+    //   target:    x + x > 2
+    // yields
+    //   residue:  true
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_plus_x_gt,
+        x_plus_x_gt);
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
+
+    // Example 10.
+    //   condition: x * y > 2
+    //   target:    2 < y * x
+    // yields
+    //   residue:  true
+    newFilter = SubstitutionVisitor.splitFilter(simplify,
+        x_times_y_gt,
+        y_times_x_gt);
+    assertThat(newFilter.isAlwaysTrue(), equalTo(true));
   }
 
   /** Tests a complicated star-join query on a complicated materialized
