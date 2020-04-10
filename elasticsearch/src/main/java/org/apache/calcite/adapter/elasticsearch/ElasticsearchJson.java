@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.unmodifiableMap;
@@ -107,13 +108,17 @@ final class ElasticsearchJson {
       return;
     }
 
-    if (mapping.has("properties")) {
+    // check if we have reached actual field mapping (leaf of JSON tree)
+    Predicate<JsonNode> isLeaf = node -> node.path("type").isValueNode();
+
+    if (mapping.path("properties").isObject()
+        && !isLeaf.test(mapping.path("properties"))) {
       // recurse
       visitMappingProperties(path, (ObjectNode) mapping.get("properties"), consumer);
       return;
     }
 
-    if (mapping.has("type")) {
+    if (isLeaf.test(mapping)) {
       // this is leaf (register field / type mapping)
       consumer.accept(String.join(".", path), mapping.get("type").asText());
       return;
