@@ -614,6 +614,18 @@ public class RelMetadataTest extends SqlToRelTestBase {
     checkRowCount(sql, EMP_SIZE + DEPT_SIZE, 0D, 140D);
   }
 
+  @Test void testRowCountUnionDistinct() {
+    String sql = "select x from (values 'a', 'b') as t(x)\n"
+        + "union\n"
+        + "select x from (values 'a', 'b') as t(x)";
+    checkRowCount(sql, 2D, 1D, 4D);
+
+    sql = "select x from (values 'a', 'a') as t(x)\n"
+        + "union\n"
+        + "select x from (values 'a', 'a') as t(x)";
+    checkRowCount(sql, 2D, 1D, 4D);
+  }
+
   @Test void testRowCountIntersectOnFinite() {
     final String sql = "select ename from (select * from emp limit 100)\n"
         + "intersect\n"
