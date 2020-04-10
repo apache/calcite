@@ -18,11 +18,13 @@ package org.apache.calcite.adapter.elasticsearch;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -171,4 +173,22 @@ class ElasticsearchJsonTest {
     assertThat(rows.get(1).get("max"), is(42));
   }
 
+  /**
+   * Validate that property names which are reserved keywords ES
+   * are correctly mapped (eg. {@code type} or {@code properties})
+   */
+  @Test void reservedKeywordMapping() throws Exception {
+    // have special property names: type and properties
+    ObjectNode mapping = mapper.readValue("{properties:{"
+        + "type:{type:'text'},"
+        + "keyword:{type:'keyword'},"
+        + "properties:{type:'long'}"
+        + "}}", ObjectNode.class);
+    Map<String, String> result = new HashMap<>();
+    ElasticsearchJson.visitMappingProperties(mapping, result::put);
+
+    assertThat(result.get("type"), is("text"));
+    assertThat(result.get("keyword"), is("keyword"));
+    assertThat(result.get("properties"), is("long"));
+  }
 }
