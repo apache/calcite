@@ -46,8 +46,62 @@ recent official Calcite release is `1.21`) and have a git tag
 
 You should make it from a branch that differs from Calcite's
 `master` branch in only minor ways:
-* Cherry-pick commits from the previous `x.xx-looker` release that set
-  up Looker's repositories
-* If necessarty, include one or two commits for short-term fixes, but
+* Cherry-pick commits from the previous `calcite-x.xx.x-looker`
+  release that set up Looker's repositories (or, if you prefer,
+  rebase the previous release branch onto the latest master)
+* If necessary, include one or two commits for short-term fixes, but
   log [JIRA cases](https://issues.apache.org/jira/browse/CALCITE) to
   get them into `master`.
+
+In Calcite's `gradle.properties`, update the value of
+`calcite.version` to the release name (something like
+`1.22.1-looker`) and commit.
+
+Define Looker's Nexus repository in your `~/.gradle/init.gradle.kts`
+file:
+
+```kotlin
+allprojects {
+    plugins.withId("maven-publish") {
+        configure<PublishingExtension> {
+            repositories {
+                maven {
+                    name = "lookerNexus"
+                    val baseUrl = "https://nexusrepo.looker.com"
+                    val releasesUrl = "$baseUrl/repository/maven-releases"
+                    val snapshotsUrl = "$baseUrl/repository/maven-snapshots"
+                    val release = !project.version.toString().endsWith("-SNAPSHOT")
+                    // val release = project.hasProperty("release")
+                    url = uri(if (release) releasesUrl else snapshotsUrl)
+                    credentials {
+                        username = "xxx"
+                        password = "xxx"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+In the above fragment, replace the values of the `username` and
+`password` properties with the secret credentials.
+
+*NOTE* This fragment *must* be in a file outside of your git sandbox.
+If the file were in the git sandbox, it would be too easy to
+accidentally commit the secret credentials and expose them on a
+public site.
+
+Publish:
+```sh
+./gradlew -Prelease -PskipSign publishAllPublicationsToLookerNexusRepository
+```
+
+Check the artifacts
+[on Nexus](https://nexusproxy.looker.com/#browse/search=keyword%3Dorg.apache.calcite).
+
+If the release was successful, tag the release and push the tag:
+```sh
+git tag calcite-1.21.1-looker HEAD
+git push julianhyde calcite-1.21.1-looker
+```
