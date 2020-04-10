@@ -61,7 +61,12 @@ public class RelMdMinRowCount
         rowCount += partialRowCount;
       }
     }
-    return rowCount;
+
+    if (rel.all) {
+      return rowCount;
+    } else {
+      return Math.min(rowCount, 1d);
+    }
   }
 
   public Double getMinRowCount(Intersect rel, RelMetadataQuery mq) {
