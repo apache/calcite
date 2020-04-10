@@ -345,12 +345,31 @@ public class SubstitutionVisitor {
     case LESS_THAN_OR_EQUAL:
     case GREATER_THAN_OR_EQUAL: {
       RexCall call = (RexCall) condition;
-      final RexNode left = call.getOperands().get(0);
-      final RexNode right = call.getOperands().get(1);
+      RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
+      RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
+      call = (RexCall) rexBuilder.makeCall(call.getOperator(), left, right);
+
       if (left.toString().compareTo(right.toString()) <= 0) {
         return call;
       }
       return RexUtil.invert(rexBuilder, call);
+    }
+    case PLUS:
+    case TIMES: {
+      RexCall call = (RexCall) condition;
+      RexNode left = canonizeNode(rexBuilder, call.getOperands().get(0));
+      RexNode right = canonizeNode(rexBuilder, call.getOperands().get(1));
+
+      if (left.toString().compareTo(right.toString()) <= 0) {
+        return rexBuilder.makeCall(call.getOperator(), left, right);
+      }
+
+      RexNode newCall = rexBuilder.makeCall(call.getOperator(), right, left);
+      // new call should not be used if its inferred type is not same as old
+      if (!newCall.getType().equals(call.getType())) {
+        return call;
+      }
+      return newCall;
     }
     default:
       return condition;
