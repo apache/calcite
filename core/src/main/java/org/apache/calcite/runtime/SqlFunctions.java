@@ -74,7 +74,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -1108,93 +1107,6 @@ public class SqlFunctions {
       Object b1) {
     return RESOURCE.invalidTypesForComparison(b0.getClass().toString(),
         op, b1.getClass().toString()).ex();
-  }
-
-  // &
-  /** Helper function for implementing <code>BIT_AND</code> applied to integer values */
-  public static long bitAnd(long b0, long b1) {
-    return b0 & b1;
-  }
-
-  /** Helper function for implementing <code>BIT_AND</code> applied to binary values */
-  public static ByteString bitAnd(ByteString b0, ByteString b1) {
-
-    if (b0.length() == 0) {
-      return b1;
-    }
-    if (b1.length() == 0) {
-      return b0;
-    }
-
-    if (b0.length() != b1.length()) {
-      throw RESOURCE.differentLengthForBitwiseOperands(b0.length(), b1.length()).ex();
-    }
-    byte[] bytes0 = b0.getBytes();
-    byte[] bytes1 = b1.getBytes();
-    byte[] result = new byte[b0.length()];
-
-    IntStream.range(0, bytes0.length).forEach(i -> {
-      result[i] = (byte) (bytes0[i] & bytes1[i]);
-    });
-    return new ByteString(result);
-  }
-
-  // |
-  /** Helper function for implementing <code>BIT_OR</code> applied to integer values */
-  public static long bitOr(long b0, long b1) {
-    return b0 | b1;
-  }
-
-  /** Helper function for implementing <code>BIT_OR</code> applied to binary values */
-  public static ByteString bitOr(ByteString b0, ByteString b1) {
-
-    if (b0.length() == 0) {
-      return b1;
-    }
-    if (b1.length() == 0) {
-      return b0;
-    }
-
-    if (b0.length() != b1.length()) {
-      throw RESOURCE.differentLengthForBitwiseOperands(b0.length(), b1.length()).ex();
-    }
-    byte[] bytes0 = b0.getBytes();
-    byte[] bytes1 = b1.getBytes();
-    byte[] result = new byte[b0.length()];
-
-    IntStream.range(0, bytes0.length).forEach(i -> {
-      result[i] = (byte) (bytes0[i] | bytes1[i]);
-    });
-    return new ByteString(result);
-  }
-
-  // ^
-  /** Helper function for implementing <code>BIT_XOR</code> applied to integer values */
-  public static long bitXor(long b0, long b1) {
-    return b0 ^ b1;
-  }
-
-  /** Helper function for implementing <code>BIT_XOR</code> applied to binary values */
-  public static ByteString bitXor(ByteString b0, ByteString b1) {
-
-    if (b0.length() == 0) {
-      return b1;
-    }
-    if (b1.length() == 0) {
-      return b0;
-    }
-
-    if (b0.length() != b1.length()) {
-      throw RESOURCE.differentLengthForBitwiseOperands(b0.length(), b1.length()).ex();
-    }
-    byte[] bytes0 = b0.getBytes();
-    byte[] bytes1 = b1.getBytes();
-    byte[] result = new byte[b0.length()];
-
-    IntStream.range(0, bytes0.length).forEach(i -> {
-      result[i] = (byte) (bytes0[i] ^ bytes1[i]);
-    });
-    return new ByteString(result);
   }
 
   // EXP

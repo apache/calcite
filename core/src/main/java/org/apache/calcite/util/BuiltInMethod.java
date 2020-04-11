@@ -82,6 +82,7 @@ import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Automaton;
 import org.apache.calcite.runtime.BinarySearch;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.calcite.runtime.BitwiseFunctions;
 import org.apache.calcite.runtime.CompressionFunctions;
 import org.apache.calcite.runtime.Enumerables;
 import org.apache.calcite.runtime.FlatLists;
@@ -423,9 +424,9 @@ public enum BuiltInMethod {
   NOT(SqlFunctions.class, "not", Boolean.class),
   LESSER(SqlFunctions.class, "lesser", Comparable.class, Comparable.class),
   GREATER(SqlFunctions.class, "greater", Comparable.class, Comparable.class),
-  BIT_AND(SqlFunctions.class, "bitAnd", long.class, long.class),
-  BIT_OR(SqlFunctions.class, "bitOr", long.class, long.class),
-  BIT_XOR(SqlFunctions.class, "bitXor", long.class, long.class),
+  BIT_AND(BitwiseFunctions.class, "bitAnd", long.class, long.class),
+  BIT_OR(BitwiseFunctions.class, "bitOr", long.class, long.class),
+  BIT_XOR(BitwiseFunctions.class, "bitXor", long.class, long.class),
   MODIFIABLE_TABLE_GET_MODIFIABLE_COLLECTION(ModifiableTable.class,
       "getModifiableCollection"),
   SCANNABLE_TABLE_SCAN(ScannableTable.class, "scan", DataContext.class),
