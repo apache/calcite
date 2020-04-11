@@ -189,7 +189,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Get rid of everything except what's in the final plan.
     collectGarbage();
-
+    dumpRuleAttemptsInfo();
     return buildFinalPlan(root);
   }
 
