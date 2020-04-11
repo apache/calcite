@@ -1755,12 +1755,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       // Sort rules by number of attempts
       List<Map.Entry<String, Pair<Long, Long>>> list =
           new ArrayList<>(this.ruleAttempts.entrySet());
-      Collections.sort(list, new Comparator<Map.Entry<String, Pair<Long, Long>>>() {
-        public int compare(Map.Entry<String, Pair<Long, Long>> left,
-                           Map.Entry<String, Pair<Long, Long>> right) {
-          return right.getValue().left.compareTo(left.getValue().left);
-        }
-      });
+      Collections.sort(list,
+          (left, right) -> right.getValue().left.compareTo(left.getValue().left));
 
       // Print out rule attempts and time
       StringBuilder sb = new StringBuilder();
