@@ -293,9 +293,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
-    if (LOGGER.isDebugEnabled()) {
+    if (LOGGER.isTraceEnabled()) {
       // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
-      LOGGER.debug("call#{}: Apply rule [{}] to {}",
+      LOGGER.trace("call#{}: Apply rule [{}] to {}",
           ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels));
     }
 
@@ -334,8 +334,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelOptRuleCall ruleCall,
       RelNode newRel,
       boolean before) {
-    if (before && LOGGER.isDebugEnabled()) {
-      LOGGER.debug("call#{}: Rule {} arguments {} produced {}",
+    if (before && LOGGER.isTraceEnabled()) {
+      LOGGER.trace("call#{}: Rule {} arguments {} produced {}",
           ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels), newRel);
     }
 
@@ -357,7 +357,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param rel chosen rel
    */
   protected void notifyChosen(RelNode rel) {
-    LOGGER.debug("For final plan, using {}", rel);
+    LOGGER.trace("For final plan, using {}", rel);
 
     if (listener != null) {
       RelOptListener.RelChosenEvent event =

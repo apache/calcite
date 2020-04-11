@@ -93,8 +93,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
     rel = handler.propagate(rels[0], rel);
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
           equiv.isEmpty() ? "" : " with equivalences " + equiv);
       if (generatedRelList != null) {
         generatedRelList.add(rel);
@@ -201,8 +201,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         }
       }
 
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace(
             "call#{}: Apply rule [{}] to {}",
             id, getRule(), Arrays.toString(rels));
       }
@@ -228,11 +228,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.ruleCallStack.pop();
       }
 
-      if (LOGGER.isDebugEnabled()) {
+      if (LOGGER.isTraceEnabled()) {
         if (generatedRelList.isEmpty()) {
-          LOGGER.debug("call#{} generated 0 successors.", id);
+          LOGGER.trace("call#{} generated 0 successors.", id);
         } else {
-          LOGGER.debug(
+          LOGGER.trace(
               "call#{} generated {} successors: {}",
               id, generatedRelList.size(), generatedRelList);
         }
