@@ -1705,8 +1705,8 @@ LogicalProject(EXPR$0=[+($5, $12)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[+($1, $4)])
-  LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
-    LogicalProject(ENAME=[$1], SAL=[$5], ==[=($7, 10)])
+  LogicalJoin(condition=[AND(=($0, $3), =($2, 10))], joinType=[inner])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
@@ -2079,9 +2079,9 @@ LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[COUNT($0) OVER (PARTITION BY $7)])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalProject(EXPR$0=[+($2, $6)], EXPR$1=[COUNT($0) OVER (PARTITION BY $3)])
-  LogicalJoin(condition=[AND(=($1, $5), $4)], joinType=[inner])
-    LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7], ==[=($7, 10)])
+LogicalProject(EXPR$0=[+($2, $5)], EXPR$1=[COUNT($0) OVER (PARTITION BY $3)])
+  LogicalJoin(condition=[AND(=($1, $4), =($3, 10))], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
@@ -2106,8 +2106,8 @@ LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[COUNT($11) OVER (PARTITION BY $10)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[+($1, $6)], EXPR$1=[COUNT($5) OVER (PARTITION BY $4)])
-  LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
-    LogicalProject(ENAME=[$1], SAL=[$5], ==[=($7, 10)])
+  LogicalJoin(condition=[AND(=($0, $3), =($2, 10))], joinType=[inner])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
@@ -2132,11 +2132,38 @@ LogicalProject(EXPR$0=[+($5, $12)], EXPR$1=[SUM(+(+($11, $11), 100)) OVER (PARTI
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[+($1, $5)], EXPR$1=[SUM($6) OVER (PARTITION BY $4)])
-  LogicalJoin(condition=[AND(=($0, $3), $2)], joinType=[inner])
-    LogicalProject(ENAME=[$1], SAL=[$5], ==[=($7, 10)])
+  LogicalJoin(condition=[AND(=($0, $3), =($2, 10))], joinType=[inner])
+    LogicalProject(ENAME=[$1], SAL=[$5], DEPTNO=[$7])
       LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(ENAME=[$0], JOB=[$1], COMM=[$3], +=[+(+($2, $2), 100)])
       LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testPushProjectPastJoinKeepFilter">
+        <Resource name="sql">
+            <![CDATA[select  emp.ename, sum(bonus.sal)
+from emp left outer join bonus on emp.ename = bonus.ename and floor(emp.sal) > 10
+group by emp.ename]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalProject(ENAME=[$1], SAL0=[$11])
+    LogicalJoin(condition=[AND(=($1, $9), >(FLOOR($5), 10))], joinType=[left])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalAggregate(group=[{0}], EXPR$1=[SUM($1)])
+  LogicalProject(ENAME=[$0], SAL0=[$3])
+    LogicalJoin(condition=[AND(=($0, $2), >(FLOOR($1), 10))], joinType=[left])
+      LogicalProject(ENAME=[$1], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalProject(ENAME=[$0], SAL=[$2])
+        LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
 ]]>
         </Resource>
     </TestCase>
@@ -12098,8 +12125,8 @@ LogicalProject(EXPR$0=[+($5, $13)])
         <Resource name="planAfter">
             <![CDATA[
 LogicalProject(EXPR$0=[+($0, $3)])
-  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($1, $4), $2)], joinType=[inner])
-    LogicalProject(SAL=[$5], $f9=[$9], ==[=($7, 10)])
+  LogicalJoin(condition=[AND(IS NOT DISTINCT FROM($2, $4), =($1, 10))], joinType=[inner])
+    LogicalProject(SAL=[$5], DEPTNO=[$7], $f9=[$9])
       LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[||($1, $2)])
         LogicalTableScan(table=[[CATALOG, SALES, EMP]])
     LogicalProject(COMM=[$3], $f4=[$4])

@@ -70,6 +70,7 @@ public class PushProjector {
   private final RelNode childRel;
   private final ExprCondition preserveExprCondition;
   private final RelBuilder relBuilder;
+  private final boolean keepFilter;
 
   /**
    * Original projection expressions
@@ -186,7 +187,8 @@ public class PushProjector {
   //~ Constructors -----------------------------------------------------------
 
   /**
-   * Creates a PushProjector object for pushing projects past a RelNode.
+   * Creates a PushProjector object for pushing projects past a RelNode,
+   * with default value to indicate not keep filter.
    *
    * @param origProj              the original projection that is being pushed;
    *                              may be null if the projection is implied as a
@@ -205,10 +207,37 @@ public class PushProjector {
       RelNode childRel,
       ExprCondition preserveExprCondition,
       RelBuilder relBuilder) {
+    this(origProj, origFilter, childRel, preserveExprCondition, false, relBuilder);
+  }
+
+  /**
+   * Creates a PushProjector object for pushing projects past a RelNode,
+   * with explicit flag to indicate whether to keep filter.
+   *
+   * @param origProj              the original projection that is being pushed;
+   *                              may be null if the projection is implied as a
+   *                              result of a projection having been trivially
+   *                              removed
+   * @param origFilter            the filter that the projection must also be
+   *                              pushed past, if applicable
+   * @param childRel              the RelNode that the projection is being
+   *                              pushed past
+   * @param preserveExprCondition condition for whether an expression should
+   *                              be preserved in the projection
+   * @param keepFilter            flag to indicate whether to keep filter
+   */
+  public PushProjector(
+      Project origProj,
+      RexNode origFilter,
+      RelNode childRel,
+      ExprCondition preserveExprCondition,
+      boolean keepFilter,
+      RelBuilder relBuilder) {
     this.origProj = origProj;
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
+    this.keepFilter = keepFilter;
     this.relBuilder = Objects.requireNonNull(relBuilder);
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
@@ -408,17 +437,43 @@ public class PushProjector {
    * to push the projection
    */
   public boolean locateAllRefs() {
-    RexUtil.apply(
-        new InputSpecialOpFinder(
-            projRefs,
-            childBitmap,
-            rightBitmap,
-            strongBitmap,
-            preserveExprCondition,
-            childPreserveExprs,
-            rightPreserveExprs),
-        origProjExprs,
-        origFilter);
+    if (!keepFilter) {
+      RexUtil.apply(
+          new InputSpecialOpFinder(
+              projRefs,
+              childBitmap,
+              rightBitmap,
+              strongBitmap,
+              preserveExprCondition,
+              childPreserveExprs,
+              rightPreserveExprs),
+          origProjExprs,
+          origFilter);
+    } else {
+      RexUtil.apply(
+          new InputSpecialOpFinder(
+              projRefs,
+              childBitmap,
+              rightBitmap,
+              strongBitmap,
+              preserveExprCondition,
+              childPreserveExprs,
+              rightPreserveExprs),
+          origProjExprs,
+          null);
+      // if need to keep filter, then make sure filter will not be pushed
+      RexUtil.apply(
+          new InputSpecialOpFinder(
+              projRefs,
+              childBitmap,
+              rightBitmap,
+              strongBitmap,
+              expr -> !(expr instanceof RexNode),
+              childPreserveExprs,
+              rightPreserveExprs),
+          ImmutableList.of(),
+          origFilter);
+    }
 
     // The system fields of each child are always used by the join, even if
     // they are not projected out of it.

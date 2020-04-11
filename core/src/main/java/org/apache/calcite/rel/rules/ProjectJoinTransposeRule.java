@@ -121,6 +121,7 @@ public class ProjectJoinTransposeRule extends RelOptRule {
             joinFilter,
             join,
             preserveExprCondition,
+            true,
             call.builder());
     if (pushProject.locateAllRefs()) {
       return;

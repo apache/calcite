@@ -1897,6 +1897,13 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(ProjectJoinTransposeRule.INSTANCE).check();
   }
 
+  @Test void testPushProjectPastJoinKeepFilter() {
+    final String sql = "select  emp.ename, sum(bonus.sal)\n"
+        + "from emp left outer join bonus on emp.ename = bonus.ename and floor(emp.sal) > 10\n"
+        + "group by emp.ename";
+    sql(sql).withRule(ProjectJoinTransposeRule.INSTANCE).check();
+  }
+
   @Test void testPushProjectPastSetOp() {
     final String sql = "select sal from\n"
         + "(select * from emp e1 union all select * from emp e2)";
