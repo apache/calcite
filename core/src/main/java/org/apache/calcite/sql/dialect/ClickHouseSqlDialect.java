@@ -21,6 +21,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
 import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
+import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
@@ -120,9 +121,13 @@ public class ClickHouseSqlDialect extends SqlDialect {
   }
 
   private SqlDataTypeSpec createSqlDataTypeSpecByName(String typeAlias, SqlTypeName typeName) {
-    SqlAlienSystemTypeNameSpec typeNameSpec = new SqlAlienSystemTypeNameSpec(
-        typeAlias, typeName, SqlParserPos.ZERO);
-    return new SqlDataTypeSpec(typeNameSpec, SqlParserPos.ZERO);
+    SqlBasicTypeNameSpec spec = new SqlBasicTypeNameSpec(typeName, SqlParserPos.ZERO) {
+      @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+        // unparse as an identifier to ensure that type names are cased correctly
+        writer.identifier(typeAlias, true);
+      }
+    };
+    return new SqlDataTypeSpec(spec, SqlParserPos.ZERO);
   }
 
   @Override public void unparseDateTimeLiteral(SqlWriter writer,
