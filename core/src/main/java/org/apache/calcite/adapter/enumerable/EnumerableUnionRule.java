@@ -22,6 +22,10 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalUnion;
 
+import com.google.common.collect.Lists;
+
+import java.util.List;
+
 /**
  * Rule to convert an {@link org.apache.calcite.rel.logical.LogicalUnion} to an
  * {@link EnumerableUnion}.
@@ -35,8 +39,10 @@ class EnumerableUnionRule extends ConverterRule {
   public RelNode convert(RelNode rel) {
     final LogicalUnion union = (LogicalUnion) rel;
     final EnumerableConvention out = EnumerableConvention.INSTANCE;
-    final RelTraitSet traitSet = union.getTraitSet().replace(out);
+    final RelTraitSet traitSet = rel.getCluster().traitSet().replace(out);
+    final List<RelNode> newInputs = Lists.transform(
+        union.getInputs(), n -> convert(n, traitSet));
     return new EnumerableUnion(rel.getCluster(), traitSet,
-        convertList(union.getInputs(), out), union.all);
+        newInputs, union.all);
   }
 }

@@ -7147,6 +7147,35 @@ public class JdbcTest {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2593">[CALCITE-2593]
+   * Error when transforming multiple collations to single collation</a>. */
+  @Test void testWithinGroupClause7() {
+    CalciteAssert
+        .that()
+        .query("select sum(X + 1) filter (where Y) as S\n"
+            + "from (values (1, TRUE), (2, TRUE)) AS t(X, Y)")
+        .explainContains("EnumerableAggregate(group=[{}], S=[SUM($0) FILTER $1])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[1], expr#3=[+($t0, $t2)], $f0=[$t3], Y=[$t1])\n"
+            + "    EnumerableValues(tuples=[[{ 1, true }, { 2, true }]])\n")
+        .returns("S=5\n");
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2010">[CALCITE-2010]
+   * Fails to plan query that is UNION ALL applied to VALUES</a>. */
+  @Test public void testUnionAllValues() {
+    CalciteAssert.hr()
+        .query("select x, y from (values (1, 2)) as t(x, y)\n"
+            + "union all\n"
+            + "select a + b, a - b from (values (3, 4), (5, 6)) as u(a, b)")
+        .explainContains("EnumerableUnion(all=[true])\n"
+            + "  EnumerableValues(tuples=[[{ 1, 2 }]])\n"
+            + "  EnumerableCalc(expr#0..1=[{inputs}], expr#2=[+($t0, $t1)], expr#3=[-($t0, $t1)], EXPR$0=[$t2], EXPR$1=[$t3])\n"
+            + "    EnumerableValues(tuples=[[{ 3, 4 }, { 5, 6 }]])\n")
+        .returnsUnordered("X=11; Y=-1\nX=1; Y=2\nX=7; Y=-1");
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3565">[CALCITE-3565]
    * Explicitly cast assignable operand types to decimal for udf</a>. */
   @Test void testAssignableTypeCast() {
