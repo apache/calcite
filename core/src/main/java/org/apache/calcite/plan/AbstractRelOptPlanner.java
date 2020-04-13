@@ -28,11 +28,14 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,6 +58,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   protected final RelOptCostFactory costFactory;
 
   private MulticastRelOptListener listener;
+
+  private RuleAttemptsListener ruleAttemptsListener;
 
   private Pattern ruleDescExclusionFilter;
 
@@ -91,6 +96,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // these types, but some operands may use them.
     classes.add(RelNode.class);
     classes.add(RelSubset.class);
+
+    if (LOGGER.isDebugEnabled()) {
+      this.ruleAttemptsListener = new RuleAttemptsListener();
+      addListener(this.ruleAttemptsListener);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -271,6 +281,10 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // do nothing
   }
 
+  public String dumpRuleAttemptsInfo() {
+    return this.ruleAttemptsListener != null ? this.ruleAttemptsListener.dump() : null;
+  }
+
   /**
    * Fires a rule, taking care of tracing and listener notification.
    *
@@ -405,7 +419,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  protected MulticastRelOptListener getListener() {
+  public RelOptListener getListener() {
     return listener;
   }
 
@@ -432,5 +446,64 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
         ? Pair.right(relType.getFieldList())
         : Collections.singletonList(relType);
     return Pair.of(digest, v);
+  }
+
+  /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
+  private class RuleAttemptsListener implements RelOptListener {
+    private long beforeTimestamp;
+    private Map<String, Pair<Long, Long>> ruleAttempts;
+
+
+    RuleAttemptsListener() {
+      ruleAttempts = new HashMap<>();
+    }
+
+    @Override public void relEquivalenceFound(RelEquivalenceEvent event) {
+    }
+
+    @Override public void ruleAttempted(RuleAttemptedEvent event) {
+      if (event.isBefore()) {
+        this.beforeTimestamp = System.nanoTime();
+      } else {
+        long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
+        String rule = event.getRuleCall().getRule().toString();
+        if (ruleAttempts.containsKey(rule)) {
+          Pair<Long, Long> p = ruleAttempts.get(rule);
+          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
+        } else {
+          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
+        }
+      }
+    }
+
+    @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
+    }
+
+    @Override public void relDiscarded(RelDiscardedEvent event) {
+    }
+
+    @Override public void relChosen(RelChosenEvent event) {
+    }
+
+    public String dump() {
+      // Sort rules by number of attempts
+      List<Map.Entry<String, Pair<Long, Long>>> list =
+          new ArrayList<>(this.ruleAttempts.entrySet());
+      Collections.sort(list,
+          (left, right) -> right.getValue().left.compareTo(left.getValue().left));
+
+      // Print out rule attempts and time
+      StringBuilder sb = new StringBuilder();
+      sb.append(String
+          .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
+      for (Map.Entry<String, Pair<Long, Long>> entry : list) {
+        sb.append(
+            String.format(Locale.ROOT, "%-60s%20s%20s%n",
+                entry.getKey(),
+                NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().left),
+                NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().right)));
+      }
+      return sb.toString();
+    }
   }
 }

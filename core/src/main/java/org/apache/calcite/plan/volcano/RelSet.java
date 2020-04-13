@@ -242,7 +242,7 @@ class RelSet {
       subsets.add(subset);
 
       final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
-      if (planner.listener != null) {
+      if (planner.getListener() != null) {
         postEquivalenceEvent(planner, subset);
       }
     } else if ((required && !subset.isRequired())
@@ -272,7 +272,7 @@ class RelSet {
             rel,
             "equivalence class " + id,
             false);
-    planner.listener.relEquivalenceFound(event);
+    planner.getListener().relEquivalenceFound(event);
   }
 
   /**
@@ -291,7 +291,7 @@ class RelSet {
 
       VolcanoPlanner planner =
           (VolcanoPlanner) rel.getCluster().getPlanner();
-      if (planner.listener != null) {
+      if (planner.getListener() != null) {
         postEquivalenceEvent(planner, rel);
       }
     }

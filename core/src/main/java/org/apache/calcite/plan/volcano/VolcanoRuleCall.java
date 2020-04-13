@@ -114,14 +114,14 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             id, getRule(), Arrays.toString(rels), relDesc);
       }
 
-      if (volcanoPlanner.listener != null) {
+      if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleProductionEvent event =
             new RelOptListener.RuleProductionEvent(
                 volcanoPlanner,
                 rel,
                 this,
                 true);
-        volcanoPlanner.listener.ruleProductionSucceeded(event);
+        volcanoPlanner.getListener().ruleProductionSucceeded(event);
       }
 
       final RelNode relCopy = rel;
@@ -144,14 +144,14 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       volcanoPlanner.ensureRegistered(rel, rels[0]);
       rels[0].getCluster().invalidateMetadataQuery();
 
-      if (volcanoPlanner.listener != null) {
+      if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleProductionEvent event =
             new RelOptListener.RuleProductionEvent(
                 volcanoPlanner,
                 rel,
                 this,
                 false);
-        volcanoPlanner.listener.ruleProductionSucceeded(event);
+        volcanoPlanner.getListener().ruleProductionSucceeded(event);
       }
     } catch (Exception e) {
       throw new RuntimeException("Error occurred while applying rule "
@@ -207,14 +207,14 @@ public class VolcanoRuleCall extends RelOptRuleCall {
             id, getRule(), Arrays.toString(rels));
       }
 
-      if (volcanoPlanner.listener != null) {
+      if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleAttemptedEvent event =
             new RelOptListener.RuleAttemptedEvent(
                 volcanoPlanner,
                 rels[0],
                 this,
                 true);
-        volcanoPlanner.listener.ruleAttempted(event);
+        volcanoPlanner.getListener().ruleAttempted(event);
       }
 
       if (LOGGER.isDebugEnabled()) {
@@ -239,14 +239,14 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         this.generatedRelList = null;
       }
 
-      if (volcanoPlanner.listener != null) {
+      if (volcanoPlanner.getListener() != null) {
         RelOptListener.RuleAttemptedEvent event =
             new RelOptListener.RuleAttemptedEvent(
                 volcanoPlanner,
                 rels[0],
                 this,
                 false);
-        volcanoPlanner.listener.ruleAttempted(event);
+        volcanoPlanner.getListener().ruleAttempted(event);
       }
     } catch (Exception e) {
       throw new RuntimeException("Error while applying rule " + getRule()

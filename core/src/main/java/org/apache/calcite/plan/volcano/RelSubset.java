@@ -290,14 +290,14 @@ public class RelSubset extends AbstractRelNode {
     }
 
     VolcanoPlanner planner = (VolcanoPlanner) rel.getCluster().getPlanner();
-    if (planner.listener != null) {
+    if (planner.getListener() != null) {
       RelOptListener.RelEquivalenceEvent event =
           new RelOptListener.RelEquivalenceEvent(
               planner,
               rel,
               this,
               true);
-      planner.listener.relEquivalenceFound(event);
+      planner.getListener().relEquivalenceFound(event);
     }
 
     // If this isn't the first rel in the set, it must have compatible
@@ -325,12 +325,12 @@ public class RelSubset extends AbstractRelNode {
     CheapestPlanReplacer replacer = new CheapestPlanReplacer(planner);
     final RelNode cheapest = replacer.visit(this, -1, null);
 
-    if (planner.listener != null) {
+    if (planner.getListener() != null) {
       RelOptListener.RelChosenEvent event =
           new RelOptListener.RelChosenEvent(
               planner,
               null);
-      planner.listener.relChosen(event);
+      planner.getListener().relChosen(event);
     }
 
     return cheapest;
@@ -620,12 +620,12 @@ public class RelSubset extends AbstractRelNode {
       }
 
       if (ordinal != -1) {
-        if (planner.listener != null) {
+        if (planner.getListener() != null) {
           RelOptListener.RelChosenEvent event =
               new RelOptListener.RelChosenEvent(
                   planner,
                   p);
-          planner.listener.relChosen(event);
+          planner.getListener().relChosen(event);
         }
       }
 

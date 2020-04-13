@@ -19,7 +19,25 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.config.CalciteSystemProperty;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.AbstractRelOptPlanner;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptCostFactory;
+import org.apache.calcite.plan.RelOptLattice;
+import org.apache.calcite.plan.RelOptMaterialization;
+import org.apache.calcite.plan.RelOptMaterializations;
+import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.convert.Converter;
@@ -45,8 +63,19 @@ import com.google.common.collect.Ordering;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.NumberFormat;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -129,17 +158,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   private int nextSetId = 0;
 
-  /**
-   * Listener for this planner, or null if none set.
-   */
-  MulticastRelOptListener listener;
-
-  /**
-   * Listener for couting the attempts of each rule.
-   * Only enabled under DEBUG.
-   */
-  RuleAttemptsListener ruleAttemptsListener;
-
   private RelNode originalRoot;
 
   /**
@@ -200,8 +218,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // If LOGGER is debug enabled, enable provenance information to be captured
     if (LOGGER.isDebugEnabled()) {
       this.provenanceMap = new HashMap<>();
-      this.ruleAttemptsListener = new RuleAttemptsListener();
-      this.addListener(this.ruleAttemptsListener);
     } else {
       this.provenanceMap = Util.blackholeMap();
     }
@@ -515,7 +531,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         LOGGER.debug("Provenance:\n{}", provenance(cheapest));
       }
 
-      LOGGER.debug(this.ruleAttemptsListener.dump());
+      LOGGER.debug("Volcano Planner Rule Attempts Info:");
+      LOGGER.debug(dumpRuleAttemptsInfo());
     }
     return cheapest;
   }
@@ -1556,14 +1573,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public void addListener(RelOptListener newListener) {
-    if (listener == null) {
-      listener = new MulticastRelOptListener();
-    }
-    listener.addListener(newListener);
-  }
-
-  // implement RelOptPlanner
   public void registerMetadataProviders(List<RelMetadataProvider> list) {
     list.add(0, new VolcanoRelMetadataProvider());
   }
@@ -1708,68 +1717,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       this.rule = rule;
       this.rels = rels;
       this.callId = callId;
-    }
-  }
-
-  /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
-  private class RuleAttemptsListener implements RelOptListener {
-    private long totalAttempts;
-    private long beforeTimestamp;
-    private Map<String, Pair<Long, Long>> ruleAttempts;
-
-
-    RuleAttemptsListener() {
-      this.totalAttempts = 0;
-      ruleAttempts = new HashMap<>();
-    }
-
-    @Override public void relEquivalenceFound(RelEquivalenceEvent event) {
-    }
-
-    @Override public void ruleAttempted(RuleAttemptedEvent event) {
-      if (event.isBefore()) {
-        this.beforeTimestamp = System.nanoTime();
-      } else {
-        ++this.totalAttempts;
-        long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
-        String rule = event.getRuleCall().getRule().toString();
-        if (ruleAttempts.containsKey(rule)) {
-          Pair<Long, Long> p = ruleAttempts.get(rule);
-          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
-        } else {
-          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
-        }
-      }
-    }
-
-    @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
-    }
-
-    @Override public void relDiscarded(RelDiscardedEvent event) {
-    }
-
-    @Override public void relChosen(RelChosenEvent event) {
-    }
-
-    public String dump() {
-      // Sort rules by number of attempts
-      List<Map.Entry<String, Pair<Long, Long>>> list =
-          new ArrayList<>(this.ruleAttempts.entrySet());
-      Collections.sort(list,
-          (left, right) -> right.getValue().left.compareTo(left.getValue().left));
-
-      // Print out rule attempts and time
-      StringBuilder sb = new StringBuilder();
-      sb.append(String
-          .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
-      for (Map.Entry<String, Pair<Long, Long>> entry : list) {
-        sb.append(
-            String.format(Locale.ROOT, "%-60s%20s%20s%n",
-            entry.getKey(),
-            NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().left),
-            NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().right)));
-      }
-      return sb.toString();
     }
   }
 }
