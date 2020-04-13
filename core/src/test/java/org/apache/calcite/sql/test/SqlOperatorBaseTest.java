@@ -9163,6 +9163,7 @@ public abstract class SqlOperatorBaseTest {
         "cast(x'02' AS BINARY)",
         "cast(null AS BINARY)"};
     tester.checkAgg("bit_and(x)", binaryValues, "02", 0);
+    tester.checkAgg("bit_and(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
   }
 
   @Test void testBitOrFunc() {
@@ -9193,6 +9194,7 @@ public abstract class SqlOperatorBaseTest {
         "cast(x'02' AS BINARY)",
         "cast(null AS BINARY)"};
     tester.checkAgg("bit_or(x)", binaryValues, "03", 0);
+    tester.checkAgg("bit_or(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
   }
 
   @Test void testBitXorFunc() {
@@ -9223,6 +9225,7 @@ public abstract class SqlOperatorBaseTest {
         "cast(x'01' AS BINARY)",
         "cast(null AS BINARY)"};
     tester.checkAgg("bit_xor(x)", binaryValues, "02", 0);
+    tester.checkAgg("bit_xor(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
   }
 
   /**
