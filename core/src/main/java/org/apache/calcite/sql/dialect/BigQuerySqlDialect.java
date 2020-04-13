@@ -76,6 +76,7 @@ import static org.apache.calcite.sql.SqlDateTimeFormat.HOUR;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MINUTE;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MMDDYYYY;
+import static org.apache.calcite.sql.SqlDateTimeFormat.MMYY;
 import static org.apache.calcite.sql.SqlDateTimeFormat.MONTHNAME;
 import static org.apache.calcite.sql.SqlDateTimeFormat.NUMERICMONTH;
 import static org.apache.calcite.sql.SqlDateTimeFormat.SECOND;
@@ -159,6 +160,7 @@ public class BigQuerySqlDialect extends SqlDialect {
         put(AMPM, "%p");
         put(TIMEZONE, "%Z");
         put(YYYYMM, "%Y%m");
+        put(MMYY, "%m%y");
       }};
 
   /** An unquoted BigQuery identifier must start with a letter and be followed
