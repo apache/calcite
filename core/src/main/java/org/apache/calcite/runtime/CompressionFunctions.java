@@ -84,4 +84,11 @@ public class CompressionFunctions {
       return null;
     }
   }
+
+  /**
+   * MySQl Supports uncompress function for string which returns NULL value.
+   */
+  public static String uncompress(String data) {
+    return null;
+  }
 }

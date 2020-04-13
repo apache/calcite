@@ -5231,6 +5231,7 @@ public abstract class SqlOperatorBaseTest {
     SqlTester sqlTester = tester(SqlLibrary.MYSQL);
     sqlTester.checkNull("UNCOMPRESS(NULL)");
     sqlTester.checkString("UNCOMPRESS(x'')", "", "VARCHAR");
+    sqlTester.checkNull("UNCOMPRESS('string')");
 
     sqlTester.checkNull("UNCOMPRESS(x'1233')");
 
