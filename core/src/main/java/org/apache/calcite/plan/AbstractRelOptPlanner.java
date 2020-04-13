@@ -453,7 +453,6 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     private long beforeTimestamp;
     private Map<String, Pair<Long, Long>> ruleAttempts;
 
-
     RuleAttemptsListener() {
       ruleAttempts = new HashMap<>();
     }
@@ -496,12 +495,13 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       StringBuilder sb = new StringBuilder();
       sb.append(String
           .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
+      NumberFormat usFormat = NumberFormat.getNumberInstance(Locale.US);
       for (Map.Entry<String, Pair<Long, Long>> entry : list) {
         sb.append(
             String.format(Locale.ROOT, "%-60s%20s%20s%n",
                 entry.getKey(),
-                NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().left),
-                NumberFormat.getNumberInstance(Locale.US).format(entry.getValue().right)));
+                usFormat.format(entry.getValue().left),
+                usFormat.getNumberInstance(Locale.US).format(entry.getValue().right)));
       }
       return sb.toString();
     }

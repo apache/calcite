@@ -181,21 +181,21 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         RelSubset subset = volcanoPlanner.getSubset(rel);
 
         if (subset == null) {
-          LOGGER.debug(
+          LOGGER.trace(
               "Rule [{}] not fired because operand #{} ({}) has no subset",
               getRule(), i, rel);
           return;
         }
 
         if (subset.set.equivalentSet != null) {
-          LOGGER.debug(
+          LOGGER.trace(
               "Rule [{}] not fired because operand #{} ({}) belongs to obsolete set",
               getRule(), i, rel);
           return;
         }
 
         if (volcanoPlanner.prunedNodes.contains(rel)) {
-          LOGGER.debug("Rule [{}] not fired because operand #{} ({}) has importance=0",
+          LOGGER.trace("Rule [{}] not fired because operand #{} ({}) has importance=0",
               getRule(), i, rel);
           return;
         }
