@@ -138,6 +138,7 @@
       <property name="processJavadoc" value="true"/>
     </module>
     <module name="IllegalImport" />
+    <module name="AvoidStarImport" />
 
     <!-- Checks for Javadoc comments (tree walker).       -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
