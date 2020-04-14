@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.externalize;
 
 import org.apache.calcite.avatica.util.TimeUnitRange;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlExplain;
@@ -69,6 +70,7 @@ public abstract class RelEnumTypes {
     register(enumByName, SqlSelectKeyword.class);
     register(enumByName, SqlTrimFunction.Flag.class);
     register(enumByName, TimeUnitRange.class);
+    register(enumByName, TableModify.Operation.class);
     ENUM_BY_NAME = enumByName.build();
   }
 

@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
@@ -45,6 +46,13 @@ public final class LogicalTableModify extends TableModify {
       List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traitSet, table, schema, input, operation, updateColumnList,
         sourceExpressionList, flattened);
+  }
+
+  /**
+   * Creates a LogicalTableModify by parsing serialized output.
+   */
+  public LogicalTableModify(RelInput input) {
+    super(input);
   }
 
   @Deprecated // to be removed before 2.0
