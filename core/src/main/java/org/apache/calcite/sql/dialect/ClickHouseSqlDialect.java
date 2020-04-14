@@ -20,13 +20,11 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlAbstractDateTimeLiteral;
-import org.apache.calcite.sql.SqlAlienSystemTypeNameSpec;
 import org.apache.calcite.sql.SqlBasicTypeNameSpec;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDateLiteral;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -242,5 +240,3 @@ public class ClickHouseSqlDialect extends SqlDialect {
     writer.endList(frame);
   }
 }
-
-// End ClickHouseSqlDialect.java
