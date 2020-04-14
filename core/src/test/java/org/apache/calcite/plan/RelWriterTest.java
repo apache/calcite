@@ -18,6 +18,7 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributions;
@@ -25,6 +26,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJsonReader;
 import org.apache.calcite.rel.externalize.RelJsonWriter;
@@ -32,6 +34,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -892,6 +895,152 @@ class RelWriterTest {
     final String expected =
         "LogicalSortExchange(distribution=[random], collation=[[0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testTableModifyInsert() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode project = builder
+        .scan("EMP")
+        .project(builder.fields(), ImmutableList.of(), true)
+        .build();
+    LogicalTableModify modify = LogicalTableModify.create(
+        project.getInput(0).getTable(),
+        (Prepare.CatalogReader) project.getInput(0).getTable().getRelOptSchema(),
+        project,
+        TableModify.Operation.INSERT,
+        null,
+        null,
+        false);
+    String relJson = RelOptUtil.dumpPlan("", modify,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
+    final String expected = ""
+        + "LogicalTableModify(table=[[scott, EMP]], operation=[INSERT], flattened=[false])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], "
+        + "COMM=[$6], DEPTNO=[$7])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testTableModifyUpdate() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field("JOB"),
+                builder.literal("c")))
+        .build();
+    LogicalTableModify modify = LogicalTableModify.create(
+        filter.getInput(0).getTable(),
+        (Prepare.CatalogReader) filter.getInput(0).getTable().getRelOptSchema(),
+        filter,
+        TableModify.Operation.UPDATE,
+        ImmutableList.of("ENAME"),
+        ImmutableList.of(builder.literal("a")),
+        false);
+    String relJson = RelOptUtil.dumpPlan("", modify,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
+    final String expected = ""
+        + "LogicalTableModify(table=[[scott, EMP]], operation=[UPDATE], updateColumnList=[[ENAME]],"
+        + " sourceExpressionList=[['a']], flattened=[false])\n"
+        + "  LogicalFilter(condition=[=($2, 'c')])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testTableModifyDelete() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode filter = builder
+        .scan("EMP")
+        .filter(
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field("JOB"),
+                builder.literal("c")))
+        .build();
+    LogicalTableModify modify = LogicalTableModify.create(
+        filter.getInput(0).getTable(),
+        (Prepare.CatalogReader) filter.getInput(0).getTable().getRelOptSchema(),
+        filter,
+        TableModify.Operation.DELETE,
+        null,
+        null,
+        false);
+    String relJson = RelOptUtil.dumpPlan("", modify,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
+    final String expected = ""
+        + "LogicalTableModify(table=[[scott, EMP]], operation=[DELETE], flattened=[false])\n"
+        + "  LogicalFilter(condition=[=($2, 'c')])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testTableModifyMerge() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    RelNode deptScan = builder.scan("DEPT").build();
+    RelNode empScan = builder.scan("EMP").build();
+    builder.push(deptScan);
+    builder.push(empScan);
+    RelNode project = builder
+        .join(JoinRelType.LEFT,
+            builder.call(
+                SqlStdOperatorTable.EQUALS,
+                builder.field(2, 0, "DEPTNO"),
+                builder.field(2, 1, "DEPTNO")))
+        .project(
+            builder.literal(0),
+            builder.literal("x"),
+            builder.literal("x"),
+            builder.literal(0),
+            builder.literal("20200501 10:00:00"),
+            builder.literal(0),
+            builder.literal(0),
+            builder.literal(0),
+            builder.literal("false"),
+            builder.field(1, 0, 2),
+            builder.field(1, 0, 3),
+            builder.field(1, 0, 4),
+            builder.field(1, 0, 5),
+            builder.field(1, 0, 6),
+            builder.field(1, 0, 7),
+            builder.field(1, 0, 8),
+            builder.field(1, 0, 9),
+            builder.field(1, 0, 10),
+            builder.literal("a"))
+        .build();
+    // for sql:
+    // merge into emp using dept on emp.deptno = dept.deptno
+    // when matched then update set job = 'a'
+    // when not matched then insert values(0, 'x', 'x', 0, '20200501 10:00:00', 0, 0, 0, 0)
+    LogicalTableModify modify = LogicalTableModify.create(
+        empScan.getTable(),
+        (Prepare.CatalogReader) empScan.getTable().getRelOptSchema(),
+        project,
+        TableModify.Operation.MERGE,
+        ImmutableList.of("ENAME"),
+        null,
+        false);
+    String relJson = RelOptUtil.dumpPlan("", modify,
+        SqlExplainFormat.JSON, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+    String s = deserializeAndDumpToTextFormat(getSchema(modify), relJson);
+    final String expected = ""
+        + "LogicalTableModify(table=[[scott, EMP]], operation=[MERGE], "
+        + "updateColumnList=[[ENAME]], flattened=[false])\n"
+        + "  LogicalProject($f0=[0], $f1=['x'], $f2=['x'], $f3=[0], $f4=['20200501 10:00:00'], "
+        + "$f5=[0], $f6=[0], $f7=[0], $f8=['false'], LOC=[$2], EMPNO=[$3], ENAME=[$4], JOB=[$5], "
+        + "MGR=[$6], HIREDATE=[$7], SAL=[$8], COMM=[$9], DEPTNO=[$10], $f18=['a'])\n"
+        + "    LogicalJoin(condition=[=($0, $10)], joinType=[left])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
 
