@@ -3463,4 +3463,23 @@ public class RelBuilderTest {
             builder.literal(5));
     assertThat(call.toStringRaw(), is("BETWEEN ASYMMETRIC($0, 1, 5)"));
   }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3926">[CALCITE-3926]
+   * CannotPlanException when an empty LogicalValues requires a certain collation</a>. */
+  @Test void testEmptyValuesWithCollation() throws Exception {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder
+            .scan("DEPT").empty()
+            .sort(
+                builder.field("DNAME"),
+                builder.field("DEPTNO"))
+            .build();
+    try (PreparedStatement preparedStatement = RelRunners.run(root)) {
+      final String result = CalciteAssert.toString(preparedStatement.executeQuery());
+      final String expectedResult = "";
+      assertThat(result, is(expectedResult));
+    }
+  }
 }
