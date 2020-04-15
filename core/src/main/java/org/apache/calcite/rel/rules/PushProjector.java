@@ -40,6 +40,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 /**
  * PushProjector is a utility class used to perform operations used in push
@@ -216,9 +218,14 @@ public class PushProjector {
       origProjExprs = origProj.getProjects();
     }
 
-    childFields = childRel.getRowType().getFieldList();
+    if (childRel instanceof Join) {
+      Join join = (Join) childRel;
+      childFields = Lists.newArrayList(join.getLeft().getRowType().getFieldList());
+      childFields.addAll(join.getRight().getRowType().getFieldList());
+    } else {
+      childFields = childRel.getRowType().getFieldList();
+    }
     nChildFields = childFields.size();
-
     projRefs = new BitSet(nChildFields);
     if (childRel instanceof Join) {
       Join joinRel = (Join) childRel;
@@ -227,14 +234,7 @@ public class PushProjector {
       List<RelDataTypeField> rightFields =
           joinRel.getRight().getRowType().getFieldList();
       nFields = leftFields.size();
-      switch (joinRel.getJoinType()) {
-      case SEMI:
-      case ANTI:
-        nFieldsRight = 0;
-        break;
-      default:
-        nFieldsRight = rightFields.size();
-      }
+      nFieldsRight = rightFields.size();
       nSysFields = joinRel.getSystemFieldList().size();
       childBitmap =
           ImmutableBitSet.range(nSysFields, nFields + nSysFields);
@@ -469,7 +469,8 @@ public class PushProjector {
     // referenced and there are no special preserve expressions; note
     // that we need to do this check after we've handled the 0-column
     // project cases
-    if (projRefs.cardinality() == nChildFields
+    boolean allFieldsReferenced = IntStream.range(0, nChildFields).allMatch(i -> projRefs.get(i));
+    if (allFieldsReferenced
         && childPreserveExprs.size() == 0
         && rightPreserveExprs.size() == 0) {
       return true;
@@ -547,6 +548,12 @@ public class PushProjector {
       } else {
         newExpr = projExpr;
       }
+
+      RexUtil.RexInputRefNullabilityFixer fixer =
+          new RexUtil.RexInputRefNullabilityFixer(
+              projChild.getCluster().getRexBuilder(), projChild.getRowType());
+      newExpr = newExpr.accept(fixer);
+
       newProjects.add(
           Pair.of(
               newExpr,
