@@ -170,4 +170,46 @@ class SqlTypeFactoryTest {
     }
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
+   * Allow to set nullability for columns of structured types</a>. */
+  @Test void testCreateSqlTypeWithPrecision() {
+    SqlTypeFixture f = new SqlTypeFixture();
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME);
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP);
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME_WITH_LOCAL_TIME_ZONE);
+    checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+  }
+
+  private void checkCreateSqlTypeWithPrecision(
+      RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
+    RelDataType ts = typeFactory.createSqlType(sqlTypeName);
+    RelDataType tsWithoutPrecision = typeFactory.createSqlType(sqlTypeName, -1);
+    RelDataType tsWithPrecision0 = typeFactory.createSqlType(sqlTypeName, 0);
+    RelDataType tsWithPrecision1 = typeFactory.createSqlType(sqlTypeName, 1);
+    RelDataType tsWithPrecision2 = typeFactory.createSqlType(sqlTypeName, 2);
+    RelDataType tsWithPrecision3 = typeFactory.createSqlType(sqlTypeName, 3);
+    // for instance, 8 exceeds max precision for timestamp which is 3
+    RelDataType tsWithPrecision8 = typeFactory.createSqlType(sqlTypeName, 8);
+
+    assertThat(ts.toString(), is(sqlTypeName.getName() + "(0)"));
+    assertThat(ts.getFullTypeString(), is(sqlTypeName.getName() + "(0) NOT NULL"));
+    assertThat(tsWithoutPrecision.toString(), is(sqlTypeName.getName()));
+    assertThat(tsWithoutPrecision.getFullTypeString(), is(sqlTypeName.getName() + " NOT NULL"));
+    assertThat(tsWithPrecision0.toString(), is(sqlTypeName.getName() + "(0)"));
+    assertThat(tsWithPrecision0.getFullTypeString(), is(sqlTypeName.getName() + "(0) NOT NULL"));
+    assertThat(tsWithPrecision1.toString(), is(sqlTypeName.getName() + "(1)"));
+    assertThat(tsWithPrecision1.getFullTypeString(), is(sqlTypeName.getName() + "(1) NOT NULL"));
+    assertThat(tsWithPrecision2.toString(), is(sqlTypeName.getName() + "(2)"));
+    assertThat(tsWithPrecision2.getFullTypeString(), is(sqlTypeName.getName() + "(2) NOT NULL"));
+    assertThat(tsWithPrecision3.toString(), is(sqlTypeName.getName() + "(3)"));
+    assertThat(tsWithPrecision3.getFullTypeString(), is(sqlTypeName.getName() + "(3) NOT NULL"));
+    assertThat(tsWithPrecision8.toString(), is(sqlTypeName.getName() + "(3)"));
+    assertThat(tsWithPrecision8.getFullTypeString(), is(sqlTypeName.getName() + "(3) NOT NULL"));
+
+    assertThat(ts != tsWithoutPrecision, is(true));
+    assertThat(ts == tsWithPrecision0, is(true));
+    assertThat(tsWithPrecision3 == tsWithPrecision8, is(true));
+  }
+
 }

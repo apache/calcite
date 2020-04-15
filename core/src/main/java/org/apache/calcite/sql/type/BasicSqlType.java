@@ -180,8 +180,10 @@ public class BasicSqlType extends AbstractSqlType {
     boolean printScale = scale != SCALE_NOT_SPECIFIED;
 
     // for the digest, print the precision when defaulted,
-    // since (for instance) TIME is equivalent to TIME(0).
-    if (withDetail) {
+    // but for TIME or TIMESTAMP, although (for instance)
+    // TIME is equivalent to TIME(0), the digest of TIME
+    // and TIME(0) should be different literally.
+    if (withDetail && !SqlTypeName.DATETIME_TYPES.contains(typeName)) {
       // -1 means there is no default value for precision
       if (typeName.allowsPrec()
           && typeSystem.getDefaultPrecision(typeName) > -1) {
