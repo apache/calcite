@@ -171,8 +171,8 @@ class SqlTypeFactoryTest {
   }
 
   /** Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-2464">[CALCITE-2464]
-   * Allow to set nullability for columns of structured types</a>. */
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3924">[CALCITE-3924]
+   * Fix flakey test to handle TIMESTAMP and TIMESTAMP(0) correctly</a>. */
   @Test void testCreateSqlTypeWithPrecision() {
     SqlTypeFixture f = new SqlTypeFixture();
     checkCreateSqlTypeWithPrecision(f.typeFactory, SqlTypeName.TIME);
