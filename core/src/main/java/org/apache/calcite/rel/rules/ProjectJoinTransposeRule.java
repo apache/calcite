@@ -93,10 +93,6 @@ public class ProjectJoinTransposeRule extends RelOptRule implements Transformati
     Project origProj = call.rel(0);
     final Join join = call.rel(1);
 
-    if (!join.getJoinType().projectsRight()) {
-      return; // TODO: support SemiJoin / AntiJoin
-    }
-
     // Normalize the join condition so we don't end up misidentified expanded
     // form of IS NOT DISTINCT FROM as PushProject also visit the filter condition
     // and push down expressions.

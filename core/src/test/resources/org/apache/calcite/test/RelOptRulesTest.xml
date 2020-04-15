@@ -7402,6 +7402,64 @@ LogicalProject(NAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSemiJoinProjectTranspose">
+        <Resource name="sql">
+            <![CDATA[select a.name from dept a
+where a.deptno in (select b.deptno * 2 from dept);
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[semi])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject($f0=[*(2, $0)])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[semi])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalProject($f0=[$0])
+      LogicalAggregate(group=[{0}])
+        LogicalProject($f0=[*(2, $0)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testAntiJoinProjectTranspose">
+        <Resource name="sql">
+            <![CDATA[select a.name from dept a
+where a.deptno not in (select b.deptno * 2 from dept);
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $3)], joinType=[anti])
+    LogicalTableScan(table=[[scott, DEPT]])
+    LogicalAggregate(group=[{0}])
+      LogicalProject($f0=[*(2, $0)])
+        LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(DNAME=[$1])
+  LogicalJoin(condition=[=($0, $2)], joinType=[anti])
+    LogicalProject(DEPTNO=[$0], DNAME=[$1])
+      LogicalTableScan(table=[[scott, DEPT]])
+    LogicalProject($f0=[$0])
+      LogicalAggregate(group=[{0}])
+        LogicalProject($f0=[*(2, $0)])
+          LogicalTableScan(table=[[scott, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testJoinProjectTranspose1">
         <Resource name="sql">
             <![CDATA[select a.name

@@ -868,6 +868,84 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
+  @Test void testSemiJoinProjectTranspose() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select a.name from dept a
+    // where a.deptno in (select b.deptno * 2 from dept);
+
+    RelNode left = relBuilder.scan("DEPT").build();
+    RelNode right = relBuilder.scan("DEPT")
+        .project(
+            relBuilder.call(
+                SqlStdOperatorTable.MULTIPLY, relBuilder.literal(2), relBuilder.field(0)))
+        .aggregate(relBuilder.groupKey(ImmutableBitSet.of(0))).build();
+
+    RelNode plan = relBuilder.push(left)
+        .push(right)
+        .semiJoin(
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, 0),
+                relBuilder.field(2, 1, 0)))
+        .project(relBuilder.field(1))
+        .build();
+
+    final String planBefore = NL + RelOptUtil.toString(plan);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(plan);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
+  @Test void testAntiJoinProjectTranspose() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    // build a rel equivalent to sql:
+    // select a.name from dept a
+    // where a.deptno not in (select b.deptno * 2 from dept);
+
+    RelNode left = relBuilder.scan("DEPT").build();
+    RelNode right = relBuilder.scan("DEPT")
+        .project(
+            relBuilder.call(
+                SqlStdOperatorTable.MULTIPLY, relBuilder.literal(2), relBuilder.field(0)))
+        .aggregate(relBuilder.groupKey(ImmutableBitSet.of(0))).build();
+
+    RelNode plan = relBuilder.push(left)
+        .push(right)
+        .antiJoin(
+            relBuilder.call(SqlStdOperatorTable.EQUALS,
+                relBuilder.field(2, 0, 0),
+                relBuilder.field(2, 1, 0)))
+        .project(relBuilder.field(1))
+        .build();
+
+    final String planBefore = NL + RelOptUtil.toString(plan);
+
+    HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(ProjectJoinTransposeRule.INSTANCE)
+        .build();
+
+    HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(plan);
+    RelNode output = hepPlanner.findBestExp();
+
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
+    SqlToRelTestBase.assertValid(output);
+  }
+
   @Test void testJoinProjectTranspose1() {
     final HepProgram preProgram =
         HepProgram.builder()
