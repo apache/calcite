@@ -3168,9 +3168,20 @@ LogicalSort(sort0=[$7], dir0=[ASC])
         </Resource>
         <Resource name="planAfter">
             <![CDATA[
-LogicalSort(sort0=[$7], dir0=[ASC])
-  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
-    LogicalValues(tuples=[[]])
+LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testEmptySort2">
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+  LogicalValues(tuples=[[]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalValues(tuples=[[]])
 ]]>
         </Resource>
     </TestCase>

@@ -67,7 +67,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return create(getCluster(), rowType, tuples);
+    return new EnumerableValues(getCluster(), rowType, tuples, traitSet);
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

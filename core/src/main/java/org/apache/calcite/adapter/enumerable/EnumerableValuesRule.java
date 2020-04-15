@@ -41,8 +41,11 @@ public class EnumerableValuesRule extends ConverterRule {
   }
 
   @Override public RelNode convert(RelNode rel) {
-    LogicalValues values = (LogicalValues) rel;
-    return EnumerableValues.create(values.getCluster(), values.getRowType(),
-        values.getTuples());
+    final LogicalValues logicalValues = (LogicalValues) rel;
+    final EnumerableValues enumerableValues = EnumerableValues.create(
+        logicalValues.getCluster(), logicalValues.getRowType(), logicalValues.getTuples());
+    return enumerableValues.copy(
+        logicalValues.getTraitSet().replace(EnumerableConvention.INSTANCE),
+        enumerableValues.getInputs());
   }
 }

@@ -3369,11 +3369,36 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testEmptySort() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
+        .addRuleInstance(PruneEmptyRules.PROJECT_INSTANCE)
         .addRuleInstance(PruneEmptyRules.SORT_INSTANCE)
         .build();
 
     final String sql = "select * from emp where false order by deptno";
     sql(sql).with(program).check();
+  }
+
+  @Test void testEmptySort2() {
+    final RelBuilder relBuilder = RelBuilder.create(RelBuilderTest.config().build());
+    final RelNode relNode = relBuilder
+        .scan("DEPT").empty()
+        .sort(
+            relBuilder.field("DNAME"),
+            relBuilder.field("DEPTNO"))
+        .build();
+
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(PruneEmptyRules.SORT_INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(program);
+    hepPlanner.setRoot(relNode);
+    final RelNode output = hepPlanner.findBestExp();
+
+    final String planBefore = NL + RelOptUtil.toString(relNode);
+    final String planAfter = NL + RelOptUtil.toString(output);
+    final DiffRepository diffRepos = getDiffRepos();
+    diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
+    diffRepos.assertEquals("planAfter", "${planAfter}", planAfter);
   }
 
   @Test void testEmptySortLimitZero() {
