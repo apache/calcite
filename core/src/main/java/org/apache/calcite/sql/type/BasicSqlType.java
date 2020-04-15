@@ -179,19 +179,6 @@ public class BasicSqlType extends AbstractSqlType {
     boolean printPrecision = precision != PRECISION_NOT_SPECIFIED;
     boolean printScale = scale != SCALE_NOT_SPECIFIED;
 
-    // for the digest, print the precision when defaulted,
-    // since (for instance) TIME is equivalent to TIME(0).
-    if (withDetail) {
-      // -1 means there is no default value for precision
-      if (typeName.allowsPrec()
-          && typeSystem.getDefaultPrecision(typeName) > -1) {
-        printPrecision = true;
-      }
-      if (typeName.getDefaultScale() > -1) {
-        printScale = true;
-      }
-    }
-
     if (printPrecision) {
       sb.append('(');
       sb.append(getPrecision());
