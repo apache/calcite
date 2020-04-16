@@ -52,6 +52,7 @@ import static org.apache.calcite.plan.volcano.PlannerTests.NoneLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.NoneSingleRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION;
 import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_2;
+import static org.apache.calcite.plan.volcano.PlannerTests.PHYS_CALLING_CONVENTION_3;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysBiRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRel;
 import static org.apache.calcite.plan.volcano.PlannerTests.PhysLeafRule;
@@ -252,6 +253,36 @@ class VolcanoPlannerTest {
 
   private static <E extends Comparable> List<E> sort(E... es) {
     return sort(Arrays.asList(es));
+  }
+
+  /**
+   * Tests that VolcanoPlanner should fire rule match from subsets after a
+   * RelSet merge. The rules matching for a RelSubset should be able to fire
+   * on the subsets that are merged into the RelSets.
+   */
+  @Test void testSetMergeMatchSubsetRule() {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+
+    planner.addRule(new PhysLeafRule());
+    planner.addRule(new GoodSingleRule());
+    planner.addRule(new PhysSingleInputSetMergeRule());
+    final List<String> buf = new ArrayList<>();
+    planner.addRule(new PhysSingleSubsetRule(buf));
+
+    RelOptCluster cluster = newCluster(planner);
+    NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");
+    NoneSingleRel singleRel = new NoneSingleRel(cluster, leafRel);
+    RelNode convertedRel = planner
+        .changeTraits(singleRel, cluster.traitSetOf(PHYS_CALLING_CONVENTION));
+    planner.setRoot(convertedRel);
+    RelNode result = planner.chooseDelegate().findBestExp();
+    assertTrue(result instanceof PhysSingleRel);
+    assertThat(sort(buf),
+        equalTo(
+            sort("PhysSingleRel:Subset#0.PHYS.[]",
+            "PhysSingleRel:Subset#0.PHYS_3.[]")));
   }
 
   /**
@@ -648,6 +679,51 @@ class VolcanoPlannerTest {
       assertThat(call.rels.length, equalTo(2));
       buf.add(singleRel.getClass().getSimpleName() + ":"
           + childRel.getDigest());
+    }
+  }
+
+  static class PhysSingleSubsetRule extends RelOptRule {
+    private final List<String> buf;
+
+    PhysSingleSubsetRule(List<String> buf) {
+      super(operand(PhysSingleRel.class, operand(RelSubset.class, any())));
+      this.buf = buf;
+    }
+
+    @Override public Convention getOutConvention() {
+      return PHYS_CALLING_CONVENTION;
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      PhysSingleRel singleRel = call.rel(0);
+      RelSubset subset = call.rel(1);
+      buf.add(singleRel.getClass().getSimpleName() + ":"
+          + subset.getDigest());
+    }
+  }
+
+  /**
+   * Create an artificial RelSet merge in the PhysSingleRel's input RelSet
+   */
+  static class PhysSingleInputSetMergeRule extends RelOptRule {
+
+    PhysSingleInputSetMergeRule() {
+      super(
+          operand(PhysSingleRel.class,
+          operand(PhysLeafRel.class, PHYS_CALLING_CONVENTION, any())));
+    }
+
+    @Override public void onMatch(RelOptRuleCall call) {
+      PhysSingleRel singleRel = call.rel(0);
+      PhysLeafRel input = call.rel(1);
+      RelNode newInput =
+          new PhysLeafRel(input.getCluster(), PHYS_CALLING_CONVENTION_3, "a");
+
+      VolcanoPlanner planner = (VolcanoPlanner) call.getPlanner();
+      // Register into a new RelSet first
+      planner.ensureRegistered(newInput, null);
+      // Merge into the old RelSet
+      planner.ensureRegistered(newInput, input);
     }
   }
 
