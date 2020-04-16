@@ -7401,6 +7401,20 @@ public class JdbcTest {
         .runs();
   }
 
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3894">[CALCITE-3894]
+   * SET operation between DATE and TIMESTAMP returns a wrong result</a>.
+   */
+  @Test public void testUnionDateTime() {
+    CalciteAssert.AssertThat assertThat = CalciteAssert.that();
+    String query = "select * from (\n"
+        + "select \"id\" from (VALUES(DATE '2018-02-03')) \"foo\"(\"id\")\n"
+        + "union\n"
+        + "select \"id\" from (VALUES(TIMESTAMP '2008-03-31 12:23:34')) \"foo\"(\"id\"))";
+    assertThat.query(query).returns("id=2008-03-31 12:23:34\nid=2018-02-03 00:00:00\n");
+  }
+
   private static String sums(int n, boolean c) {
     final StringBuilder b = new StringBuilder();
     for (int i = 0; i < n; i++) {
