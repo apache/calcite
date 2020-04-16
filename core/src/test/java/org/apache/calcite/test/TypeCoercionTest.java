@@ -483,6 +483,12 @@ class TypeCoercionTest extends SqlValidatorTestCase {
         + "union select t1_int from t1")
         .columnType("VARCHAR NOT NULL");
 
+    // date union timestamp
+    sql("select t1_date, t1_timestamp from t1\n"
+        + "union select t2_timestamp, t2_date from t2")
+        .type("RecordType(TIMESTAMP(0) NOT NULL T1_DATE,"
+            + " TIMESTAMP(0) NOT NULL T1_TIMESTAMP) NOT NULL");
+
     // intersect
     sql("select t1_int, t1_decimal, t1_smallint, t1_double from t1 "
         + "intersect select t2_varchar20, t2_decimal, t2_float, t2_bigint from t2 ")
@@ -610,6 +616,15 @@ class TypeCoercionTest extends SqlValidatorTestCase {
     // timestamp int varchar
     sql("select COALESCE(t1_timestamp, t1_int, t1_varchar20) from t1")
         .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // timestamp date
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // date timestamp
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
+    // null date timestamp
+    sql("select COALESCE(t1_timestamp, t1_date) from t1")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
 
     // case when
     // smallint int char
@@ -630,6 +645,9 @@ class TypeCoercionTest extends SqlValidatorTestCase {
     // bigint decimal
     sql("select case when 1 > 0 then t2_bigint else t2_decimal end from t2")
         .type("RecordType(DECIMAL(19, 0) NOT NULL EXPR$0) NOT NULL");
+    // date timestamp
+    sql("select case when 1 > 0 then t2_date else t2_timestamp end from t2")
+        .type("RecordType(TIMESTAMP(0) NOT NULL EXPR$0) NOT NULL");
   }
 
   /** Test case for {@link AbstractTypeCoercion#implicitCast} */

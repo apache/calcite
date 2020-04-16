@@ -61,6 +61,13 @@ class TypeCoercionConverterTest extends SqlToRelTestBase {
         + "from (values (true, true, true))");
   }
 
+  /** Test cases for {@link TypeCoercion#inOperationCoercion}. */
+  @Test void testInDateTimestamp() {
+    checkPlanEquals("select (t1_timestamp, t1_date)\n"
+        + "in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))\n"
+        + "from t1");
+  }
+
   /** Test cases for
    * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl#booleanEquality}. */
   @Test void testBooleanEquality() {

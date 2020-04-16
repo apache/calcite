@@ -162,13 +162,11 @@ public class SqlTypeAssignmentRule implements SqlTypeMappingRule {
     // DATE is assignable from...
     rule.clear();
     rule.add(SqlTypeName.DATE);
-    rule.add(SqlTypeName.TIMESTAMP);
     rules.add(SqlTypeName.DATE, rule);
 
     // TIME is assignable from...
     rule.clear();
     rule.add(SqlTypeName.TIME);
-    rule.add(SqlTypeName.TIMESTAMP);
     rules.add(SqlTypeName.TIME, rule);
 
     // TIME WITH LOCAL TIME ZONE is assignable from...
