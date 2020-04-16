@@ -62,6 +62,17 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
   }
 
   @Override public Optionality getDistinctOptionality() {
-    return Optionality.IGNORED;
+    final Optionality optionality;
+
+    switch (kind) {
+    case BIT_AND:
+    case BIT_OR:
+      optionality = Optionality.IGNORED;
+      break;
+    default:
+      //We set optional for default
+      optionality = Optionality.OPTIONAL;
+    }
+    return optionality;
   }
 }

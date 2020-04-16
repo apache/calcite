@@ -9226,6 +9226,8 @@ public abstract class SqlOperatorBaseTest {
         "cast(null AS BINARY)"};
     tester.checkAgg("bit_xor(x)", binaryValues, "02", 0);
     tester.checkAgg("bit_xor(x)", new String[]{"CAST(x'02' AS BINARY)"}, "02", 0);
+    tester.checkAgg("bit_xor(distinct(x))",
+        new String[]{"CAST(x'02' AS BINARY)", "CAST(x'02' AS BINARY)"}, "02", 0);
   }
 
   /**
