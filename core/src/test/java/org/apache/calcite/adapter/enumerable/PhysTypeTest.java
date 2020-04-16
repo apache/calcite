@@ -18,6 +18,9 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 
@@ -36,7 +39,7 @@ public final class PhysTypeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testFieldClassOnColumnOfOneFieldStructType() {
+  @Test void testFieldClassOnColumnOfOneFieldStructType() {
     RelDataType columnType = TYPE_FACTORY.createStructType(
         ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
         ImmutableList.of("intField"));
@@ -51,7 +54,7 @@ public final class PhysTypeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2677">[CALCITE-2677]
    * Struct types with one field are not mapped correctly to Java Classes</a>. */
-  @Test public void testFieldClassOnColumnOfTwoFieldStructType() {
+  @Test void testFieldClassOnColumnOfTwoFieldStructType() {
     RelDataType columnType = TYPE_FACTORY.createStructType(
         ImmutableList.of(
             TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
@@ -67,4 +70,29 @@ public final class PhysTypeTest {
     assertEquals(Object[].class, rowPhysType.fieldClass(0));
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3364">[CALCITE-3364]
+   * Can't group table function result due to a type cast error if table function
+   * returns a row with a single value</a>. */
+  @Test void testOneColumnJavaRowFormatConversion() {
+    RelDataType rowType = TYPE_FACTORY.createStructType(
+        ImmutableList.of(TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+        ImmutableList.of("intField"));
+    final PhysType rowPhysType = PhysTypeImpl.of(TYPE_FACTORY, rowType,
+        JavaRowFormat.ARRAY, false);
+    final Expression e = rowPhysType.convertTo(
+        Expressions.parameter(Enumerable.class, "input"),
+        JavaRowFormat.SCALAR);
+    final String expected = "input.select(new org.apache.calcite.linq4j.function.Function1() {\n"
+        + "  public int apply(Object[] o) {\n"
+        + "    return org.apache.calcite.runtime.SqlFunctions.toInt(o[0]);\n"
+        + "  }\n"
+        + "  public Object apply(Object o) {\n"
+        + "    return apply(\n"
+        + "      (Object[]) o);\n"
+        + "  }\n"
+        + "}\n"
+        + ")";
+    assertEquals(Expressions.toString(e), expected);
+  }
 }

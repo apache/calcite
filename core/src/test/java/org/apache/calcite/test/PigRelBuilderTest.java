@@ -16,13 +16,18 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.PigRelBuilder;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Util;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,10 +35,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test for {@link PigRelBuilder}.
  */
-public class PigRelBuilderTest {
+class PigRelBuilderTest {
   /** Creates a config based on the "scott" schema. */
   public static Frameworks.ConfigBuilder config() {
     return RelBuilderTest.config();
+  }
+
+  static PigRelBuilder createBuilder(
+      UnaryOperator<RelBuilder.Config> transform) {
+    final Frameworks.ConfigBuilder configBuilder = config();
+    configBuilder.context(
+        Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
+    return PigRelBuilder.create(configBuilder.build());
   }
 
   /** Converts a relational expression to a sting with linux line-endings. */
@@ -41,7 +54,7 @@ public class PigRelBuilderTest {
     return Util.toLinux(RelOptUtil.toString(r));
   }
 
-  @Test public void testScan() {
+  @Test void testScan() {
     // Equivalent SQL:
     //   SELECT *
     //   FROM emp
@@ -53,11 +66,11 @@ public class PigRelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  @Test public void testCogroup() {}
-  @Test public void testCross() {}
-  @Test public void testCube() {}
-  @Test public void testDefine() {}
-  @Test public void testDistinct() {
+  @Test void testCogroup() {}
+  @Test void testCross() {}
+  @Test void testCube() {}
+  @Test void testDefine() {}
+  @Test void testDistinct() {
     // Syntax:
     //   alias = DISTINCT alias [PARTITION BY partitioner] [PARALLEL n];
     final PigRelBuilder builder = PigRelBuilder.create(config().build());
@@ -72,7 +85,7 @@ public class PigRelBuilderTest {
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testFilter() {
+  @Test void testFilter() {
     // Syntax:
     //  FILTER name BY expr
     // Example:
@@ -87,28 +100,38 @@ public class PigRelBuilderTest {
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testForeach() {}
+  @Test void testForeach() {}
 
-  @Test public void testGroup() {
+  @Test void testGroup() {
     // Syntax:
     //   alias = GROUP alias { ALL | BY expression}
     //     [, alias ALL | BY expression ...] [USING 'collected' | 'merge']
     //     [PARTITION BY partitioner] [PARALLEL n];
     // Equivalent to Pig Latin:
     //   r = GROUP e BY (deptno, job);
-    final PigRelBuilder builder = PigRelBuilder.create(config().build());
-    final RelNode root = builder
-        .scan("EMP")
-        .group(null, null, -1, builder.groupKey("DEPTNO", "JOB").alias("e"))
-        .build();
+    final Function<PigRelBuilder, RelNode> f = builder ->
+        builder.scan("EMP")
+            .group(null, null, -1, builder.groupKey("DEPTNO", "JOB").alias("e"))
+            .build();
     final String plan = ""
-        + "LogicalAggregate(group=[{2, 7}], EMP=[COLLECT($8)])\n"
-        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
+        + "LogicalAggregate(group=[{0, 1}], EMP=[COLLECT($2)])\n"
+        + "  LogicalProject(JOB=[$2], DEPTNO=[$7], "
+        + "$f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
-    assertThat(str(root), is(plan));
+    assertThat(str(f.apply(createBuilder(b -> b))), is(plan));
+
+    // now without pruning
+    final String plan2 = ""
+        + "LogicalAggregate(group=[{2, 7}], EMP=[COLLECT($8)])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(
+        str(f.apply(createBuilder(b -> b.withPruneInputOfAggregate(false)))),
+        is(plan2));
   }
 
-  @Test public void testGroup2() {
+  @Test void testGroup2() {
     // Equivalent to Pig Latin:
     //   r = GROUP e BY deptno, d BY deptno;
     final PigRelBuilder builder = PigRelBuilder.create(config().build());
@@ -120,20 +143,21 @@ public class PigRelBuilderTest {
             builder.groupKey("DEPTNO").alias("d"))
         .build();
     final String plan = "LogicalJoin(condition=[=($0, $2)], joinType=[inner])\n"
-        + "  LogicalAggregate(group=[{0}], EMP=[COLLECT($8)])\n"
-        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
-        + "      LogicalTableScan(table=[[scott, EMP]])\n  LogicalAggregate(group=[{0}], DEPT=[COLLECT($3)])\n"
-        + "    LogicalProject(DEPTNO=[$0], DNAME=[$1], LOC=[$2], $f3=[ROW($0, $1, $2)])\n"
+        + "  LogicalAggregate(group=[{0}], EMP=[COLLECT($1)])\n"
+        + "    LogicalProject(EMPNO=[$0], $f8=[ROW($0, $1, $2, $3, $4, $5, $6, $7)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalAggregate(group=[{0}], DEPT=[COLLECT($1)])\n"
+        + "    LogicalProject(DEPTNO=[$0], $f3=[ROW($0, $1, $2)])\n"
         + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(str(root), is(plan));
   }
 
-  @Test public void testImport() {}
-  @Test public void testJoinInner() {}
-  @Test public void testJoinOuter() {}
-  @Test public void testLimit() {}
+  @Test void testImport() {}
+  @Test void testJoinInner() {}
+  @Test void testJoinOuter() {}
+  @Test void testLimit() {}
 
-  @Test public void testLoad() {
+  @Test void testLoad() {
     // Syntax:
     //   LOAD 'data' [USING function] [AS schema];
     // Equivalent to Pig Latin:
@@ -146,11 +170,11 @@ public class PigRelBuilderTest {
         is("LogicalTableScan(table=[[scott, EMP]])\n"));
   }
 
-  @Test public void testMapReduce() {}
-  @Test public void testOrderBy() {}
-  @Test public void testRank() {}
-  @Test public void testSample() {}
-  @Test public void testSplit() {}
-  @Test public void testStore() {}
-  @Test public void testUnion() {}
+  @Test void testMapReduce() {}
+  @Test void testOrderBy() {}
+  @Test void testRank() {}
+  @Test void testSample() {}
+  @Test void testSplit() {}
+  @Test void testStore() {}
+  @Test void testUnion() {}
 }

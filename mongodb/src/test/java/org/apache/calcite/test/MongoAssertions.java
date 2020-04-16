@@ -28,16 +28,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 
 /**
  * Util class which needs to be in the same package as {@link CalciteAssert}
  * due to package-private visibility.
  */
 public class MongoAssertions {
+
+  private static final Pattern PATTERN = Pattern.compile("\\.0$");
 
   private MongoAssertions() {}
 
@@ -59,8 +63,9 @@ public class MongoAssertions {
         CalciteAssert.toStringList(resultSet, actualList);
         for (int i = 0; i < actualList.size(); i++) {
           String s = actualList.get(i);
-          actualList.set(i,
-              s.replaceAll("\\.0;", ";").replaceAll("\\.0$", ""));
+          s = s.replace(".0;", ";");
+          s = PATTERN.matcher(s).replaceAll("");
+          actualList.set(i, s);
         }
         Collections.sort(actualList);
 
@@ -102,6 +107,6 @@ public class MongoAssertions {
    * @see <a href="https://github.com/fakemongo/fongo/issues/152">Aggregation with $cond (172)</a>
    */
   public static void assumeRealMongoInstance() {
-    assumeTrue("Expect mongo instance", useMongo());
+    assumeTrue(useMongo(), "Expect mongo instance");
   }
 }

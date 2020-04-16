@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link org.apache.calcite.rel.RelCollationTraitDef}.
  */
-public class CollationConversionTest {
+class CollationConversionTest {
   private static final TestRelCollationImpl LEAF_COLLATION =
       new TestRelCollationImpl(
           ImmutableList.of(new RelFieldCollation(0, Direction.CLUSTERED)));
@@ -62,7 +62,7 @@ public class CollationConversionTest {
   private static final TestRelCollationTraitDef COLLATION_TRAIT_DEF =
       new TestRelCollationTraitDef();
 
-  @Test public void testCollationConversion() {
+  @Test void testCollationConversion() {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(COLLATION_TRAIT_DEF);

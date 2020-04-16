@@ -24,6 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
@@ -68,12 +69,18 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
 
   /** Creates a SqlMinMaxAggFunction. */
   public SqlMinMaxAggFunction(SqlKind kind) {
-    super(kind.name(),
+    this(kind.name(), kind, OperandTypes.COMPARABLE_ORDERED);
+  }
+
+  /** Creates a SqlMinMaxAggFunction. */
+  public SqlMinMaxAggFunction(String funcName, SqlKind kind,
+      SqlOperandTypeChecker inputTypeChecker) {
+    super(funcName,
         null,
         kind,
         ReturnTypes.ARG0_NULLABLE_IF_EMPTY,
         null,
-        OperandTypes.COMPARABLE_ORDERED,
+        inputTypeChecker,
         SqlFunctionCategory.SYSTEM,
         false,
         false,

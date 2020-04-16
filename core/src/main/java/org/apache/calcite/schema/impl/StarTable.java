@@ -127,7 +127,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
    */
   public static class StarTableScan extends TableScan {
     public StarTableScan(RelOptCluster cluster, RelOptTable relOptTable) {
-      super(cluster, cluster.traitSetOf(Convention.NONE), relOptTable);
+      super(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), relOptTable);
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,

@@ -23,7 +23,12 @@ import org.apache.calcite.materialize.MaterializationService;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.rules.AbstractMaterializedViewRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyAggregateRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyFilterRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewOnlyJoinRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectAggregateRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectFilterRule;
+import org.apache.calcite.rel.rules.materialize.MaterializedViewProjectJoinRule;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -63,7 +68,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Unit test for lattices.
  */
 @Tag("slow")
-public class LatticeTest {
+class LatticeTest {
   private static final String SALES_LATTICE = "{\n"
       + "  name: 'star',\n"
       + "  sql: [\n"
@@ -196,7 +201,7 @@ public class LatticeTest {
 
   /** Tests that it's OK for a lattice to have the same name as a table in the
    * schema. */
-  @Test public void testLatticeSql() throws Exception {
+  @Test void testLatticeSql() throws Exception {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
         .doWithConnection(c -> {
           final SchemaPlus schema = c.getRootSchema();
@@ -222,7 +227,7 @@ public class LatticeTest {
   }
 
   /** Tests some of the properties of the {@link Lattice} data structure. */
-  @Test public void testLattice() throws Exception {
+  @Test void testLattice() throws Exception {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
@@ -245,7 +250,7 @@ public class LatticeTest {
 
   /** Tests that it's OK for a lattice to have the same name as a table in the
    * schema. */
-  @Test public void testLatticeWithSameNameAsTable() {
+  @Test void testLatticeWithSameNameAsTable() {
     modelWithLattice("EMPLOYEES", "select * from \"foodmart\".\"days\"")
         .query("select count(*) from EMPLOYEES")
         .returnsValue("4");
@@ -253,7 +258,7 @@ public class LatticeTest {
 
   /** Tests that it's an error to have two lattices with the same name in a
    * schema. */
-  @Test public void testTwoLatticesWithSameNameFails() {
+  @Test void testTwoLatticesWithSameNameFails() {
     modelWithLattices(
         "{name: 'Lattice1', sql: 'select * from \"foodmart\".\"days\"'}",
         "{name: 'Lattice1', sql: 'select * from \"foodmart\".\"time_by_day\"'}")
@@ -261,28 +266,28 @@ public class LatticeTest {
   }
 
   /** Tests a lattice whose SQL is invalid. */
-  @Test public void testLatticeInvalidSqlFails() {
+  @Test void testLatticeInvalidSqlFails() {
     modelWithLattice("star", "select foo from nonexistent")
         .connectThrows("Error instantiating JsonLattice(name=star, ")
         .connectThrows("Object 'NONEXISTENT' not found");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a GROUP BY. */
-  @Test public void testLatticeSqlWithGroupByFails() {
+  @Test void testLatticeSqlWithGroupByFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s group by \"product_id\"")
         .connectThrows("Invalid node type LogicalAggregate in lattice query");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a ORDER BY. */
-  @Test public void testLatticeSqlWithOrderByFails() {
+  @Test void testLatticeSqlWithOrderByFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s order by \"product_id\"")
         .connectThrows("Invalid node type LogicalSort in lattice query");
   }
 
   /** Tests a lattice whose SQL is invalid because it contains a UNION ALL. */
-  @Test public void testLatticeSqlWithUnionFails() {
+  @Test void testLatticeSqlWithUnionFails() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
         + "union all\n"
@@ -291,14 +296,14 @@ public class LatticeTest {
   }
 
   /** Tests a lattice with valid join SQL. */
-  @Test public void testLatticeSqlWithJoin() {
+  @Test void testLatticeSqlWithJoin() {
     foodmartModel()
         .query("values 1")
         .returnsValue("1");
   }
 
   /** Tests a lattice with invalid SQL (for a lattice). */
-  @Test public void testLatticeInvalidSql() {
+  @Test void testLatticeInvalidSql() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
             + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
@@ -307,7 +312,7 @@ public class LatticeTest {
   }
 
   /** Left join is invalid in a lattice. */
-  @Test public void testLatticeInvalidSql2() {
+  @Test void testLatticeInvalidSql2() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
         + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
@@ -316,7 +321,7 @@ public class LatticeTest {
   }
 
   /** Each lattice table must have a parent. */
-  @Test public void testLatticeInvalidSql3() {
+  @Test void testLatticeInvalidSql3() {
     modelWithLattice("star",
         "select 1 from \"foodmart\".\"sales_fact_1997\" as s\n"
         + "join \"foodmart\".\"product\" as p using (\"product_id\")\n"
@@ -326,7 +331,7 @@ public class LatticeTest {
 
   /** When a lattice is registered, there is a table with the same name.
    * It can be used for explain, but not for queries. */
-  @Test public void testLatticeStarTable() {
+  @Test void testLatticeStarTable() {
     final AtomicInteger counter = new AtomicInteger();
     try {
       foodmartModel()
@@ -334,8 +339,7 @@ public class LatticeTest {
           .convertMatches(
               CalciteAssert.checkRel(""
                   + "LogicalAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-                  + "  LogicalProject(DUMMY=[0])\n"
-                  + "    StarTableScan(table=[[adhoc, star]])\n",
+                  + "  StarTableScan(table=[[adhoc, star]])\n",
                   counter));
     } catch (Throwable e) {
       assertThat(Throwables.getStackTraceAsString(e),
@@ -345,7 +349,7 @@ public class LatticeTest {
   }
 
   /** Tests that a 2-way join query can be mapped 4-way join lattice. */
-  @Test public void testLatticeRecognizeJoin() {
+  @Test void testLatticeRecognizeJoin() {
     final AtomicInteger counter = new AtomicInteger();
     foodmartModel()
         .query("select s.\"unit_sales\", p.\"brand_name\"\n"
@@ -356,13 +360,13 @@ public class LatticeTest {
             CalciteAssert.checkRel(
                 "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
                     + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
-                    + "    LogicalTableScan(table=[[adhoc, star]])\n",
+                    + "    StarTableScan(table=[[adhoc, star]])\n",
                 counter));
     assertThat(counter.intValue(), equalTo(1));
   }
 
   /** Tests an aggregate on a 2-way join query can use an aggregate table. */
-  @Test public void testLatticeRecognizeGroupJoin() {
+  @Test void testLatticeRecognizeGroupJoin() {
     final AtomicInteger counter = new AtomicInteger();
     CalciteAssert.AssertQuery that = foodmartModel()
         .query("select distinct p.\"brand_name\", s.\"customer_id\"\n"
@@ -376,11 +380,11 @@ public class LatticeTest {
               anyOf(
                   containsStringLinux(
                       "LogicalProject(brand_name=[$1], customer_id=[$0])\n"
-                      + "  LogicalAggregate(group=[{2, 10}])\n"
-                      + "    LogicalTableScan(table=[[adhoc, star]])\n"),
+                          + "  LogicalAggregate(group=[{2, 10}])\n"
+                          + "    StarTableScan(table=[[adhoc, star]])\n"),
                   containsStringLinux(
                       "LogicalAggregate(group=[{2, 10}])\n"
-                      + "  LogicalTableScan(table=[[adhoc, star]])\n")));
+                          + "  StarTableScan(table=[[adhoc, star]])\n")));
           return null;
         });
     assertThat(counter.intValue(), equalTo(2));
@@ -405,7 +409,7 @@ public class LatticeTest {
   }
 
   /** Tests a model with pre-defined tiles. */
-  @Test public void testLatticeWithPreDefinedTiles() {
+  @Test void testLatticeWithPreDefinedTiles() {
     foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'count'\n"
@@ -424,7 +428,7 @@ public class LatticeTest {
 
   /** A query that uses a pre-defined aggregate table, at the same
    *  granularity but fewer calls to aggregate functions. */
-  @Test public void testLatticeWithPreDefinedTilesFewerMeasures() {
+  @Test void testLatticeWithPreDefinedTilesFewerMeasures() {
     foodmartModelWithOneTile()
         .query("select t.\"the_year\", t.\"quarter\", count(*) as c\n"
             + "from \"foodmart\".\"sales_fact_1997\" as s\n"
@@ -444,7 +448,7 @@ public class LatticeTest {
   /** Tests a query that uses a pre-defined aggregate table at a lower
    * granularity. Includes a measure computed from a grouping column, a measure
    * based on COUNT rolled up using SUM, and an expression on a measure. */
-  @Test public void testLatticeWithPreDefinedTilesRollUp() {
+  @Test void testLatticeWithPreDefinedTilesRollUp() {
     foodmartModelWithOneTile()
         .query("select t.\"the_year\",\n"
             + "  count(*) as c,\n"
@@ -470,7 +474,7 @@ public class LatticeTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-428">[CALCITE-428]
    * Use optimization algorithm to suggest which tiles of a lattice to
    * materialize</a>. */
-  @Test public void testTileAlgorithm() {
+  @Test void testTileAlgorithm() {
     final String explain = "EnumerableAggregate(group=[{2, 3}])\n"
         + "  EnumerableTableScan(table=[[adhoc, m{16, 17, 32, 36, 37}]])";
     checkTileAlgorithm(
@@ -480,7 +484,7 @@ public class LatticeTest {
 
   /** As {@link #testTileAlgorithm()}, but uses the
    * {@link Lattices#CACHED_SQL} statistics provider. */
-  @Test public void testTileAlgorithm2() {
+  @Test void testTileAlgorithm2() {
     // Different explain than above, but note that it still selects columns
     // (27, 31).
     final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
@@ -491,7 +495,7 @@ public class LatticeTest {
 
   /** As {@link #testTileAlgorithm()}, but uses the
    * {@link Lattices#PROFILER} statistics provider. */
-  @Test public void testTileAlgorithm3() {
+  @Test void testTileAlgorithm3() {
     assumeTrue(TestUtil.getJavaMajorVersion() >= 8,
         "Yahoo sketches requires JDK 8 or higher");
     final String explain = "EnumerableAggregate(group=[{4, 5}])\n"
@@ -503,12 +507,12 @@ public class LatticeTest {
   private void checkTileAlgorithm(String statisticProvider,
       String expectedExplain) {
     final RelOptRule[] rules = {
-        AbstractMaterializedViewRule.INSTANCE_PROJECT_FILTER,
-        AbstractMaterializedViewRule.INSTANCE_FILTER,
-        AbstractMaterializedViewRule.INSTANCE_PROJECT_JOIN,
-        AbstractMaterializedViewRule.INSTANCE_JOIN,
-        AbstractMaterializedViewRule.INSTANCE_PROJECT_AGGREGATE,
-        AbstractMaterializedViewRule.INSTANCE_AGGREGATE
+        MaterializedViewProjectFilterRule.INSTANCE,
+        MaterializedViewOnlyFilterRule.INSTANCE,
+        MaterializedViewProjectJoinRule.INSTANCE,
+        MaterializedViewOnlyJoinRule.INSTANCE,
+        MaterializedViewProjectAggregateRule.INSTANCE,
+        MaterializedViewOnlyAggregateRule.INSTANCE
     };
     MaterializationService.setThreadLocal();
     MaterializationService.instance().clear();
@@ -562,7 +566,7 @@ public class LatticeTest {
   }
 
   /** Tests a query that is created within {@link #testTileAlgorithm()}. */
-  @Test public void testJG() {
+  @Test void testJG() {
     final String sql = ""
         + "SELECT \"s\".\"unit_sales\", \"p\".\"recyclable_package\", \"t\".\"the_day\", \"t\".\"the_year\", \"t\".\"quarter\", \"pc\".\"product_family\", COUNT(*) AS \"m0\", SUM(\"s\".\"store_sales\") AS \"m1\", SUM(\"s\".\"unit_sales\") AS \"m2\"\n"
         + "FROM \"foodmart\".\"sales_fact_1997\" AS \"s\"\n"
@@ -589,7 +593,7 @@ public class LatticeTest {
   }
 
   /** Tests a query that uses no columns from the fact table. */
-  @Test public void testGroupByEmpty() {
+  @Test void testGroupByEmpty() {
     foodmartModel()
         .query("select count(*) as c from \"foodmart\".\"sales_fact_1997\"")
         .enableMaterializations(true)
@@ -598,13 +602,13 @@ public class LatticeTest {
 
   /** Calls {@link #testDistinctCount()} followed by
    * {@link #testGroupByEmpty()}. */
-  @Test public void testGroupByEmptyWithPrelude() {
+  @Test void testGroupByEmptyWithPrelude() {
     testDistinctCount();
     testGroupByEmpty();
   }
 
   /** Tests a query that uses no dimension columns and one measure column. */
-  @Test public void testGroupByEmpty2() {
+  @Test void testGroupByEmpty2() {
     foodmartModel()
         .query("select sum(\"unit_sales\") as s\n"
             + "from \"foodmart\".\"sales_fact_1997\"")
@@ -615,7 +619,7 @@ public class LatticeTest {
 
   /** Tests that two queries of the same dimensionality that use different
    * measures can use the same materialization. */
-  @Test public void testGroupByEmpty3() {
+  @Test void testGroupByEmpty3() {
     final List<String> mats = new ArrayList<>();
     final CalciteAssert.AssertThat that = foodmartModel().pooled();
     that.query("select sum(\"unit_sales\") as s, count(*) as c\n"
@@ -638,7 +642,7 @@ public class LatticeTest {
   }
 
   /** Rolling up SUM. */
-  @Test public void testSum() {
+  @Test void testSum() {
     foodmartModelWithOneTile()
         .query("select sum(\"unit_sales\") as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"\n"
@@ -653,7 +657,7 @@ public class LatticeTest {
    *
    * <p>We can't just roll up count(distinct ...) as we do count(...), but we
    * can still use the aggregate table if we're smart. */
-  @Test public void testDistinctCount() {
+  @Test void testDistinctCount() {
     foodmartModelWithOneTile()
         .query("select count(distinct \"quarter\") as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"\n"
@@ -666,17 +670,17 @@ public class LatticeTest {
         .returnsUnordered("C=4");
   }
 
-  @Test public void testDistinctCount2() {
+  @Test void testDistinctCount2() {
     foodmartModelWithOneTile()
         .query("select count(distinct \"the_year\") as c\n"
             + "from \"foodmart\".\"sales_fact_1997\"\n"
             + "join \"foodmart\".\"time_by_day\" using (\"time_id\")\n"
             + "group by \"the_year\"")
         .enableMaterializations(true)
-        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], C=[$t1])\n"
-            + "  EnumerableAggregate(group=[{0}], C=[COUNT($0)])\n"
-            + "    EnumerableAggregate(group=[{0}])\n"
-            + "      EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
+        .explainContains("EnumerableCalc(expr#0=[{inputs}], expr#1=[IS NOT NULL($t0)], "
+            + "expr#2=[1:BIGINT], expr#3=[0:BIGINT], expr#4=[CASE($t1, $t2, $t3)], C=[$t4])\n"
+            + "  EnumerableAggregate(group=[{0}])\n"
+            + "    EnumerableTableScan(table=[[adhoc, m{32, 36}]])")
         .returnsUnordered("C=1");
   }
 
@@ -684,7 +688,7 @@ public class LatticeTest {
    *
    * <p>Disabled for normal runs, because it is slow. */
   @Disabled
-  @Test public void testAllFoodmartQueries() throws IOException {
+  @Test void testAllFoodmartQueries() throws IOException {
     // Test ids that had bugs in them until recently. Useful for a sanity check.
     final List<Integer> fixed = ImmutableList.of(13, 24, 28, 30, 61, 76, 79, 81,
         85, 98, 101, 107, 128, 129, 130, 131);
@@ -717,7 +721,7 @@ public class LatticeTest {
 
   /** A tile with no measures should inherit default measure list from the
    * lattice. */
-  @Test public void testTileWithNoMeasures() {
+  @Test void testTileWithNoMeasures() {
     foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'count'\n"
@@ -737,7 +741,7 @@ public class LatticeTest {
 
   /** A lattice with no default measure list should get "count(*)" is its
    * default measure. */
-  @Test public void testLatticeWithNoMeasures() {
+  @Test void testLatticeWithNoMeasures() {
     foodmartModel(" auto: false,\n"
         + "  tiles: [ {\n"
         + "    dimensions: [ 'the_year', ['t', 'quarter'] ],\n"
@@ -752,7 +756,7 @@ public class LatticeTest {
         .returnsCount(1);
   }
 
-  @Test public void testDimensionIsInvalidColumn() {
+  @Test void testDimensionIsInvalidColumn() {
     foodmartModel(" auto: false,\n"
         + "  tiles: [ {\n"
         + "    dimensions: [ 'invalid_column'],\n"
@@ -761,7 +765,7 @@ public class LatticeTest {
         .connectThrows("Unknown lattice column 'invalid_column'");
   }
 
-  @Test public void testMeasureArgIsInvalidColumn() {
+  @Test void testMeasureArgIsInvalidColumn() {
     foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "   agg: 'sum',\n"
@@ -776,7 +780,7 @@ public class LatticeTest {
 
   /** It is an error for "time_id" to be a measure arg, because is not a
    * unique alias. Both "s" and "t" have "time_id". */
-  @Test public void testMeasureArgIsNotUniqueAlias() {
+  @Test void testMeasureArgIsNotUniqueAlias() {
     foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'count',\n"
@@ -789,7 +793,7 @@ public class LatticeTest {
         .connectThrows("Lattice column alias 'time_id' is not unique");
   }
 
-  @Test public void testMeasureAggIsInvalid() {
+  @Test void testMeasureAggIsInvalid() {
     foodmartModel(" auto: false,\n"
         + "  defaultMeasures: [ {\n"
         + "    agg: 'invalid_count',\n"
@@ -802,7 +806,7 @@ public class LatticeTest {
         .connectThrows("Unknown lattice aggregate function invalid_count");
   }
 
-  @Test public void testTwoLattices() {
+  @Test void testTwoLattices() {
     final AtomicInteger counter = new AtomicInteger();
     // disable for MySQL; times out running star-join query
     // disable for H2; it thinks our generated SQL has invalid syntax
@@ -819,7 +823,7 @@ public class LatticeTest {
             CalciteAssert.checkRel(
                 "LogicalProject(unit_sales=[$7], brand_name=[$10])\n"
                     + "  LogicalProject(product_id=[$0], time_id=[$1], customer_id=[$2], promotion_id=[$3], store_id=[$4], store_sales=[$5], store_cost=[$6], unit_sales=[$7], product_class_id=[$8], product_id0=[$9], brand_name=[$10], product_name=[$11], SKU=[$12], SRP=[$13], gross_weight=[$14], net_weight=[$15], recyclable_package=[$16], low_fat=[$17], units_per_case=[$18], cases_per_pallet=[$19], shelf_width=[$20], shelf_height=[$21], shelf_depth=[$22])\n"
-                    + "    LogicalTableScan(table=[[adhoc, star]])\n",
+                    + "    StarTableScan(table=[[adhoc, star]])\n",
                 counter));
     if (enabled) {
       assertThat(counter.intValue(), is(1));
@@ -829,7 +833,7 @@ public class LatticeTest {
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-787">[CALCITE-787]
    * Star table wrongly assigned to materialized view</a>. */
-  @Test public void testOneLatticeOneMV() {
+  @Test void testOneLatticeOneMV() {
     final AtomicInteger counter = new AtomicInteger();
     final Class<JdbcTest.EmpDeptTableFactory> clazz =
         JdbcTest.EmpDeptTableFactory.class;
@@ -877,7 +881,7 @@ public class LatticeTest {
         .enableMaterializations(true)
         .substitutionMatches(
             CalciteAssert.checkRel(
-                "EnumerableTableScan(table=[[mat, m0]])\n",
+                "LogicalTableScan(table=[[mat, m0]])\n",
                 counter));
     assertThat(counter.intValue(), equalTo(1));
   }
@@ -886,7 +890,7 @@ public class LatticeTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-760">[CALCITE-760]
    * Aggregate recommender blows up if row count estimate is too high</a>. */
   @Disabled
-  @Test public void testLatticeWithBadRowCountEstimate() {
+  @Test void testLatticeWithBadRowCountEstimate() {
     final String lattice =
         INVENTORY_LATTICE.replace("rowCountEstimate: 4070,",
             "rowCountEstimate: 4074070,");
@@ -896,7 +900,7 @@ public class LatticeTest {
         .returns("EXPR$0=1\n");
   }
 
-  @Test public void testSuggester() {
+  @Test void testSuggester() {
     final Class<JdbcTest.EmpDeptTableFactory> clazz =
         JdbcTest.EmpDeptTableFactory.class;
     final String model = ""
@@ -924,11 +928,11 @@ public class LatticeTest {
         + "join \"time_by_day\" using (\"time_id\")\n";
     final String explain = "PLAN=JdbcToEnumerableConverter\n"
         + "  JdbcAggregate(group=[{}], EXPR$0=[COUNT()])\n"
-        + "    JdbcJoin(condition=[=($1, $0)], joinType=[inner])\n"
-        + "      JdbcProject(time_id=[$0])\n"
-        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n"
+        + "    JdbcJoin(condition=[=($0, $1)], joinType=[inner])\n"
         + "      JdbcProject(time_id=[$1])\n"
-        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n";
+        + "        JdbcTableScan(table=[[foodmart, sales_fact_1997]])\n"
+        + "      JdbcProject(time_id=[$0])\n"
+        + "        JdbcTableScan(table=[[foodmart, time_by_day]])\n";
     CalciteAssert.model(model)
         .withDefaultSchema("foodmart")
         .query(sql)
@@ -976,7 +980,7 @@ public class LatticeTest {
   }
 
   /** Unit test for {@link Lattice#getRowCount(double, List)}. */
-  @Test public void testColumnCount() {
+  @Test void testColumnCount() {
     assertThat(Lattice.getRowCount(10, 2, 3), within(5.03D, 0.01D));
     assertThat(Lattice.getRowCount(10, 9, 8), within(9.4D, 0.01D));
     assertThat(Lattice.getRowCount(100, 9, 8), within(54.2D, 0.1D));

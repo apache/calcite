@@ -96,7 +96,7 @@ public class JdbcRules {
   protected static final Logger LOGGER = CalciteTrace.getPlannerTracer();
 
   static final RelFactories.ProjectFactory PROJECT_FACTORY =
-      (input, projects, fieldNames) -> {
+      (input, hints, projects, fieldNames) -> {
         final RelOptCluster cluster = input.getCluster();
         final RelDataType rowType =
             RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -114,7 +114,7 @@ public class JdbcRules {
       };
 
   static final RelFactories.JoinFactory JOIN_FACTORY =
-      (left, right, condition, variablesSet, joinType, semiJoinDone) -> {
+      (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
         final RelTraitSet traitSet = cluster.traitSetOf(left.getConvention());
         try {
@@ -146,7 +146,7 @@ public class JdbcRules {
       };
 
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
-      (input, groupSet, groupSets, aggCalls) -> {
+      (input, hints, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
         final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
         try {
@@ -187,7 +187,7 @@ public class JdbcRules {
       };
 
   public static final RelFactories.TableScanFactory TABLE_SCAN_FACTORY =
-      (cluster, table) -> {
+      (toRelContext, table) -> {
         throw new UnsupportedOperationException();
       };
 
@@ -376,7 +376,7 @@ public class JdbcRules {
         RelNode left, RelNode right, RexNode condition,
         Set<CorrelationId> variablesSet, JoinRelType joinType)
         throws InvalidRelException {
-      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+      super(cluster, traitSet, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     }
 
     @Deprecated // to be removed before 2.0
@@ -557,7 +557,7 @@ public class JdbcRules {
         RelNode input,
         List<? extends RexNode> projects,
         RelDataType rowType) {
-      super(cluster, traitSet, input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
       assert getConvention() instanceof JdbcConvention;
     }
 
@@ -695,7 +695,7 @@ public class JdbcRules {
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof JdbcConvention;
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
       final SqlDialect dialect = ((JdbcConvention) getConvention()).dialect;
@@ -768,7 +768,8 @@ public class JdbcRules {
 
       final RelNode input;
       if (convertInputTraits) {
-        input = convert(sort.getInput(), traitSet);
+        final RelTraitSet inputTraitSet = sort.getInput().getTraitSet().replace(out);
+        input = convert(sort.getInput(), inputTraitSet);
       } else {
         input = sort.getInput();
       }
@@ -798,6 +799,11 @@ public class JdbcRules {
         RelCollation newCollation, RexNode offset, RexNode fetch) {
       return new JdbcSort(getCluster(), traitSet, newInput, newCollation,
           offset, fetch);
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+        RelMetadataQuery mq) {
+      return super.computeSelfCost(planner, mq).multiplyBy(0.9);
     }
 
     public JdbcImplementor.Result implement(JdbcImplementor implementor) {

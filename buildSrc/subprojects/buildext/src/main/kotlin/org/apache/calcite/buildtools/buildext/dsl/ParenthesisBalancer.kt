@@ -40,7 +40,7 @@ private val looksLikeJavadoc = Regex("^ +\\* ")
 
 // Note: if you change the logic, please remember to update the value in
 // build.gradle.kts / bumpThisNumberIfACustomStepChanges
-// Otherwise spotless would assume the files are up to date
+// Otherwise Autostyle would assume the files are up to date
 object ParenthesisBalancer : Function<String, String> {
     override fun apply(v: String): String = v.lines().map { line ->
         if ('(' !in line || looksLikeJavadoc.containsMatchIn(line)) {

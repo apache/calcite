@@ -29,15 +29,14 @@ import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Planner rule that permutes the inputs to a
@@ -67,7 +66,13 @@ public class JoinCommuteRule extends RelOptRule {
    */
   public JoinCommuteRule(Class<? extends Join> clazz,
       RelBuilderFactory relBuilderFactory, boolean swapOuter) {
-    super(operand(clazz, any()), relBuilderFactory, null);
+    // FIXME Enable this rule for joins with system fields
+    super(
+        operandJ(clazz, null,
+            (Predicate<Join>) j -> j.getLeft().getId() != j.getRight().getId()
+                && j.getSystemFieldList().isEmpty(),
+            any()),
+        relBuilderFactory, null);
     this.swapOuter = swapOuter;
   }
 
@@ -123,7 +128,7 @@ public class JoinCommuteRule extends RelOptRule {
     final VariableReplacer variableReplacer =
         new VariableReplacer(rexBuilder, leftRowType, rightRowType);
     final RexNode oldCondition = join.getCondition();
-    RexNode condition = variableReplacer.go(oldCondition);
+    RexNode condition = variableReplacer.apply(oldCondition);
 
     // NOTE jvs 14-Mar-2006: We preserve attribute semiJoinDone after the
     // swap.  This way, we will generate one semijoin for the original
@@ -142,11 +147,6 @@ public class JoinCommuteRule extends RelOptRule {
 
   public void onMatch(final RelOptRuleCall call) {
     Join join = call.rel(0);
-
-    if (!join.getSystemFieldList().isEmpty()) {
-      // FIXME Enable this rule for joins with system fields
-      return;
-    }
 
     final RelNode swapped = swap(join, this.swapOuter, call.builder());
     if (swapped == null) {
@@ -187,7 +187,7 @@ public class JoinCommuteRule extends RelOptRule {
    * greater than leftFieldCount, it must be from the right, so we subtract
    * leftFieldCount from it.</p>
    */
-  private static class VariableReplacer {
+  private static class VariableReplacer extends RexShuttle {
     private final RexBuilder rexBuilder;
     private final List<RelDataTypeField> leftFields;
     private final List<RelDataTypeField> rightFields;
@@ -201,37 +201,24 @@ public class JoinCommuteRule extends RelOptRule {
       this.rightFields = rightType.getFieldList();
     }
 
-    public RexNode go(RexNode rex) {
-      if (rex instanceof RexCall) {
-        ImmutableList.Builder<RexNode> builder =
-            ImmutableList.builder();
-        final RexCall call = (RexCall) rex;
-        for (RexNode operand : call.operands) {
-          builder.add(go(operand));
-        }
-        return call.clone(call.getType(), builder.build());
-      } else if (rex instanceof RexInputRef) {
-        RexInputRef var = (RexInputRef) rex;
-        int index = var.getIndex();
-        if (index < leftFields.size()) {
-          // Field came from left side of join. Move it to the right.
-          return rexBuilder.makeInputRef(
-              leftFields.get(index).getType(),
-              rightFields.size() + index);
-        }
-        index -= leftFields.size();
-        if (index < rightFields.size()) {
-          // Field came from right side of join. Move it to the left.
-          return rexBuilder.makeInputRef(
-              rightFields.get(index).getType(),
-              index);
-        }
-        throw new AssertionError("Bad field offset: index=" + var.getIndex()
-            + ", leftFieldCount=" + leftFields.size()
-            + ", rightFieldCount=" + rightFields.size());
-      } else {
-        return rex;
+    @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      int index = inputRef.getIndex();
+      if (index < leftFields.size()) {
+        // Field came from left side of join. Move it to the right.
+        return rexBuilder.makeInputRef(
+            leftFields.get(index).getType(),
+            rightFields.size() + index);
       }
+      index -= leftFields.size();
+      if (index < rightFields.size()) {
+        // Field came from right side of join. Move it to the left.
+        return rexBuilder.makeInputRef(
+            rightFields.get(index).getType(),
+            index);
+      }
+      throw new AssertionError("Bad field offset: index=" + inputRef.getIndex()
+          + ", leftFieldCount=" + leftFields.size()
+          + ", rightFieldCount=" + rightFields.size());
     }
   }
 }

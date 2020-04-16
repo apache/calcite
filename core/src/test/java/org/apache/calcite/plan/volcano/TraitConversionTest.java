@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link org.apache.calcite.rel.RelDistributionTraitDef}.
  */
-public class TraitConversionTest {
+class TraitConversionTest {
 
   private static final ConvertRelDistributionTraitDef NEW_TRAIT_DEF_INSTANCE =
       new ConvertRelDistributionTraitDef();
@@ -55,7 +55,7 @@ public class TraitConversionTest {
   private static final SimpleDistribution SIMPLE_DISTRIBUTION_SINGLETON =
       new SimpleDistribution("SINGLETON");
 
-  @Test public void testTraitConversion() {
+  @Test void testTraitConversion() {
     final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(NEW_TRAIT_DEF_INSTANCE);

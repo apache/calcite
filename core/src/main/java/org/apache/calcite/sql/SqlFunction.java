@@ -276,7 +276,7 @@ public class SqlFunction extends SqlOperator {
 
       validCoercionType:
       if (function == null) {
-        if (validator.isTypeCoercionEnabled()) {
+        if (validator.config().typeCoercionEnabled()) {
           // try again if implicit type coercion is allowed.
           function = (SqlFunction)
               SqlUtil.lookupRoutine(validator.getOperatorTable(), getNameAsId(),
@@ -291,13 +291,20 @@ public class SqlFunction extends SqlOperator {
             }
           }
         }
+
+        // check if the identifier represents type
+        final SqlFunction x = (SqlFunction) call.getOperator();
+        final SqlIdentifier identifier = Util.first(x.getSqlIdentifier(),
+            new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+        RelDataType type = validator.getCatalogReader().getNamedType(identifier);
+        if (type != null) {
+          function = new SqlTypeConstructorFunction(identifier, type);
+          break validCoercionType;
+        }
+
         // if function doesn't exist within operator table and known function
         // handling is turned off then create a more permissive function
-        if (function == null && validator.isLenientOperatorLookup()) {
-          final SqlFunction x = (SqlFunction) call.getOperator();
-          final SqlIdentifier identifier =
-              Util.first(x.getSqlIdentifier(),
-                  new SqlIdentifier(x.getName(), SqlParserPos.ZERO));
+        if (function == null && validator.config().lenientOperatorLookup()) {
           function = new SqlUnresolvedFunction(identifier, null,
               null, OperandTypes.VARIADIC, null, x.getFunctionType());
           break validCoercionType;

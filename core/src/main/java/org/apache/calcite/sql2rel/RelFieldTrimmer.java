@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -33,6 +34,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableFunctionScan;
 import org.apache.calcite.rel.logical.LogicalTableModify;
@@ -548,6 +550,49 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return result(relBuilder.build(), inputMapping);
   }
 
+  public TrimResult trimFields(
+      SortExchange sortExchange,
+      ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final RelDataType rowType = sortExchange.getRowType();
+    final int fieldCount = rowType.getFieldCount();
+    final RelCollation collation = sortExchange.getCollation();
+    final RelDistribution distribution = sortExchange.getDistribution();
+    final RelNode input = sortExchange.getInput();
+
+    // We use the fields used by the consumer, plus any fields used as sortExchange
+    // keys.
+    final ImmutableBitSet.Builder inputFieldsUsed = fieldsUsed.rebuild();
+    for (RelFieldCollation field : collation.getFieldCollations()) {
+      inputFieldsUsed.set(field.getFieldIndex());
+    }
+    for (int keyIndex : distribution.getKeys()) {
+      inputFieldsUsed.set(keyIndex);
+    }
+
+    // Create input with trimmed columns.
+    final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
+    TrimResult trimResult =
+        trimChild(sortExchange, input, inputFieldsUsed.build(), inputExtraFields);
+    RelNode newInput = trimResult.left;
+    final Mapping inputMapping = trimResult.right;
+
+    // If the input is unchanged, and we need to project all columns,
+    // there's nothing we can do.
+    if (newInput == input
+        && inputMapping.isIdentity()
+        && fieldsUsed.cardinality() == fieldCount) {
+      return result(sortExchange, Mappings.createIdentity(fieldCount));
+    }
+
+    relBuilder.push(newInput);
+    RelCollation newCollation = RexUtil.apply(inputMapping, collation);
+    RelDistribution newDistribution = distribution.apply(inputMapping);
+    relBuilder.sortExchange(newDistribution, newCollation);
+
+    return result(relBuilder.build(), inputMapping);
+  }
+
   /**
    * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
@@ -885,7 +930,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     final RelBuilder.GroupKey groupKey =
-        relBuilder.groupKey(newGroupSet, newGroupSets);
+        relBuilder.groupKey(newGroupSet,
+            (Iterable<ImmutableBitSet>) newGroupSets);
     relBuilder.aggregate(groupKey, newAggCallList);
 
     return result(relBuilder.build(), mapping);

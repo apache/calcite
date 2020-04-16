@@ -240,7 +240,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     // 1. Check eagerly for binary arithmetic expressions.
     // 2. Check the comparability.
     // 3. Check if the operands have the right type.
-    if (callBinding.getValidator().isTypeCoercionEnabled()) {
+    if (callBinding.isTypeCoercionEnabled()) {
       final TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
       typeCoercion.binaryArithmeticCoercion(callBinding);
     }
@@ -292,7 +292,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
             callBinding.getCall().operand(ord.i),
             0,
             false)) {
-          if (callBinding.getValidator().isTypeCoercionEnabled()) {
+          if (callBinding.isTypeCoercionEnabled()) {
             // Try type coercion for the call,
             // collect SqlTypeFamily and data type of all the operands.
             final List<SqlTypeFamily> families = allowedRules.stream()
@@ -348,7 +348,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   }
 
   private boolean checkWithoutTypeCoercion(SqlCallBinding callBinding) {
-    if (!callBinding.getValidator().isTypeCoercionEnabled()) {
+    if (!callBinding.isTypeCoercionEnabled()) {
       return false;
     }
     for (SqlOperandTypeChecker rule : allowedRules) {

@@ -216,7 +216,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       RelNode restructured = relBuilder.push(flattened)
           .projectNamed(structuringExps, resultFieldNames, true)
           .build();
-      restructured = RelOptUtil.copyRelHints(flattened, restructured, false);
+      restructured = RelOptUtil.copyRelHints(flattened, restructured);
       // REVIEW jvs 23-Mar-2005:  How do we make sure that this
       // implementation stays in Java?  Fennel can't handle
       // structured types.
@@ -434,12 +434,12 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   public void rewriteRel(LogicalJoin rel) {
-    LogicalJoin newRel =
+    final LogicalJoin newRel =
         LogicalJoin.create(getNewForOldRel(rel.getLeft()),
             getNewForOldRel(rel.getRight()),
+            rel.getHints(),
             rel.getCondition().accept(new RewriteRexShuttle()),
             rel.getVariablesSet(), rel.getJoinType());
-    newRel = (LogicalJoin) RelOptUtil.copyRelHints(rel, newRel, false);
     setNewForOldRel(rel, newRel);
   }
 
@@ -508,10 +508,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     RelNode newInput = getNewForOldRel(rel.getInput());
     List<RexNode> newProjects = Pair.left(flattenedExpList);
     List<String> newNames = Pair.right(flattenedExpList);
-    RelNode newRel = relBuilder.push(newInput)
+    final RelNode newRel = relBuilder.push(newInput)
         .projectNamed(newProjects, newNames, true)
+        .hints(rel.getHints())
         .build();
-    newRel = RelOptUtil.copyRelHints(rel, newRel, false);
     setNewForOldRel(rel, newRel);
   }
 
@@ -733,7 +733,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     if (!SqlTypeUtil.isFlat(rel.getRowType())) {
       newRel = coverNewRelByFlatteningProjection(rel, newRel);
     } else {
-      newRel = RelOptUtil.copyRelHints(rel, newRel, false);
+      newRel = RelOptUtil.copyRelHints(rel, newRel);
     }
     setNewForOldRel(rel, newRel);
   }
@@ -749,7 +749,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     newRel = relBuilder.push(newRel)
         .projectNamed(projects, fieldNames, true)
         .build();
-    newRel = RelOptUtil.copyRelHints(rel, newRel, false);
+    newRel = RelOptUtil.copyRelHints(rel, newRel);
     return newRel;
   }
 

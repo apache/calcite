@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -62,6 +63,9 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Test that runs every Quidem file as a test.
  */
 public abstract class QuidemTest {
+
+  private static final Pattern PATTERN = Pattern.compile("\\.iq$");
+
   private static Object getEnv(String varName) {
     switch (varName) {
     case "jdk18":
@@ -84,9 +88,9 @@ public abstract class QuidemTest {
 
   private Method findMethod(String path) {
     // E.g. path "sql/agg.iq" gives method "testSqlAgg"
-    String methodName =
-        AvaticaUtils.toCamelCase(
-            "test_" + path.replace(File.separatorChar, '_').replaceAll("\\.iq$", ""));
+    final String path1 = path.replace(File.separatorChar, '_');
+    final String path2 = PATTERN.matcher(path1).replaceAll("");
+    String methodName = AvaticaUtils.toCamelCase("test_" + path2);
     Method m;
     try {
       m = getClass().getMethod(methodName, String.class);
@@ -252,6 +256,10 @@ public abstract class QuidemTest {
       case "mysqlfunc":
         return CalciteAssert.that()
             .with(CalciteConnectionProperty.FUN, "mysql")
+            .connect();
+      case "oraclefunc":
+        return CalciteAssert.that()
+            .with(CalciteConnectionProperty.FUN, "oracle")
             .connect();
       case "catchall":
         return CalciteAssert.that()

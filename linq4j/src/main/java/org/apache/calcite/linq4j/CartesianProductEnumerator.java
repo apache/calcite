@@ -67,6 +67,9 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
 
   public void reset() {
     first = true;
+    for (Enumerator<T> enumerator : enumerators) {
+      enumerator.reset();
+    }
   }
 
   public void close() {
@@ -77,7 +80,11 @@ public abstract class CartesianProductEnumerator<T, E> implements Enumerator<E> 
       try {
         enumerator.close();
       } catch (Throwable e) {
-        rte = e;
+        if (rte == null) {
+          rte = e;
+        } else {
+          rte.addSuppressed(e);
+        }
       }
     }
     if (rte != null) {

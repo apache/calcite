@@ -107,6 +107,7 @@ public class SqlDialect {
           .add(SqlStdOperatorTable.CHARACTER_LENGTH)
           .add(SqlStdOperatorTable.COALESCE)
           .add(SqlStdOperatorTable.CONCAT)
+          .add(SqlStdOperatorTable.CBRT)
           .add(SqlStdOperatorTable.COS)
           .add(SqlStdOperatorTable.COT)
           .add(SqlStdOperatorTable.DIVIDE)
@@ -345,14 +346,7 @@ public class SqlDialect {
    * @return Quoted identifier
    */
   public String quoteIdentifier(String val) {
-    if (identifierQuoteString == null) {
-      return val; // quoting is not supported
-    }
-    String val2 =
-        val.replaceAll(
-            identifierEndQuoteString,
-            identifierEscapedQuote);
-    return identifierQuoteString + val2 + identifierEndQuoteString;
+    return quoteIdentifier(new StringBuilder(), val).toString();
   }
 
   /**
@@ -374,12 +368,8 @@ public class SqlDialect {
         || !identifierNeedsQuote(val)) {
       buf.append(val);
     } else {
-      String val2 =
-          val.replaceAll(
-              identifierEndQuoteString,
-              identifierEscapedQuote);
       buf.append(identifierQuoteString);
-      buf.append(val2);
+      buf.append(val.replace(identifierEndQuoteString, identifierEscapedQuote));
       buf.append(identifierEndQuoteString);
     }
     return buf;
@@ -1116,6 +1106,8 @@ public class SqlDialect {
     case UNKNOWN:
     case CALCITE:
       return SqlConformanceEnum.DEFAULT;
+    case BIG_QUERY:
+      return SqlConformanceEnum.BIG_QUERY;
     case MYSQL:
       return SqlConformanceEnum.MYSQL_5;
     case ORACLE:

@@ -19,6 +19,8 @@ package org.apache.calcite.plan;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -40,12 +42,11 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgramBuilder;
-import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -62,6 +63,7 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 import org.junit.jupiter.api.Test;
 
@@ -79,7 +81,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Unit test for {@link org.apache.calcite.rel.externalize.RelJson}.
  */
-public class RelWriterTest {
+class RelWriterTest {
   public static final String XX = "{\n"
       + "  \"rels\": [\n"
       + "    {\n"
@@ -349,12 +351,43 @@ public class RelWriterTest {
       + "  ]\n"
       + "}";
 
+  public static final String XX3 = "{\n"
+      + "  \"rels\": [\n"
+      + "    {\n"
+      + "      \"id\": \"0\",\n"
+      + "      \"relOp\": \"LogicalTableScan\",\n"
+      + "      \"table\": [\n"
+      + "        \"scott\",\n"
+      + "        \"EMP\"\n"
+      + "      ],\n"
+      + "      \"inputs\": []\n"
+      + "    },\n"
+      + "    {\n"
+      + "      \"id\": \"1\",\n"
+      + "      \"relOp\": \"LogicalSortExchange\",\n"
+      + "      \"distribution\": {\n"
+      + "        \"type\": \"HASH_DISTRIBUTED\",\n"
+      + "        \"keys\": [\n"
+      + "          0\n"
+      + "        ]\n"
+      + "      },\n"
+      + "      \"collation\": [\n"
+      + "        {\n"
+      + "          \"field\": 0,\n"
+      + "          \"direction\": \"ASCENDING\",\n"
+      + "          \"nulls\": \"LAST\"\n"
+      + "        }\n"
+      + "      ]\n"
+      + "    }\n"
+      + "  ]\n"
+      + "}";
+
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonWriter} on
    * a simple tree of relational expressions, consisting of a table and a
    * project including window expressions.
    */
-  @Test public void testWriter() {
+  @Test void testWriter() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
@@ -362,7 +395,8 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")));
+                      Arrays.asList("hr", "emps")),
+                  ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           LogicalFilter filter =
               LogicalFilter.create(scan,
@@ -376,7 +410,10 @@ public class RelWriterTest {
           final RelDataType bigIntType =
               cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           LogicalAggregate aggregate =
-              LogicalAggregate.create(filter, ImmutableBitSet.of(0), null,
+              LogicalAggregate.create(filter,
+                  ImmutableList.of(),
+                  ImmutableBitSet.of(0),
+                  null,
                   ImmutableList.of(
                       AggregateCall.create(SqlStdOperatorTable.COUNT,
                           true, false, false, ImmutableList.of(1), -1,
@@ -395,7 +432,7 @@ public class RelWriterTest {
    * a simple tree of relational expressions, consisting of a table, a filter
    * and an aggregate node.
    */
-  @Test public void testWriter2() {
+  @Test void testWriter2() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           rootSchema.add("hr",
@@ -403,12 +440,14 @@ public class RelWriterTest {
           LogicalTableScan scan =
               LogicalTableScan.create(cluster,
                   relOptSchema.getTableForMember(
-                      Arrays.asList("hr", "emps")));
+                      Arrays.asList("hr", "emps")),
+                  ImmutableList.of());
           final RexBuilder rexBuilder = cluster.getRexBuilder();
           final RelDataType bigIntType =
               cluster.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           LogicalProject project =
               LogicalProject.create(scan,
+                  ImmutableList.of(),
                   ImmutableList.of(
                       rexBuilder.makeInputRef(scan, 0),
                       rexBuilder.makeOver(bigIntType,
@@ -418,10 +457,8 @@ public class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBound.create(
-                              SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
-                          RexWindowBound.create(
-                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+                          RexWindowBounds.UNBOUNDED_PRECEDING,
+                          RexWindowBounds.CURRENT_ROW,
                           true, true, false, false, false),
                       rexBuilder.makeOver(bigIntType,
                           SqlStdOperatorTable.SUM,
@@ -430,12 +467,9 @@ public class RelWriterTest {
                           ImmutableList.of(
                               new RexFieldCollation(
                                   rexBuilder.makeInputRef(scan, 1), ImmutableSet.of())),
-                          RexWindowBound.create(
-                              SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
-                          RexWindowBound.create(null,
-                              rexBuilder.makeCall(
-                                  SqlWindow.FOLLOWING_OPERATOR,
-                                  rexBuilder.makeExactLiteral(BigDecimal.ONE))),
+                          RexWindowBounds.CURRENT_ROW,
+                          RexWindowBounds.following(
+                              rexBuilder.makeExactLiteral(BigDecimal.ONE)),
                           false, true, false, false, false)),
                   ImmutableList.of("field0", "field1", "field2"));
           final RelJsonWriter writer = new RelJsonWriter();
@@ -448,7 +482,7 @@ public class RelWriterTest {
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test public void testReader() {
+  @Test void testReader() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -475,7 +509,7 @@ public class RelWriterTest {
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test public void testReader2() {
+  @Test void testReader2() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -495,17 +529,17 @@ public class RelWriterTest {
 
     assertThat(s,
         isLinux("LogicalProject(field0=[$0],"
-            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST ROWS BETWEEN"
-            + " UNBOUNDED PRECEDING AND CURRENT ROW)],"
-            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST RANGE BETWEEN"
-            + " CURRENT ROW AND 1 FOLLOWING)])\n"
+            + " field1=[COUNT($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
+            + "ROWS UNBOUNDED PRECEDING)],"
+            + " field2=[SUM($0) OVER (PARTITION BY $2 ORDER BY $1 NULLS LAST "
+            + "RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING)])\n"
             + "  LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
   /**
    * Unit test for {@link org.apache.calcite.rel.externalize.RelJsonReader}.
    */
-  @Test public void testReaderNull() {
+  @Test void testReaderNull() {
     String s =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           SchemaPlus schema =
@@ -529,7 +563,7 @@ public class RelWriterTest {
             + "    LogicalTableScan(table=[[hr, emps]])\n"));
   }
 
-  @Test public void testTrim() {
+  @Test void testTrim() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder b = RelBuilder.create(config);
     final RelNode rel =
@@ -554,7 +588,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testPlusOperator() {
+  @Test void testPlusOperator() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RelNode rel = builder
@@ -574,7 +608,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testAggregateWithAlias() {
+  @Test void testAggregateWithAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     // The rel node stands for sql: SELECT max(SAL) as max_sal from EMP group by JOB;
@@ -602,7 +636,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testAggregateWithoutAlias() {
+  @Test void testAggregateWithoutAlias() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     // The rel node stands for sql: SELECT max(SAL) from EMP group by JOB;
@@ -630,7 +664,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testCalc() {
+  @Test void testCalc() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RexBuilder rexBuilder = builder.getRexBuilder();
@@ -666,7 +700,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testCorrelateQuery() {
+  @Test void testCorrelateQuery() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final Holder<RexCorrelVariable> v = Holder.of(null);
@@ -691,33 +725,32 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testOverWithoutPartition() {
+  @Test void testOverWithoutPartition() {
     // The rel stands for the sql of "select count(*) over (order by deptno) from EMP"
     final RelNode rel = mockCountOver("EMP", ImmutableList.of(), ImmutableList.of("DEPTNO"));
     String relJson = RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST ROWS"
-        + " BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+        + "LogicalProject($f0=[COUNT() OVER (ORDER BY $7 NULLS LAST "
+        + "ROWS UNBOUNDED PRECEDING)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testOverWithoutOrderKey() {
+  @Test void testOverWithoutOrderKey() {
     // The rel stands for the sql of "select count(*) over (partition by DEPTNO) from EMP"
     final RelNode rel = mockCountOver("EMP", ImmutableList.of("DEPTNO"), ImmutableList.of());
     String relJson = RelOptUtil.dumpPlan("", rel, SqlExplainFormat.JSON,
         SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     String s = deserializeAndDumpToTextFormat(getSchema(rel), relJson);
     final String expected = ""
-        + "LogicalProject($f0=[COUNT() OVER"
-        + " (PARTITION BY $7 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)])\n"
+        + "LogicalProject($f0=[COUNT() OVER (PARTITION BY $7)])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testInterval() {
+  @Test void testInterval() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     SqlIntervalQualifier sqlIntervalQualifier =
@@ -743,7 +776,7 @@ public class RelWriterTest {
     assertThat(s, isLinux(expected));
   }
 
-  @Test public void testUdf() {
+  @Test void testUdf() {
     final FrameworkConfig config = RelBuilderTest.config().build();
     final RelBuilder builder = RelBuilder.create(config);
     final RelNode rel = builder
@@ -829,12 +862,45 @@ public class RelWriterTest {
                 ImmutableList.of(),
                 partitionKeys,
                 ImmutableList.copyOf(orderKeys),
-                RexWindowBound.create(
-                    SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null),
-                RexWindowBound.create(
-                    SqlWindow.createCurrentRow(SqlParserPos.ZERO), null),
+                RexWindowBounds.UNBOUNDED_PRECEDING,
+                RexWindowBounds.CURRENT_ROW,
                 true, true, false, false, false))
         .build();
     return rel;
+  }
+
+  @Test void testWriteSortExchangeWithHashDistribution() {
+    final RelNode root = createSortPlan(RelDistributions.hash(Lists.newArrayList(0)));
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    assertThat(json, is(XX3));
+
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[hash[0]], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  @Test void testWriteSortExchangeWithRandomDistribution() {
+    final RelNode root = createSortPlan(RelDistributions.RANDOM_DISTRIBUTED);
+    final RelJsonWriter writer = new RelJsonWriter();
+    root.explain(writer);
+    final String json = writer.asString();
+    final String s = deserializeAndDumpToTextFormat(getSchema(root), json);
+    final String expected =
+        "LogicalSortExchange(distribution=[random], collation=[[0]])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(s, isLinux(expected));
+  }
+
+  private RelNode createSortPlan(RelDistribution distribution) {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+    return builder.scan("EMP")
+            .sortExchange(distribution,
+                RelCollations.of(0))
+            .build();
   }
 }

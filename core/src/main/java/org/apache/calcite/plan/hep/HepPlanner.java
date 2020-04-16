@@ -59,8 +59,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -78,7 +80,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private RelTraitSet requestedRootTraits;
 
-  private final Map<Pair<String, RelDataType>, HepRelVertex> mapDigestToVertex = new HashMap<>();
+  /**
+   * {@link RelDataType} is represented with its field types as {@code List<RelDataType>}.
+   * This enables to treat as equal projects that differ in expression names only.
+   */
+  private final Map<Pair<String, List<RelDataType>>, HepRelVertex> mapDigestToVertex =
+      new HashMap<>();
 
   // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
   // in order to provide deterministic behavior.
@@ -493,17 +500,11 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  /** Returns whether the vertex is valid. */
-  private boolean belongsToDag(HepRelVertex vertex) {
-    Pair<String, RelDataType> key = key(vertex.getCurrentRel());
-    return mapDigestToVertex.get(key) != null;
-  }
-
   private HepRelVertex applyRule(
       RelOptRule rule,
       HepRelVertex vertex,
       boolean forceConversions) {
-    if (!belongsToDag(vertex)) {
+    if (!graph.vertexSet().contains(vertex)) {
       return null;
     }
     RelTrait parentTrait = null;
@@ -623,6 +624,13 @@ public class HepPlanner extends AbstractRelOptPlanner {
       Map<RelNode, List<RelNode>> nodeChildren) {
     if (!operand.matches(rel)) {
       return false;
+    }
+    for (RelNode input : rel.getInputs()) {
+      if (!(input instanceof HepRelVertex)) {
+        // The graph could be partially optimized for materialized view. In that
+        // case, the input would be a RelNode and shouldn't be matched again here.
+        return false;
+      }
     }
     bindings.add(rel);
     @SuppressWarnings("unchecked")
@@ -824,7 +832,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // try to find equivalent rel only if DAG is allowed
     if (!noDag) {
       // Now, check if an equivalent vertex already exists in graph.
-      Pair<String, RelDataType> key = key(rel);
+      Pair<String, List<RelDataType>> key = key(rel);
       HepRelVertex equivVertex = mapDigestToVertex.get(key);
       if (equivVertex != null) {
         // Use existing vertex.
@@ -868,7 +876,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
         }
         parentRel.replaceInput(i, preservedVertex);
       }
-      RelMdUtil.clearCache(parentRel);
+      clearCache(parent);
       graph.removeEdge(parent, discardedVertex);
       graph.addEdge(parent, preservedVertex);
       updateVertex(parent, parentRel);
@@ -883,6 +891,28 @@ public class HepPlanner extends AbstractRelOptPlanner {
     }
   }
 
+  /**
+   * Clears metadata cache for the RelNode and its ancestors.
+   *
+   * @param vertex relnode
+   */
+  private void clearCache(HepRelVertex vertex) {
+    RelMdUtil.clearCache(vertex.getCurrentRel());
+    if (!RelMdUtil.clearCache(vertex)) {
+      return;
+    }
+    Queue<DefaultEdge> queue =
+        new LinkedList<>(graph.getInwardEdges(vertex));
+    while (!queue.isEmpty()) {
+      DefaultEdge edge = queue.remove();
+      HepRelVertex source = (HepRelVertex) edge.source;
+      RelMdUtil.clearCache(source.getCurrentRel());
+      if (RelMdUtil.clearCache(source)) {
+        queue.addAll(graph.getInwardEdges(source));
+      }
+    }
+  }
+
   private void updateVertex(HepRelVertex vertex, RelNode rel) {
     if (rel != vertex.getCurrentRel()) {
       // REVIEW jvs 5-Apr-2006:  We'll do this again later
@@ -892,7 +922,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
       // reachable from here.
       notifyDiscard(vertex.getCurrentRel());
     }
-    Pair<String, RelDataType> oldKey = key(vertex.getCurrentRel());
+    Pair<String, List<RelDataType>> oldKey = key(vertex.getCurrentRel());
     if (mapDigestToVertex.get(oldKey) == vertex) {
       mapDigestToVertex.remove(oldKey);
     }
@@ -903,7 +933,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     // otherwise the digest will be removed wrongly in the mapDigestToVertex
     //  when collectGC
     // so it must update the digest that map to vertex
-    Pair<String, RelDataType> newKey = key(rel);
+    Pair<String, List<RelDataType>> newKey = key(rel);
     mapDigestToVertex.put(newKey, vertex);
     if (rel != vertex.getCurrentRel()) {
       vertex.replaceRel(rel);
@@ -912,10 +942,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
         rel,
         vertex,
         false);
-  }
-
-  private static Pair<String, RelDataType> key(RelNode rel) {
-    return Pair.of(rel.getDigest(), rel.getRowType());
   }
 
   private RelNode buildFinalPlan(HepRelVertex vertex) {
@@ -974,7 +1000,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     graphSizeLastGC = graph.vertexSet().size();
 
     // Clean up digest map too.
-    Iterator<Map.Entry<Pair<String, RelDataType>, HepRelVertex>> digestIter =
+    Iterator<Map.Entry<Pair<String, List<RelDataType>>, HepRelVertex>> digestIter =
         mapDigestToVertex.entrySet().iterator();
     while (digestIter.hasNext()) {
       HepRelVertex vertex = digestIter.next().getValue();

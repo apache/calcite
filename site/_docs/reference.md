@@ -248,10 +248,16 @@ hint:
 
 hintOptions:
       hintKVOption [, hintKVOption]*
-  |   optionName, [, optionName]*
+  |   optionName [, optionName]*
+  |   optionValue [, optionValue]*
 
 hintKVOption:
       optionName '=' stringLiteral
+  |   stringLiteral '=' stringLiteral
+
+optionValue:
+      stringLiteral
+  |   numericLiteral
 
 values:
       VALUES expression [, expression ]*
@@ -1230,6 +1236,7 @@ comp:
 | ASIN(numeric)             | Returns the arc sine of *numeric*
 | ATAN(numeric)             | Returns the arc tangent of *numeric*
 | ATAN2(numeric, numeric)   | Returns the arc tangent of the *numeric* coordinates
+| CBRT(numeric)             | Returns the cube root of *numeric*
 | COS(numeric)              | Returns the cosine of *numeric*
 | COT(numeric)              | Returns the cotangent of *numeric*
 | DEGREES(numeric)          | Converts *numeric* from radians to degrees
@@ -1459,7 +1466,7 @@ i: implicit cast / e: explicit cast / x: not allowed
 
 ##### Conversion Contexts and Strategies
 
-* Set operation (`UNION`, `EXCEPT`, `INTERSECT`): Compare every branch
+* Set operation (`UNION`, `EXCEPT`, `INTERSECT`): compare every branch
   row data type and find the common type of each fields pair;
 * Binary arithmetic expression (`+`, `-`, `&`, `^`, `/`, `%`): promote
   string operand to data type of the other numeric operand;
@@ -1472,12 +1479,24 @@ i: implicit cast / e: explicit cast / x: not allowed
 * `IN` expression list: compare every expression to find the common type;
 * `CASE WHEN` expression or `COALESCE`: find the common wider type of the `THEN`
   and `ELSE` operands;
-* Character + `INTERVAL` or character - `INTERVAL`: Promote character to
+* Character + `INTERVAL` or character - `INTERVAL`: promote character to
   `TIMESTAMP`;
-* Built-in function: Look up the type families registered in the checker,
+* Built-in function: look up the type families registered in the checker,
   find the family default type if checker rules allow it;
-* User-defined function (UDF): Coerce based on the declared argument types
-  of the `eval()` method.
+* User-defined function (UDF): coerce based on the declared argument types
+  of the `eval()` method;
+* `INSERT` and `UPDATE`: coerce a source field to counterpart target table
+  field's type if the two fields differ with type name or precision(scale).
+
+Note:
+
+Implicit type coercion of following cases are ignored:
+
+* One of the type is `ANY`;
+* Type coercion within `CHARACTER` types are always ignored,
+  i.e. from `CHAR(20)` to `VARCHAR(30)`;
+* Type coercion from a numeric to another with higher precedence is ignored,
+  i.e. from `INT` to `LONG`.
 
 ##### Strategies for Finding Common Type
 
@@ -1633,6 +1652,7 @@ period:
 | {fn ASIN(numeric)}                | Returns the arc sine of *numeric*
 | {fn ATAN(numeric)}                | Returns the arc tangent of *numeric*
 | {fn ATAN2(numeric, numeric)}      | Returns the arc tangent of the *numeric* coordinates
+| {fn CBRT(numeric)}                | Returns the cube root of *numeric*
 | {fn CEILING(numeric)}             | Rounds *numeric* up, and returns the smallest number that is greater than or equal to *numeric*
 | {fn COS(numeric)}                 | Returns the cosine of *numeric*
 | {fn COT(numeric)}                 | Returns the cotangent of *numeric*
@@ -1746,14 +1766,18 @@ and `LISTAGG`).
 | COUNT( [ ALL &#124; DISTINCT ] value [, value ]*) | Returns the number of input rows for which *value* is not null (wholly not null if *value* is composite)
 | COUNT(*)                           | Returns the number of input rows
 | FUSION(multiset)                   | Returns the multiset union of *multiset* across all input values
+| INTERSECTION(multiset)             | Returns the multiset intersection of *multiset* across all input values
 | APPROX_COUNT_DISTINCT(value [, value ]*)      | Returns the approximate number of distinct values of *value*; the database is allowed to use an approximation but is not required to
 | AVG( [ ALL &#124; DISTINCT ] numeric)         | Returns the average (arithmetic mean) of *numeric* across all input values
 | SUM( [ ALL &#124; DISTINCT ] numeric)         | Returns the sum of *numeric* across all input values
 | MAX( [ ALL &#124; DISTINCT ] value)           | Returns the maximum value of *value* across all input values
 | MIN( [ ALL &#124; DISTINCT ] value)           | Returns the minimum value of *value* across all input values
 | ANY_VALUE( [ ALL &#124; DISTINCT ] value)     | Returns one of the values of *value* across all input values; this is NOT specified in the SQL standard
+| SOME(condition)                               | Returns true if any condition is true.
+| EVERY(condition)                              | Returns true if all conditions are true.
 | BIT_AND( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise AND of all non-null input values, or null if none
 | BIT_OR( [ ALL &#124; DISTINCT ] value)        | Returns the bitwise OR of all non-null input values, or null if none
+| BIT_XOR( [ ALL &#124; DISTINCT ] value)       | Returns the bitwise XOR of all non-null input values, or null if none
 | STDDEV_POP( [ ALL &#124; DISTINCT ] numeric)  | Returns the population standard deviation of *numeric* across all input values
 | STDDEV_SAMP( [ ALL &#124; DISTINCT ] numeric) | Returns the sample standard deviation of *numeric* across all input values
 | STDDEV( [ ALL &#124; DISTINCT ] numeric)      | Synonym for `STDDEV_SAMP`
@@ -1835,6 +1859,28 @@ Not implemented:
 | GROUPING(expression [, expression ]*) | Returns a bit vector of the given grouping expressions
 | GROUP_ID()           | Returns an integer that uniquely identifies the combination of grouping keys
 | GROUPING_ID(expression [, expression ]*) | Synonym for `GROUPING`
+
+### DESCRIPTOR
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
+
+### Table-valued functions.
+Table-valued functions occur in the `FROM` clause.
+
+#### TUMBLE
+In streaming queries, TUMBLE assigns a window for each row of a relation based on a timestamp column. An assigned window
+is specified by its beginning and ending. All assigned windows have the same length, and that's why tumbling sometimes
+is named as "fixed windowing".
+
+| Operator syntax      | Description
+|:-------------------- |:-----------
+| TUMBLE(table, DESCRIPTOR(column_name), interval [, time ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at *time*. Tumbling is applied on table in which there is a watermarked column specified by descriptor.
+
+Here is an example:
+`SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
+will apply tumbling with 1 minute window size on rows from table orders. rowtime is the
+watermarked column of table orders that tells data completeness.
 
 ### Grouped window functions
 
@@ -2275,11 +2321,16 @@ semantics.
 |:- |:-----------------------------------------------|:-----------
 | p | expr :: type                                   | Casts *expr* to *type*
 | o | CHR(integer) | Returns the character having the binary equivalent to *integer* as a CHAR value
-| m o p | CONCAT(string [, string ]*)                | Concatenates two or more strings
+| o | COSH(numeric)                                  | Returns the hyperbolic cosine of *numeric*
+| o | CONCAT(string, string)                         | Concatenates two strings
+| m p | CONCAT(string [, string ]*)                  | Concatenates two or more strings
+| m | COMPRESS(string)                               | Compresses a string using zlib compression and returns the result as a binary string.
 | p | CONVERT_TIMEZONE(tz1, tz2, datetime)           | Converts the timezone of *datetime* from *tz1* to *tz2*
 | m | DAYNAME(datetime)                              | Returns the name, in the connection's locale, of the weekday in *datetime*; for example, it returns '星期日' for both DATE '2020-02-10' and TIMESTAMP '2020-02-10 10:10:10'
 | o | DECODE(value, value1, result1 [, valueN, resultN ]* [, default ]) | Compares *value* to each *valueN* value one by one; if *value* is equal to a *valueN*, returns the corresponding *resultN*, else returns *default*, or NULL if *default* is not specified
 | p | DIFFERENCE(string, string)                     | Returns a measure of the similarity of two strings, namely the number of character positions that their `SOUNDEX` values have in common: 4 if the `SOUNDEX` values are same and 0 if the `SOUNDEX` values are totally different
+| o | EXTRACT(xml, xpath, [, namespaces ])           | Returns the xml fragment of the element or elements matched by the XPath expression. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression
+| o | EXISTSNODE(xml, xpath, [, namespaces ])        | Determines whether traversal of a XML document using a specified xpath results in any nodes. Returns 0 if no nodes remain after applying the XPath traversal on the document fragment of the element or elements matched by the XPath expression. Returns 1 if any nodes remain. The optional namespace value that specifies a default mapping or namespace mapping for prefixes, which is used when evaluating the XPath expression.
 | m | EXTRACTVALUE(xml, xpathExpr))                  | Returns the text of the first text node which is a child of the element or elements matched by the XPath expression.
 | o | GREATEST(expr [, expr ]*)                      | Returns the greatest of the expressions
 | m | JSON_TYPE(jsonValue)                           | Returns a string value indicating the type of a *jsonValue*
@@ -2303,12 +2354,16 @@ semantics.
 | m p | RIGHT(string, length)                        | Returns the rightmost *length* characters from the *string*
 | o | RTRIM(string)                                  | Returns *string* with all blanks removed from the end
 | m p | SHA1(string)                                 | Calculates a SHA-1 hash value of *string* and returns it as a hex string
+| o | SINH(numeric)                                  | Returns the hyperbolic sine of *numeric*
 | m o p | SOUNDEX(string)                            | Returns the phonetic representation of *string*; throws if *string* is encoded with multi-byte encoding such as UTF-8
 | m | SPACE(integer)                                 | Returns a string of *integer* spaces; returns an empty string if *integer* is less than 1
 | o | SUBSTR(string, position [, substringLength ]) | Returns a portion of *string*, beginning at character *position*, *substringLength* characters long. SUBSTR calculates lengths using characters as defined by the input character set
+| m | STRCMP(string, string)                         | Returns 0 if both of the strings are same and returns -1 when the first argument is smaller than the second and 1 when the second one is smaller the first one.
+| o | TANH(numeric)                                  | Returns the hyperbolic tangent of *numeric*
 | o p | TO_DATE(string, format)                      | Converts *string* to a date using the format *format*
 | o p | TO_TIMESTAMP(string, format)                 | Converts *string* to a timestamp using the format *format*
 | o p | TRANSLATE(expr, fromString, toString)        | Returns *expr* with all occurrences of each character in *fromString* replaced by its corresponding character in *toString*. Characters in *expr* that are not in *fromString* are not replaced
+| o | XMLTRANSFORM(xml, xslt)                        | Returns a string after applying xslt to supplied xml.
 
 Note:
 
@@ -2611,6 +2666,68 @@ Here are some examples:
 * `f(c => 3, d => 1)` is not legal, because you have not specified a value for
   `a` and `a` is not optional.
 
+### SQL Hints
+
+A hint is an instruction to the optimizer. When writing SQL, you may know information about
+the data unknown to the optimizer. Hints enable you to make decisions normally made by the optimizer.
+
+* Planner enforcers: there's no perfect planner, so it makes sense to implement hints to
+allow user better control the execution. For instance: "never merge this subquery with others" (`/*+ no_merge */`);
+“treat those tables as leading ones" (`/*+ leading */`) to affect join ordering, etc;
+* Append meta data/statistics: some statistics like “table index for scan” or “skew info of some shuffle keys”
+are somehow dynamic for the query, it would be very convenient to config them with hints because
+our planning metadata from the planner is very often not very accurate;
+* Operator resource constraints: for many cases, we would give a default resource configuration
+for the execution operators,
+i.e. min parallelism, memory (resource consuming UDF), special resource requirement (GPU or SSD disk) ...
+It would be very flexible to profile the resource with hints per query (not the Job).
+
+#### Syntax
+
+Calcite supports basically two kinds of hints:
+
+* Query Hint: right after the `SELECT` keyword;
+* Table Hint: right after the referenced table name.
+
+{% highlight sql %}
+query :
+      SELECT /*+ hints */
+      ...
+      from
+          tableName /*+ hints */
+          JOIN
+          tableName /*+ hints */
+      ...
+
+hints :
+      hintItem[, hintItem ]*
+
+hintItem :
+      hintName
+  |   hintName(optionKey=optionVal[, optionKey=optionVal ]*)
+  |   hintName(hintOption [, hintOption ]*)
+
+optionKey :
+      simpleIdentifier
+  |   stringLiteral
+
+optionVal :
+      stringLiteral
+
+hintOption :
+      simpleIdentifier
+   |  numericLiteral
+   |  stringLiteral
+{% endhighlight %}
+
+It is experimental in Calcite, and yet not fully implemented, what we have implemented are:
+
+* The parser support for the syntax above;
+* `RelHint` to represent a hint item;
+* Mechanism to propagate the hints, during sql-to-rel conversion and planner planning.
+
+We do not add any builtin hint items yet, would introduce more if we think the hints is stable enough.
+
 ### MATCH_RECOGNIZE
 
 `MATCH_RECOGNIZE` is a SQL extension for recognizing sequences of
@@ -2808,3 +2925,39 @@ generated column, `VIRTUAL` is the default.
 
 In *createFunctionStatement* and *usingFile*, *classNameLiteral*
 and *filePathLiteral* are character literals.
+
+
+#### Declaring Objects For Types Defined In Schema
+After an object type is defined and installed in the schema, you can use it to declare objects in any SQL block. For example, you can use the object type to specify the datatype of an attribute, column, variable, bind variable, record field, table element, formal parameter, or function result. At run time, instances of the object type are created; that is, objects of that type are instantiated. Each object can hold different values.
+
+Example: For declared types `address_typ` and `employee_typ`
+```SQL
+CREATE TYPE address_typ AS OBJECT (
+   street          VARCHAR2(30),
+   city            VARCHAR2(20),
+   state           CHAR(2),
+   postal_code     VARCHAR2(6) );
+
+CREATE TYPE employee_typ AS OBJECT (
+  employee_id       NUMBER(6),
+  first_name        VARCHAR2(20),
+  last_name         VARCHAR2(25),
+  email             VARCHAR2(25),
+  phone_number      VARCHAR2(20),
+  hire_date         DATE,
+  job_id            VARCHAR2(10),
+  salary            NUMBER(8,2),
+  commission_pct    NUMBER(2,2),
+  manager_id        NUMBER(6),
+  department_id     NUMBER(4),
+  address           address_typ
+);
+```
+
+We can declare objects of type `employee_typ` and `address_typ` :
+
+```SQL
+employee_typ(315, 'Francis', 'Logan', 'FLOGAN',
+        '555.777.2222', '01-MAY-04', 'SA_MAN', 11000, .15, 101, 110,
+         address_typ('376 Mission', 'San Francisco', 'CA', '94222'))
+```

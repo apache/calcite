@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link Primitive}.
  */
-public class PrimitiveTest {
-  @Test public void testIsAssignableFrom() {
+class PrimitiveTest {
+  @Test void testIsAssignableFrom() {
     assertTrue(Primitive.INT.assignableFrom(Primitive.BYTE));
     assertTrue(Primitive.INT.assignableFrom(Primitive.SHORT));
     assertTrue(Primitive.INT.assignableFrom(Primitive.CHAR));
@@ -85,21 +85,21 @@ public class PrimitiveTest {
     assertFalse(Primitive.INT.assignableFrom(Primitive.BOOLEAN));
   }
 
-  @Test public void testBox() {
+  @Test void testBox() {
     assertEquals(String.class, Primitive.box(String.class));
     assertEquals(Integer.class, Primitive.box(int.class));
     assertEquals(Integer.class, Primitive.box(Integer.class));
     assertEquals(boolean[].class, Primitive.box(boolean[].class));
   }
 
-  @Test public void testOfBox() {
+  @Test void testOfBox() {
     assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
     assertNull(Primitive.ofBox(Integer[].class));
   }
 
-  @Test public void testOfBoxOr() {
+  @Test void testOfBoxOr() {
     assertEquals(Primitive.INT, Primitive.ofBox(Integer.class));
     assertNull(Primitive.ofBox(int.class));
     assertNull(Primitive.ofBox(String.class));
@@ -107,7 +107,7 @@ public class PrimitiveTest {
   }
 
   /** Tests the {@link Primitive#number(Number)} method. */
-  @Test public void testNumber() {
+  @Test void testNumber() {
     Number number = Primitive.SHORT.number(Integer.valueOf(2));
     assertTrue(number instanceof Short);
     assertEquals(2, number.shortValue());
@@ -142,7 +142,7 @@ public class PrimitiveTest {
 
   /** Test for
    * {@link Primitive#send(org.apache.calcite.linq4j.tree.Primitive.Source, org.apache.calcite.linq4j.tree.Primitive.Sink)}. */
-  @Test public void testSendSource() {
+  @Test void testSendSource() {
     final List<Object> list = new ArrayList<Object>();
     for (Primitive primitive : Primitive.values()) {
       primitive.send(
@@ -253,7 +253,7 @@ public class PrimitiveTest {
   }
 
   /** Test for {@link Primitive#permute(Object, int[])}. */
-  @Test public void testPermute() {
+  @Test void testPermute() {
     char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     int[] sources = {1, 2, 3, 4, 5, 6, 0};
     final Object permute = Primitive.CHAR.permute(chars, sources);
@@ -262,13 +262,13 @@ public class PrimitiveTest {
   }
 
   /** Test for {@link Primitive#arrayToString(Object)}. */
-  @Test public void testArrayToString() {
+  @Test void testArrayToString() {
     char[] chars = {'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     assertEquals("[a, b, c, d, e, f, g]", Primitive.CHAR.arrayToString(chars));
   }
 
   /** Test for {@link Primitive#sortArray(Object)}. */
-  @Test public void testArraySort() {
+  @Test void testArraySort() {
     char[] chars = {'m', 'o', 'n', 'o', 'l', 'a', 'k', 'e'};
     Primitive.CHAR.sortArray(chars);
     assertEquals("[a, e, k, l, m, n, o, o]",

@@ -147,6 +147,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param fromRel   the RelNode to convert from (with fromTrait)
    * @return true if fromTrait can be converted to toTrait
    */
+  @Deprecated // to be removed before 1.24
   public boolean canConvert(
       RelOptPlanner planner,
       T fromTrait,

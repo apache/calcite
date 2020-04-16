@@ -21,6 +21,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 
@@ -124,7 +125,9 @@ public class RelWriterImpl implements RelWriter {
   }
 
   public final void explain(RelNode rel, List<Pair<String, Object>> valueList) {
-    explain_(rel, valueList);
+    try (RexNode.Closeable ignored = withRexNormalize()) {
+      explain_(rel, valueList);
+    }
   }
 
   public SqlExplainLevel getDetailLevel() {
@@ -141,7 +144,9 @@ public class RelWriterImpl implements RelWriter {
     final List<Pair<String, Object>> valuesCopy =
         ImmutableList.copyOf(values);
     values.clear();
-    explain_(node, valuesCopy);
+    try (RexNode.Closeable ignored = withRexNormalize()) {
+      explain_(node, valuesCopy);
+    }
     pw.flush();
     return this;
   }
@@ -164,13 +169,15 @@ public class RelWriterImpl implements RelWriter {
    */
   public String simple() {
     final StringBuilder buf = new StringBuilder("(");
-    for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
-      if (ord.i > 0) {
-        buf.append(", ");
+    try (RexNode.Closeable ignored = withRexNormalize()) {
+      for (Ord<Pair<String, Object>> ord : Ord.zip(values)) {
+        if (ord.i > 0) {
+          buf.append(", ");
+        }
+        buf.append(ord.e.left).append("=[").append(ord.e.right).append("]");
       }
-      buf.append(ord.e.left).append("=[").append(ord.e.right).append("]");
+      buf.append(")");
     }
-    buf.append(")");
     return buf.toString();
   }
 }

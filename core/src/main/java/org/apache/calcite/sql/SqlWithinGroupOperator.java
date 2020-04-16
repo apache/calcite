@@ -48,7 +48,7 @@ public class SqlWithinGroupOperator extends SqlBinaryOperator {
     final SqlWriter.Frame orderFrame =
         writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, "(", ")");
     writer.keyword("ORDER BY");
-    ((SqlNodeList) call.operand(1)).commaList(writer);
+    ((SqlNodeList) call.operand(1)).unparse(writer, 0, 0);
     writer.endList(orderFrame);
   }
 

@@ -37,7 +37,7 @@ import java.util.List;
 /**
  * Utility to generate a SQL script from validator test.
  */
-public class SqlTestGen {
+class SqlTestGen {
   private SqlTestGen() {}
 
   //~ Methods ----------------------------------------------------------------
@@ -85,7 +85,7 @@ public class SqlTestGen {
    */
   private static class SqlValidatorSpooler extends SqlValidatorTest {
     private static final SqlTestFactory SPOOLER_VALIDATOR = SqlTestFactory.INSTANCE.withValidator(
-        (opTab, catalogReader, typeFactory, conformance) ->
+        (opTab, catalogReader, typeFactory, config) ->
             (SqlValidator) Proxy.newProxyInstance(
                 SqlValidatorSpooler.class.getClassLoader(),
                 new Class[]{SqlValidator.class},

@@ -70,6 +70,28 @@ public class UnionMergeRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    // It avoids adding the rule match to the match queue in case the rule is known to be a no-op
+    final SetOp topOp = call.rel(0);
+    @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =
+        (Class<? extends SetOp>) operands.get(0).getMatchedClass();
+    final SetOp bottomOp;
+    if (setOpClass.isInstance(call.rel(2))
+        && !Minus.class.isAssignableFrom(setOpClass)) {
+      bottomOp = call.rel(2);
+    } else if (setOpClass.isInstance(call.rel(1))) {
+      bottomOp = call.rel(1);
+    } else {
+      return false;
+    }
+
+    if (topOp.all && !bottomOp.all) {
+      return false;
+    }
+
+    return true;
+  }
+
   public void onMatch(RelOptRuleCall call) {
     final SetOp topOp = call.rel(0);
     @SuppressWarnings("unchecked") final Class<? extends SetOp> setOpClass =

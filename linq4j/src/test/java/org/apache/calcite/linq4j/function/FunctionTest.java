@@ -31,9 +31,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Test for {@link Functions}.
  */
-public class FunctionTest {
+class FunctionTest {
   /** Unit test for {@link Functions#filter}. */
-  @Test public void testFilter() {
+  @Test void testFilter() {
     final List<String> abc = Arrays.asList("A", "B", "C", "D");
     // a miss, then a hit
     assertEquals("[A, C, D]",
@@ -51,7 +51,7 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#exists}. */
-  @Test public void testExists() {
+  @Test void testExists() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
     assertFalse(
@@ -63,7 +63,7 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#all}. */
-  @Test public void testAll() {
+  @Test void testAll() {
     final List<Integer> ints = Arrays.asList(1, 10, 2);
     final List<Integer> empty = Collections.emptyList();
     assertFalse(
@@ -79,7 +79,7 @@ public class FunctionTest {
   }
 
   /** Unit test for {@link Functions#generate}. */
-  @Test public void testGenerate() {
+  @Test void testGenerate() {
     final Function1<Integer, String> xx =
         new Function1<Integer, String>() {
           public String apply(Integer a0) {

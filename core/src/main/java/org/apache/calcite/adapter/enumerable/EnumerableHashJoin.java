@@ -60,6 +60,7 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
     super(
         cluster,
         traits,
+        ImmutableList.of(),
         left,
         right,
         condition,

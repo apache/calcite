@@ -292,6 +292,9 @@ public interface CalciteResource {
   @BaseMessage("INNER, LEFT, RIGHT or FULL join requires a condition (NATURAL keyword or ON or USING clause)")
   ExInst<SqlValidatorException> joinRequiresCondition();
 
+  @BaseMessage("Cannot qualify common column ''{0}''")
+  ExInst<SqlValidatorException> disallowsQualifyingCommonColumn(String a0);
+
   @BaseMessage("Cannot specify condition (NATURAL keyword, or ON or USING clause) following CROSS JOIN")
   ExInst<SqlValidatorException> crossJoinDisallowsCondition();
 
@@ -900,6 +903,18 @@ public interface CalciteResource {
 
   @BaseMessage("Not a valid input for REGEXP_REPLACE: ''{0}''")
   ExInst<CalciteException> invalidInputForRegexpReplace(String value);
+
+  @BaseMessage("Illegal xslt specified : ''{0}''")
+  ExInst<CalciteException> illegalXslt(String xslt);
+
+  @BaseMessage("Invalid input for XMLTRANSFORM xml: ''{0}''")
+  ExInst<CalciteException> invalidInputForXmlTransform(String xml);
+
+  @BaseMessage("Invalid input for EXTRACT xpath: ''{0}'', namespace: ''{1}''")
+  ExInst<CalciteException> invalidInputForExtractXml(String xpath, String namespace);
+
+  @BaseMessage("Invalid input for EXISTSNODE xpath: ''{0}'', namespace: ''{1}''")
+  ExInst<CalciteException> invalidInputForExistsNode(String xpath, String namespace);
 
   @BaseMessage("Invalid input for EXTRACTVALUE: xml: ''{0}'', xpath expression: ''{1}''")
   ExInst<CalciteException> invalidInputForExtractValue(String xml, String xpath);

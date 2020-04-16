@@ -336,10 +336,8 @@ public class SqlMatchRecognize extends SqlCall {
       if (pattern.orderList != null && pattern.orderList.size() > 0) {
         writer.newlineAndIndent();
         writer.sep("ORDER BY");
-        final SqlWriter.Frame orderFrame =
-            writer.startList(SqlWriter.FrameTypeEnum.ORDER_BY_LIST);
-        unparseListClause(writer, pattern.orderList);
-        writer.endList(orderFrame);
+        writer.list(SqlWriter.FrameTypeEnum.ORDER_BY_LIST, SqlWriter.COMMA,
+            pattern.orderList);
       }
 
       if (pattern.measureList != null && pattern.measureList.size() > 0) {

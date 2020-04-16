@@ -66,39 +66,6 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     return getTesterWithDynamicTable();
   }
 
-  @Deprecated // to be removed before 1.23
-  protected void checkPlanning(
-      RelOptRule rule,
-      String sql) {
-    HepProgramBuilder programBuilder = HepProgram.builder();
-    programBuilder.addRuleInstance(rule);
-
-    checkPlanning(
-        programBuilder.build(),
-        sql);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkPlanning(HepProgram program, String sql) {
-    checkPlanning(new HepPlanner(program), sql);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkPlanning(RelOptPlanner planner, String sql) {
-    checkPlanning(tester, null, planner, sql);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkPlanUnchanged(RelOptPlanner planner, String sql) {
-    checkPlanning(tester, null, planner, sql, true);
-  }
-
-  @Deprecated // to be removed before 1.23
-  protected void checkPlanning(Tester tester, HepProgram preProgram,
-      RelOptPlanner planner, String sql) {
-    checkPlanning(tester, preProgram, planner, sql, false);
-  }
-
   /**
    * Checks the plan for a SQL statement before/after executing a given rule,
    * with a pre-program to prepare the tree.

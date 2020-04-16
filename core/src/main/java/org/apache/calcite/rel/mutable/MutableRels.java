@@ -54,6 +54,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
@@ -173,6 +174,23 @@ public abstract class MutableRels {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Construct expression list of Project by the given fields of the input.
+   */
+  public static List<RexNode> createProjects(final MutableRel child,
+      final List<RexNode> projs) {
+    List<RexNode> rexNodeList = new ArrayList<>();
+    for (int i = 0; i < projs.size(); i++) {
+      if (projs.get(i) instanceof RexInputRef) {
+        RexInputRef rexInputRef = (RexInputRef) projs.get(i);
+        rexNodeList.add(RexInputRef.of(rexInputRef.getIndex(), child.rowType));
+      } else {
+        rexNodeList.add(projs.get(i));
+      }
+    }
+    return rexNodeList;
+  }
+
   /** Equivalence to {@link org.apache.calcite.plan.RelOptUtil#createCastRel}
    * for {@link MutableRel}. */
   public static MutableRel createCastRel(MutableRel rel,
@@ -213,7 +231,8 @@ public abstract class MutableRels {
       final MutableAggregate aggregate = (MutableAggregate) node;
       relBuilder.push(fromMutable(aggregate.input, relBuilder));
       relBuilder.aggregate(
-          relBuilder.groupKey(aggregate.groupSet, aggregate.groupSets),
+          relBuilder.groupKey(aggregate.groupSet,
+              (Iterable<ImmutableBitSet>) aggregate.groupSets),
           aggregate.aggCalls);
       return relBuilder.build();
     case SORT:

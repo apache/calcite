@@ -40,6 +40,8 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.apiguardian.api.API;
+
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.AbstractMap;
@@ -1959,29 +1961,95 @@ public abstract class EnumerableDefaults {
     };
   }
 
-  /** Joins two inputs that are sorted on the key. */
+  /**
+   * Joins two inputs that are sorted on the key.
+   * Inputs must sorted in ascending order, nulls last.
+   * @deprecated Use {@link #mergeJoin(Enumerable, Enumerable, Function1, Function1, Function2, JoinType, Comparator)}
+   */
+  @Deprecated // to be removed before 2.0
   public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
       mergeJoin(final Enumerable<TSource> outer,
       final Enumerable<TInner> inner,
       final Function1<TSource, TKey> outerKeySelector,
       final Function1<TInner, TKey> innerKeySelector,
-      final Predicate2<TSource, TInner> predicate,
       final Function2<TSource, TInner, TResult> resultSelector,
       boolean generateNullsOnLeft,
       boolean generateNullsOnRight) {
     if (generateNullsOnLeft) {
       throw new UnsupportedOperationException(
-        "not implemented, mergeJoin with generateNullsOnLeft");
+          "not implemented, mergeJoin with generateNullsOnLeft");
     }
     if (generateNullsOnRight) {
       throw new UnsupportedOperationException(
-        "not implemented, mergeJoin with generateNullsOnRight");
+          "not implemented, mergeJoin with generateNullsOnRight");
+    }
+    return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
+        JoinType.INNER, null);
+  }
+
+  /**
+   * Returns if certain join type is supported by Enumerable Merge Join implementation.
+   * <p>NOTE: This method is subject to change or be removed without notice.
+   */
+  public static boolean isMergeJoinSupported(JoinType joinType) {
+    switch (joinType) {
+    case INNER:
+    case SEMI:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  /**
+   * Joins two inputs that are sorted on the key.
+   * Inputs must sorted in ascending order, nulls last.
+   */
+  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
+      mergeJoin(final Enumerable<TSource> outer,
+      final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Function2<TSource, TInner, TResult> resultSelector,
+      final JoinType joinType,
+      final Comparator<TKey> comparator) {
+    return mergeJoin(outer, inner, outerKeySelector, innerKeySelector, null, resultSelector,
+        joinType, comparator);
+  }
+
+  /**
+   * Joins two inputs that are sorted on the key, with an extra predicate for non equi-join
+   * conditions.
+   * Inputs must sorted in ascending order, nulls last.
+   *
+   * @param extraPredicate predicate for non equi-join conditions. In case of equi-join,
+   *                       it will be null. In case of non-equi join, the non-equi conditions
+   *                       will be evaluated using this extra predicate within the join process,
+   *                       and not applying a filter on top of the join results, because the latter
+   *                       strategy can only work on inner joins, and we aim to support other join
+   *                       types in the future (e.g. semi or anti joins).
+   * @param comparator key comparator, possibly null (in which case {@link Comparable#compareTo}
+   *                   will be used).
+   *
+   * NOTE: The current API is experimental and subject to change without notice.
+   */
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public static <TSource, TInner, TKey extends Comparable<TKey>, TResult> Enumerable<TResult>
+      mergeJoin(final Enumerable<TSource> outer,
+      final Enumerable<TInner> inner,
+      final Function1<TSource, TKey> outerKeySelector,
+      final Function1<TInner, TKey> innerKeySelector,
+      final Predicate2<TSource, TInner> extraPredicate,
+      final Function2<TSource, TInner, TResult> resultSelector,
+      final JoinType joinType,
+      final Comparator<TKey> comparator) {
+    if (!isMergeJoinSupported(joinType)) {
+      throw new UnsupportedOperationException("MergeJoin unsupported for join type " + joinType);
     }
     return new AbstractEnumerable<TResult>() {
       public Enumerator<TResult> enumerator() {
-        return new MergeJoinEnumerator<>(outer.enumerator(),
-            inner.enumerator(), outerKeySelector, innerKeySelector,
-            predicate, resultSelector);
+        return new MergeJoinEnumerator<>(outer, inner, outerKeySelector, innerKeySelector,
+            extraPredicate, resultSelector, joinType, comparator);
       }
     };
   }
@@ -2408,13 +2476,17 @@ public abstract class EnumerableDefaults {
   public static <TSource, TKey> Enumerable<TSource> orderBy(
       Enumerable<TSource> source, Function1<TSource, TKey> keySelector,
       Comparator<TKey> comparator) {
-    // NOTE: TreeMap allows null comparator. But the caller of this method
-    // must supply a comparator if the key does not extend Comparable.
-    // Otherwise there will be a ClassCastException while retrieving.
-    final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
-    LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
-        Functions.identitySelector());
-    return lookup.valuesEnumerable();
+    return new AbstractEnumerable<TSource>() {
+      @Override public Enumerator<TSource> enumerator() {
+        // NOTE: TreeMap allows null comparator. But the caller of this method
+        // must supply a comparator if the key does not extend Comparable.
+        // Otherwise there will be a ClassCastException while retrieving.
+        final Map<TKey, List<TSource>> map = new TreeMap<>(comparator);
+        final LookupImpl<TKey, TSource> lookup = toLookup_(map, source, keySelector,
+            Functions.identitySelector());
+        return lookup.valuesEnumerable().enumerator();
+      }
+    };
   }
 
   /**
@@ -3782,6 +3854,7 @@ public abstract class EnumerableDefaults {
   }
 
   /** Enumerator that performs a merge join on its sorted inputs.
+   * Inputs must sorted in ascending order, nulls last.
    *
    * @param <TResult> result type
    * @param <TSource> left input record type
@@ -3789,39 +3862,67 @@ public abstract class EnumerableDefaults {
    * @param <TInner> right input record type */
   private static class MergeJoinEnumerator<TResult, TSource, TInner, TKey extends Comparable<TKey>>
       implements Enumerator<TResult> {
-    final List<TSource> lefts = new ArrayList<>();
-    final List<TInner> rights = new ArrayList<>();
-    private final Enumerator<TSource> leftEnumerator;
-    private final Enumerator<TInner> rightEnumerator;
+    private final List<TSource> lefts = new ArrayList<>();
+    private final List<TInner> rights = new ArrayList<>();
+    private final Enumerable<TSource> leftEnumerable;
+    private final Enumerable<TInner> rightEnumerable;
+    private Enumerator<TSource> leftEnumerator = null;
+    private Enumerator<TInner> rightEnumerator = null;
     private final Function1<TSource, TKey> outerKeySelector;
     private final Function1<TInner, TKey> innerKeySelector;
-    private final Predicate2<TSource, TInner> predicate;
+    // extra predicate in case of non equi-join, in case of equi-join it will be null
+    private final Predicate2<TSource, TInner> extraPredicate;
     private final Function2<TSource, TInner, TResult> resultSelector;
-    boolean done;
-    Enumerator<List<Object>> cartesians;
+    private final JoinType joinType;
+    // key comparator, possibly null (Comparable#compareTo to be used in that case)
+    private final Comparator<TKey> comparator;
+    private boolean done;
+    private Enumerator<TResult> results;
 
-    MergeJoinEnumerator(Enumerator<TSource> leftEnumerator,
-        Enumerator<TInner> rightEnumerator,
+    MergeJoinEnumerator(Enumerable<TSource> leftEnumerable,
+        Enumerable<TInner> rightEnumerable,
         Function1<TSource, TKey> outerKeySelector,
         Function1<TInner, TKey> innerKeySelector,
-        Predicate2<TSource, TInner> predicate,
-        Function2<TSource, TInner, TResult> resultSelector) {
-      this.leftEnumerator = leftEnumerator;
-      this.rightEnumerator = rightEnumerator;
+        Predicate2<TSource, TInner> extraPredicate,
+        Function2<TSource, TInner, TResult> resultSelector,
+        JoinType joinType,
+        Comparator<TKey> comparator) {
+      this.leftEnumerable = leftEnumerable;
+      this.rightEnumerable = rightEnumerable;
       this.outerKeySelector = outerKeySelector;
       this.innerKeySelector = innerKeySelector;
-      this.predicate = predicate;
+      this.extraPredicate = extraPredicate;
       this.resultSelector = resultSelector;
+      this.joinType = joinType;
+      this.comparator = comparator;
       start();
     }
 
+    private Enumerator<TSource> startLeftEnumerator() {
+      if (leftEnumerator == null) {
+        leftEnumerator = leftEnumerable.enumerator();
+      }
+      return leftEnumerator;
+    }
+
+    private Enumerator<TInner> startRightEnumerator() {
+      if (rightEnumerator == null) {
+        rightEnumerator = rightEnumerable.enumerator();
+      }
+      return rightEnumerator;
+    }
+
     private void start() {
-      if (!leftEnumerator.moveNext()
-          || !rightEnumerator.moveNext()
+      if (!startLeftEnumerator().moveNext()
+          || !startRightEnumerator().moveNext()
           || !advance()) {
         done = true;
-        cartesians = Linq4j.emptyEnumerator();
+        results = Linq4j.emptyEnumerator();
       }
+    }
+
+    private int compare(TKey key1, TKey key2) {
+      return comparator != null ? comparator.compare(key1, key2) : key1.compareTo(key2);
     }
 
     /** Moves to the next key that is present in both sides. Populates
@@ -3833,8 +3934,14 @@ public abstract class EnumerableDefaults {
       TInner right = rightEnumerator.current();
       TKey rightKey = innerKeySelector.apply(right);
       for (;;) {
-        int c = leftKey.compareTo(rightKey);
-        if (c == 0 && predicate.apply(left, right)) {
+        // mergeJoin assumes inputs sorted in ascending order with nulls last,
+        // if we reach a null key, we are done.
+        if (leftKey == null || rightKey == null) {
+          done = true;
+          return false;
+        }
+        int c = compare(leftKey, rightKey);
+        if (c == 0) {
           break;
         }
         if (c < 0) {
@@ -3862,7 +3969,11 @@ public abstract class EnumerableDefaults {
         }
         left = leftEnumerator.current();
         TKey leftKey2 = outerKeySelector.apply(left);
-        int c = leftKey.compareTo(leftKey2);
+        if (leftKey2 == null) {
+          done = true;
+          break;
+        }
+        int c = compare(leftKey, leftKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
@@ -3882,7 +3993,11 @@ public abstract class EnumerableDefaults {
         }
         right = rightEnumerator.current();
         TKey rightKey2 = innerKeySelector.apply(right);
-        int c = rightKey.compareTo(rightKey2);
+        if (rightKey2 == null) {
+          done = true;
+          break;
+        }
+        int c = compare(rightKey, rightKey2);
         if (c != 0) {
           if (c > 0) {
             throw new IllegalStateException(
@@ -3893,25 +4008,29 @@ public abstract class EnumerableDefaults {
         }
         rights.add(right);
       }
-      cartesians = new TakeWhileLongEnumerator<>(
-          Linq4j.product(
-              ImmutableList.of(Linq4j.enumerator(lefts), Linq4j.enumerator(rights))),
-          (v0, v1) -> predicate.apply((TSource) v0.get(0), (TInner) v0.get(1)));
+
+      if (extraPredicate == null) {
+        // SEMI join must not have duplicates, in that case take just one element from rights
+        results = joinType == JoinType.SEMI
+            ? new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
+                Linq4j.enumerator(Collections.singletonList(this.rights.get(0))))
+            : new CartesianProductJoinEnumerator<>(resultSelector, Linq4j.enumerator(lefts),
+                Linq4j.enumerator(rights));
+      } else {
+        // we must verify the non equi-join predicate, use nested loop join for that
+        results = nestedLoopJoin(Linq4j.asEnumerable(lefts), Linq4j.asEnumerable(rights),
+            extraPredicate, resultSelector, joinType).enumerator();
+      }
       return true;
     }
 
     public TResult current() {
-      final List<Object> list = cartesians.current();
-      @SuppressWarnings("unchecked") final TSource left =
-          (TSource) list.get(0);
-      @SuppressWarnings("unchecked") final TInner right =
-          (TInner) list.get(1);
-      return resultSelector.apply(left, right);
+      return results.current();
     }
 
     public boolean moveNext() {
       for (;;) {
-        if (cartesians.moveNext()) {
+        if (results.moveNext()) {
           return true;
         }
         if (done) {
@@ -3926,11 +4045,36 @@ public abstract class EnumerableDefaults {
     public void reset() {
       done = false;
       leftEnumerator.reset();
-      rightEnumerator.reset();
+      if (rightEnumerator != null) {
+        rightEnumerator.reset();
+      }
       start();
     }
 
     public void close() {
+      leftEnumerator.close();
+      if (rightEnumerator != null) {
+        rightEnumerator.close();
+      }
+    }
+  }
+
+  private static class CartesianProductJoinEnumerator<TResult, TOuter, TInner>
+      extends CartesianProductEnumerator<Object, TResult> {
+    private final Function2<TOuter, TInner, TResult> resultSelector;
+
+    @SuppressWarnings("unchecked")
+    CartesianProductJoinEnumerator(Function2<TOuter, TInner, TResult> resultSelector,
+                                   Enumerator<TOuter> outer, Enumerator<TInner> inner) {
+      super(ImmutableList.of((Enumerator<Object>) outer, (Enumerator<Object>) inner));
+      this.resultSelector = resultSelector;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override public TResult current() {
+      final TOuter outer = (TOuter) elements[0];
+      final TInner inner = (TInner) elements[1];
+      return this.resultSelector.apply(outer, inner);
     }
   }
 
@@ -4107,6 +4251,38 @@ public abstract class EnumerableDefaults {
 
           @Override public void close() {
             inputEnumerator.close();
+          }
+        };
+      }
+    };
+  }
+
+  /**
+   * Apply tumbling per row from the enumerable input.
+   */
+  public static <TSource, TResult> Enumerable<TResult> tumbling(
+      Enumerable<TSource> inputEnumerable,
+      Function1<TSource, TResult> outSelector) {
+    return new AbstractEnumerable<TResult>() {
+      // Applies tumbling on each element from the input enumerator and produces
+      // exactly one element for each input element.
+      @Override public Enumerator<TResult> enumerator() {
+        return new Enumerator<TResult>() {
+          Enumerator<TSource> inputs = inputEnumerable.enumerator();
+
+          public TResult current() {
+            return outSelector.apply(inputs.current());
+          }
+
+          public boolean moveNext() {
+            return inputs.moveNext();
+          }
+
+          public void reset() {
+            inputs.reset();
+          }
+
+          public void close() {
           }
         };
       }

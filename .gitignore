@@ -29,7 +29,11 @@
 /out
 /*/out/
 /example/*/out
-.idea
+# The star is required for further !/.idea/ to work, see https://git-scm.com/docs/gitignore
+/.idea/*
+# Icon for JetBrains Toolbox
+!/.idea/icon.png
+!/.idea/vcs.xml
 *.iml
 
 settings.xml
@@ -50,4 +54,5 @@ nb-configuration.xml
 
 .mvn/wrapper/maven-wrapper.jar
 
-# End .gitignore
+# Local configuration file (sdk path, etc)
+local.properties

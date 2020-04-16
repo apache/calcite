@@ -64,7 +64,7 @@ public class ComparableOperandTypeChecker extends SameOperandTypeChecker {
     }
     if (b) {
       // Coerce type first.
-      if (callBinding.getValidator().isTypeCoercionEnabled()) {
+      if (callBinding.isTypeCoercionEnabled()) {
         TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
         // For comparison operators, i.e. >, <, =, >=, <=.
         typeCoercion.binaryComparisonCoercion(callBinding);

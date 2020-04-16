@@ -25,13 +25,13 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for LookupImpl.java
  *
  */
-public class LookupImplTest extends TestCase {
+class LookupImplTest {
 
   private Lookup<Integer, String> impl;
 
@@ -42,14 +42,14 @@ public class LookupImplTest extends TestCase {
       Linq4jTest.EMP_NAME_SELECTOR);
   }
 
-  @Test public void testPut() {
+  @Test void testPut() {
     int initSize = impl.size();
     impl.put(99, Linq4j.asEnumerable(new String[]{"A", "B"}));
     assertTrue(impl.containsKey(99));
     assertTrue(impl.size() == initSize + 1);
   }
 
-  @Test public void testContainsValue() {
+  @Test void testContainsValue() {
     List<String> list = new ArrayList<>();
     list.add("C");
     list.add("D");

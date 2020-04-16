@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import com.github.spotbugs.SpotBugsTask
 import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
+import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.git.FindGitAttributes
 import com.github.vlsi.gradle.git.dsl.gitignore
 import com.github.vlsi.gradle.properties.dsl.lastEditYear
@@ -33,7 +33,7 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
-    id("com.diffplug.gradle.spotless")
+    id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
     id("de.thetaphi.forbiddenapis") apply false
@@ -61,13 +61,12 @@ val lastEditYear by extra(lastEditYear())
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
 val skipCheckstyle by props()
-val skipSpotless by props()
+val skipAutostyle by props()
 val skipJavadoc by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
 // Inherited from stage-vote-release-plugin: skipSign, useGpgCmd
-val slowSuiteLogThreshold by props(0L)
-val slowTestLogThreshold by props(2000L)
+// Inherited from gradle-extensions-plugin: slowSuiteLogThreshold=0L, slowTestLogThreshold=2000L
 
 ide {
     copyrightToAsf()
@@ -144,9 +143,29 @@ val javadocAggregate by tasks.registering(Javadoc::class) {
     setDestinationDir(file("$buildDir/docs/javadocAggregate"))
 }
 
+/** Similar to {@link #javadocAggregate} but includes tests.
+ * CI uses this target to validate javadoc (e.g. checking for broken links). */
+val javadocAggregateIncludingTests by tasks.registering(Javadoc::class) {
+    description = "Generates aggregate javadoc for all the artifacts"
+
+    val sourceSets = allprojects
+        .mapNotNull { it.extensions.findByType<SourceSetContainer>() }
+        .flatMap { listOf(it.named("main"), it.named("test")) }
+
+    classpath = files(sourceSets.map { set -> set.map { it.output + it.compileClasspath } })
+    setSource(sourceSets.map { set -> set.map { it.allJava } })
+    setDestinationDir(file("$buildDir/docs/javadocAggregateIncludingTests"))
+}
+
 val adaptersForSqlline = listOf(
     ":babel", ":cassandra", ":druid", ":elasticsearch", ":file", ":geode", ":kafka", ":mongodb",
-    ":pig", ":piglet", ":plus", ":spark", ":splunk"
+    ":pig", ":piglet", ":plus", ":redis", ":spark", ":splunk"
+)
+
+val dataSetsForSqlline = listOf(
+    "net.hydromatic:foodmart-data-hsqldb",
+    "net.hydromatic:scott-data-hsqldb",
+    "net.hydromatic:chinook-data-hsqldb"
 )
 
 val sqllineClasspath by configurations.creating {
@@ -159,6 +178,9 @@ dependencies {
     for (p in adaptersForSqlline) {
         sqllineClasspath(project(p))
     }
+    for (m in dataSetsForSqlline) {
+        sqllineClasspath(module(m))
+    }
 }
 
 val buildSqllineClasspath by tasks.registering(Jar::class) {
@@ -167,12 +189,10 @@ val buildSqllineClasspath by tasks.registering(Jar::class) {
     inputs.files(sqllineClasspath).withNormalizer(ClasspathNormalizer::class.java)
     archiveFileName.set("sqllineClasspath.jar")
     manifest {
-        manifest {
-            attributes(
-                "Main-Class" to "sqlline.SqlLine",
-                "Class-Path" to provider { sqllineClasspath.map { it.absolutePath }.joinToString(" ") }
-            )
-        }
+        attributes(
+            "Main-Class" to "sqlline.SqlLine",
+            "Class-Path" to provider { sqllineClasspath.joinToString(" ") { it.absolutePath } }
+        )
     }
 }
 
@@ -195,9 +215,25 @@ fun PatternFilterable.excludeJavaCcGenerated() {
     exclude(*javaccGeneratedPatterns)
 }
 
+fun com.github.autostyle.gradle.BaseFormatExtension.license() {
+    licenseHeader(rootProject.ide.licenseHeader) {
+        copyrightStyle("bat", com.github.autostyle.generic.DefaultCopyrightStyle.PAAMAYIM_NEKUDOTAYIM)
+        copyrightStyle("cmd", com.github.autostyle.generic.DefaultCopyrightStyle.PAAMAYIM_NEKUDOTAYIM)
+    }
+    trimTrailingWhitespace()
+    endWithNewline()
+}
+
 allprojects {
     group = "org.apache.calcite"
     version = buildVersion
+
+    apply(plugin = "com.github.vlsi.gradle-extensions")
+
+    repositories {
+        // RAT and Autostyle dependencies
+        mavenCentral()
+    }
 
     val javaUsed = file("src/main/java").isDirectory
     if (javaUsed) {
@@ -228,31 +264,43 @@ allprojects {
         }
     }
 
-    if (!skipSpotless) {
-        apply(plugin = "com.diffplug.gradle.spotless")
-        spotless {
+    if (!skipAutostyle) {
+        apply(plugin = "com.github.autostyle")
+        autostyle {
             kotlinGradle {
+                license()
                 ktlint()
-                trimTrailingWhitespace()
-                endWithNewline()
+            }
+            format("configs") {
+                filter {
+                    include("**/*.sh", "**/*.bsh", "**/*.cmd", "**/*.bat")
+                    include("**/*.properties", "**/*.yml")
+                    include("**/*.xsd", "**/*.xsl", "**/*.xml")
+                    // Autostyle does not support gitignore yet https://github.com/autostyle/autostyle/issues/13
+                    exclude("bin/**", "out/**", "target/**", "gradlew*")
+                    exclude(rootDir.resolve(".ratignore").readLines())
+                }
+                license()
             }
             if (project == rootProject) {
                 // Spotless does not exclude subprojects when using target(...)
                 // So **/*.md is enough to scan all the md files in the codebase
                 // See https://github.com/diffplug/spotless/issues/468
                 format("markdown") {
-                    target("**/*.md")
+                    filter.include("**/*.md")
                     // Flot is known to have trailing whitespace, so the files
                     // are kept in their original format (e.g. to simplify diff on library upgrade)
-                    trimTrailingWhitespace()
                     endWithNewline()
                 }
             }
         }
         plugins.withId("org.jetbrains.kotlin.jvm") {
-            spotless {
+            autostyle {
                 kotlin {
-                    ktlint().userData(mapOf("disabled_rules" to "import-ordering"))
+                    licenseHeader(rootProject.ide.licenseHeader)
+                    ktlint {
+                        userData(mapOf("disabled_rules" to "import-ordering"))
+                    }
                     trimTrailingWhitespace()
                     endWithNewline()
                 }
@@ -274,7 +322,7 @@ allprojects {
         tasks.register("checkstyleAll") {
             dependsOn(tasks.withType<Checkstyle>())
         }
-        tasks.withType<Checkstyle>().configureEach {
+        tasks.configureEach<Checkstyle> {
             // Excludes here are faster than in suppressions.xml
             // Since here we can completely remove file from the analysis.
             // On the other hand, supporessions.xml still analyzes the file, and
@@ -282,12 +330,12 @@ allprojects {
             excludeJavaCcGenerated()
         }
     }
-    if (!skipSpotless || !skipCheckstyle) {
+    if (!skipAutostyle || !skipCheckstyle) {
         tasks.register("style") {
             group = LifecycleBasePlugin.VERIFICATION_GROUP
             description = "Formats code (license header, import order, whitespace at end of line, ...) and executes Checkstyle verifications"
-            if (!skipSpotless) {
-                dependsOn("spotlessApply")
+            if (!skipAutostyle) {
+                dependsOn("autostyleApply")
             }
             if (!skipCheckstyle) {
                 dependsOn("checkstyleAll")
@@ -295,7 +343,7 @@ allprojects {
         }
     }
 
-    tasks.withType<AbstractArchiveTask>().configureEach {
+    tasks.configureEach<AbstractArchiveTask> {
         // Ensure builds are reproducible
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
@@ -304,7 +352,7 @@ allprojects {
     }
 
     tasks {
-        withType<Javadoc>().configureEach {
+        configureEach<Javadoc> {
             excludeJavaCcGenerated()
             (options as StandardJavadocDocletOptions).apply {
                 // Please refrain from using non-ASCII chars below since the options are passed as
@@ -355,11 +403,11 @@ allprojects {
             }
         }
 
-        if (!skipSpotless) {
-            spotless {
+        if (!skipAutostyle) {
+            autostyle {
                 java {
-                    targetExclude(*javaccGeneratedPatterns + "**/test/java/*.java")
-                    licenseHeader(rootProject.ide.licenseHeaderJava)
+                    filter.exclude(*javaccGeneratedPatterns + "**/test/java/*.java")
+                    license()
                     if (!project.props.bool("junit4", default = false)) {
                         replace("junit5: Test", "org.junit.Test", "org.junit.jupiter.api.Test")
                         replaceRegex("junit5: Before", "org.junit.Before\\b", "org.junit.jupiter.api.BeforeEach")
@@ -375,6 +423,7 @@ allprojects {
                         replace("junit5: Assert.assertThat", "org.junit.Assert.assertThat", "org.hamcrest.MatcherAssert.assertThat")
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
+                    replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -395,7 +444,6 @@ allprojects {
                         "static "
                     )
                     removeUnusedImports()
-                    trimTrailingWhitespace()
                     indentWithSpaces(2)
                     replaceRegex("@Override should not be on its own line", "(@Override)\\s{2,}", "\$1 ")
                     replaceRegex("@Test should not be on its own line", "(@Test)\\s{2,}", "\$1 ")
@@ -407,11 +455,9 @@ allprojects {
                     replaceRegex(">[CALCITE-...] link styles: 1", "<a(?:(?!CALCITE-)[^>])++CALCITE-\\d+[^>]++>\\s*+\\[?(CALCITE-\\d+)\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
                     // If the link was crafted manually, ensure it has [CALCITE-...] in the link text
                     replaceRegex(">[CALCITE-...] link styles: 2", "<a(?:(?!CALCITE-)[^>])++(CALCITE-\\d+)[^>]++>\\s*+\\[?CALCITE-\\d+\\]?", "<a href=\"https://issues.apache.org/jira/browse/\$1\">[\$1]")
-                    bumpThisNumberIfACustomStepChanges(1)
-                    custom("((() preventer") { contents: String ->
+                    custom("((() preventer", 1) { contents: String ->
                         ParenthesisBalancer.apply(contents)
                     }
-                    endWithNewline()
                 }
             }
         }
@@ -450,7 +496,7 @@ allprojects {
         }
 
         tasks {
-            withType<Jar>().configureEach {
+            configureEach<Jar> {
                 manifest {
                     attributes["Bundle-License"] = "Apache-2.0"
                     attributes["Implementation-Title"] = "Apache Calcite"
@@ -463,7 +509,7 @@ allprojects {
                 }
             }
 
-            withType<CheckForbiddenApis>().configureEach {
+            configureEach<CheckForbiddenApis> {
                 excludeJavaCcGenerated()
                 exclude(
                     "**/org/apache/calcite/adapter/os/Processes${'$'}ProcessFactory.class",
@@ -475,10 +521,10 @@ allprojects {
                 )
             }
 
-            withType<JavaCompile>().configureEach {
+            configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
             }
-            withType<Test>().configureEach {
+            configureEach<Test> {
                 useJUnitPlatform {
                     excludeTags("slow")
                 }
@@ -496,6 +542,7 @@ allprojects {
                 }
                 passProperty("java.awt.headless")
                 passProperty("junit.jupiter.execution.parallel.enabled", "true")
+                passProperty("junit.jupiter.execution.parallel.mode.default", "concurrent")
                 passProperty("junit.jupiter.execution.timeout.default", "5 m")
                 passProperty("user.language", "TR")
                 passProperty("user.country", "tr")
@@ -505,52 +552,6 @@ allprojects {
                         passProperty(e)
                     }
                 }
-                // https://github.com/junit-team/junit5/issues/2041
-                // Gradle does not print parameterized test names yet :(
-                // Hopefully it will be fixed in Gradle 6.1
-                fun String?.withDisplayName(displayName: String?, separator: String = ", "): String? = when {
-                    displayName == null -> this
-                    this == null -> displayName
-                    endsWith(displayName) -> this
-                    else -> "$this$separator$displayName"
-                }
-                fun printResult(descriptor: TestDescriptor, result: TestResult) {
-                    val test = descriptor as org.gradle.api.internal.tasks.testing.TestDescriptorInternal
-                    val classDisplayName = test.className.withDisplayName(test.classDisplayName)
-                    val testDisplayName = test.name.withDisplayName(test.displayName)
-                    val duration = "%5.1fsec".format((result.endTime - result.startTime) / 1000f)
-                    val displayName = classDisplayName.withDisplayName(testDisplayName, " > ")
-                    // Hide SUCCESS from output log, so FAILURE/SKIPPED are easier to spot
-                    val resultType = result.resultType
-                        .takeUnless { it == TestResult.ResultType.SUCCESS }
-                        ?.toString()
-                        ?: (if (result.skippedTestCount > 0 || result.testCount == 0L) "WARNING" else "       ")
-                    if (!descriptor.isComposite) {
-                        println("$resultType $duration, $displayName")
-                    } else {
-                        val completed = result.testCount.toString().padStart(4)
-                        val failed = result.failedTestCount.toString().padStart(3)
-                        val skipped = result.skippedTestCount.toString().padStart(3)
-                        println("$resultType $duration, $completed completed, $failed failed, $skipped skipped, $displayName")
-                    }
-                }
-                afterTest(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
-                    // There are lots of skipped tests, so it is not clear how to log them
-                    // without making build logs too verbose
-                    if (result.resultType == TestResult.ResultType.FAILURE ||
-                        result.endTime - result.startTime >= slowTestLogThreshold) {
-                        printResult(descriptor, result)
-                    }
-                }))
-                afterSuite(KotlinClosure2<TestDescriptor, TestResult, Any>({ descriptor, result ->
-                    if (descriptor.name.startsWith("Gradle Test Executor")) {
-                        return@KotlinClosure2
-                    }
-                    if (result.resultType == TestResult.ResultType.FAILURE ||
-                        result.endTime - result.startTime >= slowSuiteLogThreshold) {
-                        printResult(descriptor, result)
-                    }
-                }))
             }
             // Cannot be moved above otherwise configure each will override
             // also the specific configurations below.
@@ -562,7 +563,7 @@ allprojects {
                 }
                 jvmArgs("-Xmx6g")
             }
-            withType<SpotBugsTask>().configureEach {
+            configureEach<SpotBugsTask> {
                 group = LifecycleBasePlugin.VERIFICATION_GROUP
                 if (enableSpotBugs) {
                     description = "$description (skipped by default, to enable it add -Dspotbugs)"
@@ -576,7 +577,7 @@ allprojects {
 
             afterEvaluate {
                 // Add default license/notice when missing
-                withType<Jar>().configureEach {
+                configureEach<Jar> {
                     CrLfSpec(LineEndings.LF).run {
                         into("META-INF") {
                             filteringCharset = "UTF-8"

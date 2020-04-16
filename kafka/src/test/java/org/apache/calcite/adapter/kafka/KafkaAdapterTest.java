@@ -31,7 +31,7 @@ import java.util.Objects;
 /**
  * Unit test cases for Kafka adapter.
  */
-public class KafkaAdapterTest {
+class KafkaAdapterTest {
   protected static final URL MODEL = KafkaAdapterTest.class.getResource("/kafka.model.json");
 
   private CalciteAssert.AssertThat assertModel(String model) {
@@ -51,7 +51,7 @@ public class KafkaAdapterTest {
     }
   }
 
-  @Test public void testSelect() {
+  @Test void testSelect() {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM KAFKA.MOCKTABLE")
         .limit(2)
@@ -71,7 +71,7 @@ public class KafkaAdapterTest {
             + "  BindableTableScan(table=[[KAFKA, MOCKTABLE, (STREAM)]])\n");
   }
 
-  @Test public void testFilterWithProject() {
+  @Test void testFilterWithProject() {
     assertModel(MODEL)
         .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
             + " WHERE MSG_OFFSET>0")
@@ -85,7 +85,7 @@ public class KafkaAdapterTest {
                 + "    BindableTableScan(table=[[KAFKA, MOCKTABLE, (STREAM)]])");
   }
 
-  @Test public void testCustRowConverter() {
+  @Test void testCustRowConverter() {
     assertModel(MODEL)
         .query("SELECT STREAM * FROM KAFKA.MOCKTABLE_CUST_ROW_CONVERTER")
         .limit(2)
@@ -103,7 +103,7 @@ public class KafkaAdapterTest {
   }
 
 
-  @Test public void testAsBatch() {
+  @Test void testAsBatch() {
     assertModel(MODEL)
         .query("SELECT * FROM KAFKA.MOCKTABLE")
         .failsAtValidation("Cannot convert stream 'MOCKTABLE' to relation");

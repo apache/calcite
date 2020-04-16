@@ -26,8 +26,8 @@ import org.apache.geode.cache.Region;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -42,9 +42,9 @@ import java.util.Map;
 /**
  * Test with different types of data like boolean, time, timestamp
  */
-public class GeodeAllDataTypesTest extends AbstractGeodeTest {
+class GeodeAllDataTypesTest extends AbstractGeodeTest {
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     final Cache cache = POLICY.cache();
     final Region<?, ?> region =
@@ -105,7 +105,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
         .with(newConnectionFactory());
   }
 
-  @Test public void testSqlSingleBooleanWhereFilter() {
+  @Test void testSqlSingleBooleanWhereFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
             + "FROM geode.allDataTypesRegion WHERE booleanValue = true")
@@ -115,7 +115,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE booleanValue = true"));
   }
 
-  @Test public void testSqlBooleanColumnFilter() {
+  @Test void testSqlBooleanColumnFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
             + "FROM geode.allDataTypesRegion WHERE booleanValue")
@@ -125,7 +125,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE booleanValue = true"));
   }
 
-  @Test public void testSqlBooleanColumnNotFilter() {
+  @Test void testSqlBooleanColumnNotFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
             + "FROM geode.allDataTypesRegion WHERE not booleanValue")
@@ -135,7 +135,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE booleanValue = false"));
   }
 
-  @Test public void testSqlMultipleBooleanWhereFilter() {
+  @Test void testSqlMultipleBooleanWhereFilter() {
     calciteAssert()
         .query("SELECT booleanValue as booleanValue "
             + "FROM geode.allDataTypesRegion WHERE booleanValue = true OR booleanValue = false")
@@ -145,7 +145,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE booleanValue = true OR booleanValue = false"));
   }
 
-  @Test public void testSqlWhereWithMultipleOrForLiteralFields() {
+  @Test void testSqlWhereWithMultipleOrForLiteralFields() {
     calciteAssert()
         .query("SELECT stringValue "
             + "FROM geode.allDataTypesRegion WHERE (stringValue = 'abc' OR stringValue = 'def') OR "
@@ -159,7 +159,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "OR booleanValue = true OR booleanValue = false"));
   }
 
-  @Test public void testSqlSingleDateWhereFilter() {
+  @Test void testSqlSingleDateWhereFilter() {
     calciteAssert()
         .query("SELECT dateValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -191,7 +191,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE dateValue < DATE '2018-02-03'"));
   }
 
-  @Test public void testSqlMultipleDateWhereFilter() {
+  @Test void testSqlMultipleDateWhereFilter() {
     calciteAssert()
         .query("SELECT dateValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -205,7 +205,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + " DATE '2018-02-04')"));
   }
 
-  @Test public void testSqlSingleTimeWhereFilter() {
+  @Test void testSqlSingleTimeWhereFilter() {
     calciteAssert()
         .query("SELECT timeValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -237,7 +237,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE timeValue < TIME '02:22:23'"));
   }
 
-  @Test public void testSqlMultipleTimeWhereFilter() {
+  @Test void testSqlMultipleTimeWhereFilter() {
     calciteAssert()
         .query("SELECT timeValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -250,7 +250,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE timeValue IN SET(TIME '02:22:23', TIME '03:22:23')"));
   }
 
-  @Test public void testSqlSingleTimestampWhereFilter() {
+  @Test void testSqlSingleTimestampWhereFilter() {
     calciteAssert()
         .query("SELECT timestampValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -282,7 +282,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "WHERE timestampValue < TIMESTAMP '2018-02-03 02:22:33'"));
   }
 
-  @Test public void testSqlMultipleTimestampWhereFilter() {
+  @Test void testSqlMultipleTimestampWhereFilter() {
     calciteAssert()
         .query("SELECT timestampValue\n"
             + "FROM geode.allDataTypesRegion\n"
@@ -297,7 +297,7 @@ public class GeodeAllDataTypesTest extends AbstractGeodeTest {
                 + "TIMESTAMP '2018-02-05 04:22:33')"));
   }
 
-  @Test public void testSqlWhereWithMultipleOrForAllFields() {
+  @Test void testSqlWhereWithMultipleOrForAllFields() {
     calciteAssert()
         .query("SELECT stringValue "
             + "FROM geode.allDataTypesRegion WHERE (stringValue = 'abc' OR stringValue = 'def') OR "

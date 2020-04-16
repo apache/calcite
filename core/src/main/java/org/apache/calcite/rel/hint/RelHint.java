@@ -16,9 +16,13 @@
  */
 package org.apache.calcite.rel.hint;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,46 +96,13 @@ public class RelHint {
 
   //~ Methods ----------------------------------------------------------------
 
-  /**
-   * Creates a {@link RelHint} with {@code inheritPath} and hint name.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @return The {@link RelHint} instance with empty options
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName) {
-    return new RelHint(inheritPath, hintName, null, null);
+  /** Creates a hint builder with specified hint name. */
+  public static Builder builder(String hintName) {
+    return new Builder(hintName);
   }
 
   /**
-   * Creates a {@link RelHint} with {@code inheritPath}, hint name and list of string options.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @param listOption  Hint options as a string list
-   * @return The {@link RelHint} instance with options as string list
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
-      List<String> listOption) {
-    return new RelHint(inheritPath, hintName, Objects.requireNonNull(listOption), null);
-  }
-
-  /**
-   * Creates a {@link RelHint} with {@code inheritPath}, hint name
-   * and options as string key-values.
-   *
-   * @param inheritPath Hint inherit path
-   * @param hintName    Hint name
-   * @param kvOptions   Hint options as string key value pairs
-   * @return The {@link RelHint} instance with options as string key value pairs
-   */
-  public static RelHint of(Iterable<Integer> inheritPath, String hintName,
-      Map<String, String> kvOptions) {
-    return new RelHint(inheritPath, hintName, null, Objects.requireNonNull(kvOptions));
-  }
-
-  /**
-   * Represents a copy of this hint that has a specified inherit path.
+   * Returns a copy of this hint with specified inherit path.
    *
    * @param inheritPath Hint path
    * @return the new {@code RelHint}
@@ -173,5 +144,76 @@ public class RelHint {
     }
     builder.append("]");
     return builder.toString();
+  }
+
+  //~ Inner Class ------------------------------------------------------------
+
+  /** Builder for {@link RelHint}. */
+  public static class Builder {
+    private String hintName;
+    private List<Integer> inheritPath;
+
+    private List<String> listOptions;
+    private Map<String, String> kvOptions;
+
+    private Builder(String hintName) {
+      this.listOptions = new ArrayList<>();
+      this.kvOptions = new LinkedHashMap<>();
+      this.hintName = hintName;
+      this.inheritPath = ImmutableList.of();
+    }
+
+    /** Sets up the inherit path with given integer list. */
+    public Builder inheritPath(Iterable<Integer> inheritPath) {
+      this.inheritPath = ImmutableList.copyOf(Objects.requireNonNull(inheritPath));
+      return this;
+    }
+
+    /** Sets up the inherit path with given integer array. */
+    public Builder inheritPath(Integer... inheritPath) {
+      this.inheritPath = Arrays.asList(inheritPath);
+      return this;
+    }
+
+    /** Add a hint option as string. */
+    public Builder hintOption(String hintOption) {
+      Objects.requireNonNull(hintOption);
+      Preconditions.checkState(this.kvOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.listOptions.add(hintOption);
+      return this;
+    }
+
+    /** Add multiple string hint options. */
+    public Builder hintOptions(Iterable<String> hintOptions) {
+      Objects.requireNonNull(hintOptions);
+      Preconditions.checkState(this.kvOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.listOptions = ImmutableList.copyOf(hintOptions);
+      return this;
+    }
+
+    /** Add a hint option as string key-value pair. */
+    public Builder hintOption(String optionKey, String optionValue) {
+      Objects.requireNonNull(optionKey);
+      Objects.requireNonNull(optionValue);
+      Preconditions.checkState(this.listOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.kvOptions.put(optionKey, optionValue);
+      return this;
+    }
+
+    /** Add multiple string key-value pair hint options. */
+    public Builder hintOptions(Map<String, String> kvOptions) {
+      Objects.requireNonNull(kvOptions);
+      Preconditions.checkState(this.listOptions.size() == 0,
+          "List options and key value options can not be mixed in");
+      this.kvOptions = kvOptions;
+      return this;
+    }
+
+    public RelHint build() {
+      return new RelHint(this.inheritPath, this.hintName, this.listOptions, this.kvOptions);
+    }
   }
 }

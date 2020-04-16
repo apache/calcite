@@ -45,11 +45,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link DirectedGraph}.
  */
-public class DirectedGraphTest {
-  public DirectedGraphTest() {
-  }
-
-  @Test public void testOne() {
+class DirectedGraphTest {
+  @Test void testOne() {
     DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
     g.addVertex("A");
     g.addVertex("B");
@@ -82,7 +79,7 @@ public class DirectedGraphTest {
     return Graphs.makeImmutable(g).getPaths(source, target);
   }
 
-  @Test public void testVertexMustExist() {
+  @Test void testVertexMustExist() {
     DirectedGraph<String, DefaultEdge> g = DefaultDirectedGraph.create();
 
     final boolean b = g.addVertex("A");
@@ -126,7 +123,7 @@ public class DirectedGraphTest {
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
-  @Test public void testDepthFirst() {
+  @Test void testDepthFirst() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> list = new ArrayList<String>();
     for (String s : DepthFirstIterator.of(graph, "A")) {
@@ -139,7 +136,7 @@ public class DirectedGraphTest {
   }
 
   /** Unit test for {@link DepthFirstIterator}. */
-  @Test public void testPredecessorList() {
+  @Test void testPredecessorList() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> list = Graphs.predecessorListOf(graph, "C");
     assertEquals("[B, E]", list.toString());
@@ -147,14 +144,14 @@ public class DirectedGraphTest {
 
   /** Unit test for
    * {@link DefaultDirectedGraph#removeAllVertices(java.util.Collection)}. */
-  @Test public void testRemoveAllVertices() {
+  @Test void testRemoveAllVertices() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     graph.removeAllVertices(Arrays.asList("B", "E"));
     assertEquals("[A, C, D, F]", graph.vertexSet().toString());
   }
 
   /** Unit test for {@link TopologicalOrderIterator}. */
-  @Test public void testTopologicalOrderIterator() {
+  @Test void testTopologicalOrderIterator() {
     final DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> list = new ArrayList<String>();
     for (String s : TopologicalOrderIterator.of(graph)) {
@@ -186,7 +183,7 @@ public class DirectedGraphTest {
 
   /** Unit test for
    * {@link org.apache.calcite.util.graph.Graphs.FrozenGraph}. */
-  @Test public void testPaths() {
+  @Test void testPaths() {
     //       B -> C
     //      /      \
     //     A        E
@@ -219,7 +216,7 @@ public class DirectedGraphTest {
   }
 
   /** Unit test for {@link org.apache.calcite.util.graph.CycleDetector}. */
-  @Test public void testCycleDetection() {
+  @Test void testCycleDetection() {
     // A - B - C - D
     //  \     /
     //   +- E - F
@@ -290,7 +287,7 @@ public class DirectedGraphTest {
 
   /** Unit test for
    * {@link org.apache.calcite.util.graph.BreadthFirstIterator}. */
-  @Test public void testBreadthFirstIterator() {
+  @Test void testBreadthFirstIterator() {
     DefaultDirectedGraph<String, DefaultEdge> graph = createDag();
     final List<String> expected =
         ImmutableList.of("A", "B", "E", "C", "F", "D");
@@ -314,7 +311,7 @@ public class DirectedGraphTest {
     return list;
   }
 
-  @Test public void testAttributed() {
+  @Test void testAttributed() {
     AttributedDirectedGraph<String, DefaultEdge> g =
         AttributedDirectedGraph.create(new DefaultAttributedEdgeFactory());
     g.addVertex("A");

@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 dependencies {
+    api("org.apiguardian:apiguardian-api")
+
     implementation("com.google.guava:guava")
     implementation("org.apache.calcite.avatica:avatica-core")
 }

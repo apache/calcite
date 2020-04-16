@@ -157,6 +157,11 @@ public abstract class Sort extends SingleRel {
     return copy(traitSet, getInput(), collation, offset, fetch);
   }
 
+  @Override public boolean isEnforcer() {
+    return offset == null && fetch == null
+        && collation.getFieldCollations().size() > 0;
+  }
+
   /**
    * Returns the array of {@link RelFieldCollation}s asked for by the sort
    * specification, from most significant to least significant.

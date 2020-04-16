@@ -28,9 +28,9 @@ import static org.apache.calcite.test.CalciteAssert.that;
  * pushed down to JDBC (as in {@link JdbcFrontJdbcBackTest}) but is executed
  * in a pipeline of linq4j operators.
  */
-public class JdbcFrontJdbcBackLinqMiddleTest {
+class JdbcFrontJdbcBackLinqMiddleTest {
 
-  @Test public void testTable() {
+  @Test void testTable() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"")
@@ -43,7 +43,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday\n");
   }
 
-  @Test public void testWhere() {
+  @Test void testWhere() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\" where \"day\" < 3")
@@ -51,7 +51,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=2; week_day=Monday\n");
   }
 
-  @Test public void testWhere2() {
+  @Test void testWhere2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select * from \"foodmart\".\"days\"\n"
@@ -64,7 +64,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday\n");
   }
 
-  @Test public void testCase() {
+  @Test void testCase() {
     that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select \"day\",\n"
@@ -83,7 +83,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "day=7; week_day=Saturday; D=Saturday\n");
   }
 
-  @Test public void testGroup() {
+  @Test void testGroup() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select s, count(*) as c, min(\"week_day\") as mw from (\n"
@@ -99,7 +99,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             "S=M; C=1; MW=Monday");
   }
 
-  @Test public void testGroupEmpty() {
+  @Test void testGroupEmpty() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*) as c\n"
@@ -114,7 +114,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
    * cartesian product).</p>
    */
   @Disabled("non-deterministic on JDK 1.7 vs 1.8")
-  @Test public void testJoinTheta() {
+  @Test void testJoinTheta() {
     that()
         .with(CalciteAssert.Config.FOODMART_CLONE)
         .query("select count(*) from (\n"
@@ -133,7 +133,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "          JdbcTableScan(table=[[foodmart, customer]])");
   }
 
-  @Test public void testJoinGroupByEmpty() {
+  @Test void testJoinGroupByEmpty() {
     if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
         && !Bug.CALCITE_673_FIXED) {
       return;
@@ -148,7 +148,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
         .returns("EXPR$0=86837\n");
   }
 
-  @Test public void testJoinGroupByOrderBy() {
+  @Test void testJoinGroupByOrderBy() {
     if (CalciteAssert.DB == CalciteAssert.DatabaseInstance.MYSQL
         && !Bug.CALCITE_673_FIXED) {
       return;
@@ -167,7 +167,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "EXPR$0=40784; state_province=WA; S=124366\n");
   }
 
-  @Test public void testCompositeGroupBy() {
+  @Test void testCompositeGroupBy() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select count(*) as c, c.\"state_province\"\n"
@@ -190,7 +190,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Disabled
-  @Test public void testDistinctCount() {
+  @Test void testDistinctCount() {
     // Complicating factors:
     // Composite GROUP BY key
     // Order by select item, referenced by ordinal
@@ -218,7 +218,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Disabled
-  @Test public void testPlan() {
+  @Test void testPlan() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .query("select c.\"state_province\"\n"
@@ -236,7 +236,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
   }
 
   @Disabled
-  @Test public void testPlan2() {
+  @Test void testPlan2() {
     that()
         .with(CalciteAssert.Config.JDBC_FOODMART)
         .withDefaultSchema("foodmart")
@@ -259,7 +259,7 @@ public class JdbcFrontJdbcBackLinqMiddleTest {
             + "          }\n");
   }
 
-  @Test public void testPlan3() {
+  @Test void testPlan3() {
     // Plan should contain 'join'. If it doesn't, maybe int-vs-Integer
     // data type incompatibility has caused it to use a cartesian product
     // instead, and that would be wrong.

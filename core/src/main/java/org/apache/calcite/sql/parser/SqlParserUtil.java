@@ -315,12 +315,12 @@ public final class SqlParserUtil {
    */
   @Deprecated // to be removed before 2.0
   public static byte[] parseBinaryString(String s) {
-    s = s.replaceAll(" ", "");
-    s = s.replaceAll("\n", "");
-    s = s.replaceAll("\t", "");
-    s = s.replaceAll("\r", "");
-    s = s.replaceAll("\f", "");
-    s = s.replaceAll("'", "");
+    s = s.replace(" ", "");
+    s = s.replace("\n", "");
+    s = s.replace("\t", "");
+    s = s.replace("\r", "");
+    s = s.replace("\f", "");
+    s = s.replace("'", "");
 
     if (s.length() == 0) {
       return new byte[0];

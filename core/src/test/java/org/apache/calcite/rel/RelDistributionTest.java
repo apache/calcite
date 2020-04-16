@@ -28,8 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Tests for {@link RelDistribution}.
  */
-public class RelDistributionTest {
-  @Test public void testRelDistributionSatisfy() {
+class RelDistributionTest {
+  @Test void testRelDistributionSatisfy() {
     RelDistribution distribution1 = RelDistributions.hash(ImmutableList.of(0));
     RelDistribution distribution2 = RelDistributions.hash(ImmutableList.of(1));
 

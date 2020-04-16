@@ -23,7 +23,6 @@ import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalJoin;
-import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.rules.AggregateFilterTransposeRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
@@ -156,7 +155,7 @@ public class RelOptMaterialization {
                           Mappings.offsetSource(rightMapping, offset),
                           leftMapping.getTargetCount()));
               final RelNode project = RelOptUtil.createProject(
-                  LogicalTableScan.create(cluster, leftRelOptTable),
+                  leftRelOptTable.toRel(ViewExpanders.simpleContext(cluster)),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {
@@ -180,7 +179,7 @@ public class RelOptMaterialization {
                       Mappings.offsetSource(leftMapping, offset),
                       Mappings.offsetTarget(rightMapping, leftCount));
               final RelNode project = RelOptUtil.createProject(
-                  LogicalTableScan.create(cluster, rightRelOptTable),
+                  rightRelOptTable.toRel(ViewExpanders.simpleContext(cluster)),
                   Mappings.asList(mapping.inverse()));
               final List<RexNode> conditions = new ArrayList<>();
               if (left.condition != null) {

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import com.github.vlsi.gradle.properties.dsl.props
 
 plugins {
@@ -60,4 +59,5 @@ dependencies {
     testImplementation("org.elasticsearch:elasticsearch")
     testImplementation(project(":core", "testClasses"))
     testRuntimeOnly("net.java.dev.jna:jna")
+    testRuntimeOnly("org.apache.logging.log4j:log4j-slf4j-impl")
 }

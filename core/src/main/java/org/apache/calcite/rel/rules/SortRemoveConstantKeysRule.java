@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -38,7 +39,8 @@ import java.util.stream.Collectors;
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
-public class SortRemoveConstantKeysRule extends RelOptRule {
+public class SortRemoveConstantKeysRule extends RelOptRule
+    implements SubstitutionRule {
   public static final SortRemoveConstantKeysRule INSTANCE =
       new SortRemoveConstantKeysRule();
 
@@ -72,13 +74,13 @@ public class SortRemoveConstantKeysRule extends RelOptRule {
     // No active collations. Remove the sort completely
     if (collationsList.isEmpty() && sort.offset == null && sort.fetch == null) {
       call.transformTo(input);
-      call.getPlanner().setImportance(sort, 0.0);
+      call.getPlanner().prune(sort);
       return;
     }
 
     final Sort result =
         sort.copy(sort.getTraitSet(), input, RelCollations.of(collationsList));
     call.transformTo(result);
-    call.getPlanner().setImportance(sort, 0.0);
+    call.getPlanner().prune(sort);
   }
 }

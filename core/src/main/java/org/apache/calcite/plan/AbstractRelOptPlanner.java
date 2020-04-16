@@ -20,13 +20,16 @@ import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -60,7 +63,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private Pattern ruleDescExclusionFilter;
 
-  private final AtomicBoolean cancelFlag;
+  protected final AtomicBoolean cancelFlag;
 
   private final Set<Class<? extends RelNode>> classes = new HashSet<>();
 
@@ -218,7 +221,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return 0;
   }
 
+  @Deprecated // to be removed before 1.24
   public void setImportance(RelNode rel, double importance) {
+  }
+
+  @Override public void prune(RelNode rel) {
   }
 
   public void registerClass(RelNode node) {
@@ -296,6 +303,12 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     assert ruleCall.getRule().matches(ruleCall);
     if (isRuleExcluded(ruleCall.getRule())) {
       LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion filter",
+          ruleCall.id, ruleCall.getRule());
+      return;
+    }
+
+    if (ruleCall.isRuleExcluded()) {
+      LOGGER.debug("call#{}: Rule [{}] not fired due to exclusion hint",
           ruleCall.id, ruleCall.getRule());
       return;
     }
@@ -419,6 +432,25 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** Returns sub-classes of relational expression. */
   public Iterable<Class<? extends RelNode>> subClasses(
       final Class<? extends RelNode> clazz) {
-    return Util.filter(classes, clazz::isAssignableFrom);
+    return Util.filter(classes, c -> {
+      // RelSubset must be exact type, not subclass
+      if (c == RelSubset.class) {
+        return c == clazz;
+      }
+      return clazz.isAssignableFrom(c);
+    });
+  }
+
+  /** Computes the key for relational expression digest cache. */
+  protected static Pair<String, List<RelDataType>> key(RelNode rel) {
+    return key(rel.getDigest(), rel.getRowType());
+  }
+
+  /** Computes the key for relational expression digest cache. */
+  protected static Pair<String, List<RelDataType>> key(String digest, RelDataType relType) {
+    final List<RelDataType> v = relType.isStruct()
+        ? Pair.right(relType.getFieldList())
+        : Collections.singletonList(relType);
+    return Pair.of(digest, v);
   }
 }

@@ -540,6 +540,7 @@ public class CalciteMetaImpl extends MetaImpl {
       PrepareCallback callback) throws NoSuchStatementException {
     final CalcitePrepare.CalciteSignature<Object> signature;
     try {
+      final int updateCount;
       synchronized (callback.getMonitor()) {
         callback.clear();
         final CalciteConnectionImpl calciteConnection = getConnection();
@@ -549,7 +550,6 @@ public class CalciteMetaImpl extends MetaImpl {
         final CalcitePrepare.Query<Object> query = toQuery(context, sql);
         signature = calciteConnection.parseQuery(query, context, maxRowCount);
         statement.setSignature(signature);
-        final int updateCount;
         switch (signature.statementType) {
         case CREATE:
         case DROP:
@@ -565,7 +565,7 @@ public class CalciteMetaImpl extends MetaImpl {
       }
       callback.execute();
       final MetaResultSet metaResultSet =
-          MetaResultSet.create(h.connectionId, h.id, false, signature, null);
+          MetaResultSet.create(h.connectionId, h.id, false, signature, null, updateCount);
       return new ExecuteResult(ImmutableList.of(metaResultSet));
     } catch (SQLException e) {
       throw new RuntimeException(e);

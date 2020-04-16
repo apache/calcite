@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import javax.annotation.Nonnull;
 
 /**
@@ -265,6 +266,32 @@ public class Pair<T1, T2>
       final List<K> ks,
       final List<V> vs) {
     return new MutableZipList<>(ks, vs);
+  }
+
+  /** Applies an action to every element of a pair of iterables.
+   *
+   * <p>Calls to the action stop whenever the first of the input iterators
+   * ends. But typically the source iterators will be the same length.
+   *
+   * @see Map#forEach(java.util.function.BiConsumer)
+   * @see org.apache.calcite.linq4j.Ord#forEach(Iterable, java.util.function.ObjIntConsumer)
+   *
+   * @param ks Left iterable
+   * @param vs Right iterable
+   * @param consumer The action to be performed for each element
+   *
+   * @param <K> Left type
+   * @param <V> Right type
+   */
+  public static <K, V> void forEach(
+      final Iterable<? extends K> ks,
+      final Iterable<? extends V> vs,
+      BiConsumer<K, V> consumer) {
+    final Iterator<? extends K> leftIterator = ks.iterator();
+    final Iterator<? extends V> rightIterator = vs.iterator();
+    while (leftIterator.hasNext() && rightIterator.hasNext()) {
+      consumer.accept(leftIterator.next(), rightIterator.next());
+    }
   }
 
   /**

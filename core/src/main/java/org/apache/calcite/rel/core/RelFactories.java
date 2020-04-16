@@ -17,14 +17,15 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.function.Experimental;
+import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
@@ -47,11 +48,11 @@ import org.apache.calcite.rel.metadata.RelColumnMapping;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -59,6 +60,7 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import javax.annotation.Nonnull;
@@ -115,24 +117,28 @@ public class RelFactories {
   public static final RepeatUnionFactory DEFAULT_REPEAT_UNION_FACTORY =
       new RepeatUnionFactoryImpl();
 
+  public static final Struct DEFAULT_STRUCT =
+      new Struct(DEFAULT_FILTER_FACTORY,
+          DEFAULT_PROJECT_FACTORY,
+          DEFAULT_AGGREGATE_FACTORY,
+          DEFAULT_SORT_FACTORY,
+          DEFAULT_EXCHANGE_FACTORY,
+          DEFAULT_SORT_EXCHANGE_FACTORY,
+          DEFAULT_SET_OP_FACTORY,
+          DEFAULT_JOIN_FACTORY,
+          DEFAULT_CORRELATE_FACTORY,
+          DEFAULT_VALUES_FACTORY,
+          DEFAULT_TABLE_SCAN_FACTORY,
+          DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
+          DEFAULT_SNAPSHOT_FACTORY,
+          DEFAULT_MATCH_FACTORY,
+          DEFAULT_SPOOL_FACTORY,
+          DEFAULT_REPEAT_UNION_FACTORY);
+
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
   public static final RelBuilderFactory LOGICAL_BUILDER =
-      RelBuilder.proto(
-          Contexts.of(DEFAULT_PROJECT_FACTORY,
-              DEFAULT_FILTER_FACTORY,
-              DEFAULT_JOIN_FACTORY,
-              DEFAULT_SORT_FACTORY,
-              DEFAULT_EXCHANGE_FACTORY,
-              DEFAULT_SORT_EXCHANGE_FACTORY,
-              DEFAULT_AGGREGATE_FACTORY,
-              DEFAULT_MATCH_FACTORY,
-              DEFAULT_SET_OP_FACTORY,
-              DEFAULT_VALUES_FACTORY,
-              DEFAULT_TABLE_SCAN_FACTORY,
-              DEFAULT_SNAPSHOT_FACTORY,
-              DEFAULT_SPOOL_FACTORY,
-              DEFAULT_REPEAT_UNION_FACTORY));
+      RelBuilder.proto(Contexts.of(DEFAULT_STRUCT));
 
   private RelFactories() {
   }
@@ -143,9 +149,17 @@ public class RelFactories {
    * appropriate type for this rule's calling convention.
    */
   public interface ProjectFactory {
-    /** Creates a project. */
-    RelNode createProject(RelNode input, List<? extends RexNode> childExprs,
-        List<String> fieldNames);
+    /**
+     * Creates a project.
+     *
+     * @param input The input
+     * @param hints The hints
+     * @param childExprs The projection expressions
+     * @param fieldNames The projection field names
+     * @return a project
+     */
+    RelNode createProject(RelNode input, List<RelHint> hints,
+        List<? extends RexNode> childExprs, List<String> fieldNames);
   }
 
   /**
@@ -153,9 +167,9 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
-    public RelNode createProject(RelNode input,
+    public RelNode createProject(RelNode input, List<RelHint> hints,
         List<? extends RexNode> childExprs, List<String> fieldNames) {
-      return LogicalProject.create(input, childExprs, fieldNames);
+      return LogicalProject.create(input, hints, childExprs, fieldNames);
     }
   }
 
@@ -272,16 +286,8 @@ public class RelFactories {
    */
   public interface AggregateFactory {
     /** Creates an aggregate. */
-    RelNode createAggregate(RelNode input, ImmutableBitSet groupSet,
+    RelNode createAggregate(RelNode input, List<RelHint> hints, ImmutableBitSet groupSet,
         ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
-
-    @Deprecated // to be removed before 2.0
-    default RelNode createAggregate(RelNode input, boolean indicator,
-        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-        List<AggregateCall> aggCalls) {
-      Aggregate.checkIndicator(indicator);
-      return createAggregate(input, groupSet, groupSets, aggCalls);
-    }
   }
 
   /**
@@ -289,10 +295,10 @@ public class RelFactories {
    * that returns a vanilla {@link LogicalAggregate}.
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
-    public RelNode createAggregate(RelNode input,
+    public RelNode createAggregate(RelNode input, List<RelHint> hints,
         ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls) {
-      return LogicalAggregate.create(input, groupSet, groupSets, aggCalls);
+      return LogicalAggregate.create(input, hints, groupSet, groupSets, aggCalls);
     }
   }
 
@@ -346,6 +352,7 @@ public class RelFactories {
      *
      * @param left             Left input
      * @param right            Right input
+     * @param hints            Hints
      * @param condition        Join condition
      * @param variablesSet     Set of variables that are set by the
      *                         LHS and used by the RHS and are not available to
@@ -354,17 +361,9 @@ public class RelFactories {
      * @param semiJoinDone     Whether this join has been translated to a
      *                         semi-join
      */
-    RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        Set<CorrelationId> variablesSet, JoinRelType joinType,
+    RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
+        RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
         boolean semiJoinDone);
-
-    @Deprecated // to be removed before 2.0
-    default RelNode createJoin(RelNode left, RelNode right, RexNode condition,
-        JoinRelType joinType, Set<String> variablesStopped,
-        boolean semiJoinDone) {
-      return createJoin(left, right, condition,
-          CorrelationId.setOf(variablesStopped), joinType, semiJoinDone);
-    }
   }
 
   /**
@@ -372,10 +371,10 @@ public class RelFactories {
    * {@link org.apache.calcite.rel.logical.LogicalJoin}.
    */
   private static class JoinFactoryImpl implements JoinFactory {
-    public RelNode createJoin(RelNode left, RelNode right,
+    public RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
         RexNode condition, Set<CorrelationId> variablesSet,
         JoinRelType joinType, boolean semiJoinDone) {
-      return LogicalJoin.create(left, right, condition, variablesSet, joinType,
+      return LogicalJoin.create(left, right, hints, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
     }
   }
@@ -442,8 +441,8 @@ public class RelFactories {
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
         RexNode condition) {
-      return LogicalJoin.create(left, right, condition, ImmutableSet.of(), JoinRelType.SEMI,
-          false, ImmutableList.of());
+      return LogicalJoin.create(left, right, ImmutableList.of(), condition,
+          ImmutableSet.of(), JoinRelType.SEMI, false, ImmutableList.of());
     }
   }
 
@@ -479,7 +478,7 @@ public class RelFactories {
     /**
      * Creates a {@link TableScan}.
      */
-    RelNode createScan(RelOptCluster cluster, RelOptTable table);
+    RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table);
   }
 
   /**
@@ -487,50 +486,9 @@ public class RelFactories {
    * {@link LogicalTableScan}.
    */
   private static class TableScanFactoryImpl implements TableScanFactory {
-    public RelNode createScan(RelOptCluster cluster, RelOptTable table) {
-      return LogicalTableScan.create(cluster, table);
+    public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
+      return table.toRel(toRelContext);
     }
-  }
-
-  /**
-   * Creates a {@link TableScanFactory} that can expand
-   * {@link TranslatableTable} instances, but explodes on views.
-   *
-   * @param tableScanFactory Factory for non-translatable tables
-   * @return Table scan factory
-   */
-  @Nonnull public static TableScanFactory expandingScanFactory(
-      @Nonnull TableScanFactory tableScanFactory) {
-    return expandingScanFactory(
-        (rowType, queryString, schemaPath, viewPath) -> {
-          throw new UnsupportedOperationException("cannot expand view");
-        },
-        tableScanFactory);
-  }
-
-  /**
-   * Creates a {@link TableScanFactory} that uses a
-   * {@link org.apache.calcite.plan.RelOptTable.ViewExpander} to handle
-   * {@link TranslatableTable} instances, and falls back to a default
-   * factory for other tables.
-   *
-   * @param viewExpander View expander
-   * @param tableScanFactory Factory for non-translatable tables
-   * @return Table scan factory
-   */
-  @Nonnull public static TableScanFactory expandingScanFactory(
-      @Nonnull RelOptTable.ViewExpander viewExpander,
-      @Nonnull TableScanFactory tableScanFactory) {
-    return (cluster, table) -> {
-      final TranslatableTable translatableTable =
-          table.unwrap(TranslatableTable.class);
-      if (translatableTable != null) {
-        final RelOptTable.ToRelContext toRelContext =
-            ViewExpanders.toRelContext(viewExpander, cluster);
-        return translatableTable.toRel(toRelContext, table);
-      }
-      return tableScanFactory.createScan(cluster, table);
-    };
   }
 
   /**
@@ -652,6 +610,101 @@ public class RelFactories {
     public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
         boolean all, int iterationLimit) {
       return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
+    }
+  }
+
+  /** Immutable record that contains an instance of each factory. */
+  public static class Struct {
+    public final FilterFactory filterFactory;
+    public final ProjectFactory projectFactory;
+    public final AggregateFactory aggregateFactory;
+    public final SortFactory sortFactory;
+    public final ExchangeFactory exchangeFactory;
+    public final SortExchangeFactory sortExchangeFactory;
+    public final SetOpFactory setOpFactory;
+    public final JoinFactory joinFactory;
+    public final CorrelateFactory correlateFactory;
+    public final ValuesFactory valuesFactory;
+    public final TableScanFactory scanFactory;
+    public final TableFunctionScanFactory tableFunctionScanFactory;
+    public final SnapshotFactory snapshotFactory;
+    public final MatchFactory matchFactory;
+    public final SpoolFactory spoolFactory;
+    public final RepeatUnionFactory repeatUnionFactory;
+
+    private Struct(FilterFactory filterFactory,
+        ProjectFactory projectFactory,
+        AggregateFactory aggregateFactory,
+        SortFactory sortFactory,
+        ExchangeFactory exchangeFactory,
+        SortExchangeFactory sortExchangeFactory,
+        SetOpFactory setOpFactory,
+        JoinFactory joinFactory,
+        CorrelateFactory correlateFactory,
+        ValuesFactory valuesFactory,
+        TableScanFactory scanFactory,
+        TableFunctionScanFactory tableFunctionScanFactory,
+        SnapshotFactory snapshotFactory,
+        MatchFactory matchFactory,
+        SpoolFactory spoolFactory,
+        RepeatUnionFactory repeatUnionFactory) {
+      this.filterFactory = Objects.requireNonNull(filterFactory);
+      this.projectFactory = Objects.requireNonNull(projectFactory);
+      this.aggregateFactory = Objects.requireNonNull(aggregateFactory);
+      this.sortFactory = Objects.requireNonNull(sortFactory);
+      this.exchangeFactory = Objects.requireNonNull(exchangeFactory);
+      this.sortExchangeFactory = Objects.requireNonNull(sortExchangeFactory);
+      this.setOpFactory = Objects.requireNonNull(setOpFactory);
+      this.joinFactory = Objects.requireNonNull(joinFactory);
+      this.correlateFactory = Objects.requireNonNull(correlateFactory);
+      this.valuesFactory = Objects.requireNonNull(valuesFactory);
+      this.scanFactory = Objects.requireNonNull(scanFactory);
+      this.tableFunctionScanFactory =
+          Objects.requireNonNull(tableFunctionScanFactory);
+      this.snapshotFactory = Objects.requireNonNull(snapshotFactory);
+      this.matchFactory = Objects.requireNonNull(matchFactory);
+      this.spoolFactory = Objects.requireNonNull(spoolFactory);
+      this.repeatUnionFactory = Objects.requireNonNull(repeatUnionFactory);
+    }
+
+    public static @Nonnull Struct fromContext(Context context) {
+      Struct struct = context.unwrap(Struct.class);
+      if (struct != null) {
+        return struct;
+      }
+      return new Struct(
+          Util.first(context.unwrap(FilterFactory.class),
+              DEFAULT_FILTER_FACTORY),
+          Util.first(context.unwrap(ProjectFactory.class),
+              DEFAULT_PROJECT_FACTORY),
+          Util.first(context.unwrap(AggregateFactory.class),
+              DEFAULT_AGGREGATE_FACTORY),
+          Util.first(context.unwrap(SortFactory.class),
+              DEFAULT_SORT_FACTORY),
+          Util.first(context.unwrap(ExchangeFactory.class),
+              DEFAULT_EXCHANGE_FACTORY),
+          Util.first(context.unwrap(SortExchangeFactory.class),
+              DEFAULT_SORT_EXCHANGE_FACTORY),
+          Util.first(context.unwrap(SetOpFactory.class),
+              DEFAULT_SET_OP_FACTORY),
+          Util.first(context.unwrap(JoinFactory.class),
+              DEFAULT_JOIN_FACTORY),
+          Util.first(context.unwrap(CorrelateFactory.class),
+              DEFAULT_CORRELATE_FACTORY),
+          Util.first(context.unwrap(ValuesFactory.class),
+              DEFAULT_VALUES_FACTORY),
+          Util.first(context.unwrap(TableScanFactory.class),
+              DEFAULT_TABLE_SCAN_FACTORY),
+          Util.first(context.unwrap(TableFunctionScanFactory.class),
+              DEFAULT_TABLE_FUNCTION_SCAN_FACTORY),
+          Util.first(context.unwrap(SnapshotFactory.class),
+              DEFAULT_SNAPSHOT_FACTORY),
+          Util.first(context.unwrap(MatchFactory.class),
+              DEFAULT_MATCH_FACTORY),
+          Util.first(context.unwrap(SpoolFactory.class),
+              DEFAULT_SPOOL_FACTORY),
+          Util.first(context.unwrap(RepeatUnionFactory.class),
+              DEFAULT_REPEAT_UNION_FACTORY));
     }
   }
 }

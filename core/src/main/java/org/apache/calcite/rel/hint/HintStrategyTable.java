@@ -16,88 +16,139 @@
  */
 package org.apache.calcite.rel.hint;
 
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.util.Litmus;
+import org.apache.calcite.util.trace.CalciteTrace;
 
-import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * {@code HintStrategy} collection indicating which kind of
- * {@link org.apache.calcite.rel.RelNode} a hint can apply to.
+ * A collections of {@link HintStrategy}s.
  *
- * <p>Typically, every supported hints should register a {@code HintStrategy}
- * in this collection. For example, {@link HintStrategies#JOIN} implies that this hint
- * would be propagated and applied to the {@link org.apache.calcite.rel.core.Join}
+ * <p>Every supported hint should register a {@link HintPredicate}
+ * into this collection. For example, {@link HintPredicates#JOIN} implies that this hint
+ * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
  * relational expressions.
  *
- * <p>A {@code HintStrategy} can be used independently or cascaded with other strategies
- * with method {@link HintStrategies#and}.
+ * <p>Match of hint name is case in-sensitive.
  *
- * <p>The matching for hint name is case in-sensitive.
- *
- * @see HintStrategy
+ * @see HintPredicate
  */
 public class HintStrategyTable {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Empty strategies. */
   // Need to replace the EMPTY with DEFAULT if we have any hint implementations.
-  public static final HintStrategyTable EMPTY = new HintStrategyTable(new HashMap<>());
+  public static final HintStrategyTable EMPTY = new HintStrategyTable(
+      Collections.emptyMap(), HintErrorLogger.INSTANCE);
 
   //~ Instance fields --------------------------------------------------------
 
-  /** Mapping from hint name to strategy. */
-  private final Map<Key, HintStrategy> hintStrategyMap;
+  /** Mapping from hint name to {@link HintStrategy}. */
+  private final Map<Key, HintStrategy> strategies;
 
-  private HintStrategyTable(Map<Key, HintStrategy> strategies) {
-    this.hintStrategyMap = ImmutableMap.copyOf(strategies);
+  /** Handler for the hint error. */
+  private final Litmus errorHandler;
+
+  private HintStrategyTable(Map<Key, HintStrategy> strategies, Litmus litmus) {
+    this.strategies = strategies;
+    this.errorHandler = litmus;
   }
 
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Apply this {@link HintStrategyTable} to the given relational
-   * expression for the {@code hints}.
+   * Applies this {@link HintStrategyTable} hint strategies to the given relational
+   * expression and the {@code hints}.
    *
    * @param hints Hints that may attach to the {@code rel}
    * @param rel   Relational expression
-   * @return A hints list that can be attached to the {@code rel}
+   * @return A hint list that can be attached to the {@code rel}
    */
   public List<RelHint> apply(List<RelHint> hints, RelNode rel) {
     return hints.stream()
-        .filter(relHint -> supportsRel(relHint, rel))
+        .filter(relHint -> canApply(relHint, rel))
         .collect(Collectors.toList());
   }
 
-  /**
-   * Check if the give hint name is valid.
-   *
-   * @param name The hint name
-   */
-  public void validateHint(String name) {
-    if (!this.hintStrategyMap.containsKey(Key.of(name))) {
-      throw new RuntimeException("Hint: " + name + " should be registered in the HintStrategies.");
-    }
-  }
-
-  private boolean supportsRel(RelHint hint, RelNode rel) {
+  private boolean canApply(RelHint hint, RelNode rel) {
     final Key key = Key.of(hint.hintName);
-    assert this.hintStrategyMap.containsKey(key);
-    return this.hintStrategyMap.get(key).supportsRel(hint, rel);
+    assert this.strategies.containsKey(key);
+    return this.strategies.get(key).predicate.apply(hint, rel);
   }
 
   /**
-   * @return A strategies builder
+   * Checks if the given hint is valid.
+   *
+   * @param hint The hint
+   */
+  public boolean validateHint(RelHint hint) {
+    final Key key = Key.of(hint.hintName);
+    boolean hintExists = this.errorHandler.check(
+        this.strategies.containsKey(key),
+        "Hint: {} should be registered in the {}",
+        hint.hintName,
+        this.getClass().getSimpleName());
+    if (!hintExists) {
+      return false;
+    }
+    final HintStrategy strategy = strategies.get(key);
+    if (strategy.hintOptionChecker != null) {
+      return strategy.hintOptionChecker.checkOptions(hint, this.errorHandler);
+    }
+    return true;
+  }
+
+  /** Returns whether the {@code hintable} has hints that imply
+   * the given {@code rule} should be excluded. */
+  public boolean isRuleExcluded(Hintable hintable, RelOptRule rule) {
+    final List<RelHint> hints = hintable.getHints();
+    if (hints.size() == 0) {
+      return false;
+    }
+
+    for (RelHint hint : hints) {
+      final Key key = Key.of(hint.hintName);
+      assert this.strategies.containsKey(key);
+      final HintStrategy strategy = strategies.get(key);
+      if (strategy.excludedRules.contains(rule)) {
+        return isDesiredConversionPossible(strategy.converterRules, hintable);
+      }
+    }
+
+    return false;
+  }
+
+  /** Returns whether the {@code hintable} has hints that imply
+   * the given {@code hintable} can make conversion successfully. */
+  private static boolean isDesiredConversionPossible(
+      Set<ConverterRule> converterRules,
+      Hintable hintable) {
+    // If no converter rules are specified, we assume the conversion is possible.
+    return converterRules.size() == 0
+        || converterRules.stream()
+            .anyMatch(converterRule -> converterRule.convert((RelNode) hintable) != null);
+  }
+
+  /**
+   * Returns a {@code HintStrategyTable} builder.
    */
   public static Builder builder() {
     return new Builder();
   }
+
+  //~ Inner Class ------------------------------------------------------------
 
   /**
    * Key used to keep the strategies which ignores the case sensitivity.
@@ -124,25 +175,70 @@ public class HintStrategyTable {
     }
   }
 
-  //~ Inner Class ------------------------------------------------------------
-
   /**
    * Builder for {@code HintStrategyTable}.
    */
   public static class Builder {
-    private Map<Key, HintStrategy> hintStrategyMap;
+    private Map<Key, HintStrategy> strategies;
+    private Litmus errorHandler;
 
-    public Builder() {
-      this.hintStrategyMap = new HashMap<>();
+    private Builder() {
+      this.strategies = new HashMap<>();
+      this.errorHandler = HintErrorLogger.INSTANCE;
     }
 
-    public Builder addHintStrategy(String hintName, HintStrategy strategy) {
-      this.hintStrategyMap.put(Key.of(hintName), strategy);
+    public Builder hintStrategy(String hintName, HintPredicate strategy) {
+      this.strategies.put(Key.of(hintName),
+          HintStrategy.builder(Objects.requireNonNull(strategy)).build());
+      return this;
+    }
+
+    public Builder hintStrategy(String hintName, HintStrategy entry) {
+      this.strategies.put(Key.of(hintName), Objects.requireNonNull(entry));
+      return this;
+    }
+
+    /**
+     * Sets an error handler to customize the hints error handling.
+     *
+     * <p>The default behavior is to log warnings.
+     *
+     * @param errorHandler The handler
+     */
+    public Builder errorHandler(Litmus errorHandler) {
+      this.errorHandler = errorHandler;
       return this;
     }
 
     public HintStrategyTable build() {
-      return new HintStrategyTable(this.hintStrategyMap);
+      return new HintStrategyTable(
+          this.strategies,
+          this.errorHandler);
+    }
+  }
+
+  /** Implementation of {@link org.apache.calcite.util.Litmus} that returns
+   * a status code, it logs warnings for fail check and does not throw. */
+  public static class HintErrorLogger implements Litmus {
+    private static final Logger LOGGER = CalciteTrace.PARSER_LOGGER;
+
+    public static final HintErrorLogger INSTANCE = new HintErrorLogger();
+
+    public boolean fail(String message, Object... args) {
+      LOGGER.warn(message, args);
+      return false;
+    }
+
+    public boolean succeed() {
+      return true;
+    }
+
+    public boolean check(boolean condition, String message, Object... args) {
+      if (condition) {
+        return succeed();
+      } else {
+        return fail(message, args);
+      }
     }
   }
 }

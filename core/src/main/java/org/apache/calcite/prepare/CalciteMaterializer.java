@@ -40,6 +40,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
 import org.apache.calcite.rel.logical.LogicalMinus;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.rel.logical.LogicalUnion;
 import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.schema.Schemas;
@@ -99,7 +100,7 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
 
     RelOptTable table =
         this.catalogReader.getTable(materialization.materializedTable.path());
-    materialization.tableRel = sqlToRelConverter2.toRel(table, null);
+    materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
   /** Converts a relational expression to use a
@@ -190,6 +191,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
     public RelNode visit(LogicalExchange exchange) {
       return exchange;
+    }
+    public RelNode visit(LogicalTableModify modify) {
+      return modify;
     }
     public RelNode visit(RelNode other) {
       return other;

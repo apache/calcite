@@ -1,3 +1,4 @@
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -12,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
 version: '3'
 services:
   dev:
@@ -30,7 +31,7 @@ services:
   generate-javadoc:
     image: maven
     working_dir: /usr/src/calcite
-    command: sh -c "./gradlew javadocAggregate; rm -rf site/target/apidocs site/target/testapidocs; mkdir -p site/target; mv build/docs/javadocAggregate site/target/apidocs"
+    command: sh -c "./gradlew javadocAggregate; rm -rf site/target/javadocAggregate; mkdir -p site/target; mv build/docs/javadocAggregate site/target"
     volumes:
       - ../:/usr/src/calcite
       - maven-repo:/root/.m2

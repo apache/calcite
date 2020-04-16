@@ -188,6 +188,17 @@ public abstract class Correlate extends BiRel {
     return ImmutableSet.of(correlationId);
   }
 
+  @Override public double estimateRowCount(RelMetadataQuery mq) {
+    double leftRowCount = mq.getRowCount(left);
+    switch (joinType) {
+    case SEMI:
+    case ANTI:
+      return leftRowCount;
+    default:
+      return leftRowCount * mq.getRowCount(right);
+    }
+  }
+
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     double rowCount = mq.getRowCount(this);

@@ -22,8 +22,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
 /** Tests for the {@link DeterministicAutomaton} */
-public class DeterministicAutomatonTest {
-  @Test public void convertAutomaton() {
+class DeterministicAutomatonTest {
+  @Test void convertAutomaton() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder.symbol("A")
         .repeat(1, 2)
@@ -45,7 +45,7 @@ public class DeterministicAutomatonTest {
     assertThat(da.getEndStates().size(), is(2));
   }
 
-  @Test public void convertAutomaton2() {
+  @Test void convertAutomaton2() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")
@@ -65,7 +65,7 @@ public class DeterministicAutomatonTest {
     assertThat(da.getEndStates().size(), is(1));
   }
 
-  @Test public void convertAutomaton3() {
+  @Test void convertAutomaton3() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")
@@ -83,7 +83,7 @@ public class DeterministicAutomatonTest {
     assertThat(da.getEndStates().size(), is(2));
   }
 
-  @Test public void convertAutomaton4() {
+  @Test void convertAutomaton4() {
     final Pattern.PatternBuilder builder = Pattern.builder();
     final Pattern pattern = builder
         .symbol("A")

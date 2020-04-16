@@ -38,8 +38,8 @@ Unpack the source distribution `.tar.gz` file,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.21.0-source.tar.gz
-$ cd calcite-1.21.0
+$ tar xvfz calcite-1.22.0-source.tar.gz
+$ cd calcite-1.22.0
 $ ./gradlew build
 {% endhighlight %}
 
@@ -98,7 +98,7 @@ $ ./gradlew build -x test # build the artifacts, verify code style, skip tests
 $ ./gradlew check # verify code style, execute tests
 $ ./gradlew test # execute tests
 $ ./gradlew style # update code formatting (for auto-correctable cases) and verify style
-$ ./gradlew spotlessCheck checkstyleAll # report code style violations
+$ ./gradlew autostyleCheck checkstyleAll # report code style violations
 {% endhighlight %}
 
 You can use `./gradlew assemble` to build the artifacts and skip all tests and verifications.
@@ -209,7 +209,11 @@ See the [developers guide]({{ site.baseurl }}/develop/#getting-started).
 
 ### Setting up IntelliJ IDEA
 
-To setup [IntelliJ IDEA](https://www.jetbrains.com/idea/), follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
+Download a version of [IntelliJ IDEA](https://www.jetbrains.com/idea/) greater than (2018.X). Versions 2019.2, and
+2019.3 have been tested by members of the community and appear to be stable. Older versions of IDEA may still work
+without problems for Calcite sources that do not use the Gradle build (release 1.21.0 and before).
+
+Follow the standard steps for the installation of IDEA and set up one of the JDK versions currently supported by Calcite.
 
 Start with [building Calcite from the command line](#building-from-a-source-distribution).
 
@@ -502,7 +506,7 @@ must:
  * resolve the issue (do not close it as this will be done by the release
 manager);
  * select "Fixed" as resolution cause;
- * mark the appropriate version (e.g., 1.21.0) in the "Fix version" field;
+ * mark the appropriate version (e.g., 1.22.0) in the "Fix version" field;
  * add a comment (e.g., "Fixed in ...") with a hyperlink pointing to the commit
 which resolves the issue (in GitHub or GitBox), and also thank the contributor
 for their contribution.

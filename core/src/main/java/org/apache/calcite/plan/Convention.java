@@ -44,7 +44,9 @@ public interface Convention extends RelTrait {
    * @param toConvention Desired convention to convert to
    * @return Whether we should convert from this convention to toConvention
    */
-  boolean canConvertConvention(Convention toConvention);
+  default boolean canConvertConvention(Convention toConvention) {
+    return false;
+  }
 
   /**
    * Returns whether we should convert from this trait set to the other trait
@@ -59,8 +61,10 @@ public interface Convention extends RelTrait {
    * @param toTraits Target traits
    * @return Whether we should add converters
    */
-  boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
-      RelTraitSet toTraits);
+  default boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
+      RelTraitSet toTraits) {
+    return true;
+  }
 
   /**
    * Default implementation.

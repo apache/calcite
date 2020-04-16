@@ -28,7 +28,7 @@ import java.util.Collection;
 /**
  * Unit tests for server and DDL.
  */
-public class ServerQuidemTest extends QuidemTest {
+class ServerQuidemTest extends QuidemTest {
   /** Runs a test from the command line.
    *
    * <p>For example:

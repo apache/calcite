@@ -27,7 +27,7 @@ import org.apache.geode.pdx.ReflectionBasedAutoSerializer;
 /**
  *
  */
-public class BookMasterRegionTest {
+class BookMasterRegionTest {
 
   private BookMasterRegionTest() {
   }

@@ -230,13 +230,11 @@ public abstract class Window extends SingleRel {
         RexWindowBound upperBound,
         RelCollation orderKeys,
         List<RexWinAggCall> aggCalls) {
-      assert orderKeys != null : "precondition: ordinals != null";
-      assert keys != null;
-      this.keys = keys;
+      this.keys = Objects.requireNonNull(keys);
       this.isRows = isRows;
-      this.lowerBound = lowerBound;
-      this.upperBound = upperBound;
-      this.orderKeys = orderKeys;
+      this.lowerBound = Objects.requireNonNull(lowerBound);
+      this.upperBound = Objects.requireNonNull(upperBound);
+      this.orderKeys = Objects.requireNonNull(orderKeys);
       this.aggCalls = ImmutableList.copyOf(aggCalls);
       this.digest = computeString();
     }
@@ -246,26 +244,45 @@ public abstract class Window extends SingleRel {
     }
 
     private String computeString() {
-      final StringBuilder buf = new StringBuilder();
-      buf.append("window(partition ");
-      buf.append(keys);
-      buf.append(" order by ");
-      buf.append(orderKeys);
-      buf.append(isRows ? " rows " : " range ");
-      if (lowerBound != null) {
-        if (upperBound != null) {
-          buf.append("between ");
-          buf.append(lowerBound);
-          buf.append(" and ");
-          buf.append(upperBound);
-        } else {
-          buf.append(lowerBound);
-        }
-      } else if (upperBound != null) {
+      final StringBuilder buf = new StringBuilder("window(");
+      final int i = buf.length();
+      if (!keys.isEmpty()) {
+        buf.append("partition ");
+        buf.append(keys);
+      }
+      if (!orderKeys.getFieldCollations().isEmpty()) {
+        buf.append(buf.length() == i ? "order by " : " order by ");
+        buf.append(orderKeys);
+      }
+      if (orderKeys.getFieldCollations().isEmpty()
+          && lowerBound.isUnbounded()
+          && lowerBound.isPreceding()
+          && upperBound.isUnbounded()
+          && upperBound.isFollowing()) {
+        // skip bracket if no ORDER BY, and if bracket is the default,
+        // "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING",
+        // which is equivalent to
+        // "ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING"
+      } else if (!orderKeys.getFieldCollations().isEmpty()
+          && lowerBound.isUnbounded()
+          && lowerBound.isPreceding()
+          && upperBound.isCurrentRow()
+          && !isRows) {
+        // skip bracket if there is ORDER BY, and if bracket is the default,
+        // "RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+        // which is NOT equivalent to
+        // "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"
+      } else {
+        buf.append(isRows ? " rows " : " range ");
+        buf.append("between ");
+        buf.append(lowerBound);
+        buf.append(" and ");
         buf.append(upperBound);
       }
-      buf.append(" aggs ");
-      buf.append(aggCalls);
+      if (!aggCalls.isEmpty()) {
+        buf.append(buf.length() == i ? "aggs " : " aggs ");
+        buf.append(aggCalls);
+      }
       buf.append(")");
       return buf.toString();
     }

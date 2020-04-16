@@ -251,15 +251,8 @@ public class PhysTypeImpl implements PhysType {
     // by the code that follows. If necessary the target format can be optimized before calling
     // this method.
     PhysType targetPhysType = PhysTypeImpl.of(typeFactory, rowType, targetFormat, false);
-    final Expression selector;
-    switch (targetPhysType.getFormat()) {
-    case SCALAR:
-      selector = Expressions.call(BuiltInMethod.IDENTITY_SELECTOR.method);
-      break;
-    default:
-      selector = Expressions.lambda(Function1.class,
-          targetPhysType.record(fieldReferences(o_, Util.range(fieldCount))), o_);
-    }
+    final Expression selector = Expressions.lambda(Function1.class,
+        targetPhysType.record(fieldReferences(o_, Util.range(fieldCount))), o_);
     return Expressions.call(exp, BuiltInMethod.SELECT.method, selector);
   }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql;
 
+import org.apiguardian.api.API;
+
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -964,6 +966,9 @@ public enum SqlKind {
   /** The {@code FUSION} aggregate function. */
   FUSION,
 
+  /** The {@code INTERSECTION} aggregate function. */
+  INTERSECTION,
+
   /** The {@code SINGLE_VALUE} aggregate function. */
   SINGLE_VALUE,
 
@@ -972,6 +977,9 @@ public enum SqlKind {
 
   /** The {@code BIT_OR} aggregate function. */
   BIT_OR,
+
+  /** The {@code BIT_XOR} aggregate function. */
+  BIT_XOR,
 
   /** The {@code ROW_NUMBER} window function. */
   ROW_NUMBER,
@@ -988,17 +996,21 @@ public enum SqlKind {
   /** The {@code ROW_NUMBER} window function. */
   CUME_DIST,
 
-  // Group functions
+  /** The {@code DESCRIPTOR(column_name, ...)}. */
+  DESCRIPTOR,
 
   /** The {@code TUMBLE} group function. */
   TUMBLE,
 
+  // Group functions
   /** The {@code TUMBLE_START} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_START.
   TUMBLE_START,
 
   /** The {@code TUMBLE_END} auxiliary function of
    * the {@link #TUMBLE} group function. */
+  // TODO: deprecate TUMBLE_END.
   TUMBLE_END,
 
   /** The {@code HOP} group function. */
@@ -1152,7 +1164,8 @@ public enum SqlKind {
           LAST_VALUE, COVAR_POP, COVAR_SAMP, REGR_COUNT, REGR_SXX, REGR_SYY,
           AVG, STDDEV_POP, STDDEV_SAMP, VAR_POP, VAR_SAMP, NTILE, COLLECT,
           FUSION, SINGLE_VALUE, ROW_NUMBER, RANK, PERCENT_RANK, DENSE_RANK,
-          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, LISTAGG);
+          CUME_DIST, JSON_ARRAYAGG, JSON_OBJECTAGG, BIT_AND, BIT_OR, BIT_XOR,
+          LISTAGG, INTERSECTION, ANY_VALUE);
 
   /**
    * Category consisting of all DML operators.
@@ -1336,6 +1349,29 @@ public enum SqlKind {
           GREATER_THAN, GREATER_THAN_OR_EQUAL,
           LESS_THAN, LESS_THAN_OR_EQUAL,
           IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM);
+
+  /**
+   * Category of operators that do not depend on the argument order.
+   *
+   * <p>For instance: {@link #AND}, {@link #OR}, {@link #EQUALS}, {@link #LEAST}</p>
+   * <p>Note: {@link #PLUS} does depend on the argument oder if argument types are different</p>
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static final Set<SqlKind> SYMMETRICAL =
+      EnumSet.of(
+          AND, OR, EQUALS, NOT_EQUALS,
+          IS_DISTINCT_FROM, IS_NOT_DISTINCT_FROM,
+          GREATEST, LEAST);
+
+  /**
+   * Category of operators that do not depend on the argument order if argument types are equal.
+   *
+   * <p>For instance: {@link #PLUS}, {@link #TIMES}</p>
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static final Set<SqlKind> SYMMETRICAL_SAME_ARG_TYPE =
+      EnumSet.of(
+          PLUS, TIMES);
 
   /** Lower-case name. */
   public final String lowerName = name().toLowerCase(Locale.ROOT);

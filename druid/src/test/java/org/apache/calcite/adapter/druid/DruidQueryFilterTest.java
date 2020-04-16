@@ -46,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 /**
  * Tests generating Druid filters.
  */
-public class DruidQueryFilterTest {
+class DruidQueryFilterTest {
 
   private DruidQuery druidQuery;
   @BeforeEach
@@ -62,7 +62,7 @@ public class DruidQueryFilterTest {
                 ImmutableSet.of(), "timestamp", null, null,
                 null));
   }
-  @Test public void testInFilter() throws IOException {
+  @Test void testInFilter() throws IOException {
     final Fixture f = new Fixture();
     final List<? extends RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeInputRef(f.varcharRowType, 0),
@@ -86,7 +86,7 @@ public class DruidQueryFilterTest {
             + "\"values\":[\"1\",\"5\",\"value1\"]}"));
   }
 
-  @Test public void testBetweenFilterStringCase() throws IOException {
+  @Test void testBetweenFilterStringCase() throws IOException {
     final Fixture f = new Fixture();
     final List<RexNode> listRexNodes =
         ImmutableList.of(f.rexBuilder.makeLiteral(false),

@@ -122,7 +122,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     case "MYSQL (INFOBRIGHT)":
       return new InfobrightSqlDialect(c);
     case "MYSQL":
-      return new MysqlSqlDialect(c);
+      return new MysqlSqlDialect(
+          c.withDataTypeSystem(MysqlSqlDialect.MYSQL_TYPE_SYSTEM));
     case "REDSHIFT":
       return new RedshiftSqlDialect(c);
     case "SNOWFLAKE":
@@ -144,7 +145,8 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
     } else if (databaseProductName.startsWith("HP Neoview")) {
       return new NeoviewSqlDialect(c);
     } else if (upperProductName.contains("POSTGRE")) {
-      return new PostgresqlSqlDialect(c);
+      return new PostgresqlSqlDialect(
+          c.withDataTypeSystem(PostgresqlSqlDialect.POSTGRESQL_TYPE_SYSTEM));
     } else if (upperProductName.contains("SQL SERVER")) {
       return new MssqlSqlDialect(c);
     } else if (upperProductName.contains("SYBASE")) {

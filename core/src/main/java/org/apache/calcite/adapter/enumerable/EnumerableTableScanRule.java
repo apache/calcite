@@ -16,13 +16,13 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
-import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.schema.QueryableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilderFactory;
 
@@ -45,7 +45,8 @@ public class EnumerableTableScanRule extends ConverterRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   public EnumerableTableScanRule(RelBuilderFactory relBuilderFactory) {
-    super(LogicalTableScan.class, (Predicate<RelNode>) r -> true,
+    super(LogicalTableScan.class,
+        (Predicate<LogicalTableScan>) r -> EnumerableTableScan.canHandle(r.getTable()),
         Convention.NONE, EnumerableConvention.INSTANCE, relBuilderFactory,
         "EnumerableTableScanRule");
   }
@@ -54,13 +55,13 @@ public class EnumerableTableScanRule extends ConverterRule {
     LogicalTableScan scan = (LogicalTableScan) rel;
     final RelOptTable relOptTable = scan.getTable();
     final Table table = relOptTable.unwrap(Table.class);
-    if (!EnumerableTableScan.canHandle(table)) {
-      return null;
+    // The QueryableTable can only be implemented as ENUMERABLE convention,
+    // but some test QueryableTables do not really implement the expressions,
+    // just skips the QueryableTable#getExpression invocation and returns early.
+    if (table instanceof QueryableTable || relOptTable.getExpression(Object.class) != null) {
+      return EnumerableTableScan.create(scan.getCluster(), relOptTable);
     }
-    final Expression expression = relOptTable.getExpression(Object.class);
-    if (expression == null) {
-      return null;
-    }
-    return EnumerableTableScan.create(scan.getCluster(), relOptTable);
+
+    return null;
   }
 }

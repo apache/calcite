@@ -73,7 +73,6 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexLocalRef;
-import org.apache.calcite.rex.RexMultisetUtil;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
@@ -135,6 +134,7 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * <code>RelOptUtil</code> defines static utility methods for use in optimizing
@@ -143,26 +143,24 @@ import javax.annotation.Nonnull;
 public abstract class RelOptUtil {
   //~ Static fields/initializers ---------------------------------------------
 
-  static final boolean B = false;
-
   public static final double EPSILON = 1.0e-5;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<Filter>
       FILTER_PREDICATE =
-      RelOptUtil::containsMultisetOrWindowedAgg;
+      RelOptUtil::notContainsWindowedAgg;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<Project>
       PROJECT_PREDICATE =
-      RelOptUtil::containsMultisetOrWindowedAgg;
+      RelOptUtil::notContainsWindowedAgg;
 
   @SuppressWarnings("Guava")
   @Deprecated // to be removed before 2.0
   public static final com.google.common.base.Predicate<Calc> CALC_PREDICATE =
-      RelOptUtil::containsMultisetOrWindowedAgg;
+      RelOptUtil::notContainsWindowedAgg;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -396,15 +394,70 @@ public abstract class RelOptUtil {
    * Copy the {@link org.apache.calcite.rel.hint.RelHint}s from {@code originalRel}
    * to {@code newRel} if both of them are {@link Hintable}.
    *
-   * <p>The hints are filtered by the hint strategies when attaching to the {@code newRel}.
+   * <p>The two relational expressions are assumed as semantically equivalent,
+   * that means the hints should be attached to the relational expression
+   * that expects to have them.
+   *
+   * <p>Try to propagate the hints to the first relational expression that matches,
+   * this is needed because many planner rules would generate a sub-tree whose
+   * root rel type is different with the original matched rel.
+   *
+   * <p>For the worst case, there is no relational expression that can apply these hints,
+   * and the whole sub-tree would be visited. We add a protection here:
+   * if the visiting depth is over than 3, just returns, because there are rare cases
+   * the new created sub-tree has layers bigger than that.
+   *
+   * <p>This is a best effort, we do not know exactly how the nodes are transformed
+   * in all kinds of planner rules, so for some complex relational expressions,
+   * the hints would very probably lost.
+   *
+   * <p>This function is experimental and would change without any notes.
    *
    * @param originalRel Original relational expression
-   * @param newRel      New relational expression
+   * @param equiv       New equivalent relational expression
    * @return A copy of {@code newRel} with attached qualified hints from {@code originalRel},
    * or {@code newRel} directly if one of them are not {@link Hintable}
    */
+  @Experimental
+  public static RelNode propagateRelHints(RelNode originalRel, RelNode equiv) {
+    if (!(originalRel instanceof Hintable)
+        || ((Hintable) originalRel).getHints().size() == 0) {
+      return equiv;
+    }
+    final RelShuttle shuttle = new SubTreeHintPropagateShuttle(
+        originalRel.getCluster().getHintStrategies(),
+        ((Hintable) originalRel).getHints());
+    return equiv.accept(shuttle);
+  }
+
+  /**
+   * Propagates the relational expression hints from root node to leaf node.
+   *
+   * @param rel   The relational expression
+   * @param reset Flag saying if to reset the existing hints before the propagation
+   * @return New relational expression with hints propagated
+   */
+  public static RelNode propagateRelHints(RelNode rel, boolean reset) {
+    if (reset) {
+      rel = rel.accept(new ResetHintsShuttle());
+    }
+    final RelShuttle shuttle = new RelHintPropagateShuttle(rel.getCluster().getHintStrategies());
+    return rel.accept(shuttle);
+  }
+
+  /**
+   * Copy the {@link org.apache.calcite.rel.hint.RelHint}s from {@code originalRel}
+   * to {@code newRel} if both of them are {@link Hintable}.
+   *
+   * <p>The hints would be attached directly(e.g. without any filtering).
+   *
+   * @param originalRel Original relational expression
+   * @param newRel      New relational expression
+   * @return A copy of {@code newRel} with attached hints from {@code originalRel},
+   * or {@code newRel} directly if one of them are not {@link Hintable}
+   */
   public static RelNode copyRelHints(RelNode originalRel, RelNode newRel) {
-    return copyRelHints(originalRel, newRel, true);
+    return copyRelHints(originalRel, newRel, false);
   }
 
   /**
@@ -437,21 +490,6 @@ public abstract class RelOptUtil {
       }
     }
     return newRel;
-  }
-
-  /**
-   * Propagates the relational expression hints from root node to leaf node.
-   *
-   * @param rel   The relational expression
-   * @param reset Flag saying if to reset the existing hints before the propagation
-   * @return New relational expression with hints propagated
-   */
-  public static RelNode propagateRelHints(RelNode rel, boolean reset) {
-    if (reset) {
-      rel = rel.accept(new ResetHintsShuttle());
-    }
-    final RelShuttle shuttle = new RelHintPropagateShuttle(rel.getCluster().getHintStrategies());
-    return rel.accept(shuttle);
   }
 
   /**
@@ -587,7 +625,8 @@ public abstract class RelOptUtil {
    * Creates a plan suitable for use in <code>EXISTS</code> or <code>IN</code>
    * statements.
    *
-   * @see org.apache.calcite.sql2rel.SqlToRelConverter#convertExists
+   * @see org.apache.calcite.sql2rel.SqlToRelConverter
+   * SqlToRelConverter#convertExists
    *
    * @param seekRel    A query rel, for example the resulting rel from 'select *
    *                   from emp' or 'values (1,2,3)' or '('Foo', 34)'.
@@ -627,8 +666,8 @@ public abstract class RelOptUtil {
         || logic == RelOptUtil.Logic.TRUE_FALSE_UNKNOWN;
     if (!outerJoin) {
       final LogicalAggregate aggregate =
-          LogicalAggregate.create(ret, ImmutableBitSet.range(keyCount), null,
-              ImmutableList.of());
+          LogicalAggregate.create(ret, ImmutableList.of(), ImmutableBitSet.range(keyCount),
+              null, ImmutableList.of());
       return new Exists(aggregate, false, false);
     }
 
@@ -827,14 +866,17 @@ public abstract class RelOptUtil {
     final RexBuilder rexBuilder = rel.getCluster().getRexBuilder();
     List<RexNode> castExps;
     RelNode input;
+    List<RelHint> hints = ImmutableList.of();
     if (rel instanceof Project) {
       // No need to create another project node if the rel
       // is already a project.
+      final Project project = (Project) rel;
       castExps = RexUtil.generateCastExpressions(
           rexBuilder,
           castRowType,
           ((Project) rel).getProjects());
       input = rel.getInput(0);
+      hints = project.getHints();
     } else {
       castExps = RexUtil.generateCastExpressions(
           rexBuilder,
@@ -844,20 +886,26 @@ public abstract class RelOptUtil {
     }
     if (rename) {
       // Use names and types from castRowType.
-      return projectFactory.createProject(input, castExps,
+      return projectFactory.createProject(input, hints, castExps,
           castRowType.getFieldNames());
     } else {
       // Use names from rowType, types from castRowType.
-      return projectFactory.createProject(input, castExps,
+      return projectFactory.createProject(input, hints, castExps,
           rowType.getFieldNames());
     }
   }
 
   /** Gets all fields in an aggregate. */
   public static Set<Integer> getAllFields(Aggregate aggregate) {
+    return getAllFields2(aggregate.getGroupSet(), aggregate.getAggCallList());
+  }
+
+  /** Gets all fields in an aggregate. */
+  public static Set<Integer> getAllFields2(ImmutableBitSet groupSet,
+      List<AggregateCall> aggCallList) {
     final Set<Integer> allFields = new TreeSet<>();
-    allFields.addAll(aggregate.getGroupSet().asList());
-    for (AggregateCall aggregateCall : aggregate.getAggCallList()) {
+    allFields.addAll(groupSet.asList());
+    for (AggregateCall aggregateCall : aggCallList) {
       allFields.addAll(aggregateCall.getArgList());
       if (aggregateCall.filterArg >= 0) {
         allFields.add(aggregateCall.filterArg);
@@ -887,13 +935,15 @@ public abstract class RelOptUtil {
               null));
     }
 
-    return LogicalAggregate.create(rel, ImmutableBitSet.of(), null, aggCalls);
+    return LogicalAggregate.create(rel, ImmutableList.of(), ImmutableBitSet.of(),
+        null, aggCalls);
   }
 
   /** @deprecated Use {@link RelBuilder#distinct()}. */
   @Deprecated // to be removed before 2.0
   public static RelNode createDistinctRel(RelNode rel) {
     return LogicalAggregate.create(rel,
+        ImmutableList.of(),
         ImmutableBitSet.range(rel.getRowType().getFieldCount()), null,
         ImmutableList.of());
   }
@@ -1985,6 +2035,20 @@ public abstract class RelOptUtil {
         planner.addRule(rule);
       }
     }
+    // Registers this rule for default ENUMERABLE convention
+    // because:
+    // 1. ScannableTable can bind data directly;
+    // 2. Only BindableTable supports project push down now.
+
+    // EnumerableInterpreterRule.INSTANCE would then transform
+    // the BindableTableScan to
+    // EnumerableInterpreter + BindableTableScan.
+
+    // Note: the cost of EnumerableInterpreter + BindableTableScan
+    // is always bigger that EnumerableTableScan because of the additional
+    // EnumerableInterpreter node, but if there are pushing projects or filter,
+    // we prefer BindableTableScan instead,
+    // see BindableTableScan#computeSelfCost.
     planner.addRule(Bindables.BINDABLE_TABLE_SCAN_RULE);
     planner.addRule(ProjectTableScanRule.INSTANCE);
     planner.addRule(ProjectTableScanRule.INTERPRETER);
@@ -2915,6 +2979,34 @@ public abstract class RelOptUtil {
     return list;
   }
 
+  /** As {@link #pushPastProject}, but returns null if the resulting expressions
+   * are significantly more complex.
+   *
+   * @param bloat Maximum allowable increase in complexity */
+  public static @Nullable List<RexNode> pushPastProjectUnlessBloat(
+      List<? extends RexNode> nodes, Project project, int bloat) {
+    if (bloat < 0) {
+      // If bloat is negative never merge.
+      return null;
+    }
+    if (RexOver.containsOver(nodes, null)
+        && RexOver.containsOver(project.getProjects(), null)) {
+      // Is it valid relational algebra to apply windowed function to a windowed
+      // function? Possibly. But it's invalid SQL, so don't go there.
+      return null;
+    }
+    final List<RexNode> list = pushPastProject(nodes, project);
+    final int bottomCount = RexUtil.nodeCount(project.getProjects());
+    final int topCount = RexUtil.nodeCount(nodes);
+    final int mergedCount = RexUtil.nodeCount(list);
+    if (mergedCount > bottomCount + topCount + bloat) {
+      // The merged expression is more complex than the input expressions.
+      // Do not merge.
+      return null;
+    }
+    return list;
+  }
+
   private static RexShuttle pushShuttle(final Project project) {
     return new RexShuttle() {
       @Override public RexNode visitInputRef(RexInputRef ref) {
@@ -3341,31 +3433,22 @@ public abstract class RelOptUtil {
               : fieldNames.get(i));
       exprList.add(rexBuilder.makeInputRef(rel, source));
     }
-    return projectFactory.createProject(rel, exprList, outputNameList);
+    return projectFactory.createProject(rel, ImmutableList.of(), exprList, outputNameList);
   }
 
-  /** Predicate for whether a {@link Calc} contains multisets or windowed
-   * aggregates. */
-  public static boolean containsMultisetOrWindowedAgg(Calc calc) {
-    return !(B
-        && RexMultisetUtil.containsMultiset(calc.getProgram())
-        || calc.getProgram().containsAggs());
+  /** Predicate for if a {@link Calc} does not contain windowed aggregates. */
+  public static boolean notContainsWindowedAgg(Calc calc) {
+    return !calc.getProgram().containsAggs();
   }
 
-  /** Predicate for whether a {@link Filter} contains multisets or windowed
-   * aggregates. */
-  public static boolean containsMultisetOrWindowedAgg(Filter filter) {
-    return !(B
-        && RexMultisetUtil.containsMultiset(filter.getCondition(), true)
-        || RexOver.containsOver(filter.getCondition()));
+  /** Predicate for if a {@link Filter} does not windowed aggregates. */
+  public static boolean notContainsWindowedAgg(Filter filter) {
+    return !RexOver.containsOver(filter.getCondition());
   }
 
-  /** Predicate for whether a {@link Project} contains multisets or windowed
-   * aggregates. */
-  public static boolean containsMultisetOrWindowedAgg(Project project) {
-    return !(B
-        && RexMultisetUtil.containsMultiset(project.getProjects(), true)
-        || RexOver.containsOver(project.getProjects(), null));
+  /** Predicate for if a {@link Project} does not contain windowed aggregates. */
+  public static boolean notContainsWindowedAgg(Project project) {
+    return !RexOver.containsOver(project.getProjects(), null);
   }
 
   /** Policies for handling two- and three-valued boolean logic. */
@@ -3877,6 +3960,127 @@ public abstract class RelOptUtil {
       return hints.stream()
           .map(hint -> hint.copy(path))
           .collect(Collectors.toList());
+    }
+  }
+
+  /**
+   * A {@code RelShuttle} which propagates the given hints to the sub-tree from the root node.
+   * It stops the search of current path if the node already has hints or the whole propagation
+   * if there is already a matched node.
+   *
+   * <p>Given a plan:
+   *
+   * <blockquote><pre>
+   *            Filter
+   *                |
+   *               Join
+   *              /    \
+   *            Scan  Project (Hint2)
+   *                     |
+   *                    Scan2
+   * </pre></blockquote>
+   *
+   * <p>The [Filter, Join, Scan] are the candidates(in sequence) to propagate,
+   * the whole propagation ends if we append the given hints to a node successfully.
+   */
+  private static class SubTreeHintPropagateShuttle extends RelHomogeneousShuttle {
+    /** Stack recording the appended inheritPath. */
+    private final List<Integer> appendPath = new ArrayList<>();
+
+    /**
+     * The hint strategies to decide if a hint should be attached to
+     * a relational expression.
+     */
+    private final HintStrategyTable hintStrategies;
+
+    /** Hints to propagate. */
+    private final List<RelHint> hints;
+
+    SubTreeHintPropagateShuttle(HintStrategyTable hintStrategies, List<RelHint> hints) {
+      this.hintStrategies = hintStrategies;
+      this.hints = hints;
+    }
+
+    /**
+     * Visits a particular child of a parent.
+     */
+    protected RelNode visitChild(RelNode parent, int i, RelNode child) {
+      appendPath.add(i);
+      try {
+        RelNode child2 = child.accept(this);
+        if (child2 != child) {
+          final List<RelNode> newInputs = new ArrayList<>(parent.getInputs());
+          newInputs.set(i, child2);
+          return parent.copy(parent.getTraitSet(), newInputs);
+        }
+        return parent;
+      } finally {
+        // Remove the last element.
+        appendPath.remove(appendPath.size() - 1);
+      }
+    }
+
+    public RelNode visit(RelNode other) {
+      if (this.appendPath.size() > 3) {
+        // Returns early if the visiting depth is bigger than 3
+        return other;
+      }
+      if (other instanceof Hintable) {
+        return visitHintable(other);
+      } else {
+        return visitChildren(other);
+      }
+    }
+
+    /**
+     * Handle the {@link Hintable}s.
+     *
+     * <p>Try to propagate the given hints to the node, the propagation finishes if:
+     *
+     * <ul>
+     *   <li>This hintable already has hints, that means, the rel is definitely
+     *   not created by a planner rule(or copied by the planner rule)</li>
+     *   <li>This hintable appended the hints successfully</li>
+     * </ul>
+     *
+     * @param node {@link Hintable} to handle
+     * @return New copy of the {@code hintable} with propagated hints attached
+     */
+    private RelNode visitHintable(RelNode node) {
+      final List<RelHint> topHints = ((Hintable) node).getHints();
+      final boolean hasHints = topHints != null && topHints.size() > 0;
+      if (hasHints) {
+        // This node is definitely not created by the planner, returns early.
+        return node;
+      }
+      final RelNode node1 = attachHints(node);
+      if (node1 != node) {
+        return node1;
+      }
+      return visitChildren(node);
+    }
+
+    private RelNode attachHints(RelNode original) {
+      assert original instanceof Hintable;
+      final List<RelHint> hints = this.hints.stream()
+          .map(hint -> copyWithAppendPath(hint, appendPath))
+          .collect(Collectors.toList());
+      final List<RelHint> filteredHints = hintStrategies.apply(hints, original);
+      if (filteredHints.size() > 0) {
+        return ((Hintable) original).attachHints(filteredHints);
+      }
+      return original;
+    }
+
+    private static RelHint copyWithAppendPath(RelHint hint,
+        List<Integer> appendPaths) {
+      if (appendPaths.size() == 0) {
+        return hint;
+      } else {
+        List<Integer> newPath = new ArrayList<>(hint.inheritPath);
+        newPath.addAll(appendPaths);
+        return hint.copy(newPath);
+      }
     }
   }
 

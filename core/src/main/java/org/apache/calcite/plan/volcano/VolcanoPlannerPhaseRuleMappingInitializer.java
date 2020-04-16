@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * VolcanoPlannerPhaseRuleMappingInitializer describes an inteface for
+ * VolcanoPlannerPhaseRuleMappingInitializer describes an interface for
  * initializing the mapping of {@link VolcanoPlannerPhase}s to sets of rule
  * descriptions.
  *

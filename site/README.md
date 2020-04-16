@@ -42,12 +42,12 @@ Site generation currently works best with ruby-2.5.1.
 
 1. `cd ..`
 2. `./gradlew javadocAggregate`
-3. `rm -rf site/target/apidocs site/target/testapidocs`
-   `rmdir site\target\apidocs site\target\testapidocs /S /Q` (Windows)
+3. `rm -rf site/target/javadocAggregate`
+   `rmdir site\target\javadocAggregate /S /Q` (Windows)
 4. `mkdir site/target`
    `mkdir site\target` (Windows)
-4. `mv build/docs/javadocAggregate site/target/apidocs`
-   `for /d %a in (target\site\apidocs* target\site\testapidocs*) do move %a site\target` (Windows)
+4. `mv build/docs/javadocAggregate site/target`
+   `for /d %a in (build\docs\javadocAggregate*) do move %a site\target` (Windows)
 
 ### Running locally
 
@@ -94,15 +94,13 @@ As you make changes to the site, the site will automatically rebuild.
 
 If you have not regenerated the javadoc and they are missing, restore them:
 
-6. `git reset -- apidocs/`
-7. `git reset -- testapidocs/`
-8. `git checkout -- apidocs/`
-9. `git checkout -- testapidocs/`
+6. `git reset -- javadocAggregate/`
+7. `git checkout -- javadocAggregate/`
 
 Restore the avatica site
 
-10. `git reset -- avatica/`
-11. `git checkout -- avatica/`
+8. `git reset -- avatica/`
+9. `git checkout -- avatica/`
 
 10. `git add .`
 11. Commit: `git commit -m "Your commit message goes here"`

@@ -50,6 +50,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.apiguardian.api.API;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -421,7 +423,7 @@ public class RexUtil {
         // Convert "CAST(c) = literal" to "c = literal", as long as it is a
         // widening cast.
         final RexNode operand = ((RexCall) left).getOperands().get(0);
-        if (canAssignFrom(left.getType(), operand.getType())) {
+        if (canAssignFrom(left.getType(), operand.getType(), rexBuilder.getTypeFactory())) {
           final RexNode castRight =
               rexBuilder.makeCast(operand.getType(), constant);
           if (castRight instanceof RexLiteral) {
@@ -453,18 +455,68 @@ public class RexUtil {
    *   <li>{@code canAssignFrom(BIGINT, VARCHAR)} returns {@code false}</li>
    * </ul>
    */
-  private static boolean canAssignFrom(RelDataType type1, RelDataType type2) {
+  private static boolean canAssignFrom(RelDataType type1, RelDataType type2,
+      RelDataTypeFactory typeFactory) {
     final SqlTypeName name1 = type1.getSqlTypeName();
     final SqlTypeName name2 = type2.getSqlTypeName();
     if (name1.getFamily() == name2.getFamily()) {
       switch (name1.getFamily()) {
       case NUMERIC:
-        return name1.compareTo(name2) >= 0;
+        if (SqlTypeUtil.isExactNumeric(type1)
+            && SqlTypeUtil.isExactNumeric(type2)) {
+          int precision1;
+          int scale1;
+          if (name1 == SqlTypeName.DECIMAL) {
+            type1 = typeFactory.decimalOf(type1);
+            precision1 = type1.getPrecision();
+            scale1 = type1.getScale();
+          } else {
+            precision1 = typeFactory.getTypeSystem().getMaxPrecision(name1);
+            scale1 = typeFactory.getTypeSystem().getMaxScale(name1);
+          }
+          int precision2;
+          int scale2;
+          if (name2 == SqlTypeName.DECIMAL) {
+            type2 = typeFactory.decimalOf(type2);
+            precision2 = type2.getPrecision();
+            scale2 = type2.getScale();
+          } else {
+            precision2 = typeFactory.getTypeSystem().getMaxPrecision(name2);
+            scale2 = typeFactory.getTypeSystem().getMaxScale(name2);
+          }
+          return precision1 >= precision2
+              && scale1 >= scale2;
+        } else if (SqlTypeUtil.isApproximateNumeric(type1)
+            && SqlTypeUtil.isApproximateNumeric(type2)) {
+          return type1.getPrecision() >= type2.getPrecision()
+              && type1.getScale() >= type2.getScale();
+        }
+        break;
       default:
-        return true;
+        // getPrecision() will return:
+        // - number of decimal digits for fractional seconds for datetime types
+        // - length in characters for character types
+        // - length in bytes for binary types
+        // - RelDataType.PRECISION_NOT_SPECIFIED (-1) if not applicable for this type
+        return type1.getPrecision() >= type2.getPrecision();
       }
     }
     return false;
+  }
+
+  /** Returns the number of nodes (including leaves) in a list of
+   * expressions.
+   *
+   * @see RexNode#nodeCount() */
+  public static int nodeCount(List<? extends RexNode> nodes) {
+    return nodeCount(0, nodes);
+  }
+
+  static int nodeCount(int n, List<? extends RexNode> nodes) {
+    for (RexNode operand : nodes) {
+      n += operand.nodeCount();
+    }
+    return n;
   }
 
   /**
@@ -515,12 +567,9 @@ public class RexUtil {
 
     public Boolean visitCall(RexCall call) {
       // Constant if operator meets the following conditions:
-      // 1. It is non-dynamic, e.g. it is safe to
-      //    cache query plans referencing this operator;
-      // 2. It is deterministic;
-      // 3. All its operands are constant.
-      return !call.getOperator().isDynamicFunction()
-          && call.getOperator().isDeterministic()
+      // 1. It is deterministic;
+      // 2. All its operands are constant.
+      return call.getOperator().isDeterministic()
           && RexVisitorImpl.visitArrayAnd(this, call.getOperands());
     }
 
@@ -1411,14 +1460,34 @@ public class RexUtil {
    *
    * <p>The implementation of this method does not return false positives.
    * However, it is not complete.
+   * @param node input node to verify if it represents a loss-less cast
+   * @return true iff the node is a loss-less cast
    */
   public static boolean isLosslessCast(RexNode node) {
     if (!node.isA(SqlKind.CAST)) {
       return false;
     }
-    final RelDataType source = ((RexCall) node).getOperands().get(0).getType();
+    return isLosslessCast(((RexCall) node).getOperands().get(0).getType(), node.getType());
+  }
+
+
+  /**
+   * Returns whether the conversion from {@code source} to {@code target} type
+   * is a 'loss-less' cast, that is, a cast from which
+   * the original value of the field can be certainly recovered.
+   *
+   * <p>For instance, int &rarr; bigint is loss-less (as you can cast back to
+   * int without loss of information), but bigint &rarr; int is not loss-less.
+   *
+   * <p>The implementation of this method does not return false positives.
+   * However, it is not complete.
+   * @param source source type
+   * @param target target type
+   * @return true iff the conversion is a loss-less cast
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static boolean isLosslessCast(RelDataType source, RelDataType target) {
     final SqlTypeName sourceSqlTypeName = source.getSqlTypeName();
-    final RelDataType target = node.getType();
     final SqlTypeName targetSqlTypeName = target.getSqlTypeName();
     // 1) Both INT numeric types
     if (SqlTypeFamily.INTEGER.getTypeNames().contains(sourceSqlTypeName)

@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableCorrelate;
 import org.apache.calcite.adapter.enumerable.EnumerableHashJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableMergeJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableNestedLoopJoin;
+import org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.hep.HepRelVertex;
@@ -150,7 +151,8 @@ public class RelMdCollation
     // order of the left and right sides.
     return ImmutableList.copyOf(
         RelMdCollation.mergeJoin(mq, join.getLeft(), join.getRight(),
-            join.analyzeCondition().leftKeys, join.analyzeCondition().rightKeys));
+            join.analyzeCondition().leftKeys, join.analyzeCondition().rightKeys,
+            join.getJoinType()));
   }
 
   public ImmutableList<RelCollation> collations(EnumerableHashJoin join,
@@ -200,6 +202,11 @@ public class RelMdCollation
       RelMetadataQuery mq) {
     return ImmutableList.copyOf(
         values(mq, values.getRowType(), values.getTuples()));
+  }
+
+  public ImmutableList<RelCollation> collations(JdbcToEnumerableConverter rel,
+      RelMetadataQuery mq) {
+    return mq.collations(rel.getInput());
   }
 
   public ImmutableList<RelCollation> collations(HepRelVertex rel,
@@ -426,15 +433,34 @@ public class RelMdCollation
    * uses a merge-join algorithm.
    *
    * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
-   * key, the result preserves those collations too. */
+   * key, the result preserves those collations too.
+   * @deprecated Use {@link #mergeJoin(RelMetadataQuery, RelNode, RelNode, ImmutableIntList, ImmutableIntList, JoinRelType)} */
+  @Deprecated // to be removed before 2.0
   public static List<RelCollation> mergeJoin(RelMetadataQuery mq,
       RelNode left, RelNode right,
       ImmutableIntList leftKeys, ImmutableIntList rightKeys) {
-    final ImmutableList.Builder<RelCollation> builder = ImmutableList.builder();
+    return mergeJoin(mq, left, right, leftKeys, rightKeys, JoinRelType.INNER);
+  }
+
+  /** Helper method to determine a {@link Join}'s collation assuming that it
+   * uses a merge-join algorithm.
+   *
+   * <p>If the inputs are sorted on other keys <em>in addition to</em> the join
+   * key, the result preserves those collations too. */
+  public static List<RelCollation> mergeJoin(RelMetadataQuery mq,
+      RelNode left, RelNode right,
+      ImmutableIntList leftKeys, ImmutableIntList rightKeys, JoinRelType joinType) {
+    assert EnumerableMergeJoin.isMergeJoinSupported(joinType)
+        : "EnumerableMergeJoin unsupported for join type " + joinType;
 
     final ImmutableList<RelCollation> leftCollations = mq.collations(left);
     assert RelCollations.contains(leftCollations, leftKeys)
         : "cannot merge join: left input is not sorted on left keys";
+    if (!joinType.projectsRight()) {
+      return leftCollations;
+    }
+
+    final ImmutableList.Builder<RelCollation> builder = ImmutableList.builder();
     builder.addAll(leftCollations);
 
     final ImmutableList<RelCollation> rightCollations = mq.collations(right);

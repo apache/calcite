@@ -28,9 +28,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 /**
  * Test for {@link SqlSetOption}.
  */
-public class SqlSetOptionOperatorTest {
+class SqlSetOptionOperatorTest {
 
-  @Test public void testSqlSetOptionOperatorScopeSet() throws SqlParseException {
+  @Test void testSqlSetOptionOperatorScopeSet() throws SqlParseException {
     SqlNode node = parse("alter system set optionA.optionB.optionC = true");
     checkSqlSetOptionSame(node);
   }
@@ -39,17 +39,17 @@ public class SqlSetOptionOperatorTest {
     return SqlParser.create(s).parseStmt();
   }
 
-  @Test public void testSqlSetOptionOperatorSet() throws SqlParseException {
+  @Test void testSqlSetOptionOperatorSet() throws SqlParseException {
     SqlNode node = parse("set optionA.optionB.optionC = true");
     checkSqlSetOptionSame(node);
   }
 
-  @Test public void testSqlSetOptionOperatorScopeReset() throws SqlParseException {
+  @Test void testSqlSetOptionOperatorScopeReset() throws SqlParseException {
     SqlNode node = parse("alter session reset param1.param2.param3");
     checkSqlSetOptionSame(node);
   }
 
-  @Test public void testSqlSetOptionOperatorReset() throws SqlParseException {
+  @Test void testSqlSetOptionOperatorReset() throws SqlParseException {
     SqlNode node = parse("reset param1.param2.param3");
     checkSqlSetOptionSame(node);
   }

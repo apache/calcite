@@ -28,9 +28,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /** Tests for {@link org.apache.calcite.linq4j.MemoryEnumerable} */
-public class MemoryEnumerableTest {
+class MemoryEnumerableTest {
 
-  @Test public void testHistoryAndFuture() {
+  @Test void testHistoryAndFuture() {
     final Enumerable<Integer> input =
         Linq4j.asEnumerable(IntStream.range(0, 100)
             .boxed().collect(Collectors.toList()));
@@ -55,7 +55,7 @@ public class MemoryEnumerableTest {
     assertThat(results.get(99).get(1), nullValue());
   }
 
-  @Test public void testModularInteger() {
+  @Test void testModularInteger() {
     final ModularInteger modularInteger = new ModularInteger(4, 5);
     assertThat(modularInteger.toString(), is("4 mod 5"));
 

@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -93,7 +94,8 @@ import java.util.stream.Collectors;
  * is the same as the type of the resulting cast expression
  * </ul>
  */
-public abstract class ReduceExpressionsRule extends RelOptRule {
+public abstract class ReduceExpressionsRule extends RelOptRule
+    implements SubstitutionRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
@@ -213,7 +215,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
 
       // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(filter, 0.0);
+      call.getPlanner().prune(filter);
     }
 
     /**
@@ -270,6 +272,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           } else {
             call.transformTo(createEmptyRelOrEquivalent(call, filter));
           }
+          // New plan is absolutely better than old plan.
+          call.getPlanner().prune(filter);
         }
       }
     }
@@ -300,6 +304,8 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           Lists.newArrayList(project.getProjects());
       if (reduceExpressions(project, expList, predicates, false,
           matchNullability)) {
+        assert !project.getProjects().equals(expList)
+            : "Reduced expressions should be different from original expressions";
         call.transformTo(
             call.builder()
                 .push(project.getInput())
@@ -307,7 +313,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
                 .build());
 
         // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(project, 0.0);
+        call.getPlanner().prune(project);
       }
     }
   }
@@ -355,7 +361,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
               join.isSemiJoinDone()));
 
       // New plan is absolutely better than old plan.
-      call.getPlanner().setImportance(join, 0.0);
+      call.getPlanner().prune(join);
     }
   }
 
@@ -408,11 +414,11 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
           final RexNode newConditionExp =
               expandedExprList.get(conditionIndex);
           if (newConditionExp.isAlwaysTrue()) {
-            // condition is always TRUE - drop it
+            // condition is always TRUE - drop it.
           } else if (newConditionExp instanceof RexLiteral
               || RexUtil.isNullLiteral(newConditionExp, true)) {
             // condition is always NULL or FALSE - replace calc
-            // with empty
+            // with empty.
             call.transformTo(createEmptyRelOrEquivalent(call, calc));
             return;
           } else {
@@ -430,7 +436,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
             calc.copy(calc.getTraitSet(), calc.getInput(), builder.getProgram()));
 
         // New plan is absolutely better than old plan.
-        call.getPlanner().setImportance(calc, 0.0);
+        call.getPlanner().prune(calc);
       }
     }
 
@@ -523,7 +529,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
         call.transformTo(LogicalWindow
             .create(window.getTraitSet(), window.getInput(),
                 window.getConstants(), window.getRowType(), groups));
-        call.getPlanner().setImportance(window, 0);
+        call.getPlanner().prune(window);
       }
     }
   }
@@ -606,6 +612,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       boolean matchNullability) {
     final RelOptCluster cluster = rel.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();
+    final List<RexNode> originExpList = Lists.newArrayList(expList);
     final RexExecutor executor =
         Util.first(cluster.getPlanner().getExecutor(), RexUtil.EXECUTOR);
     final RexSimplify simplify =
@@ -627,15 +634,18 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       }
     }
 
+    if (reduced && simplified) {
+      return !originExpList.equals(expList);
+    }
+
     return reduced || simplified;
   }
 
   protected static boolean reduceExpressionsInternal(RelNode rel,
       RexSimplify simplify, RexUnknownAs unknownAs, List<RexNode> expList,
       RelOptPredicateList predicates) {
-    boolean changed = false;
     // Replace predicates on CASE to CASE on predicates.
-    changed |= new CaseShuttle().mutate(expList);
+    boolean changed = new CaseShuttle().mutate(expList);
 
     // Find reducible expressions.
     final List<RexNode> constExps = new ArrayList<>();
@@ -793,8 +803,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
     final List<RexNode> operands = call.getOperands();
     for (int i = 0; i < operands.size(); i++) {
       RexNode operand = operands.get(i);
-      switch (operand.getKind()) {
-      case CASE:
+      if (operand.getKind() == SqlKind.CASE) {
         caseOrdinal = i;
       }
     }
@@ -1030,6 +1039,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule {
       for (Constancy operandConstancy : operandStack) {
         if (operandConstancy == Constancy.NON_CONSTANT) {
           callConstancy = Constancy.NON_CONSTANT;
+          break;
         }
       }
 

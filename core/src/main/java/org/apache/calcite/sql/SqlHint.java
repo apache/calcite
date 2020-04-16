@@ -17,7 +17,7 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,10 +33,17 @@ import java.util.stream.Collectors;
  *
  * <p>Basic hint grammar is: hint_name[(option1, option2 ...)].
  * The hint_name should be a simple identifier, the options part is optional.
- * For every option, it can be a simple identifier or a key value pair whose key
- * is a simple identifier and value is a string literal. The identifier option and key
- * value pair can not be mixed in, they should be either all simple identifiers
- * or all key value pairs.
+ * Every option can be of four formats:
+ *
+ * <ul>
+ *   <li>simple identifier</li>
+ *   <li>literal</li>
+ *   <li>key value pair whose key is a simple identifier and value is a string literal</li>
+ *   <li>key value pair whose key and value are both string literal</li>
+ * </ul>
+ *
+ * <p>The option format can not be mixed in, they should either be all simple identifiers
+ * or all literals or all key value pairs.
  *
  * <p>We support 2 kinds of hints in the parser:
  * <ul>
@@ -64,10 +71,14 @@ public class SqlHint extends SqlCall {
 
   //~ Constructors -----------------------------------------------------------
 
-  public SqlHint(SqlParserPos pos, SqlIdentifier name, SqlNodeList options) {
+  public SqlHint(
+      SqlParserPos pos,
+      SqlIdentifier name,
+      SqlNodeList options,
+      HintOptionFormat optionFormat) {
     super(pos);
     this.name = name;
-    this.optionFormat = inferHintOptionFormat(options);
+    this.optionFormat = optionFormat;
     this.options = options;
   }
 
@@ -95,12 +106,24 @@ public class SqlHint extends SqlCall {
 
   /**
    * Returns a string list if the hint option is a list of
-   * simple SQL identifier, else an empty list.
+   * simple SQL identifier, or a list of literals,
+   * else returns an empty list.
    */
   public List<String> getOptionList() {
     if (optionFormat == HintOptionFormat.ID_LIST) {
       final List<String> attrs = options.getList().stream()
           .map(node -> ((SqlIdentifier) node).getSimple())
+          .collect(Collectors.toList());
+      return ImmutableList.copyOf(attrs);
+    } else if (optionFormat == HintOptionFormat.LITERAL_LIST) {
+      final List<String> attrs = options.getList().stream()
+          .map(node -> {
+            SqlLiteral literal = (SqlLiteral) node;
+            Comparable<?> comparable = SqlLiteral.value(literal);
+            return comparable instanceof NlsString
+                ? ((NlsString) comparable).getValue()
+                : comparable.toString();
+          })
           .collect(Collectors.toList());
       return ImmutableList.copyOf(attrs);
     } else {
@@ -119,8 +142,7 @@ public class SqlHint extends SqlCall {
       for (int i = 0; i < options.size() - 1; i += 2) {
         final SqlNode k = options.get(i);
         final SqlNode v = options.get(i + 1);
-        attrs.put(((SqlIdentifier) k).getSimple(),
-            ((SqlLiteral) v).getValueAs(String.class));
+        attrs.put(getOptionKeyAsString(k), ((SqlLiteral) v).getValueAs(String.class));
       }
       return ImmutableMap.copyOf(attrs);
     } else {
@@ -137,8 +159,8 @@ public class SqlHint extends SqlCall {
         SqlNode nextOption = i < options.size() - 1 ? options.get(i + 1) : null;
         writer.sep(",", false);
         option.unparse(writer, leftPrec, rightPrec);
-        if (nextOption instanceof SqlLiteral) {
-          writer.print("=");
+        if (optionFormat == HintOptionFormat.KV_LIST && nextOption != null) {
+          writer.keyword("=");
           nextOption.unparse(writer, leftPrec, rightPrec);
           i += 1;
         }
@@ -148,53 +170,35 @@ public class SqlHint extends SqlCall {
   }
 
   /** Enumeration that represents hint option format. */
-  enum HintOptionFormat {
+  public enum HintOptionFormat {
     /**
      * The hint has no options.
      */
     EMPTY,
     /**
+     * The hint options are as literal list.
+     */
+    LITERAL_LIST,
+    /**
      * The hint options are as simple identifier list.
      */
     ID_LIST,
     /**
-     * The hint options are list of key-value pairs. For each pair,
-     * the key is a simple identifier, the value is a string literal.
+     * The hint options are list of key-value pairs.
+     * For each pair,
+     * the key is a simple identifier or string literal,
+     * the value is a string literal.
      */
     KV_LIST
   }
 
   //~ Tools ------------------------------------------------------------------
 
-  /** Infer the hint options format. */
-  private static HintOptionFormat inferHintOptionFormat(SqlNodeList options) {
-    if (options.size() == 0) {
-      return HintOptionFormat.EMPTY;
+  private static String getOptionKeyAsString(SqlNode node) {
+    assert node instanceof SqlIdentifier || SqlUtil.isLiteral(node);
+    if (node instanceof SqlIdentifier) {
+      return ((SqlIdentifier) node).getSimple();
     }
-    if (options.getList().stream().allMatch(opt -> opt instanceof SqlIdentifier)) {
-      return HintOptionFormat.ID_LIST;
-    }
-    if (isOptionsAsKVPairs(options)) {
-      return HintOptionFormat.KV_LIST;
-    }
-    throw new AssertionError("The hint options should either be empty, "
-        + "or simple identifier list, "
-        + "or key-value pairs whose pair key is simple identifier and value is string literal.");
-  }
-
-  /** Decides if the hint options is as key-value pair format. */
-  private static boolean isOptionsAsKVPairs(SqlNodeList options) {
-    if (options.size() > 0 && options.size() % 2 == 0) {
-      for (int i = 0; i < options.size() - 1; i += 2) {
-        boolean isKVPair = options.get(i) instanceof SqlIdentifier
-            && options.get(i + 1) instanceof SqlLiteral
-            && ((SqlLiteral) options.get(i + 1)).getTypeName() == SqlTypeName.CHAR;
-        if (!isKVPair) {
-          return false;
-        }
-      }
-      return true;
-    }
-    return false;
+    return ((SqlLiteral) node).getValueAs(String.class);
   }
 }

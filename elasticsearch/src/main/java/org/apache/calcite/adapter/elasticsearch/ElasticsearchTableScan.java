@@ -28,6 +28,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -53,7 +55,7 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
   ElasticsearchTableScan(RelOptCluster cluster, RelTraitSet traitSet,
        RelOptTable table, ElasticsearchTable elasticsearchTable,
        RelDataType projectRowType) {
-    super(cluster, traitSet, table);
+    super(cluster, traitSet, ImmutableList.of(), table);
     this.elasticsearchTable = Objects.requireNonNull(elasticsearchTable, "elasticsearchTable");
     this.projectRowType = projectRowType;
 

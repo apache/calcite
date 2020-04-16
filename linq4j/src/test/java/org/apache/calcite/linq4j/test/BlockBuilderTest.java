@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Tests BlockBuilder.
  */
-public class BlockBuilderTest {
+class BlockBuilderTest {
   BlockBuilder b;
 
   @BeforeEach
@@ -48,7 +48,7 @@ public class BlockBuilderTest {
     b = new BlockBuilder(true);
   }
 
-  @Test public void testReuseExpressionsFromUpperLevel() {
+  @Test void testReuseExpressionsFromUpperLevel() {
     Expression x = b.append("x", Expressions.add(ONE, TWO));
     BlockBuilder nested = new BlockBuilder(true, b);
     Expression y = nested.append("y", Expressions.add(ONE, TWO));
@@ -64,7 +64,7 @@ public class BlockBuilderTest {
         b.toBlock().toString());
   }
 
-  @Test public void testTestCustomOptimizer() {
+  @Test void testTestCustomOptimizer() {
     BlockBuilder b = new BlockBuilder() {
       @Override protected Shuttle createOptimizeShuttle() {
         return new OptimizeShuttle() {
@@ -99,7 +99,7 @@ public class BlockBuilderTest {
     return outer;
   }
 
-  @Test public void testRenameVariablesWithEmptyInitializer() {
+  @Test void testRenameVariablesWithEmptyInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(null, null);
 
     assertEquals("{\n"
@@ -111,7 +111,7 @@ public class BlockBuilderTest {
         "x in the second block should be renamed to avoid name clash");
   }
 
-  @Test public void testRenameVariablesWithInitializer() {
+  @Test void testRenameVariablesWithInitializer() {
     BlockBuilder outer = appendBlockWithSameVariable(
         Expressions.constant(7), Expressions.constant(8));
 
@@ -128,7 +128,7 @@ public class BlockBuilderTest {
    * CALCITE-2413: RexToLixTranslator does not generate correct declaration of Methods with
    * generic return types
    */
-  @Test public void genericMethodCall() throws NoSuchMethodException {
+  @Test void genericMethodCall() throws NoSuchMethodException {
     BlockBuilder bb = new BlockBuilder();
     bb.append("_i",
         Expressions.call(
@@ -146,7 +146,7 @@ public class BlockBuilderTest {
   }
 
   /** CALCITE-2611: unknown on one side of an or may lead to uncompilable code */
-  @Test public void testOptimizeBoxedFalseEqNull() {
+  @Test void testOptimizeBoxedFalseEqNull() {
     BlockBuilder outer = new BlockBuilder();
     outer.append(
         Expressions.equal(

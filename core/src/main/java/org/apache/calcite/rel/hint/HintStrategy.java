@@ -16,31 +16,136 @@
  */
 package org.apache.calcite.rel.hint;
 
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.rel.convert.ConverterRule;
+
+import com.google.common.collect.ImmutableSet;
+
+import java.util.Objects;
+import javax.annotation.Nullable;
 
 /**
- * A {@code HintStrategy} indicates whether a {@link org.apache.calcite.rel.RelNode}
- * can apply the specified hint.
+ * Represents a hint strategy entry of {@link HintStrategyTable}.
  *
- * <p>Typically, every supported hint should register a {@code HintStrategy}
- * into the {@link HintStrategyTable}. For example, {@link HintStrategies#JOIN} implies
- * that this hint would be propagated and applied to the {@link org.apache.calcite.rel.core.Join}
- * relational expressions.
+ * <p>A {@code HintStrategy} includes:
  *
- * <p>In {@link HintStrategyTable} the strategy is used for
- * hints registration.
+ * <ul>
+ *   <li>{@link HintPredicate}: tests whether a hint should apply to
+ *   a relational expression;</li>
+ *   <li>{@link HintOptionChecker}: validates the hint options;</li>
+ *   <li>{@code excludedRules}: rules to exclude when a relational expression
+ *   is going to apply a planner rule;</li>
+ *   <li>{@code converterRules}: fallback rules to apply when there are
+ *   no proper implementations after excluding the {@code excludedRules}.</li>
+ * </ul>
  *
- * @see HintStrategyTable
+ * <p>The {@link HintPredicate} is required, all the other items are optional.
+ *
+ * <p>A {@link HintStrategy} is immutable.
  */
-public interface HintStrategy {
+public class HintStrategy {
+  //~ Instance fields --------------------------------------------------------
+
+  public final HintPredicate predicate;
+  public final HintOptionChecker hintOptionChecker;
+  public final ImmutableSet<RelOptRule> excludedRules;
+  public final ImmutableSet<ConverterRule> converterRules;
+
+  //~ Constructors -----------------------------------------------------------
+
+  private HintStrategy(
+      HintPredicate predicate,
+      HintOptionChecker hintOptionChecker,
+      ImmutableSet<RelOptRule> excludedRules,
+      ImmutableSet<ConverterRule> converterRules) {
+    this.predicate = predicate;
+    this.hintOptionChecker = hintOptionChecker;
+    this.excludedRules = excludedRules;
+    this.converterRules = converterRules;
+  }
 
   /**
-   * Decides if the given {@code hint} can be applied to
-   * the relational expression {@code rel}.
+   * Returns a {@link HintStrategy} builder with given hint predicate.
    *
-   * @param hint The hint
-   * @param rel  The relational expression
-   * @return True if the {@code hint} can be applied to the {@code rel}
+   * @param hintPredicate hint predicate
+   * @return {@link Builder} instance
    */
-  boolean supportsRel(RelHint hint, RelNode rel);
+  public static Builder builder(HintPredicate hintPredicate) {
+    return new Builder(hintPredicate);
+  }
+
+  //~ Inner Class ------------------------------------------------------------
+
+  /** Builder for {@link HintStrategy}. */
+  public static class Builder {
+    private final HintPredicate predicate;
+    @Nullable
+    private HintOptionChecker optionChecker;
+    private ImmutableSet<RelOptRule> excludedRules;
+    private ImmutableSet<ConverterRule> converterRules;
+
+    private Builder(HintPredicate predicate) {
+      this.predicate = Objects.requireNonNull(predicate);
+      this.excludedRules = ImmutableSet.of();
+      this.converterRules = ImmutableSet.of();
+    }
+
+    /** Registers a hint option checker to validate the hint options. */
+    public Builder optionChecker(HintOptionChecker optionChecker) {
+      this.optionChecker = Objects.requireNonNull(optionChecker);
+      return this;
+    }
+
+    /**
+     * Registers an array of rules to exclude during the
+     * {@link org.apache.calcite.plan.RelOptPlanner} planning.
+     *
+     * <p>The desired converter rules work together with the excluded rules.
+     * We have no validation here but they expect to have the same
+     * function(semantic equivalent).
+     *
+     * <p>A rule fire cancels if:
+     *
+     * <ol>
+     *   <li>The registered {@link #excludedRules} contains the rule</li>
+     *   <li>And the desired converter rules conversion is not possible
+     *   for the rule matched root node</li>
+     * </ol>
+     *
+     * @param rules excluded rules
+     */
+    public Builder excludedRules(RelOptRule... rules) {
+      this.excludedRules = ImmutableSet.copyOf(rules);
+      return this;
+    }
+
+    /**
+     * Registers an array of desired converter rules during the
+     * {@link org.apache.calcite.plan.RelOptPlanner} planning.
+     *
+     * <p>The desired converter rules work together with the excluded rules.
+     * We have no validation here but they expect to have the same
+     * function(semantic equivalent).
+     *
+     * <p>A rule fire cancels if:
+     *
+     * <ol>
+     *   <li>The registered {@link #excludedRules} contains the rule</li>
+     *   <li>And the desired converter rules conversion is not possible
+     *   for the rule matched root node</li>
+     * </ol>
+     *
+     * <p>If no converter rules are specified, we assume the conversion is possible.
+     *
+     * @param rules desired converter rules
+     */
+    public Builder converterRules(ConverterRule... rules) {
+      this.converterRules = ImmutableSet.copyOf(rules);
+      return this;
+    }
+
+    public HintStrategy build() {
+      return new HintStrategy(predicate, optionChecker, excludedRules, converterRules);
+    }
+  }
 }

@@ -35,9 +35,9 @@ import java.util.function.Consumer;
  * Unit test for
  * {@link org.apache.calcite.adapter.enumerable.EnumerableBatchNestedLoopJoin}
  */
-public class EnumerableBatchNestedLoopJoinTest {
+class EnumerableBatchNestedLoopJoinTest {
 
-  @Test public void simpleInnerBatchJoinTestBuilder() {
+  @Test void simpleInnerBatchJoinTestBuilder() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -61,7 +61,7 @@ public class EnumerableBatchNestedLoopJoinTest {
             "deptno=10");
   }
 
-  @Test public void simpleInnerBatchJoinTestSQL() {
+  @Test void simpleInnerBatchJoinTestSQL() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.name from emps e join depts d on d.deptno = e.deptno")
@@ -74,7 +74,7 @@ public class EnumerableBatchNestedLoopJoinTest {
             "name=Theodore");
   }
 
-  @Test public void simpleLeftBatchJoinTestSQL() {
+  @Test void simpleLeftBatchJoinTestSQL() {
     tester(false, new JdbcTest.HrSchema())
         .query(
             "select e.name, d.deptno from emps e left join depts d on d.deptno = e.deptno")
@@ -88,7 +88,7 @@ public class EnumerableBatchNestedLoopJoinTest {
             "name=Theodore; deptno=10");
   }
 
-  @Test public void innerBatchJoinTestSQL() {
+  @Test void innerBatchJoinTestSQL() {
     tester(false, new JdbcTest.HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.deptno")
@@ -99,7 +99,7 @@ public class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("EXPR$0=46");
   }
 
-  @Test public void innerBatchJoinTestSQL2() {
+  @Test void innerBatchJoinTestSQL2() {
     tester(false, new JdbcTest.HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.empid")
@@ -110,7 +110,7 @@ public class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("EXPR$0=4");
   }
 
-  @Test public void leftBatchJoinTestSQL() {
+  @Test void leftBatchJoinTestSQL() {
     tester(false, new JdbcTest.HrSchemaBig())
         .query(
             "select count(d.deptno) from depts d left join emps e on d.deptno = e.deptno"
@@ -122,7 +122,7 @@ public class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("EXPR$0=8");
   }
 
-  @Test public void testJoinSubQuery() {
+  @Test void testJoinSubQuery() {
     String sql = "SELECT count(name) FROM emps e WHERE e.deptno NOT IN "
         + "(SELECT d.deptno FROM depts d WHERE d.name = 'Sales')";
     tester(false, new JdbcTest.HrSchemaBig())
@@ -136,7 +136,7 @@ public class EnumerableBatchNestedLoopJoinTest {
         .returnsUnordered("EXPR$0=23");
   }
 
-  @Test public void testInnerJoinOnString() {
+  @Test void testInnerJoinOnString() {
     String sql = "SELECT d.name, e.salary FROM depts d join emps e on d.name = e.name";
     tester(false, new JdbcTest.HrSchemaBig())
         .query(sql)
@@ -148,7 +148,7 @@ public class EnumerableBatchNestedLoopJoinTest {
         })
         .returnsUnordered("");
   }
-  @Test public void testSemiJoin() {
+  @Test void testSemiJoin() {
     tester(false, new JdbcTest.HrSchemaBig())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -175,7 +175,7 @@ public class EnumerableBatchNestedLoopJoinTest {
             "name=Ursula");
   }
 
-  @Test public void testAntiJoin() {
+  @Test void testAntiJoin() {
     tester(false, new JdbcTest.HrSchema())
         .query("?")
         .withHook(Hook.PLANNER, (Consumer<RelOptPlanner>) planner -> {
@@ -206,7 +206,7 @@ public class EnumerableBatchNestedLoopJoinTest {
             "name=Eric; salary=8000.0");
   }
 
-  @Test public void innerBatchJoinAndTestSQL() {
+  @Test void innerBatchJoinAndTestSQL() {
     tester(false, new JdbcTest.HrSchemaBig())
         .query(
             "select count(e.name) from emps e join depts d on d.deptno = e.empid and d.deptno = e.deptno")

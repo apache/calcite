@@ -62,15 +62,17 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * building of {@link PigRel} relational expressions using {@link RelBuilder} and
  * associated factories in {@link PigRelFactories}.
  */
-public class PigRelBuilderStyleTest extends AbstractPigTest {
+@Disabled
+class PigRelBuilderStyleTest extends AbstractPigTest {
 
-  public PigRelBuilderStyleTest() {
+  PigRelBuilderStyleTest() {
     assumeTrue(File.separatorChar == '/',
         () -> "Pig tests expects File.separatorChar to be /, actual one is "
           + File.separatorChar);
   }
 
-  @Test public void testScanAndFilter() throws Exception {
+  @Disabled("CALCITE-3660")
+  @Test void testScanAndFilter() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -118,7 +120,7 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1)", "(b,1)", "(c,1)" });
   }
 
-  @Test public void testImplWithCountWithoutGroupBy() {
+  @Test void testImplWithCountWithoutGroupBy() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -152,7 +154,8 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
   }
 
-  @Test public void testImplWithGroupByCountDistinct() {
+  @Disabled("CALCITE-3660")
+  @Test void testImplWithGroupByCountDistinct() {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t")
@@ -170,7 +173,8 @@ public class PigRelBuilderStyleTest extends AbstractPigTest {
         new String[] { "(a,1,1)", "(b,2,1)", "(c,3,1)" });
   }
 
-  @Test public void testImplWithJoin() throws Exception {
+  @Disabled("CALCITE-3660")
+  @Test void testImplWithJoin() throws Exception {
     final SchemaPlus schema = createTestSchema();
     final RelBuilder builder = createRelBuilder(schema);
     final RelNode node = builder.scan("t").scan("s")

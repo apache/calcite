@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for handling of traits by {@link VolcanoPlanner}.
  */
-public class VolcanoPlannerTraitTest {
+class VolcanoPlannerTraitTest {
   /**
    * Private calling convention representing a generic "physical" calling
    * convention.
@@ -97,7 +97,7 @@ public class VolcanoPlannerTraitTest {
   private static int altTraitOrdinal = 0;
 
   @Disabled
-  @Test public void testDoubleConversion() {
+  @Test void testDoubleConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -152,7 +152,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(child instanceof PhysLeafRel);
   }
 
-  @Test public void testRuleMatchAfterConversion() {
+  @Test void testRuleMatchAfterConversion() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -185,7 +185,7 @@ public class VolcanoPlannerTraitTest {
   }
 
   @Disabled
-  @Test public void testTraitPropagation() {
+  @Test void testTraitPropagation() {
     VolcanoPlanner planner = new VolcanoPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
@@ -249,7 +249,7 @@ public class VolcanoPlannerTraitTest {
     assertTrue(child instanceof PhysLeafRel);
   }
 
-  @Test public void testPlanWithNoneConvention() {
+  @Test void testPlanWithNoneConvention() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     RelOptCluster cluster = newCluster(planner);

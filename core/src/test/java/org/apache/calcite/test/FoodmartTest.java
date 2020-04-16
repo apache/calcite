@@ -38,7 +38,7 @@ import java.util.stream.Stream;
  * Test case that runs the FoodMart reference queries.
  */
 @Tag("slow")
-public class FoodmartTest {
+class FoodmartTest {
 
   private static CalciteAssert.AssertThat assertFoodmart;
   private static CalciteAssert.AssertThat assertFoodmartLattice;

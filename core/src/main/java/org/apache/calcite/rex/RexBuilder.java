@@ -60,8 +60,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 
 /**
  * Factory for row expressions.
@@ -346,39 +348,35 @@ public class RexBuilder {
       List<RexNode> exprs, List<RexNode> partitionKeys,
       ImmutableList<RexFieldCollation> orderKeys,
       RexWindowBound lowerBound, RexWindowBound upperBound,
-      boolean physical, boolean allowPartial, boolean nullWhenCountZero,
+      boolean rows, boolean allowPartial, boolean nullWhenCountZero,
       boolean distinct) {
     return makeOver(type, operator, exprs, partitionKeys, orderKeys, lowerBound,
-        upperBound, physical, allowPartial, nullWhenCountZero, distinct, false);
+        upperBound, rows, allowPartial, nullWhenCountZero, distinct, false);
   }
 
   /**
    * Creates a call to a windowed agg.
    */
   public RexNode makeOver(
-      RelDataType type,
-      SqlAggFunction operator,
-      List<RexNode> exprs,
-      List<RexNode> partitionKeys,
-      ImmutableList<RexFieldCollation> orderKeys,
-      RexWindowBound lowerBound,
-      RexWindowBound upperBound,
-      boolean physical,
+      @Nonnull RelDataType type,
+      @Nonnull SqlAggFunction operator,
+      @Nonnull List<RexNode> exprs,
+      @Nonnull List<RexNode> partitionKeys,
+      @Nonnull ImmutableList<RexFieldCollation> orderKeys,
+      @Nonnull RexWindowBound lowerBound,
+      @Nonnull RexWindowBound upperBound,
+      boolean rows,
       boolean allowPartial,
       boolean nullWhenCountZero,
       boolean distinct,
       boolean ignoreNulls) {
-    assert operator != null;
-    assert exprs != null;
-    assert partitionKeys != null;
-    assert orderKeys != null;
     final RexWindow window =
         makeWindow(
             partitionKeys,
             orderKeys,
             lowerBound,
             upperBound,
-            physical);
+            rows);
     final RexOver over = new RexOver(type, operator, exprs, window,
         distinct, ignoreNulls);
     RexNode result = over;
@@ -410,7 +408,7 @@ public class RexBuilder {
           makeNullLiteral(type));
     }
     if (!allowPartial) {
-      Preconditions.checkArgument(physical, "DISALLOW PARTIAL over RANGE");
+      Preconditions.checkArgument(rows, "DISALLOW PARTIAL over RANGE");
       final RelDataType bigintType =
           typeFactory.createSqlType(SqlTypeName.BIGINT);
       // todo: read bound
@@ -443,7 +441,7 @@ public class RexBuilder {
    * @param orderKeys     Order keys
    * @param lowerBound    Lower bound
    * @param upperBound    Upper bound
-   * @param isRows        Whether physical. True if row-based, false if
+   * @param rows          Whether physical. True if row-based, false if
    *                      range-based
    * @return window specification
    */
@@ -452,13 +450,21 @@ public class RexBuilder {
       ImmutableList<RexFieldCollation> orderKeys,
       RexWindowBound lowerBound,
       RexWindowBound upperBound,
-      boolean isRows) {
+      boolean rows) {
+    if (lowerBound.isUnbounded() && lowerBound.isPreceding()
+        && upperBound.isUnbounded() && upperBound.isFollowing()) {
+      // RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   is equivalent to
+      // ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+      //   but we prefer "RANGE"
+      rows = false;
+    }
     return new RexWindow(
         partitionKeys,
         orderKeys,
         lowerBound,
         upperBound,
-        isRows);
+        rows);
   }
 
   /**
@@ -669,16 +675,9 @@ public class RexBuilder {
     final TimeUnit endUnit = exp.getType().getSqlTypeName().getEndUnit();
     final TimeUnit baseUnit = baseUnit(exp.getType().getSqlTypeName());
     final BigDecimal multiplier = baseUnit.multiplier;
-    final int scale = 0;
-    BigDecimal divider = endUnit.multiplier.scaleByPowerOfTen(-scale);
+    final BigDecimal divider = endUnit.multiplier;
     RexNode value = multiplyDivide(decodeIntervalOrDecimal(exp),
         multiplier, divider);
-    if (scale > 0) {
-      RelDataType decimalType =
-          typeFactory.createSqlType(SqlTypeName.DECIMAL,
-              scale + exp.getType().getPrecision(), scale);
-      value = encodeIntervalOrDecimal(value, decimalType, false);
-    }
     return ensureType(toType, value, false);
   }
 
@@ -932,13 +931,6 @@ public class RexBuilder {
       }
       break;
     case TIME:
-      assert o instanceof TimeString;
-      p = type.getPrecision();
-      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
-        p = 0;
-      }
-      o = ((TimeString) o).round(p);
-      break;
     case TIME_WITH_LOCAL_TIME_ZONE:
       assert o instanceof TimeString;
       p = type.getPrecision();
@@ -948,13 +940,6 @@ public class RexBuilder {
       o = ((TimeString) o).round(p);
       break;
     case TIMESTAMP:
-      assert o instanceof TimestampString;
-      p = type.getPrecision();
-      if (p == RelDataType.PRECISION_NOT_SPECIFIED) {
-        p = 0;
-      }
-      o = ((TimestampString) o).round(p);
-      break;
     case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
       assert o instanceof TimestampString;
       p = type.getPrecision();
@@ -962,6 +947,7 @@ public class RexBuilder {
         p = 0;
       }
       o = ((TimestampString) o).round(p);
+      break;
     }
     return new RexLiteral(o, type, typeName);
   }
@@ -1519,6 +1505,11 @@ public class RexBuilder {
       if (o instanceof BigDecimal) {
         return o;
       }
+      assert !(o instanceof Float || o instanceof Double)
+          : String.format(Locale.ROOT,
+              "%s is not compatible with %s, try to use makeExactLiteral",
+              o.getClass().getCanonicalName(),
+              type.getSqlTypeName());
       return new BigDecimal(((Number) o).longValue());
     case FLOAT:
       if (o instanceof BigDecimal) {

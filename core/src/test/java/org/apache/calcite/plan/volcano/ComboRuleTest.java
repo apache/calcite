@@ -48,9 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for {@link VolcanoPlanner}
  */
-public class ComboRuleTest {
+class ComboRuleTest {
 
-  @Test public void testCombo() {
+  @Test void testCombo() {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 

@@ -134,12 +134,14 @@ public class SqlTestFactory {
     final boolean lenientOperatorLookup =
         (boolean) options.get("lenientOperatorLookup");
     final boolean enableTypeCoercion = (boolean) options.get("enableTypeCoercion");
+    final SqlValidator.Config config = SqlValidator.Config.DEFAULT
+        .withSqlConformance(conformance)
+        .withTypeCoercionEnabled(enableTypeCoercion)
+        .withLenientOperatorLookup(lenientOperatorLookup);
     return validatorFactory.create(operatorTable.get(),
         catalogReader.get(),
         typeFactory.get(),
-        conformance)
-        .setEnableTypeCoercion(enableTypeCoercion)
-        .setLenientOperatorLookup(lenientOperatorLookup);
+        config);
   }
 
   public SqlAdvisor createAdvisor() {
@@ -206,7 +208,7 @@ public class SqlTestFactory {
         SqlOperatorTable opTab,
         SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory,
-        SqlConformance conformance);
+        SqlValidator.Config config);
   }
 
   /**

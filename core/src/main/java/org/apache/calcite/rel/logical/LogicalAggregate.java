@@ -27,7 +27,8 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
+
 import java.util.List;
 
 /**
@@ -69,19 +70,7 @@ public final class LogicalAggregate extends Aggregate {
     super(cluster, traitSet, hints, input, groupSet, groupSets, aggCalls);
   }
 
-
-  /**
-   * Creates a LogicalAggregate.
-   *
-   * <p>Use {@link #create} unless you know what you're doing.
-   *
-   * @param cluster    Cluster that this relational expression belongs to
-   * @param traitSet   Traits
-   * @param input      Input relational expression
-   * @param groupSet Bit set of grouping fields
-   * @param groupSets Grouping sets, or null to use just {@code groupSet}
-   * @param aggCalls Array of aggregates to compute, not null
-   */
+  @Deprecated // to be removed before 2.0
   public LogicalAggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -89,14 +78,14 @@ public final class LogicalAggregate extends Aggregate {
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    this(cluster, traitSet, new ArrayList<>(), input, groupSet, groupSets, aggCalls);
+    this(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalAggregate(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     checkIndicator(indicator);
   }
 
@@ -104,7 +93,7 @@ public final class LogicalAggregate extends Aggregate {
   public LogicalAggregate(RelOptCluster cluster,
       RelNode input, boolean indicator, ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
-    super(cluster, cluster.traitSetOf(Convention.NONE), input, groupSet,
+    super(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), input, groupSet,
         groupSets, aggCalls);
     checkIndicator(indicator);
   }
@@ -118,9 +107,19 @@ public final class LogicalAggregate extends Aggregate {
 
   /** Creates a LogicalAggregate. */
   public static LogicalAggregate create(final RelNode input,
-      ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets,
+      List<RelHint> hints,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
-    return create_(input, groupSet, groupSets, aggCalls);
+    return create_(input, hints, groupSet, groupSets, aggCalls);
+  }
+
+  @Deprecated // to be removed before 2.0
+  public static LogicalAggregate create(final RelNode input,
+      ImmutableBitSet groupSet,
+      List<ImmutableBitSet> groupSets,
+      List<AggregateCall> aggCalls) {
+    return create_(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
   }
 
   @Deprecated // to be removed before 2.0
@@ -130,16 +129,17 @@ public final class LogicalAggregate extends Aggregate {
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     checkIndicator(indicator);
-    return create_(input, groupSet, groupSets, aggCalls);
+    return create_(input, ImmutableList.of(), groupSet, groupSets, aggCalls);
   }
 
   private static LogicalAggregate create_(final RelNode input,
+      List<RelHint> hints,
       ImmutableBitSet groupSet,
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
-    return new LogicalAggregate(cluster, traitSet, input, groupSet,
+    return new LogicalAggregate(cluster, traitSet, hints, input, groupSet,
         groupSets, aggCalls);
   }
 

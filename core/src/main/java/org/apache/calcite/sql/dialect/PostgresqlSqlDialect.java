@@ -37,7 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
  */
 public class PostgresqlSqlDialect extends SqlDialect {
   /** PostgreSQL type system. */
-  private static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
+  public static final RelDataTypeSystem POSTGRESQL_TYPE_SYSTEM =
       new RelDataTypeSystemImpl() {
         @Override public int getMaxPrecision(SqlTypeName typeName) {
           switch (typeName) {

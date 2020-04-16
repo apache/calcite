@@ -52,6 +52,7 @@ import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.regexpQuery
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.termQuery;
 
 import static java.lang.String.format;
+
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression
  * and convert it to {@link QueryBuilder}.

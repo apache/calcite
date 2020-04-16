@@ -248,6 +248,10 @@ public abstract class AbstractRelNode implements RelNode {
     // for default case, nothing to do
   }
 
+  public boolean isEnforcer() {
+    return false;
+  }
+
   public void collectVariablesSet(Set<CorrelationId> variableSet) {
   }
 

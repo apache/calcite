@@ -198,7 +198,7 @@ EnumerableCalc(expr#0..1=[{inputs}], DEPTNO=[$t1], ENAME=[$t0])
     EnumerableHashJoin(condition=[=($2, $4)], joinType=[inner])
       EnumerableCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[+($t7, $t8)], proj#0..1=[{exprs}], $f8=[$t9])
         EnumerableTableScan(table=[[scott, EMP]])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[+($t3, $t1)], expr#5=[CAST($t4):INTEGER], DEPTNO=[$t3], $f16=[$t5])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[+($t1, $t3)], expr#5=[CAST($t4):INTEGER], DEPTNO=[$t1], $f16=[$t5])
         EnumerableHashJoin(condition=[=($1, $3)], joinType=[inner])
           EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
             EnumerableTableScan(table=[[scott, EMP]])
@@ -228,12 +228,12 @@ where e.deptno + 10 = d.deptno * 2;
 (9 rows)
 
 !ok
-EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t1], DEPTNO0=[$t2])
-  EnumerableNestedLoopJoin(condition=[=(+($1, 10), *($2, 2))], joinType=[inner])
-    EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], DEPTNO=[$t7])
-      EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableCalc(expr#0..2=[{inputs}], DEPTNO=[$t0])
+EnumerableCalc(expr#0..4=[{inputs}], DEPTNO=[$t3], DEPTNO0=[$t0])
+  EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])
+    EnumerableCalc(expr#0..2=[{inputs}], expr#3=[2], expr#4=[*($t0, $t3)], DEPTNO=[$t0], $f1=[$t4])
       EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableCalc(expr#0..7=[{inputs}], expr#8=[10], expr#9=[+($t7, $t8)], EMPNO=[$t0], DEPTNO=[$t7], $f2=[$t9])
+      EnumerableTableScan(table=[[scott, EMP]])
 !plan
 
 ### [CALCITE-801] NullPointerException using USING on table alias with column aliases

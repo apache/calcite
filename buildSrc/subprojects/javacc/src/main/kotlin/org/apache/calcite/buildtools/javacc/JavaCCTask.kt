@@ -25,6 +25,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
@@ -36,8 +37,17 @@ open class JavaCCTask @Inject constructor(
     val javaCCClasspath = objectFactory.property<Configuration>()
         .convention(project.configurations.named(JavaCCPlugin.JAVACC_CLASSPATH_CONFIGURATION_NAME))
 
-    @InputFile
+    @Internal
     val inputFile = objectFactory.property<File>()
+
+    // See https://github.com/gradle/gradle/issues/12627
+    @get:InputFile
+    val actualInputFile: File? get() = try {
+        inputFile.get()
+    } catch (e: IllegalStateException) {
+        // This means Gradle queries property too early
+        null
+    }
 
     @Input
     val lookAhead = objectFactory.property<Int>().convention(1)

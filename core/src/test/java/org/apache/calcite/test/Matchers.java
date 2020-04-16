@@ -18,12 +18,14 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.hint.Hintable;
 import org.apache.calcite.util.TestUtil;
 import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import org.apiguardian.api.API;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
@@ -41,12 +43,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 /**
  * Matchers for testing SQL queries.
  */
 public class Matchers {
+
+  private static final Pattern PATTERN = Pattern.compile(", id = [0-9]+");
+
   private Matchers() {}
 
   /** Allows passing the actual result from the {@code matchesSafely} method to
@@ -204,6 +210,28 @@ public class Matchers {
   }
 
   /**
+   * Creates a Matcher that matches a {@link RelNode} if its hints string
+   * representation is equal to the given {@code value}.
+   */
+  public static Matcher<RelNode> hasHints(final String value) {
+    return compose(Is.is(value),
+        input -> input instanceof Hintable
+            ? ((Hintable) input).getHints().toString()
+            : "[]");
+  }
+
+  /**
+   * Creates a {@link Matcher} that matches execution plan and trims {@code , id=123} node ids.
+   * {@link RelNode#getId()} is not stable across runs, so this matcher enables to trim those.
+   * @param value execpted execution plan
+   * @return matcher
+   */
+  @API(since = "1.22", status = API.Status.EXPERIMENTAL)
+  public static Matcher<String> containsWithoutNodeIds(String value) {
+    return compose(CoreMatchers.containsString(value), Matchers::trimNodeIds);
+  }
+
+  /**
    * Creates a matcher that matches when the examined string is equal to the
    * specified <code>operand</code> when all Windows-style line endings ("\r\n")
    * have been converted to Unix-style line endings ("\n").
@@ -221,6 +249,10 @@ public class Matchers {
    */
   public static Matcher<String> containsStringLinux(String value) {
     return compose(CoreMatchers.containsString(value), Util::toLinux);
+  }
+
+  public static String trimNodeIds(String s) {
+    return PATTERN.matcher(s).replaceAll("");
   }
 
   /**

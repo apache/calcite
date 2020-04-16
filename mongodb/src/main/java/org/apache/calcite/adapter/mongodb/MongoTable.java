@@ -152,14 +152,6 @@ public class MongoTable extends AbstractQueryableTable
     };
   }
 
-  /** Helper method to strip non-numerics from a string.
-   *
-   * <p>Currently used to determine mongod versioning numbers
-   * from buildInfo.versionArray for use in aggregate method logic. */
-  private static Integer parseIntString(String valueString) {
-    return Integer.parseInt(valueString.replaceAll("[^0-9]", ""));
-  }
-
   /** Implementation of {@link org.apache.calcite.linq4j.Queryable} based on
    * a {@link org.apache.calcite.adapter.mongodb.MongoTable}.
    *

@@ -47,7 +47,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
   protected EnumerableNestedLoopJoin(RelOptCluster cluster, RelTraitSet traits,
       RelNode left, RelNode right, RexNode condition,
       Set<CorrelationId> variablesSet, JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
   }
 
   @Deprecated // to be removed before 2.0
@@ -111,7 +111,11 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     if (Double.isInfinite(rightRowCount)) {
       rowCount = rightRowCount;
     }
-    return planner.getCostFactory().makeCost(rowCount, 0, 0);
+
+    RelOptCost cost = planner.getCostFactory().makeCost(rowCount, 0, 0);
+    // Give it some penalty
+    cost = cost.multiplyBy(10);
+    return cost;
   }
 
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {

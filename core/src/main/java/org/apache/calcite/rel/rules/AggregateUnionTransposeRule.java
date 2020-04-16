@@ -39,6 +39,7 @@ import org.apache.calcite.sql.fun.SqlSumAggFunction;
 import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
+import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
@@ -144,7 +145,8 @@ public class AggregateUnionTransposeRule extends RelOptRule {
     // create a new union whose children are the aggregates created above
     relBuilder.union(true, union.getInputs().size());
     relBuilder.aggregate(
-        relBuilder.groupKey(aggRel.getGroupSet(), aggRel.getGroupSets()),
+        relBuilder.groupKey(aggRel.getGroupSet(),
+            (Iterable<ImmutableBitSet>) aggRel.getGroupSets()),
         transformedAggCalls);
     call.transformTo(relBuilder.build());
   }

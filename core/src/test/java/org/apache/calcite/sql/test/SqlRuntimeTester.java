@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Tester of {@link SqlValidator} and runtime execution of the input SQL.
  */
-public class SqlRuntimeTester extends AbstractSqlTester {
-  public SqlRuntimeTester(SqlTestFactory factory,
+class SqlRuntimeTester extends AbstractSqlTester {
+  SqlRuntimeTester(SqlTestFactory factory,
       UnaryOperator<SqlValidator> validatorTransform) {
     super(factory, validatorTransform);
   }

@@ -30,7 +30,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.SqlWriterConfig;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -46,8 +46,6 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -214,8 +212,7 @@ public class SqlDdlNodes {
       return query;
     }
     final SqlParserPos p = query.getParserPosition();
-    final SqlNodeList selectList =
-        new SqlNodeList(ImmutableList.<SqlNode>of(SqlIdentifier.star(p)), p);
+    final SqlNodeList selectList = SqlNodeList.SINGLETON_STAR;
     final SqlCall from =
         SqlStdOperatorTable.AS.createCall(p,
             ImmutableList.<SqlNode>builder()
@@ -238,16 +235,15 @@ public class SqlDdlNodes {
         .build();
     final Planner planner = Frameworks.getPlanner(config);
     try {
-      final StringWriter sw = new StringWriter();
-      final PrintWriter pw = new PrintWriter(sw);
-      final SqlPrettyWriter w =
-          new SqlPrettyWriter(CalciteSqlDialect.DEFAULT, false, pw);
-      pw.print("INSERT INTO ");
+      final StringBuilder buf = new StringBuilder();
+      final SqlWriterConfig writerConfig =
+          SqlPrettyWriter.config().withAlwaysUseParentheses(false);
+      final SqlPrettyWriter w = new SqlPrettyWriter(writerConfig, buf);
+      buf.append("INSERT INTO ");
       name.unparse(w, 0, 0);
-      pw.print(" ");
+      buf.append(' ');
       query.unparse(w, 0, 0);
-      pw.flush();
-      final String sql = sw.toString();
+      final String sql = buf.toString();
       final SqlNode query1 = planner.parse(sql);
       final SqlNode query2 = planner.validate(query1);
       final RelRoot r = planner.rel(query2);

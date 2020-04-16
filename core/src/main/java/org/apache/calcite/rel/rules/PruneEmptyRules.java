@@ -18,7 +18,9 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
@@ -26,6 +28,7 @@ import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Sort;
@@ -62,6 +65,27 @@ public abstract class PruneEmptyRules {
   //~ Static fields/initializers ---------------------------------------------
 
   /**
+   * Abstract prune empty rule that implements SubstitutionRule interface.
+   */
+  protected abstract static class PruneEmptyRule extends RelOptRule
+      implements SubstitutionRule {
+
+    public PruneEmptyRule(final RelOptRuleOperand operand,
+        final String description) {
+      super(operand, description);
+    }
+
+    public PruneEmptyRule(final RelOptRuleOperand operand,
+        final RelBuilderFactory relBuilderFactory, final String description) {
+      super(operand, relBuilderFactory, description);
+    }
+
+    @Override public boolean autoPruneOld() {
+      return true;
+    }
+  }
+
+  /**
    * Rule that removes empty children of a
    * {@link org.apache.calcite.rel.logical.LogicalUnion}.
    *
@@ -74,7 +98,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule UNION_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(LogicalUnion.class,
               unordered(operandJ(Values.class, null, Values::isEmpty, none()))),
           "Union") {
@@ -114,7 +138,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule MINUS_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(LogicalMinus.class,
               unordered(
                   operandJ(Values.class, null, Values::isEmpty, none()))),
@@ -160,7 +184,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule INTERSECT_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(LogicalIntersect.class,
               unordered(
                   operandJ(Values.class, null, Values::isEmpty, none()))),
@@ -246,7 +270,7 @@ public abstract class PruneEmptyRules {
    * </ul>
    */
   public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(Sort.class, any()), "PruneSortLimit0") {
         @Override public void onMatch(RelOptRuleCall call) {
           Sort sort = call.rel(0);
@@ -286,10 +310,13 @@ public abstract class PruneEmptyRules {
    *
    * <ul>
    * <li>Join(Empty, Scan(Dept), INNER) becomes Empty
+   * <li>Join(Empty, Scan(Dept), LEFT) becomes Empty
+   * <li>Join(Empty, Scan(Dept), SEMI) becomes Empty
+   * <li>Join(Empty, Scan(Dept), ANTI) becomes Empty
    * </ul>
    */
   public static final RelOptRule JOIN_LEFT_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(Join.class,
               some(
                   operandJ(Values.class, null, Values::isEmpty, none()),
@@ -314,10 +341,13 @@ public abstract class PruneEmptyRules {
    *
    * <ul>
    * <li>Join(Scan(Emp), Empty, INNER) becomes Empty
+   * <li>Join(Scan(Emp), Empty, RIGHT) becomes Empty
+   * <li>Join(Scan(Emp), Empty, SEMI) becomes Empty
+   * <li>Join(Scan(Emp), Empty, ANTI) becomes Scan(Emp)
    * </ul>
    */
   public static final RelOptRule JOIN_RIGHT_INSTANCE =
-      new RelOptRule(
+      new PruneEmptyRule(
           operand(Join.class,
               some(
                   operand(RelNode.class, any()),
@@ -330,13 +360,18 @@ public abstract class PruneEmptyRules {
             // dept is empty
             return;
           }
+          if (join.getJoinType() == JoinRelType.ANTI) {
+            // In case of anti join: Join(X, Empty, ANTI) becomes X
+            call.transformTo(join.getLeft());
+            return;
+          }
           call.transformTo(call.builder().push(join).empty().build());
         }
       };
 
   /** Planner rule that converts a single-rel (e.g. project, sort, aggregate or
    * filter) on top of the empty relational expression into empty. */
-  public static class RemoveEmptySingleRule extends RelOptRule {
+  public static class RemoveEmptySingleRule extends PruneEmptyRule {
     /** Creates a simple RemoveEmptySingleRule. */
     public <R extends SingleRel> RemoveEmptySingleRule(Class<R> clazz,
         String description) {

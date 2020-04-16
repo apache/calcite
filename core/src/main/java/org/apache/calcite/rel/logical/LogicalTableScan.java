@@ -29,7 +29,6 @@ import org.apache.calcite.schema.Table;
 
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -71,19 +70,15 @@ public final class LogicalTableScan extends TableScan {
     super(cluster, traitSet, hints, table);
   }
 
-  /**
-   * Creates a LogicalTableScan.
-   *
-   * <p>Use {@link #create} unless you know what you're doing.
-   */
+  @Deprecated // to be removed before 2.0
   public LogicalTableScan(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table) {
-    this(cluster, traitSet, new ArrayList<>(), table);
+    this(cluster, traitSet, ImmutableList.of(), table);
   }
 
   @Deprecated // to be removed before 2.0
   public LogicalTableScan(RelOptCluster cluster, RelOptTable table) {
-    this(cluster, cluster.traitSetOf(Convention.NONE), table);
+    this(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(), table);
   }
 
   /**
@@ -117,16 +112,6 @@ public final class LogicalTableScan extends TableScan {
               return ImmutableList.of();
             });
     return new LogicalTableScan(cluster, traitSet, hints, relOptTable);
-  }
-
-  /** Creates a LogicalTableScan.
-   *
-   * @param cluster Cluster
-   * @param relOptTable Table
-   */
-  public static LogicalTableScan create(RelOptCluster cluster,
-      final RelOptTable relOptTable) {
-    return create(cluster, relOptTable, new ArrayList<>());
   }
 
   @Override public RelNode withHints(List<RelHint> hintList) {

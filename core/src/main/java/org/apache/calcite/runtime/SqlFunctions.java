@@ -141,6 +141,8 @@ public class SqlFunctions {
   private static final ThreadLocal<Map<String, AtomicLong>> THREAD_SEQUENCES =
       ThreadLocal.withInitial(HashMap::new);
 
+  private static final Pattern PATTERN_0_STAR_E = Pattern.compile("0*E");
+
   private SqlFunctions() {
   }
 
@@ -368,6 +370,11 @@ public class SqlFunctions {
     return repeat(" ", n);
   }
 
+  /** SQL STRCMP(String,String) function. */
+  public static int strcmp(String s0, String s1) {
+    return (int) Math.signum(s1.compareTo(s0));
+  }
+
   /** SQL SOUNDEX(string) function. */
   public static String soundex(String s) {
     return SOUNDEX.soundex(s);
@@ -451,6 +458,11 @@ public class SqlFunctions {
   /** SQL {@code binary || binary} operator. */
   public static ByteString concat(ByteString s0, ByteString s1) {
     return s0.concat(s1);
+  }
+
+  /** SQL {@code concat(arg0, arg1, arg2, ...)} function. */
+  public static String concat(String... args) {
+    return String.join("", args);
   }
 
   /** SQL {@code RTRIM} function applied to string. */
@@ -599,7 +611,7 @@ public class SqlFunctions {
     String[] existingExpressions = Arrays.stream(POSIX_CHARACTER_CLASSES)
         .filter(v -> originalRegex.contains(v.toLowerCase(Locale.ROOT))).toArray(String[]::new);
     for (String v : existingExpressions) {
-      regex = regex.replaceAll(v.toLowerCase(Locale.ROOT), "\\\\p{" + v + "}");
+      regex = regex.replace(v.toLowerCase(Locale.ROOT), "\\p{" + v + "}");
     }
 
     int flags = caseSensitive ? 0 : Pattern.CASE_INSENSITIVE;
@@ -1067,17 +1079,21 @@ public class SqlFunctions {
   }
 
   // &
-
   /** Helper function for implementing <code>BIT_AND</code> */
   public static long bitAnd(long b0, long b1) {
     return b0 & b1;
   }
 
   // |
-
   /** Helper function for implementing <code>BIT_OR</code> */
   public static long bitOr(long b0, long b1) {
     return b0 | b1;
+  }
+
+  // ^
+  /** Helper function for implementing <code>BIT_XOR</code> */
+  public static long bitXor(long b0, long b1) {
+    return b0 ^ b1;
   }
 
   // EXP
@@ -1380,6 +1396,17 @@ public class SqlFunctions {
     return Math.atan2(b0, b1);
   }
 
+  // CBRT
+  /** SQL <code>CBRT</code> operator applied to BigDecimal values. */
+  public static double cbrt(BigDecimal b) {
+    return cbrt(b.doubleValue());
+  }
+
+  /** SQL <code>CBRT</code> operator applied to double values. */
+  public static double cbrt(double b) {
+    return Math.cbrt(b);
+  }
+
   // COS
   /** SQL <code>COS</code> operator applied to BigDecimal values. */
   public static double cos(BigDecimal b0) {
@@ -1389,6 +1416,17 @@ public class SqlFunctions {
   /** SQL <code>COS</code> operator applied to double values. */
   public static double cos(double b0) {
     return Math.cos(b0);
+  }
+
+  // COSH
+  /** SQL <code>COSH</code> operator applied to BigDecimal values. */
+  public static double cosh(BigDecimal b) {
+    return cosh(b.doubleValue());
+  }
+
+  /** SQL <code>COSH</code> operator applied to double values. */
+  public static double cosh(double b) {
+    return Math.cosh(b);
   }
 
   // COT
@@ -1536,6 +1574,17 @@ public class SqlFunctions {
     return Math.sin(b0);
   }
 
+  // SINH
+  /** SQL <code>SINH</code> operator applied to BigDecimal values. */
+  public static double sinh(BigDecimal b) {
+    return sinh(b.doubleValue());
+  }
+
+  /** SQL <code>SINH</code> operator applied to double values. */
+  public static double sinh(double b) {
+    return Math.sinh(b);
+  }
+
   // TAN
   /** SQL <code>TAN</code> operator applied to BigDecimal values. */
   public static double tan(BigDecimal b0) {
@@ -1545,6 +1594,17 @@ public class SqlFunctions {
   /** SQL <code>TAN</code> operator applied to double values. */
   public static double tan(double b0) {
     return Math.tan(b0);
+  }
+
+  // TANH
+  /** SQL <code>TANH</code> operator applied to BigDecimal values. */
+  public static double tanh(BigDecimal b) {
+    return tanh(b.doubleValue());
+  }
+
+  /** SQL <code>TANH</code> operator applied to double values. */
+  public static double tanh(double b) {
+    return Math.tanh(b);
   }
 
   // Helpers
@@ -1646,7 +1706,7 @@ public class SqlFunctions {
     BigDecimal bigDecimal =
         new BigDecimal(x, MathContext.DECIMAL32).stripTrailingZeros();
     final String s = bigDecimal.toString();
-    return s.replaceAll("0*E", "E").replace("E+", "E");
+    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
   }
 
   /** CAST(DOUBLE AS VARCHAR). */
@@ -1657,16 +1717,18 @@ public class SqlFunctions {
     BigDecimal bigDecimal =
         new BigDecimal(x, MathContext.DECIMAL64).stripTrailingZeros();
     final String s = bigDecimal.toString();
-    return s.replaceAll("0*E", "E").replace("E+", "E");
+    return PATTERN_0_STAR_E.matcher(s).replaceAll("E").replace("E+", "E");
   }
 
   /** CAST(DECIMAL AS VARCHAR). */
   public static String toString(BigDecimal x) {
     final String s = x.toString();
-    if (s.startsWith("0")) {
+    if (s.equals("0")) {
+      return s;
+    } else if (s.startsWith("0.")) {
       // we want ".1" not "0.1"
       return s.substring(1);
-    } else if (s.startsWith("-0")) {
+    } else if (s.startsWith("-0.")) {
       // we want "-.1" not "-0.1"
       return "-" + s.substring(2);
     } else {
@@ -2640,9 +2702,15 @@ public class SqlFunctions {
     int y0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.YEAR, date);
     int m0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.MONTH, date);
     int d0 = (int) DateTimeUtils.unixDateExtract(TimeUnitRange.DAY, date);
-    int y = m / 12;
-    y0 += y;
-    m0 += m - y * 12;
+    m0 += m;
+    int deltaYear = (int) DateTimeUtils.floorDiv(m0, 12);
+    y0 += deltaYear;
+    m0 = (int) DateTimeUtils.floorMod(m0, 12);
+    if (m0 == 0) {
+      y0 -= 1;
+      m0 += 12;
+    }
+
     int last = lastDay(y0, m0);
     if (d0 > last) {
       d0 = last;

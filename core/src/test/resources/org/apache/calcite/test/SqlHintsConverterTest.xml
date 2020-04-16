@@ -1,29 +1,29 @@
 <?xml version="1.0" ?>
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to you under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 <Root>
     <TestCase name="testNestedQueryHint">
         <Resource name="sql">
-            <![CDATA[select /*+ resource(parallelism='3') */ empno
+            <![CDATA[select /*+ resource(parallelism='3'), repartition(10) */ empno
 from (select /*+ resource(mem='20Mb')*/ empno, ename from emp)]]>
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}]]
+Project:[[RESOURCE inheritPath:[] options:{MEM=20Mb}], [RESOURCE inheritPath:[] options:{PARALLELISM=3}], [REPARTITION inheritPath:[] options:[10]]]
 ]]>
         </Resource>
     </TestCase>
@@ -42,6 +42,17 @@ LogicalJoin:[[NO_HASH_JOIN inheritPath:[0, 0]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 0] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 0, 1] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 0, 1] options:[ENAME]]]
 TableScan:[[PROPERTIES inheritPath:[0, 1, 0] options:{K1=v1, K2=v2}], [INDEX inheritPath:[0, 1, 0] options:[ENAME]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testQueryHintWithLiteralOptions">
+        <Resource name="sql">
+            <![CDATA[select /*+ time_zone(1, 1.23, 'a bc', -1.0) */ *
+from emp]]>
+        </Resource>
+        <Resource name="hints">
+            <![CDATA[
+Project:[[TIME_ZONE inheritPath:[] options:[1, 1.23, a bc, -1.0]]]
 ]]>
         </Resource>
     </TestCase>
@@ -154,7 +165,7 @@ from emp left join dept on emp.deptno = dept.deptno)]]>
         </Resource>
         <Resource name="hints">
             <![CDATA[
-Project:[[RESOURCE inheritPath:[] options:{PARALLELISM=3}], [NO_HASH_JOIN inheritPath:[]]]
+Project:[[RESOURCE inheritPath:[] options:{MEM=20Mb}], [RESOURCE inheritPath:[] options:{PARALLELISM=3}], [NO_HASH_JOIN inheritPath:[]]]
 LogicalJoin:[[NO_HASH_JOIN inheritPath:[0]]]
 ]]>
         </Resource>
@@ -244,6 +255,21 @@ from emp join dept on emp.deptno = dept.deptno]]>
             <![CDATA[
 Project:[[USE_HASH_JOIN inheritPath:[] options:[R, S]], [USE_HASH_JOIN inheritPath:[] options:[EMP, DEPT]]]
 LogicalJoin:[[USE_HASH_JOIN inheritPath:[0] options:[EMP, DEPT]]]
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUseMergeJoin">
+        <Resource name="sql">
+            <![CDATA[select /*+ use_merge_join(emp, dept) */
+ename, job, sal, dept.name
+from emp join dept on emp.deptno = dept.deptno]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5], NAME=[$10])
+  EnumerableMergeJoin(condition=[=($7, $9)], joinType=[inner])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableTableScan(table=[[CATALOG, SALES, DEPT]])
 ]]>
         </Resource>
     </TestCase>

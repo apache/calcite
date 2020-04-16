@@ -108,11 +108,12 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   public RelNode toRel(ToRelContext context) {
-    return LogicalTableScan.create(context.getCluster(), this);
+    return LogicalTableScan.create(context.getCluster(), this,
+        context.getTableHints());
   }
 
   public Expression getExpression(Class clazz) {
-    throw new UnsupportedOperationException();
+    return null;
   }
 
   public RelOptTable extend(List<RelDataTypeField> extendedFields) {

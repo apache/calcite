@@ -57,8 +57,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.hep.HepPlanner;
-import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -214,14 +212,12 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final Convention resultConvention =
         enableBindable ? BindableConvention.INSTANCE
             : EnumerableConvention.INSTANCE;
-    final HepPlanner planner = new HepPlanner(new HepProgramBuilder().build());
+    // Use the Volcano because it can handle the traits.
+    final VolcanoPlanner planner = new VolcanoPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     final SqlToRelConverter.ConfigBuilder configBuilder =
         SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
-    if (analyze) {
-      configBuilder.withConvertTableAccess(false);
-    }
 
     final CalcitePreparingStmt preparingStmt =
         new CalcitePreparingStmt(this, context, catalogReader, typeFactory,
@@ -632,8 +628,6 @@ public class CalcitePrepareImpl implements CalcitePrepare {
 
       final SqlValidator validator =
           createSqlValidator(context, catalogReader);
-      validator.setIdentifierExpansion(true);
-      validator.setDefaultNullCollation(config.defaultNullCollation());
 
       preparedResult = preparingStmt.prepareSql(
           sqlNode, Object.class, validator, true);
@@ -713,9 +707,14 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     final SqlOperatorTable opTab =
         ChainedSqlOperatorTable.of(opTab0, catalogReader);
     final JavaTypeFactory typeFactory = context.getTypeFactory();
-    final SqlConformance conformance = context.config().conformance();
+    final CalciteConnectionConfig connectionConfig = context.config();
+    final SqlValidator.Config config = SqlValidator.Config.DEFAULT
+        .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
+        .withSqlConformance(connectionConfig.conformance())
+        .withDefaultNullCollation(connectionConfig.defaultNullCollation())
+        .withIdentifierExpansion(true);
     return new CalciteSqlValidator(opTab, catalogReader, typeFactory,
-        conformance);
+        config);
   }
 
   private List<ColumnMetaData> getColumnMetaDataList(
@@ -1086,6 +1085,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
 
     @Override protected PreparedResult implement(RelRoot root) {
+      Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
       RelDataType resultType = root.rel.getRowType();
       boolean isDml = root.kind.belongsTo(SqlKind.DML);
       final Bindable bindable;

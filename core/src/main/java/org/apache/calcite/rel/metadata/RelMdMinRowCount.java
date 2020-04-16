@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableLimit;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Intersect;
@@ -60,7 +61,12 @@ public class RelMdMinRowCount
         rowCount += partialRowCount;
       }
     }
-    return rowCount;
+
+    if (rel.all) {
+      return rowCount;
+    } else {
+      return Math.min(rowCount, 1d);
+    }
   }
 
   public Double getMinRowCount(Intersect rel, RelMetadataQuery mq) {
@@ -73,6 +79,15 @@ public class RelMdMinRowCount
 
   public Double getMinRowCount(Filter rel, RelMetadataQuery mq) {
     return 0d; // no lower bound
+  }
+
+  public Double getMinRowCount(Calc rel, RelMetadataQuery mq) {
+    if (rel.getProgram().getCondition() != null) {
+      // no lower bound
+      return 0d;
+    } else {
+      return mq.getMinRowCount(rel.getInput());
+    }
   }
 
   public Double getMinRowCount(Project rel, RelMetadataQuery mq) {

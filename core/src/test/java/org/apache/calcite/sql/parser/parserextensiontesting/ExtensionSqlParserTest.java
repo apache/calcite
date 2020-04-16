@@ -29,29 +29,29 @@ import org.junit.jupiter.api.Test;
  * <p>This test runs all test cases of the base {@link SqlParserTest}, as well
  * as verifying specific extension points.
  */
-public class ExtensionSqlParserTest extends SqlParserTest {
+class ExtensionSqlParserTest extends SqlParserTest {
 
   @Override protected SqlParserImplFactory parserImplFactory() {
     return ExtensionSqlParserImpl.FACTORY;
   }
 
-  @Test public void testAlterSystemExtension() {
+  @Test void testAlterSystemExtension() {
     sql("alter system upload jar '/path/to/jar'")
         .ok("ALTER SYSTEM UPLOAD JAR '/path/to/jar'");
   }
 
-  @Test public void testAlterSystemExtensionWithoutAlter() {
+  @Test void testAlterSystemExtensionWithoutAlter() {
     // We need to include the scope for custom alter operations
     sql("^upload^ jar '/path/to/jar'")
         .fails("(?s).*Encountered \"upload\" at .*");
   }
 
-  @Test public void testCreateTable() {
+  @Test void testCreateTable() {
     sql("CREATE TABLE foo.baz(i INTEGER, j VARCHAR(10) NOT NULL)")
         .ok("CREATE TABLE `FOO`.`BAZ` (`I` INTEGER, `J` VARCHAR(10) NOT NULL)");
   }
 
-  @Test public void testExtendedSqlStmt() {
+  @Test void testExtendedSqlStmt() {
     sql("DESCRIBE SPACE POWER")
         .node(new IsNull<SqlNode>());
     sql("DESCRIBE SEA ^POWER^")

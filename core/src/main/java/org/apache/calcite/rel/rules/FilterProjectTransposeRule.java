@@ -45,10 +45,6 @@ public class FilterProjectTransposeRule extends RelOptRule {
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *
-   * <p>It matches any kind of {@link org.apache.calcite.rel.core.Join} or
-   * {@link org.apache.calcite.rel.core.Filter}, and generates the same kind of
-   * Join and Filter.
-   *
    * <p>It does not allow a Filter to be pushed past the Project if
    * {@link RexUtil#containsCorrelation there is a correlation condition})
    * anywhere in the Filter, since in some cases it can prevent a

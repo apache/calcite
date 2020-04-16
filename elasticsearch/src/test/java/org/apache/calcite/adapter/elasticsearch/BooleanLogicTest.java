@@ -25,9 +25,10 @@ import org.apache.calcite.test.CalciteAssert;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceAccessMode;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,18 +41,18 @@ import java.util.Map;
 /**
  * Test of different boolean expressions (some more complex than others).
  */
-public class BooleanLogicTest {
+@ResourceLock(value = "elasticsearch-scrolls", mode = ResourceAccessMode.READ)
+class BooleanLogicTest {
 
-  @ClassRule
   public static final EmbeddedElasticsearchPolicy NODE = EmbeddedElasticsearchPolicy.create();
 
-  private static final String NAME = "docs";
+  private static final String NAME = "booleanlogic";
 
   /**
    * Used to create {@code zips} index and insert some data
    * @throws Exception when ES node setup failed
    */
-  @BeforeClass
+  @BeforeAll
   public static void setupInstance() throws Exception {
 
     final Map<String, String> mapping = ImmutableMap.of("a", "keyword", "b", "keyword",
@@ -89,7 +90,7 @@ public class BooleanLogicTest {
     };
   }
 
-  @Test public void expressions() {
+  @Test void expressions() {
     assertSingle("select * from view");
     assertSingle("select * from view where a = 'a'");
     assertEmpty("select * from view where a <> 'a'");
@@ -137,7 +138,7 @@ public class BooleanLogicTest {
   /**
    * Tests negations ({@code NOT} operator).
    */
-  @Test public void notExpression() {
+  @Test void notExpression() {
     assertEmpty("select * from view where not a = 'a'");
     assertSingle("select * from view where not not a = 'a'");
     assertEmpty("select * from view where not not not a = 'a'");

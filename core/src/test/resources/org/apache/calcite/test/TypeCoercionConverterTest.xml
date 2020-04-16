@@ -1,20 +1,20 @@
 <?xml version="1.0" ?>
 <!--
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to you under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to you under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
 <Root>
     <TestCase name="testInOperation">
         <Resource name="sql">
@@ -126,6 +126,31 @@ LogicalUnion(all=[false])
             <![CDATA[
 LogicalProject(EXPR$0=[CAST($3):DECIMAL(19, 0) NOT NULL])
   LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testInsertQuerySourceCoercion">
+        <Resource name="sql">
+            <![CDATA[insert into t1 select t2_smallint, t2_int, t2_bigint, t2_float,
+t2_double, t2_decimal, t2_int, t2_date, t2_timestamp, t2_varchar20, t2_int from t2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[INSERT], flattened=[false])
+  LogicalProject(t1_varchar20=[CAST($1):VARCHAR(20) NOT NULL], t1_smallint=[CAST($2):SMALLINT NOT NULL], t1_int=[CAST($3):INTEGER NOT NULL], t1_bigint=[CAST($4):BIGINT NOT NULL], t1_float=[CAST($5):FLOAT NOT NULL], t1_double=[CAST($6):DOUBLE NOT NULL], t1_decimal=[CAST($2):DECIMAL(19, 0) NOT NULL], t1_timestamp=[CAST($8):TIMESTAMP(0) NOT NULL], t1_date=[CAST($7):DATE NOT NULL], t1_binary=[CAST($0):BINARY(1) NOT NULL], t1_boolean=[<>($2, 0)])
+    LogicalTableScan(table=[[CATALOG, SALES, T2]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testUpdateQuerySourceCoercion">
+        <Resource name="sql">
+            <![CDATA[update t1 set t1_varchar20=123, t1_date=TIMESTAMP '2020-01-03 10:14:34', t1_int=12.3]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalTableModify(table=[[CATALOG, SALES, T1]], operation=[UPDATE], updateColumnList=[[t1_varchar20, t1_date, t1_int]], sourceExpressionList=[[CAST(123):VARCHAR(20) NOT NULL, CAST(2020-01-03 10:14:34):DATE NOT NULL, 12.3]], flattened=[false])
+  LogicalProject(t1_varchar20=[$0], t1_smallint=[$1], t1_int=[$2], t1_bigint=[$3], t1_float=[$4], t1_double=[$5], t1_decimal=[$6], t1_timestamp=[$7], t1_date=[$8], t1_binary=[$9], t1_boolean=[$10], EXPR$0=[123], EXPR$1=[2020-01-03 10:14:34], EXPR$2=[12.3:DECIMAL(3, 1)])
+    LogicalTableScan(table=[[CATALOG, SALES, T1]])
 ]]>
         </Resource>
     </TestCase>

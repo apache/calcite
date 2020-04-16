@@ -61,7 +61,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
         getOperandList(operatorBinding.getOperandCount());
     for (int i : operandList) {
       if (operatorBinding.isOperandNull(i, false)) {
-        if (callBinding.getValidator().isTypeCoercionEnabled()) {
+        if (callBinding.isTypeCoercionEnabled()) {
           types[i] = operatorBinding.getTypeFactory()
               .createSqlType(SqlTypeName.NULL);
         } else if (throwOnFailure) {

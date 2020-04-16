@@ -29,6 +29,8 @@ import org.apache.calcite.sql.fun.SqlSumEmptyIsZeroAggFunction;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,7 @@ public class MongoAggregate
       List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
-    super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+    super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() == MongoRel.CONVENTION;
     assert getConvention() == input.getConvention();
 

@@ -19,16 +19,15 @@ package org.apache.calcite.test.fuzzer;
 import org.apache.calcite.plan.Strong;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexProgramBuilderBase;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
-import org.apache.calcite.test.RexProgramBuilderBase;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -51,15 +50,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Validates that {@link org.apache.calcite.rex.RexSimplify} is able to deal with
- * randomized {@link RexNode}.
- * Note: the default fuzzing time is 5 seconds to keep overall test duration reasonable.
- * The test starts from a random point every time, so the longer it runs the more errors it detects.
+ * Validates that {@link org.apache.calcite.rex.RexSimplify} is able to deal
+ * with a randomized {@link RexNode}.
  *
- * <p>Note: The test is not included to {@link org.apache.calcite.test.CalciteSuite} since it would
- * fail every build (there are lots of issues with {@link org.apache.calcite.rex.RexSimplify})
+ * <p>The default fuzzing time is 5 seconds to keep overall test duration
+ * reasonable. The test starts from a random point every time, so the longer it
+ * runs the more errors it detects.
  */
-public class RexProgramFuzzyTest extends RexProgramBuilderBase {
+class RexProgramFuzzyTest extends RexProgramBuilderBase {
   protected static final Logger LOGGER =
       LoggerFactory.getLogger(RexProgramFuzzyTest.class);
 
@@ -123,14 +121,10 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @BeforeEach public void setUp() {
-    super.setUp();
-  }
-
   /**
    * Verifies {@code IS TRUE(IS NULL(null))} kind of expressions up to 4 level deep.
    */
-  @Test public void testNestedCalls() {
+  @Test void testNestedCalls() {
     nestedCalls(trueLiteral);
     nestedCalls(falseLiteral);
     nestedCalls(nullBool);
@@ -345,7 +339,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("Ignore for now: CALCITE-3457")
-  @Test public void defaultFuzzTest() {
+  @Test void defaultFuzzTest() {
     try {
       runRexFuzzer(DEFAULT_FUZZ_TEST_SEED, DEFAULT_FUZZ_TEST_DURATION, 1,
           DEFAULT_FUZZ_TEST_ITERATIONS, 0);
@@ -361,7 +355,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("Ignore for now: CALCITE-3457")
-  @Test public void testFuzzy() {
+  @Test void testFuzzy() {
     runRexFuzzer(SEED, TEST_DURATION, MAX_FAILURES, TEST_ITERATIONS, TOPN_SLOWEST);
   }
 
@@ -463,7 +457,7 @@ public class RexProgramFuzzyTest extends RexProgramBuilderBase {
   }
 
   @Disabled("This is just a scaffold for quick investigation of a single fuzz test")
-  @Test public void singleFuzzyTest() {
+  @Test void singleFuzzyTest() {
     Random r = new Random();
     r.setSeed(4887662474363391810L);
     RexFuzzer fuzzer = new RexFuzzer(rexBuilder, typeFactory);

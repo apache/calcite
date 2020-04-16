@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
@@ -52,7 +53,7 @@ import java.util.List;
  * Any non-empty {@code GROUP BY} clause will return one row per group key
  * value, and each group will consist of at least one row.
  */
-public class AggregateValuesRule extends RelOptRule {
+public class AggregateValuesRule extends RelOptRule implements SubstitutionRule {
   public static final AggregateValuesRule INSTANCE =
       new AggregateValuesRule(RelFactories.LOGICAL_BUILDER);
 
@@ -104,6 +105,6 @@ public class AggregateValuesRule extends RelOptRule {
             .build());
 
     // New plan is absolutely better than old plan.
-    call.getPlanner().setImportance(aggregate, 0.0);
+    call.getPlanner().prune(aggregate);
   }
 }

@@ -16,14 +16,32 @@
  */
 package org.apache.calcite.runtime;
 
+import org.apache.calcite.util.SimpleNamespaceContext;
+
 import org.apache.commons.lang3.StringUtils;
 
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
@@ -38,6 +56,13 @@ public class XmlFunctions {
 
   private static final ThreadLocal<XPathFactory> XPATH_FACTORY =
       ThreadLocal.withInitial(XPathFactory::newInstance);
+  private static final ThreadLocal<TransformerFactory> TRANSFORMER_FACTORY =
+      ThreadLocal.withInitial(TransformerFactory::newInstance);
+
+  private static final Pattern VALID_NAMESPACE_PATTERN = Pattern
+      .compile("^(([0-9a-zA-Z:_-]+=\"[^\"]*\")( [0-9a-zA-Z:_-]+=\"[^\"]*\")*)$");
+  private static final Pattern EXTRACT_NAMESPACE_PATTERN = Pattern
+      .compile("([0-9a-zA-Z:_-]+)=(['\"])((?!\\2).+?)\\2");
 
   private XmlFunctions() {
   }
@@ -62,5 +87,114 @@ public class XmlFunctions {
     } catch (XPathExpressionException ex) {
       throw RESOURCE.invalidInputForExtractValue(input, xpath).ex();
     }
+  }
+
+  public static String xmlTransform(String xml, String xslt) {
+    if (xml == null || xslt == null) {
+      return null;
+    }
+    try {
+      final Source xsltSource = new StreamSource(new StringReader(xslt));
+      final Source xmlSource = new StreamSource(new StringReader(xml));
+      final Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer(xsltSource);
+      final StringWriter writer = new StringWriter();
+      final StreamResult result = new StreamResult(writer);
+      transformer.transform(xmlSource, result);
+      return writer.toString();
+    } catch (TransformerConfigurationException e) {
+      throw RESOURCE.illegalXslt(xslt).ex();
+    } catch (TransformerException e) {
+      throw RESOURCE.invalidInputForXmlTransform(xml).ex();
+    }
+  }
+
+  public static String extractXml(String xml, String xpath) {
+    return extractXml(xml, xpath, null);
+  }
+
+  public static String extractXml(String xml, String xpath, String namespace) {
+    if (xml == null || xpath == null) {
+      return null;
+    }
+    try {
+      XPath xPath = XPATH_FACTORY.get().newXPath();
+
+      if (namespace != null) {
+        xPath.setNamespaceContext(extractNamespaceContext(namespace));
+      }
+
+      XPathExpression xpathExpression = xPath.compile(xpath);
+
+      try {
+        List<String> result = new ArrayList<>();
+        NodeList nodes = (NodeList) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
+        for (int i = 0; i < nodes.getLength(); i++) {
+          result.add(convertNodeToString(nodes.item(i)));
+        }
+        return StringUtils.join(result, "");
+      } catch (XPathExpressionException e) {
+        Node node = (Node) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODE);
+        return convertNodeToString(node);
+      }
+    } catch (IllegalArgumentException | XPathExpressionException | TransformerException ex) {
+      throw RESOURCE.invalidInputForExtractXml(xpath, namespace).ex();
+    }
+  }
+
+  public static Integer existsNode(String xml, String xpath) {
+    return existsNode(xml, xpath, null);
+  }
+
+  public static Integer existsNode(String xml, String xpath, String namespace) {
+    if (xml == null || xpath == null) {
+      return null;
+    }
+    try {
+      XPath xPath = XPATH_FACTORY.get().newXPath();
+      if (namespace != null) {
+        xPath.setNamespaceContext(extractNamespaceContext(namespace));
+      }
+
+      XPathExpression xpathExpression = xPath.compile(xpath);
+      try {
+        NodeList nodes = (NodeList) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODESET);
+        if (nodes != null && nodes.getLength() > 0) {
+          return 1;
+        }
+        return 0;
+      } catch (XPathExpressionException e) {
+        Node node = (Node) xpathExpression
+            .evaluate(new InputSource(new StringReader(xml)), XPathConstants.NODE);
+        if (node != null) {
+          return 1;
+        }
+        return 0;
+      }
+    } catch (IllegalArgumentException | XPathExpressionException ex) {
+      throw RESOURCE.invalidInputForExistsNode(xpath, namespace).ex();
+    }
+  }
+
+  private static SimpleNamespaceContext extractNamespaceContext(String namespace) {
+    if (!VALID_NAMESPACE_PATTERN.matcher(namespace).find()) {
+      throw new IllegalArgumentException("Invalid namespace " + namespace);
+    }
+    Map<String, String> namespaceMap = new HashMap<>();
+    Matcher matcher = EXTRACT_NAMESPACE_PATTERN.matcher(namespace);
+    while (matcher.find()) {
+      namespaceMap.put(matcher.group(1), matcher.group(3));
+    }
+    return new SimpleNamespaceContext(namespaceMap);
+  }
+
+  private static String convertNodeToString(Node node) throws TransformerException {
+    StringWriter writer = new StringWriter();
+    Transformer transformer = TRANSFORMER_FACTORY.get().newTransformer();
+    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+    transformer.transform(new DOMSource(node), new StreamResult(writer));
+    return writer.toString();
   }
 }

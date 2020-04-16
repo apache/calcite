@@ -1,3 +1,4 @@
+**/local.properties
 **/.editorconfig
 **/.gitignore
 **/.gitattributes
@@ -11,8 +12,7 @@
 **/src/test/resources/*.json
 **/data.txt
 **/data2.txt
-#bu ildSrc/build
-#b uildSrc/subprojects/*/build
+.idea/vcs.xml
 
 # TODO: remove when pom.xml files are removed
 src/main/config/licenses

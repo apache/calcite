@@ -76,6 +76,7 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -181,7 +182,7 @@ public class Bindables {
     BindableTableScan(RelOptCluster cluster, RelTraitSet traitSet,
         RelOptTable table, ImmutableList<RexNode> filters,
         ImmutableIntList projects) {
-      super(cluster, traitSet, table);
+      super(cluster, traitSet, ImmutableList.of(), table);
       this.filters = Objects.requireNonNull(filters);
       this.projects = Objects.requireNonNull(projects);
       Preconditions.checkArgument(canHandle(table));
@@ -234,6 +235,11 @@ public class Bindables {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
+      boolean noPushing = filters.isEmpty()
+              && projects.size() == table.getRowType().getFieldCount();
+      if (noPushing) {
+        return super.computeSelfCost(planner, mq);
+      }
       // Cost factor for pushing filters
       double f = filters.isEmpty() ? 1d : 0.5d;
 
@@ -255,11 +261,13 @@ public class Bindables {
     }
 
     public Enumerable<Object[]> bind(DataContext dataContext) {
+      final List<RexNode> mutableFilters = new ArrayList<>(filters);
       if (table.unwrap(ProjectableFilterableTable.class) != null) {
-        return table.unwrap(ProjectableFilterableTable.class).scan(dataContext,
-                filters, projects.toIntArray());
+        return table.unwrap(ProjectableFilterableTable.class)
+            .scan(dataContext, mutableFilters, projects.toIntArray());
       } else if (table.unwrap(FilterableTable.class) != null) {
-        return table.unwrap(FilterableTable.class).scan(dataContext, filters);
+        return table.unwrap(FilterableTable.class)
+            .scan(dataContext, mutableFilters);
       } else {
         return table.unwrap(ScannableTable.class).scan(dataContext);
       }
@@ -280,7 +288,7 @@ public class Bindables {
      */
     public BindableFilterRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalFilter.class,
-          (Predicate<LogicalFilter>) RelOptUtil::containsMultisetOrWindowedAgg,
+          (Predicate<LogicalFilter>) RelOptUtil::notContainsWindowedAgg,
           Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
           "BindableFilterRule");
     }
@@ -347,7 +355,7 @@ public class Bindables {
      */
     public BindableProjectRule(RelBuilderFactory relBuilderFactory) {
       super(LogicalProject.class,
-          (Predicate<LogicalProject>) RelOptUtil::containsMultisetOrWindowedAgg,
+          (Predicate<LogicalProject>) RelOptUtil::notContainsWindowedAgg,
           Convention.NONE, BindableConvention.INSTANCE, relBuilderFactory,
           "BindableProjectRule");
     }
@@ -369,7 +377,7 @@ public class Bindables {
   public static class BindableProject extends Project implements BindableRel {
     public BindableProject(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-      super(cluster, traitSet, input, projects, rowType);
+      super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
       assert getConvention() instanceof BindableConvention;
     }
 
@@ -487,7 +495,8 @@ public class Bindables {
     protected BindableJoin(RelOptCluster cluster, RelTraitSet traitSet,
         RelNode left, RelNode right, RexNode condition,
         Set<CorrelationId> variablesSet, JoinRelType joinType) {
-      super(cluster, traitSet, left, right, condition, variablesSet, joinType);
+      super(cluster, traitSet, ImmutableList.of(), left, right,
+          condition, variablesSet, joinType);
     }
 
     @Deprecated // to be removed before 2.0
@@ -630,7 +639,7 @@ public class Bindables {
         List<ImmutableBitSet> groupSets,
         List<AggregateCall> aggCalls)
         throws InvalidRelException {
-      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
+      super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
       assert getConvention() instanceof BindableConvention;
 
       for (AggregateCall aggCall : aggCalls) {

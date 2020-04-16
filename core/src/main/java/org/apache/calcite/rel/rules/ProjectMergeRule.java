@@ -37,13 +37,19 @@ import java.util.List;
  * provided the projects aren't projecting identical sets of input references.
  */
 public class ProjectMergeRule extends RelOptRule {
+  /** Default amount by which complexity is allowed to increase. */
+  public static final int DEFAULT_BLOAT = 100;
+
   public static final ProjectMergeRule INSTANCE =
-      new ProjectMergeRule(true, RelFactories.LOGICAL_BUILDER);
+      new ProjectMergeRule(true, DEFAULT_BLOAT, RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 
   /** Whether to always merge projects. */
   private final boolean force;
+
+  /** Limit how much complexity can increase during merging. */
+  private final int bloat;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -52,13 +58,20 @@ public class ProjectMergeRule extends RelOptRule {
    *
    * @param force Whether to always merge projects
    */
-  public ProjectMergeRule(boolean force, RelBuilderFactory relBuilderFactory) {
+  public ProjectMergeRule(boolean force, int bloat,
+      RelBuilderFactory relBuilderFactory) {
     super(
         operand(Project.class,
             operand(Project.class, any())),
         relBuilderFactory,
         "ProjectMergeRule" + (force ? ":force_mode" : ""));
     this.force = force;
+    this.bloat = bloat;
+  }
+
+  @Deprecated // to be removed before 2.0
+  public ProjectMergeRule(boolean force, RelBuilderFactory relBuilderFactory) {
+    this(force, DEFAULT_BLOAT, relBuilderFactory);
   }
 
   @Deprecated // to be removed before 2.0
@@ -106,7 +119,12 @@ public class ProjectMergeRule extends RelOptRule {
     }
 
     final List<RexNode> newProjects =
-        RelOptUtil.pushPastProject(topProject.getProjects(), bottomProject);
+        RelOptUtil.pushPastProjectUnlessBloat(topProject.getProjects(),
+            bottomProject, bloat);
+    if (newProjects == null) {
+      // Merged projects are significantly more complex. Do not merge.
+      return;
+    }
     final RelNode input = bottomProject.getInput();
     if (RexUtil.isIdentity(newProjects, input.getRowType())) {
       if (force

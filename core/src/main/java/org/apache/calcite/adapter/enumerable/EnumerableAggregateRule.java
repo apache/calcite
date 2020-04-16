@@ -35,13 +35,13 @@ class EnumerableAggregateRule extends ConverterRule {
 
   public RelNode convert(RelNode rel) {
     final LogicalAggregate agg = (LogicalAggregate) rel;
-    final RelTraitSet traitSet =
-        agg.getTraitSet().replace(EnumerableConvention.INSTANCE);
+    final RelTraitSet traitSet = rel.getCluster()
+        .traitSet().replace(EnumerableConvention.INSTANCE);
     try {
       return new EnumerableAggregate(
           rel.getCluster(),
           traitSet,
-          convert(agg.getInput(), EnumerableConvention.INSTANCE),
+          convert(agg.getInput(), traitSet),
           agg.getGroupSet(),
           agg.getGroupSets(),
           agg.getAggCallList());

@@ -16,12 +16,10 @@
  */
 package org.apache.calcite.sql.validate;
 
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.plan.RelTraitDef;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -54,7 +52,7 @@ import static org.hamcrest.core.Is.is;
 /**
  * Testing {@link SqlValidator} and {@link Lex} quoting.
  */
-public class LexEscapeTest {
+class LexEscapeTest {
 
   private static Planner getPlanner(List<RelTraitDef> traitDefs,
       Config parserConfig, Program... programs) {
@@ -84,11 +82,8 @@ public class LexEscapeTest {
     SqlNode parse = planner.parse(sql);
     SqlNode validate = planner.validate(parse);
     RelNode convert = planner.rel(validate).rel;
-    RelTraitSet traitSet =
-        planner.getEmptyTraitSet().replace(EnumerableConvention.INSTANCE);
-    RelNode transform = planner.transform(0, traitSet, convert);
-    assertThat(transform, instanceOf(EnumerableProject.class));
-    List<RelDataTypeField> fields = transform.getRowType().getFieldList();
+    assertThat(convert, instanceOf(LogicalProject.class));
+    List<RelDataTypeField> fields = convert.getRowType().getFieldList();
     // Get field type from sql text and validate we parsed it after validation.
     assertThat(fields.size(), is(4));
     assertThat(fields.get(0).getType().getSqlTypeName(), is(SqlTypeName.VARCHAR));
@@ -97,33 +92,33 @@ public class LexEscapeTest {
     assertThat(fields.get(3).getType().getSqlTypeName(), is(SqlTypeName.TIMESTAMP));
   }
 
-  @Test public void testCalciteEscapeOracle()
+  @Test void testCalciteEscapeOracle()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select \"localtime\", localtime, "
         + "\"current_timestamp\", current_timestamp from TMP";
     runProjectQueryWithLex(Lex.ORACLE, sql);
   }
 
-  @Test public void testCalciteEscapeMySql()
+  @Test void testCalciteEscapeMySql()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select `localtime`, localtime, `current_timestamp`, current_timestamp from TMP";
     runProjectQueryWithLex(Lex.MYSQL, sql);
   }
 
-  @Test public void testCalciteEscapeMySqlAnsi()
+  @Test void testCalciteEscapeMySqlAnsi()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select \"localtime\", localtime, "
         + "\"current_timestamp\", current_timestamp from TMP";
     runProjectQueryWithLex(Lex.MYSQL_ANSI, sql);
   }
 
-  @Test public void testCalciteEscapeSqlServer()
+  @Test void testCalciteEscapeSqlServer()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select [localtime], localtime, [current_timestamp], current_timestamp from TMP";
     runProjectQueryWithLex(Lex.SQL_SERVER, sql);
   }
 
-  @Test public void testCalciteEscapeJava()
+  @Test void testCalciteEscapeJava()
       throws SqlParseException, ValidationException, RelConversionException {
     String sql = "select `localtime`, localtime, `current_timestamp`, current_timestamp from TMP";
     runProjectQueryWithLex(Lex.JAVA, sql);

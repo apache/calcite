@@ -50,7 +50,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * <p>Only runs as part of slow test suite.</p>
  */
 @Tag("slow")
-public class TpcdsTest {
+class TpcdsTest {
   private static Consumer<Holder<Program>> handler(
       final boolean bushy, final int minJoinCount) {
     return holder -> holder.set(
@@ -86,7 +86,7 @@ public class TpcdsTest {
     return CalciteAssert.model(TPCDS_MODEL);
   }
 
-  @Test public void testCallCenter() {
+  @Test void testCallCenter() {
     final String[] strings = {
         "CC_CALL_CENTER_SK=1; CC_CALL_CENTER_ID=AAAAAAAABAAAAAAA; CC_REC_START_DATE=1998-01-01;"
             + " CC_REC_END_DATE=null; CC_CLOSED_DATE_SK=null; CC_OPEN_DATE_SK=2450952;"
@@ -165,7 +165,7 @@ public class TpcdsTest {
     with().query("select * from tpcds.call_center").returnsUnordered(strings);
   }
 
-  @Test public void testTableCount() {
+  @Test void testTableCount() {
     final CalciteAssert.AssertThat with = with();
     foo(with, "CALL_CENTER", 6);
     foo(with, "CATALOG_PAGE", 11_718);
@@ -202,18 +202,18 @@ public class TpcdsTest {
 
   /** Tests the customer table with scale factor 5. */
   @Disabled("add tests like this that count each table")
-  @Test public void testCustomer5() {
+  @Test void testCustomer5() {
     with()
         .query("select * from tpcds_5.customer")
         .returnsCount(750000);
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery01() {
+  @Test void testQuery01() {
     checkQuery(1).runs();
   }
 
-  @Test public void testQuery17Plan() {
+  @Test void testQuery17Plan() {
     //noinspection unchecked
     checkQuery(17)
         .withHook(Hook.PROGRAM, handler(true, 2))
@@ -245,29 +245,29 @@ public class TpcdsTest {
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery27() {
+  @Test void testQuery27() {
     checkQuery(27).runs();
   }
 
   @Disabled("throws 'RuntimeException: Cannot convert null to long'")
-  @Test public void testQuery58() {
+  @Test void testQuery58() {
     checkQuery(58).explainContains("PLAN").runs();
   }
 
   @Disabled("takes too long to optimize")
-  @Test public void testQuery72() {
+  @Test void testQuery72() {
     checkQuery(72).runs();
   }
 
   @Disabled("work in progress")
-  @Test public void testQuery72Plan() {
+  @Test void testQuery72Plan() {
     checkQuery(72)
         .withHook(Hook.PROGRAM, handler(true, 2))
         .planContains("xx");
   }
 
   @Disabled("throws 'java.lang.AssertionError: type mismatch'")
-  @Test public void testQuery95() {
+  @Test void testQuery95() {
     checkQuery(95)
         .withHook(Hook.PROGRAM, handler(false, 6))
         .runs();
@@ -297,7 +297,7 @@ public class TpcdsTest {
       break;
     }
     return with()
-        .query(sql.replaceAll("tpcds\\.", "tpcds_01."));
+        .query(sql.replace("tpcds.", "tpcds_01."));
   }
 
   public Frameworks.ConfigBuilder config() throws Exception {
@@ -344,7 +344,7 @@ public class TpcdsTest {
    *  LIMIT 100
    * </pre></blockquote>
    */
-  @Test public void testQuery27Builder() throws Exception {
+  @Test void testQuery27Builder() throws Exception {
     final RelBuilder builder = RelBuilder.create(config().build());
     final RelNode root =
         builder.scan("STORE_SALES")

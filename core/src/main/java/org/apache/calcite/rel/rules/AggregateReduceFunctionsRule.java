@@ -38,6 +38,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.CompositeList;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Util;
 
@@ -833,7 +834,7 @@ public class AggregateReduceFunctionsRule extends RelOptRule {
       List<AggregateCall> newCalls) {
     relBuilder.aggregate(
         relBuilder.groupKey(oldAggregate.getGroupSet(),
-            oldAggregate.getGroupSets()),
+            (Iterable<ImmutableBitSet>) oldAggregate.getGroupSets()),
         newCalls);
   }
 

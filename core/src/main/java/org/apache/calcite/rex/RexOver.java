@@ -111,8 +111,8 @@ public class RexOver extends RexCall {
       sb.append(":");
       sb.append(type.getFullTypeString());
     }
-    sb.append(" OVER (")
-        .append(window)
+    sb.append(" OVER (");
+    window.appendDigest(sb, op.allowsFraming())
         .append(")");
     return sb.toString();
   }
@@ -123,6 +123,10 @@ public class RexOver extends RexCall {
 
   public <R, P> R accept(RexBiVisitor<R, P> visitor, P arg) {
     return visitor.visitOver(this, arg);
+  }
+
+  @Override public int nodeCount() {
+    return super.nodeCount() + window.nodeCount;
   }
 
   /**
@@ -154,7 +158,8 @@ public class RexOver extends RexCall {
   /**
    * Returns whether an expression list contains an OVER clause.
    */
-  public static boolean containsOver(List<RexNode> exprs, RexNode condition) {
+  public static boolean containsOver(List<? extends RexNode> exprs,
+      RexNode condition) {
     try {
       RexUtil.apply(FINDER, exprs, condition);
       return false;

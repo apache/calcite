@@ -94,7 +94,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Unit tests for methods in {@link Frameworks}.
  */
 public class FrameworksTest {
-  @Test public void testOptimize() {
+  @Test void testOptimize() {
     RelNode x =
         Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
           final RelDataTypeFactory typeFactory = cluster.getTypeFactory();
@@ -144,14 +144,14 @@ public class FrameworksTest {
         });
     String s =
         RelOptUtil.dumpPlan("", x, SqlExplainFormat.TEXT,
-            SqlExplainLevel.DIGEST_ATTRIBUTES);
+            SqlExplainLevel.EXPPLAN_ATTRIBUTES);
     assertThat(Util.toLinux(s),
         equalTo("EnumerableFilter(condition=[>($1, 1)])\n"
             + "  EnumerableTableScan(table=[[myTable]])\n"));
   }
 
   /** Unit test to test create root schema which has no "metadata" schema. */
-  @Test public void testCreateRootSchemaWithNoMetadataSchema() {
+  @Test void testCreateRootSchemaWithNoMetadataSchema() {
     SchemaPlus rootSchema = Frameworks.createRootSchema(false);
     assertThat(rootSchema.getSubSchemaNames().size(), equalTo(0));
   }
@@ -167,7 +167,7 @@ public class FrameworksTest {
    *
    * <p>Also tests the plugin system, by specifying implementations of a
    * plugin interface with public and private constructors. */
-  @Test public void testTypeSystem() {
+  @Test void testTypeSystem() {
     checkTypeSystem(19, Frameworks.newConfigBuilder().build());
     checkTypeSystem(25, Frameworks.newConfigBuilder()
         .typeSystem(HiveLikeTypeSystem.INSTANCE).build());
@@ -198,7 +198,7 @@ public class FrameworksTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-593">[CALCITE-593]
    * Validator in Frameworks should expand identifiers</a>.
    */
-  @Test public void testFrameworksValidatorWithIdentifierExpansion()
+  @Test void testFrameworksValidatorWithIdentifierExpansion()
       throws Exception {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -219,7 +219,7 @@ public class FrameworksTest {
   }
 
   /** Test for {@link Path}. */
-  @Test public void testSchemaPath() {
+  @Test void testSchemaPath() {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final FrameworkConfig config = Frameworks.newConfigBuilder()
         .defaultSchema(
@@ -250,7 +250,7 @@ public class FrameworksTest {
 
   /** Unit test for {@link CalciteConnectionConfigImpl#set}
    * and {@link CalciteConnectionConfigImpl#isSet}. */
-  @Test public void testConnectionConfig() {
+  @Test void testConnectionConfig() {
     final CalciteConnectionProperty forceDecorrelate =
         CalciteConnectionProperty.FORCE_DECORRELATE;
     final CalciteConnectionProperty lenientOperatorLookup =
@@ -338,7 +338,7 @@ public class FrameworksTest {
    *
    * <p>Even though the SQL generator has been fixed, we are still interested in
    * how JDBC convention gets lodged in the planner's state. */
-  @Test public void testJdbcValues() throws Exception {
+  @Test void testJdbcValues() throws Exception {
     CalciteAssert.that()
         .with(CalciteAssert.SchemaSpec.JDBC_SCOTT)
         .doWithConnection(connection -> {
@@ -383,7 +383,7 @@ public class FrameworksTest {
    * 2) the aggregate can be removed during optimization.
    * 3) all aggregate calls are simplified to the same reference.
    * */
-  @Test public void testPushProjectToScan() throws Exception {
+  @Test void testPushProjectToScan() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -415,7 +415,7 @@ public class FrameworksTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-2039">[CALCITE-2039]
    * AssertionError when pushing project to ProjectableFilterableTable</a>
    * using UPDATE via {@link Frameworks}. */
-  @Test public void testUpdate() throws Exception {
+  @Test void testUpdate() throws Exception {
     Table table = new TableImpl();
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     SchemaPlus schema = rootSchema.add("x", new AbstractSchema());
@@ -522,7 +522,7 @@ public class FrameworksTest {
 
     public Expression getExpression(SchemaPlus schema, String tableName,
         Class clazz) {
-      throw new UnsupportedOperationException();
+      return null;
     }
   }
 

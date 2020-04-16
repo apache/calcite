@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.linq4j.EnumerableDefaults;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -28,6 +29,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Join;
@@ -35,8 +37,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
@@ -63,10 +63,18 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       RexNode condition,
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
-    super(cluster, traits, left, right, condition, variablesSet, joinType);
+    super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     final List<RelCollation> collations =
         traits.getTraits(RelCollationTraitDef.INSTANCE);
     assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);
+    if (!isMergeJoinSupported(joinType)) {
+      throw new UnsupportedOperationException(
+          "EnumerableMergeJoin unsupported for join type " + joinType);
+    }
+  }
+
+  public static boolean isMergeJoinSupported(JoinRelType joinType) {
+    return EnumerableDefaults.isMergeJoinSupported(EnumUtils.toLinq4jJoinType(joinType));
   }
 
   @Deprecated // to be removed before 2.0
@@ -87,18 +95,18 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   }
 
   public static EnumerableMergeJoin create(RelNode left, RelNode right,
-      RexLiteral condition, ImmutableIntList leftKeys,
+      RexNode condition, ImmutableIntList leftKeys,
       ImmutableIntList rightKeys, JoinRelType joinType) {
     final RelOptCluster cluster = right.getCluster();
     RelTraitSet traitSet = cluster.traitSet();
     if (traitSet.isEnabled(RelCollationTraitDef.INSTANCE)) {
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
-          RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys);
+          RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys, joinType);
       traitSet = traitSet.replace(collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
-        leftKeys, rightKeys, ImmutableSet.of(), joinType);
+        ImmutableSet.of(), joinType);
   }
 
   @Override public EnumerableMergeJoin copy(RelTraitSet traitSet,
@@ -153,13 +161,31 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           EnumUtils.convert(
               rightResult.physType.fieldReference(right_, pair.right), keyClass));
     }
+    Expression predicate = Expressions.constant(null);
+    if (!joinInfo.nonEquiConditions.isEmpty()) {
+      final RexNode nonEquiCondition = RexUtil.composeConjunction(
+          getCluster().getRexBuilder(), joinInfo.nonEquiConditions, true);
+      if (nonEquiCondition != null) {
+        predicate = EnumUtils.generatePredicate(implementor, getCluster().getRexBuilder(),
+            left, right, leftResult.physType, rightResult.physType, nonEquiCondition);
+      }
+    }
     final PhysType leftKeyPhysType =
         leftResult.physType.project(joinInfo.leftKeys, JavaRowFormat.LIST);
     final PhysType rightKeyPhysType =
         rightResult.physType.project(joinInfo.rightKeys, JavaRowFormat.LIST);
-    final RexBuilder rexBuilder = getCluster().getRexBuilder();
-    final RexNode nonEquiCondition = RexUtil.composeConjunction(
-        getCluster().getRexBuilder(), joinInfo.nonEquiConditions, false);
+
+    // Generate the appropriate key Comparator (keys must be sorted in ascending order, nulls last).
+    final int keysSize = joinInfo.leftKeys.size();
+    final List<RelFieldCollation> fieldCollations = new ArrayList<>(keysSize);
+    for (int i = 0; i < keysSize; i++) {
+      fieldCollations.add(
+          new RelFieldCollation(i, RelFieldCollation.Direction.ASCENDING,
+              RelFieldCollation.NullDirection.LAST));
+    }
+    final RelCollation collation = RelCollations.of(fieldCollations);
+    final Expression comparator = leftKeyPhysType.generateComparator(collation);
+
     return implementor.result(
         physType,
         builder.append(
@@ -172,16 +198,12 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
                         leftKeyPhysType.record(leftExpressions), left_),
                     Expressions.lambda(
                         rightKeyPhysType.record(rightExpressions), right_),
-                    EnumUtils.generatePredicate(
-                        implementor, rexBuilder, left, right, leftResult.physType,
-                        rightResult.physType, nonEquiCondition),
+                    predicate,
                     EnumUtils.joinSelector(joinType,
                         physType,
                         ImmutableList.of(
                             leftResult.physType, rightResult.physType)),
-                    Expressions.constant(
-                        joinType.generatesNullsOnLeft()),
-                    Expressions.constant(
-                        joinType.generatesNullsOnRight())))).toBlock());
+                    Expressions.constant(EnumUtils.toLinq4jJoinType(joinType)),
+                    comparator))).toBlock());
   }
 }

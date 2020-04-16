@@ -45,6 +45,7 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.rex.RexWindowBound;
+import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -52,12 +53,12 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSyntax;
-import org.apache.calcite.sql.SqlWindow;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlNameMatchers;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Util;
 
@@ -72,6 +73,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.calcite.rel.RelDistributions.EMPTY;
 
 /**
  * Utilities for converting {@link org.apache.calcite.rel.RelNode}
@@ -190,8 +193,35 @@ public class RelJson {
     return new RelFieldCollation(field, direction, nullDirection);
   }
 
-  public RelDistribution toDistribution(Object o) {
-    return RelDistributions.ANY; // TODO:
+  public RelDistribution toDistribution(Map<String, Object> map) {
+    final RelDistribution.Type type =
+        Util.enumVal(RelDistribution.Type.class,
+            (String) map.get("type"));
+
+    ImmutableIntList list = EMPTY;
+    if (map.containsKey("keys")) {
+      List<Object> keysJson = (List<Object>) map.get("keys");
+      ArrayList<Integer> keys = new ArrayList<>(keysJson.size());
+      for (Object o : keysJson) {
+        keys.add((Integer) o);
+      }
+      list = ImmutableIntList.copyOf(keys);
+    }
+    return RelDistributions.of(type, list);
+  }
+
+  private Object toJson(RelDistribution relDistribution) {
+    final Map<String, Object> map = jsonBuilder.map();
+    map.put("type", relDistribution.getType().name());
+
+    if (!relDistribution.getKeys().isEmpty()) {
+      List<Object> keys = new ArrayList<>(relDistribution.getKeys().size());
+      for (Integer key : relDistribution.getKeys()) {
+        keys.add(toJson(key));
+      }
+      map.put("keys", keys);
+    }
+    return map;
   }
 
   public RelDataType toType(RelDataTypeFactory typeFactory, Object o) {
@@ -285,6 +315,8 @@ public class RelJson {
       return toJson((RelDataType) value);
     } else if (value instanceof RelDataTypeField) {
       return toJson((RelDataTypeField) value);
+    } else if (value instanceof RelDistribution) {
+      return toJson((RelDistribution) value);
     } else {
       throw new UnsupportedOperationException("type not serializable: "
           + value + " (type " + value.getClass().getCanonicalName() + ")");
@@ -601,26 +633,18 @@ public class RelJson {
     }
 
     final String type = (String) map.get("type");
+    final RexBuilder rexBuilder = input.getCluster().getRexBuilder();
     switch (type) {
     case "CURRENT_ROW":
-      return RexWindowBound.create(
-          SqlWindow.createCurrentRow(SqlParserPos.ZERO), null);
+      return RexWindowBounds.CURRENT_ROW;
     case "UNBOUNDED_PRECEDING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedPreceding(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_PRECEDING;
     case "UNBOUNDED_FOLLOWING":
-      return RexWindowBound.create(
-          SqlWindow.createUnboundedFollowing(SqlParserPos.ZERO), null);
+      return RexWindowBounds.UNBOUNDED_FOLLOWING;
     case "PRECEDING":
-      RexNode precedingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.PRECEDING_OPERATOR, precedingOffset));
+      return RexWindowBounds.preceding(toRex(input, map.get("offset")));
     case "FOLLOWING":
-      RexNode followingOffset = toRex(input, map.get("offset"));
-      return RexWindowBound.create(null,
-          input.getCluster().getRexBuilder().makeCall(
-              SqlWindow.FOLLOWING_OPERATOR, followingOffset));
+      return RexWindowBounds.following(toRex(input, map.get("offset")));
     default:
       throw new UnsupportedOperationException("cannot convert type to rex window bound " + type);
     }

@@ -46,7 +46,6 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -91,24 +90,16 @@ public abstract class Project extends SingleRel implements Hintable {
     assert isValid(Litmus.THROW, null);
   }
 
-  /**
-   * Creates a Project.
-   *
-   * @param cluster  Cluster that this relational expression belongs to
-   * @param traits   Traits of this relational expression
-   * @param input    Input relational expression
-   * @param projects List of expressions for the input columns
-   * @param rowType  Output row type
-   */
+  @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traits,
       RelNode input, List<? extends RexNode> projects, RelDataType rowType) {
-    this(cluster, traits, new ArrayList<>(), input, projects, rowType);
+    this(cluster, traits, ImmutableList.of(), input, projects, rowType);
   }
 
   @Deprecated // to be removed before 2.0
   protected Project(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       List<? extends RexNode> projects, RelDataType rowType, int flags) {
-    this(cluster, traitSet, input, projects, rowType);
+    this(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     Util.discard(flags);
   }
 
@@ -118,6 +109,7 @@ public abstract class Project extends SingleRel implements Hintable {
   protected Project(RelInput input) {
     this(input.getCluster(),
         input.getTraitSet(),
+        ImmutableList.of(),
         input.getInput(),
         input.getExpressionList("exprs"),
         input.getRowType("exprs", "fields"));
@@ -245,8 +237,41 @@ public abstract class Project extends SingleRel implements Hintable {
     return planner.getCostFactory().makeCost(dRows, dCpu, dIo);
   }
 
+  /**
+   * Returns the number of expressions at the front of an array which are
+   * simply projections of the same field.
+   *
+   * @param refs References
+   * @return the index of the first non-trivial expression, or list.size otherwise
+   */
+  private static int countTrivial(List<RexNode> refs) {
+    for (int i = 0; i < refs.size(); i++) {
+      RexNode ref = refs.get(i);
+      if (!(ref instanceof RexInputRef)
+          || ((RexInputRef) ref).getIndex() != i) {
+        return i;
+      }
+    }
+    return refs.size();
+  }
+
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
+    // Skip writing field names so the optimizer can reuse the projects that differ in
+    // field names only
+    if (pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES) {
+      final int firstNonTrivial = countTrivial(exps);
+      if (firstNonTrivial == 1) {
+        pw.item("inputs", "0");
+      } else if (firstNonTrivial != 0) {
+        pw.item("inputs", "0.." + (firstNonTrivial - 1));
+      }
+      if (firstNonTrivial != exps.size()) {
+        pw.item("exprs", exps.subList(firstNonTrivial, exps.size()));
+      }
+      return pw;
+    }
+
     if (pw.nest()) {
       pw.item("fields", rowType.getFieldNames());
       pw.item("exprs", exps);
@@ -258,16 +283,6 @@ public abstract class Project extends SingleRel implements Hintable {
         }
         pw.item(fieldName, exps.get(field.i));
       }
-    }
-
-    // If we're generating a digest, include the rowtype. If two projects
-    // differ in return type, we don't want to regard them as equivalent,
-    // otherwise we will try to put rels of different types into the same
-    // planner equivalence set.
-    //CHECKSTYLE: IGNORE 2
-    if ((pw.getDetailLevel() == SqlExplainLevel.DIGEST_ATTRIBUTES)
-        && false) {
-      pw.item("type", rowType);
     }
 
     return pw;

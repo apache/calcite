@@ -19,14 +19,17 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.JoinType;
 import org.apache.calcite.linq4j.Ord;
+import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.linq4j.tree.ConstantExpression;
 import org.apache.calcite.linq4j.tree.ConstantUntypedNull;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.ExpressionType;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.linq4j.tree.MethodCallExpression;
 import org.apache.calcite.linq4j.tree.MethodDeclaration;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
 import org.apache.calcite.linq4j.tree.Primitive;
@@ -52,6 +55,7 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -453,13 +457,7 @@ public class EnumUtils {
       if (fromPrimitive != null) {
         // E.g. from "int" to "BigDecimal".
         // Generate "new BigDecimal(x)"
-        // Fix CALCITE-2325, we should decide null here for int type.
-        return Expressions.condition(
-            Expressions.equal(operand, RexImpTable.NULL_EXPR),
-            RexImpTable.NULL_EXPR,
-            Expressions.new_(
-                BigDecimal.class,
-                operand));
+        return Expressions.new_(BigDecimal.class, operand);
       }
       // E.g. from "Object" to "BigDecimal".
       // Generate "x == null ? null : SqlFunctions.toBigDecimal(x)"
@@ -502,6 +500,14 @@ public class EnumUtils {
       } else {
         Expression result;
         try {
+          // Avoid to generate code like:
+          // "null.toString()" or "(xxx) null.toString()"
+          if (operand instanceof ConstantExpression) {
+            ConstantExpression ce = (ConstantExpression) operand;
+            if (ce.value == null) {
+              return Expressions.convert_(operand, toType);
+            }
+          }
           // Try to call "toString()" method
           // E.g. from "Integer" to "String"
           // Generate "x == null ? null : x.toString()"
@@ -576,11 +582,111 @@ public class EnumUtils {
    * Handle decimal type specifically with explicit type conversion
    */
   private static Expression convertAssignableType(
-      Expression argument,  Type targetType) {
+      Expression argument, Type targetType) {
     if (targetType != BigDecimal.class) {
       return argument;
     }
     return convert(argument, targetType);
+  }
+
+  public static MethodCallExpression call(Class clazz, String methodName,
+      List<? extends Expression> arguments) {
+    return call(clazz, methodName, arguments, null);
+  }
+
+  /**
+   * The powerful version of {@code org.apache.calcite.linq4j.tree.Expressions#call(
+   * Type, String, Iterable<? extends Expression>)}. Try best effort to convert the
+   * accepted arguments to match parameter type.
+   *
+   * @param clazz Class against which method is invoked
+   * @param methodName Name of method
+   * @param arguments argument expressions
+   * @param targetExpression target expression
+   *
+   * @return MethodCallExpression that call the given name method
+   * @throws RuntimeException if no suitable method found
+   */
+  public static MethodCallExpression call(Class clazz, String methodName,
+       List<? extends Expression> arguments, Expression targetExpression) {
+    Class[] argumentTypes = Types.toClassArray(arguments);
+    try {
+      Method candidate = clazz.getMethod(methodName, argumentTypes);
+      return Expressions.call(targetExpression, candidate, arguments);
+    } catch (NoSuchMethodException e) {
+      for (Method method : clazz.getMethods()) {
+        if (method.getName().equals(methodName)) {
+          final boolean varArgs = method.isVarArgs();
+          final Class[] parameterTypes = method.getParameterTypes();
+          if (Types.allAssignable(varArgs, parameterTypes, argumentTypes)) {
+            return Expressions.call(targetExpression, method, arguments);
+          }
+          // fall through
+          final List<? extends Expression> typeMatchedArguments =
+              matchMethodParameterTypes(varArgs, parameterTypes, arguments);
+          if (typeMatchedArguments != null) {
+            return Expressions.call(targetExpression, method, typeMatchedArguments);
+          }
+        }
+      }
+      throw new RuntimeException("while resolving method '" + methodName
+          + Arrays.toString(argumentTypes) + "' in class " + clazz, e);
+    }
+  }
+
+  private static List<? extends Expression> matchMethodParameterTypes(boolean varArgs,
+      Class[] parameterTypes, List<? extends Expression> arguments) {
+    if ((varArgs  && arguments.size() < parameterTypes.length - 1)
+        || (!varArgs && arguments.size() != parameterTypes.length)) {
+      return null;
+    }
+    final List<Expression> typeMatchedArguments = new ArrayList<>();
+    for (int i = 0; i < arguments.size(); i++) {
+      Class parameterType =
+          !varArgs || i < parameterTypes.length - 1
+              ? parameterTypes[i]
+              : Object.class;
+      final Expression typeMatchedArgument =
+          matchMethodParameterType(arguments.get(i), parameterType);
+      if (typeMatchedArgument == null) {
+        return null;
+      }
+      typeMatchedArguments.add(typeMatchedArgument);
+    }
+    return typeMatchedArguments;
+  }
+
+  /**
+   * Match an argument expression to method parameter type with best effort
+   * @param argument Argument Expression
+   * @param parameter Parameter type
+   * @return Converted argument expression that matches the parameter type.
+   *         Returns null if it is impossible to match.
+   */
+  private static Expression matchMethodParameterType(
+      Expression argument, Class parameter) {
+    Type argumentType = argument.getType();
+    if (Types.isAssignableFrom(parameter, argumentType)) {
+      return argument;
+    }
+    // Object.class is not assignable from primitive types,
+    // but the method with Object parameters can accept primitive types.
+    // E.g., "array(Object... args)" in SqlFunctions
+    if (parameter == Object.class
+        && Primitive.of(argumentType) != null) {
+      return argument;
+    }
+    // Convert argument with Object.class type to parameter explicitly
+    if (argumentType == Object.class
+        && Primitive.of(argumentType) == null) {
+      return convert(argument, parameter);
+    }
+    // assignable types that can be accepted with explicit conversion
+    if (parameter == BigDecimal.class
+        && Primitive.ofBoxOr(argumentType) != null) {
+      return convert(argument, parameter);
+    }
+    return null;
   }
 
   /** Transforms a JoinRelType to Linq4j JoinType. **/
@@ -636,5 +742,58 @@ public class EnumUtils {
                 implementor.allCorrelateVariables,
                 implementor.getConformance())));
     return Expressions.lambda(Predicate2.class, builder.toBlock(), left_, right_);
+  }
+
+  /** Generates a window selector which appends attribute of the window based on
+   * the parameters. */
+  static Expression windowSelector(
+      PhysType inputPhysType,
+      PhysType outputPhysType,
+      Expression wmColExpr,
+      Expression intervalExpr) {
+    // Generate all fields.
+    final List<Expression> expressions = new ArrayList<>();
+    // If input item is just a primitive, we do not generate specialized
+    // primitive apply override since it won't be called anyway
+    // Function<T> always operates on boxed arguments
+    final ParameterExpression parameter =
+        Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
+    final int fieldCount = inputPhysType.getRowType().getFieldCount();
+    for (int i = 0; i < fieldCount; i++) {
+      Expression expression =
+          inputPhysType.fieldReference(parameter, i,
+              outputPhysType.getJavaFieldType(expressions.size()));
+      expressions.add(expression);
+    }
+    final Expression wmColExprToLong = EnumUtils.convert(wmColExpr, long.class);
+    final Expression shiftExpr = Expressions.constant(1, long.class);
+
+    // Find the fixed window for a timestamp given a window size and return the window start.
+    // Fixed windows counts from timestamp 0.
+    // wmMillis / intervalMillis * intervalMillis
+    expressions.add(
+        Expressions.multiply(
+            Expressions.divide(
+                wmColExprToLong,
+                intervalExpr),
+            intervalExpr));
+
+    // Find the fixed window for a timestamp given a window size and return the window end.
+    // Fixed windows counts from timestamp 0.
+
+    // (wmMillis / sizeMillis + 1L) * sizeMillis;
+    expressions.add(
+        Expressions.multiply(
+            Expressions.add(
+                Expressions.divide(
+                    wmColExprToLong,
+                    intervalExpr),
+                shiftExpr),
+            intervalExpr));
+
+    return Expressions.lambda(
+        Function1.class,
+        outputPhysType.record(expressions),
+        parameter);
   }
 }

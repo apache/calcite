@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 plugins {
     `java-platform`
 }
@@ -53,6 +52,7 @@ dependencies {
         apiv("com.fasterxml.jackson.core:jackson-core", "jackson")
         apiv("com.fasterxml.jackson.core:jackson-databind")
         apiv("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", "jackson")
+        apiv("com.github.kstyrc:embedded-redis")
         apiv("com.github.stephenc.jcip:jcip-annotations")
         apiv("com.google.code.findbugs:jsr305", "findbugs.jsr305")
         apiv("com.google.guava:guava")
@@ -72,6 +72,7 @@ dependencies {
         apiv("javax.servlet:javax.servlet-api", "servlet")
         apiv("joda-time:joda-time")
         apiv("junit:junit", "junit4")
+        apiv("log4j:log4j", "log4j")
         apiv("mysql:mysql-connector-java")
         apiv("net.hydromatic:aggdesigner-algorithm")
         apiv("net.hydromatic:chinook-data-hsqldb")
@@ -97,11 +98,13 @@ dependencies {
         apiv("org.apache.kerby:kerb-client", "kerby")
         apiv("org.apache.kerby:kerb-core", "kerby")
         apiv("org.apache.kerby:kerb-simplekdc", "kerby")
-        apiv("org.apache.logging.log4j:log4j-api", "log4j")
-        apiv("org.apache.logging.log4j:log4j-core", "log4j")
+        apiv("org.apache.logging.log4j:log4j-api", "log4j2")
+        apiv("org.apache.logging.log4j:log4j-core", "log4j2")
+        apiv("org.apache.logging.log4j:log4j-slf4j-impl", "log4j2")
         apiv("org.apache.pig:pig")
         apiv("org.apache.pig:pigunit", "pig")
         apiv("org.apache.spark:spark-core_2.10", "spark")
+        apiv("org.apiguardian:apiguardian-api")
         apiv("org.bouncycastle:bcpkix-jdk15on", "bouncycastle")
         apiv("org.bouncycastle:bcprov-jdk15on", "bouncycastle")
         apiv("org.cassandraunit:cassandra-unit")
@@ -136,6 +139,7 @@ dependencies {
         apiv("org.scala-lang:scala-library")
         apiv("org.slf4j:slf4j-api", "slf4j")
         apiv("org.slf4j:slf4j-log4j12", "slf4j")
+        apiv("redis.clients:jedis")
         apiv("sqlline:sqlline")
         runtimev("org.junit.jupiter:junit-jupiter-engine", "junit5")
         runtimev("org.junit.vintage:junit-vintage-engine", "junit5")
