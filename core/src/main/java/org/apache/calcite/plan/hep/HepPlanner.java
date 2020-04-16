@@ -189,12 +189,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Get rid of everything except what's in the final plan.
     collectGarbage();
-
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Hep Planner Rule Attempts Info:");
-      LOGGER.debug(dumpRuleAttemptsInfo());
-    }
-
+    dumpRuleAttemptsInfo();
     return buildFinalPlan(root);
   }
 

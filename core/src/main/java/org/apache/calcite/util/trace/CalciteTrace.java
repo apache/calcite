@@ -118,6 +118,11 @@ public abstract class CalciteTrace {
     return LoggerFactory.getLogger("org.apache.calcite.sql2rel");
   }
 
+  public static Logger getRuleAttemptsTracer() {
+    return LoggerFactory.getLogger(
+        "org.apache.calcite.plan.AbstractRelOptPlanner.RuleAttemptsListener");
+  }
+
   /**
    * The tracers report important/useful information related with the execution
    * of unit tests.

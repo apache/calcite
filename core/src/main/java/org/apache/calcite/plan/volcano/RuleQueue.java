@@ -183,7 +183,7 @@ class RuleQueue {
       match = phaseMatchList.poll();
 
       if (skipMatch(match)) {
-        LOGGER.trace("Skip match: {}", match);
+        LOGGER.debug("Skip match: {}", match);
       } else {
         break;
       }
@@ -196,7 +196,7 @@ class RuleQueue {
     phaseMatchList.matchMap.remove(
         planner.getSubset(match.rels[0]), match);
 
-    LOGGER.trace("Pop match: {}", match);
+    LOGGER.debug("Pop match: {}", match);
     return match;
   }
 

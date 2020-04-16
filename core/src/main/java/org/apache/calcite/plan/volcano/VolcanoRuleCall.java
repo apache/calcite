@@ -181,28 +181,28 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         RelSubset subset = volcanoPlanner.getSubset(rel);
 
         if (subset == null) {
-          LOGGER.trace(
+          LOGGER.debug(
               "Rule [{}] not fired because operand #{} ({}) has no subset",
               getRule(), i, rel);
           return;
         }
 
         if (subset.set.equivalentSet != null) {
-          LOGGER.trace(
+          LOGGER.debug(
               "Rule [{}] not fired because operand #{} ({}) belongs to obsolete set",
               getRule(), i, rel);
           return;
         }
 
         if (volcanoPlanner.prunedNodes.contains(rel)) {
-          LOGGER.trace("Rule [{}] not fired because operand #{} ({}) has importance=0",
+          LOGGER.debug("Rule [{}] not fired because operand #{} ({}) has importance=0",
               getRule(), i, rel);
           return;
         }
       }
 
-      if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace(
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
             "call#{}: Apply rule [{}] to {}",
             id, getRule(), Arrays.toString(rels));
       }
@@ -228,11 +228,11 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.ruleCallStack.pop();
       }
 
-      if (LOGGER.isTraceEnabled()) {
+      if (LOGGER.isDebugEnabled()) {
         if (generatedRelList.isEmpty()) {
-          LOGGER.trace("call#{} generated 0 successors.", id);
+          LOGGER.debug("call#{} generated 0 successors.", id);
         } else {
-          LOGGER.trace(
+          LOGGER.debug(
               "call#{} generated {} successors: {}",
               id, generatedRelList.size(), generatedRelList);
         }

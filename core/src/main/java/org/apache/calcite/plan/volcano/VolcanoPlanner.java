@@ -216,11 +216,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
-    if (LOGGER.isDebugEnabled()) {
-      this.provenanceMap = new HashMap<>();
-    } else {
-      this.provenanceMap = Util.blackholeMap();
-    }
+    this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
+        : Util.blackholeMap();
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -491,7 +488,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     PLANNING:
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
       while (true) {
-        LOGGER.trace("PLANNER = {}; PHASE = {}; COST = {}",
+        LOGGER.debug("PLANNER = {}; PHASE = {}; COST = {}",
             this, phase.toString(), root.bestCost);
 
         VolcanoRuleMatch match = ruleQueue.popMatch(phase);
@@ -522,6 +519,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       pw.flush();
       LOGGER.trace(sw.toString());
     }
+    dumpRuleAttemptsInfo();
     RelNode cheapest = root.buildCheapestPlan(this);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug(
@@ -530,9 +528,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (!provenanceMap.isEmpty()) {
         LOGGER.debug("Provenance:\n{}", provenance(cheapest));
       }
-
-      LOGGER.debug("Volcano Planner Rule Attempts Info:");
-      LOGGER.debug(dumpRuleAttemptsInfo());
     }
     return cheapest;
   }

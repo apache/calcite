@@ -25,8 +25,11 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
+
+import org.slf4j.Logger;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -47,6 +50,11 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Abstract base for implementations of the {@link RelOptPlanner} interface.
  */
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
+  //~ Static fields/initializers ---------------------------------------------
+
+  /** Logger for rule attempts information. */
+  private static final Logger RULE_ATTEMPTS_LOGGER = CalciteTrace.getRuleAttemptsTracer();
+
   //~ Instance fields --------------------------------------------------------
 
   /**
@@ -97,7 +105,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     classes.add(RelNode.class);
     classes.add(RelSubset.class);
 
-    if (LOGGER.isDebugEnabled()) {
+    if (RULE_ATTEMPTS_LOGGER.isDebugEnabled()) {
       this.ruleAttemptsListener = new RuleAttemptsListener();
       addListener(this.ruleAttemptsListener);
     }
@@ -281,8 +289,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // do nothing
   }
 
-  public String dumpRuleAttemptsInfo() {
-    return this.ruleAttemptsListener != null ? this.ruleAttemptsListener.dump() : null;
+  protected void dumpRuleAttemptsInfo() {
+    if (this.ruleAttemptsListener != null) {
+      RULE_ATTEMPTS_LOGGER.debug("Rule Attempts Info for " + this.getClass().getSimpleName());
+      RULE_ATTEMPTS_LOGGER.debug(this.ruleAttemptsListener.dump());
+    }
   }
 
   /**
@@ -307,9 +318,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       return;
     }
 
-    if (LOGGER.isTraceEnabled()) {
+    if (LOGGER.isDebugEnabled()) {
       // Leave this wrapped in a conditional to prevent unnecessarily calling Arrays.toString(...)
-      LOGGER.trace("call#{}: Apply rule [{}] to {}",
+      LOGGER.debug("call#{}: Apply rule [{}] to {}",
           ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels));
     }
 
@@ -348,8 +359,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       RelOptRuleCall ruleCall,
       RelNode newRel,
       boolean before) {
-    if (before && LOGGER.isTraceEnabled()) {
-      LOGGER.trace("call#{}: Rule {} arguments {} produced {}",
+    if (before && LOGGER.isDebugEnabled()) {
+      LOGGER.debug("call#{}: Rule {} arguments {} produced {}",
           ruleCall.id, ruleCall.getRule(), Arrays.toString(ruleCall.rels), newRel);
     }
 
@@ -371,7 +382,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param rel chosen rel
    */
   protected void notifyChosen(RelNode rel) {
-    LOGGER.trace("For final plan, using {}", rel);
+    LOGGER.debug("For final plan, using {}", rel);
 
     if (listener != null) {
       RelOptListener.RelChosenEvent event =
@@ -485,11 +496,21 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
 
     public String dump() {
-      // Sort rules by number of attempts
+      // Sort rules by number of attempts descending, then by rule elapsed time descending,
+      // then by rule name ascending.
       List<Map.Entry<String, Pair<Long, Long>>> list =
           new ArrayList<>(this.ruleAttempts.entrySet());
       Collections.sort(list,
-          (left, right) -> right.getValue().left.compareTo(left.getValue().left));
+          (left, right) -> {
+            int res = right.getValue().left.compareTo(left.getValue().left);
+            if (res == 0) {
+              res = right.getValue().right.compareTo(left.getValue().right);
+            }
+            if (res == 0) {
+              res = left.getKey().compareTo(right.getKey());
+            }
+            return res;
+          });
 
       // Print out rule attempts and time
       StringBuilder sb = new StringBuilder();
@@ -501,7 +522,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
             String.format(Locale.ROOT, "%-60s%20s%20s%n",
                 entry.getKey(),
                 usFormat.format(entry.getValue().left),
-                usFormat.getNumberInstance(Locale.US).format(entry.getValue().right)));
+                usFormat.format(entry.getValue().right)));
       }
       return sb.toString();
     }
