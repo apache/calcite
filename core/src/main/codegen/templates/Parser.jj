@@ -3938,7 +3938,7 @@ SqlCreate SqlCreate() :
 <#-- additional literal parser methods are included here -->
 <#list parser.createStatementParserMethods as method>
         create = ${method}(s, replace)
-        <#sep>|</#sep>
+        <#sep>| LOOKAHEAD(2) </#sep>
 </#list>
     )
     {
