@@ -93,8 +93,8 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
     rel = handler.propagate(rels[0], rel);
-    if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
           equiv.isEmpty() ? "" : " with equivalences " + equiv);
       if (generatedRelList != null) {
         generatedRelList.add(rel);
