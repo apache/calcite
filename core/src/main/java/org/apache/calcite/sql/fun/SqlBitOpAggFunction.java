@@ -69,6 +69,9 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
     case BIT_OR:
       optionality = Optionality.IGNORED;
       break;
+    case BIT_XOR:
+      optionality = Optionality.OPTIONAL;
+      break;
     default:
       //We set optional for default
       optionality = Optionality.OPTIONAL;
