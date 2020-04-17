@@ -56,7 +56,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Widen a SqlNode's field type to target type,
+   * Widen a SqlNode's field type to common type,
    * mainly used for set operations like UNION, INTERSECT and EXCEPT.
    *
    * <p>Rules:
@@ -72,11 +72,10 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * infer the first result column type type7 as the wider type of type1 and type4,
    * the second column type as the wider type of type2 and type5 and so on.
    *
-   * @param scope       validator scope
-   * @param query       query node to update the field type for
-   * @param columnIndex target column index
-   * @param targetType  target type to cast to
-   * @return true if any type coercion actually happens
+   * @param scope       Validator scope
+   * @param query       Query node to update the field type for
+   * @param columnIndex Target column index
+   * @param targetType  Target type to cast to
    */
   public boolean rowTypeCoercion(
       SqlValidatorScope scope,
@@ -123,7 +122,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerce operands in binary arithmetic expressions to NUMERIC types.
+   * Coerces operands in binary arithmetic expressions to NUMERIC types.
    *
    * <p>For binary arithmetic operators like [+, -, *, /, %]:
    * If the operand is VARCHAR,
@@ -132,7 +131,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * coerce the STRING operand to max precision/scale DECIMAL.
    */
   public boolean binaryArithmeticCoercion(SqlCallBinding binding) {
-    // Assume that the operator has NUMERIC family operand type checker.
+    // Assume the operator has NUMERIC family operand type checker.
     SqlOperator operator = binding.getOperator();
     SqlKind kind = operator.getKind();
     boolean coerced = false;
@@ -161,14 +160,15 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       SqlCallBinding binding,
       RelDataType left,
       RelDataType right) {
-    // PostgreSQL and SQL-SERVER would cast the CHARACTER type operand to type
-    // of another numeric operand, i.e. for '9' / 2, '9' would be casted to INTEGER,
-    // while for '9' / 3.3, '9' would be casted to DOUBLE.
-    // It does not allow two CHARACTER operands for binary arithmetic operators.
+    // For expression "NUMERIC <OP> CHARACTER",
+    // PostgreSQL and MS-SQL coerce the CHARACTER operand to NUMERIC,
+    // i.e. for '9':VARCHAR(1) / 2: INT, '9' would be coerced to INTEGER,
+    // while for '9':VARCHAR(1) / 3.3: DOUBLE, '9' would be coerced to DOUBLE.
+    // They do not allow both CHARACTER operands for binary arithmetic operators.
 
     // MySQL and Oracle would coerce all the string operands to DOUBLE.
 
-    // Keep sync with PostgreSQL and SQL-SERVER because their behaviors are more in
+    // Keep sync with PostgreSQL and MS-SQL because their behaviors are more in
     // line with the SQL standard.
     if (SqlTypeUtil.isString(left) && SqlTypeUtil.isNumeric(right)) {
       // If the numeric operand is DECIMAL type, coerce the STRING operand to
@@ -187,7 +187,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerce operands in binary comparison expressions.
+   * Coerces operands in binary comparison expressions.
    *
    * <p>Rules:</p>
    * <ul>
@@ -211,11 +211,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (operandCnt == 2) {
       final RelDataType type1 = binding.getOperandType(0);
       final RelDataType type2 = binding.getOperandType(1);
-      // EQUALS(=) NOT_EQUALS(<>) operator
+      // EQUALS(=) NOT_EQUALS(<>)
       if (kind.belongsTo(SqlKind.BINARY_EQUALITY)) {
         // STRING and datetime
-        // BOOLEAN and NUMERIC | BOOLEAN and literal
         coerced = dateTimeStringEquality(binding, type1, type2) || coerced;
+        // BOOLEAN and NUMERIC
+        // BOOLEAN and literal
         coerced = booleanEquality(binding, type1, type2) || coerced;
       }
       // Binary comparision operator like: = > >= < <=
@@ -287,7 +288,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
 
   /**
    * Datetime and STRING equality: cast STRING type to datetime type, SqlToRelConverter already
-   * make the conversion but we still keep this interface overridable
+   * makes the conversion but we still keep this interface overridable
    * so user can have their custom implementation.
    */
   protected boolean dateTimeStringEquality(
@@ -310,7 +311,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Cast "BOOLEAN = NUMERIC" to "NUMERIC = NUMERIC". Expressions like 1=`expr` and
+   * Casts "BOOLEAN = NUMERIC" to "NUMERIC = NUMERIC". Expressions like 1=`expr` and
    * 0=`expr` can be simplified to `expr` and `not expr`, but this better happens
    * in {@link org.apache.calcite.rex.RexSimplify}.
    *
@@ -369,9 +370,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Case when and COALESCE type coercion, collect all the branches types including then
+   * CASE and COALESCE type coercion, collect all the branches types including then
    * operands and else operands to find a common type, then cast the operands to the common type
-   * if it is needed.
+   * when needed.
    */
   public boolean caseWhenCoercion(SqlCallBinding callBinding) {
     // For sql statement like:
@@ -614,8 +615,6 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param query        Query
    * @param columnIndex  Source column index to coerce type
    * @param targetType   Target type
-   *
-   * @return True if any type coercion happens
    */
   private boolean coerceSourceRowType(
       SqlValidatorScope sourceScope,
