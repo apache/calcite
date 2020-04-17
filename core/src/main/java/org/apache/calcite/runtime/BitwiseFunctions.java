@@ -17,7 +17,9 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
+import org.apache.calcite.sql.SqlKind;
 
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -37,8 +39,7 @@ public class BitwiseFunctions {
 
   /** Helper function for implementing <code>BIT_AND</code> applied to binary values */
   public static ByteString bitAnd(ByteString b0, ByteString b1) {
-
-    return binaryOperator(b0, b1, BitwiseOperators.BITAND);
+    return binaryOperator(b0, b1, () -> SqlKind.BIT_AND);
   }
 
   // |
@@ -49,7 +50,7 @@ public class BitwiseFunctions {
 
   /** Helper function for implementing <code>BIT_OR</code> applied to binary values */
   public static ByteString bitOr(ByteString b0, ByteString b1) {
-    return binaryOperator(b0, b1, BitwiseOperators.BITOR);
+    return binaryOperator(b0, b1, () -> SqlKind.BIT_OR);
   }
 
   // ^
@@ -61,7 +62,7 @@ public class BitwiseFunctions {
   /** Helper function for implementing <code>BIT_XOR</code> applied to binary values */
   public static ByteString bitXor(ByteString b0, ByteString b1) {
 
-    return binaryOperator(b0, b1, BitwiseOperators.BITXOR);
+    return binaryOperator(b0, b1, () -> SqlKind.BIT_XOR);
   }
 
   /**
@@ -72,7 +73,9 @@ public class BitwiseFunctions {
    * @return
    */
   private static ByteString binaryOperator(
-      ByteString b0, ByteString b1, BitwiseOperators operator) {
+      ByteString b0, ByteString b1, Supplier<SqlKind> operator) {
+
+    SqlKind kind = operator.get();
 
     if (b0.length() == 0) {
       return b1;
@@ -88,37 +91,26 @@ public class BitwiseFunctions {
     byte[] bytes1 = b1.getBytes();
     byte[] result = new byte[b0.length()];
 
-    switch (operator) {
-    case BITAND:
+    switch (kind) {
+    case BIT_AND:
       IntStream.range(0, bytes0.length).forEach(i -> {
         result[i] = (byte) (bytes0[i] & bytes1[i]);
       });
       break;
-    case BITOR:
+    case BIT_OR:
       IntStream.range(0, bytes0.length).forEach(i -> {
         result[i] = (byte) (bytes0[i] | bytes1[i]);
       });
       break;
-    case BITXOR:
+    case BIT_XOR:
       IntStream.range(0, bytes0.length).forEach(i -> {
         result[i] = (byte) (bytes0[i] ^ bytes1[i]);
       });
       break;
     default:
-      throw new IllegalArgumentException("Unknown " + operator.name()
+      throw new IllegalArgumentException("Unknown " + kind.name()
           + ". Only support bit_and, bit_or and bit_xor.");
     }
     return new ByteString(result);
   }
-
-  /**
-   * Bitwise Operators which include BITAND, BITOR and BITXOR.
-   * For later, We will add BITANDNOT, BITSHIFTLEFT, BITSHIFTRIGHT, BITNOT and BITCOUNT.
-   */
-  public enum BitwiseOperators {
-    BITAND,
-    BITOR,
-    BITXOR
-  }
-
 }
