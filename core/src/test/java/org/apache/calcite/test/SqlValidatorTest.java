@@ -707,15 +707,30 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .columnType("VARCHAR(10) NOT NULL");
     s.expr("concat('aabbcc', CAST(NULL AS VARCHAR(20)), '+-')")
         .columnType("VARCHAR(28)");
-    s.expr("concat('aabbcc', 2)").withWhole(true)
+    s.expr("concat('aabbcc', 2)")
+        .withWhole(true)
+        .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<CHAR\\(6\\)>, <INTEGER>\\)'\\. .*");
-    s.expr("concat('abc', 'ab', 123)").withWhole(true)
+    s.expr("concat('aabbcc', 2)").ok();
+    s.expr("concat('abc', 'ab', 123)")
+        .withWhole(true)
+        .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<CHAR\\(3\\)>, <CHAR\\(2\\)>, <INTEGER>\\)'\\. .*");
-    s.expr("concat(true, false)").withWhole(true)
+    s.expr("concat('abc', 'ab', 123)").ok();
+    s.expr("concat(true, false)")
+        .withWhole(true)
+        .withTypeCoercion(false)
         .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
             + "'CONCAT\\(<BOOLEAN>, <BOOLEAN>\\)'\\. .*");
+    s.expr("concat(true, false)").ok();
+    s.expr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')")
+        .withWhole(true)
+        .withTypeCoercion(false)
+        .fails("(?s)Cannot apply 'CONCAT' to arguments of type "
+            + "'CONCAT\\(<DATE>, <TIMESTAMP\\(0\\)>\\)'\\. .*");
+    s.expr("concat(DATE '2020-04-17', TIMESTAMP '2020-04-17 14:17:51')").ok();
   }
 
   @Test void testBetween() {

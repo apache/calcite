@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -274,6 +275,9 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
               callBinding.getCall().operand(operand),
               0,
               false)) {
+            if (callBinding.isTypeCoercionEnabled()) {
+              return coerceOperands(callBinding, true);
+            }
             return false;
           }
         }
@@ -293,23 +297,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
             0,
             false)) {
           if (callBinding.isTypeCoercionEnabled()) {
-            // Try type coercion for the call,
-            // collect SqlTypeFamily and data type of all the operands.
-            final List<SqlTypeFamily> families = allowedRules.stream()
-                .filter(r -> r instanceof ImplicitCastOperandTypeChecker)
-                .map(r -> ((ImplicitCastOperandTypeChecker) r).getOperandSqlTypeFamily(0))
-                .collect(Collectors.toList());
-            if (families.size() < allowedRules.size()) {
-              // Not all the checkers are ImplicitCastOperandTypeChecker, returns early.
-              return false;
-            }
-            final List<RelDataType> operandTypes = new ArrayList<>();
-            for (int i = 0; i < callBinding.getOperandCount(); i++) {
-              operandTypes.add(callBinding.getOperandType(i));
-            }
-            TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
-            return typeCoercion.builtinFunctionCoercion(callBinding,
-                operandTypes, families);
+            return coerceOperands(callBinding, false);
           }
           return false;
         }
@@ -345,6 +333,32 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     default:
       throw new AssertionError();
     }
+  }
+
+  /** Tries to coerce the operands based on the defined type families. */
+  private boolean coerceOperands(SqlCallBinding callBinding, boolean repeat) {
+    // Type coercion for the call,
+    // collect SqlTypeFamily and data type of all the operands.
+    List<SqlTypeFamily> families = allowedRules.stream()
+        .filter(r -> r instanceof ImplicitCastOperandTypeChecker)
+        // All the rules are SqlSingleOperandTypeChecker.
+        .map(r -> ((ImplicitCastOperandTypeChecker) r).getOperandSqlTypeFamily(0))
+        .collect(Collectors.toList());
+    if (families.size() < allowedRules.size()) {
+      // Not all the checkers are ImplicitCastOperandTypeChecker, returns early.
+      return false;
+    }
+    if (repeat) {
+      assert families.size() == 1;
+      families = Collections.nCopies(callBinding.getOperandCount(), families.get(0));
+    }
+    final List<RelDataType> operandTypes = new ArrayList<>();
+    for (int i = 0; i < callBinding.getOperandCount(); i++) {
+      operandTypes.add(callBinding.getOperandType(i));
+    }
+    TypeCoercion typeCoercion = callBinding.getValidator().getTypeCoercion();
+    return typeCoercion.builtinFunctionCoercion(callBinding,
+        operandTypes, families);
   }
 
   private boolean checkWithoutTypeCoercion(SqlCallBinding callBinding) {

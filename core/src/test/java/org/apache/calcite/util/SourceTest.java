@@ -18,23 +18,33 @@ package org.apache.calcite.util;
 
 import com.google.common.io.CharSource;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.apache.calcite.util.Sources.file;
+import static org.apache.calcite.util.Sources.of;
 import static org.apache.calcite.util.Sources.url;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
  * Tests for {@link Source}.
@@ -65,6 +75,50 @@ class SourceTest {
         assertNull(reader.readLine());
       }
     }
+  }
+
+  static Stream<Arguments> relativePaths() {
+    return Stream.of(
+        arguments("abc def.txt", "file:abc%20def.txt"),
+        arguments("abc+def.txt", "file:abc+def.txt"),
+        arguments("path 1/ subfolder 2/abc.t x t", "file:path%201/%20subfolder%202/abc.t%20x%20t"),
+        arguments(
+            "маленькой ёлочке холодно зимой.txt",
+            "file:маленькой%20ёлочке%20холодно%20зимой.txt"
+        )
+    );
+  }
+
+  private static String slashify(String path) {
+    return path.replace(File.separatorChar, '/');
+  }
+
+  @ParameterizedTest
+  @MethodSource("relativePaths")
+  void testRelativeFileToUrl(String path, String expectedUrl) {
+    URL url = of(new File(path)).url();
+
+    assertNotNull(url, () -> "No URL generated for Sources.of(file " + path + ")");
+    assertEquals(expectedUrl, url.toString(),
+        () -> "Sources.of(file " + path + ").url()");
+    assertEquals(path, slashify(Sources.of(url).file().getPath()),
+        () -> "Sources.of(Sources.of(file " + path + ").url()).file().getPath()");
+  }
+
+  @ParameterizedTest
+  @MethodSource("relativePaths")
+  @Disabled // Open when we really fix that
+  void testAbsoluteFileToUrl(String path, String expectedUrl) throws URISyntaxException {
+    File absoluteFile = new File(path).getAbsoluteFile();
+    URL url = of(absoluteFile).url();
+
+    assertNotNull(url, () -> "No URL generated for Sources.of(file(" + path + ").absoluteFile)");
+    // Sources.of(url).file().getPath() does not always work
+    // e.g. it might throw java.nio.file.InvalidPathException: Malformed input or input contains
+    // unmappable characters: /home/.../ws/core/????????? ?????? ??????? ?????.txt
+    //        at java.base/sun.nio.fs.UnixPath.encode(UnixPath.java:145)
+    assertEquals(absoluteFile.getAbsolutePath(), url.toURI().getSchemeSpecificPart(),
+        () -> "Sources.of(Sources.of(file(" + path + ").absolutePath).url()).file().getPath()");
   }
 
   @Test void testAppendWithSpaces() {

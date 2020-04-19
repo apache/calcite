@@ -116,7 +116,6 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * @param scope      Validator scope
    * @param call       the call
    * @param commonType common type to coerce to
-   * @return true if any operand is coerced
    */
   protected boolean coerceOperandsType(
       SqlValidatorScope scope,
@@ -132,12 +131,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   /**
    * Cast column at index {@code index} to target type.
    *
-   * @param scope      validator scope for the node list
-   * @param nodeList   column node list
-   * @param index      index of column
-   * @param targetType target type to cast to
-   *
-   * @return true if type coercion actually happens.
+   * @param scope      Validator scope for the node list
+   * @param nodeList   Column node list
+   * @param index      Index of column
+   * @param targetType Target type to cast to
    */
   protected boolean coerceColumnType(
       SqlValidatorScope scope,
@@ -276,7 +273,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * before cast operation, see {@link #coerceColumnType}, {@link #coerceOperandType}.
    *
    * <p>Ignore constant reduction which should happen in RexSimplify.
-   * */
+   */
   private SqlNode castTo(SqlNode node, RelDataType type) {
     return SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, node,
         SqlTypeUtil.convertTypeToSpec(type).withNullable(type.isNullable()));
@@ -298,10 +295,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * Update inferred row type for a query, i.e. SqlCall that returns struct type
    * or SqlSelect.
    *
-   * @param scope       validator scope
-   * @param query       node to inferred type
-   * @param columnIndex column index to update
-   * @param desiredType desired column type
+   * @param scope       Validator scope
+   * @param query       Node to inferred type
+   * @param columnIndex Column index to update
+   * @param desiredType Desired column type
    */
   protected void updateInferredColumnType(
       SqlValidatorScope scope,
@@ -327,7 +324,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * Case1: type widening with no precision loss.
    * Find the tightest common type of two types that might be used in binary expression.
    *
-   * @return tightest common type i.e. INTEGER + DECIMAL(10, 2) will return DECIMAL(10, 2)
+   * @return tightest common type, i.e. INTEGER + DECIMAL(10, 2) returns DECIMAL(10, 2)
    */
   public RelDataType getTightestCommonType(RelDataType type1, RelDataType type2) {
     if (type1 == null || type2 == null) {
@@ -606,9 +603,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * We will check the type one by one, that means the 1th type and 1th family,
    * 2th type and 2th family, and the like.
    *
-   * @param types    data type need to check
-   * @param families desired type families list
-   * @return true if we can do type coercion
+   * @param types    Data type need to check
+   * @param families Desired type families list
    */
   boolean canImplicitTypeCast(List<RelDataType> types, List<SqlTypeFamily> families) {
     boolean needed = false;
@@ -634,8 +630,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * See <a href="https://docs.google.com/spreadsheets/d/1GhleX5h5W8-kJKh7NMJ4vtoE78pwfaZRJl88ULX_MgU/edit?usp=sharing">CalciteImplicitCasts</a>
    * for the details.
    *
-   * @param in       inferred operand type
-   * @param expected expected {@link SqlTypeFamily} of registered SqlFunction
+   * @param in       Inferred operand type
+   * @param expected Expected {@link SqlTypeFamily} of registered SqlFunction
    * @return common type of implicit cast, null if we do not find any
    */
   public RelDataType implicitCast(RelDataType in, SqlTypeFamily expected) {

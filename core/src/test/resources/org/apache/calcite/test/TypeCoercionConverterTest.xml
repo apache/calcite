@@ -31,6 +31,19 @@ LogicalProject(F0=[true], F1=[true], F2=[true])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testInDateTimestamp">
+        <Resource name="sql">
+            <![CDATA[select (t1_timestamp, t1_date)
+in ((DATE '2020-04-16', TIMESTAMP '2020-04-16 11:40:53'))
+from t1]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EXPR$0=[AND(=($7, 2020-04-16 00:00:00), =(CAST($8):TIMESTAMP(0) NOT NULL, 2020-04-16 11:40:53))])
+  LogicalTableScan(table=[[CATALOG, SALES, T1]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testBooleanEquality">
         <Resource name="sql">
             <![CDATA[select
