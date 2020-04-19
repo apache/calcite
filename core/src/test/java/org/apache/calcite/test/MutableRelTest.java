@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.mutable.MutableRel;
 import org.apache.calcite.rel.mutable.MutableRels;
+import org.apache.calcite.rel.mutable.MutableScan;
 import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.FilterToCalcRule;
@@ -33,6 +34,7 @@ import org.apache.calcite.rel.rules.ProjectToWindowRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql2rel.RelDecorrelator;
+import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 
 import com.google.common.collect.ImmutableList;
@@ -45,6 +47,9 @@ import java.util.List;
 import static org.apache.calcite.plan.RelOptUtil.equal;
 import static org.apache.calcite.util.Litmus.IGNORE;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -221,6 +226,30 @@ class MutableRelTest {
     assertEquals(mutableRel1, mutableRel2);
   }
 
+  /** Verifies equivalence of {@link MutableScan} */
+  @Test public void testMutableScanEquivalence() {
+    final FrameworkConfig config = RelBuilderTest.config().build();
+    final RelBuilder builder = RelBuilder.create(config);
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        equalTo(mutableScanOf(builder, "scott", "EMP")));
+    assertThat(mutableScanOf(builder, "scott", "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "scott", "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "scott", "EMP"),
+        equalTo(mutableScanOf(builder, "EMP")));
+    assertThat(mutableScanOf(builder, "scott", "EMP").hashCode(),
+        equalTo(mutableScanOf(builder, "EMP").hashCode()));
+
+    assertThat(mutableScanOf(builder, "EMP"),
+        not(equalTo(mutableScanOf(builder, "DEPT"))));
+  }
+
   /** Verifies that after conversion to and from a MutableRel, the new
    * RelNode remains identical to the original RelNode. */
   private static void checkConvertMutableRel(String rel, String sql) {
@@ -286,5 +315,10 @@ class MutableRelTest {
     };
     RelNode rel = test.createTester().convertSqlToRel(sql).rel;
     return MutableRels.toMutable(rel);
+  }
+
+  private MutableScan mutableScanOf(RelBuilder builder, String... tableNames) {
+    final RelNode scan = builder.scan(tableNames).build();
+    return (MutableScan) MutableRels.toMutable(scan);
   }
 }
