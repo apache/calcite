@@ -628,6 +628,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           "equivRel rowtype",
           equivRel.getRowType(),
           Litmus.THROW);
+      equivRel = ensureRegistered(equivRel, null);
       set = getSet(equivRel);
     }
     return registerImpl(rel, set);
@@ -643,7 +644,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           merge(equivSubset.set, subset.set);
         }
       }
-      result = subset;
+      result = canonize(subset);
     } else {
       result = register(rel, equivRel);
     }
@@ -1024,7 +1025,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       set = set.equivalentSet;
     } while (set.equivalentSet != null);
     return set.getOrCreateSubset(
-        subset.getCluster(), subset.getTraitSet());
+        subset.getCluster(), subset.getTraitSet(), subset.isRequired());
   }
 
   /**
@@ -1331,7 +1332,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       LOGGER.trace("Register #{} {}, and merge sets", subset.getId(), subset);
       merge(set, subset.set);
     }
-    return subset;
+    return canonize(subset);
   }
 
   // implement RelOptPlanner
