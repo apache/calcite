@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -161,6 +162,9 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     }
     public RelNode visit(LogicalFilter filter) {
       return filter;
+    }
+    public RelNode visit(LogicalCalc calc) {
+      return calc;
     }
     public RelNode visit(LogicalProject project) {
       return project;
