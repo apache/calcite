@@ -671,7 +671,7 @@ signing.gnupg.useLegacyGpg=
 
 Before you start:
 
-* Make sure you are using JDK 8.
+* Make sure you are using JDK 8. Note: you need Java 8u202 or later in case you use OpenJDK-based Java.
 * Make sure build and tests succeed with `-Dcalcite.test.db=hsqldb` (the default)
 
 {% highlight bash %}

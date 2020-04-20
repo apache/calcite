@@ -14,10 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package org.apache.calcite.avatica;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+import java.sql.*;
+
+class AvaticaResultSet {
+  AvaticaResultSet(AvaticaStatement statement,
+    @Nullable QueryState state,
+    Meta.Signature signature,
+    ResultSetMetaData resultSetMetaData,
+    TimeZone timeZone,
+    Meta.Frame firstFrame);
 }
