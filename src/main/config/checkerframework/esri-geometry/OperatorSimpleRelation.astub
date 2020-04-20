@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package com.esri.core.geometry;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+interface OperatorSimpleRelation {
+   boolean execute(Geometry inputGeom1, Geometry inputGeom2,
+       SpatialReference sr, @Nullable ProgressTracker progressTracker);
 }

@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package org.apache.calcite.avatica.util;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+enum TimeUnitRange {
+   YEAR;
+   public TimeUnitRange of(TimeUnit startUnit, @Nullable TimeUnit endUnit);
 }

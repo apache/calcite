@@ -14,10 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package org.codehaus.janino;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+class JavaSourceClassLoader {
+  JavaSourceClassLoader(
+    ClassLoader parentClassLoader,
+    File @Nullable [] optionalSourcePath,
+    @Nullable String optionalCharacterEncoding
+  );
+  JavaSourceClassLoader(
+    ClassLoader parentClassLoader,
+    ResourceFinder sourceFinder,
+    @Nullable String optionalCharacterEncoding
+  );
+  protected @Nullable Map<String /*name*/, byte[] /*bytecode*/>generateBytecodes(String name);
 }
