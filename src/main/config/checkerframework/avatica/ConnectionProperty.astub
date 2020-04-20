@@ -14,10 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package org.apache.calcite.avatica;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+interface ConnectionProperty {
+   enum Type {
+     NONE;
+     Class deduceValueClass(@Nullable Object defaultValue, @Nullable Class valueClass);
+     boolean valid(@Nullable Object defaultValue, Class clazz);
+   }
+
+   @Nullable Object defaultValue();
+   @Nullable Class valueClass();
 }

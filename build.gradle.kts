@@ -37,6 +37,7 @@ plugins {
     // Verification
     checkstyle
     calcite.buildext
+    id("org.checkerframework") apply false
     id("com.github.autostyle")
     id("org.nosphere.apache.rat")
     id("com.github.spotbugs")
@@ -65,6 +66,7 @@ val lastEditYear by extra(lastEditYear())
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs")
+val enableCheckerframework by props()
 val enableErrorprone by props()
 val skipCheckstyle by props()
 val skipAutostyle by props()
@@ -454,6 +456,8 @@ allprojects {
                         replace("junit5: Assert.fail", "org.junit.Assert.fail", "org.junit.jupiter.api.Assertions.fail")
                     }
                     replaceRegex("side by side comments", "(\n\\s*+[*]*+/\n)(/[/*])", "\$1\n\$2")
+                    replaceRegex("jsr305 nullable -> checkerframework", "javax\\.annotation\\.Nullable", "org.checkerframework.checker.nullness.qual.Nullable")
+                    replaceRegex("jsr305 nonnull -> checkerframework", "javax\\.annotation\\.Nonnull", "org.checkerframework.checker.nullness.qual.NonNull")
                     importOrder(
                         "org.apache.calcite.",
                         "org.apache.",
@@ -552,6 +556,43 @@ allprojects {
                 }
             }
         }
+        if (enableCheckerframework) {
+            apply(plugin = "org.checkerframework")
+            dependencies {
+                "checkerFramework"("org.checkerframework:checker:${"checkerframework".v}")
+                // CheckerFramework annotations might be used in the code as follows:
+                // dependencies {
+                //     "compileOnly"("org.checkerframework:checker-qual")
+                //     "testCompileOnly"("org.checkerframework:checker-qual")
+                // }
+                if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+                    // only needed for JDK 8
+                    "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8")
+                }
+            }
+            configure<org.checkerframework.gradle.plugin.CheckerFrameworkExtension> {
+                skipVersionCheck = true
+                // See https://checkerframework.org/manual/#introduction
+                checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
+                // Below checkers take significant time and they do not provide much value :-/
+                // checkers.add("org.checkerframework.checker.optional.OptionalChecker")
+                // checkers.add("org.checkerframework.checker.regex.RegexChecker")
+                // https://checkerframework.org/manual/#creating-debugging-options-progress
+                // extraJavacArgs.add("-Afilenames")
+                extraJavacArgs.addAll(listOf("-Xmaxerrs", "10000"))
+                // Consider Java assert statements for nullness and other checks
+                extraJavacArgs.add("-AassumeAssertionsAreEnabled")
+                // https://checkerframework.org/manual/#stub-using
+                extraJavacArgs.add("-Astubs=" +
+                        fileTree("$rootDir/src/main/config/checkerframework") {
+                            include("**/*.astub")
+                        }.asPath
+                )
+                if (project.path == ":core") {
+                    extraJavacArgs.add("-AskipDefs=^org\\.apache\\.calcite\\.sql\\.parser\\.impl\\.")
+                }
+            }
+        }
 
         tasks {
             configureEach<Jar> {
@@ -584,6 +625,9 @@ allprojects {
                 options.compilerArgs.add("-Xlint:deprecation")
                 if (werror) {
                     options.compilerArgs.add("-Werror")
+                }
+                if (enableCheckerframework) {
+                    options.forkOptions.memoryMaximumSize = "2g"
                 }
             }
             configureEach<Test> {

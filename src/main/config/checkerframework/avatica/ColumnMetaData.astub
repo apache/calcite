@@ -14,10 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package org.apache.calcite.avatica;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+class ColumnMetaData {
+   ColumnMetaData(
+      int ordinal,
+      boolean autoIncrement,
+      boolean caseSensitive,
+      boolean searchable,
+      boolean currency,
+      int nullable,
+      boolean signed,
+      int displaySize,
+      String label,
+      @Nullable String columnName,
+      @Nullable String schemaName,
+      int precision,
+      int scale,
+      @Nullable String tableName,
+      @Nullable String catalogName,
+      AvaticaType type,
+      boolean readOnly,
+      boolean writable,
+      boolean definitelyWritable,
+      String columnClassName);
 }

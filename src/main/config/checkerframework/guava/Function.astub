@@ -14,10 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package com.google.common.base;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+/**
+ * Guava has {@code Nullable} argument and return value by default.
+ * Checkerframework cna infer nullability from the actual generic types.
+ * @param <F> argument type
+ * @param <T> return type
+ */
+public interface Function<F, T> {
+   T apply(F input);
 }

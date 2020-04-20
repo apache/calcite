@@ -14,10 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package com.google.common.collect;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import org.checkerframework.checker.nullness.qual.*;
+
+/**
+ * Guava has {@code Nullable} argument and return value by default.
+ * Checkerframework cna infer nullability from the actual generic types.
+ * @param <F> argument type
+ * @param <T> return type
+ */
+public abstract class Ordering<T> {
+   // The Checker Framework can infer nullness from generic itself, so we do not need
+   // "always nullable" from Guava.
+   public abstract int compare(T left, T right);
 }
