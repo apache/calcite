@@ -14,10 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package java.util;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import java.util.function.Supplier;
+import org.checkerframework.checker.nullness.qual.*;
+
+class Objects {
+  /**
+   * The purpose of {@code requireNonNull} is to verify if given argument is non null.
+   * Unfortunately, checkerframework requires non-nullable arguments, so this stub overrides that.
+   * Then we can use {@code requireNonNull} for defensive programming, and the verifier won't
+   * complain.
+   */
+  @EnsuresNonNull("#1")
+  public static <T> @NonNull T requireNonNull(@Nullable T obj);
+  @EnsuresNonNull("#1")
+  public static <T> @NonNull T requireNonNull(@Nullable T obj, String message);
+  @EnsuresNonNull("#1")
+  public static <T> @NonNull T requireNonNull(@Nullable T obj, Supplier<String> messageSupplier);
 }

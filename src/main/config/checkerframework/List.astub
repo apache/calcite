@@ -14,10 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-dependencies {
-    api("org.apiguardian:apiguardian-api")
+package java.util;
 
-    implementation("com.google.guava:guava")
-    implementation("org.apache.calcite.avatica:avatica-core")
-    implementation("org.checkerframework:checker-qual")
+import java.util.function.Supplier;
+import org.checkerframework.checker.nullness.qual.*;
+
+interface List<E> {
+  boolean contains(@Nullable Object o);
+  boolean remove(@Nullable Object o);
+  int indexOf(@Nullable Object o);
+  int lastIndexOf(@Nullable Object o);
 }
