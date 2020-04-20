@@ -8644,19 +8644,26 @@ public class SqlParserTest {
   }
 
   @Test void testQueryHint() {
-    final String sql = "select "
+    final String sql1 = "select "
         + "/*+ properties(k1='v1', k2='v2', 'a.b.c'='v3'), "
         + "no_hash_join, Index(idx1, idx2), "
         + "repartition(3) */ "
         + "empno, ename, deptno from emps";
-    final String expected = "SELECT\n"
+    final String expected1 = "SELECT\n"
         + "/*+ `PROPERTIES`(`K1` = 'v1', `K2` = 'v2', 'a.b.c' = 'v3'), "
         + "`NO_HASH_JOIN`, "
         + "`INDEX`(`IDX1`, `IDX2`), "
         + "`REPARTITION`(3) */\n"
         + "`EMPNO`, `ENAME`, `DEPTNO`\n"
         + "FROM `EMPS`";
-    sql(sql).ok(expected);
+    sql(sql1).ok(expected1);
+    // Hint item right after the token "/*+"
+    final String sql2 = "select /*+properties(k1='v1', k2='v2')*/ empno from emps";
+    final String expected2 = "SELECT\n"
+        + "/*+ `PROPERTIES`(`K1` = 'v1', `K2` = 'v2') */\n"
+        + "`EMPNO`\n"
+        + "FROM `EMPS`";
+    sql(sql2).ok(expected2);
   }
 
   @Test void testTableHintsInQuery() {
