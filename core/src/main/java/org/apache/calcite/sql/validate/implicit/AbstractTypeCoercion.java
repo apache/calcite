@@ -70,10 +70,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
 
   //~ Constructors -----------------------------------------------------------
 
-  AbstractTypeCoercion(SqlValidator validator) {
-    Objects.requireNonNull(validator);
-    this.validator = validator;
-    this.factory = validator.getTypeFactory();
+  AbstractTypeCoercion(RelDataTypeFactory typeFactory, SqlValidator validator) {
+    this.factory = Objects.requireNonNull(typeFactory);
+    this.validator = Objects.requireNonNull(validator);
   }
 
   //~ Methods ----------------------------------------------------------------

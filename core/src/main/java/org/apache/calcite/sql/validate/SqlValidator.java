@@ -44,6 +44,8 @@ import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.type.SqlTypeCoercionRule;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
+import org.apache.calcite.sql.validate.implicit.TypeCoercionFactory;
+import org.apache.calcite.sql.validate.implicit.TypeCoercions;
 import org.apache.calcite.util.ImmutableBeans;
 
 import org.apiguardian.api.API;
@@ -868,7 +870,10 @@ public interface SqlValidator {
    * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
    *
    * @param typeCoercion {@link TypeCoercion} instance
+   *
+   * @deprecated Use {@link Config#withTypeCoercionFactory}
    */
+  @Deprecated // to be removed before 1.24
   void setTypeCoercion(TypeCoercion typeCoercion);
 
   /** Get the type coercion instance. */
@@ -884,7 +889,10 @@ public interface SqlValidator {
    *
    * @param typeCoercionRules The {@link SqlTypeCoercionRule} instance, see its documentation
    *                          for how to customize the rules.
+   *
+   * @deprecated Use {@link Config#withTypeCoercionRules}
    */
+  @Deprecated // to be removed before 1.24
   void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules);
 
   /** Returns the config of the validator. */
@@ -908,7 +916,8 @@ public interface SqlValidator {
    */
   public interface Config {
     /** Default configuration. */
-    SqlValidator.Config DEFAULT = ImmutableBeans.create(Config.class);
+    SqlValidator.Config DEFAULT = ImmutableBeans.create(Config.class)
+        .withTypeCoercionFactory(TypeCoercions::createTypeCoercion);
 
     /**
      * Returns whether to enable rewrite of "macro-like" calls such as COALESCE.
@@ -1000,6 +1009,35 @@ public interface SqlValidator {
      * @see org.apache.calcite.sql.validate.implicit.TypeCoercionImpl TypeCoercionImpl
      */
     Config withTypeCoercionEnabled(boolean enabled);
+
+    /** Returns the type coercion factory. */
+    @ImmutableBeans.Property
+    TypeCoercionFactory typeCoercionFactory();
+
+    /**
+     * Sets a factory to create type coercion instance that overrides the
+     * default coercion rules defined in
+     * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
+     *
+     * @param factory Factory to create {@link TypeCoercion} instance
+     */
+    Config withTypeCoercionFactory(TypeCoercionFactory factory);
+
+    /** Returns the type coercion rules for explicit type coercion. */
+    @ImmutableBeans.Property
+    SqlTypeCoercionRule typeCoercionRules();
+
+    /**
+     * Sets the {@link SqlTypeCoercionRule} instance which defines the type conversion matrix
+     * for the explicit type coercion.
+     *
+     * <p>The {@code rules} setting should be thread safe. In the default implementation,
+     * it is set to a ThreadLocal variable.
+     *
+     * @param rules The {@link SqlTypeCoercionRule} instance,
+     *              see its documentation for how to customize the rules
+     */
+    Config withTypeCoercionRules(SqlTypeCoercionRule rules);
 
     /** Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
      * Default is {@link SqlConformanceEnum#DEFAULT}. */

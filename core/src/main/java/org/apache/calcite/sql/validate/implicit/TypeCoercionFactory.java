@@ -19,15 +19,26 @@ package org.apache.calcite.sql.validate.implicit;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.validate.SqlValidator;
 
-/**
- * Factory class for type coercion instantiation of different sql dialects.
- */
-public class TypeCoercions {
-  private TypeCoercions() {}
+import org.apiguardian.api.API;
 
-  /** Creates a default type coercion instance. */
-  public static TypeCoercion createTypeCoercion(RelDataTypeFactory typeFactory,
-      SqlValidator validator) {
-    return new TypeCoercionImpl(typeFactory, validator);
-  }
+/** Factory for {@link TypeCoercion} objects.
+ *
+ * <p>A type coercion factory allows you to include custom rules of
+ * implicit type coercion. Usually you should inherit the {@link TypeCoercionImpl}
+ * and override the methods that you want to customize.
+ *
+ * <p>This interface is experimental and would change without notice.
+ *
+ * @see SqlValidator.Config#withTypeCoercionFactory
+ */
+@API(status = API.Status.EXPERIMENTAL, since = "1.23")
+public interface TypeCoercionFactory {
+
+  /**
+   * Creates a TypeCoercion.
+   *
+   * @param typeFactory Type factory
+   * @param validator   SQL validator
+   */
+  TypeCoercion create(RelDataTypeFactory typeFactory, SqlValidator validator);
 }
