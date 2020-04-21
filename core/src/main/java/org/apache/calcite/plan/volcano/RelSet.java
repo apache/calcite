@@ -435,7 +435,9 @@ class RelSet {
     }
     // Fire rule match on subsets as well
     for (RelSubset subset : subsets) {
-      planner.fireRules(subset);
+      if (subset.isDerived()) {
+        planner.fireRules(subset);
+      }
     }
   }
 }
