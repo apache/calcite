@@ -2750,27 +2750,4 @@ public class RexUtil {
       return simplify.rexBuilder.makeCast(call.getType(), simplifiedNode, matchNullability);
     }
   }
-
-  /**
-   * Utility to fix the inconsistencies of nullable/non-nullable types.
-   */
-  public static class RexInputRefNullabilityFixer extends RexShuttle {
-
-    private final RexBuilder rexBuilder;
-
-    private final RelDataType desiredTypes;
-
-    public RexInputRefNullabilityFixer(RexBuilder rexBuilder, RelDataType desiredTypes) {
-      this.rexBuilder = rexBuilder;
-      this.desiredTypes = desiredTypes;
-    }
-
-    @Override public RexNode visitInputRef(RexInputRef inputRef) {
-      RelDataType desiredType = desiredTypes.getFieldList().get(inputRef.index).getType();
-      if (inputRef.getType().isNullable() != desiredType.isNullable()) {
-        return rexBuilder.makeInputRef(desiredType, inputRef.index);
-      }
-      return inputRef;
-    }
-  }
 }

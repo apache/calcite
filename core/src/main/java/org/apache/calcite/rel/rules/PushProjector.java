@@ -25,6 +25,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.SetOp;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -549,9 +551,11 @@ public class PushProjector {
         newExpr = projExpr;
       }
 
-      RexUtil.RexInputRefNullabilityFixer fixer =
-          new RexUtil.RexInputRefNullabilityFixer(
-              projChild.getCluster().getRexBuilder(), projChild.getRowType());
+      List<RelDataType> typeList = projChild.getRowType().getFieldList()
+          .stream().map(field -> field.getType()).collect(Collectors.toList());
+      RexUtil.FixNullabilityShuttle fixer =
+          new RexUtil.FixNullabilityShuttle(
+              projChild.getCluster().getRexBuilder(), typeList);
       newExpr = newExpr.accept(fixer);
 
       newProjects.add(
