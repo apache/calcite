@@ -300,7 +300,6 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         SqlCollation collation1 = type.getCollation();
         SqlCollation collation2 = resultType.getCollation();
 
-        // TODO:  refine collation combination rules
         final int precision =
             SqlTypeUtil.maxPrecision(resultType.getPrecision(),
                 type.getPrecision());
@@ -338,6 +337,10 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
                   precision);
         }
         Charset charset = null;
+        // TODO:  refine collation combination rules
+        SqlCollation collation0 = collation1 != null && collation2 != null
+            ? SqlCollation.getCoercibilityDyadicOperator(collation1, collation2)
+            : null;
         SqlCollation collation = null;
         if ((charset1 != null) || (charset2 != null)) {
           if (charset1 == null) {
@@ -362,7 +365,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               createTypeWithCharsetAndCollation(
                   resultType,
                   charset,
-                  collation);
+                  collation0 != null ? collation0 : collation);
         }
       } else if (SqlTypeUtil.isExactNumeric(type)) {
         if (SqlTypeUtil.isExactNumeric(resultType)) {

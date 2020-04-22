@@ -438,6 +438,32 @@ public abstract class Functions {
   }
 
   /**
+   * Returns a {@link Comparator} that handles null values.
+   *
+   * @param nullsFirst Whether nulls come before all other values
+   * @param reverse Whether to reverse the usual order of {@link Comparable}s
+   * @param comparator Comparator to be used for comparison
+   */
+  @SuppressWarnings("unchecked")
+  public static <T extends Comparable<T>> Comparator<T> nullsComparator(
+      boolean nullsFirst,
+      boolean reverse,
+      Comparator<T> comparator) {
+    return (T o1, T o2) -> {
+      if (o1 == o2) {
+        return 0;
+      }
+      if (o1 == null) {
+        return nullsFirst ? -1 : 1;
+      }
+      if (o2 == null) {
+        return nullsFirst ? 1 : -1;
+      }
+      return reverse ? -comparator.compare(o1, o2) : comparator.compare(o1, o2);
+    };
+  }
+
+  /**
    * Returns an {@link EqualityComparer} that uses object identity and hash
    * code.
    */

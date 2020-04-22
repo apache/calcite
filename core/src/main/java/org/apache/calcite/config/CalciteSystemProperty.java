@@ -288,12 +288,14 @@ public final class CalciteSystemProperty<T> {
 
   /**
    * The strength of the default collation.
+   * Allowed values (as defined in {@link java.text.Collator}) are: primary, secondary,
+   * tertiary, identical.
    *
    * <p>It is used in {@link org.apache.calcite.sql.SqlCollation} and
    * {@link org.apache.calcite.sql.SqlLiteral#SqlLiteral}.</p>
    */
   // TODO review zabetak:
-  // What are the allowed values? What happens if a wrong value is specified?
+  // What happens if a wrong value is specified?
   public static final CalciteSystemProperty<String> DEFAULT_COLLATION_STRENGTH =
       stringProperty("calcite.default.collation.strength", "primary");
 

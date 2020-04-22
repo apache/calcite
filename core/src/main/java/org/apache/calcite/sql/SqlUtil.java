@@ -915,13 +915,13 @@ public abstract class SqlUtil {
       return "Big5";
     case "LATIN1":
       return "ISO-8859-1";
-    case "GB2312":
-    case "GBK":
-      return name;
     case "UTF8":
       return "UTF-8";
     case "UTF16":
+    case "UTF-16":
       return ConversionUtil.NATIVE_UTF16_CHARSET_NAME;
+    case "GB2312":
+    case "GBK":
     case "UTF-16BE":
     case "UTF-16LE":
     case "ISO-8859-1":
