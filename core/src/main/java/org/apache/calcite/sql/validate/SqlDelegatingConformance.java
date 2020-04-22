@@ -73,6 +73,10 @@ public class SqlDelegatingConformance extends SqlAbstractConformance {
     return delegate.allowNiladicParentheses();
   }
 
+  @Override public boolean allowIsTrue() {
+    return delegate.allowIsTrue();
+  }
+
 }
 
 // End SqlDelegatingConformance.java

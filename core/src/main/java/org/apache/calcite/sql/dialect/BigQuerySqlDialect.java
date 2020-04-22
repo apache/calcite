@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.fun.SqlCollectionTableOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.CurrentTimestampHandler;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -233,15 +234,37 @@ public class BigQuerySqlDialect extends SqlDialect {
   }
 
   @Override public SqlOperator getTargetFunc(RexCall call) {
-    switch (call.type.getSqlTypeName()) {
-    case DATE:
-      switch (call.getOperands().get(1).getType().getSqlTypeName()) {
-      case INTERVAL_DAY:
-      case INTERVAL_MONTH:
-        if (call.op.kind == SqlKind.MINUS) {
-          return SqlLibraryOperators.DATE_SUB;
+    switch (call.getOperator().kind) {
+    case PLUS:
+    case MINUS:
+      switch (call.type.getSqlTypeName()) {
+      case DATE:
+        switch (call.getOperands().get(1).getType().getSqlTypeName()) {
+        case INTERVAL_DAY:
+        case INTERVAL_MONTH:
+          if (call.op.kind == SqlKind.MINUS) {
+            return SqlLibraryOperators.DATE_SUB;
+          }
+          return SqlLibraryOperators.DATE_ADD;
         }
-        return SqlLibraryOperators.DATE_ADD;
+      default:
+        return super.getTargetFunc(call);
+      }
+    case IS_NOT_TRUE:
+      if (call.getOperands().get(0).getKind() == SqlKind.EQUALS) {
+        return SqlStdOperatorTable.NOT_EQUALS;
+      } else if (call.getOperands().get(0).getKind() == SqlKind.NOT_EQUALS) {
+        return SqlStdOperatorTable.EQUALS;
+      } else {
+        return super.getTargetFunc(call);
+      }
+    case IS_TRUE:
+      if (call.getOperands().get(0).getKind() == SqlKind.EQUALS) {
+        return SqlStdOperatorTable.EQUALS;
+      } else if (call.getOperands().get(0).getKind() == SqlKind.NOT_EQUALS) {
+        return SqlStdOperatorTable.NOT_EQUALS;
+      } else {
+        return super.getTargetFunc(call);
       }
     default:
       return super.getTargetFunc(call);

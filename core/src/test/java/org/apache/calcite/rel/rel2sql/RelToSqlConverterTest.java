@@ -6030,6 +6030,17 @@ public class RelToSqlConverterTest {
             + "GROUP BY \"employee_id\", \"full_name\")), 'NAME'))";
     sql(query).ok(expected);
   }
+
+  @Test public void testIsNotTrueWithEqualCondition() {
+    final String query = "select \"product_name\" from \"product\" where "
+        + "\"product_name\" = 'Hello World' is not true";
+    final String bigQueryExpected = "SELECT product_name\n"
+        + "FROM foodmart.product\n"
+        + "WHERE product_name <> 'Hello World'";
+    sql(query)
+        .withBigQuery()
+        .ok(bigQueryExpected);
+  }
 }
 
 // End RelToSqlConverterTest.java

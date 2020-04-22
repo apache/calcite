@@ -320,6 +320,15 @@ public enum SqlConformanceEnum implements SqlConformance {
     }
   }
 
+  public boolean allowIsTrue() {
+
+    switch (this) {
+    case BIG_QUERY:
+      return false;
+    default:
+      return true;
+    }
+  }
 }
 
 // End SqlConformanceEnum.java

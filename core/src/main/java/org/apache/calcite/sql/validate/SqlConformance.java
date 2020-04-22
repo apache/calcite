@@ -395,6 +395,12 @@ public interface SqlConformance {
    * false otherwise.
    */
   boolean allowExtendedTrim();
+
+  /**
+   * Whether the Is True is allowed in
+   * the parser.
+   */
+  boolean allowIsTrue();
 }
 
 // End SqlConformance.java
