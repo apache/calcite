@@ -563,7 +563,7 @@ public final class SqlParserUtil {
           CalciteSystemProperty.DEFAULT_COLLATION_STRENGTH.value();
     }
 
-    Charset charset = Charset.forName(charsetStr);
+    Charset charset = SqlUtil.getCharset(charsetStr);
     String[] localeParts = localeStr.split("_");
     Locale locale;
     if (1 == localeParts.length) {

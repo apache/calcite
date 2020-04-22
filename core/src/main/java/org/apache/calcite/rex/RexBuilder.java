@@ -919,9 +919,12 @@ public class RexBuilder {
       // from the type if necessary.
       assert o instanceof NlsString;
       NlsString nlsString = (NlsString) o;
-      if ((nlsString.getCollation() == null)
-          || (nlsString.getCharset() == null)) {
-        assert type.getSqlTypeName() == SqlTypeName.CHAR;
+      if (nlsString.getCollation() == null
+          || nlsString.getCharset() == null
+          || !nlsString.getCharset().equals(type.getCharset())
+          || !nlsString.getCollation().equals(type.getCollation())) {
+        assert type.getSqlTypeName() == SqlTypeName.CHAR
+            || type.getSqlTypeName() == SqlTypeName.VARCHAR;
         assert type.getCharset().name() != null;
         assert type.getCollation() != null;
         o = new NlsString(
