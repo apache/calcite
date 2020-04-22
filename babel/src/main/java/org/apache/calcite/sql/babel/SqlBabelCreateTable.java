@@ -14,48 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.sql.ddl;
+package org.apache.calcite.sql.babel;
 
-import org.apache.calcite.sql.SqlCreate;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.SqlWriter;
+import org.apache.calcite.sql.ddl.SqlCreateTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.ImmutableNullableList;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
- * Parse tree for {@code CREATE TABLE} statement.
+ * Parse tree for {@code CREATE TABLE} statement, with extensions for particular
+ * SQL dialects supported by Babel.
  */
-public class SqlCreateTable extends SqlCreate {
-  public final SqlIdentifier name;
-  public final SqlNodeList columnList;
-  public final SqlNode query;
+public class SqlBabelCreateTable extends SqlCreateTable {
+  private final TableCollectionType tableCollectionType;
+  // CHECKSTYLE: IGNORE 2; can't use 'volatile' because it is a Java keyword
+  // but checkstyle does not like trailing '_'.
+  private final boolean volatile_;
 
-  private static final SqlOperator OPERATOR =
-      new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
-
-  /** Creates a SqlCreateTable. */
-  protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, SqlNodeList columnList, SqlNode query) {
-    super(OPERATOR, pos, replace, ifNotExists);
-    this.name = Objects.requireNonNull(name);
-    this.columnList = columnList; // may be null
-    this.query = query; // for "CREATE TABLE ... AS query"; may be null
-  }
-
-  public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(name, columnList, query);
+  /** Creates a SqlBabelCreateTable. */
+  public SqlBabelCreateTable(SqlParserPos pos, boolean replace,
+      TableCollectionType tableCollectionType, boolean volatile_,
+      boolean ifNotExists, SqlIdentifier name, SqlNodeList columnList,
+      SqlNode query) {
+    super(pos, replace, ifNotExists, name, columnList, query);
+    this.tableCollectionType = tableCollectionType;
+    this.volatile_ = volatile_;
   }
 
   @Override public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
     writer.keyword("CREATE");
+    switch (tableCollectionType) {
+    case SET:
+      writer.keyword("SET");
+      break;
+    case MULTISET:
+      writer.keyword("MULTISET");
+      break;
+    default:
+      break;
+    }
+    if (volatile_) {
+      writer.keyword("VOLATILE");
+    }
     writer.keyword("TABLE");
     if (ifNotExists) {
       writer.keyword("IF NOT EXISTS");

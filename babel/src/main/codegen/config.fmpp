@@ -21,11 +21,17 @@ data: {
 
     # List of import statements.
     imports: [
+      "org.apache.calcite.sql.SqlCreate",
+      "org.apache.calcite.sql.babel.SqlBabelCreateTable",
+      "org.apache.calcite.sql.babel.TableCollectionType",
+      "org.apache.calcite.sql.ddl.SqlDdlNodes",
     ]
 
     # List of keywords.
     keywords: [
+      "IF"
       "SEMI"
+      "VOLATILE"
     ]
 
     # List of keywords from "keywords" section that are not reserved.
@@ -861,6 +867,7 @@ data: {
     # List of methods for parsing extensions to "CREATE [OR REPLACE]" calls.
     # Each must accept arguments "(SqlParserPos pos, boolean replace)".
     createStatementParserMethods: [
+      "SqlCreateTable"
     ]
 
     # List of methods for parsing extensions to "DROP" calls.
