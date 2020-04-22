@@ -69,6 +69,101 @@ SqlNode DateaddFunctionCall() :
     }
 }
 
+boolean IfNotExistsOpt() :
+{
+}
+{
+    <IF> <NOT> <EXISTS> { return true; }
+|
+    { return false; }
+}
+
+SetType SetTypeOpt() :
+{
+}
+{
+    <MULTISET> { return SetType.MULTISET; }
+|
+    <SET> { return SetType.SET; }
+|
+    { return SetType.UNSPECIFIED; }
+}
+
+boolean IsVolatileOpt() :
+{
+}
+{
+    <VOLATILE> { return true; }
+|
+    { return false; }
+}
+
+SqlNodeList ExtendColumnList() :
+{
+    final Span s;
+    List<SqlNode> list = new ArrayList<SqlNode>();
+}
+{
+    <LPAREN> { s = span(); }
+    ColumnWithType(list)
+    (
+        <COMMA> ColumnWithType(list)
+    )*
+    <RPAREN> {
+        return new SqlNodeList(list, s.end(this));
+    }
+}
+
+void ColumnWithType(List<SqlNode> list) :
+{
+    SqlIdentifier id;
+    SqlDataTypeSpec type;
+    boolean nullable = true;
+    final Span s = Span.of();
+}
+{
+    id = CompoundIdentifier()
+    type = DataType()
+    [
+        <NOT> <NULL> {
+            nullable = false;
+        }
+    ]
+    {
+        list.add(SqlDdlNodes.column(s.add(id).end(this), id, type.withNullable(nullable),
+            null, null));
+    }
+}
+
+SqlCreate SqlCreateTable(Span s, boolean replace) :
+{
+    final SetType setType;
+    final boolean isVolatile;
+    final boolean ifNotExists;
+    final SqlIdentifier id;
+    final SqlNodeList columnList;
+    final SqlNode query;
+}
+{
+    setType = SetTypeOpt() isVolatile = IsVolatileOpt() <TABLE>
+    ifNotExists = IfNotExistsOpt() id = CompoundIdentifier()
+    (
+        columnList = ExtendColumnList()
+    |
+        { columnList = null; }
+    )
+    (
+        <AS> query = OrderedQueryOrExpr(ExprContext.ACCEPT_QUERY)
+    |
+        { query = null; }
+    )
+    {
+        return new SqlCreateTable(s.end(this), replace, setType, isVolatile, ifNotExists,
+            id, columnList, query);
+    }
+}
+
+
 /* Extra operators */
 
 <DEFAULT, DQID, BTID> TOKEN :
