@@ -51,18 +51,19 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   //~ Instance fields --------------------------------------------------------
 
   /**
-   * Global cache for Key to RelDataType. Uses soft values to allow GC.
+   * Local cache for Key to RelDataType. Uses soft values to allow GC.
    */
-  private static final LoadingCache<Key, RelDataType> KEY2TYPE_CACHE =
+  private final LoadingCache<Key, RelDataType> KEY2TYPE_CACHE =
       CacheBuilder.newBuilder()
           .softValues()
           .build(CacheLoader.from(RelDataTypeFactoryImpl::keyToType));
 
   /**
-   * Global cache for RelDataType.
+   * Local cache for RelDataType, use strong interner for performance.
+   * The cache will be hold until the query is finished.
    */
-  private static final Interner<RelDataType> DATATYPE_CACHE =
-      Interners.newWeakInterner();
+  private final Interner<RelDataType> DATATYPE_CACHE =
+      Interners.newStrongInterner();
 
   private static RelDataType keyToType(@Nonnull Key key) {
     final ImmutableList.Builder<RelDataTypeField> list =
