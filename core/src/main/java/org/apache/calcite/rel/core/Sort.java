@@ -143,6 +143,14 @@ public abstract class Sort extends SingleRel {
     return fieldExps;
   }
 
+  public RexNode getFetch() {
+    return fetch;
+  }
+
+  public RexNode getOffset() {
+    return offset;
+  }
+
   public RelNode accept(RexShuttle shuttle) {
     RexNode offset = shuttle.apply(this.offset);
     RexNode fetch = shuttle.apply(this.fetch);

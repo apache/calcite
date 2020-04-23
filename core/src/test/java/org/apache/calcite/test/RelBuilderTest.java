@@ -2826,6 +2826,43 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
+  @Test void testSortLimitRemoval() {
+    // Equivalent SQL:
+    //   SELECT count(*)
+    //   FROM emp
+    //   FETCH 10
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(),
+                builder.count(false, "C", builder.field("DEPTNO")))
+            .limit(-1, 10)
+            .build();
+    final String expected =
+        "LogicalAggregate(group=[{}], C=[COUNT($7)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSortLimitWithOffsetRemoval() {
+    // Equivalent SQL:
+    //   SELECT count(*)
+    //   FROM emp
+    //   FETCH 1 OFFSET 1
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .aggregate(builder.groupKey(),
+                builder.count(false, "C", builder.field("DEPTNO")))
+            .limit(1, 1)
+            .build();
+    final String expected =
+        "LogicalSort(offset=[1], fetch=[1])\n"
+            + "  LogicalAggregate(group=[{}], C=[COUNT($7)])\n"
+                + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
   @Test void testSortLimit0() {
     // Equivalent SQL:
     //   SELECT *

@@ -120,6 +120,7 @@ import org.apache.calcite.rel.rules.SortJoinCopyRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortProjectTransposeRule;
 import org.apache.calcite.rel.rules.SortRemoveConstantKeysRule;
+import org.apache.calcite.rel.rules.SortRemoveRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.rules.SubQueryRemoveRule;
 import org.apache.calcite.rel.rules.UnionMergeRule;
@@ -1008,6 +1009,50 @@ class RelOptRulesTest extends RelOptTestBase {
         + "select b.name from dept b\n"
         + "order by name limit 0";
     sql(sql).with(program).check();
+  }
+
+  @Test void testSortRemoveRowCountBased() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortRemoveRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "limit 10";
+    sql(sql).with(program).check();
+  }
+
+  @Test void testSortRemoveRowCountBasedZeroLimit() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortRemoveRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "limit 0";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  @Test void testSortRemoveRowCountBasedLimitWithOffset() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortRemoveRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "limit 10 offset 1";
+    sql(sql).with(program).checkUnchanged();
+  }
+
+  @Test void testSortRemoveRowCountBasedWithOffsetOnly() {
+    final HepProgram program = new HepProgramBuilder()
+        .addRuleInstance(SortRemoveRule.INSTANCE)
+        .build();
+    final String sql = "select count(*) as c\n"
+        + "from sales.emp\n"
+        + "where deptno = 10\n"
+        + "offset 1";
+    sql(sql).with(program).checkUnchanged();
   }
 
   @Test void testSortRemovalAllKeysConstant() {

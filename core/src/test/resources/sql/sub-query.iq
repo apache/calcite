@@ -792,11 +792,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project literal IN null non-correlated
@@ -864,11 +862,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project null IN required
@@ -900,11 +896,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project null IN nullable
@@ -936,11 +930,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project literal IN required
@@ -1042,11 +1034,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project literal NOT IN null non-correlated
@@ -1114,11 +1104,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project null NOT IN required
@@ -1150,11 +1138,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project null NOT IN nullable
@@ -1186,11 +1172,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[null:BOOLEAN
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test project literal NOT IN required
@@ -1292,11 +1276,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null IN null
@@ -1444,11 +1426,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[false], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN null non-correlated
@@ -1486,11 +1466,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null NOT IN required
@@ -1507,11 +1485,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter null NOT IN nullable
@@ -1528,11 +1504,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], SAL=[$t1], $conditio
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN required
@@ -1549,11 +1523,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[IS NULL($t3)], expr#5=[NOT($t2)], e
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], expr#4=[10], expr#5=[=($t4, $t0)], cs=[$t3], $condition=[$t5])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 # Test filter literal NOT IN nullable
@@ -1605,11 +1577,9 @@ EnumerableCalc(expr#0..3=[{inputs}], expr#4=[null:BOOLEAN], expr#5=[IS NOT NULL(
   EnumerableNestedLoopJoin(condition=[true], joinType=[left])
     EnumerableCalc(expr#0..7=[{inputs}], EMPNO=[$t0], SAL=[$t5])
       EnumerableTableScan(table=[[scott, EMP]])
-    EnumerableLimit(fetch=[1])
-      EnumerableSort(sort0=[$0], dir0=[DESC])
-        EnumerableAggregate(group=[{0}], c=[COUNT()])
-          EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
-            EnumerableTableScan(table=[[scott, DEPT]])
+    EnumerableAggregate(group=[{0}], c=[COUNT()])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[true], cs=[$t3])
+        EnumerableTableScan(table=[[scott, DEPT]])
 !plan
 
 #-------------------------------
