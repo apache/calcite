@@ -46,6 +46,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
 import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
@@ -655,6 +656,22 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (fun.getFunctionType() == SqlFunctionCategory.USER_DEFINED_CONSTRUCTOR) {
       return makeConstructorCall(cx, fun, exprs);
     }
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    if (returnType == null) {
+      returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
+    }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertWindowFunction(
+      SqlRexContext cx,
+      SqlWindowTableFunction fun,
+      SqlCall call) {
+    // The first operand of window function is actually a query, skip that.
+    final List<SqlNode> operands = Util.skip(call.getOperandList(), 1);
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
     RelDataType returnType =
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
     if (returnType == null) {
