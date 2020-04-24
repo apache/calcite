@@ -2601,13 +2601,13 @@ public class RexUtil {
     @Override public RexNode visitInputRef(RexInputRef ref) {
       final RelDataType rightType = typeList.get(ref.getIndex());
       final RelDataType refType = ref.getType();
-      if (refType == rightType) {
+      if (refType.equals(rightType)) {
         return ref;
       }
       final RelDataType refType2 =
           rexBuilder.getTypeFactory().createTypeWithNullability(refType,
               rightType.isNullable());
-      if (refType2 == rightType) {
+      if (refType2.equals(rightType)) {
         return new RexInputRef(ref.getIndex(), refType2);
       }
       throw new AssertionError("mismatched type " + ref + " " + rightType);

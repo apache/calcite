@@ -63,7 +63,7 @@ public class RexLocalRef extends RexSlot {
   public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexLocalRef
-        && this.type == ((RexLocalRef) obj).type
+        && Objects.equals(this.type, ((RexLocalRef) obj).type)
         && this.index == ((RexLocalRef) obj).index;
   }
 

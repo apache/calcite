@@ -820,7 +820,7 @@ public abstract class SqlTypeUtil {
       RelDataType toType,
       RelDataType fromType,
       boolean coerce) {
-    if (toType == fromType) {
+    if (toType.equals(fromType)) {
       return true;
     }
     if (isAny(toType) || isAny(fromType)) {
