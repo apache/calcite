@@ -57,30 +57,19 @@ public class RelOptCostImpl implements RelOptCost {
     return Double.isInfinite(value);
   }
 
-  // implement RelOptCost
-  public boolean isLe(RelOptCost other) {
-    return getRows() <= other.getRows();
-  }
-
-  // implement RelOptCost
-  public boolean isLt(RelOptCost other) {
-    return getRows() < other.getRows();
-  }
-
   @Override public int hashCode() {
     return Double.hashCode(getRows());
   }
 
-  // implement RelOptCost
-  public boolean equals(RelOptCost other) {
-    return getRows() == other.getRows();
-  }
-
   @Override public boolean equals(Object obj) {
     if (obj instanceof RelOptCostImpl) {
-      return equals((RelOptCost) obj);
+      return getRows() == ((RelOptCostImpl) obj).getRows();
     }
     return false;
+  }
+
+  @Override public int compareTo(RelOptCost other) {
+    return Double.compare(this.getRows(), other.getRows());
   }
 
   // implement RelOptCost

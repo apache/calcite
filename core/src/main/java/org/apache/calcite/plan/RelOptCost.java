@@ -26,7 +26,7 @@ package org.apache.calcite.plan;
  * Optimizers which supply their own cost models may also extend this interface
  * with additional cost metrics such as memory usage.
  */
-public interface RelOptCost {
+public interface RelOptCost extends Comparable<RelOptCost> {
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -63,7 +63,10 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
-  boolean equals(RelOptCost cost);
+  @Deprecated
+  default boolean equals(RelOptCost cost) {
+    return this.compareTo(cost) == 0;
+  }
 
   /**
    * Compares this to another cost, allowing for slight roundoff errors.
@@ -80,7 +83,10 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is less than or equal to other cost
    */
-  boolean isLe(RelOptCost cost);
+  @Deprecated
+  default boolean isLe(RelOptCost cost) {
+    return this.compareTo(cost) <= 0;
+  }
 
   /**
    * Compares this to another cost.
@@ -88,7 +94,10 @@ public interface RelOptCost {
    * @param cost another cost
    * @return true iff this is strictly less than other cost
    */
-  boolean isLt(RelOptCost cost);
+  @Deprecated
+  default boolean isLt(RelOptCost cost) {
+    return this.compareTo(cost) < 0;
+  }
 
   /**
    * Adds another cost to this.

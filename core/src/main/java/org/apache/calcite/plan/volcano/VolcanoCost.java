@@ -95,26 +95,6 @@ class VolcanoCost implements RelOptCost {
     return io;
   }
 
-  public boolean isLe(RelOptCost other) {
-    VolcanoCost that = (VolcanoCost) other;
-    if (true) {
-      return this == that
-          || this.rowCount <= that.rowCount;
-    }
-    return (this == that)
-        || ((this.rowCount <= that.rowCount)
-        && (this.cpu <= that.cpu)
-        && (this.io <= that.io));
-  }
-
-  public boolean isLt(RelOptCost other) {
-    if (true) {
-      VolcanoCost that = (VolcanoCost) other;
-      return this.rowCount < that.rowCount;
-    }
-    return isLe(other) && !equals(other);
-  }
-
   public double getRows() {
     return rowCount;
   }
@@ -123,19 +103,18 @@ class VolcanoCost implements RelOptCost {
     return Objects.hash(rowCount, cpu, io);
   }
 
-  public boolean equals(RelOptCost other) {
-    return this == other
-        || other instanceof VolcanoCost
-        && (this.rowCount == ((VolcanoCost) other).rowCount)
-        && (this.cpu == ((VolcanoCost) other).cpu)
-        && (this.io == ((VolcanoCost) other).io);
-  }
-
   @Override public boolean equals(Object obj) {
     if (obj instanceof VolcanoCost) {
-      return equals((VolcanoCost) obj);
+      return (this.rowCount == ((VolcanoCost) obj).rowCount)
+          && (this.cpu == ((VolcanoCost) obj).cpu)
+          && (this.io == ((VolcanoCost) obj).io);
     }
     return false;
+  }
+
+  @Override public int compareTo(RelOptCost other) {
+    VolcanoCost that = (VolcanoCost) other;
+    return Double.compare(this.rowCount, that.rowCount);
   }
 
   public boolean isEqWithEpsilon(RelOptCost other) {
