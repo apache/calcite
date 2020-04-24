@@ -3129,8 +3129,10 @@ public class RexImpTable {
     @Override public Expression implement(RexToLixTranslator translator,
         Expression inputEnumerable,
         RexCall call, PhysType inputPhysType, PhysType outputPhysType) {
-      Expression intervalExpression = translator.translate(call.getOperands().get(2));
-      RexCall descriptor = (RexCall) call.getOperands().get(1);
+      // The table operand is removed from the RexCall because it
+      // represents the input, see StandardConvertletTable#convertWindowFunction.
+      Expression intervalExpression = translator.translate(call.getOperands().get(1));
+      RexCall descriptor = (RexCall) call.getOperands().get(0);
       List<Expression> translatedOperands = new ArrayList<>();
       final ParameterExpression parameter =
           Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()), "_input");
