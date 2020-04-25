@@ -56,10 +56,6 @@ public class SparkSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override protected boolean allowsAs() {
-    return false;
-  }
-
   @Override public boolean supportsCharSet() {
     return false;
   }

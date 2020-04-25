@@ -109,10 +109,6 @@ public class OracleSqlDialect extends SqlDialect {
         SqlParserPos.ZERO);
   }
 
-  @Override protected boolean allowsAs() {
-    return false;
-  }
-
   @Override public boolean supportsAliasedValues() {
     return false;
   }

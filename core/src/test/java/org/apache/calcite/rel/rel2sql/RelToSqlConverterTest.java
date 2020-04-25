@@ -4932,6 +4932,17 @@ class RelToSqlConverterTest {
         .ok(expectedBiqquery);
   }
 
+  @Test void testSupportAs() {
+    final String query = "select \"employee_id\" as \"empid\" "
+        + "from \"foodmart\".\"employee\" ";
+    final String oracleQuery = "SELECT \"employee_id\" AS \"empid\"\n"
+        + "FROM \"foodmart\".\"employee\"";
+    final String sparksqlQuery = "SELECT employee_id AS empid\n"
+        + "FROM foodmart.employee";
+    sql(query).withOracle().ok(oracleQuery);
+    sql(query).withSpark().ok(sparksqlQuery);
+  }
+
   @Test void testDialectQuoteStringLiteral() {
     dialects().forEach((dialect, databaseProduct) -> {
       assertThat(dialect.quoteStringLiteral(""), is("''"));
