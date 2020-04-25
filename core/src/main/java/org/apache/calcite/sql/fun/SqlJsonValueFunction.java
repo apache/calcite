@@ -70,7 +70,7 @@ public class SqlJsonValueFunction extends SqlFunction {
           operandTypes[3] = typeFactory.createSqlType(SqlTypeName.ANY);
           operandTypes[5] = typeFactory.createSqlType(SqlTypeName.ANY);
         },
-        OperandTypes.family(SqlTypeFamily.ANY,
+        OperandTypes.family(SqlTypeFamily.CHARACTER,
             SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY,
             SqlTypeFamily.ANY, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM);

@@ -40,7 +40,7 @@ public class SqlJsonQueryFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.VARCHAR_2000,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.family(SqlTypeFamily.ANY,
+        OperandTypes.family(SqlTypeFamily.CHARACTER,
             SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
         SqlFunctionCategory.SYSTEM);
   }

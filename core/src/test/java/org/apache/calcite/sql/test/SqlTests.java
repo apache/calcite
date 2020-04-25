@@ -37,7 +37,6 @@ import java.util.regex.Pattern;
 import static org.apache.calcite.sql.test.SqlTester.ParameterChecker;
 import static org.apache.calcite.sql.test.SqlTester.ResultChecker;
 import static org.apache.calcite.sql.test.SqlTester.TypeChecker;
-
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -350,6 +349,14 @@ public abstract class SqlTests {
     }
     Throwable actualException = ex;
     String actualMessage = actualException.getMessage();
+
+    // If sap does not contain an error location, just check whether an exception
+    // matches the expected pattern.
+    if (sap.pos == null && expectedMsgPattern != null
+        && actualMessage.matches(expectedMsgPattern)) {
+      return;
+    }
+
     int actualLine = -1;
     int actualColumn = -1;
     int actualEndLine = 100;

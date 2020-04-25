@@ -33,8 +33,8 @@ public class SqlJsonLengthFunction extends SqlFunction {
         ReturnTypes.cascade(ReturnTypes.INTEGER,
             SqlTypeTransforms.FORCE_NULLABLE),
         null,
-        OperandTypes.or(OperandTypes.ANY,
-            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER)),
+        OperandTypes.or(OperandTypes.CHARACTER,
+            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER)),
         SqlFunctionCategory.SYSTEM);
   }
 }

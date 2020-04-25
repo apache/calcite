@@ -34,14 +34,15 @@ public class SqlJsonExistsFunction extends SqlFunction {
     super("JSON_EXISTS", SqlKind.OTHER_FUNCTION,
         ReturnTypes.cascade(ReturnTypes.BOOLEAN, SqlTypeTransforms.FORCE_NULLABLE), null,
         OperandTypes.or(
-            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER),
-            OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.CHARACTER, SqlTypeFamily.ANY)),
+            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER),
+            OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER,
+                SqlTypeFamily.ANY)),
         SqlFunctionCategory.SYSTEM);
   }
 
   @Override public String getSignatureTemplate(int operandsCount) {
-    assert operandsCount == 1 || operandsCount == 2;
-    if (operandsCount == 1) {
+    assert operandsCount == 2 || operandsCount == 3;
+    if (operandsCount == 2) {
       return "{0}({1} {2})";
     }
     return "{0}({1} {2} {3} ON ERROR)";
