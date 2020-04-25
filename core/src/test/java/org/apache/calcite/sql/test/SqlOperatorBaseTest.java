@@ -4508,6 +4508,24 @@ public abstract class SqlOperatorBaseTest {
     tester1.checkNull("STRCMP(cast(null as varchar(1)), 'mytesttext')");
   }
 
+  @Test void testInstrFunc() {
+    final SqlTester tester1 = tester(SqlLibrary.MYSQL);
+    tester1.setFor(SqlLibraryOperators.INSTR);
+    tester1.checkString("INSTR('foobarbar', 'bar')", "4", "INTEGER NOT NULL");
+    tester1.checkString("INSTR('bar', 'foobarbar')", "0", "INTEGER NOT NULL");
+    tester1.checkString("INSTR('bar', 'A')", "2", "INTEGER NOT NULL");
+    tester1.checkString("INSTR(x'ABCdef', x'ABCdef')", "1", "INTEGER NOT NULL");
+    tester1.checkString("INSTR(x'AB', x'ab')", "0", "INTEGER NOT NULL");
+    tester1.checkString("INSTR(x'ABCD', 'AB')", "1", "INTEGER NOT NULL");
+    tester1.checkString("INSTR(x'ABCD', 'ab')", "0", "INTEGER NOT NULL");
+    tester1.checkString("INSTR('ABCD', x'AB')", "1", "INTEGER NOT NULL");
+    tester1.checkString("INSTR('abcd', x'AB')", "0", "INTEGER NOT NULL");
+    tester1.checkNull("INSTR('foobarbar', cast(null as varchar(1)))");
+    tester1.checkNull("INSTR(cast(null as varchar(1)), 'foobarbar')");
+    tester1.checkNull("INSTR('bar', null)");
+    tester1.checkNull("INSTR(null, 'bar')");
+  }
+
   @Test void testSoundexFunc() {
     final SqlTester tester1 = oracleTester();
     tester1.setFor(SqlLibraryOperators.SOUNDEX);

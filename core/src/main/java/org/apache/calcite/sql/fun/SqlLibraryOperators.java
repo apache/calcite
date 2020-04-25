@@ -258,6 +258,15 @@ public abstract class SqlLibraryOperators {
           OperandTypes.STRING_STRING,
           SqlFunctionCategory.STRING);
 
+  @LibraryOperator(libraries = {MYSQL})
+  public static final SqlFunction INSTR =
+      new SqlFunction("INSTR",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.INTEGER_NULLABLE,
+          null,
+          OperandTypes.STRING_STRING,
+          SqlFunctionCategory.STRING);
+
   @LibraryOperator(libraries = {MYSQL, POSTGRESQL, ORACLE})
   public static final SqlFunction SOUNDEX =
       new SqlFunction("SOUNDEX",

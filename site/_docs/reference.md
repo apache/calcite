@@ -2340,6 +2340,7 @@ semantics.
 | m | JSON_KEYS(jsonValue [, path ])                 | Returns a string indicating the keys of a JSON *jsonValue*
 | m | JSON_REMOVE(jsonValue, path[, path])           | Removes data from *jsonValue* using a series of *path* expressions and returns the result
 | m | JSON_STORAGE_SIZE(jsonValue)                   | Returns the number of bytes used to store the binary representation of a *jsonValue*
+| m | INSTR(string, string)                          | Returns the index of the first occurrence of the second argument in the first argument and returns 0 if the first argument not include the second argument
 | o | LEAST(expr [, expr ]* )                        | Returns the least of the expressions
 | m p | LEFT(string, length)                         | Returns the leftmost *length* characters from the *string*
 | m | TO_BASE64(string)                              | Converts the *string* to base-64 encoded form and returns a encoded string

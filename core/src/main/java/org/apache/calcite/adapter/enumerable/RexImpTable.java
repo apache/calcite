@@ -109,6 +109,7 @@ import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXISTS_NODE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_VALUE;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.EXTRACT_XML;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.FROM_BASE64;
+import static org.apache.calcite.sql.fun.SqlLibraryOperators.INSTR;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_DEPTH;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_KEYS;
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.JSON_LENGTH;
@@ -325,6 +326,7 @@ public class RexImpTable {
     defineMethod(MD5, BuiltInMethod.MD5.method, NullPolicy.STRICT);
     defineMethod(SHA1, BuiltInMethod.SHA1.method, NullPolicy.STRICT);
     defineMethod(SUBSTRING, BuiltInMethod.SUBSTRING.method, NullPolicy.STRICT);
+    defineMethod(INSTR, BuiltInMethod.INSTR.method, NullPolicy.STRICT);
     defineMethod(LEFT, BuiltInMethod.LEFT.method, NullPolicy.ANY);
     defineMethod(RIGHT, BuiltInMethod.RIGHT.method, NullPolicy.ANY);
     defineMethod(REPLACE, BuiltInMethod.REPLACE.method, NullPolicy.STRICT);

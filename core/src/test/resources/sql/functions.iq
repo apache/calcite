@@ -42,6 +42,17 @@ select strcmp('mytesttext', 'mytesttext');
 
 !ok
 
+# INSTR
+select instr('foobarbar', 'bar');
++--------+
+| EXPR$0 |
++--------+
+|      4 |
++--------+
+(1 row)
+
+!ok
+
 # XML Functions
 
 SELECT ExtractValue('<a>c</a>', '//a');

@@ -42,6 +42,7 @@ import org.apache.calcite.util.Util;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.language.Soundex;
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -296,6 +297,26 @@ public class SqlFunctions {
   /** SQL SUBSTRING(binary FROM ...) function. */
   public static ByteString substring(ByteString c, int s) {
     return substring(c, s, c.length() + 1);
+  }
+
+  /** SQL INSTR(string, string) function. */
+  public static int instr(String str0, String str1) {
+    return StringUtils.indexOfIgnoreCase(str0, str1) + 1;
+  }
+
+  /** SQL INSTR(ByteString, ByteString) function. */
+  public static int instr(ByteString str0, ByteString str1) {
+    return str0.indexOf(str1) + 1;
+  }
+
+  /** SQL INSTR(ByteString, string) function. */
+  public static int instr(ByteString str0, String str1) {
+    return str0.indexOf(new ByteString(str1.getBytes())) + 1;
+  }
+
+  /** SQL INSTR(string, ByteString) function. */
+  public static int instr(String str0, ByteString str1) {
+    return new ByteString(str0.getBytes()).indexOf(str1) + 1;
   }
 
   /** SQL UPPER(string) function. */
