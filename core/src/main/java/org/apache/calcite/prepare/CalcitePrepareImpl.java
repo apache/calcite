@@ -777,7 +777,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       int typeOrdinal = getTypeOrdinal(type);
       switch (typeOrdinal) {
       case Types.STRUCT:
-        final List<ColumnMetaData> columns = new ArrayList<>();
+        final List<ColumnMetaData> columns = new ArrayList<>(type.getFieldList().size());
         for (RelDataTypeField field : type.getFieldList()) {
           columns.add(
               metaData(typeFactory, field.getIndex(), field.getName(),

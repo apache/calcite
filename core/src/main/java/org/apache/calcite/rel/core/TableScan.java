@@ -154,8 +154,9 @@ public abstract class TableScan
         && extraFields.isEmpty()) {
       return this;
     }
-    final List<RexNode> exprList = new ArrayList<>();
-    final List<String> nameList = new ArrayList<>();
+    int fieldSize = fieldsUsed.size() + extraFields.size();
+    final List<RexNode> exprList = new ArrayList<>(fieldSize);
+    final List<String> nameList = new ArrayList<>(fieldSize);
     final RexBuilder rexBuilder = getCluster().getRexBuilder();
     final List<RelDataTypeField> fields = getRowType().getFieldList();
 
