@@ -161,9 +161,10 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    final List<ColumnMetaData> columns = new ArrayList<>();
-    final List<Field> fields = new ArrayList<>();
-    final List<String> fieldNames = new ArrayList<>();
+    Objects.requireNonNull(names);
+    final List<ColumnMetaData> columns = new ArrayList<>(names.length);
+    final List<Field> fields = new ArrayList<>(names.length);
+    final List<String> fieldNames = new ArrayList<>(names.length);
     for (String name : names) {
       final int index = fields.size();
       final String fieldName = AvaticaUtils.toCamelCase(name);

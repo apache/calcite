@@ -179,7 +179,7 @@ public abstract class MutableRels {
    */
   public static List<RexNode> createProjects(final MutableRel child,
       final List<RexNode> projs) {
-    List<RexNode> rexNodeList = new ArrayList<>();
+    List<RexNode> rexNodeList = new ArrayList<>(projs.size());
     for (int i = 0; i < projs.size(); i++) {
       if (projs.get(i) instanceof RexInputRef) {
         RexInputRef rexInputRef = (RexInputRef) projs.get(i);
