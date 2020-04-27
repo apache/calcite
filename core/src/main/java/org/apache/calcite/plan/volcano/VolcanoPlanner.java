@@ -881,6 +881,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
             rel.getId(), equivRel.getId());
 
         mapDigestToRel.put(key, equivRel);
+        mergeIdenticalRels(equivRel, rel);
 
         RelSubset equivRelSubset = getSubset(equivRel);
 
@@ -940,11 +941,24 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       assert equivRel.getClass() == rel.getClass();
       assert equivRel.getTraitSet().equals(rel.getTraitSet());
 
+      mergeIdenticalRels(equivRel, rel);
       return;
     }
 
     // Add the relational expression into the correct set and subset.
-    addRelToSet(rel, set);
+    if (!prunedNodes.contains(rel)) {
+      addRelToSet(rel, set);
+    }
+  }
+
+  /**
+   * Merge/preserve relNode related information when one of two identical
+   * relNodes is about to be discarded.
+   */
+  private void mergeIdenticalRels(RelNode rel, RelNode duplicate) {
+    if (prunedNodes.contains(duplicate)) {
+      prunedNodes.add(rel);
+    }
   }
 
   /**
@@ -1144,6 +1158,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           "left", equivExp.getRowType(),
           "right", rel.getRowType(),
           Litmus.THROW);
+      mergeIdenticalRels(equivExp, rel);
+
       RelSet equivSet = getSet(equivExp);
       if (equivSet != null) {
         LOGGER.trace(

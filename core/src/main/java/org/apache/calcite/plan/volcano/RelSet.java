@@ -26,6 +26,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.Spool;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -361,26 +362,17 @@ class RelSet {
 
     Set<RelNode> parentRels = new HashSet<>(parents);
     for (RelNode otherRel : otherSet.rels) {
-      if (planner.prunedNodes.contains(otherRel)) {
-        continue;
-      }
-
-      boolean pruned = false;
-      if (parentRels.contains(otherRel)) {
+      if (!(otherRel instanceof Spool) && !otherRel.isEnforcer() && parentRels
+          .contains(otherRel)) {
         // if otherRel is a enforcing operator e.g.
         // Sort, Exchange, do not prune it.
         if (otherRel.getInputs().size() != 1
             || otherRel.getInput(0).getTraitSet()
                 .satisfies(otherRel.getTraitSet())) {
-          pruned = true;
+          planner.prune(otherRel);
         }
       }
-
-      if (pruned) {
-        planner.prune(otherRel);
-      } else {
-        planner.reregister(this, otherRel);
-      }
+      planner.reregister(this, otherRel);
     }
 
     // Has another set merged with this?
