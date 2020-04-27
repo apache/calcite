@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
@@ -616,6 +617,21 @@ public abstract class BuiltInMetadata {
     interface Handler extends MetadataHandler<Parallelism> {
       Boolean isPhaseTransition(RelNode r, RelMetadataQuery mq);
       Integer splitCount(RelNode r, RelMetadataQuery mq);
+    }
+  }
+
+  /** Metadata to get the lower bound cost of a RelNode */
+  public interface LowerBoundCost extends Metadata {
+    MetadataDef<LowerBoundCost> DEF = MetadataDef.of(LowerBoundCost.class,
+        LowerBoundCost.Handler.class, BuiltInMethod.LOWER_BOUND_COST.method);
+
+    /** Returns the lower bound cost of a RelNode */
+    RelOptCost getLowerBoundCost(RelOptPlanner planner);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<LowerBoundCost> {
+      RelOptCost getLowerBoundCost(
+          RelNode r, RelMetadataQuery mq, RelOptPlanner planner);
     }
   }
 

@@ -47,7 +47,7 @@ public class RelOptRuleOperand {
   public int[] solveOrder;
   public int ordinalInParent;
   public int ordinalInRule;
-  private final RelTrait trait;
+  public final RelTrait trait;
   private final Class<? extends RelNode> clazz;
   private final ImmutableList<RelOptRuleOperand> children;
 

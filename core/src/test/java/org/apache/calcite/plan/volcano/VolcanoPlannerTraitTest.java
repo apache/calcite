@@ -98,7 +98,7 @@ class VolcanoPlannerTraitTest {
 
   @Disabled
   @Test void testDoubleConversion() {
-    VolcanoPlanner planner = new VolcanoPlanner();
+    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(ALT_TRAIT_DEF);
@@ -153,7 +153,7 @@ class VolcanoPlannerTraitTest {
   }
 
   @Test void testRuleMatchAfterConversion() {
-    VolcanoPlanner planner = new VolcanoPlanner();
+    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(ALT_TRAIT_DEF);
@@ -186,7 +186,7 @@ class VolcanoPlannerTraitTest {
 
   @Disabled
   @Test void testTraitPropagation() {
-    VolcanoPlanner planner = new VolcanoPlanner();
+    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(ALT_TRAIT_DEF);
@@ -250,7 +250,7 @@ class VolcanoPlannerTraitTest {
   }
 
   @Test void testPlanWithNoneConvention() {
-    VolcanoPlanner planner = new VolcanoPlanner();
+    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     RelOptCluster cluster = newCluster(planner);
     NoneTinyLeafRel leaf = new NoneTinyLeafRel(cluster, "noneLeafRel");

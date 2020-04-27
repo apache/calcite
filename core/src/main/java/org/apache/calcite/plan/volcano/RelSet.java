@@ -294,7 +294,7 @@ class RelSet {
 
     if (subset == null) {
       needsConverter = true;
-      subset = new RelSubset(cluster, this, traits);
+      subset = newRelSubset(cluster, this, traits);
 
       // Need to first add to subset before adding the abstract
       // converters (for others->subset), since otherwise during
@@ -322,6 +322,11 @@ class RelSet {
     }
 
     return subset;
+  }
+
+  protected RelSubset newRelSubset(RelOptCluster cluster, RelSet relSet,
+      RelTraitSet traits) {
+    return new RelSubset(cluster, relSet, traits);
   }
 
   private void postEquivalenceEvent(VolcanoPlanner planner, RelNode rel) {

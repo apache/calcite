@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
@@ -97,6 +98,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   private BuiltInMetadata.Selectivity.Handler selectivityHandler;
   private BuiltInMetadata.Size.Handler sizeHandler;
   private BuiltInMetadata.UniqueKeys.Handler uniqueKeysHandler;
+  private BuiltInMetadata.LowerBoundCost.Handler lowerBoundCostHandler;
 
   /**
    * Creates the instance with {@link JaninoRelMetadataProvider} instance
@@ -134,6 +136,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.selectivityHandler = initialHandler(BuiltInMetadata.Selectivity.Handler.class);
     this.sizeHandler = initialHandler(BuiltInMetadata.Size.Handler.class);
     this.uniqueKeysHandler = initialHandler(BuiltInMetadata.UniqueKeys.Handler.class);
+    this.lowerBoundCostHandler = initialHandler(BuiltInMetadata.LowerBoundCost.Handler.class);
   }
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
@@ -162,6 +165,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
     this.selectivityHandler = prototype.selectivityHandler;
     this.sizeHandler = prototype.sizeHandler;
     this.uniqueKeysHandler = prototype.uniqueKeysHandler;
+    this.lowerBoundCostHandler = prototype.lowerBoundCostHandler;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -840,6 +844,20 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
         return distributionHandler.distribution(rel, this);
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distributionHandler = revise(e.relClass, BuiltInMetadata.Distribution.DEF);
+      }
+    }
+  }
+
+  /**
+   * Returns the lower bound cost of a RelNode
+   */
+  public RelOptCost getLowerBoundCost(RelNode rel, RelOptPlanner planner) {
+    for (;;) {
+      try {
+        return lowerBoundCostHandler.getLowerBoundCost(rel, this, planner);
+      } catch (JaninoRelMetadataProvider.NoHandler e) {
+        lowerBoundCostHandler =
+            revise(e.relClass, BuiltInMetadata.LowerBoundCost.DEF);
       }
     }
   }

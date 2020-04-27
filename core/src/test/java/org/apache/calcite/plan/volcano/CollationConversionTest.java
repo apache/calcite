@@ -63,7 +63,7 @@ class CollationConversionTest {
       new TestRelCollationTraitDef();
 
   @Test void testCollationConversion() {
-    final VolcanoPlanner planner = new VolcanoPlanner();
+    final VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(COLLATION_TRAIT_DEF);
 

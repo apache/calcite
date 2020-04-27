@@ -40,6 +40,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
+import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.metadata.CyclicMetadataException;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
@@ -89,7 +90,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * registered which matches the operand. This map allows us to narrow down
    * operands based on the class of the RelNode.</p>
    */
-  private final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
+  protected final Multimap<Class<? extends RelNode>, RelOptRuleOperand>
       classOperands = LinkedListMultimap.create();
 
   /**
@@ -142,7 +143,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Holds rule calls waiting to be fired.
    */
-  final RuleQueue ruleQueue = new RuleQueue(this);
+  protected RuleQueue ruleQueue = new RuleQueue(this);
 
   /**
    * Holds the currently registered RelTraitDefs.
@@ -178,7 +179,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
-  private final RelOptCost zeroCost;
+  protected final RelOptCost zeroCost;
 
   /**
    * Optimization tasks including trait propagation, enforcement.
@@ -1013,7 +1014,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param subset Subset
    * @return Leader of subset's equivalence class
    */
-  private RelSubset canonize(final RelSubset subset) {
+  protected RelSubset canonize(final RelSubset subset) {
     if (subset.set.equivalentSet == null) {
       return subset;
     }
@@ -1064,7 +1065,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return changeCount > 0;
   }
 
-  private RelSet merge(RelSet set, RelSet set2) {
+  protected RelSet merge(RelSet set, RelSet set2) {
     assert set != set2 : "pre: set != set2";
 
     // Find the root of set2's equivalence tree.
@@ -1251,7 +1252,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
     // Place the expression in the appropriate equivalence set.
     if (set == null) {
-      set = new RelSet(
+      set = newRelSet(
           nextSetId++,
           Util.minus(
               RelOptUtil.getVariablesSet(rel),
@@ -1300,7 +1301,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return subset;
   }
 
-  private RelSubset addRelToSet(RelNode rel, RelSet set) {
+  protected RelSet newRelSet(int id, Set<CorrelationId> variablesPropagated,
+      Set<CorrelationId> variablesUsed) {
+    return new RelSet(id, variablesPropagated, variablesUsed);
+  }
+
+  protected RelSubset addRelToSet(RelNode rel, RelSet set) {
     RelSubset subset = set.add(rel);
     mapRel2Subset.put(rel, subset);
 

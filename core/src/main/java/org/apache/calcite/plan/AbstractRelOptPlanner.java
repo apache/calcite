@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.plan.volcano.CascadeRelSubset;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -105,6 +106,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // these types, but some operands may use them.
     classes.add(RelNode.class);
     classes.add(RelSubset.class);
+    classes.add(CascadeRelSubset.class);
 
     if (RULE_ATTEMPTS_LOGGER.isDebugEnabled()) {
       this.ruleAttemptsListener = new RuleAttemptsListener();
@@ -440,8 +442,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       final Class<? extends RelNode> clazz) {
     return Util.filter(classes, c -> {
       // RelSubset must be exact type, not subclass
-      if (c == RelSubset.class) {
-        return c == clazz;
+      if (RelSubset.class.isAssignableFrom(c) && clazz == RelNode.class) {
+        return false;
       }
       return clazz.isAssignableFrom(c);
     });

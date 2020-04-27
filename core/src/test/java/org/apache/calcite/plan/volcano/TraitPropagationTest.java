@@ -410,8 +410,8 @@ class TraitPropagationTest {
               typeFactory,
               prepareContext.config());
     final RexBuilder rexBuilder = new RexBuilder(typeFactory);
-    final RelOptPlanner planner = new VolcanoPlanner(config.getCostFactory(),
-        config.getContext());
+    final RelOptPlanner planner = VolcanoPlannerTestHelper.getPlanner(
+        config.getCostFactory(), config.getContext());
 
     // set up rules before we generate cluster
     planner.clearRelTraitDefs();

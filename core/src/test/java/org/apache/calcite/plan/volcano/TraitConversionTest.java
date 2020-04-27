@@ -56,7 +56,7 @@ class TraitConversionTest {
       new SimpleDistribution("SINGLETON");
 
   @Test void testTraitConversion() {
-    final VolcanoPlanner planner = new VolcanoPlanner();
+    final VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(NEW_TRAIT_DEF_INSTANCE);
 
