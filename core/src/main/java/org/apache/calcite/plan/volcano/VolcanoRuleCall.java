@@ -124,11 +124,6 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.getListener().ruleProductionSucceeded(event);
       }
 
-      final RelNode relCopy = rel;
-      if (rels[0].getInputs().stream().anyMatch(n -> n == relCopy)) {
-        volcanoPlanner.prune(rels[0]);
-      }
-
       if (this.getRule() instanceof SubstitutionRule
           && ((SubstitutionRule) getRule()).autoPruneOld()) {
         volcanoPlanner.prune(rels[0]);
