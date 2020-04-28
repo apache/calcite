@@ -16,11 +16,16 @@
  */
 package org.apache.calcite.sql;
 
-/**
- * Categorizing Json value empty or error behaviors.
- */
-public enum SqlJsonValueEmptyOrErrorBehavior implements Symbolizable {
-  ERROR,
-  NULL,
-  DEFAULT
+import org.apache.calcite.sql.parser.SqlParserPos;
+
+/** Sub-class should be a Enum and can convert to a {@link SqlLiteral}. */
+public interface Symbolizable {
+
+  /**
+   * Creates a parse-tree node representing an occurrence of this keyword
+   * at a particular position in the parsed text.
+   */
+  default SqlLiteral symbol(SqlParserPos pos) {
+    return SqlLiteral.createSymbol((Enum<?>) this, pos);
+  }
 }

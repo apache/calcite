@@ -4533,9 +4533,7 @@ class RelToSqlConverterTest {
 
   @Test void testJsonValue() {
     String query = "select json_value(\"product_name\", 'lax $') from \"product\"";
-    // todo translate to JSON_VALUE rather than CAST
-    final String expected = "SELECT CAST(JSON_VALUE_ANY(\"product_name\", "
-        + "'lax $' NULL ON EMPTY NULL ON ERROR) AS VARCHAR(2000) CHARACTER SET \"ISO-8859-1\")\n"
+    final String expected = "SELECT JSON_VALUE(\"product_name\", 'lax $')\n"
         + "FROM \"foodmart\".\"product\"";
     sql(query).ok(expected);
   }

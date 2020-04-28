@@ -200,13 +200,13 @@ public class JsonFunctions {
     }
   }
 
-  public static Object jsonValueAny(String input,
+  public static Object jsonValue(String input,
       String pathSpec,
       SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
       Object defaultValueOnEmpty,
       SqlJsonValueEmptyOrErrorBehavior errorBehavior,
       Object defaultValueOnError) {
-    return jsonValueAny(
+    return jsonValue(
         jsonApiCommonSyntax(input, pathSpec),
         emptyBehavior,
         defaultValueOnEmpty,
@@ -214,13 +214,13 @@ public class JsonFunctions {
         defaultValueOnError);
   }
 
-  public static Object jsonValueAny(JsonValueContext input,
+  public static Object jsonValue(JsonValueContext input,
       String pathSpec,
       SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
       Object defaultValueOnEmpty,
       SqlJsonValueEmptyOrErrorBehavior errorBehavior,
       Object defaultValueOnError) {
-    return jsonValueAny(
+    return jsonValue(
         jsonApiCommonSyntax(input, pathSpec),
         emptyBehavior,
         defaultValueOnEmpty,
@@ -228,7 +228,7 @@ public class JsonFunctions {
         defaultValueOnError);
   }
 
-  public static Object jsonValueAny(JsonPathContext context,
+  public static Object jsonValue(JsonPathContext context,
       SqlJsonValueEmptyOrErrorBehavior emptyBehavior,
       Object defaultValueOnEmpty,
       SqlJsonValueEmptyOrErrorBehavior errorBehavior,
