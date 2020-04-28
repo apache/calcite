@@ -115,7 +115,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
    * @param planner                     the planner requesting the conversion
    * @param rel                         RelNode to convert
    * @param toTrait                     RelTrait to convert to
-   * @param conventionTrait             Target convention to convert to
    * @param allowInfiniteCostConverters flag indicating whether infinite cost
    *                                    converters are allowed
    * @return a converted RelNode or null if conversion is not possible
@@ -124,7 +123,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
       RelOptPlanner planner,
       RelNode rel,
       T toTrait,
-      Convention conventionTrait,
       boolean allowInfiniteCostConverters);
 
   /**

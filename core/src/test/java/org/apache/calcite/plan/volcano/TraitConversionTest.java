@@ -231,7 +231,7 @@ class TraitConversionTest {
     }
 
     @Override public RelNode convert(RelOptPlanner planner, RelNode rel,
-        SimpleDistribution toTrait, Convention toConvention, boolean allowInfiniteCostConverters) {
+        SimpleDistribution toTrait, boolean allowInfiniteCostConverters) {
       if (toTrait == SIMPLE_DISTRIBUTION_ANY) {
         return rel;
       }

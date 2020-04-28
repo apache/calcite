@@ -818,7 +818,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // will be left as is.  Finally, any null entries in toTraits are
     // ignored.
     RelNode converted = rel;
-    Convention conventionTrait = toTraits.getTrait(ConventionTraitDef.INSTANCE);
     for (int i = 0; (converted != null) && (i < toTraits.size()); i++) {
       RelTrait fromTrait = converted.getTraitSet().getTrait(i);
       final RelTraitDef traitDef = fromTrait.getTraitDef();
@@ -839,7 +838,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
               this,
               converted,
               toTrait,
-              conventionTrait,
               allowInfiniteCostConverters);
       if (rel != null) {
         assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);

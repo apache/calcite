@@ -233,7 +233,7 @@ class CollationConversionTest {
     }
 
     public RelNode convert(RelOptPlanner planner, RelNode rel,
-        RelCollation toCollation, Convention toConvention, boolean allowInfiniteCostConverters) {
+        RelCollation toCollation, boolean allowInfiniteCostConverters) {
       if (toCollation.getFieldCollations().isEmpty()) {
         // An empty sort doesn't make sense.
         return null;

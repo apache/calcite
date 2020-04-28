@@ -329,7 +329,6 @@ class VolcanoPlannerTraitTest {
         RelOptPlanner planner,
         RelNode rel,
         AltTrait toTrait,
-        Convention toConvention,
         boolean allowInfiniteCostConverters) {
       RelTrait fromTrait = rel.getTraitSet().getTrait(this);
 

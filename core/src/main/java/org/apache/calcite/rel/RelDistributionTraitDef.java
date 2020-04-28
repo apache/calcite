@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -50,8 +49,7 @@ public class RelDistributionTraitDef extends RelTraitDef<RelDistribution> {
   }
 
   public RelNode convert(RelOptPlanner planner, RelNode rel,
-      RelDistribution toDistribution, Convention toConvention,
-      boolean allowInfiniteCostConverters) {
+      RelDistribution toDistribution, boolean allowInfiniteCostConverters) {
     if (toDistribution == RelDistributions.ANY) {
       return rel;
     }

@@ -64,7 +64,6 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
       RelOptPlanner planner,
       RelNode rel,
       RelCollation toCollation,
-      Convention toConvention,
       boolean allowInfiniteCostConverters) {
     if (toCollation.getFieldCollations().isEmpty()) {
       // An empty sort doesn't make sense.
@@ -72,13 +71,12 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     }
 
     // Create a sort operator based on given convention
+    Convention toConvention = rel.getConvention();
     RelBuilder builder =
         RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
-    if (toConvention != null) {
-      builder = toConvention.transformRelBuilder(builder);
-    }
+    builder = toConvention.transformRelBuilder(builder);
     RelNode sort = builder.push(rel)
-                          .sort(toCollation.getFieldCollations())
+                          .sort(toCollation)
                           .build();
     RelNode newRel = planner.register(sort, rel);
     final RelTraitSet newTraitSet = rel.getTraitSet().replace(toCollation);

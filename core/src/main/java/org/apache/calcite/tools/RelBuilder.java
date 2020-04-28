@@ -2511,11 +2511,11 @@ public class RelBuilder {
 
   /** Creates a {@link Sort} by specifying collations.
    */
-  public RelBuilder sort(List<RelFieldCollation> collations) {
+  public RelBuilder sort(RelCollation collation) {
     final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (RelFieldCollation collation : collations) {
-      builder.add(collation.direction.isDescending()
-          ? desc(field(collation.getFieldIndex())) : field(collation.getFieldIndex()));
+    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+      builder.add(fieldCollation.direction.isDescending()
+          ? desc(field(fieldCollation.getFieldIndex())) : field(fieldCollation.getFieldIndex()));
     }
     return sortLimit(-1, -1, builder.build());
   }
