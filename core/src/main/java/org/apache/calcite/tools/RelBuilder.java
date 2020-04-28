@@ -2512,12 +2512,10 @@ public class RelBuilder {
   /** Creates a {@link Sort} by specifying collations.
    */
   public RelBuilder sort(RelCollation collation) {
-    final ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-    for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
-      builder.add(fieldCollation.direction.isDescending()
-          ? desc(field(fieldCollation.getFieldIndex())) : field(fieldCollation.getFieldIndex()));
-    }
-    return sortLimit(-1, -1, builder.build());
+    final RelNode sort =
+        struct.sortFactory.createSort(peek(), collation, null, null);
+    replaceTop(sort);
+    return this;
   }
 
   /** Creates a {@link Sort} by a list of expressions, with limit and offset.
