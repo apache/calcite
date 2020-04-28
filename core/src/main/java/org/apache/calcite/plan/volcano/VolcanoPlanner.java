@@ -1232,8 +1232,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     fireRules(rel);
 
     // It's a new subset.
-    if (set.subsets.size() > subsetBeforeCount
-        && subset.isDerived()) {
+    if (set.subsets.size() > subsetBeforeCount) {
       fireRules(subset);
     }
 

@@ -158,11 +158,11 @@ public class RelSubset extends AbstractRelNode {
     state |= REQUIRED;
   }
 
-  boolean isDerived() {
+  public boolean isDerived() {
     return (state & DERIVED) == DERIVED;
   }
 
-  boolean isRequired() {
+  public boolean isRequired() {
     return (state & REQUIRED) == REQUIRED;
   }
 
