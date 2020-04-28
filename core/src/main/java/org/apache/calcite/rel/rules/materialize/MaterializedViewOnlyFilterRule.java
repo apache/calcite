@@ -26,7 +26,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class MaterializedViewOnlyFilterRule extends MaterializedViewJoinRule {
 
   public static final MaterializedViewOnlyFilterRule INSTANCE =
-      new MaterializedViewOnlyFilterRule(RelFactories.DEFAULT_BUILDER,
+      new MaterializedViewOnlyFilterRule(RelFactories.LOGICAL_BUILDER,
           true, null, true);
 
   public MaterializedViewOnlyFilterRule(RelBuilderFactory relBuilderFactory,

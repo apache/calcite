@@ -33,7 +33,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class SortRemoveRule extends RelOptRule implements TransformationRule {
   public static final SortRemoveRule INSTANCE =
-      new SortRemoveRule(RelFactories.DEFAULT_BUILDER);
+      new SortRemoveRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a SortRemoveRule.

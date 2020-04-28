@@ -39,7 +39,7 @@ import java.util.List;
  */
 public class FilterSetOpTransposeRule extends RelOptRule implements TransformationRule {
   public static final FilterSetOpTransposeRule INSTANCE =
-      new FilterSetOpTransposeRule(RelFactories.DEFAULT_BUILDER);
+      new FilterSetOpTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

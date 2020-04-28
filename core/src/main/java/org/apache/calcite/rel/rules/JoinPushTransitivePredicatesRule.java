@@ -43,7 +43,7 @@ public class JoinPushTransitivePredicatesRule extends RelOptRule implements Tran
   /** The singleton. */
   public static final JoinPushTransitivePredicatesRule INSTANCE =
       new JoinPushTransitivePredicatesRule(Join.class,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   /** Creates a JoinPushTransitivePredicatesRule. */
   public JoinPushTransitivePredicatesRule(Class<? extends Join> clazz,

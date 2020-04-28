@@ -347,7 +347,7 @@ class VolcanoPlannerTest {
             cluster,
             "a");
     final RelBuilder relBuilder =
-        RelFactories.DEFAULT_BUILDER.create(leafRel.getCluster(), null);
+        RelFactories.LOGICAL_BUILDER.create(leafRel.getCluster(), null);
     RelNode projectRel =
         relBuilder.push(leafRel)
             .project(relBuilder.alias(relBuilder.field(0), "this"))
@@ -460,7 +460,7 @@ class VolcanoPlannerTest {
 
     RelOptCluster cluster = newCluster(planner);
 
-    RelBuilder relBuilder = RelFactories.DEFAULT_BUILDER.create(cluster, null);
+    RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(cluster, null);
     RelNode logicalPlan = relBuilder
         .values(new String[]{"id", "name"}, "2", "a", "1", "b")
         .values(new String[]{"id", "name"}, "1", "x", "2", "y")

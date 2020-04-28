@@ -38,7 +38,7 @@ public class TableScanRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final TableScanRule INSTANCE =
-      new TableScanRule(RelFactories.DEFAULT_BUILDER);
+      new TableScanRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

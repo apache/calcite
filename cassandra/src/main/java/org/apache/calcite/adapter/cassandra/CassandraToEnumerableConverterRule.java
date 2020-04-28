@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  */
 public class CassandraToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new CassandraToEnumerableConverterRule(RelFactories.DEFAULT_BUILDER);
+      new CassandraToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a CassandraToEnumerableConverterRule.

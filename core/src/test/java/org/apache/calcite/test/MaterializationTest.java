@@ -97,31 +97,20 @@ public class MaterializationTest {
       + "   ]\n"
       + "}";
 
-  @Test void testScan() {
-    CalciteAssert.that()
-        .withMaterializations(
-            "{\n"
-                + "  version: '1.0',\n"
-                + "  defaultSchema: 'SCOTT_CLONE',\n"
-                + "  schemas: [ {\n"
-                + "    name: 'SCOTT_CLONE',\n"
-                + "    type: 'custom',\n"
-                + "    factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',\n"
-                + "    operand: {\n"
-                + "      jdbcDriver: '" + JdbcTest.SCOTT.driver + "',\n"
-                + "      jdbcUser: '" + JdbcTest.SCOTT.username + "',\n"
-                + "      jdbcPassword: '" + JdbcTest.SCOTT.password + "',\n"
-                + "      jdbcUrl: '" + JdbcTest.SCOTT.url + "',\n"
-                + "      jdbcSchema: 'SCOTT'\n"
-                + "   } } ]\n"
-                + "}",
-            "m0",
-            "select empno, deptno from emp order by deptno")
-        .query(
-            "select empno, deptno from emp")
-        .enableMaterializations(true)
-        .explainContains("EnumerableTableScan(table=[[SCOTT_CLONE, m0]])")
-        .sameResultWithMaterializationsDisabled();
+  @Test void testAggregateOnJoinKeys2() {
+    sql("select \"deptno\", \"empid\", \"salary\", sum(1) "
+            + "from \"emps\"\n"
+            + "group by \"deptno\", \"empid\", \"salary\"",
+        "select sum(1) "
+            + "from \"emps\"\n"
+            + "join \"depts\" on \"depts\".\"deptno\" = \"empid\" group by \"empid\", \"depts\".\"deptno\"")
+        .withResultContains(
+            "EnumerableCalc(expr#0..1=[{inputs}], EXPR$0=[$t1])\n"
+                + "  EnumerableAggregate(group=[{1}], EXPR$0=[$SUM0($3)])\n"
+                + "    EnumerableHashJoin(condition=[=($1, $4)], joinType=[inner])\n"
+                + "      EnumerableTableScan(table=[[hr, m0]])\n"
+                + "      EnumerableTableScan(table=[[hr, depts]])")
+        .ok();
   }
 
   @Test void testViewMaterialization() {

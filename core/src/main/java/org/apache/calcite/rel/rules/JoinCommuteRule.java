@@ -77,7 +77,7 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
   }
 
   private JoinCommuteRule(boolean swapOuter) {
-    this(LogicalJoin.class, RelFactories.DEFAULT_BUILDER, swapOuter);
+    this(LogicalJoin.class, RelFactories.LOGICAL_BUILDER, swapOuter);
   }
 
   @Deprecated // to be removed before 2.0
@@ -97,13 +97,13 @@ public class JoinCommuteRule extends RelOptRule implements TransformationRule {
   @Deprecated // to be removed before 2.0
   public static RelNode swap(Join join) {
     return swap(join, false,
-        RelFactories.DEFAULT_BUILDER.create(join.getCluster(), null));
+        RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
   public static RelNode swap(Join join, boolean swapOuterJoins) {
     return swap(join, swapOuterJoins,
-        RelFactories.DEFAULT_BUILDER.create(join.getCluster(), null));
+        RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   /**

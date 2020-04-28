@@ -104,13 +104,13 @@ import java.util.Map;
  */
 public class JoinToMultiJoinRule extends RelOptRule implements TransformationRule {
   public static final JoinToMultiJoinRule INSTANCE =
-      new JoinToMultiJoinRule(LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
+      new JoinToMultiJoinRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
   public JoinToMultiJoinRule(Class<? extends Join> clazz) {
-    this(clazz, RelFactories.DEFAULT_BUILDER);
+    this(clazz, RelFactories.LOGICAL_BUILDER);
   }
 
   /**

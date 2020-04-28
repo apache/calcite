@@ -48,13 +48,13 @@ import java.util.Objects;
 public class AggregateRemoveRule extends RelOptRule implements SubstitutionRule {
   public static final AggregateRemoveRule INSTANCE =
       new AggregateRemoveRule(LogicalAggregate.class,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
   public AggregateRemoveRule(Class<? extends Aggregate> aggregateClass) {
-    this(aggregateClass, RelFactories.DEFAULT_BUILDER);
+    this(aggregateClass, RelFactories.LOGICAL_BUILDER);
   }
 
   /**

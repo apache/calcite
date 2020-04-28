@@ -518,13 +518,23 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
       sb.append(String
           .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
       NumberFormat usFormat = NumberFormat.getNumberInstance(Locale.US);
+      long totalAttempts = 0;
+      long totalTime = 0;
       for (Map.Entry<String, Pair<Long, Long>> entry : list) {
         sb.append(
             String.format(Locale.ROOT, "%-60s%20s%20s%n",
                 entry.getKey(),
                 usFormat.format(entry.getValue().left),
                 usFormat.format(entry.getValue().right)));
+        totalAttempts += entry.getValue().left;
+        totalTime += entry.getValue().right;
       }
+      sb.append(
+          String.format(Locale.ROOT, "%-60s%20s%20s%n",
+              "* Total",
+              usFormat.format(totalAttempts),
+              usFormat.format(totalTime)));
+
       return sb.toString();
     }
   }

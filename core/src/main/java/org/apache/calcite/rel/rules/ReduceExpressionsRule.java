@@ -117,7 +117,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    */
   public static final ReduceExpressionsRule PROJECT_INSTANCE =
       new ProjectReduceExpressionsRule(LogicalProject.class, true,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   /**
    * Singleton rule that reduces constants inside a
@@ -133,7 +133,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    */
   public static final ReduceExpressionsRule CALC_INSTANCE =
       new CalcReduceExpressionsRule(LogicalCalc.class, true,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   /**
    * Singleton rule that reduces constants inside a
@@ -141,7 +141,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    */
   public static final ReduceExpressionsRule WINDOW_INSTANCE =
       new WindowReduceExpressionsRule(LogicalWindow.class, true,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   protected final boolean matchNullability;
 

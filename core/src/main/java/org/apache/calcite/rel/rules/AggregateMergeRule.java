@@ -55,7 +55,7 @@ public class AggregateMergeRule extends RelOptRule implements TransformationRule
         operand(Aggregate.class,
             operandJ(Aggregate.class, null,
                 agg -> Aggregate.isSimple(agg), any())),
-        RelFactories.DEFAULT_BUILDER);
+        RelFactories.LOGICAL_BUILDER);
   }
 
   /** Creates an AggregateMergeRule. */

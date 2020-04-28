@@ -36,7 +36,7 @@ public class EnumerableTableScanRule extends ConverterRule {
 
   @Deprecated // to be removed before 2.0
   public EnumerableTableScanRule() {
-    this(RelFactories.DEFAULT_BUILDER);
+    this(RelFactories.LOGICAL_BUILDER);
   }
 
   /**

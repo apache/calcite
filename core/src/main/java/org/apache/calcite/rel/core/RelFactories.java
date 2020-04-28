@@ -17,7 +17,11 @@
 package org.apache.calcite.rel.core;
 
 import org.apache.calcite.linq4j.function.Experimental;
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
@@ -54,7 +58,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
 import javax.annotation.Nonnull;
 
 /**
@@ -129,8 +137,8 @@ public class RelFactories {
 
   /** A {@link RelBuilderFactory} that creates a {@link RelBuilder} that will
    * create logical relational expressions for everything. */
-  public static final RelBuilderFactory DEFAULT_BUILDER =
-      new RelBuilderFactory(new StructsWithConvention(Convention.NONE, DEFAULT_STRUCT));
+  public static final RelBuilderFactory LOGICAL_BUILDER =
+      RelBuilder.proto(Contexts.of(DEFAULT_STRUCT));
 
   private RelFactories() {
   }
@@ -151,7 +159,7 @@ public class RelFactories {
      * @return a project
      */
     RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, List<String> fieldNames);
+                          List<? extends RexNode> childExprs, List<String> fieldNames);
   }
 
   /**
@@ -160,7 +168,7 @@ public class RelFactories {
    */
   private static class ProjectFactoryImpl implements ProjectFactory {
     public RelNode createProject(RelNode input, List<RelHint> hints,
-        List<? extends RexNode> childExprs, List<String> fieldNames) {
+                                 List<? extends RexNode> childExprs, List<String> fieldNames) {
       return LogicalProject.create(input, hints, childExprs, fieldNames);
     }
   }
@@ -172,11 +180,11 @@ public class RelFactories {
   public interface SortFactory {
     /** Creates a sort. */
     RelNode createSort(RelNode input, RelCollation collation, RexNode offset,
-        RexNode fetch);
+                       RexNode fetch);
 
     @Deprecated // to be removed before 2.0
     default RelNode createSort(RelTraitSet traitSet, RelNode input,
-        RelCollation collation, RexNode offset, RexNode fetch) {
+                               RelCollation collation, RexNode offset, RexNode fetch) {
       return createSort(input, collation, offset, fetch);
     }
   }
@@ -187,7 +195,7 @@ public class RelFactories {
    */
   private static class SortFactoryImpl implements SortFactory {
     public RelNode createSort(RelNode input, RelCollation collation,
-        RexNode offset, RexNode fetch) {
+                              RexNode offset, RexNode fetch) {
       return LogicalSort.create(input, collation, offset, fetch);
     }
   }
@@ -258,7 +266,7 @@ public class RelFactories {
    */
   private static class SetOpFactoryImpl implements SetOpFactory {
     public RelNode createSetOp(SqlKind kind, List<RelNode> inputs,
-        boolean all) {
+                               boolean all) {
       switch (kind) {
       case UNION:
         return LogicalUnion.create(inputs, all);
@@ -279,7 +287,7 @@ public class RelFactories {
   public interface AggregateFactory {
     /** Creates an aggregate. */
     RelNode createAggregate(RelNode input, List<RelHint> hints, ImmutableBitSet groupSet,
-        ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
+                            ImmutableList<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls);
   }
 
   /**
@@ -288,8 +296,8 @@ public class RelFactories {
    */
   private static class AggregateFactoryImpl implements AggregateFactory {
     public RelNode createAggregate(RelNode input, List<RelHint> hints,
-        ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
-        List<AggregateCall> aggCalls) {
+                               ImmutableBitSet groupSet, ImmutableList<ImmutableBitSet> groupSets,
+                               List<AggregateCall> aggCalls) {
       return LogicalAggregate.create(input, hints, groupSet, groupSets, aggCalls);
     }
   }
@@ -313,7 +321,7 @@ public class RelFactories {
      *   condition
      */
     RelNode createFilter(RelNode input, RexNode condition,
-        Set<CorrelationId> variablesSet);
+                         Set<CorrelationId> variablesSet);
 
     @Deprecated // to be removed before 2.0
     default RelNode createFilter(RelNode input, RexNode condition) {
@@ -327,7 +335,7 @@ public class RelFactories {
    */
   private static class FilterFactoryImpl implements FilterFactory {
     public RelNode createFilter(RelNode input, RexNode condition,
-        Set<CorrelationId> variablesSet) {
+                                Set<CorrelationId> variablesSet) {
       return LogicalFilter.create(input, condition,
           ImmutableSet.copyOf(variablesSet));
     }
@@ -354,8 +362,8 @@ public class RelFactories {
      *                         semi-join
      */
     RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
-        RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
-        boolean semiJoinDone);
+                       RexNode condition, Set<CorrelationId> variablesSet, JoinRelType joinType,
+                       boolean semiJoinDone);
   }
 
   /**
@@ -364,8 +372,8 @@ public class RelFactories {
    */
   private static class JoinFactoryImpl implements JoinFactory {
     public RelNode createJoin(RelNode left, RelNode right, List<RelHint> hints,
-        RexNode condition, Set<CorrelationId> variablesSet,
-        JoinRelType joinType, boolean semiJoinDone) {
+                              RexNode condition, Set<CorrelationId> variablesSet,
+                              JoinRelType joinType, boolean semiJoinDone) {
       return LogicalJoin.create(left, right, hints, condition, variablesSet, joinType,
           semiJoinDone, ImmutableList.of());
     }
@@ -388,8 +396,8 @@ public class RelFactories {
      * @param joinType         Join type
      */
     RelNode createCorrelate(RelNode left, RelNode right,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType);
+                            CorrelationId correlationId, ImmutableBitSet requiredColumns,
+                            JoinRelType joinType);
   }
 
   /**
@@ -398,8 +406,8 @@ public class RelFactories {
    */
   private static class CorrelateFactoryImpl implements CorrelateFactory {
     public RelNode createCorrelate(RelNode left, RelNode right,
-        CorrelationId correlationId, ImmutableBitSet requiredColumns,
-        JoinRelType joinType) {
+                                   CorrelationId correlationId, ImmutableBitSet requiredColumns,
+                                   JoinRelType joinType) {
       return LogicalCorrelate.create(left, right, correlationId,
           requiredColumns, joinType);
     }
@@ -432,7 +440,7 @@ public class RelFactories {
   @Deprecated  // to be removed before 2.0
   private static class SemiJoinFactoryImpl implements SemiJoinFactory {
     public RelNode createSemiJoin(RelNode left, RelNode right,
-        RexNode condition) {
+                                  RexNode condition) {
       return LogicalJoin.create(left, right, ImmutableList.of(), condition,
           ImmutableSet.of(), JoinRelType.SEMI, false, ImmutableList.of());
     }
@@ -447,7 +455,7 @@ public class RelFactories {
      * Creates a Values.
      */
     RelNode createValues(RelOptCluster cluster, RelDataType rowType,
-        List<ImmutableList<RexLiteral>> tuples);
+                         List<ImmutableList<RexLiteral>> tuples);
   }
 
   /**
@@ -456,7 +464,7 @@ public class RelFactories {
    */
   private static class ValuesFactoryImpl implements ValuesFactory {
     public RelNode createValues(RelOptCluster cluster, RelDataType rowType,
-        List<ImmutableList<RexLiteral>> tuples) {
+                                List<ImmutableList<RexLiteral>> tuples) {
       return LogicalValues.create(cluster, rowType,
           ImmutableList.copyOf(tuples));
     }
@@ -490,8 +498,8 @@ public class RelFactories {
   public interface TableFunctionScanFactory {
     /** Creates a {@link TableFunctionScan}. */
     RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexNode rexCall, Type elementType,
-        Set<RelColumnMapping> columnMappings);
+                                    List<RelNode> inputs, RexNode rexCall, Type elementType,
+                                    Set<RelColumnMapping> columnMappings);
   }
 
   /**
@@ -502,8 +510,8 @@ public class RelFactories {
   private static class TableFunctionScanFactoryImpl
       implements TableFunctionScanFactory {
     @Override public RelNode createTableFunctionScan(RelOptCluster cluster,
-        List<RelNode> inputs, RexNode rexCall, Type elementType,
-        Set<RelColumnMapping> columnMappings) {
+                                           List<RelNode> inputs, RexNode rexCall, Type elementType,
+                                           Set<RelColumnMapping> columnMappings) {
       return LogicalTableFunctionScan.create(cluster, inputs, rexCall,
           elementType, rexCall.getType(), columnMappings);
     }
@@ -537,11 +545,11 @@ public class RelFactories {
   public interface MatchFactory {
     /** Creates a {@link Match}. */
     RelNode createMatch(RelNode input, RexNode pattern,
-        RelDataType rowType, boolean strictStart, boolean strictEnd,
-        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-        RexNode interval);
+                        RelDataType rowType, boolean strictStart, boolean strictEnd,
+                        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+                        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+                        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
+                        RexNode interval);
   }
 
   /**
@@ -550,11 +558,11 @@ public class RelFactories {
    */
   private static class MatchFactoryImpl implements MatchFactory {
     public RelNode createMatch(RelNode input, RexNode pattern,
-        RelDataType rowType, boolean strictStart, boolean strictEnd,
-        Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-        RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-        boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-        RexNode interval) {
+                         RelDataType rowType, boolean strictStart, boolean strictEnd,
+                         Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+                         RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+                         boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
+                         RexNode interval) {
       return LogicalMatch.create(input, rowType, pattern, strictStart,
           strictEnd, patternDefinitions, measures, after, subsets, allRows,
           partitionKeys, orderKeys, interval);
@@ -569,7 +577,7 @@ public class RelFactories {
   public interface SpoolFactory {
     /** Creates a {@link TableSpool}. */
     RelNode createTableSpool(RelNode input, Spool.Type readType,
-        Spool.Type writeType, RelOptTable table);
+                             Spool.Type writeType, RelOptTable table);
   }
 
   /**
@@ -578,7 +586,7 @@ public class RelFactories {
    */
   private static class SpoolFactoryImpl implements SpoolFactory {
     public RelNode createTableSpool(RelNode input, Spool.Type readType,
-        Spool.Type writeType, RelOptTable table) {
+                                    Spool.Type writeType, RelOptTable table) {
       return LogicalTableSpool.create(input, readType, writeType, table);
     }
   }
@@ -591,7 +599,7 @@ public class RelFactories {
   public interface RepeatUnionFactory {
     /** Creates a {@link RepeatUnion}. */
     RelNode createRepeatUnion(RelNode seed, RelNode iterative, boolean all,
-        int iterationLimit);
+                              int iterationLimit);
   }
 
   /**
@@ -600,7 +608,7 @@ public class RelFactories {
    */
   private static class RepeatUnionFactoryImpl implements RepeatUnionFactory {
     public RelNode createRepeatUnion(RelNode seed, RelNode iterative,
-        boolean all, int iterationLimit) {
+                                     boolean all, int iterationLimit) {
       return LogicalRepeatUnion.create(seed, iterative, all, iterationLimit);
     }
   }
@@ -625,61 +633,46 @@ public class RelFactories {
     public final RepeatUnionFactory repeatUnionFactory;
 
     public Struct(FilterFactory filterFactory,
-        ProjectFactory projectFactory,
-        AggregateFactory aggregateFactory,
-        SortFactory sortFactory,
-        ExchangeFactory exchangeFactory,
-        SortExchangeFactory sortExchangeFactory,
-        SetOpFactory setOpFactory,
-        JoinFactory joinFactory,
-        CorrelateFactory correlateFactory,
-        ValuesFactory valuesFactory,
-        TableScanFactory scanFactory,
-        TableFunctionScanFactory tableFunctionScanFactory,
-        SnapshotFactory snapshotFactory,
-        MatchFactory matchFactory,
-        SpoolFactory spoolFactory,
-        RepeatUnionFactory repeatUnionFactory) {
-      this.filterFactory = filterFactory;
-      this.projectFactory = projectFactory;
-      this.aggregateFactory = aggregateFactory;
-      this.sortFactory = sortFactory;
-      this.exchangeFactory = exchangeFactory;
-      this.sortExchangeFactory = sortExchangeFactory;
-      this.setOpFactory = setOpFactory;
-      this.joinFactory = joinFactory;
-      this.correlateFactory = correlateFactory;
-      this.valuesFactory = valuesFactory;
-      this.scanFactory = scanFactory;
-      this.tableFunctionScanFactory = tableFunctionScanFactory;
-      this.snapshotFactory = snapshotFactory;
-      this.matchFactory = matchFactory;
-      this.spoolFactory = spoolFactory;
-      this.repeatUnionFactory = repeatUnionFactory;
-    }
-  }
-
-  public static class StructsWithConvention {
-    public final Map<Convention, Struct> structs = new IdentityHashMap<>();
-
-    private StructsWithConvention(Convention c, Struct s) {
-      structs.put(c, s);
+                   ProjectFactory projectFactory,
+                   AggregateFactory aggregateFactory,
+                   SortFactory sortFactory,
+                   ExchangeFactory exchangeFactory,
+                   SortExchangeFactory sortExchangeFactory,
+                   SetOpFactory setOpFactory,
+                   JoinFactory joinFactory,
+                   CorrelateFactory correlateFactory,
+                   ValuesFactory valuesFactory,
+                   TableScanFactory scanFactory,
+                   TableFunctionScanFactory tableFunctionScanFactory,
+                   SnapshotFactory snapshotFactory,
+                   MatchFactory matchFactory,
+                   SpoolFactory spoolFactory,
+                   RepeatUnionFactory repeatUnionFactory) {
+      this.filterFactory = Objects.requireNonNull(filterFactory);
+      this.projectFactory = Objects.requireNonNull(projectFactory);
+      this.aggregateFactory = Objects.requireNonNull(aggregateFactory);
+      this.sortFactory = Objects.requireNonNull(sortFactory);
+      this.exchangeFactory = Objects.requireNonNull(exchangeFactory);
+      this.sortExchangeFactory = Objects.requireNonNull(sortExchangeFactory);
+      this.setOpFactory = Objects.requireNonNull(setOpFactory);
+      this.joinFactory = Objects.requireNonNull(joinFactory);
+      this.correlateFactory = Objects.requireNonNull(correlateFactory);
+      this.valuesFactory = Objects.requireNonNull(valuesFactory);
+      this.scanFactory = Objects.requireNonNull(scanFactory);
+      this.tableFunctionScanFactory =
+          Objects.requireNonNull(tableFunctionScanFactory);
+      this.snapshotFactory = Objects.requireNonNull(snapshotFactory);
+      this.matchFactory = Objects.requireNonNull(matchFactory);
+      this.spoolFactory = Objects.requireNonNull(spoolFactory);
+      this.repeatUnionFactory = Objects.requireNonNull(repeatUnionFactory);
     }
 
-    public void registerStrcut(Convention convention, Struct s) {
-      structs.put(convention, s);
-    }
-
-    public Struct getStruct(Convention convention) {
-      return structs.get(convention);
-    }
-
-    public static @Nonnull StructsWithConvention fromContext(Context context) {
-      StructsWithConvention factories = context.unwrap(StructsWithConvention.class);
-      if (factories != null) {
-        return factories;
+    public static @Nonnull Struct fromContext(Context context) {
+      Struct struct = context.unwrap(Struct.class);
+      if (struct != null) {
+        return struct;
       }
-      Struct s = new Struct(
+      return new Struct(
           Util.first(context.unwrap(FilterFactory.class),
               DEFAULT_FILTER_FACTORY),
           Util.first(context.unwrap(ProjectFactory.class),
@@ -712,7 +705,6 @@ public class RelFactories {
               DEFAULT_SPOOL_FACTORY),
           Util.first(context.unwrap(RepeatUnionFactory.class),
               DEFAULT_REPEAT_UNION_FACTORY));
-      return new StructsWithConvention(Convention.NONE, s);
     }
   }
 }

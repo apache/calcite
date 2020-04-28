@@ -58,14 +58,14 @@ public class StreamRules {
 
   public static final ImmutableList<RelOptRule> RULES =
       ImmutableList.of(
-          new DeltaProjectTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaFilterTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaAggregateTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaSortTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaUnionTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaJoinTransposeRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaTableScanRule(RelFactories.DEFAULT_BUILDER),
-          new DeltaTableScanToEmptyRule(RelFactories.DEFAULT_BUILDER));
+          new DeltaProjectTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaFilterTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaAggregateTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaSortTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaUnionTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaJoinTransposeRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaTableScanRule(RelFactories.LOGICAL_BUILDER),
+          new DeltaTableScanToEmptyRule(RelFactories.LOGICAL_BUILDER));
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
   public static class DeltaProjectTransposeRule extends RelOptRule implements TransformationRule {
@@ -296,7 +296,7 @@ public class StreamRules {
 
     @Deprecated // to be removed before 2.0
     public DeltaJoinTransposeRule() {
-      this(RelFactories.DEFAULT_BUILDER);
+      this(RelFactories.LOGICAL_BUILDER);
     }
 
     /**

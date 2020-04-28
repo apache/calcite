@@ -39,7 +39,7 @@ public class CalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final CalcMergeRule INSTANCE =
-      new CalcMergeRule(RelFactories.DEFAULT_BUILDER);
+      new CalcMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

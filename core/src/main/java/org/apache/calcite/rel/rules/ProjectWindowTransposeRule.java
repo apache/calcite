@@ -50,7 +50,7 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.ProjectWindowTransposeRule}. */
   public static final ProjectWindowTransposeRule INSTANCE =
-      new ProjectWindowTransposeRule(RelFactories.DEFAULT_BUILDER);
+      new ProjectWindowTransposeRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates ProjectWindowTransposeRule.

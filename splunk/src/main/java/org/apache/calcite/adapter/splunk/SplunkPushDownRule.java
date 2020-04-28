@@ -78,30 +78,30 @@ public class SplunkPushDownRule
               operand(LogicalFilter.class,
                   operand(LogicalProject.class,
                       operand(SplunkTableScan.class, none())))),
-          RelFactories.DEFAULT_BUILDER, "proj on filter on proj");
+          RelFactories.LOGICAL_BUILDER, "proj on filter on proj");
 
   public static final SplunkPushDownRule FILTER_ON_PROJECT =
       new SplunkPushDownRule(
           operand(LogicalFilter.class,
               operand(LogicalProject.class,
                   operand(SplunkTableScan.class, none()))),
-          RelFactories.DEFAULT_BUILDER, "filter on proj");
+          RelFactories.LOGICAL_BUILDER, "filter on proj");
 
   public static final SplunkPushDownRule FILTER =
       new SplunkPushDownRule(
           operand(LogicalFilter.class,
               operand(SplunkTableScan.class, none())),
-          RelFactories.DEFAULT_BUILDER, "filter");
+          RelFactories.LOGICAL_BUILDER, "filter");
 
   public static final SplunkPushDownRule PROJECT =
       new SplunkPushDownRule(
           operand(LogicalProject.class,
               operand(SplunkTableScan.class, none())),
-          RelFactories.DEFAULT_BUILDER, "proj");
+          RelFactories.LOGICAL_BUILDER, "proj");
 
   @Deprecated // to be removed before 2.0
   protected SplunkPushDownRule(RelOptRuleOperand rule, String id) {
-    this(rule, RelFactories.DEFAULT_BUILDER, id);
+    this(rule, RelFactories.LOGICAL_BUILDER, id);
   }
 
   /** Creates a SplunkPushDownRule. */

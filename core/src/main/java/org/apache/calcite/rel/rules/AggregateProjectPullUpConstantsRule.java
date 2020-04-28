@@ -64,13 +64,13 @@ public class AggregateProjectPullUpConstantsRule extends RelOptRule
   /** The singleton. */
   public static final AggregateProjectPullUpConstantsRule INSTANCE =
       new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
-          LogicalProject.class, RelFactories.DEFAULT_BUILDER,
+          LogicalProject.class, RelFactories.LOGICAL_BUILDER,
           "AggregateProjectPullUpConstantsRule");
 
   /** More general instance that matches any relational expression. */
   public static final AggregateProjectPullUpConstantsRule INSTANCE2 =
       new AggregateProjectPullUpConstantsRule(LogicalAggregate.class,
-          RelNode.class, RelFactories.DEFAULT_BUILDER,
+          RelNode.class, RelFactories.LOGICAL_BUILDER,
           "AggregatePullUpConstantsRule");
 
   //~ Constructors -----------------------------------------------------------

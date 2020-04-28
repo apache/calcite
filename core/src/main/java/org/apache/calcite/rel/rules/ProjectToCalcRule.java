@@ -43,7 +43,7 @@ public class ProjectToCalcRule extends RelOptRule implements TransformationRule 
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectToCalcRule INSTANCE =
-      new ProjectToCalcRule(RelFactories.DEFAULT_BUILDER);
+      new ProjectToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

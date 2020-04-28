@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  */
 public class ElasticsearchToEnumerableConverterRule extends ConverterRule {
   static final ConverterRule INSTANCE =
-      new ElasticsearchToEnumerableConverterRule(RelFactories.DEFAULT_BUILDER);
+      new ElasticsearchToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates an ElasticsearchToEnumerableConverterRule.

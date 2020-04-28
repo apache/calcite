@@ -84,13 +84,13 @@ public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
   /** The default instance of the rule; operates only on logical expressions. */
   public static final AggregateExpandDistinctAggregatesRule INSTANCE =
       new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, true,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   /** Instance of the rule that operates only on logical expressions and
    * generates a join. */
   public static final AggregateExpandDistinctAggregatesRule JOIN =
       new AggregateExpandDistinctAggregatesRule(LogicalAggregate.class, false,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   public final boolean useGroupingSets;
 

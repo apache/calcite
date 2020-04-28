@@ -39,7 +39,7 @@ public class TraitMatchingRule extends RelOptRule {
 
   @Deprecated // to be removed before 2.0
   public TraitMatchingRule(ConverterRule converterRule) {
-    this(converterRule, RelFactories.DEFAULT_BUILDER);
+    this(converterRule, RelFactories.LOGICAL_BUILDER);
   }
 
   /**

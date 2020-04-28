@@ -34,7 +34,7 @@ class EnumerableFilterRule extends ConverterRule {
     super(LogicalFilter.class,
         (Predicate<LogicalFilter>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.DEFAULT_BUILDER, "EnumerableFilterRule");
+        RelFactories.LOGICAL_BUILDER, "EnumerableFilterRule");
   }
 
   public RelNode convert(RelNode rel) {

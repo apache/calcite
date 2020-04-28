@@ -69,7 +69,7 @@ public class ExchangeRemoveConstantKeysRule extends RelOptRule
 
   private ExchangeRemoveConstantKeysRule(Class<? extends RelNode> clazz,
       String description) {
-    super(operand(clazz, any()), RelFactories.DEFAULT_BUILDER, description);
+    super(operand(clazz, any()), RelFactories.LOGICAL_BUILDER, description);
   }
 
   /** Removes constant in distribution keys. */

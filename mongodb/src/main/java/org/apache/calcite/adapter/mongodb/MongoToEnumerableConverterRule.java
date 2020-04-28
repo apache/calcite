@@ -31,7 +31,7 @@ import java.util.function.Predicate;
  */
 public class MongoToEnumerableConverterRule extends ConverterRule {
   public static final ConverterRule INSTANCE =
-      new MongoToEnumerableConverterRule(RelFactories.DEFAULT_BUILDER);
+      new MongoToEnumerableConverterRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a MongoToEnumerableConverterRule.

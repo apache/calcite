@@ -48,7 +48,7 @@ public class ProjectCorrelateTransposeRule extends RelOptRule implements Transfo
 
   public static final ProjectCorrelateTransposeRule INSTANCE =
       new ProjectCorrelateTransposeRule(expr -> !(expr instanceof RexOver),
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 

@@ -33,7 +33,7 @@ import java.util.function.Predicate;
 public class EnumerableTableFunctionScanRule extends ConverterRule {
   @Deprecated // to be removed before 2.0
   public EnumerableTableFunctionScanRule() {
-    this(RelFactories.DEFAULT_BUILDER);
+    this(RelFactories.LOGICAL_BUILDER);
   }
 
   /**

@@ -41,7 +41,7 @@ public final class JoinExtractFilterRule extends AbstractJoinExtractFilterRule {
   /** The singleton. */
   public static final JoinExtractFilterRule INSTANCE =
       new JoinExtractFilterRule(LogicalJoin.class,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

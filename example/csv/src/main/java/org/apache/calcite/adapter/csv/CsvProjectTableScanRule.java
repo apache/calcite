@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class CsvProjectTableScanRule extends RelOptRule {
   public static final CsvProjectTableScanRule INSTANCE =
-      new CsvProjectTableScanRule(RelFactories.DEFAULT_BUILDER);
+      new CsvProjectTableScanRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a CsvProjectTableScanRule.

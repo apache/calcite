@@ -41,7 +41,7 @@ import java.util.List;
 public class FilterCorrelateRule extends RelOptRule implements TransformationRule {
 
   public static final FilterCorrelateRule INSTANCE =
-      new FilterCorrelateRule(RelFactories.DEFAULT_BUILDER);
+      new FilterCorrelateRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

@@ -37,7 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class ProjectFilterTransposeRule extends RelOptRule implements TransformationRule {
   public static final ProjectFilterTransposeRule INSTANCE =
       new ProjectFilterTransposeRule(LogicalProject.class, LogicalFilter.class,
-          RelFactories.DEFAULT_BUILDER, expr -> false);
+          RelFactories.LOGICAL_BUILDER, expr -> false);
 
   //~ Instance fields --------------------------------------------------------
 

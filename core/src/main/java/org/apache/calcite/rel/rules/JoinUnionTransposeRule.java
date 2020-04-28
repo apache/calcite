@@ -40,7 +40,7 @@ public class JoinUnionTransposeRule extends RelOptRule implements Transformation
           operand(Join.class,
               operand(Union.class, any()),
               operand(RelNode.class, any())),
-          RelFactories.DEFAULT_BUILDER,
+          RelFactories.LOGICAL_BUILDER,
           "JoinUnionTransposeRule(Union-Other)");
 
   public static final JoinUnionTransposeRule RIGHT_UNION =
@@ -48,7 +48,7 @@ public class JoinUnionTransposeRule extends RelOptRule implements Transformation
           operand(Join.class,
               operand(RelNode.class, any()),
               operand(Union.class, any())),
-          RelFactories.DEFAULT_BUILDER,
+          RelFactories.LOGICAL_BUILDER,
           "JoinUnionTransposeRule(Other-Union)");
 
   /**

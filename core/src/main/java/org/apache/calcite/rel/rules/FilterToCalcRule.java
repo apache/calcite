@@ -46,7 +46,7 @@ public class FilterToCalcRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final FilterToCalcRule INSTANCE =
-      new FilterToCalcRule(RelFactories.DEFAULT_BUILDER);
+      new FilterToCalcRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

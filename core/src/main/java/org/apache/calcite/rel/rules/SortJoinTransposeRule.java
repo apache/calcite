@@ -46,7 +46,7 @@ public class SortJoinTransposeRule extends RelOptRule implements TransformationR
 
   public static final SortJoinTransposeRule INSTANCE =
       new SortJoinTransposeRule(LogicalSort.class,
-          LogicalJoin.class, RelFactories.DEFAULT_BUILDER);
+          LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 
@@ -54,7 +54,7 @@ public class SortJoinTransposeRule extends RelOptRule implements TransformationR
   @Deprecated // to be removed before 2.0
   public SortJoinTransposeRule(Class<? extends Sort> sortClass,
       Class<? extends Join> joinClass) {
-    this(sortClass, joinClass, RelFactories.DEFAULT_BUILDER);
+    this(sortClass, joinClass, RelFactories.LOGICAL_BUILDER);
   }
 
   /** Creates a SortJoinTransposeRule. */

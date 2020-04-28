@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Family of calling conventions that return results as an
@@ -83,5 +84,9 @@ public enum EnumerableConvention implements Convention {
   public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return true;
+  }
+
+  public RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
+    return oldRelBuilder.setRelFactoriesStruct(EnumerableRelFactories.DEFAULT_STRUCT);
   }
 }

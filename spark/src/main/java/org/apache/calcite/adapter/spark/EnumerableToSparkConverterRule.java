@@ -32,7 +32,7 @@ import java.util.function.Predicate;
  */
 public class EnumerableToSparkConverterRule extends ConverterRule {
   public static final EnumerableToSparkConverterRule INSTANCE =
-      new EnumerableToSparkConverterRule(RelFactories.DEFAULT_BUILDER);
+      new EnumerableToSparkConverterRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates an EnumerableToSparkConverterRule.

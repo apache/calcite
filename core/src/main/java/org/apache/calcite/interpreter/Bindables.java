@@ -94,34 +94,34 @@ public class Bindables {
   private Bindables() {}
 
   public static final RelOptRule BINDABLE_TABLE_SCAN_RULE =
-      new BindableTableScanRule(RelFactories.DEFAULT_BUILDER);
+      new BindableTableScanRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_FILTER_RULE =
-      new BindableFilterRule(RelFactories.DEFAULT_BUILDER);
+      new BindableFilterRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_PROJECT_RULE =
-      new BindableProjectRule(RelFactories.DEFAULT_BUILDER);
+      new BindableProjectRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_SORT_RULE =
-      new BindableSortRule(RelFactories.DEFAULT_BUILDER);
+      new BindableSortRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_JOIN_RULE =
-      new BindableJoinRule(RelFactories.DEFAULT_BUILDER);
+      new BindableJoinRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_SETOP_RULE =
-      new BindableSetOpRule(RelFactories.DEFAULT_BUILDER);
+      new BindableSetOpRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_VALUES_RULE =
-      new BindableValuesRule(RelFactories.DEFAULT_BUILDER);
+      new BindableValuesRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_AGGREGATE_RULE =
-      new BindableAggregateRule(RelFactories.DEFAULT_BUILDER);
+      new BindableAggregateRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_WINDOW_RULE =
-      new BindableWindowRule(RelFactories.DEFAULT_BUILDER);
+      new BindableWindowRule(RelFactories.LOGICAL_BUILDER);
 
   public static final RelOptRule BINDABLE_MATCH_RULE =
-      new BindableMatchRule(RelFactories.DEFAULT_BUILDER);
+      new BindableMatchRule(RelFactories.LOGICAL_BUILDER);
 
   /** All rules that convert logical relational expression to bindable. */
   public static final ImmutableList<RelOptRule> RULES =

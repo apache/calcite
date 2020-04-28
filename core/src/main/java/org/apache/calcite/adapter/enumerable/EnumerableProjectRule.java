@@ -34,7 +34,7 @@ class EnumerableProjectRule extends ConverterRule {
     super(LogicalProject.class,
         (Predicate<LogicalProject>) RelOptUtil::notContainsWindowedAgg,
         Convention.NONE, EnumerableConvention.INSTANCE,
-        RelFactories.DEFAULT_BUILDER, "EnumerableProjectRule");
+        RelFactories.LOGICAL_BUILDER, "EnumerableProjectRule");
   }
 
   public RelNode convert(RelNode rel) {

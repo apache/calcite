@@ -68,7 +68,7 @@ import java.math.BigDecimal;
  */
 public class IntersectToDistinctRule extends RelOptRule implements TransformationRule {
   public static final IntersectToDistinctRule INSTANCE =
-          new IntersectToDistinctRule(LogicalIntersect.class, RelFactories.DEFAULT_BUILDER);
+          new IntersectToDistinctRule(LogicalIntersect.class, RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

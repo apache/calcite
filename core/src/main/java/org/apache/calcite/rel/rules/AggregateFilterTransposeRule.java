@@ -64,7 +64,7 @@ public class AggregateFilterTransposeRule extends RelOptRule
     this(
         operand(Aggregate.class,
             operand(Filter.class, any())),
-        RelFactories.DEFAULT_BUILDER);
+        RelFactories.LOGICAL_BUILDER);
   }
 
   /** Creates an AggregateFilterTransposeRule. */

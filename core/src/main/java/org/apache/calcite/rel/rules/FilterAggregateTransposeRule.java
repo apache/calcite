@@ -52,7 +52,7 @@ public class FilterAggregateTransposeRule extends RelOptRule implements Transfor
    * <p>It matches any kind of agg. or filter */
   public static final FilterAggregateTransposeRule INSTANCE =
       new FilterAggregateTransposeRule(Filter.class,
-          RelFactories.DEFAULT_BUILDER, Aggregate.class);
+          RelFactories.LOGICAL_BUILDER, Aggregate.class);
 
   //~ Constructors -----------------------------------------------------------
 

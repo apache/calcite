@@ -54,7 +54,7 @@ public class SortUnionTransposeRule extends RelOptRule implements Transformation
   // ~ Constructors -----------------------------------------------------------
 
   private SortUnionTransposeRule(boolean matchNullFetch) {
-    this(Sort.class, Union.class, matchNullFetch, RelFactories.DEFAULT_BUILDER,
+    this(Sort.class, Union.class, matchNullFetch, RelFactories.LOGICAL_BUILDER,
         "SortUnionTransposeRule:default");
   }
 

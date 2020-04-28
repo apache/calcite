@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class CalcSplitRule extends RelOptRule implements TransformationRule {
   public static final CalcSplitRule INSTANCE =
-      new CalcSplitRule(RelFactories.DEFAULT_BUILDER);
+      new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
 
   /**
    * Creates a CalcSplitRule.

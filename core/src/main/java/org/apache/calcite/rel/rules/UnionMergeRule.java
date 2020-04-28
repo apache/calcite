@@ -42,13 +42,13 @@ import org.apache.calcite.util.Util;
 public class UnionMergeRule extends RelOptRule implements TransformationRule {
   public static final UnionMergeRule INSTANCE =
       new UnionMergeRule(LogicalUnion.class, "UnionMergeRule",
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
   public static final UnionMergeRule INTERSECT_INSTANCE =
       new UnionMergeRule(LogicalIntersect.class, "IntersectMergeRule",
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
   public static final UnionMergeRule MINUS_INSTANCE =
       new UnionMergeRule(LogicalMinus.class, "MinusMergeRule",
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

@@ -73,7 +73,7 @@ public abstract class RelOptRule {
    * @param operand root operand, must not be null
    */
   public RelOptRule(RelOptRuleOperand operand) {
-    this(operand, RelFactories.DEFAULT_BUILDER, null);
+    this(operand, RelFactories.LOGICAL_BUILDER, null);
   }
 
   /**
@@ -83,7 +83,7 @@ public abstract class RelOptRule {
    * @param description Description, or null to guess description
    */
   public RelOptRule(RelOptRuleOperand operand, String description) {
-    this(operand, RelFactories.DEFAULT_BUILDER, description);
+    this(operand, RelFactories.LOGICAL_BUILDER, description);
   }
 
   /**

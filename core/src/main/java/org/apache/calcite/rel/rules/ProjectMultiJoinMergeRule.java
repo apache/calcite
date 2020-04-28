@@ -35,7 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class ProjectMultiJoinMergeRule extends RelOptRule implements TransformationRule {
   public static final ProjectMultiJoinMergeRule INSTANCE =
-      new ProjectMultiJoinMergeRule(RelFactories.DEFAULT_BUILDER);
+      new ProjectMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

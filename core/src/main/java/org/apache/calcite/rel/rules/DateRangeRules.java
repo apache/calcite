@@ -105,7 +105,7 @@ public abstract class DateRangeRules {
       };
 
   public static final RelOptRule FILTER_INSTANCE =
-      new FilterDateRangeRule(RelFactories.DEFAULT_BUILDER);
+      new FilterDateRangeRule(RelFactories.LOGICAL_BUILDER);
 
   private static final Map<TimeUnitRange, Integer> TIME_UNIT_CODES =
       ImmutableMap.<TimeUnitRange, Integer>builder()

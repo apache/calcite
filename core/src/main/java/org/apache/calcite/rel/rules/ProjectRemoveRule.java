@@ -37,7 +37,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  */
 public class ProjectRemoveRule extends RelOptRule implements SubstitutionRule {
   public static final ProjectRemoveRule INSTANCE =
-      new ProjectRemoveRule(RelFactories.DEFAULT_BUILDER);
+      new ProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
 
   //~ Constructors -----------------------------------------------------------
 

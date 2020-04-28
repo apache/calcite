@@ -41,7 +41,7 @@ public class ProjectMergeRule extends RelOptRule implements TransformationRule {
   public static final int DEFAULT_BLOAT = 100;
 
   public static final ProjectMergeRule INSTANCE =
-      new ProjectMergeRule(true, DEFAULT_BLOAT, RelFactories.DEFAULT_BUILDER);
+      new ProjectMergeRule(true, DEFAULT_BLOAT, RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 

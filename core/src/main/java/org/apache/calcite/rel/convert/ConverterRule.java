@@ -52,7 +52,7 @@ public abstract class ConverterRule extends RelOptRule {
   public ConverterRule(Class<? extends RelNode> clazz, RelTrait in,
       RelTrait out, String descriptionPrefix) {
     this(clazz, (Predicate<RelNode>) r -> true, in, out,
-        RelFactories.DEFAULT_BUILDER, descriptionPrefix);
+        RelFactories.LOGICAL_BUILDER, descriptionPrefix);
   }
 
   @SuppressWarnings("Guava")
@@ -60,7 +60,7 @@ public abstract class ConverterRule extends RelOptRule {
   public <R extends RelNode> ConverterRule(Class<R> clazz,
       com.google.common.base.Predicate<? super R> predicate,
       RelTrait in, RelTrait out, String descriptionPrefix) {
-    this(clazz, predicate, in, out, RelFactories.DEFAULT_BUILDER, descriptionPrefix);
+    this(clazz, predicate, in, out, RelFactories.LOGICAL_BUILDER, descriptionPrefix);
   }
 
   /**

@@ -38,7 +38,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 public class JoinPushExpressionsRule extends RelOptRule implements TransformationRule {
 
   public static final JoinPushExpressionsRule INSTANCE =
-      new JoinPushExpressionsRule(Join.class, RelFactories.DEFAULT_BUILDER);
+      new JoinPushExpressionsRule(Join.class, RelFactories.LOGICAL_BUILDER);
 
   /** Creates a JoinPushExpressionsRule. */
   public JoinPushExpressionsRule(Class<? extends Join> clazz,

@@ -60,7 +60,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
   private static final String MULTISET_PROJECTION = "MULTISET_PROJECTION";
 
   public static final PigToSqlAggregateRule INSTANCE =
-      new PigToSqlAggregateRule(RelFactories.DEFAULT_BUILDER);
+      new PigToSqlAggregateRule(RelFactories.LOGICAL_BUILDER);
 
   private PigToSqlAggregateRule(RelBuilderFactory relBuilderFactory) {
     super(

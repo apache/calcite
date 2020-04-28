@@ -16,7 +16,9 @@
  */
 package org.apache.calcite.tools;
 
-import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.core.RelFactories;
 
 /** A partially-created RelBuilder.
@@ -29,24 +31,9 @@ import org.apache.calcite.rel.core.RelFactories;
  * that this particular rule instance should create {@code DrillFilter}
  * and {@code DrillProject} versus {@code HiveFilter} and {@code HiveProject}.
  *
- * @see RelFactories#DEFAULT_BUILDER
+ * @see RelFactories#LOGICAL_BUILDER
  */
-public class RelBuilderFactory {
-
-  private RelFactories.StructsWithConvention factories;
-
-  public RelBuilderFactory(RelFactories.StructsWithConvention factories) {
-    this.factories = factories;
-  }
-
+public interface RelBuilderFactory {
   /** Creates a RelBuilder. */
-  public RelBuilder create(RelOptCluster cluster, RelOptSchema schema) {
-    return new RelBuilder(Contexts.of(this.factories), cluster, schema);
-  }
-
-  public RelBuilderFactory registerFactoriesWithConvention(Convention convention,
-                                                    RelFactories.Struct struct) {
-    this.factories.registerStrcut(convention, struct);
-    return this;
-  }
+  RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
 }

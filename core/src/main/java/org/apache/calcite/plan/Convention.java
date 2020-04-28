@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Calling convention trait.
@@ -79,6 +80,15 @@ public interface Convention extends RelTrait {
   default boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
     return false;
+  }
+
+  /**
+   * Transform a RelBuilder to support creating physical RelNode with current convention.
+   * @param oldRelBuilder The original RelBuilder to be transformed.
+   * @return A new RelBuilder after transformation.
+   */
+  default RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
+    return oldRelBuilder;
   }
 
   /**

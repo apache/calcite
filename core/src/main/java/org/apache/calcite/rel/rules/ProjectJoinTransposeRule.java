@@ -53,7 +53,7 @@ public class ProjectJoinTransposeRule extends RelOptRule implements Transformati
       new ProjectJoinTransposeRule(
           LogicalProject.class, LogicalJoin.class,
           expr -> !(expr instanceof RexOver),
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 

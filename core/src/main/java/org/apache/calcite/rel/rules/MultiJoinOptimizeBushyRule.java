@@ -70,7 +70,7 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  */
 public class MultiJoinOptimizeBushyRule extends RelOptRule implements TransformationRule {
   public static final MultiJoinOptimizeBushyRule INSTANCE =
-      new MultiJoinOptimizeBushyRule(RelFactories.DEFAULT_BUILDER);
+      new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
 
   private final PrintWriter pw = CalciteSystemProperty.DEBUG.value()
       ? Util.printWriter(System.out)

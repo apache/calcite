@@ -42,7 +42,7 @@ import java.util.List;
 public class ProjectSetOpTransposeRule extends RelOptRule implements TransformationRule {
   public static final ProjectSetOpTransposeRule INSTANCE =
       new ProjectSetOpTransposeRule(expr -> !(expr instanceof RexOver),
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   //~ Instance fields --------------------------------------------------------
 
