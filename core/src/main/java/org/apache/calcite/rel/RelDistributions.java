@@ -67,21 +67,18 @@ public class RelDistributions {
         && !Ordering.natural().isOrdered(list)) {
       list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
     }
-    RelDistributionImpl trait =
-        new RelDistributionImpl(RelDistribution.Type.HASH_DISTRIBUTED, list);
-    return RelDistributionTraitDef.INSTANCE.canonize(trait);
+    return of(RelDistribution.Type.HASH_DISTRIBUTED, list);
   }
 
   /** Creates a range distribution. */
   public static RelDistribution range(Collection<? extends Number> numbers) {
     ImmutableIntList list = ImmutableIntList.copyOf(numbers);
-    RelDistributionImpl trait =
-        new RelDistributionImpl(RelDistribution.Type.RANGE_DISTRIBUTED, list);
-    return RelDistributionTraitDef.INSTANCE.canonize(trait);
+    return of(RelDistribution.Type.RANGE_DISTRIBUTED, list);
   }
 
   public static RelDistribution of(RelDistribution.Type type, ImmutableIntList keys) {
-    return new RelDistributionImpl(type, keys);
+    RelDistribution distribution = new RelDistributionImpl(type, keys);
+    return RelDistributionTraitDef.INSTANCE.canonize(distribution);
   }
 
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */
