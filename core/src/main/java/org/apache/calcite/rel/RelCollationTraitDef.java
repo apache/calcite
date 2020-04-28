@@ -74,7 +74,9 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     // Create a sort operator based on given convention
     RelBuilder builder =
         RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
-    builder = toConvention.transformRelBuilder(builder);
+    if (toConvention != null) {
+      builder = toConvention.transformRelBuilder(builder);
+    }
     RelNode sort = builder.push(rel)
                           .sort(toCollation.getFieldCollations())
                           .build();
