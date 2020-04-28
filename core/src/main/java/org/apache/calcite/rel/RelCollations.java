@@ -64,19 +64,22 @@ public class RelCollations {
   }
 
   public static RelCollation of(List<RelFieldCollation> fieldCollations) {
+    RelCollation collation;
     if (Util.isDistinct(ordinals(fieldCollations))) {
-      return new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
-    }
-    // Remove field collations whose field has already been seen
-    final ImmutableList.Builder<RelFieldCollation> builder =
-        ImmutableList.builder();
-    final Set<Integer> set = new HashSet<>();
-    for (RelFieldCollation fieldCollation : fieldCollations) {
-      if (set.add(fieldCollation.getFieldIndex())) {
-        builder.add(fieldCollation);
+      collation = new RelCollationImpl(ImmutableList.copyOf(fieldCollations));
+    } else {
+      // Remove field collations whose field has already been seen
+      final ImmutableList.Builder<RelFieldCollation> builder =
+          ImmutableList.builder();
+      final Set<Integer> set = new HashSet<>();
+      for (RelFieldCollation fieldCollation : fieldCollations) {
+        if (set.add(fieldCollation.getFieldIndex())) {
+          builder.add(fieldCollation);
+        }
       }
+      collation = new RelCollationImpl(builder.build());
     }
-    return new RelCollationImpl(builder.build());
+    return RelCollationTraitDef.INSTANCE.canonize(collation);
   }
 
   /**
