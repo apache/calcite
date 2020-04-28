@@ -48,6 +48,8 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlJsonConstructorNullClause;
+import org.apache.calcite.sql.SqlJsonEmptyOrError;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlMatchFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlTypeConstructorFunction;
@@ -209,7 +211,7 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_EXISTS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECT;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_OBJECTAGG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_QUERY;
-import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_ANY;
+import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.JSON_VALUE_EXPRESSION;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAG;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.LAST;
@@ -566,7 +568,8 @@ public class RexImpTable {
     defineMethod(JSON_VALUE_EXPRESSION,
         BuiltInMethod.JSON_VALUE_EXPRESSION.method, NullPolicy.STRICT);
     defineMethod(JSON_EXISTS, BuiltInMethod.JSON_EXISTS.method, NullPolicy.ARG0);
-    defineMethod(JSON_VALUE_ANY, BuiltInMethod.JSON_VALUE_ANY.method, NullPolicy.ARG0);
+    defineImplementor(JSON_VALUE, NullPolicy.ARG0,
+        new JsonValueImplementor(BuiltInMethod.JSON_VALUE.method), false);
     defineMethod(JSON_QUERY, BuiltInMethod.JSON_QUERY.method, NullPolicy.ARG0);
     defineMethod(JSON_TYPE, BuiltInMethod.JSON_TYPE.method, NullPolicy.ARG0);
     defineMethod(JSON_DEPTH, BuiltInMethod.JSON_DEPTH.method, NullPolicy.ARG0);
@@ -2332,6 +2335,83 @@ public class RexImpTable {
           translator.typeFactory.getJavaClass(call.getType());
       return EnumUtils.convert(expression, returnType);
     }
+  }
+
+  /**
+   * Implementor for JSON_VALUE function, convert to solid format
+   * "JSON_VALUE(json_doc, path, empty_behavior, empty_default, error_behavior, error default)"
+   * in order to simplify the runtime implementation.
+   *
+   * <p>We should avoid this when we support
+   * variable arguments function.
+   */
+  private static class JsonValueImplementor extends MethodImplementor {
+    JsonValueImplementor(Method method) {
+      super(method);
+    }
+
+    public Expression implement(
+        RexToLixTranslator translator,
+        RexCall call,
+        List<Expression> translatedOperands) {
+      final Expression expression;
+      final List<Expression> newOperands = new ArrayList<>();
+      newOperands.add(translatedOperands.get(0));
+      newOperands.add(translatedOperands.get(1));
+      List<Expression> leftExprs = Util.skip(translatedOperands, 2);
+      // Default value for JSON_VALUE behaviors.
+      Expression emptyBehavior = Expressions.constant(SqlJsonValueEmptyOrErrorBehavior.NULL);
+      Expression defaultValueOnEmpty = Expressions.constant(null);
+      Expression errorBehavior = Expressions.constant(SqlJsonValueEmptyOrErrorBehavior.NULL);
+      Expression defaultValueOnError = Expressions.constant(null);
+      // Patched up with user defines.
+      if (leftExprs.size() > 0) {
+        for (int i = 0; i < leftExprs.size(); i++) {
+          Expression expr = leftExprs.get(i);
+          if (expr instanceof ConstantExpression) {
+            final ConstantExpression constExpr = (ConstantExpression) expr;
+            final Object exprVal = constExpr.value;
+            int defaultSymbolIdx = i - 2;
+            if (exprVal == SqlJsonEmptyOrError.EMPTY) {
+              if (defaultSymbolIdx >= 0
+                  && unwrapConstExprVal(leftExprs.get(defaultSymbolIdx))
+                    == SqlJsonValueEmptyOrErrorBehavior.DEFAULT) {
+                defaultValueOnEmpty = leftExprs.get(i - 1);
+                emptyBehavior = leftExprs.get(defaultSymbolIdx);
+              } else {
+                emptyBehavior = leftExprs.get(i - 1);
+              }
+            } else if (exprVal == SqlJsonEmptyOrError.ERROR) {
+              if (defaultSymbolIdx >= 0
+                  && unwrapConstExprVal(leftExprs.get(defaultSymbolIdx))
+                    == SqlJsonValueEmptyOrErrorBehavior.DEFAULT) {
+                defaultValueOnError = leftExprs.get(i - 1);
+                errorBehavior = leftExprs.get(defaultSymbolIdx);
+              } else {
+                errorBehavior = leftExprs.get(i - 1);
+              }
+            }
+          }
+        }
+      }
+      newOperands.add(emptyBehavior);
+      newOperands.add(defaultValueOnEmpty);
+      newOperands.add(errorBehavior);
+      newOperands.add(defaultValueOnError);
+      Class clazz = method.getDeclaringClass();
+      expression = EnumUtils.call(clazz, method.getName(), newOperands);
+
+      final Type returnType =
+          translator.typeFactory.getJavaClass(call.getType());
+      return EnumUtils.convert(expression, returnType);
+    }
+  }
+
+  private static Object unwrapConstExprVal(Expression expression) {
+    if (expression instanceof ConstantExpression) {
+      return ((ConstantExpression) expression).value;
+    }
+    return null;
   }
 
   /** Implementor for SQL functions that generates calls to a given method name.

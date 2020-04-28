@@ -11092,6 +11092,7 @@ class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test void testJsonValue() {
     expr("json_value('{\"foo\":\"bar\"}', 'lax $.foo')").ok();
+    expr("json_value('{\"foo\":\"bar\"}', 123)").ok();
     expr("json_value('{\"foo\":\"bar\"}', 'lax $.foo')")
         .columnType("VARCHAR(2000)");
     expr("json_value('{\"foo\":100}', 'lax $.foo')")

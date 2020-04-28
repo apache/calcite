@@ -638,9 +638,9 @@ class SqlJsonFunctionsTest {
       Object defaultValueOnError,
       Matcher<Object> matcher) {
     assertThat(
-        invocationDesc(BuiltInMethod.JSON_VALUE_ANY.getMethodName(), context, emptyBehavior,
+        invocationDesc(BuiltInMethod.JSON_VALUE.getMethodName(), context, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
-        JsonFunctions.jsonValueAny(context, emptyBehavior, defaultValueOnEmpty,
+        JsonFunctions.jsonValue(context, emptyBehavior, defaultValueOnEmpty,
             errorBehavior, defaultValueOnError),
         matcher);
   }
@@ -652,9 +652,9 @@ class SqlJsonFunctionsTest {
       Object defaultValueOnError,
       Matcher<? super Throwable> matcher) {
     assertFailed(
-        invocationDesc(BuiltInMethod.JSON_VALUE_ANY.getMethodName(), input, emptyBehavior,
+        invocationDesc(BuiltInMethod.JSON_VALUE.getMethodName(), input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
-        () -> JsonFunctions.jsonValueAny(input, emptyBehavior,
+        () -> JsonFunctions.jsonValue(input, emptyBehavior,
             defaultValueOnEmpty, errorBehavior, defaultValueOnError),
         matcher);
   }
