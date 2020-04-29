@@ -38,6 +38,18 @@ public interface Convention extends RelTrait {
   String getName();
 
   /**
+   * Given an input and required traits, returns the corresponding
+   * enforcer rel nodes, like physical Sort, Exchange etc.
+   *
+   * @param input The input RelNode
+   * @param required The required traits
+   * @return Enforcer that satisfies the required traits
+   */
+  default RelNode enforce(RelNode input, RelTraitSet required) {
+    throw new RuntimeException("Not implemented!");
+  }
+
+  /**
    * Returns whether we should convert from this convention to
    * {@code toConvention}. Used by {@link ConventionTraitDef}.
    *

@@ -80,6 +80,13 @@ public abstract class CalciteTrace {
   }
 
   /**
+   * Reports volcano planner optimization task events.
+   */
+  public static Logger getPlannerTaskTracer() {
+    return LoggerFactory.getLogger("org.apache.calcite.plan.volcano.task");
+  }
+
+  /**
    * The "org.apache.calcite.prepare.Prepare" tracer prints the generated
    * program at DEBUG (formerly, FINE)  or higher.
    */

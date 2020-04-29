@@ -57,6 +57,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.apiguardian.api.API;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
@@ -180,6 +182,18 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
   private final RelOptCost zeroCost;
 
+  /**
+   * Optimization tasks including trait propagation, enforcement.
+   */
+  final Deque<OptimizeTask> tasks = new ArrayDeque<>();
+
+  int nextTaskId = 0;
+
+  /**
+   * Whether to enable top-down trait request.
+   */
+  boolean topdownTraitRequest = false;
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -223,6 +237,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
       phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
     };
+  }
+
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public void setTopdownTraitRequest(boolean value) {
+    topdownTraitRequest = value;
   }
 
   // implement RelOptPlanner
@@ -505,6 +524,20 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
       ruleQueue.phaseCompleted(phase);
     }
+
+    if (topdownTraitRequest) {
+      tasks.push(OptimizeTask.create(root));
+      while (!tasks.isEmpty()) {
+        OptimizeTask task = tasks.peek();
+        if (task.hasSubTask()) {
+          tasks.push(task.nextSubTask());
+          continue;
+        }
+        task = tasks.pop();
+        task.execute();
+      }
+    }
+
     if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
       final PrintWriter pw = new PrintWriter(sw);
@@ -744,6 +777,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return set.getOrCreateSubset(rel.getCluster(), traits);
     }
     return set.getSubset(traits);
+  }
+
+  boolean isSeedNode(RelNode node) {
+    final RelSet set = getSubset(node).set;
+    return set.seeds.contains(node);
   }
 
   RelNode changeTraitsUsingConverters(

@@ -17,6 +17,7 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.PhysicalNode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptUtil;
@@ -27,6 +28,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
@@ -71,6 +73,23 @@ class RelSet {
    */
   RelSet equivalentSet;
   RelNode rel;
+
+  /**
+   * The position indicator of rel node that is to be processed.
+   */
+  private int relCursor = 0;
+
+  /**
+   * The relnodes after applying logical rules and physical rules,
+   * before trait propagation and enforcement.
+   */
+  final Set<RelNode> seeds = new HashSet<>();
+
+  /**
+   * Records conversions / enforcements that have happened on the
+   * pair of derived and required traitset.
+   */
+  final Set<Pair<RelTraitSet, RelTraitSet>> conversions = new HashSet<>();
 
   /**
    * Variables that are set by relational expressions in this set
@@ -146,6 +165,32 @@ class RelSet {
     return null;
   }
 
+  public int getSeedSize() {
+    if (seeds.isEmpty()) {
+      seeds.addAll(rels);
+    }
+    return seeds.size();
+  }
+
+  public boolean hasNextPhysicalNode() {
+    while (relCursor < rels.size()) {
+      RelNode node = rels.get(relCursor);
+      if (node instanceof PhysicalNode
+          && node.getConvention() != Convention.NONE) {
+        // enforcer may be manually created for some reason
+        if (relCursor < getSeedSize() || !node.isEnforcer()) {
+          return true;
+        }
+      }
+      relCursor++;
+    }
+    return false;
+  }
+
+  public RelNode nextPhysicalNode() {
+    return rels.get(relCursor++);
+  }
+
   /**
    * Removes all references to a specific {@link RelNode} in both the subsets
    * and their parent relationships.
@@ -173,8 +218,9 @@ class RelSet {
    * Otherwise, convert this subset to required subsets in this RelSet.
    * The subset can be both required and delivered.
    */
-  private void addAbstractConverters(
-      RelOptCluster cluster, RelSubset subset, boolean required) {
+  void addConverters(RelSubset subset, boolean required,
+      boolean useAbstractConverter) {
+    RelOptCluster cluster = subset.getCluster();
     List<RelSubset> others = subsets.stream().filter(
         n -> required ? n.isDelivered() : n.isRequired())
         .collect(Collectors.toList());
@@ -189,9 +235,13 @@ class RelSet {
         to = subset;
       }
 
-      if (from == to || !from.getConvention()
-          .useAbstractConvertersForConversion(
+      if (from == to || useAbstractConverter
+          && !from.getConvention().useAbstractConvertersForConversion(
               from.getTraitSet(), to.getTraitSet())) {
+        continue;
+      }
+
+      if (!conversions.add(Pair.of(from.getTraitSet(), to.getTraitSet()))) {
         continue;
       }
 
@@ -216,9 +266,14 @@ class RelSet {
       }
 
       if (needsConverter) {
-        final AbstractConverter converter =
-            new AbstractConverter(cluster, from, null, to.getTraitSet());
-        cluster.getPlanner().register(converter, to);
+        final RelNode enforcer;
+        if (useAbstractConverter) {
+          enforcer = new AbstractConverter(
+              cluster, from, null, to.getTraitSet());
+        } else {
+          enforcer = subset.getConvention().enforce(from, to.getTraitSet());
+        }
+        cluster.getPlanner().register(enforcer, to);
       }
     }
   }
@@ -230,6 +285,7 @@ class RelSet {
   RelSubset getOrCreateSubset(
       RelOptCluster cluster, RelTraitSet traits, boolean required) {
     boolean needsConverter = false;
+    final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
     RelSubset subset = getSubset(traits);
 
     if (subset == null) {
@@ -241,7 +297,6 @@ class RelSet {
       // register() the planner will try to add this subset again.
       subsets.add(subset);
 
-      final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
       if (planner.getListener() != null) {
         postEquivalenceEvent(planner, subset);
       }
@@ -258,8 +313,8 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter) {
-      addAbstractConverters(cluster, subset, required);
+    if (needsConverter && !planner.topdownTraitRequest) {
+      addConverters(subset, required, true);
     }
 
     return subset;
