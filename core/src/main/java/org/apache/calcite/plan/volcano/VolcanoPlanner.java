@@ -180,6 +180,21 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
   private final RelOptCost zeroCost;
 
+  /**
+   * Optimization tasks including trait propagation, enforcement.
+   */
+  final Deque<OptimizeTask> tasks = new ArrayDeque<>();
+
+  /**
+   * The id generator for optimization tasks.
+   */
+  int nextTaskId = 0;
+
+  /**
+   * Whether to enable top-down optimization or not.
+   */
+  boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
+
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -223,6 +238,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       phaseRuleMap.get(VolcanoPlannerPhase.PRE_PROCESS).add("xxx");
       phaseRuleMap.get(VolcanoPlannerPhase.CLEANUP).add("xxx");
     };
+  }
+
+  /**
+   * Enable or disable top-down optimization.
+   *
+   * <p>Note: Enabling top-down optimization will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
+  public void setTopDownOpt(boolean value) {
+    topDownOpt = value;
   }
 
   // implement RelOptPlanner
@@ -505,6 +530,20 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
       ruleQueue.phaseCompleted(phase);
     }
+
+    if (topDownOpt) {
+      tasks.push(OptimizeTask.create(root));
+      while (!tasks.isEmpty()) {
+        OptimizeTask task = tasks.peek();
+        if (task.hasSubTask()) {
+          tasks.push(task.nextSubTask());
+          continue;
+        }
+        task = tasks.pop();
+        task.execute();
+      }
+    }
+
     if (LOGGER.isTraceEnabled()) {
       StringWriter sw = new StringWriter();
       final PrintWriter pw = new PrintWriter(sw);
@@ -744,6 +783,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return set.getOrCreateSubset(rel.getCluster(), traits);
     }
     return set.getSubset(traits);
+  }
+
+  boolean isSeedNode(RelNode node) {
+    final RelSet set = getSubset(node).set;
+    return set.seeds.contains(node);
   }
 
   RelNode changeTraitsUsingConverters(

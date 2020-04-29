@@ -82,6 +82,11 @@ public class RelSubset extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   /**
+   * Optimization task state
+   */
+  OptimizeTask.State taskState;
+
+  /**
    * cost of best known plan (it may have improved since)
    */
   RelOptCost bestCost;

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -24,6 +25,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
+import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.RelFactories;
@@ -108,6 +110,10 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     diffRepos.assertEquals("planBefore", "${planBefore}", planBefore);
     SqlToRelTestBase.assertValid(relBefore);
 
+    if (planner instanceof VolcanoPlanner) {
+      relBefore = planner.changeTraits(relBefore,
+          relBefore.getTraitSet().replace(EnumerableConvention.INSTANCE));
+    }
     planner.setRoot(relBefore);
     RelNode r = planner.findBestExp();
     if (tester.isLateDecorrelate()) {
@@ -142,27 +148,27 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     private final Tester tester;
     private final String sql;
     private HepProgram preProgram;
-    private final HepPlanner hepPlanner;
+    private final RelOptPlanner planner;
     private final ImmutableMap<Hook, Consumer> hooks;
     private ImmutableList<Function<Tester, Tester>> transforms;
 
-    Sql(Tester tester, String sql, HepProgram preProgram, HepPlanner hepPlanner,
+    Sql(Tester tester, String sql, HepProgram preProgram, RelOptPlanner planner,
         ImmutableMap<Hook, Consumer> hooks,
         ImmutableList<Function<Tester, Tester>> transforms) {
       this.tester = tester;
       this.sql = sql;
       this.preProgram = preProgram;
-      this.hepPlanner = hepPlanner;
+      this.planner = planner;
       this.hooks = hooks;
       this.transforms = transforms;
     }
 
     public Sql withTester(UnaryOperator<Tester> transform) {
-      return new Sql(transform.apply(tester), sql, preProgram, hepPlanner, hooks, transforms);
+      return new Sql(transform.apply(tester), sql, preProgram, planner, hooks, transforms);
     }
 
     public Sql withPre(HepProgram preProgram) {
-      return new Sql(tester, sql, preProgram, hepPlanner, hooks, transforms);
+      return new Sql(tester, sql, preProgram, planner, hooks, transforms);
     }
 
     public Sql with(HepPlanner hepPlanner) {
@@ -185,7 +191,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
     /** Adds a transform that will be applied to {@link #tester}
      * just before running the query. */
     private Sql withTransform(Function<Tester, Tester> transform) {
-      return new Sql(tester, sql, preProgram, hepPlanner, hooks,
+      return new Sql(tester, sql, preProgram, planner, hooks,
           FlatLists.append(transforms, transform));
     }
 
@@ -193,7 +199,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
      * hook (by calling {@link Hook#addThread(Consumer)})
      * just before running the query, and remove the hook afterwards. */
     public <T> Sql withHook(Hook hook, Consumer<T> handler) {
-      return new Sql(tester, sql, preProgram, hepPlanner,
+      return new Sql(tester, sql, preProgram, planner,
           FlatLists.append(hooks, hook, handler), transforms);
     }
 
@@ -256,7 +262,7 @@ abstract class RelOptTestBase extends SqlToRelTestBase {
         for (Function<Tester, Tester> transform : transforms) {
           t = transform.apply(t);
         }
-        checkPlanning(t, preProgram, hepPlanner, sql, unchanged);
+        checkPlanning(t, preProgram, planner, sql, unchanged);
       }
     }
   }

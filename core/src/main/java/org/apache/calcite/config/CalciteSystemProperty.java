@@ -122,6 +122,15 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.volcano.dump.sets", true);
 
   /**
+   * Whether to enable top-down optimization.
+   *
+   * <p>Note: Enabling top-down optimization will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
+  public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
+      booleanProperty("calcite.planner.topdown.opt", false);
+
+  /**
    * Whether to run integration tests.
    */
   // TODO review zabetak:
