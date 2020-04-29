@@ -57,6 +57,11 @@ class PlannerTests {
             RelTraitSet fromTraits, RelTraitSet toTraits) {
           return true;
         }
+
+        @Override public RelNode enforce(final RelNode input,
+            final RelTraitSet required) {
+          return null;
+        }
       };
 
   static final Convention PHYS_CALLING_CONVENTION_2 =
