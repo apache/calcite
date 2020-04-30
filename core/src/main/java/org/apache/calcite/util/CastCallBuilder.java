@@ -19,6 +19,7 @@ package org.apache.calcite.util;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
@@ -51,6 +52,10 @@ public class CastCallBuilder {
         dialect.getCastSpec(new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.TIMESTAMP));
     SqlCall castedTimestampNode = CAST.createCall(POS, operandToCast,
         timestampWithoutPrecision);
+    if (((SqlDataTypeSpec) timestampWithoutPrecision).getTypeName().toString()
+        .equalsIgnoreCase("DATETIME")) {
+      return castedTimestampNode;
+    }
     SqlCharStringLiteral timestampFormat = SqlLiteral.createCharString(String.format
         (Locale.ROOT, "%s%s%s", "YYYY-MM-DD HH24:MI:SS.S(", precision, ")"), POS);
     SqlCall formattedCall = FORMAT_TIMESTAMP.createCall(POS, timestampFormat,
