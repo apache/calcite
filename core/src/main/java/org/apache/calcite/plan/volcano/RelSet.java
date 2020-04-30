@@ -273,7 +273,10 @@ class RelSet {
         } else {
           enforcer = subset.getConvention().enforce(from, to.getTraitSet());
         }
-        cluster.getPlanner().register(enforcer, to);
+
+        if (enforcer != null) {
+          cluster.getPlanner().register(enforcer, to);
+        }
       }
     }
   }

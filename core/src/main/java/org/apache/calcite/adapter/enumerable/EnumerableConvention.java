@@ -22,6 +22,9 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Family of calling conventions that return results as an
@@ -46,6 +49,22 @@ public enum EnumerableConvention implements Convention {
     return "ENUMERABLE";
   }
 
+  @Override public RelNode enforce(
+      final RelNode input,
+      final RelTraitSet required) {
+    RelNode rel = input;
+    if (input.getConvention() != INSTANCE) {
+      rel = ConventionTraitDef.INSTANCE.convert(
+          input.getCluster().getPlanner(),
+          input, INSTANCE, true);
+    }
+    RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
+    if (collation != null && !collation.getFieldCollations().isEmpty()) {
+      rel = EnumerableSort.create(rel, collation, null, null);
+    }
+    return rel;
+  }
+
   public RelTraitDef getTraitDef() {
     return ConventionTraitDef.INSTANCE;
   }
@@ -62,6 +81,6 @@ public enum EnumerableConvention implements Convention {
 
   public boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
-    return true;
+    return false;
   }
 }

@@ -46,7 +46,7 @@ public interface Convention extends RelTrait {
    * @return Enforcer that satisfies the required traits
    */
   default RelNode enforce(RelNode input, RelTraitSet required) {
-    throw new RuntimeException("Not implemented!");
+    return null;
   }
 
   /**

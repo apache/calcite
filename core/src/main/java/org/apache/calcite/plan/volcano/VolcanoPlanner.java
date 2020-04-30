@@ -192,7 +192,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Whether to enable top-down trait request.
    */
-  boolean topdownTraitRequest = false;
+  boolean topdownTraitRequest =
+      CalciteSystemProperty.TOPDOWN_TRAIT_REQUEST.value();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -239,6 +240,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     };
   }
 
+  /**
+   * Enable or disable top-down trait request.
+   *
+   * <p>Note: Enabling top-down trait request will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public void setTopdownTraitRequest(boolean value) {
     topdownTraitRequest = value;

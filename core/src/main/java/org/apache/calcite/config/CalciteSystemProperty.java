@@ -19,6 +19,8 @@ package org.apache.calcite.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
+import org.apiguardian.api.API;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -120,6 +122,16 @@ public final class CalciteSystemProperty<T> {
    */
   public static final CalciteSystemProperty<Boolean> DUMP_SETS =
       booleanProperty("calcite.volcano.dump.sets", true);
+
+  /**
+   * Whether to enable top-down trait request.
+   *
+   * <p>Note: Enabling top-down trait request will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public static final CalciteSystemProperty<Boolean> TOPDOWN_TRAIT_REQUEST =
+      booleanProperty("calcite.topdown.trait.request", false);
 
   /**
    * Whether to run integration tests.
