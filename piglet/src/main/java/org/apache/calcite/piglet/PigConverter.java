@@ -240,7 +240,7 @@ public class PigConverter extends PigServer {
     final List<RelNode> finalRels = pigQuery2Rel(pigQuery);
     final List<String> sqlStatements = new ArrayList<>();
     for (RelNode rel : finalRels) {
-      final SqlNode sqlNode = sqlConverter.visitChild(0, rel).asStatement();
+      final SqlNode sqlNode = sqlConverter.visitRoot(rel).asStatement();
       sqlNode.unparse(writer, 0, 0);
       sqlStatements.add(writer.toString());
     }
