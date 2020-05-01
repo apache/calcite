@@ -62,6 +62,9 @@ class SqlJsonFunctionsTest {
   }
 
   @Test void testJsonApiCommonSyntax() {
+    assertJsonApiCommonSyntax("{\"foo\": \"bar\"}", "$.foo",
+        contextMatches(
+            JsonFunctions.JsonPathContext.withJavaObj(JsonFunctions.PathMode.STRICT, "bar")));
     assertJsonApiCommonSyntax("{\"foo\": \"bar\"}", "lax $.foo",
         contextMatches(
             JsonFunctions.JsonPathContext.withJavaObj(JsonFunctions.PathMode.LAX, "bar")));
