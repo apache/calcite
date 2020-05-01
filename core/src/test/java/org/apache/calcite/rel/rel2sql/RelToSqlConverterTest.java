@@ -76,6 +76,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -1045,6 +1046,37 @@ class RelToSqlConverterTest {
         + "GROUP BY `DEPTNO`\n"
         + "HAVING COUNT(*) < 2) AS `t1`";
     assertThat(sql, isLinux(expectedSql));
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3896">[CALCITE-3896]
+   * JDBC adapter, when generating SQL, changes target of ambiguous HAVING
+   * clause with a Project on Filter on Aggregate</a>. */
+  @Disabled // TODO
+  @Test void testHavingAlias2() {
+    final String query = "select \"product_id\" + 1,\n"
+        + "  sum(\"gross_weight\") as gross_weight\n"
+        + "from \"product\"\n"
+        + "group by \"product_id\"\n"
+        + "having sum(\"product\".\"gross_weight\") < 200";
+    final String expectedPostgresql = "SELECT \"product_id\" + 1,"
+        + " SUM(\"gross_weight\") AS \"GROSS_WEIGHT\"\n"
+        + "FROM \"foodmart\".\"product\"\n"
+        + "GROUP BY \"product_id\"\n"
+        + "HAVING SUM(\"gross_weight\") < 200";
+    final String expectedBigQuery = "SELECT product_id + 1, GROSS_WEIGHT\n"
+        + "FROM (SELECT product_id, SUM(gross_weight) AS GROSS_WEIGHT\n"
+        + "FROM foodmart.product\n"
+        + "GROUP BY product_id\n"
+        + "HAVING SUM(product.gross_weight) < 200) AS t1";
+        // (or) "HAVING gross_weight < 200) AS t1"
+        // (or) ") AS t1\nWHERE t1.gross_weight < 200) AS t1"
+
+        // INSTEAD, we get "HAVING SUM(gross_weight) < 200) AS t1"
+        // which on BigQuery gives you an error about aggregating aggregates
+    sql(query)
+        .withPostgresql().ok(expectedPostgresql)
+        .withBigQuery().ok(expectedBigQuery);
   }
 
   @Test void testHaving4() {

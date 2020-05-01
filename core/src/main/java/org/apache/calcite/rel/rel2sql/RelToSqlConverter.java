@@ -129,9 +129,10 @@ public class RelToSqlConverter extends SqlImplementor
     return dispatcher.invoke(e);
   }
 
-  public Result visitChild(int i, RelNode e, boolean anon) {
+  public Result visitChild(int i, RelNode e, boolean anon,
+      boolean ignoreClauses, Clause[] clauses) {
     try {
-      stack.push(new Frame(i, e, anon));
+      stack.push(new Frame(i, e, anon, ignoreClauses, clauses));
       return dispatch(e);
     } finally {
       stack.pop();
@@ -302,12 +303,19 @@ public class RelToSqlConverter extends SqlImplementor
   /** @see #dispatch */
   public Result visit(Filter e) {
     final RelNode input = e.getInput();
-    Result x = visitChild(0, input);
+    final Result x;
+    if (input instanceof Aggregate) {
+      final Aggregate aggregate = (Aggregate) input;
+      final boolean ignoreClauses = aggregate.getInput() instanceof Project;
+      x = visitChild(0, input, ignoreClauses, Clause.HAVING);
+    } else {
+      x = visitChild(0, input, Clause.WHERE);
+    }
     parseCorrelTable(e, x);
     if (input instanceof Aggregate) {
       final Aggregate aggregate = (Aggregate) input;
       final boolean ignoreClauses = aggregate.getInput() instanceof Project;
-      final Builder builder = x.builder(e, ignoreClauses, Clause.HAVING);
+      final Builder builder = x.builder(e);
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     } else {
@@ -1000,11 +1008,16 @@ public class RelToSqlConverter extends SqlImplementor
     private final int ordinalInParent;
     private final RelNode r;
     private final boolean anon;
+    private final boolean ignoreClauses;
+    private final Clause[] clauses;
 
-    Frame(int ordinalInParent, RelNode r, boolean anon) {
+    Frame(int ordinalInParent, RelNode r, boolean anon,
+        boolean ignoreClauses, Clause[] clauses) {
       this.ordinalInParent = ordinalInParent;
       this.r = Objects.requireNonNull(r);
       this.anon = anon;
+      this.ignoreClauses = ignoreClauses;
+      this.clauses = clauses;
     }
   }
 }
