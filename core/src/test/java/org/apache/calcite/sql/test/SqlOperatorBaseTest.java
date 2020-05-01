@@ -4655,6 +4655,10 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testJsonExists() {
+    // default pathmode the default is: strict mode
+    tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
+        + "'$.foo')", Boolean.TRUE);
+
     tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
         + "'strict $.foo' false on error)", Boolean.TRUE);
     tester.checkBoolean("json_exists('{\"foo\":\"bar\"}', "
@@ -4707,6 +4711,9 @@ public abstract class SqlOperatorBaseTest {
           true);
     }
 
+    // default pathmode the default is: strict mode
+    tester.checkString("json_value('{\"foo\":100}', '$.foo')",
+        "100", "VARCHAR(2000)");
     // type casting test
     tester.checkString("json_value('{\"foo\":100}', 'strict $.foo')",
         "100", "VARCHAR(2000)");
@@ -4786,6 +4793,10 @@ public abstract class SqlOperatorBaseTest {
   }
 
   @Test void testJsonQuery() {
+    // default pathmode the default is: strict mode
+    tester.checkString("json_query('{\"foo\":100}', '$' null on empty)",
+        "{\"foo\":100}", "VARCHAR(2000)");
+
     // lax test
     tester.checkString("json_query('{\"foo\":100}', 'lax $' null on empty)",
         "{\"foo\":100}", "VARCHAR(2000)");
@@ -4992,6 +5003,10 @@ public abstract class SqlOperatorBaseTest {
         "2", "INTEGER");
     tester.checkString("json_length('[1, 2, {\"a\": 3}]')",
         "3", "INTEGER");
+
+    // default pathmode the default is: strict mode
+    tester.checkString("json_length('{\"foo\":100}', '$')",
+        "1", "INTEGER");
 
     // lax test
     tester.checkString("json_length('{}', 'lax $')",

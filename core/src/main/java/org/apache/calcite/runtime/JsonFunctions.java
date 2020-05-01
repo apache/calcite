@@ -29,6 +29,7 @@ import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
@@ -112,18 +113,22 @@ public class JsonFunctions {
   }
 
   public static JsonPathContext jsonApiCommonSyntax(JsonValueContext input, String pathSpec) {
+    PathMode mode;
+    String pathStr;
     try {
       Matcher matcher = JSON_PATH_BASE.matcher(pathSpec);
       if (!matcher.matches()) {
-        throw RESOURCE.illegalJsonPathSpec(pathSpec).ex();
+        mode = PathMode.STRICT;
+        pathStr = pathSpec;
+      } else {
+        mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
+        pathStr = matcher.group(2);
       }
-      PathMode mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
-      String pathWff = matcher.group(2);
       DocumentContext ctx;
       switch (mode) {
       case STRICT:
         if (input.hasException()) {
-          return JsonPathContext.withStrictException(input.exc);
+          return JsonPathContext.withStrictException(pathSpec, input.exc);
         }
         ctx = JsonPath.parse(input.obj,
             Configuration
@@ -148,9 +153,9 @@ public class JsonFunctions {
         throw RESOURCE.illegalJsonPathModeInPathSpec(mode.toString(), pathSpec).ex();
       }
       try {
-        return JsonPathContext.withJavaObj(mode, ctx.read(pathWff));
+        return JsonPathContext.withJavaObj(mode, ctx.read(pathStr));
       } catch (Exception e) {
-        return JsonPathContext.withStrictException(e);
+        return JsonPathContext.withStrictException(pathSpec, e);
       }
     } catch (Exception e) {
       return JsonPathContext.withUnknownException(e);
@@ -713,6 +718,13 @@ public class JsonFunctions {
 
     public static JsonPathContext withStrictException(Exception exc) {
       return new JsonPathContext(PathMode.STRICT, null, exc);
+    }
+
+    public static JsonPathContext withStrictException(String pathSpec, Exception exc) {
+      if (exc.getClass() == InvalidPathException.class) {
+        exc = RESOURCE.illegalJsonPathSpec(pathSpec).ex();
+      }
+      return withStrictException(exc);
     }
 
     public static JsonPathContext withJavaObj(PathMode mode, Object obj) {
