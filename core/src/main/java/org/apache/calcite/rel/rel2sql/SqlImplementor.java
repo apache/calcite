@@ -1327,6 +1327,12 @@ public abstract class SqlImplementor {
       this.anon = anon;
     }
 
+    /** As {@link #builder(RelNode, boolean, Clause...)}, but with
+     * {@code ignoreClauses} false. */
+    public Builder builder(RelNode rel, Clause... clauses) {
+      return builder(rel, false, clauses);
+    }
+
     /** Once you have a Result of implementing a child relational expression,
      * call this method to create a Builder to implement the current relational
      * expression by adding additional clauses to the SQL query.
@@ -1343,12 +1349,16 @@ public abstract class SqlImplementor {
      * to fix the new query.
      *
      * @param rel Relational expression being implemented
+     * @param ignoreClauses Whether to treat {@code clauses} as empty for the
+     *                 purposes of figuring out whether we need a new sub-query
      * @param clauses Clauses that will be generated to implement current
      *                relational expression
      * @return A builder
      */
-    public Builder builder(RelNode rel, Clause... clauses) {
-      final boolean needNew = needNewSubQuery(rel, clauses);
+    public Builder builder(RelNode rel, boolean ignoreClauses,
+        Clause... clauses) {
+      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : clauses;
+      final boolean needNew = needNewSubQuery(rel, clauses2);
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1667,7 +1677,7 @@ public abstract class SqlImplementor {
         Context context, boolean anon,
         @Nullable Map<String, RelDataType> aliases) {
       this.rel = Objects.requireNonNull(rel);
-      this.clauses = Objects.requireNonNull(clauses);
+      this.clauses = ImmutableList.copyOf(clauses);
       this.select = Objects.requireNonNull(select);
       this.context = Objects.requireNonNull(context);
       this.anon = anon;
