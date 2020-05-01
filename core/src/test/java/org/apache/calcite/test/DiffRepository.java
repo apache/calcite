@@ -235,7 +235,7 @@ public class DiffRepository {
    * Expands a string containing one or more variables. (Currently only works
    * if there is one variable.)
    */
-  public synchronized String expand(String tag, String text) {
+  public String expand(String tag, String text) {
     if (text == null) {
       return null;
     } else if (text.startsWith("${")
