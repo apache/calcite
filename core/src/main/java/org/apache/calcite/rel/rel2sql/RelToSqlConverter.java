@@ -305,13 +305,9 @@ public class RelToSqlConverter extends SqlImplementor
     Result x = visitChild(0, input);
     parseCorrelTable(e, x);
     if (input instanceof Aggregate) {
-      final Builder builder;
-      if (((Aggregate) input).getInput() instanceof Project) {
-        builder = x.builder(e);
-        builder.clauses.add(Clause.HAVING);
-      } else {
-        builder = x.builder(e, Clause.HAVING);
-      }
+      final Aggregate aggregate = (Aggregate) input;
+      final boolean ignoreClauses = aggregate.getInput() instanceof Project;
+      final Builder builder = x.builder(e, ignoreClauses, Clause.HAVING);
       builder.setHaving(builder.context.toSql(null, e.getCondition()));
       return builder.result();
     } else {
@@ -323,7 +319,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Project e) {
-    e.getVariablesSet();
     Result x = visitChild(0, e.getInput());
     parseCorrelTable(e, x);
     if (isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
@@ -387,37 +382,12 @@ public class RelToSqlConverter extends SqlImplementor
   private Result visitAggregate(Aggregate e, List<Integer> groupKeyList) {
     // "select a, b, sum(x) from ( ... ) group by a, b"
     final Result x = visitChild(0, e.getInput());
-    final Builder builder;
-    if (e.getInput() instanceof Project) {
-      builder = x.builder(e);
-      builder.clauses.add(Clause.GROUP_BY);
-    } else {
-      builder = x.builder(e, Clause.GROUP_BY);
-    }
+    final boolean ignoreClauses = e.getInput() instanceof Project;
+    final Builder builder = x.builder(e, ignoreClauses, Clause.GROUP_BY);
     final List<SqlNode> selectList = new ArrayList<>();
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
     return buildAggregate(e, builder, selectList, groupByList);
-  }
-
-  /**
-   * Gets the {@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for
-   * the given {@link Aggregate} node.
-   *
-   * @param e Aggregate node
-   * @param inputResult Result from the input
-   * @param inputIsProject Whether the input is a Project
-   * @return A SQL builder
-   */
-  protected Builder getAggregateBuilder(Aggregate e, Result inputResult,
-      boolean inputIsProject) {
-    if (inputIsProject) {
-      final Builder builder = inputResult.builder(e);
-      builder.clauses.add(Clause.GROUP_BY);
-      return builder;
-    } else {
-      return inputResult.builder(e, Clause.GROUP_BY);
-    }
   }
 
   /**
