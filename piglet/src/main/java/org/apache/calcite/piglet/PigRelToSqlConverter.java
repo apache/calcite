@@ -58,7 +58,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
         || (e.getInput() instanceof EnumerableInterpreter
             && ((EnumerableInterpreter) e.getInput()).getInput()
                 instanceof Project);
-    final Builder builder = getAggregateBuilder(e, x, isProjectOutput);
+    final Builder builder = x.builder(e, isProjectOutput, Clause.GROUP_BY);
 
     final List<SqlNode> groupByList = Expressions.list();
     final List<SqlNode> selectList = new ArrayList<>();

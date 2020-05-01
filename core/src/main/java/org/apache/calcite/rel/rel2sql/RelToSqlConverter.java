@@ -319,7 +319,6 @@ public class RelToSqlConverter extends SqlImplementor
 
   /** @see #dispatch */
   public Result visit(Project e) {
-    e.getVariablesSet();
     Result x = visitChild(0, e.getInput());
     parseCorrelTable(e, x);
     if (isStar(e.getProjects(), e.getInput().getRowType(), e.getRowType())) {
@@ -389,20 +388,6 @@ public class RelToSqlConverter extends SqlImplementor
     final List<SqlNode> groupByList =
         generateGroupList(builder, selectList, e, groupKeyList);
     return buildAggregate(e, builder, selectList, groupByList);
-  }
-
-  /**
-   * Gets the {@link org.apache.calcite.rel.rel2sql.SqlImplementor.Builder} for
-   * the given {@link Aggregate} node.
-   *
-   * @param e Aggregate node
-   * @param inputResult Result from the input
-   * @param inputIsProject Whether the input is a Project
-   * @return A SQL builder
-   */
-  protected Builder getAggregateBuilder(Aggregate e, Result inputResult,
-      boolean inputIsProject) {
-    return inputResult.builder(e, inputIsProject, Clause.GROUP_BY);
   }
 
   /**
