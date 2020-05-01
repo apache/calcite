@@ -70,6 +70,11 @@
   githubId: DonnyZone
   org: Tencent
   role: Committer
+- name: Forward Xu
+  apacheId: forwardxu
+  githubId: XuQianJin-Stars
+  org: Tencent
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
@@ -115,6 +120,11 @@
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jin Xing
+  apacheId: jinxing
+  githubId: jinxing64
+  org: Ant Financial
+  role: Committer
 - name: John Pullokkaran
   apacheId: jpullokk
   githubId: jpullokkaran
@@ -226,7 +236,7 @@
   org: MapR
   role: PMC
   avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
-  name: Vineet Garg
+- name: Vineet Garg
   apacheId: vgarg
   githubId: vineetgarg02
   org: Cloudera
@@ -241,6 +251,11 @@
   githubId: vvysotskyi
   org:
   role: PMC
+- name: Wang Yanlin
+  apacheId: yanlin
+  githubId: yanlin-Lynn
+  org: Ant Financial
+  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking
