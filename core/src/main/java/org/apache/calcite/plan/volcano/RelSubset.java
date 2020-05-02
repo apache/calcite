@@ -76,7 +76,7 @@ public class RelSubset extends AbstractRelNode {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
-  private static final int DERIVED = 1;
+  private static final int DELIVERED = 1;
   private static final int REQUIRED = 2;
 
   //~ Instance fields --------------------------------------------------------
@@ -103,12 +103,17 @@ public class RelSubset extends AbstractRelNode {
 
   /**
    * Physical property state of current subset
-   * 0: logical operators, NONE convention is neither DERIVED nor REQUIRED
-   * 1: traitSet DERIVED from child operators or itself
+   * 0: logical operators, NONE convention is neither DELIVERED nor REQUIRED
+   * 1: traitSet DELIVERED from child operators or itself
    * 2: traitSet REQUIRED from parent operators
-   * 3: both DERIVED and REQUIRED
+   * 3: both DELIVERED and REQUIRED
    */
   private int state = 0;
+
+  /**
+   * This subset should trigger rules when it becomes delivered.
+   */
+  boolean triggerRule = false;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -150,18 +155,22 @@ public class RelSubset extends AbstractRelNode {
     }
   }
 
-  void setDerived() {
-    state |= DERIVED;
+  void setDelivered() {
+    triggerRule = !isDelivered();
+    state |= DELIVERED;
   }
 
   void setRequired() {
+    triggerRule = false;
     state |= REQUIRED;
   }
 
-  public boolean isDerived() {
-    return (state & DERIVED) == DERIVED;
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public boolean isDelivered() {
+    return (state & DELIVERED) == DELIVERED;
   }
 
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public boolean isRequired() {
     return (state & REQUIRED) == REQUIRED;
   }

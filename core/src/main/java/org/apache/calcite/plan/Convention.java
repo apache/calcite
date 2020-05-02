@@ -63,7 +63,7 @@ public interface Convention extends RelTrait {
    */
   default boolean useAbstractConvertersForConversion(RelTraitSet fromTraits,
       RelTraitSet toTraits) {
-    return true;
+    return false;
   }
 
   /**
