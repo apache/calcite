@@ -169,14 +169,14 @@ class RelSet {
   }
 
   /**
-   * If the subset is required, convert derived subsets to this subset.
+   * If the subset is required, convert delivered subsets to this subset.
    * Otherwise, convert this subset to required subsets in this RelSet.
-   * The subset can be both required and derived.
+   * The subset can be both required and delivered.
    */
   private void addAbstractConverters(
       RelOptCluster cluster, RelSubset subset, boolean required) {
     List<RelSubset> others = subsets.stream().filter(
-        n -> required ? n.isDerived() : n.isRequired())
+        n -> required ? n.isDelivered() : n.isRequired())
         .collect(Collectors.toList());
 
     for (RelSubset other : others) {
@@ -246,7 +246,7 @@ class RelSet {
         postEquivalenceEvent(planner, subset);
       }
     } else if ((required && !subset.isRequired())
-        || (!required && !subset.isDerived())) {
+        || (!required && !subset.isDelivered())) {
       needsConverter = true;
     }
 
@@ -255,7 +255,7 @@ class RelSet {
     } else if (required) {
       subset.setRequired();
     } else {
-      subset.setDerived();
+      subset.setDelivered();
     }
 
     if (needsConverter) {
@@ -342,12 +342,12 @@ class RelSet {
       RelSubset subset = null;
       RelTraitSet otherTraits = otherSubset.getTraitSet();
 
-      // If it is logical or derived physical traitSet
-      if (otherSubset.isDerived() || !otherSubset.isRequired()) {
+      // If it is logical or delivered physical traitSet
+      if (otherSubset.isDelivered() || !otherSubset.isRequired()) {
         subset = getOrCreateSubset(cluster, otherTraits, false);
       }
 
-      // It may be required only, or both derived and required,
+      // It may be required only, or both delivered and required,
       // in which case, register again.
       if (otherSubset.isRequired()) {
         subset = getOrCreateSubset(cluster, otherTraits, true);
