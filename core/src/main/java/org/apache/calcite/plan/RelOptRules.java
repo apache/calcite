@@ -132,7 +132,6 @@ public class RelOptRules {
       ProjectWindowTransposeRule.INSTANCE,
       MatchRule.INSTANCE,
       JoinCommuteRule.INSTANCE,
-      JoinPushThroughJoinRule.RIGHT,
       JoinPushThroughJoinRule.LEFT,
       SortProjectTransposeRule.INSTANCE,
       SortJoinTransposeRule.INSTANCE,

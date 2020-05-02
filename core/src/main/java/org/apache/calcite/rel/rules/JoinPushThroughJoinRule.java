@@ -100,8 +100,10 @@ public class JoinPushThroughJoinRule extends RelOptRule {
 
   @Override public void onMatch(RelOptRuleCall call) {
     if (right) {
+      // (RS)T -> (RT)S
       onMatchRight(call);
     } else {
+      // (RS)T -> (TS)R
       onMatchLeft(call);
     }
   }
