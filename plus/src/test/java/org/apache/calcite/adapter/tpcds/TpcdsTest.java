@@ -165,6 +165,7 @@ class TpcdsTest {
     with().query("select * from tpcds.call_center").returnsUnordered(strings);
   }
 
+  @Disabled("it's wasting time to count each time")
   @Test void testTableCount() {
     final CalciteAssert.AssertThat with = with();
     foo(with, "CALL_CENTER", 6);
