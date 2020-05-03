@@ -62,11 +62,7 @@ public class RelDistributions {
 
   /** Creates a hash distribution. */
   public static RelDistribution hash(Collection<? extends Number> numbers) {
-    ImmutableIntList list = ImmutableIntList.copyOf(numbers);
-    if (numbers.size() > 1
-        && !Ordering.natural().isOrdered(list)) {
-      list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
-    }
+    ImmutableIntList list = normalizeKeys(numbers);
     return of(RelDistribution.Type.HASH_DISTRIBUTED, list);
   }
 
@@ -79,6 +75,15 @@ public class RelDistributions {
   public static RelDistribution of(RelDistribution.Type type, ImmutableIntList keys) {
     RelDistribution distribution = new RelDistributionImpl(type, keys);
     return RelDistributionTraitDef.INSTANCE.canonize(distribution);
+  }
+
+  public static ImmutableIntList normalizeKeys(Collection<? extends Number> numbers) {
+    ImmutableIntList list = ImmutableIntList.copyOf(numbers);
+    if (list.size() > 1
+        && !Ordering.natural().isOrdered(list)) {
+      list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
+    }
+    return list;
   }
 
   /** Implementation of {@link org.apache.calcite.rel.RelDistribution}. */
@@ -135,10 +140,16 @@ public class RelDistributions {
       if (keys.isEmpty()) {
         return this;
       }
-      return getTraitDef().canonize(
-          new RelDistributionImpl(type,
-              ImmutableIntList.copyOf(
-                  Mappings.apply2((Mapping) mapping, keys))));
+      List<Integer> mapList = Mappings.asList(mapping);
+      for (Integer key : keys) {
+        if (mapList.get(key) == null) {
+          return RANDOM_DISTRIBUTED; // Some distribution keys are not mapped => random.
+        }
+      }
+      List<Integer> mappedKeys0 = Mappings.apply2((Mapping) mapping, keys);
+      ImmutableIntList mappedKeys = normalizeKeys(mappedKeys0);
+      RelDistribution newDistribution = new RelDistributionImpl(type, mappedKeys);
+      return getTraitDef().canonize(newDistribution);
     }
 
     public boolean satisfies(RelTrait trait) {

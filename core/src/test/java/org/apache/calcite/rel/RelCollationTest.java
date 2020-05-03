@@ -16,11 +16,17 @@
  */
 package org.apache.calcite.rel;
 
+import org.apache.calcite.util.ImmutableIntList;
+import org.apache.calcite.util.mapping.Mapping;
+import org.apache.calcite.util.mapping.Mappings;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.apache.calcite.rel.RelCollations.EMPTY;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -30,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
  */
 class RelCollationTest {
-  /** Unit test for {@link RelCollations#contains}. */
+  /** Unit test for {@link RelCollations#contains(List, ImmutableIntList)}. */
   @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
   @Test void testCollationContains() {
     final RelCollation collation21 =
@@ -76,8 +82,9 @@ class RelCollationTest {
         is(true));
   }
 
-  /** Unit test for
-   *  {@link org.apache.calcite.rel.RelCollationImpl#compareTo}. */
+  /**
+   * Unit test for {@link org.apache.calcite.rel.RelCollationImpl#compareTo}.
+   */
   @Test void testCollationCompare() {
     assertThat(collation(1, 2).compareTo(collation(1, 2)), equalTo(0));
     assertThat(collation(1, 2).compareTo(collation(1)), equalTo(1));
@@ -88,11 +95,50 @@ class RelCollationTest {
     assertThat(collation(1).compareTo(collation()), equalTo(1));
   }
 
+  @Test void testCollationMapping() {
+    // [0]
+    RelCollation collation0 = collation(0);
+    assertThat(collation0.apply(mapping(0)), is(collation0));
+    assertThat(collation0.apply(mapping(1)), is(EMPTY));
+    assertThat(collation0.apply(mapping(0, 1)), is(collation0));
+    assertThat(collation0.apply(mapping(1, 0)), is(collation(1)));
+    assertThat(collation0.apply(mapping(3, 1, 0)), is(collation(2)));
+
+    // [0,1]
+    RelCollation collation01 = collation(0, 1);
+    assertThat(collation01.apply(mapping(0)), is(collation(0)));
+    assertThat(collation01.apply(mapping(1)), is(EMPTY));
+    assertThat(collation01.apply(mapping(2)), is(EMPTY));
+    assertThat(collation01.apply(mapping(0, 1)), is(collation01));
+    assertThat(collation01.apply(mapping(1, 0)), is(collation(1, 0)));
+    assertThat(collation01.apply(mapping(3, 1, 0)), is(collation(2, 1)));
+    assertThat(collation01.apply(mapping(3, 2, 0)), is(collation(2)));
+
+    // [2,3,4]
+    RelCollation collation234 = collation(2, 3, 4);
+    assertThat(collation234.apply(mapping(0)), is(EMPTY));
+    assertThat(collation234.apply(mapping(1)), is(EMPTY));
+    assertThat(collation234.apply(mapping(2)), is(collation(0)));
+    assertThat(collation234.apply(mapping(3)), is(EMPTY));
+    assertThat(collation234.apply(mapping(4)), is(EMPTY));
+    assertThat(collation234.apply(mapping(5)), is(EMPTY));
+    assertThat(collation234.apply(mapping(0, 1, 2)), is(collation(2)));
+    assertThat(collation234.apply(mapping(3, 2)), is(collation(1, 0)));
+    assertThat(collation234.apply(mapping(3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(4, 3, 2, 0)), is(collation(2, 1, 0)));
+    assertThat(collation234.apply(mapping(3, 4, 0)), is(EMPTY));
+  }
+
   private static RelCollation collation(int... ordinals) {
     final List<RelFieldCollation> list = new ArrayList<>();
     for (int ordinal : ordinals) {
       list.add(new RelFieldCollation(ordinal));
     }
     return RelCollations.of(list);
+  }
+
+  private static Mapping mapping(int... sources) {
+    return Mappings.target(ImmutableIntList.of(sources), 10);
   }
 }
