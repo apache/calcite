@@ -818,12 +818,25 @@ public abstract class Mappings {
   public interface SourceMapping extends CoreMapping {
     int getSourceCount();
 
+    /**
+     * Returns the source that a target maps to.
+     *
+     * @param target target
+     * @return source
+     * @throws NoElementException if target is not mapped
+     */
     int getSource(int target);
 
+    /**
+     * Returns the source that a target maps to, or -1 if it is not mapped.
+     */
     int getSourceOpt(int target);
 
     int getTargetCount();
 
+    /**
+     * Returns the target that a source maps to, or -1 if it is not mapped.
+     */
     int getTargetOpt(int source);
 
     MappingType getMappingType();
@@ -849,12 +862,25 @@ public abstract class Mappings {
   public interface TargetMapping extends FunctionMapping {
     int getSourceCount();
 
+    /**
+     * Returns the source that a target maps to, or -1 if it is not mapped.
+     */
     int getSourceOpt(int target);
 
     int getTargetCount();
 
-    int getTarget(int target);
+    /**
+     * Returns the target that a source maps to.
+     *
+     * @param source source
+     * @return target
+     * @throws NoElementException if source is not mapped
+     */
+    int getTarget(int source);
 
+    /**
+     * Returns the target that a source maps to, or -1 if it is not mapped.
+     */
     int getTargetOpt(int source);
 
     void set(int source, int target);
@@ -1245,10 +1271,16 @@ public abstract class Mappings {
       assert isValid();
     }
 
+    /**
+     * Returns the source that a target maps to, or -1 if it is not mapped.
+     */
     public int getSourceOpt(int target) {
       return sources[target];
     }
 
+    /**
+     * Returns the target that a source maps to, or -1 if it is not mapped.
+     */
     public int getTargetOpt(int source) {
       return targets[source];
     }
@@ -1383,19 +1415,59 @@ public abstract class Mappings {
       return size;
     }
 
+    /**
+     * Returns the target that a source maps to.
+     *
+     * @param source source
+     * @return target
+     */
     public int getTarget(int source) {
+      if (source < 0 || (size != -1 && source >= size)) {
+        throw new IndexOutOfBoundsException("source #" + source
+            + " has no target in identity mapping of size " + size);
+      }
       return source;
     }
 
+    /**
+     * Returns the target that a source maps to, or -1 if it is not mapped.
+     *
+     * @param source source
+     * @return target
+     */
     public int getTargetOpt(int source) {
+      if (source < 0 || (size != -1 && source >= size)) {
+        throw new IndexOutOfBoundsException("source #" + source
+            + " has no target in identity mapping of size " + size);
+      }
       return source;
     }
 
+    /**
+     * Returns the source that a target maps to.
+     *
+     * @param target target
+     * @return source
+     */
     public int getSource(int target) {
+      if (target < 0 || (size != -1 && target >= size)) {
+        throw new IndexOutOfBoundsException("target #" + target
+            + " has no source in identity mapping of size " + size);
+      }
       return target;
     }
 
+    /**
+     * Returns the source that a target maps to, or -1 if it is not mapped.
+     *
+     * @param target target
+     * @return source
+     */
     public int getSourceOpt(int target) {
+      if (target < 0 || (size != -1 && target >= size)) {
+        throw new IndexOutOfBoundsException("target #" + target
+            + " has no source in identity mapping of size " + size);
+      }
       return target;
     }
 
@@ -1658,6 +1730,11 @@ public abstract class Mappings {
       }
     }
 
+    /**
+     * Returns the target that a source maps to, or -1 if it is not mapped.
+     *
+     * @return target
+     */
     public int getTargetOpt(int source) {
       return targets[source];
     }

@@ -173,11 +173,12 @@ public class ProjectJoinTransposeRule extends RelOptRule {
         final List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
         for (RelFieldCollation relFieldCollation: fieldCollations) {
           final int fieldIndex = relFieldCollation.getFieldIndex();
-          if (fieldIndex < originLeftCnt) {
-            fc.add(RexUtil.apply(leftMapping, relFieldCollation));
-          } else {
-            fc.add(RexUtil.apply(rightMapping, relFieldCollation));
+          Mappings.TargetMapping mapping = fieldIndex < originLeftCnt ? leftMapping : rightMapping;
+          RelFieldCollation newFieldCollation = RexUtil.apply(mapping, relFieldCollation);
+          if (newFieldCollation == null) {
+            break;
           }
+          fc.add(newFieldCollation);
         }
         newCollations.add(RelCollations.of(fc));
       }

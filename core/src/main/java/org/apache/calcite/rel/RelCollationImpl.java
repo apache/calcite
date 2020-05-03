@@ -117,6 +117,24 @@ public class RelCollationImpl implements RelCollation {
 
   public void register(RelOptPlanner planner) {}
 
+  /**
+   * Applies mapping to a given collation.
+   *
+   * If mapping destroys the collation prefix, this method returns an empty collation.
+   * Examples of applying mappings to collation [0, 1]:
+   * <ul>
+   *   <li>mapping(0, 1) =&gt; [0, 1]</li>
+   *   <li>mapping(1, 0) =&gt; [1, 0]</li>
+   *   <li>mapping(0) =&gt; [0]</li>
+   *   <li>mapping(1) =&gt; []</li>
+   *   <li>mapping(2, 0) =&gt; [1]</li>
+   *   <li>mapping(2, 1, 0) =&gt; [2, 1]</li>
+   *   <li>mapping(2, 1) =&gt; []</li>
+   * </ul>
+   *
+   * @param mapping   Mapping
+   * @return Collation with applied mapping.
+   */
   @Override public RelCollationImpl apply(
       final Mappings.TargetMapping mapping) {
     return (RelCollationImpl) RexUtil.apply(mapping, this);

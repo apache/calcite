@@ -415,22 +415,14 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * Returns the position that <code>source</code> is mapped to.
    */
   public int getTarget(int source) {
-    try {
-      return targets[source];
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new Mappings.NoElementException("invalid source " + source);
-    }
+    return targets[source];
   }
 
   /**
    * Returns the position which maps to <code>target</code>.
    */
   public int getSource(int target) {
-    try {
-      return sources[target];
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new Mappings.NoElementException("invalid target " + target);
-    }
+    return sources[target];
   }
 
   /**
