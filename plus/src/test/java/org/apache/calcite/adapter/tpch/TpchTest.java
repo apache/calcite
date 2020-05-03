@@ -755,6 +755,7 @@ class TpchTest {
           + "order by\n"
           + "  cntrycode");
 
+  @Disabled("it's wasting time")
   @Test void testRegion() {
     with()
         .query("select * from tpch.region")
@@ -822,7 +823,6 @@ class TpchTest {
     checkQuery(1);
   }
 
-  @Disabled("Infinite planning")
   @Test void testQuery02() {
     checkQuery(2);
   }
@@ -846,7 +846,6 @@ class TpchTest {
     checkQuery(4);
   }
 
-  @Disabled("OutOfMemoryError")
   @Test void testQuery05() {
     checkQuery(5);
   }
@@ -873,7 +872,6 @@ class TpchTest {
     checkQuery(10);
   }
 
-  @Disabled("CannotPlanException")
   @Test void testQuery11() {
     checkQuery(11);
   }
@@ -883,7 +881,6 @@ class TpchTest {
     checkQuery(12);
   }
 
-  @Disabled("CannotPlanException")
   @Test void testQuery13() {
     checkQuery(13);
   }
@@ -911,6 +908,7 @@ class TpchTest {
 
   // a bit slow
   @Timeout(value = 10, unit = TimeUnit.MINUTES)
+  @Disabled("Too slow, more than 5 min")
   @Test void testQuery19() {
     checkQuery(19);
   }

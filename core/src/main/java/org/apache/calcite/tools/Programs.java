@@ -115,7 +115,7 @@ public class Programs {
           AggregateReduceFunctionsRule.INSTANCE,
           FilterAggregateTransposeRule.INSTANCE,
           JoinCommuteRule.INSTANCE,
-          JoinPushThroughJoinRule.RIGHT,
+          JoinPushThroughJoinRule.LEFT,
           SortProjectTransposeRule.INSTANCE);
 
   // private constructor for utility class
