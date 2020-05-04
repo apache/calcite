@@ -77,8 +77,9 @@ public class RelDistributions {
     return RelDistributionTraitDef.INSTANCE.canonize(distribution);
   }
 
-  public static ImmutableIntList normalizeKeys(Collection<? extends Number> numbers) {
-    ImmutableIntList list = ImmutableIntList.copyOf(numbers);
+  /** Creates ordered immutable copy of keys collection.  */
+  private static ImmutableIntList normalizeKeys(Collection<? extends Number> keys) {
+    ImmutableIntList list = ImmutableIntList.copyOf(keys);
     if (list.size() > 1
         && !Ordering.natural().isOrdered(list)) {
       list = ImmutableIntList.copyOf(Ordering.natural().sortedCopy(list));
@@ -140,16 +141,14 @@ public class RelDistributions {
       if (keys.isEmpty()) {
         return this;
       }
-      List<Integer> mapList = Mappings.asList(mapping);
-      for (Integer key : keys) {
-        if (mapList.get(key) == null) {
+      for (int key : keys) {
+        if (mapping.getTargetOpt(key) == -1) {
           return RANDOM_DISTRIBUTED; // Some distribution keys are not mapped => random.
         }
       }
       List<Integer> mappedKeys0 = Mappings.apply2((Mapping) mapping, keys);
       ImmutableIntList mappedKeys = normalizeKeys(mappedKeys0);
-      RelDistribution newDistribution = new RelDistributionImpl(type, mappedKeys);
-      return getTraitDef().canonize(newDistribution);
+      return of(type, mappedKeys);
     }
 
     public boolean satisfies(RelTrait trait) {
