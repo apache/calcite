@@ -65,9 +65,8 @@ import org.junit.jupiter.api.Test;
  * </ol>
  */
 class TopDownOptTest extends RelOptTestBase {
-
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(TopDownOptTest.class);
+  TopDownOptTest(DiffRepository repository) {
+    super(repository);
   }
 
   Sql sql(String sql) {

@@ -225,8 +225,8 @@ class RelOptRulesTest extends RelOptTestBase {
       expr instanceof RexCall
           && "item".equalsIgnoreCase(((RexCall) expr).getOperator().getName());
 
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(RelOptRulesTest.class);
+  RelOptRulesTest(DiffRepository repository) {
+    super(repository);
   }
 
   @Test void testReduceNot() {
@@ -3971,7 +3971,7 @@ class RelOptRulesTest extends RelOptTestBase {
                     new Predicate<Project>() {
                       int matchCount = 0;
 
-                      public boolean test(Project project) {
+                      @Override public boolean test(Project project) {
                         return matchCount++ == 0;
                       }
                     },
@@ -6686,7 +6686,7 @@ class RelOptRulesTest extends RelOptTestBase {
       super(cluster, traitSet, child, condition);
     }
 
-    public MyFilter copy(RelTraitSet traitSet, RelNode input,
+    @Override public MyFilter copy(RelTraitSet traitSet, RelNode input,
         RexNode condition) {
       return new MyFilter(getCluster(), traitSet, input, condition);
     }
@@ -6731,7 +6731,7 @@ class RelOptRulesTest extends RelOptTestBase {
       super(cluster, traitSet, ImmutableList.of(), input, projects, rowType);
     }
 
-    public MyProject copy(RelTraitSet traitSet, RelNode input,
+    @Override public MyProject copy(RelTraitSet traitSet, RelNode input,
         List<RexNode> projects, RelDataType rowType) {
       return new MyProject(getCluster(), traitSet, input, projects, rowType);
     }

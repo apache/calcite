@@ -25,10 +25,12 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.test.DiffRepository;
+import org.apache.calcite.test.DiffRepositoryExtension;
 import org.apache.calcite.util.Litmus;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -42,9 +44,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>You must provide the system property "source.dir".
  */
+@ExtendWith(DiffRepositoryExtension.class)
 class SqlPrettyWriterTest {
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlPrettyWriterTest.class);
+  private final DiffRepository repository;
+
+  SqlPrettyWriterTest(DiffRepository repository) {
+    this.repository = repository;
   }
 
   /**
@@ -125,12 +130,12 @@ class SqlPrettyWriterTest {
         prettyWriter.describe(pw, true);
         pw.flush();
         final String desc = sw.toString();
-        getDiffRepos().assertEquals("desc", this.desc, desc);
+        repository.assertEquals("desc", this.desc, desc);
       }
 
       // Format
       final String formatted = prettyWriter.format(node);
-      getDiffRepos().assertEquals("formatted", this.formatted, formatted);
+      repository.assertEquals("formatted", this.formatted, formatted);
 
       // Now parse the result, and make sure it is structurally equivalent
       // to the original.

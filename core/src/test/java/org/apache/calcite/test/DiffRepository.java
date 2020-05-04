@@ -18,13 +18,8 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.avatica.util.Spaces;
 import org.apache.calcite.util.Pair;
-import org.apache.calcite.util.Sources;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.XmlOutput;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 
 import org.junit.jupiter.api.Assertions;
 import org.opentest4j.AssertionFailedError;
@@ -45,7 +40,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -155,46 +149,23 @@ public class DiffRepository {
   private static final String ROOT_TAG = "Root";
   private static final String TEST_CASE_TAG = "TestCase";
   private static final String TEST_CASE_NAME_ATTR = "name";
-  private static final String TEST_CASE_OVERRIDES_ATTR = "overrides";
   private static final String RESOURCE_TAG = "Resource";
   private static final String RESOURCE_NAME_ATTR = "name";
 
-  /**
-   * Holds one diff-repository per class. It is necessary for all test cases in
-   * the same class to share the same diff-repository: if the repository gets
-   * loaded once per test case, then only one diff is recorded.
-   */
-  private static final LoadingCache<Key, DiffRepository> REPOSITORY_CACHE =
-      CacheBuilder.newBuilder().build(CacheLoader.from(Key::toRepo));
-
   //~ Instance fields --------------------------------------------------------
 
-  private final DiffRepository baseRepository;
-  private final int indent;
   private Document doc;
   private final Element root;
-  private final File logFile;
-  private final Filter filter;
 
   /**
    * Creates a DiffRepository.
    *
    * @param refFile   Reference file
-   * @param logFile   Log file
-   * @param baseRepository Parent repository or null
-   * @param filter    Filter or null
    */
-  private DiffRepository(
-      URL refFile,
-      File logFile,
-      DiffRepository baseRepository,
-      Filter filter) {
-    this.baseRepository = baseRepository;
-    this.filter = filter;
+  DiffRepository(URL refFile) {
     if (refFile == null) {
       throw new IllegalArgumentException("url must not be null");
     }
-    this.logFile = logFile;
 
     // Load the document.
     DocumentBuilderFactory fac = DocumentBuilderFactory.newInstance();
@@ -210,26 +181,15 @@ public class DiffRepository {
         this.doc = docBuilder.newDocument();
         this.doc.appendChild(
             doc.createElement(ROOT_TAG));
-        flushDoc();
       }
       this.root = doc.getDocumentElement();
       validate(this.root);
     } catch (ParserConfigurationException | SAXException e) {
       throw new RuntimeException("error while creating xml parser", e);
     }
-    indent = logFile.getPath().contains("RelOptRulesTest")
-        || logFile.getPath().contains("SqlToRelConverterTest")
-        || logFile.getPath().contains("SqlLimitsTest") ? 4 : 2;
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  private static URL findFile(Class<?> clazz, final String suffix) {
-    // The reference file for class "com.foo.Bar" is "com/foo/Bar.xml"
-    String rest = "/" + clazz.getName().replace('.', File.separatorChar)
-        + suffix;
-    return clazz.getResource(rest);
-  }
 
   /**
    * Expands a string containing one or more variables. (Currently only works
@@ -254,19 +214,9 @@ public class DiffRepository {
         // log file.
         return text;
       }
-      if (filter != null) {
-        expanded =
-            filter.filter(this, testCaseName, tag, text, expanded);
-      }
       return expanded;
     } else {
-      // Make sure what appears in the resource file is consistent with
-      // what is in the Java. It helps to have a redundant copy in the
-      // resource file.
-      final String testCaseName = getCurrentTestCaseName(true);
-      if (baseRepository == null || baseRepository.get(testCaseName, tag) == null) {
-        set(tag, text);
-      }
+      set(tag, text);
       return text;
     }
   }
@@ -301,13 +251,9 @@ public class DiffRepository {
   private synchronized String get(
       final String testCaseName,
       String resourceName) {
-    Element testCaseElement = getTestCaseElement(testCaseName, true, null);
+    Element testCaseElement = getTestCaseElement(testCaseName, null);
     if (testCaseElement == null) {
-      if (baseRepository != null) {
-        return baseRepository.get(testCaseName, resourceName);
-      } else {
-        return null;
-      }
+      return null;
     }
     final Element resourceElement =
         getResourceElement(testCaseElement, resourceName);
@@ -354,7 +300,6 @@ public class DiffRepository {
    */
   private synchronized Element getTestCaseElement(
       final String testCaseName,
-      boolean checkOverride,
       List<Pair<String, Element>> elements) {
     final NodeList childNodes = root.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
@@ -363,16 +308,6 @@ public class DiffRepository {
         Element testCase = (Element) child;
         final String name = testCase.getAttribute(TEST_CASE_NAME_ATTR);
         if (testCaseName.equals(name)) {
-          if (checkOverride
-              && (baseRepository != null)
-              && (baseRepository.getTestCaseElement(testCaseName, false, null) != null)
-              && !"true".equals(
-                  testCase.getAttribute(TEST_CASE_OVERRIDES_ATTR))) {
-            throw new RuntimeException(
-                "TestCase  '" + testCaseName + "' overrides a "
-                + "test case in the base repository, but does "
-                + "not specify 'overrides=true'");
-          }
           return testCase;
         }
         if (elements != null) {
@@ -457,7 +392,7 @@ public class DiffRepository {
       String resourceName,
       String value) {
     final List<Pair<String, Element>> map = new ArrayList<>();
-    Element testCaseElement = getTestCaseElement(testCaseName, true, map);
+    Element testCaseElement = getTestCaseElement(testCaseName, map);
     if (testCaseElement == null) {
       testCaseElement = doc.createElement(TEST_CASE_TAG);
       testCaseElement.setAttribute(TEST_CASE_NAME_ATTR, testCaseName);
@@ -476,9 +411,6 @@ public class DiffRepository {
     if (!value.equals("")) {
       resourceElement.appendChild(doc.createCDATASection(value));
     }
-
-    // Write out the document.
-    flushDoc();
   }
 
   private Node ref(String testCaseName, List<Pair<String, Element>> map) {
@@ -517,7 +449,7 @@ public class DiffRepository {
   /**
    * Flushes the reference document to the file system.
    */
-  private void flushDoc() {
+  public void writeToFile(File logFile, int indent) {
     try {
       boolean b = logFile.getParentFile().mkdirs();
       Util.discard(b);
@@ -706,118 +638,5 @@ public class DiffRepository {
       }
     }
     return true;
-  }
-
-  /**
-   * Finds the repository instance for a given class, with no base
-   * repository or filter.
-   *
-   * @param clazz Test case class
-   * @return The diff repository shared between test cases in this class.
-   */
-  public static DiffRepository lookup(Class<?> clazz) {
-    return lookup(clazz, null);
-  }
-
-  /**
-   * Finds the repository instance for a given class and inheriting from
-   * a given repository.
-   *
-   * @param clazz     Test case class
-   * @param baseRepository Base class of test class
-   * @return The diff repository shared between test cases in this class.
-   */
-  public static DiffRepository lookup(
-      Class<?> clazz,
-      DiffRepository baseRepository) {
-    return lookup(clazz, baseRepository, null);
-  }
-
-  /**
-   * Finds the repository instance for a given class.
-   *
-   * <p>It is important that all test cases in a class share the same
-   * repository instance. This ensures that, if two or more test cases fail,
-   * the log file will contains the actual results of both test cases.
-   *
-   * <p>The <code>baseRepository</code> parameter is useful if the test is an
-   * extension to a previous test. If the test class has a base class which
-   * also has a repository, specify the repository here. DiffRepository will
-   * look for resources in the base class if it cannot find them in this
-   * repository. If test resources from test cases in the base class are
-   * missing or incorrect, it will not write them to the log file -- you
-   * probably need to fix the base test.
-   *
-   * <p>Use the <code>filter</code> parameter if you expect the test to
-   * return results slightly different than in the repository. This happens
-   * if the behavior of a derived test is slightly different than a base
-   * test. If you do not specify a filter, no filtering will happen.
-   *
-   * @param clazz     Test case class
-   * @param baseRepository Base repository
-   * @param filter    Filters each string returned by the repository
-   * @return The diff repository shared between test cases in this class.
-   */
-  public static DiffRepository lookup(Class<?> clazz,
-      DiffRepository baseRepository,
-      Filter filter) {
-    final Key key = new Key(clazz, baseRepository, filter);
-    return REPOSITORY_CACHE.getUnchecked(key);
-  }
-
-  /**
-   * Callback to filter strings before returning them.
-   */
-  public interface Filter {
-    /**
-     * Filters a string.
-     *
-     * @param diffRepository Repository
-     * @param testCaseName   Test case name
-     * @param tag            Tag being expanded
-     * @param text           Text being expanded
-     * @param expanded       Expanded text
-     * @return Expanded text after filtering
-     */
-    String filter(
-        DiffRepository diffRepository,
-        String testCaseName,
-        String tag,
-        String text,
-        String expanded);
-  }
-
-  /** Cache key. */
-  private static class Key {
-    private final Class<?> clazz;
-    private final DiffRepository baseRepository;
-    private final Filter filter;
-
-    Key(Class<?> clazz, DiffRepository baseRepository, Filter filter) {
-      this.clazz = Objects.requireNonNull(clazz);
-      this.baseRepository = baseRepository;
-      this.filter = filter;
-    }
-
-    @Override public int hashCode() {
-      return Objects.hash(clazz, baseRepository, filter);
-    }
-
-    @Override public boolean equals(Object obj) {
-      return this == obj
-          || obj instanceof Key
-          && clazz.equals(((Key) obj).clazz)
-          && Objects.equals(baseRepository, ((Key) obj).baseRepository)
-          && Objects.equals(filter, ((Key) obj).filter);
-    }
-
-    DiffRepository toRepo() {
-      final URL refFile = findFile(clazz, ".xml");
-      final String refFilePath = Sources.of(refFile).file().getAbsolutePath();
-      final String logFilePath = refFilePath.replace(".xml", "_actual.xml");
-      final File logFile = new File(logFilePath);
-      assert !refFilePath.equals(logFile.getAbsolutePath());
-      return new DiffRepository(refFile, logFile, baseRepository, filter);
-    }
   }
 }

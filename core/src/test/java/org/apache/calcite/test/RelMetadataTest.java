@@ -3098,7 +3098,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
       implements MetadataHandler<ColType> {
     static final ThreadLocal<List<String>> THREAD_LIST = new ThreadLocal<>();
 
-    public MetadataDef<ColType> getDef() {
+    @Override public MetadataDef<ColType> getDef() {
       return ColType.DEF;
     }
 

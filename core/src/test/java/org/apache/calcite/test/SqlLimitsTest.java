@@ -31,6 +31,7 @@ import org.apache.calcite.testlib.annotations.LocaleEnUs;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -43,10 +44,13 @@ import java.util.Locale;
 /**
  * Unit test for SQL limits.
  */
+@ExtendWith(DiffRepositoryExtension.class)
 @LocaleEnUs
 public class SqlLimitsTest {
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlLimitsTest.class);
+  private final DiffRepository repository;
+
+  public SqlLimitsTest(DiffRepository repository) {
+    this.repository = repository;
   }
 
   /** Returns a list of typical types. */
@@ -151,7 +155,7 @@ public class SqlLimitsTest {
       pw.println();
     }
     pw.flush();
-    getDiffRepos().assertEquals("output", "${output}", sw.toString());
+    repository.assertEquals("output", "${output}", sw.toString());
   }
 
   private void printLimit(

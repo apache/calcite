@@ -38,6 +38,7 @@ import org.apache.calcite.rel.rules.UnionToDistinctRule;
 import com.google.common.collect.ImmutableList;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,6 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * convenience only, whereas the tests in that class are targeted at exercising
  * specific rules, and use the planner for convenience only. Hence the split.
  */
+@ExtendWith(DiffRepositoryExtension.class)
 class HepPlannerTest extends RelOptTestBase {
   //~ Static fields/initializers ---------------------------------------------
 
@@ -82,9 +84,8 @@ class HepPlannerTest extends RelOptTestBase {
       + ") a";
 
   //~ Methods ----------------------------------------------------------------
-
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(HepPlannerTest.class);
+  HepPlannerTest(DiffRepository repository) {
+    super(repository);
   }
 
   @Test void testRuleClass() throws Exception {

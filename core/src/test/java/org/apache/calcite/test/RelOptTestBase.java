@@ -59,6 +59,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 abstract class RelOptTestBase extends SqlToRelTestBase {
   //~ Methods ----------------------------------------------------------------
+  protected RelOptTestBase(DiffRepository repository) {
+    super(repository);
+  }
 
   @Override protected Tester createTester() {
     return super.createTester().withDecorrelation(false);
