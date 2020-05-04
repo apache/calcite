@@ -1246,10 +1246,16 @@ public abstract class Mappings {
     }
 
     public int getSourceOpt(int target) {
+      if (target >= sources.length) {
+        return -1;
+      }
       return sources[target];
     }
 
     public int getTargetOpt(int source) {
+      if (source >= targets.length) {
+        return -1;
+      }
       return targets[source];
     }
 
@@ -1384,18 +1390,32 @@ public abstract class Mappings {
     }
 
     public int getTarget(int source) {
+      if (source >= size) {
+        throw new Mappings.NoElementException("source #" + source
+            + " has no target in identity mapping of size " + size);
+      }
       return source;
     }
 
     public int getTargetOpt(int source) {
+      if (source >= size) {
+        return -1;
+      }
       return source;
     }
 
     public int getSource(int target) {
+      if (target >= size) {
+        throw new Mappings.NoElementException("target #" + target
+            + " has no source in identity mapping of size " + size);
+      }
       return target;
     }
 
     public int getSourceOpt(int target) {
+      if (target >= size) {
+        return -1;
+      }
       return target;
     }
 
@@ -1659,6 +1679,9 @@ public abstract class Mappings {
     }
 
     public int getTargetOpt(int source) {
+      if (source >= targets.length) {
+        return -1;
+      }
       return targets[source];
     }
   }

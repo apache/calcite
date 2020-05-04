@@ -36,6 +36,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
  */
 class RelCollationTest {
+  /** Source count for mapping tests. */
+  private static final int MAPPING_SOURCE_COUNT = 10;
+
   /** Unit test for {@link RelCollations#contains(List, ImmutableIntList)}. */
   @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
   @Test void testCollationContains() {
@@ -128,6 +131,20 @@ class RelCollationTest {
     assertThat(collation234.apply(mapping(3, 2, 4)), is(collation(1, 0, 2)));
     assertThat(collation234.apply(mapping(4, 3, 2, 0)), is(collation(2, 1, 0)));
     assertThat(collation234.apply(mapping(3, 4, 0)), is(EMPTY));
+
+    // [9] , 9 < mapping.sourceCount()
+    RelCollation collation9 = collation(MAPPING_SOURCE_COUNT - 1);
+    assertThat(collation9.apply(mapping(0)), is(EMPTY));
+    assertThat(collation9.apply(mapping(1)), is(EMPTY));
+    assertThat(collation9.apply(mapping(2)), is(EMPTY));
+    assertThat(collation9.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(collation(0)));
+
+    // [10] , 10 >= mapping.sourceCount()
+    RelCollation collation10 = collation(MAPPING_SOURCE_COUNT);
+    assertThat(collation10.apply(mapping(0)), is(EMPTY));
+    assertThat(collation10.apply(mapping(1)), is(EMPTY));
+    assertThat(collation10.apply(mapping(2)), is(EMPTY));
+    assertThat(collation10.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(EMPTY));
   }
 
   private static RelCollation collation(int... ordinals) {
@@ -139,6 +156,6 @@ class RelCollationTest {
   }
 
   private static Mapping mapping(int... sources) {
-    return Mappings.target(ImmutableIntList.of(sources), 10);
+    return Mappings.target(ImmutableIntList.of(sources), MAPPING_SOURCE_COUNT);
   }
 }

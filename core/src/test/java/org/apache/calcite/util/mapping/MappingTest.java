@@ -50,6 +50,32 @@ class MappingTest {
     assertFalse(
         Mappings.isIdentity(
             Mappings.create(MappingType.PARTIAL_SURJECTION, 4, 4)));
+
+    Mapping identity = Mappings.createIdentity(5);
+    assertThat(identity.getTargetCount(), equalTo(5));
+    assertThat(identity.getSourceCount(), equalTo(5));
+    assertThat(identity.getTarget(0), equalTo(0));
+    assertThat(identity.getTarget(1), equalTo(1));
+    assertThat(identity.getTarget(4), equalTo(4));
+    assertThat(identity.getSource(0), equalTo(0));
+    assertThat(identity.getSource(1), equalTo(1));
+    assertThat(identity.getSource(4), equalTo(4));
+    assertThat(identity.getTargetOpt(4), equalTo(4));
+    assertThat(identity.getSourceOpt(4), equalTo(4));
+    assertThat(identity.getTargetOpt(5), equalTo(-1));
+    assertThat(identity.getSourceOpt(5), equalTo(-1));
+    try {
+      final int target = identity.getTarget(5);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    try {
+      final int target = identity.getSource(5);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
   }
 
   /**
@@ -140,6 +166,13 @@ class MappingTest {
     assertThat(mapping.getTarget(2), equalTo(4));
     assertThat(mapping.getTargetCount(), equalTo(10));
     assertThat(mapping.getSourceCount(), equalTo(5));
+    assertThat(mapping.getTargetOpt(10), equalTo(-1));
+    try {
+      final int target = mapping.getTarget(10);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
 
     final List<Integer> integers = Mappings.asList(mapping);
     assertThat(integers, equalTo(targets));
@@ -159,6 +192,13 @@ class MappingTest {
     assertThat(mapping.getTarget(4), equalTo(2));
     try {
       final int target = mapping.getTarget(0);
+      fail("expected error, got " + target);
+    } catch (Mappings.NoElementException e) {
+      // ok
+    }
+    assertThat(mapping.getTargetOpt(10), equalTo(-1));
+    try {
+      final int target = mapping.getTarget(10);
       fail("expected error, got " + target);
     } catch (Mappings.NoElementException e) {
       // ok
@@ -183,6 +223,8 @@ class MappingTest {
     assertThat(mapping.getTargetOpt(3), equalTo(2));
     assertThat(mapping.getSource(3), equalTo(0));
     assertThat(mapping.getSourceOpt(3), equalTo(0));
+    assertThat(mapping.getSourceOpt(4), equalTo(-1));
+    assertThat(mapping.getTargetOpt(4), equalTo(-1));
     try {
       final int target = mapping.getTarget(4);
       fail("expected error, got " + target);

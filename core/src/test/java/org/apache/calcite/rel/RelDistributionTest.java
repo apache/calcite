@@ -34,6 +34,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests for {@link RelDistribution}.
  */
 class RelDistributionTest {
+  /** Source count for mapping tests. */
+  private static final int MAPPING_SOURCE_COUNT = 10;
+
   @Test void testRelDistributionSatisfy() {
     RelDistribution distribution1 = RelDistributions.hash(ImmutableList.of(0));
     RelDistribution distribution2 = RelDistributions.hash(ImmutableList.of(1));
@@ -76,10 +79,24 @@ class RelDistributionTest {
     assertThat(hash2.apply(mapping(1)), is(RANDOM_DISTRIBUTED));
     assertThat(hash2.apply(mapping(2)), is(hash(0)));
     assertThat(hash2.apply(mapping(1, 2)), is(hash(1)));
+
+    // hash[9] , 9 < mapping.sourceCount()
+    RelDistribution hash9 = hash(MAPPING_SOURCE_COUNT - 1);
+    assertThat(hash9.apply(mapping(0)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash9.apply(mapping(1)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash9.apply(mapping(2)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash9.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(hash(0)));
+
+    // hash[10] , 10 >= mapping.sourceCount()
+    RelDistribution hash10 = hash(MAPPING_SOURCE_COUNT);
+    assertThat(hash10.apply(mapping(0)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash10.apply(mapping(1)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash10.apply(mapping(2)), is(RANDOM_DISTRIBUTED));
+    assertThat(hash10.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(RANDOM_DISTRIBUTED));
   }
 
   private static Mapping mapping(int... sources) {
-    return Mappings.target(ImmutableIntList.of(sources), 10);
+    return Mappings.target(ImmutableIntList.of(sources), MAPPING_SOURCE_COUNT);
   }
 
   private static RelDistribution hash(int... keys) {
