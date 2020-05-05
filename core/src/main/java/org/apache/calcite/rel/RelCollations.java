@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelCollation}
@@ -87,6 +88,16 @@ public class RelCollations {
    */
   public static RelCollation of(int fieldIndex) {
     return of(new RelFieldCollation(fieldIndex));
+  }
+
+  /**
+   * Creates a collation containing multiple fields.
+   */
+  public static RelCollation of(ImmutableIntList keys) {
+    List<RelFieldCollation> cols = keys.stream()
+        .map(k -> new RelFieldCollation(k))
+        .collect(Collectors.toList());
+    return of(cols);
   }
 
   /**

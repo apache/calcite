@@ -40,15 +40,19 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.BuiltInMethod;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
@@ -64,9 +68,6 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       Set<CorrelationId> variablesSet,
       JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
-    final List<RelCollation> collations =
-        traits.getTraits(RelCollationTraitDef.INSTANCE);
-    assert collations == null || RelCollations.contains(collations, joinInfo.leftKeys);
     if (!isMergeJoinSupported(joinType)) {
       throw new UnsupportedOperationException(
           "EnumerableMergeJoin unsupported for join type " + joinType);
@@ -92,6 +93,50 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       Set<String> variablesStopped) {
     this(cluster, traits, left, right, condition, leftKeys, rightKeys,
         CorrelationId.setOf(variablesStopped), joinType);
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      final RelTraitSet required) {
+    // Required collation keys can be subset or superset of merge join keys.
+    RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
+    List<Integer> reqKeys = RelCollations.ordinals(collation);
+    ImmutableBitSet reqKeySet = ImmutableBitSet.of(reqKeys);
+
+    ImmutableBitSet leftKeySet = ImmutableBitSet.of(joinInfo.leftKeys);
+    ImmutableBitSet rightKeySet = ImmutableBitSet.of(joinInfo.rightKeys)
+        .shift(left.getRowType().getFieldCount());
+
+    Map<Integer, Integer> keyMap = new HashMap<>();
+    final int keyCount = leftKeySet.cardinality();
+    for (int i = 0; i < keyCount; i++) {
+      keyMap.put(joinInfo.leftKeys.get(i), joinInfo.rightKeys.get(i));
+    }
+    Mappings.TargetMapping mapping = Mappings.target(keyMap,
+        left.getRowType().getFieldCount(),
+        right.getRowType().getFieldCount());
+
+    // Only consider exact key match for now
+    if (reqKeySet.equals(leftKeySet)) {
+      RelCollation rightCollation = RexUtil.apply(mapping, collation);
+      return Pair.of(
+          required, ImmutableList.of(required,
+          required.replace(rightCollation)));
+    } else if (reqKeySet.equals(rightKeySet)) {
+      RelCollation rightCollation = RelCollations.shift(collation,
+          -left.getRowType().getFieldCount());
+      Mappings.TargetMapping invMapping = mapping.inverse();
+      RelCollation leftCollation = RexUtil.apply(invMapping, rightCollation);
+      return Pair.of(
+          required, ImmutableList.of(
+          required.replace(leftCollation),
+          required.replace(rightCollation)));
+    }
+    return null;
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    return null;
   }
 
   public static EnumerableMergeJoin create(RelNode left, RelNode right,
