@@ -632,7 +632,7 @@ public class RelFactories {
     public final SpoolFactory spoolFactory;
     public final RepeatUnionFactory repeatUnionFactory;
 
-    public Struct(FilterFactory filterFactory,
+    private Struct(FilterFactory filterFactory,
         ProjectFactory projectFactory,
         AggregateFactory aggregateFactory,
         SortFactory sortFactory,

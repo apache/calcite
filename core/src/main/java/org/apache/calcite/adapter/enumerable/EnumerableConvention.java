@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -25,8 +26,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilder;
-
 /**
  * Family of calling conventions that return results as an
  * {@link org.apache.calcite.linq4j.Enumerable}.
@@ -87,6 +88,8 @@ public enum EnumerableConvention implements Convention {
   }
 
   public RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
-    return oldRelBuilder.setRelFactoriesStruct(EnumerableRelFactories.DEFAULT_STRUCT);
+    return oldRelBuilder.withRelFactories(
+        RelFactories.Struct.fromContext(
+            Contexts.of(EnumerableRelFactories.ENUMERABLE_SORT_FACTORY)));
   }
 }

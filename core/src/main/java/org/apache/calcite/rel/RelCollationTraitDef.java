@@ -74,8 +74,8 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     Convention toConvention = rel.getConvention();
     RelBuilder builder =
         RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
-    builder = toConvention.transformRelBuilder(builder);
     RelNode sort = builder.push(rel)
+                          .adoptConvention(toConvention)
                           .sort(toCollation)
                           .build();
     RelNode newRel = planner.register(sort, rel);

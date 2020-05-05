@@ -173,6 +173,12 @@ public class RelBuilder {
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
   }
 
+  private RelBuilder(Context context, RelOptCluster cluster,
+                     RelOptSchema relOptSchema, Deque<Frame> stack) {
+    this(context, cluster, relOptSchema);
+    this.stack.addAll(stack);
+  }
+
   /**
    * Derives the view expander
    * {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
@@ -230,16 +236,16 @@ public class RelBuilder {
     return cluster.getTypeFactory();
   }
 
-  /** Return the RelFactories Struct. */
-  public RelFactories.Struct getRelFactoriesStruct() {
-    return this.struct;
+  /** Returns new RelBuilder with the RelFactories struct provided. */
+  public RelBuilder withRelFactories(RelFactories.Struct struct) {
+    return new RelBuilder(Contexts.of(struct, this.config), this.cluster,
+        this.relOptSchema, this.stack);
   }
 
-  /** Set the RelFactories Struct. Conventions can use a different RelFactories struct to
-   *  create physical RelNode.*/
-  public RelBuilder setRelFactoriesStruct(RelFactories.Struct newStruct) {
-    this.struct = newStruct;
-    return this;
+  /** Returns new RelBuilder that adopts the convention provided.
+   * RelNode will be created with such convention if corresponding factory is provided. */
+  public RelBuilder adoptConvention(Convention convention) {
+    return convention.transformRelBuilder(this);
   }
 
   /** Returns the builder for {@link RexNode} expressions. */

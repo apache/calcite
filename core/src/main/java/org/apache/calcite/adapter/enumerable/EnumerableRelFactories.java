@@ -18,7 +18,6 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexNode;
 
 /**
@@ -30,28 +29,6 @@ public class EnumerableRelFactories {
   public static final org.apache.calcite.rel.core.RelFactories.SortFactory
       ENUMERABLE_SORT_FACTORY = new SortFactoryImpl();
 
-  public static final org.apache.calcite.rel.core.RelFactories.Struct DEFAULT_STRUCT =
-      new org.apache.calcite.rel.core.RelFactories.Struct(
-          RelFactories.DEFAULT_FILTER_FACTORY,
-          RelFactories.DEFAULT_PROJECT_FACTORY,
-          RelFactories.DEFAULT_AGGREGATE_FACTORY,
-          ENUMERABLE_SORT_FACTORY,
-          RelFactories.DEFAULT_EXCHANGE_FACTORY,
-          RelFactories.DEFAULT_SORT_EXCHANGE_FACTORY,
-          RelFactories.DEFAULT_SET_OP_FACTORY,
-          RelFactories.DEFAULT_JOIN_FACTORY,
-          RelFactories.DEFAULT_CORRELATE_FACTORY,
-          RelFactories.DEFAULT_VALUES_FACTORY,
-          RelFactories.DEFAULT_TABLE_SCAN_FACTORY,
-          RelFactories.DEFAULT_TABLE_FUNCTION_SCAN_FACTORY,
-          RelFactories.DEFAULT_SNAPSHOT_FACTORY,
-          RelFactories.DEFAULT_MATCH_FACTORY,
-          RelFactories.DEFAULT_SPOOL_FACTORY,
-          RelFactories.DEFAULT_REPEAT_UNION_FACTORY);
-
-  private EnumerableRelFactories() {
-  }
-
   /**
    * Implementation of {@link org.apache.calcite.rel.core.RelFactories.SortFactory} that
    * returns a vanilla {@link EnumerableSort}.
@@ -62,5 +39,8 @@ public class EnumerableRelFactories {
                               RexNode offset, RexNode fetch) {
       return EnumerableSort.create(input, collation, offset, fetch);
     }
+  }
+
+  private EnumerableRelFactories() {
   }
 }
