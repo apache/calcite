@@ -129,7 +129,9 @@ abstract class OptimizeTask {
         List<RelTraitSet> traits = new ArrayList<>();
         inputTraits.add(traits);
 
-        for (RelSubset subset : input.set.subsets) {
+        final int numSubset = input.set.subsets.size();
+        for (int j = 0; j < numSubset; j++) {
+          RelSubset subset = input.set.subsets.get(j);
           if (!subset.isDerived()
               // TODO: should use matching type to determine
               || required.equals(subset.getTraitSet())) {

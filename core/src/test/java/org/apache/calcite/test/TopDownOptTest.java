@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.rules.JoinCommuteRule;
+import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -70,15 +72,25 @@ class TopDownOptTest extends RelOptTestBase {
 
   Sql sql(String sql) {
     VolcanoPlanner planner = new VolcanoPlanner();
-    planner.setTopdownTraitRequest(true); // Always use top-down optimization
+    // Always use top-down optimization
+    planner.setTopdownTraitRequest(true);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 
     RelOptUtil.registerDefaultRules(planner, false, false);
-    planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE); // Always use merge join
+
+    // Keep deterministic join order
+    planner.removeRule(JoinCommuteRule.INSTANCE);
+    planner.removeRule(JoinPushThroughJoinRule.LEFT);
+    planner.removeRule(JoinPushThroughJoinRule.RIGHT);
+
+    // Always use merge join
+    planner.removeRule(EnumerableRules.ENUMERABLE_JOIN_RULE);
     planner.removeRule(EnumerableRules.ENUMERABLE_CALC_RULE);
+
+    // Always use sorted agg
     planner.removeRule(EnumerableRules.ENUMERABLE_AGGREGATE_RULE);
-    planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE); // Always use sorted agg
+    planner.addRule(EnumerableRules.ENUMERABLE_SORTED_AGGREGATE_RULE);
 
     Tester tester = createTester().withDecorrelation(true)
         .withClusterFactory(cluster -> RelOptCluster.create(planner, cluster.getRexBuilder()));
@@ -111,6 +123,34 @@ class TopDownOptTest extends RelOptTestBase {
     final String sql = "select * from\n"
         + "sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job\n"
         + "order by s.job desc nulls last, s.ename nulls first";
+    sql(sql).check();
+  }
+
+  @Test void testMergeJoinDeriveLeft1() {
+    final String sql = "select * from\n"
+        + "(select ename, job, max(sal) from sales.emp group by ename, job) r\n"
+        + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
+    sql(sql).check();
+  }
+
+  @Test void testMergeJoinDeriveLeft2() {
+    final String sql = "select * from\n"
+        + "(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r\n"
+        + "join sales.bonus s on r.job=s.job and r.ename=s.ename";
+    sql(sql).check();
+  }
+
+  @Test void testMergeJoinDeriveRight1() {
+    final String sql = "select * from sales.bonus s join\n"
+        + "(select ename, job, max(sal) from sales.emp group by ename, job) r\n"
+        + "on r.job=s.job and r.ename=s.ename";
+    sql(sql).check();
+  }
+
+  @Test void testMergeJoinDeriveRight2() {
+    final String sql = "select * from sales.bonus s join\n"
+        + "(select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r\n"
+        + "on r.job=s.job and r.ename=s.ename";
     sql(sql).check();
   }
 }

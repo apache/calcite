@@ -22,6 +22,7 @@ import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.ParameterExpression;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -131,12 +132,66 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
           required.replace(leftCollation),
           required.replace(rightCollation)));
     }
+    // TODO: support subset keys and superset keys
     return null;
   }
 
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
-    return null;
+    final int keyCount = joinInfo.leftKeys.size();
+    RelCollation collation = childTraits.getTrait(RelCollationTraitDef.INSTANCE);
+    final int colCount = collation.getFieldCollations().size();
+    if (colCount < keyCount || keyCount == 0) {
+      return null;
+    }
+
+    if (colCount > keyCount) {
+      collation = RelCollations.of(collation.getFieldCollations().subList(0, keyCount));
+    }
+    ImmutableBitSet childCollationKeys = ImmutableBitSet.of(
+        RelCollations.ordinals(collation));
+
+    Map<Integer, Integer> keyMap = new HashMap<>();
+    for (int i = 0; i < keyCount; i++) {
+      keyMap.put(joinInfo.leftKeys.get(i), joinInfo.rightKeys.get(i));
+    }
+
+    Mappings.TargetMapping mapping = Mappings.target(keyMap,
+        left.getRowType().getFieldCount(),
+        right.getRowType().getFieldCount());
+
+    if (childId == 0) {
+      // traits from left child
+      ImmutableBitSet keySet = ImmutableBitSet.of(joinInfo.leftKeys);
+      if (!childCollationKeys.equals(keySet)) {
+        return null;
+      }
+      RelCollation rightCollation = RexUtil.apply(mapping, collation);
+      RelTraitSet joinTraits = getTraitSet().replace(collation);
+
+      // Forget about the equiv keys for the moment
+      return Pair.of(
+          joinTraits, ImmutableList.of(childTraits,
+          right.getTraitSet().replace(rightCollation)));
+    } else {
+      // traits from right child
+      assert childId == 1;
+      ImmutableBitSet keySet = ImmutableBitSet.of(joinInfo.rightKeys);
+      if (!childCollationKeys.equals(keySet)) {
+        return null;
+      }
+      RelCollation leftCollation = RexUtil.apply(mapping.inverse(), collation);
+      RelTraitSet joinTraits = getTraitSet().replace(leftCollation);
+
+      // Forget about the equiv keys for the moment
+      return Pair.of(
+          joinTraits, ImmutableList.of(left.getTraitSet().replace(leftCollation),
+          childTraits.replace(collation)));
+    }
+  }
+
+  @Override public DeriveMode getDeriveMode() {
+    return DeriveMode.BOTH;
   }
 
   public static EnumerableMergeJoin create(RelNode left, RelNode right,
