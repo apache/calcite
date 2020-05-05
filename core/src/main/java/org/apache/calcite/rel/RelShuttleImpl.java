@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -94,6 +95,10 @@ public class RelShuttleImpl implements RelShuttle {
 
   public RelNode visit(LogicalFilter filter) {
     return visitChild(filter, 0, filter.getInput());
+  }
+
+  public RelNode visit(LogicalCalc calc) {
+    return visitChildren(calc);
   }
 
   public RelNode visit(LogicalProject project) {

@@ -74,6 +74,7 @@ import org.apache.calcite.sql.SqlJsonEmptyOrError;
 import org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior;
 import org.apache.calcite.sql.SqlJsonQueryWrapperBehavior;
 import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
+import org.apache.calcite.sql.SqlJsonValueReturning;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlMatchRecognize;
@@ -3938,7 +3939,7 @@ SqlCreate SqlCreate() :
 <#-- additional literal parser methods are included here -->
 <#list parser.createStatementParserMethods as method>
         create = ${method}(s, replace)
-        <#sep>|</#sep>
+        <#sep>| LOOKAHEAD(2) </#sep>
 </#list>
     )
     {
@@ -5602,7 +5603,7 @@ SqlJsonExistsErrorBehavior JsonExistsErrorBehavior() :
 
 SqlCall JsonExistsFunctionCall() :
 {
-    List<SqlNode> args;
+    List<SqlNode> args = new ArrayList<SqlNode>();
     List<SqlNode> commonSyntax;
     final Span span;
     SqlJsonExistsErrorBehavior errorBehavior;
@@ -5610,11 +5611,10 @@ SqlCall JsonExistsFunctionCall() :
 {
     <JSON_EXISTS> { span = span(); }
     <LPAREN> commonSyntax = JsonApiCommonSyntax() {
-        args = new ArrayList<SqlNode>();
         args.addAll(commonSyntax);
     }
     [
-        errorBehavior = JsonExistsErrorBehavior() { args.add(SqlLiteral.createSymbol(errorBehavior, getPos())); }
+        errorBehavior = JsonExistsErrorBehavior() { args.add(errorBehavior.symbol(getPos())); }
         <ON> <ERROR>
     ]
     <RPAREN> {
@@ -5630,28 +5630,26 @@ List<SqlNode> JsonValueEmptyOrErrorBehavior() :
 {
     (
         <ERROR> {
-            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.ERROR, getPos()));
-            list.add(SqlLiteral.createNull(getPos()));
+            list.add(SqlJsonValueEmptyOrErrorBehavior.ERROR.symbol(getPos()));
         }
     |
         <NULL> {
-            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.NULL, getPos()));
-            list.add(SqlLiteral.createNull(getPos()));
+            list.add(SqlJsonValueEmptyOrErrorBehavior.NULL.symbol(getPos()));
         }
     |
         <DEFAULT_> e = Expression(ExprContext.ACCEPT_NON_QUERY) {
-            list.add(SqlLiteral.createSymbol(SqlJsonValueEmptyOrErrorBehavior.DEFAULT, getPos()));
+            list.add(SqlJsonValueEmptyOrErrorBehavior.DEFAULT.symbol(getPos()));
             list.add(e);
         }
     )
     <ON>
     (
         <EMPTY> {
-            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.EMPTY, getPos()));
+            list.add(SqlJsonEmptyOrError.EMPTY.symbol(getPos()));
         }
     |
         <ERROR> {
-            list.add(SqlLiteral.createSymbol(SqlJsonEmptyOrError.ERROR, getPos()));
+            list.add(SqlJsonEmptyOrError.ERROR.symbol(getPos()));
         }
     )
     { return list; }
@@ -5659,7 +5657,7 @@ List<SqlNode> JsonValueEmptyOrErrorBehavior() :
 
 SqlCall JsonValueFunctionCall() :
 {
-    final SqlNode[] args = new SqlNode[7];
+    final List<SqlNode> args = new ArrayList<SqlNode>(7);
     SqlNode e;
     List<SqlNode> commonSyntax;
     final Span span;
@@ -5668,28 +5666,17 @@ SqlCall JsonValueFunctionCall() :
 {
     <JSON_VALUE> { span = span(); }
     <LPAREN> commonSyntax = JsonApiCommonSyntax() {
-        args[0] = commonSyntax.get(0);
-        args[1] = commonSyntax.get(1);
+        args.addAll(commonSyntax);
     }
     [
         e = JsonReturningClause() {
-            args[6] = e;
+            args.add(SqlJsonValueReturning.RETURNING.symbol(getPos()));
+            args.add(e);
         }
     ]
     (
         behavior = JsonValueEmptyOrErrorBehavior() {
-            final SqlJsonEmptyOrError symbol =
-                ((SqlLiteral) behavior.get(2)).getValueAs(SqlJsonEmptyOrError.class);
-            switch (symbol) {
-            case EMPTY:
-                args[2] = behavior.get(0);
-                args[3] = behavior.get(1);
-                break;
-            case ERROR:
-                args[4] = behavior.get(0);
-                args[5] = behavior.get(1);
-                break;
-            }
+            args.addAll(behavior);
         }
     )*
     <RPAREN> {
@@ -7643,7 +7630,7 @@ of the 'normal states'.
 
 <DEFAULT, DQID, BTID> TOKEN :
 {
-    < HINT_BEG: "/*+" ~["/"] >
+    < HINT_BEG: "/*+">
 |   < COMMENT_END: "*/" >
 }
 

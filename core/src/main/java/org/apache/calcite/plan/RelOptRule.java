@@ -450,8 +450,8 @@ public abstract class RelOptRule {
   protected boolean equals(RelOptRule that) {
     // Include operands and class in the equality criteria just in case
     // they have chosen a poor description.
-    return this.description.equals(that.description)
-        && (this.getClass() == that.getClass())
+    return this == that || this.getClass() == that.getClass()
+        && this.description.equals(that.description)
         && this.operand.equals(that.operand);
   }
 

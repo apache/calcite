@@ -199,6 +199,9 @@ public class RelJsonReader {
       public List<RexNode> getExpressionList(String tag) {
         @SuppressWarnings("unchecked")
         final List<Object> jsonNodes = (List) jsonRel.get(tag);
+        if (jsonNodes == null) {
+          return null;
+        }
         final List<RexNode> nodes = new ArrayList<>();
         for (Object jsonNode : jsonNodes) {
           nodes.add(relJson.toRex(this, jsonNode));

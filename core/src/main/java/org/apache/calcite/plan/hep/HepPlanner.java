@@ -87,10 +87,6 @@ public class HepPlanner extends AbstractRelOptPlanner {
   private final Map<Pair<String, List<RelDataType>>, HepRelVertex> mapDigestToVertex =
       new HashMap<>();
 
-  // NOTE jvs 24-Apr-2006:  We use LinkedHashSet
-  // in order to provide deterministic behavior.
-  private final Set<RelOptRule> allRules = new LinkedHashSet<>();
-
   private int nTransformations;
 
   private int graphSizeLastGC;
@@ -167,30 +163,12 @@ public class HepPlanner extends AbstractRelOptPlanner {
     return root;
   }
 
-  public List<RelOptRule> getRules() {
-    return ImmutableList.copyOf(allRules);
-  }
-
-  // implement RelOptPlanner
-  public boolean addRule(RelOptRule rule) {
-    boolean added = allRules.add(rule);
-    if (added) {
-      mapRuleDescription(rule);
-    }
-    return added;
-  }
-
   @Override public void clear() {
     super.clear();
-    for (RelOptRule rule : ImmutableList.copyOf(allRules)) {
+    for (RelOptRule rule : getRules()) {
       removeRule(rule);
     }
     this.materializations.clear();
-  }
-
-  public boolean removeRule(RelOptRule rule) {
-    unmapRuleDescription(rule);
-    return allRules.remove(rule);
   }
 
   // implement RelOptPlanner
@@ -211,7 +189,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
     // Get rid of everything except what's in the final plan.
     collectGarbage();
-
+    dumpRuleAttemptsInfo();
     return buildFinalPlan(root);
   }
 
@@ -275,7 +253,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     LOGGER.trace("Applying rule class {}", instruction.ruleClass);
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
+      for (RelOptRule rule : mapDescToRule.values()) {
         if (instruction.ruleClass.isInstance(rule)) {
           instruction.ruleSet.add(rule);
         }
@@ -307,7 +285,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     assert currentProgram.group == null;
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
+      for (RelOptRule rule : mapDescToRule.values()) {
         if (!(rule instanceof ConverterRule)) {
           continue;
         }
@@ -332,7 +310,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
     assert currentProgram.group == null;
     if (instruction.ruleSet == null) {
       instruction.ruleSet = new LinkedHashSet<>();
-      for (RelOptRule rule : allRules) {
+      for (RelOptRule rule : mapDescToRule.values()) {
         if (!(rule instanceof CommonRelSubExprRule)) {
           continue;
         }

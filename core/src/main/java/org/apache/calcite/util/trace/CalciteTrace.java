@@ -18,6 +18,7 @@ package org.apache.calcite.util.trace;
 
 import org.apache.calcite.linq4j.function.Function2;
 import org.apache.calcite.linq4j.function.Functions;
+import org.apache.calcite.plan.AbstractRelOptPlanner;
 import org.apache.calcite.plan.RelImplementor;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.prepare.Prepare;
@@ -116,6 +117,12 @@ public abstract class CalciteTrace {
    */
   public static Logger getSqlToRelTracer() {
     return LoggerFactory.getLogger("org.apache.calcite.sql2rel");
+  }
+
+  public static Logger getRuleAttemptsTracer() {
+    return LoggerFactory.getLogger(
+        AbstractRelOptPlanner.class.getName() + ".rule_execution_summary"
+    );
   }
 
   /**

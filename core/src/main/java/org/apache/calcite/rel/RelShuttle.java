@@ -19,6 +19,7 @@ package org.apache.calcite.rel;
 import org.apache.calcite.rel.core.TableFunctionScan;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalCorrelate;
 import org.apache.calcite.rel.logical.LogicalExchange;
 import org.apache.calcite.rel.logical.LogicalFilter;
@@ -43,6 +44,8 @@ public interface RelShuttle {
   RelNode visit(LogicalValues values);
 
   RelNode visit(LogicalFilter filter);
+
+  RelNode visit(LogicalCalc calc);
 
   RelNode visit(LogicalProject project);
 

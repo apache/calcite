@@ -138,7 +138,8 @@ public abstract class Prepare {
     final DataContext dataContext = context.getDataContext();
     planner.setExecutor(new RexExecutorImpl(dataContext));
 
-    final List<RelOptMaterialization> materializationList = new ArrayList<>();
+    final List<RelOptMaterialization> materializationList =
+        new ArrayList<>(materializations.size());
     for (Materialization materialization : materializations) {
       List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
@@ -148,7 +149,7 @@ public abstract class Prepare {
               qualifiedTableName));
     }
 
-    final List<RelOptLattice> latticeList = new ArrayList<>();
+    final List<RelOptLattice> latticeList = new ArrayList<>(lattices.size());
     for (CalciteSchema.LatticeEntry lattice : lattices) {
       final CalciteSchema.TableEntry starTable = lattice.getStarTable();
       final JavaTypeFactory typeFactory = context.getTypeFactory();

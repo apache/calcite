@@ -18,6 +18,7 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.logical.LogicalUnion;
@@ -28,7 +29,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * Union call by eliminating the Union operator altogether in the case the call
  * consists of only one input.
  */
-public class UnionEliminatorRule extends RelOptRule {
+public class UnionEliminatorRule extends RelOptRule
+    implements SubstitutionRule {
   public static final UnionEliminatorRule INSTANCE =
       new UnionEliminatorRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 
@@ -44,18 +46,17 @@ public class UnionEliminatorRule extends RelOptRule {
 
   //~ Methods ----------------------------------------------------------------
 
+  @Override public boolean matches(RelOptRuleCall call) {
+    Union union = call.rel(0);
+    return union.all && union.getInputs().size() == 1;
+  }
+
   public void onMatch(RelOptRuleCall call) {
     Union union = call.rel(0);
-    if (union.getInputs().size() != 1) {
-      return;
-    }
-    if (!union.all) {
-      return;
-    }
-
-    // REVIEW jvs 14-Mar-2006:  why don't we need to register
-    // the equivalence here like we do in AggregateRemoveRule?
-
     call.transformTo(union.getInputs().get(0));
+  }
+
+  @Override public boolean autoPruneOld() {
+    return true;
   }
 }

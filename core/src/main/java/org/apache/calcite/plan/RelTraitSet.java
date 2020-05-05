@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
@@ -247,6 +248,20 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
     }
     final T traitList = traitSupplier.get();
     return replace(index, traitList);
+  }
+
+  /**
+   * Applies a mapping to this traitSet.
+   *
+   * @param mapping   Mapping
+   * @return traitSet with mapping applied
+   */
+  public RelTraitSet apply(Mappings.TargetMapping mapping) {
+    RelTrait[] newTraits = new RelTrait[traits.length];
+    for (int i = 0; i < traits.length; i++) {
+      newTraits[i] = traits[i].apply(mapping);
+    }
+    return cache.getOrAdd(new RelTraitSet(cache, newTraits));
   }
 
   /**

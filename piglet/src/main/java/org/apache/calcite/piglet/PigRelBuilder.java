@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -510,8 +511,11 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder multiSetFlatten() {
     // [CALCITE-3193] Add RelBuilder.uncollect method, and interface
     // UncollectFactory, to instantiate Uncollect
-    Uncollect uncollect = new Uncollect(cluster,
-        cluster.traitSetOf(Convention.NONE), build(), false);
+    Uncollect uncollect = Uncollect.create(
+        cluster.traitSetOf(Convention.NONE),
+        build(),
+        false,
+        Collections.emptyList());
     push(uncollect);
     return this;
   }

@@ -64,6 +64,7 @@ import com.google.common.collect.Lists;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -179,7 +180,7 @@ public abstract class MutableRels {
    */
   public static List<RexNode> createProjects(final MutableRel child,
       final List<RexNode> projs) {
-    List<RexNode> rexNodeList = new ArrayList<>();
+    List<RexNode> rexNodeList = new ArrayList<>(projs.size());
     for (int i = 0; i < projs.size(); i++) {
       if (projs.get(i) instanceof RexInputRef) {
         RexInputRef rexInputRef = (RexInputRef) projs.get(i);
@@ -254,7 +255,8 @@ public abstract class MutableRels {
     case UNCOLLECT: {
       final MutableUncollect uncollect = (MutableUncollect) node;
       final RelNode child = fromMutable(uncollect.getInput(), relBuilder);
-      return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality);
+      return Uncollect.create(child.getTraitSet(), child, uncollect.withOrdinality,
+          Collections.emptyList());
     }
     case WINDOW: {
       final MutableWindow window = (MutableWindow) node;

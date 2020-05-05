@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.util.mapping.Mappings;
+
 /**
  * RelTrait represents the manifestation of a relational expression trait within
  * a trait definition. For example, a {@code CallingConvention.JAVA} is a trait
@@ -85,4 +87,14 @@ public interface RelTrait {
    * @param planner Planner
    */
   void register(RelOptPlanner planner);
+
+  /**
+   * Applies a mapping to this trait.
+   *
+   * @param mapping   Mapping
+   * @return trait with mapping applied
+   */
+  default <T extends RelTrait> T apply(Mappings.TargetMapping mapping) {
+    return (T) this;
+  }
 }

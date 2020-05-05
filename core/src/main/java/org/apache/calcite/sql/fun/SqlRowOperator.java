@@ -21,7 +21,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
-import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.type.InferTypes;
@@ -51,12 +50,6 @@ public class SqlRowOperator extends SqlSpecialOperator {
   }
 
   //~ Methods ----------------------------------------------------------------
-
-  // implement SqlOperator
-  public SqlSyntax getSyntax() {
-    // Function syntax would work too.
-    return SqlSyntax.SPECIAL;
-  }
 
   public RelDataType inferReturnType(
       final SqlOperatorBinding opBinding) {

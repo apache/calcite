@@ -17,10 +17,8 @@
 package org.apache.calcite.sql;
 
 /**
- * Categorizing Json value empty or error behaviors.
+ * Flag to indicate the explicit return type of JSON_VALUE.
  */
-public enum SqlJsonValueEmptyOrErrorBehavior implements Symbolizable {
-  ERROR,
-  NULL,
-  DEFAULT
+public enum SqlJsonValueReturning implements Symbolizable {
+  RETURNING
 }

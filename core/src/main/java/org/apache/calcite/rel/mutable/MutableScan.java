@@ -36,11 +36,12 @@ public class MutableScan extends MutableLeafRel {
   @Override public boolean equals(Object obj) {
     return obj == this
         || obj instanceof MutableScan
-        && rel.equals(((MutableScan) obj).rel);
+        && rel.getTable().getQualifiedName().equals(((MutableScan) obj).rel
+            .getTable().getQualifiedName());
   }
 
   @Override public int hashCode() {
-    return rel.hashCode();
+    return rel.getTable().getQualifiedName().hashCode();
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {

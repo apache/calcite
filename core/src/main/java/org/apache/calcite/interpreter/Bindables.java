@@ -76,7 +76,6 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -261,16 +260,7 @@ public class Bindables {
     }
 
     public Enumerable<Object[]> bind(DataContext dataContext) {
-      final List<RexNode> mutableFilters = new ArrayList<>(filters);
-      if (table.unwrap(ProjectableFilterableTable.class) != null) {
-        return table.unwrap(ProjectableFilterableTable.class)
-            .scan(dataContext, mutableFilters, projects.toIntArray());
-      } else if (table.unwrap(FilterableTable.class) != null) {
-        return table.unwrap(FilterableTable.class)
-            .scan(dataContext, mutableFilters);
-      } else {
-        return table.unwrap(ScannableTable.class).scan(dataContext);
-      }
+      return help(dataContext, this);
     }
 
     public Node implement(InterpreterImplementor implementor) {

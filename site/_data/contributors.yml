@@ -70,6 +70,11 @@
   githubId: DonnyZone
   org: Tencent
   role: Committer
+- name: Forward Xu
+  apacheId: forwardxu
+  githubId: XuQianJin-Stars
+  org: Tencent
+  role: Committer
 - name: Francis Chuang
   apacheId: francischuang
   githubId: F21
@@ -115,6 +120,11 @@
   githubId: jinfengni
   org: MapR
   role: PMC
+- name: Jin Xing
+  apacheId: jinxing
+  githubId: jinxing64
+  org: Ant Financial
+  role: Committer
 - name: John Pullokkaran
   apacheId: jpullokk
   githubId: jpullokkaran
@@ -212,7 +222,7 @@
 - name: Stamatis Zampetakis
   apacheId: zabetak
   githubId: zabetak
-  org: TIBCO
+  org: Cloudera
   role: PMC Chair
   homepage: https://people.apache.org/~zabetak/
 - name: Steven Noels
@@ -226,6 +236,11 @@
   org: MapR
   role: PMC
   avatar: https://mapr.com/blog/author/ted-dunning/assets/tdunning-panama.jpg
+- name: Vineet Garg
+  apacheId: vgarg
+  githubId: vineetgarg02
+  org: Cloudera
+  role: Committer
 - name: Vladimir Sitnikov
   apacheId: vladimirsitnikov
   githubId: vlsi
@@ -236,6 +251,11 @@
   githubId: vvysotskyi
   org:
   role: PMC
+- name: Wang Yanlin
+  apacheId: yanlin
+  githubId: yanlin-Lynn
+  org: Ant Financial
+  role: Committer
 - name: Zhen Wang
   apacheId: zhenw
   githubId: zinking

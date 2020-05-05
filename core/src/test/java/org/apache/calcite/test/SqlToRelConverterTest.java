@@ -25,6 +25,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -32,9 +35,11 @@ import org.apache.calcite.rel.RelShuttleImpl;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.externalize.RelXmlWriter;
+import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableModify;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -1304,7 +1309,31 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     final String sql = "select d.deptno, e2.empno\n"
         + "from dept_nested as d,\n"
         + " UNNEST(d.employees) as e2(empno, y, z)";
-    sql(sql).with(getExtendedTester()).ok();
+    sql(sql).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
+   * Support validation of UNNEST multiple array columns like Presto</a>.
+   */
+  @Test public void testAliasUnnestArrayPlanWithSingleColumn() {
+    final String sql = "select d.deptno, employee.empno\n"
+        + "from dept_nested_expanded as d,\n"
+        + " UNNEST(d.employees) as t(employee)";
+    sql(sql).conformance(SqlConformanceEnum.PRESTO).ok();
+  }
+
+  /**
+   * Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3789">[CALCITE-3789]
+   * Support validation of UNNEST multiple array columns like Presto</a>.
+   */
+  @Test public void testAliasUnnestArrayPlanWithDoubleColumn() {
+    final String sql = "select d.deptno, e, k.empno\n"
+        + "from dept_nested_expanded as d CROSS JOIN\n"
+        + " UNNEST(d.admins, d.employees) as t(e, k)";
+    sql(sql).conformance(SqlConformanceEnum.PRESTO).ok();
   }
 
   @Test void testArrayOfRecord() {
@@ -1776,16 +1805,12 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
-  // In generated plan, the first parameter of TUMBLE function will always be the last field
-  // of it's input. There isn't a way to give the first operand a proper type.
   @Test void testTableValuedFunctionTumble() {
     final String sql = "select *\n"
         + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE))";
     sql(sql).ok();
   }
 
-  // In generated plan, the first parameter of TUMBLE function will always be the last field
-  // of it's input. There isn't a way to give the first operand a proper type.
   @Test void testTableValuedFunctionTumbleWithSubQueryParam() {
     final String sql = "select *\n"
         + "from table(tumble((select * from Shipments), descriptor(rowtime), INTERVAL '1' MINUTE))";
@@ -2104,6 +2129,27 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     RelTrait sortCollation = rels.get(1).getTraitSet()
         .getTrait(RelCollationTraitDef.INSTANCE);
     assertTrue(filterCollation.satisfies(sortCollation));
+  }
+
+  @Test void testRelShuttleForLogicalCalc() {
+    final String sql = "select ename from emp";
+    final RelNode rel = tester.convertSqlToRel(sql).rel;
+    final HepProgramBuilder programBuilder = HepProgram.builder();
+    programBuilder.addRuleInstance(ProjectToCalcRule.INSTANCE);
+    final HepPlanner planner = new HepPlanner(programBuilder.build());
+    planner.setRoot(rel);
+    final LogicalCalc calc = (LogicalCalc) planner.findBestExp();
+    final List<RelNode> rels = new ArrayList<>();
+    final RelShuttleImpl visitor = new RelShuttleImpl() {
+      @Override public RelNode visit(LogicalCalc calc) {
+        RelNode visitedRel = super.visit(calc);
+        rels.add(visitedRel);
+        return visitedRel;
+      }
+    };
+    visitor.visit(calc);
+    assertThat(rels.size(), is(1));
+    assertThat(rels.get(0), isA(LogicalCalc.class));
   }
 
   @Test void testRelShuttleForLogicalTableModify() {

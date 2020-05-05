@@ -9322,7 +9322,6 @@ public abstract class SqlOperatorBaseTest {
       // to raise an error and due to the big number of operands they accept
       // they increase significantly the running time of the method.
       operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE);
-      operatorsToSkip.add(SqlStdOperatorTable.JSON_VALUE_ANY);
       operatorsToSkip.add(SqlStdOperatorTable.JSON_QUERY);
     }
     // Skip since ClassCastException is raised in SqlOperator#unparse

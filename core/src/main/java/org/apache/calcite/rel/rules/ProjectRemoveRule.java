@@ -22,12 +22,8 @@ import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-
-import java.util.List;
 
 /**
  * Planner rule that,
@@ -71,8 +67,7 @@ public class ProjectRemoveRule extends RelOptRule implements SubstitutionRule {
           childProject.getInput(), childProject.getProjects(),
           project.getRowType());
     }
-    RelNode child = call.getPlanner().register(stripped, project);
-    call.transformTo(child);
+    call.transformTo(stripped);
   }
 
   /**
@@ -88,9 +83,7 @@ public class ProjectRemoveRule extends RelOptRule implements SubstitutionRule {
         project.getInput().getRowType());
   }
 
-  @Deprecated // to be removed before 1.5
-  public static boolean isIdentity(List<? extends RexNode> exps,
-      RelDataType childRowType) {
-    return RexUtil.isIdentity(exps, childRowType);
+  @Override public boolean autoPruneOld() {
+    return true;
   }
 }

@@ -766,12 +766,14 @@ class TpchTest {
             "R_REGIONKEY=4; R_NAME=MIDDLE EAST; R_COMMENT=uickly special accounts cajole carefully blithely close requests. carefully final asymptotes haggle furiousl");
   }
 
+  @Disabled("it's wasting time")
   @Test void testLineItem() {
     with()
         .query("select * from tpch.lineitem")
         .returnsCount(6001215);
   }
 
+  @Disabled("it's wasting time")
   @Test void testOrders() {
     with()
         .query("select * from tpch.orders")
@@ -796,6 +798,7 @@ class TpchTest {
     with().query(sql).runs();
   }
 
+  @Disabled("it's wasting time")
   @Test void testCustomer() {
     with()
         .query("select * from tpch.customer")
@@ -808,6 +811,7 @@ class TpchTest {
   }
 
   /** Tests the customer table with scale factor 5. */
+  @Disabled("it's wasting time")
   @Test void testCustomer5() {
     with()
         .query("select * from tpch_5.customer")

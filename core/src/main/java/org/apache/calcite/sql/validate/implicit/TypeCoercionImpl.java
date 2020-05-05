@@ -17,6 +17,7 @@
 package org.apache.calcite.sql.validate.implicit;
 
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCallBinding;
@@ -51,8 +52,8 @@ import java.util.stream.Collectors;
  */
 public class TypeCoercionImpl extends AbstractTypeCoercion {
 
-  public TypeCoercionImpl(SqlValidator validator) {
-    super(validator);
+  public TypeCoercionImpl(RelDataTypeFactory typeFactory, SqlValidator validator) {
+    super(typeFactory, validator);
   }
 
   /**

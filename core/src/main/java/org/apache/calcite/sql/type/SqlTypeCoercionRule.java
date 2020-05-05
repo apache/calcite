@@ -62,8 +62,9 @@ import java.util.Set;
  *     SqlTypeCoercionRules typeCoercionRules = SqlTypeCoercionRules.instance(builder.map);
  *
  *     // Set the SqlTypeCoercionRules instance into the SqlValidator.
- *     SqlValidator validator ...;
- *     validator.setSqlTypeCoercionRules(typeCoercionRules);
+ *     SqlValidator.Config validatorConf ...;
+ *     validatorConf.withTypeCoercionRules(typeCoercionRules);
+ *     // Use this conf to initialize the SqlValidator.
  * </pre>
  */
 public class SqlTypeCoercionRule implements SqlTypeMappingRule {

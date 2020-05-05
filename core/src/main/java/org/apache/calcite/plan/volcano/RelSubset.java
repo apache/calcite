@@ -37,6 +37,7 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
+import org.apiguardian.api.API;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -53,6 +54,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -290,14 +292,14 @@ public class RelSubset extends AbstractRelNode {
     }
 
     VolcanoPlanner planner = (VolcanoPlanner) rel.getCluster().getPlanner();
-    if (planner.listener != null) {
+    if (planner.getListener() != null) {
       RelOptListener.RelEquivalenceEvent event =
           new RelOptListener.RelEquivalenceEvent(
               planner,
               rel,
               this,
               true);
-      planner.listener.relEquivalenceFound(event);
+      planner.getListener().relEquivalenceFound(event);
     }
 
     // If this isn't the first rel in the set, it must have compatible
@@ -325,12 +327,12 @@ public class RelSubset extends AbstractRelNode {
     CheapestPlanReplacer replacer = new CheapestPlanReplacer(planner);
     final RelNode cheapest = replacer.visit(this, -1, null);
 
-    if (planner.listener != null) {
+    if (planner.getListener() != null) {
       RelOptListener.RelChosenEvent event =
           new RelOptListener.RelChosenEvent(
               planner,
               null);
-      planner.listener.relChosen(event);
+      planner.getListener().relChosen(event);
     }
 
     return cheapest;
@@ -436,6 +438,26 @@ public class RelSubset extends AbstractRelNode {
       }
     }
     return list;
+  }
+
+  /**
+   * Returns stream of subsets whose traitset satisfies
+   * current subset's traitset.
+   */
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public Stream<RelSubset> getSubsetsSatisfyingThis() {
+    return set.subsets.stream()
+      .filter(s -> s.getTraitSet().satisfies(traitSet));
+  }
+
+  /**
+   * Returns stream of subsets whose traitset is satisfied
+   * by current subset's traitset.
+   */
+  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
+  public Stream<RelSubset> getSatisfyingSubsets() {
+    return set.subsets.stream()
+      .filter(s -> traitSet.satisfies(s.getTraitSet()));
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -620,12 +642,12 @@ public class RelSubset extends AbstractRelNode {
       }
 
       if (ordinal != -1) {
-        if (planner.listener != null) {
+        if (planner.getListener() != null) {
           RelOptListener.RelChosenEvent event =
               new RelOptListener.RelChosenEvent(
                   planner,
                   p);
-          planner.listener.relChosen(event);
+          planner.getListener().relChosen(event);
         }
       }
 

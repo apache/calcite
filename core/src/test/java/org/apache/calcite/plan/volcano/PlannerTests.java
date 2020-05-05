@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.BiRel;
@@ -60,13 +61,15 @@ class PlannerTests {
 
   static final Convention PHYS_CALLING_CONVENTION_2 =
       new Convention.Impl("PHYS_2", RelNode.class) {
-        @Override public boolean canConvertConvention(Convention toConvention) {
-          return true;
-        }
+      };
 
-        @Override public boolean useAbstractConvertersForConversion(
-            RelTraitSet fromTraits, RelTraitSet toTraits) {
-          return true;
+  static final Convention PHYS_CALLING_CONVENTION_3 =
+      new Convention.Impl("PHYS_3", RelNode.class) {
+        @Override public boolean satisfies(RelTrait trait) {
+          if (trait.equals(PHYS_CALLING_CONVENTION)) {
+            return true;
+          }
+          return super.satisfies(trait);
         }
       };
 

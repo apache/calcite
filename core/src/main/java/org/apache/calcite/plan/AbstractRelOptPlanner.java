@@ -25,14 +25,21 @@ import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.util.CancelFlag;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.slf4j.Logger;
+
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,8 +53,8 @@ import static org.apache.calcite.util.Static.RESOURCE;
 public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   //~ Static fields/initializers ---------------------------------------------
 
-  /** Regular expression for integer. */
-  private static final Pattern INTEGER_PATTERN = Pattern.compile("[0-9]+");
+  /** Logger for rule attempts information. */
+  private static final Logger RULE_ATTEMPTS_LOGGER = CalciteTrace.getRuleAttemptsTracer();
 
   //~ Instance fields --------------------------------------------------------
 
@@ -55,11 +62,13 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Maps rule description to rule, just to ensure that rules' descriptions
    * are unique.
    */
-  private final Map<String, RelOptRule> mapDescToRule = new HashMap<>();
+  protected final Map<String, RelOptRule> mapDescToRule = new LinkedHashMap<>();
 
   protected final RelOptCostFactory costFactory;
 
   private MulticastRelOptListener listener;
+
+  private RuleAttemptsListener ruleAttemptsListener;
 
   private Pattern ruleDescExclusionFilter;
 
@@ -67,7 +76,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   private final Set<Class<? extends RelNode>> classes = new HashSet<>();
 
-  private final Set<RelTrait> traits = new HashSet<>();
+  private final Set<Convention> conventions = new HashSet<>();
 
   /** External context. Never null. */
   protected final Context context;
@@ -96,6 +105,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // these types, but some operands may use them.
     classes.add(RelNode.class);
     classes.add(RelSubset.class);
+
+    if (RULE_ATTEMPTS_LOGGER.isDebugEnabled()) {
+      this.ruleAttemptsListener = new RuleAttemptsListener();
+      addListener(this.ruleAttemptsListener);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -125,29 +139,19 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  /**
-   * Registers a rule's description.
-   *
-   * @param rule Rule
-   */
-  protected void mapRuleDescription(RelOptRule rule) {
-    // Check that there isn't a rule with the same description,
-    // also validating description string.
+  public List<RelOptRule> getRules() {
+    return ImmutableList.copyOf(mapDescToRule.values());
+  }
 
+  public boolean addRule(RelOptRule rule) {
+    // Check that there isn't a rule with the same description
     final String description = rule.toString();
     assert description != null;
-    assert !description.contains("$")
-        : "Rule's description should not contain '$': "
-        + description;
-    assert !INTEGER_PATTERN.matcher(description).matches()
-        : "Rule's description should not be an integer: "
-        + rule.getClass().getName() + ", " + description;
 
     RelOptRule existingRule = mapDescToRule.put(description, rule);
     if (existingRule != null) {
-      if (existingRule == rule) {
-        throw new AssertionError(
-            "Rule should not already be registered");
+      if (existingRule.equals(rule)) {
+        return false;
       } else {
         // This rule has the same description as one previously
         // registered, yet it is not equal. You may need to fix the
@@ -156,16 +160,13 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
             + "existing rule=" + existingRule + "; new rule=" + rule);
       }
     }
+    return true;
   }
 
-  /**
-   * Removes the mapping between a rule and its description.
-   *
-   * @param rule Rule
-   */
-  protected void unmapRuleDescription(RelOptRule rule) {
+  public boolean removeRule(RelOptRule rule) {
     String description = rule.toString();
-    mapDescToRule.remove(description);
+    RelOptRule removed = mapDescToRule.remove(description);
+    return removed != null;
   }
 
   /**
@@ -233,10 +234,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    for (RelTrait trait : node.getTraitSet()) {
-      if (traits.add(trait)) {
-        trait.register(this);
-      }
+    if (conventions.add(node.getConvention())) {
+      node.getConvention().register(this);
     }
   }
 
@@ -289,6 +288,13 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   public void onCopy(RelNode rel, RelNode newRel) {
     // do nothing
+  }
+
+  protected void dumpRuleAttemptsInfo() {
+    if (this.ruleAttemptsListener != null) {
+      RULE_ATTEMPTS_LOGGER.debug("Rule Attempts Info for " + this.getClass().getSimpleName());
+      RULE_ATTEMPTS_LOGGER.debug(this.ruleAttemptsListener.dump());
+    }
   }
 
   /**
@@ -425,7 +431,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  protected MulticastRelOptListener getListener() {
+  public RelOptListener getListener() {
     return listener;
   }
 
@@ -452,5 +458,74 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
         ? Pair.right(relType.getFieldList())
         : Collections.singletonList(relType);
     return Pair.of(digest, v);
+  }
+
+  /** Listener for counting the attempts of each rule. Only enabled under DEBUG level.*/
+  private class RuleAttemptsListener implements RelOptListener {
+    private long beforeTimestamp;
+    private Map<String, Pair<Long, Long>> ruleAttempts;
+
+    RuleAttemptsListener() {
+      ruleAttempts = new HashMap<>();
+    }
+
+    @Override public void relEquivalenceFound(RelEquivalenceEvent event) {
+    }
+
+    @Override public void ruleAttempted(RuleAttemptedEvent event) {
+      if (event.isBefore()) {
+        this.beforeTimestamp = System.nanoTime();
+      } else {
+        long elapsed = (System.nanoTime() - this.beforeTimestamp) / 1000;
+        String rule = event.getRuleCall().getRule().toString();
+        if (ruleAttempts.containsKey(rule)) {
+          Pair<Long, Long> p = ruleAttempts.get(rule);
+          ruleAttempts.put(rule, Pair.of(p.left + 1, p.right + elapsed));
+        } else {
+          ruleAttempts.put(rule, Pair.of(1L,  elapsed));
+        }
+      }
+    }
+
+    @Override public void ruleProductionSucceeded(RuleProductionEvent event) {
+    }
+
+    @Override public void relDiscarded(RelDiscardedEvent event) {
+    }
+
+    @Override public void relChosen(RelChosenEvent event) {
+    }
+
+    public String dump() {
+      // Sort rules by number of attempts descending, then by rule elapsed time descending,
+      // then by rule name ascending.
+      List<Map.Entry<String, Pair<Long, Long>>> list =
+          new ArrayList<>(this.ruleAttempts.entrySet());
+      Collections.sort(list,
+          (left, right) -> {
+            int res = right.getValue().left.compareTo(left.getValue().left);
+            if (res == 0) {
+              res = right.getValue().right.compareTo(left.getValue().right);
+            }
+            if (res == 0) {
+              res = left.getKey().compareTo(right.getKey());
+            }
+            return res;
+          });
+
+      // Print out rule attempts and time
+      StringBuilder sb = new StringBuilder();
+      sb.append(String
+          .format(Locale.ROOT, "%n%-60s%20s%20s%n", "Rules", "Attempts", "Time (us)"));
+      NumberFormat usFormat = NumberFormat.getNumberInstance(Locale.US);
+      for (Map.Entry<String, Pair<Long, Long>> entry : list) {
+        sb.append(
+            String.format(Locale.ROOT, "%-60s%20s%20s%n",
+                entry.getKey(),
+                usFormat.format(entry.getValue().left),
+                usFormat.format(entry.getValue().right)));
+      }
+      return sb.toString();
+    }
   }
 }

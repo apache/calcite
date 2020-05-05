@@ -46,11 +46,13 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.SqlWindowTableFunction;
 import org.apache.calcite.sql.fun.SqlArrayValueConstructor;
 import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator;
 import org.apache.calcite.sql.fun.SqlExtractFunction;
+import org.apache.calcite.sql.fun.SqlJsonValueFunction;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlLiteralChainOperator;
 import org.apache.calcite.sql.fun.SqlMapValueConstructor;
@@ -209,20 +211,6 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
             SqlStdOperatorTable.POWER.createCall(SqlParserPos.ZERO,
                 call.operand(0),
                 SqlLiteral.createExactNumeric("0.5", SqlParserPos.ZERO))));
-
-    // Convert json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
-    // to cast(json_value('{"foo":"bar"}', 'lax $.foo') as varchar(2000))
-    registerOp(
-        SqlStdOperatorTable.JSON_VALUE,
-        (cx, call) -> {
-          SqlNode expanded =
-              SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO,
-                  SqlStdOperatorTable.JSON_VALUE_ANY.createCall(
-                      SqlParserPos.ZERO, call.operand(0), call.operand(1),
-                      call.operand(2), call.operand(3), call.operand(4), call.operand(5), null),
-              call.operand(6));
-          return cx.convertExpression(expanded);
-        });
 
     // REVIEW jvs 24-Apr-2006: This only seems to be working from within a
     // windowed agg.  I have added an optimizer rule
@@ -660,6 +648,42 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     if (returnType == null) {
       returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
     }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertWindowFunction(
+      SqlRexContext cx,
+      SqlWindowTableFunction fun,
+      SqlCall call) {
+    // The first operand of window function is actually a query, skip that.
+    final List<SqlNode> operands = Util.skip(call.getOperandList(), 1);
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    if (returnType == null) {
+      returnType = cx.getRexBuilder().deriveReturnType(fun, exprs);
+    }
+    return cx.getRexBuilder().makeCall(returnType, fun, exprs);
+  }
+
+  public RexNode convertJsonValueFunction(
+      SqlRexContext cx,
+      SqlJsonValueFunction fun,
+      SqlCall call) {
+    // For Expression with explicit return type:
+    // i.e. json_value('{"foo":"bar"}', 'lax $.foo', returning varchar(2000))
+    // use the specified type as the return type.
+    List<SqlNode> operands = call.getOperandList();
+    boolean hasExplicitReturningType = SqlJsonValueFunction.hasExplicitTypeSpec(
+        operands.toArray(SqlNode.EMPTY_ARRAY));
+    if (hasExplicitReturningType) {
+      operands = SqlJsonValueFunction.removeTypeSpecOperands(call);
+    }
+    final List<RexNode> exprs = convertExpressionList(cx, operands,
+        SqlOperandTypeChecker.Consistency.NONE);
+    RelDataType returnType =
+        cx.getValidator().getValidatedNodeTypeIfKnown(call);
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }
 

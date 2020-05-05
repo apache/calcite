@@ -21,6 +21,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.rules.CalcMergeRule;
 import org.apache.calcite.rel.rules.FilterAggregateTransposeRule;
 import org.apache.calcite.rel.rules.FilterCalcMergeRule;
@@ -34,6 +35,8 @@ import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectSetOpTransposeRule;
 import org.apache.calcite.rel.rules.ProjectToCalcRule;
+import org.apache.calcite.sql2rel.RelFieldTrimmer;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
 import org.apache.calcite.util.graph.DefaultEdge;
@@ -192,6 +195,9 @@ public abstract class RelOptMaterializations {
 
     // Push filters to the bottom, and combine projects on top.
     RelNode target = materialization.queryRel;
+    // try to trim unused field in relational expressions.
+    root = trimUnusedfields(root);
+    target = trimUnusedfields(target);
     HepProgram program =
         new HepProgramBuilder()
             .addRuleInstance(FilterProjectTransposeRule.INSTANCE)
@@ -221,6 +227,22 @@ public abstract class RelOptMaterializations {
     root = hepPlanner.findBestExp();
 
     return new SubstitutionVisitor(target, root).go(materialization.tableRel);
+  }
+
+  /**
+   * Trim unused fields in relational expressions.
+   */
+  private static RelNode trimUnusedfields(RelNode relNode) {
+    final List<RelOptTable> relOptTables = RelOptUtil.findAllTables(relNode);
+    RelOptSchema relOptSchema = null;
+    if (relOptTables.size() != 0) {
+      relOptSchema = relOptTables.get(0).getRelOptSchema();
+    }
+    final RelBuilder relBuilder = RelFactories.LOGICAL_BUILDER.create(
+        relNode.getCluster(), relOptSchema);
+    final RelFieldTrimmer relFieldTrimmer = new RelFieldTrimmer(null, relBuilder);
+    final RelNode rel = relFieldTrimmer.trim(relNode);
+    return rel;
   }
 
   /**

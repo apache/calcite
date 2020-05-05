@@ -61,8 +61,8 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
     if (info == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
     }
-    final VertexInfo<V, E> info2 = vertexMap.get(targetVertex);
-    if (info2 == null) {
+    final VertexInfo<V, E> targetInfo = vertexMap.get(targetVertex);
+    if (targetInfo == null) {
       throw new IllegalArgumentException("no vertex " + targetVertex);
     }
     @SuppressWarnings("unchecked")
@@ -71,6 +71,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
     final E edge = f.createEdge(vertex, targetVertex, attributes);
     if (edges.add(edge)) {
       info.outEdges.add(edge);
+      targetInfo.inEdges.add(edge);
       return edge;
     } else {
       return null;
@@ -86,18 +87,31 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
   /** Removes all edges from a given vertex to another.
    * Returns whether any were removed. */
   public boolean removeEdge(V source, V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
-    List<E> outEdges = info.outEdges;
-    int removeCount = 0;
+    // remove out edges
+    final List<E> outEdges = vertexMap.get(source).outEdges;
+    int removeOutCount = 0;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
       E edge = outEdges.get(i);
       if (edge.target.equals(target)) {
         outEdges.remove(i);
         edges.remove(edge);
-        ++removeCount;
+        ++removeOutCount;
       }
     }
-    return removeCount > 0;
+
+    // remove in edges
+    final List<E> inEdges = vertexMap.get(target).inEdges;
+    int removeInCount = 0;
+    for (int i = 0, size = inEdges.size(); i < size; i++) {
+      E edge = inEdges.get(i);
+      if (edge.source.equals(source)) {
+        inEdges.remove(i);
+        ++removeInCount;
+      }
+    }
+
+    assert removeOutCount == removeInCount;
+    return removeOutCount > 0;
   }
 
   /** Factory for edges that have attributes.
