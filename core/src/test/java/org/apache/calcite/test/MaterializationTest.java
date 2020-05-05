@@ -545,7 +545,7 @@ class MaterializationTest {
         + "from \"emps\" order by \"deptno\"";
     final String query = "select \"commission\", \"deptno\"  "
         + "from \"emps\" order by \"commission\"";
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    sql(mv, query).withOnlyBySubstitution(true).noMat();
   }
 
   @Test public void testSort2() {
@@ -553,7 +553,7 @@ class MaterializationTest {
         + "from \"emps\" order by \"empid\"";
     final String query = "select \"deptno\" "
         + "from \"emps\" order by \"empid\"";
-    checkMaterialize(mv, query, true);
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testSort3() {
@@ -561,7 +561,7 @@ class MaterializationTest {
         + "from \"emps\" order by \"empid\", \"deptno\"";
     final String query = "select \"deptno\" "
         + "from \"emps\" order by \"empid\"";
-    checkMaterialize(mv, query);
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testSort4() {
@@ -569,7 +569,7 @@ class MaterializationTest {
         + "\"salary\" from \"emps\" order by \"empid\"";
     final String query = "select \"empid\", \"salary\", "
         + "\"deptno\" from \"emps\" order by \"empid\"";
-    checkMaterialize(mv, query);
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testSort5() {
@@ -580,8 +580,8 @@ class MaterializationTest {
         + "from \"emps\" order by \"deptno\"";
     final String query1 = "select \"deptno\" "
         + "from \"emps\" order by \"deptno\" desc";
-    checkNoMaterialize(mv, query0, HR_FKUK_MODEL);
-    checkNoMaterialize(mv, query1, HR_FKUK_MODEL);
+    sql(mv, query0).withOnlyBySubstitution(true).noMat();
+    sql(mv, query1).withOnlyBySubstitution(true).noMat();
   }
 
   @Test public void testSort6() {
@@ -589,7 +589,7 @@ class MaterializationTest {
         + "from \"emps\" order by \"deptno\"";
     final String query0 = "select \"empid\", \"deptno\", \"salary\" "
         + "from \"emps\" order by \"deptno\"";
-    checkNoMaterialize(mv0, query0, HR_FKUK_MODEL);
+    sql(mv0, query0).withOnlyBySubstitution(true).noMat();
   }
 
   @Test public void testSort7() {
@@ -599,7 +599,7 @@ class MaterializationTest {
     final String query = "select \"empid\", \"deptno\" "
         + "from \"emps\" order by \"empid\" "
         + "limit 5 offset 1";
-    checkMaterialize(mv, query);
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testSort8() {
@@ -609,7 +609,7 @@ class MaterializationTest {
     final String query = "select \"empid\", \"deptno\" "
         + "from \"emps\" order by \"empid\" "
         + "offset 5";
-    checkMaterialize(mv, query);
+    sql(mv, query).withOnlyBySubstitution(true).ok();
   }
 
   @Test public void testSort9() {
@@ -619,7 +619,7 @@ class MaterializationTest {
     final String query = "select \"empid\", \"deptno\" "
         + "from \"emps\" order by \"empid\" "
         + "limit 4 offset 1";
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    sql(mv, query).withOnlyBySubstitution(true).noMat();
   }
 
   @Test public void testSort10() {
@@ -629,7 +629,7 @@ class MaterializationTest {
     final String query = "select \"empid\", \"deptno\" "
         + "from \"emps\" order by \"empid\" "
         + "limit 5";
-    checkNoMaterialize(mv, query, HR_FKUK_MODEL);
+    sql(mv, query).withOnlyBySubstitution(true).noMat();
   }
 
   /** Aggregation query at same level of aggregation as aggregation
