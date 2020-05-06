@@ -173,12 +173,6 @@ public class RelBuilder {
         new RexSimplify(cluster.getRexBuilder(), predicates, executor);
   }
 
-  private RelBuilder(Context context, RelOptCluster cluster,
-                     RelOptSchema relOptSchema, Deque<Frame> stack) {
-    this(context, cluster, relOptSchema);
-    this.stack.addAll(stack);
-  }
-
   /**
    * Derives the view expander
    * {@link org.apache.calcite.plan.RelOptTable.ViewExpander}
@@ -238,8 +232,10 @@ public class RelBuilder {
 
   /** Returns new RelBuilder with the RelFactories struct provided. */
   public RelBuilder withRelFactories(RelFactories.Struct struct) {
-    return new RelBuilder(Contexts.of(struct, this.config), this.cluster,
-        this.relOptSchema, this.stack);
+    RelBuilder builder = new RelBuilder(Contexts.of(struct, this.config), this.cluster,
+        this.relOptSchema);
+    builder.stack.addAll(this.stack);
+    return builder;
   }
 
   /** Returns new RelBuilder that adopts the convention provided.
