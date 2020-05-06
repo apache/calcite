@@ -63,6 +63,7 @@ public class EnumerableSortedAggregate extends Aggregate implements EnumerableRe
       return null;
     }
 
+    RelTraitSet inputTraits = getInput().getTraitSet();
     RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
     ImmutableBitSet requiredKeys = ImmutableBitSet.of(RelCollations.ordinals(collation));
     ImmutableBitSet groupKeys = ImmutableBitSet.range(groupSet.cardinality());
@@ -76,13 +77,15 @@ public class EnumerableSortedAggregate extends Aggregate implements EnumerableRe
 
     if (requiredKeys.equals(groupKeys)) {
       RelCollation inputCollation = RexUtil.apply(mapping, collation);
-      return Pair.of(required, ImmutableList.of(required.replace(inputCollation)));
+      return Pair.of(required, ImmutableList.of(inputTraits.replace(inputCollation)));
     } else if (groupKeys.contains(requiredKeys)) {
       // group by a,b,c order by c,b
       List<RelFieldCollation> list = new ArrayList<>(collation.getFieldCollations());
       groupKeys.except(requiredKeys).forEach(k -> list.add(new RelFieldCollation(k)));
-      RelCollation inputCollation = RexUtil.apply(mapping, RelCollations.of(list));
-      return Pair.of(required, ImmutableList.of(required.replace(inputCollation)));
+      RelCollation aggCollation = RelCollations.of(list);
+      RelCollation inputCollation = RexUtil.apply(mapping, aggCollation);
+      return Pair.of(traitSet.replace(aggCollation),
+          ImmutableList.of(inputTraits.replace(inputCollation)));
     }
 
     // should not reach here
