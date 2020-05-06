@@ -147,7 +147,7 @@ public class SqlSelectOperator extends SqlOperator {
 
     if (select.hasHints()) {
       writer.sep("/*+");
-      select.hints.unparse(writer, leftPrec, rightPrec);
+      select.hints.unparse(writer, 0, 0);
       writer.print("*/");
       writer.newlineAndIndent();
     }

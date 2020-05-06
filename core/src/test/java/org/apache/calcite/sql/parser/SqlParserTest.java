@@ -8664,6 +8664,14 @@ public class SqlParserTest {
         + "`EMPNO`\n"
         + "FROM `EMPS`";
     sql(sql2).ok(expected2);
+    // Hint item without parentheses
+    final String sql3 = "select /*+ simple_hint */ empno, ename, deptno from emps limit 2";
+    final String expected3 = "SELECT\n"
+        + "/*+ `SIMPLE_HINT` */\n"
+        + "`EMPNO`, `ENAME`, `DEPTNO`\n"
+        + "FROM `EMPS`\n"
+        + "FETCH NEXT 2 ROWS ONLY";
+    sql(sql3).ok(expected3);
   }
 
   @Test void testTableHintsInQuery() {
