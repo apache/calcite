@@ -124,14 +124,14 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.volcano.dump.sets", true);
 
   /**
-   * Whether to enable top-down trait request.
+   * Whether to enable top-down optimization.
    *
-   * <p>Note: Enabling top-down trait request will automatically disable
+   * <p>Note: Enabling top-down optimization will automatically disable
    * the use of AbstractConverter and related rules.</p>
    */
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
-  public static final CalciteSystemProperty<Boolean> TOPDOWN_TRAIT_REQUEST =
-      booleanProperty("calcite.topdown.trait.request", false);
+  public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
+      booleanProperty("calcite.planner.topdown.opt", false);
 
   /**
    * Whether to run integration tests.

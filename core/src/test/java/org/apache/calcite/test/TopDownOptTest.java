@@ -73,7 +73,7 @@ class TopDownOptTest extends RelOptTestBase {
   Sql sql(String sql) {
     VolcanoPlanner planner = new VolcanoPlanner();
     // Always use top-down optimization
-    planner.setTopdownTraitRequest(true);
+    planner.setTopDownOpt(true);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 

@@ -316,7 +316,7 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter && !planner.topdownTraitRequest) {
+    if (needsConverter && !planner.topDownOpt) {
       addConverters(subset, required, true);
     }
 

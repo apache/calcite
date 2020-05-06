@@ -63,7 +63,7 @@ class TraitConversionTest {
     planner.addRule(new RandomSingleTraitRule());
     planner.addRule(new SingleLeafTraitRule());
     planner.addRule(ExpandConversionRule.INSTANCE);
-    planner.setTopdownTraitRequest(false);
+    planner.setTopDownOpt(false);
 
     final RelOptCluster cluster = newCluster(planner);
     final NoneLeafRel leafRel = new NoneLeafRel(cluster, "a");

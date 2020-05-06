@@ -113,14 +113,14 @@ abstract class OptimizeTask {
       }
 
       PhysicalNode rel = (PhysicalNode) node;
-      DeriveMode order = rel.getDeriveMode();
+      DeriveMode mode = rel.getDeriveMode();
       int arity = node.getInputs().size();
       // for OMAKASE
       List<List<RelTraitSet>> inputTraits = new ArrayList<>(arity);
 
       for (int i = 0; i < arity; i++) {
         int childId = i;
-        if (order == DeriveMode.RIGHT_FIRST) {
+        if (mode == DeriveMode.RIGHT_FIRST) {
           childId = arity - i - 1;
         }
 
@@ -132,13 +132,13 @@ abstract class OptimizeTask {
         final int numSubset = input.set.subsets.size();
         for (int j = 0; j < numSubset; j++) {
           RelSubset subset = input.set.subsets.get(j);
-          if (!subset.isDerived()
+          if (!subset.isDelivered()
               // TODO: should use matching type to determine
               || required.equals(subset.getTraitSet())) {
             continue;
           }
 
-          if (order == DeriveMode.OMAKASE) {
+          if (mode == DeriveMode.OMAKASE) {
             traits.add(subset.getTraitSet());
           } else {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
@@ -149,13 +149,13 @@ abstract class OptimizeTask {
           }
         }
 
-        if (order == DeriveMode.LEFT_FIRST
-            || order == DeriveMode.RIGHT_FIRST) {
+        if (mode == DeriveMode.LEFT_FIRST
+            || mode == DeriveMode.RIGHT_FIRST) {
           break;
         }
       }
 
-      if (order == DeriveMode.OMAKASE) {
+      if (mode == DeriveMode.OMAKASE) {
         List<RelNode> relList = rel.derive(inputTraits);
         for (RelNode relNode : relList) {
           planner.register(relNode, node);

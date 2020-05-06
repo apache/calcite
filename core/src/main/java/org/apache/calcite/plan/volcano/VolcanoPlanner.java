@@ -187,13 +187,15 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   final Deque<OptimizeTask> tasks = new ArrayDeque<>();
 
+  /**
+   * The id generator for optimization tasks.
+   */
   int nextTaskId = 0;
 
   /**
-   * Whether to enable top-down trait request.
+   * Whether to enable top-down optimization or not.
    */
-  boolean topdownTraitRequest =
-      CalciteSystemProperty.TOPDOWN_TRAIT_REQUEST.value();
+  boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -241,14 +243,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /**
-   * Enable or disable top-down trait request.
+   * Enable or disable top-down optimization.
    *
-   * <p>Note: Enabling top-down trait request will automatically disable
+   * <p>Note: Enabling top-down optimization will automatically disable
    * the use of AbstractConverter and related rules.</p>
    */
   @API(since = "1.23", status = API.Status.EXPERIMENTAL)
-  public void setTopdownTraitRequest(boolean value) {
-    topdownTraitRequest = value;
+  public void setTopDownOpt(boolean value) {
+    topDownOpt = value;
   }
 
   // implement RelOptPlanner
@@ -532,7 +534,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       ruleQueue.phaseCompleted(phase);
     }
 
-    if (topdownTraitRequest) {
+    if (topDownOpt) {
       tasks.push(OptimizeTask.create(root));
       while (!tasks.isEmpty()) {
         OptimizeTask task = tasks.peek();
