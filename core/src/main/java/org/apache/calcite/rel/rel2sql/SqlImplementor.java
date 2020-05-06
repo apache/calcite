@@ -87,6 +87,7 @@ import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -126,20 +127,21 @@ public abstract class SqlImplementor {
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
   public final Result visitChild(int i, RelNode e) {
-    return visitChild(i, e, isAnon(), false, null);
+    return visitChild(i, e, isAnon(), false, ImmutableSet.of());
   }
 
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
   public final Result visitChild(int i, RelNode e, boolean ignoreClauses,
       Clause... clauses) {
-    return visitChild(i, e, isAnon(), ignoreClauses, clauses);
+    return visitChild(i, e, isAnon(), ignoreClauses,
+        ImmutableSet.copyOf(clauses));
   }
 
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
   public final Result visitChild(int i, RelNode e, Clause... clauses) {
-    return visitChild(i, e, isAnon(), false, clauses);
+    return visitChild(i, e, isAnon(), false, ImmutableSet.copyOf(clauses));
   }
 
   /** Visits {@code e}, the {@code i}th input of the current relational
@@ -148,12 +150,16 @@ public abstract class SqlImplementor {
    * @param i Ordinal of input within its consumer
    * @param e Relational expression
    * @param anon Whether to remove trivial aliases such as "EXPR$0"
+   * @param ignoreClauses Whether to ignore the expected clauses when deciding
+   *   whether a sub-query is required
+   * @param expectedClauses Set of clauses that we expect the builder that
+   *   consumes this result will create
    * @return Result
    *
    * @see #isAnon()
    */
   public abstract Result visitChild(int i, RelNode e, boolean anon,
-      boolean ignoreClauses, Clause[] clauses);
+      boolean ignoreClauses, Set<Clause> expectedClauses);
 
   public void addSelect(List<SqlNode> selectList, SqlNode node,
       RelDataType rowType) {
@@ -417,7 +423,7 @@ public abstract class SqlImplementor {
         && !aliases.isEmpty()
         && (!dialect.hasImplicitTableAlias()
           || aliases.size() > 1)) {
-      return new Result(node, clauses, alias4, rowType, aliases);
+      return result(node, clauses, alias4, rowType, aliases);
     }
     final String alias5;
     if (alias2 == null
@@ -427,8 +433,18 @@ public abstract class SqlImplementor {
     } else {
       alias5 = null;
     }
-    return new Result(node, clauses, alias5, rowType,
-        ImmutableMap.of(alias4, rowType), isAnon(), false, null);
+    return result(node, clauses, alias5, rowType,
+        ImmutableMap.of(alias4, rowType));
+  }
+
+  /** Factory method for {@link Result}.
+   *
+   * <p>Call this method rather than creating a {@code Result} directly,
+   * because sub-classes may override. */
+  protected Result result(SqlNode node, Collection<Clause> clauses,
+      String neededAlias, RelDataType neededType,
+      Map<String, RelDataType> aliases) {
+    return new Result(node, clauses, neededAlias, neededType, aliases);
   }
 
   /** Returns the row type of {@code rel}, adjusting the field names if
@@ -483,10 +499,10 @@ public abstract class SqlImplementor {
       collectAliases(builder, join,
           Iterables.concat(leftResult.aliases.values(),
               rightResult.aliases.values()).iterator());
-      return new Result(join, Expressions.list(Clause.FROM), null, null,
+      return result(join, ImmutableList.of(Clause.FROM), null, null,
           builder.build());
     } else {
-      return new Result(join, Expressions.list(Clause.FROM), null, null,
+      return new Result(join, ImmutableList.of(Clause.FROM), null, null,
           leftResult.aliases);
     }
   }
@@ -1322,31 +1338,36 @@ public abstract class SqlImplementor {
     final String neededAlias;
     private final RelDataType neededType;
     private final Map<String, RelDataType> aliases;
-    final Expressions.FluentList<Clause> clauses;
+    final List<Clause> clauses;
     private final boolean anon;
-    /** Whether to treat {@link #newClauses} as empty for the
+    /** Whether to treat {@link #expectedClauses} as empty for the
      * purposes of figuring out whether we need a new sub-query. */
     private final boolean ignoreClauses;
     /** Clauses that will be generated to implement current relational
      * expression. */
-    private final Clause[] newClauses;
+    private final ImmutableSet<Clause> expectedClauses;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases) {
-      this(node, clauses, neededAlias, neededType, aliases, false, false, null);
+      this(node, clauses, neededAlias, neededType, aliases, false, false,
+          ImmutableSet.of());
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        RelDataType neededType, Map<String, RelDataType> aliases,
-        boolean anon, boolean ignoreClauses, Clause[] newClauses) {
+        RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
+        boolean ignoreClauses, Set<Clause> expectedClauses) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
       this.aliases = aliases;
-      this.clauses = Expressions.list(clauses);
+      this.clauses = ImmutableList.copyOf(clauses);
       this.anon = anon;
       this.ignoreClauses = ignoreClauses;
-      this.newClauses = newClauses;
+      this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
+    }
+
+    public Builder builderX(RelNode rel) {
+      return builder(rel, expectedClauses.toArray(new Clause[0]));
     }
 
     /** Once you have a Result of implementing a child relational expression,
@@ -1367,8 +1388,9 @@ public abstract class SqlImplementor {
      * @param rel Relational expression being implemented
      * @return A builder
      */
-    public Builder builder(RelNode rel) {
-      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : newClauses;
+    public Builder builder(RelNode rel, Clause... clauses) {
+      assert expectedClauses.containsAll(Arrays.asList(clauses));
+      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : clauses;
       final boolean needNew = needNewSubQuery(rel, clauses2);
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
@@ -1653,7 +1675,8 @@ public abstract class SqlImplementor {
         return this;
       } else {
         return new Result(node, clauses, neededAlias, neededType,
-            ImmutableMap.of(neededAlias, neededType));
+            ImmutableMap.of(neededAlias, neededType), anon, ignoreClauses,
+            expectedClauses);
       }
     }
 
@@ -1665,14 +1688,26 @@ public abstract class SqlImplementor {
      */
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
-          ImmutableMap.of(alias, type));
+          ImmutableMap.of(alias, type), anon, ignoreClauses,
+          expectedClauses);
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, newClauses);
+              ignoreClauses, expectedClauses);
+    }
+
+    /** Returns a copy of this Result, overriding the value of
+     * {@code ignoreClauses} and {@code expectedClauses}. */
+    Result withExpectedClauses(boolean ignoreClauses,
+        Set<? extends Clause> expectedClauses) {
+      return ignoreClauses == this.ignoreClauses
+          && expectedClauses.equals(this.expectedClauses)
+          ? this
+          : new Result(node, clauses, neededAlias, neededType, aliases, anon,
+              ignoreClauses, ImmutableSet.copyOf(expectedClauses));
     }
   }
 
