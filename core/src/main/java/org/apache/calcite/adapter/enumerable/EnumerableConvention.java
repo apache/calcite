@@ -90,6 +90,10 @@ public enum EnumerableConvention implements Convention {
   public RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
     return oldRelBuilder.withRelFactories(
         RelFactories.Struct.fromContext(
-            Contexts.of(EnumerableRelFactories.ENUMERABLE_SORT_FACTORY)));
+            Contexts.of(
+                EnumerableRelFactories.ENUMERABLE_TABLE_SCAN_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_PROJECT_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_FILTER_FACTORY,
+                EnumerableRelFactories.ENUMERABLE_SORT_FACTORY)));
   }
 }

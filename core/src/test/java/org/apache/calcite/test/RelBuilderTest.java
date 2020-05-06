@@ -16,8 +16,10 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Contexts;
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -3354,6 +3356,43 @@ public class RelBuilderTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n"
         + "  LogicalFilter(condition=[=($0, $cor0.DEPTNO)])\n"
         + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testAdoptConventionEnumerable() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder
+        .adoptConvention(EnumerableConvention.INSTANCE)
+        .scan("DEPT")
+        .filter(
+            builder.equals(builder.field("DEPTNO"), builder.literal(20)))
+        .sort(builder.field(2), builder.desc(builder.field(0)))
+        .project(builder.field(0))
+        .build();
+    String expected = ""
+        + "EnumerableProject(DEPTNO=[$0])\n"
+        + "  EnumerableSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
+        + "    EnumerableFilter(condition=[=($0, 20)])\n"
+        + "      EnumerableTableScan(table=[[scott, DEPT]])\n";
+    assertThat(root, hasTree(expected));
+  }
+
+  @Test void testSwitchConventions() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    RelNode root = builder
+        .scan("DEPT")
+        .adoptConvention(EnumerableConvention.INSTANCE)
+        .filter(
+            builder.equals(builder.field("DEPTNO"), builder.literal(20)))
+        .sort(builder.field(2), builder.desc(builder.field(0)))
+        .adoptConvention(Convention.NONE)
+        .project(builder.field(0))
+        .build();
+    String expected = ""
+        + "LogicalProject(DEPTNO=[$0])\n"
+        + "  EnumerableSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[DESC])\n"
+        + "    EnumerableFilter(condition=[=($0, 20)])\n"
+        + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     assertThat(root, hasTree(expected));
   }
 

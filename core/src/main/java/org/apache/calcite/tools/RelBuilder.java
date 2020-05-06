@@ -232,10 +232,8 @@ public class RelBuilder {
 
   /** Returns new RelBuilder with the RelFactories struct provided. */
   public RelBuilder withRelFactories(RelFactories.Struct struct) {
-    RelBuilder builder = new RelBuilder(Contexts.of(struct, this.config), this.cluster,
-        this.relOptSchema);
-    builder.stack.addAll(this.stack);
-    return builder;
+    this.struct = struct;
+    return this;
   }
 
   /** Returns new RelBuilder that adopts the convention provided.

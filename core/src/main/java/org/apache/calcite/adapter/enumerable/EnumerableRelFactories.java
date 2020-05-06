@@ -16,9 +16,18 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.validate.SqlValidatorUtil;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * Contains factory interface and default implementation for creating various
@@ -26,8 +35,55 @@ import org.apache.calcite.rex.RexNode;
  */
 public class EnumerableRelFactories {
 
+  public static final org.apache.calcite.rel.core.RelFactories.TableScanFactory
+      ENUMERABLE_TABLE_SCAN_FACTORY = new TableScanFactoryImpl();
+
+  public static final org.apache.calcite.rel.core.RelFactories.ProjectFactory
+      ENUMERABLE_PROJECT_FACTORY = new ProjectFactoryImpl();
+
+  public static final org.apache.calcite.rel.core.RelFactories.FilterFactory
+      ENUMERABLE_FILTER_FACTORY = new FilterFactoryImpl();
+
   public static final org.apache.calcite.rel.core.RelFactories.SortFactory
       ENUMERABLE_SORT_FACTORY = new SortFactoryImpl();
+
+  /**
+   * Implementation of {@link org.apache.calcite.rel.core.RelFactories.TableScanFactory} that
+   * returns a vanilla {@link EnumerableTableScan}.
+   */
+  private static class TableScanFactoryImpl
+      implements org.apache.calcite.rel.core.RelFactories.TableScanFactory {
+    public RelNode createScan(RelOptTable.ToRelContext toRelContext, RelOptTable table) {
+      return EnumerableTableScan.create(toRelContext.getCluster(), table);
+    }
+  }
+
+  /**
+   * Implementation of {@link org.apache.calcite.rel.core.RelFactories.ProjectFactory} that
+   * returns a vanilla {@link EnumerableProject}.
+   */
+  private static class ProjectFactoryImpl
+      implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
+    public RelNode createProject(RelNode input, List<RelHint> hints,
+                          List<? extends RexNode> childExprs, List<String> fieldNames) {
+      final RelDataType rowType =
+          RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
+              fieldNames, SqlValidatorUtil.F_SUGGESTER);
+      return EnumerableProject.create(input, childExprs, rowType);
+    }
+  }
+
+  /**
+   * Implementation of {@link org.apache.calcite.rel.core.RelFactories.FilterFactory} that
+   * returns a vanilla {@link EnumerableFilter}.
+   */
+  private static class FilterFactoryImpl
+      implements org.apache.calcite.rel.core.RelFactories.FilterFactory {
+    public RelNode createFilter(RelNode input, RexNode condition,
+                         Set<CorrelationId> variablesSet) {
+      return EnumerableFilter.create(input, condition);
+    }
+  }
 
   /**
    * Implementation of {@link org.apache.calcite.rel.core.RelFactories.SortFactory} that

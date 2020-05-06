@@ -17,6 +17,7 @@
 package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilder;
 
 /**
@@ -88,7 +89,7 @@ public interface Convention extends RelTrait {
    * @return A new RelBuilder after transformation.
    */
   default RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
-    return oldRelBuilder;
+    return oldRelBuilder.withRelFactories(RelFactories.DEFAULT_STRUCT);
   }
 
   /**
