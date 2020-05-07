@@ -36,9 +36,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
  * Tests for {@link RelCollation} and {@link RelFieldCollation}.
  */
 class RelCollationTest {
-  /** Source count for mapping tests. */
-  private static final int MAPPING_SOURCE_COUNT = 10;
-
   /** Unit test for {@link RelCollations#contains(List, ImmutableIntList)}. */
   @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
   @Test void testCollationContains() {
@@ -99,52 +96,46 @@ class RelCollationTest {
   }
 
   @Test void testCollationMapping() {
+    final int n = 10; // Mapping source count.
     // [0]
     RelCollation collation0 = collation(0);
-    assertThat(collation0.apply(mapping(0)), is(collation0));
-    assertThat(collation0.apply(mapping(1)), is(EMPTY));
-    assertThat(collation0.apply(mapping(0, 1)), is(collation0));
-    assertThat(collation0.apply(mapping(1, 0)), is(collation(1)));
-    assertThat(collation0.apply(mapping(3, 1, 0)), is(collation(2)));
+    assertThat(collation0.apply(mapping(n, 0)), is(collation0));
+    assertThat(collation0.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation0.apply(mapping(n, 0, 1)), is(collation0));
+    assertThat(collation0.apply(mapping(n, 1, 0)), is(collation(1)));
+    assertThat(collation0.apply(mapping(n, 3, 1, 0)), is(collation(2)));
 
     // [0,1]
     RelCollation collation01 = collation(0, 1);
-    assertThat(collation01.apply(mapping(0)), is(collation(0)));
-    assertThat(collation01.apply(mapping(1)), is(EMPTY));
-    assertThat(collation01.apply(mapping(2)), is(EMPTY));
-    assertThat(collation01.apply(mapping(0, 1)), is(collation01));
-    assertThat(collation01.apply(mapping(1, 0)), is(collation(1, 0)));
-    assertThat(collation01.apply(mapping(3, 1, 0)), is(collation(2, 1)));
-    assertThat(collation01.apply(mapping(3, 2, 0)), is(collation(2)));
+    assertThat(collation01.apply(mapping(n, 0)), is(collation(0)));
+    assertThat(collation01.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation01.apply(mapping(n, 2)), is(EMPTY));
+    assertThat(collation01.apply(mapping(n, 0, 1)), is(collation01));
+    assertThat(collation01.apply(mapping(n, 1, 0)), is(collation(1, 0)));
+    assertThat(collation01.apply(mapping(n, 3, 1, 0)), is(collation(2, 1)));
+    assertThat(collation01.apply(mapping(n, 3, 2, 0)), is(collation(2)));
 
     // [2,3,4]
     RelCollation collation234 = collation(2, 3, 4);
-    assertThat(collation234.apply(mapping(0)), is(EMPTY));
-    assertThat(collation234.apply(mapping(1)), is(EMPTY));
-    assertThat(collation234.apply(mapping(2)), is(collation(0)));
-    assertThat(collation234.apply(mapping(3)), is(EMPTY));
-    assertThat(collation234.apply(mapping(4)), is(EMPTY));
-    assertThat(collation234.apply(mapping(5)), is(EMPTY));
-    assertThat(collation234.apply(mapping(0, 1, 2)), is(collation(2)));
-    assertThat(collation234.apply(mapping(3, 2)), is(collation(1, 0)));
-    assertThat(collation234.apply(mapping(3, 2, 4)), is(collation(1, 0, 2)));
-    assertThat(collation234.apply(mapping(3, 2, 4)), is(collation(1, 0, 2)));
-    assertThat(collation234.apply(mapping(4, 3, 2, 0)), is(collation(2, 1, 0)));
-    assertThat(collation234.apply(mapping(3, 4, 0)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 0)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 2)), is(collation(0)));
+    assertThat(collation234.apply(mapping(n, 3)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 4)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 5)), is(EMPTY));
+    assertThat(collation234.apply(mapping(n, 0, 1, 2)), is(collation(2)));
+    assertThat(collation234.apply(mapping(n, 3, 2)), is(collation(1, 0)));
+    assertThat(collation234.apply(mapping(n, 3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(n, 3, 2, 4)), is(collation(1, 0, 2)));
+    assertThat(collation234.apply(mapping(n, 4, 3, 2, 0)), is(collation(2, 1, 0)));
+    assertThat(collation234.apply(mapping(n, 3, 4, 0)), is(EMPTY));
 
     // [9] , 9 < mapping.sourceCount()
-    RelCollation collation9 = collation(MAPPING_SOURCE_COUNT - 1);
-    assertThat(collation9.apply(mapping(0)), is(EMPTY));
-    assertThat(collation9.apply(mapping(1)), is(EMPTY));
-    assertThat(collation9.apply(mapping(2)), is(EMPTY));
-    assertThat(collation9.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(collation(0)));
-
-    // [10] , 10 >= mapping.sourceCount()
-    RelCollation collation10 = collation(MAPPING_SOURCE_COUNT);
-    assertThat(collation10.apply(mapping(0)), is(EMPTY));
-    assertThat(collation10.apply(mapping(1)), is(EMPTY));
-    assertThat(collation10.apply(mapping(2)), is(EMPTY));
-    assertThat(collation10.apply(mapping(MAPPING_SOURCE_COUNT - 1)), is(EMPTY));
+    RelCollation collation9 = collation(n - 1);
+    assertThat(collation9.apply(mapping(n, 0)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, 1)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, 2)), is(EMPTY));
+    assertThat(collation9.apply(mapping(n, n - 1)), is(collation(0)));
   }
 
   private static RelCollation collation(int... ordinals) {
@@ -155,7 +146,7 @@ class RelCollationTest {
     return RelCollations.of(list);
   }
 
-  private static Mapping mapping(int... sources) {
-    return Mappings.target(ImmutableIntList.of(sources), MAPPING_SOURCE_COUNT);
+  private static Mapping mapping(int sourceCount, int... sources) {
+    return Mappings.target(ImmutableIntList.of(sources), sourceCount);
   }
 }

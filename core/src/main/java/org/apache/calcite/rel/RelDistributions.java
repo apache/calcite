@@ -143,7 +143,7 @@ public class RelDistributions {
       }
       for (int key : keys) {
         if (mapping.getTargetOpt(key) == -1) {
-          return RANDOM_DISTRIBUTED; // Some distribution keys are not mapped => random.
+          return ANY; // Some distribution keys are not mapped => any.
         }
       }
       List<Integer> mappedKeys0 = Mappings.apply2((Mapping) mapping, keys);

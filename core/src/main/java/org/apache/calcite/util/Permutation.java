@@ -521,16 +521,10 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
   }
 
   public int getTargetOpt(int source) {
-    if (source >= targets.length) {
-      return -1;
-    }
     return getTarget(source);
   }
 
   public int getSourceOpt(int target) {
-    if (target >= sources.length) {
-      return -1;
-    }
     return getSource(target);
   }
 

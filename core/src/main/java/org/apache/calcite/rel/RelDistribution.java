@@ -48,6 +48,24 @@ public interface RelDistribution extends RelMultipleTrait {
    */
   @Nonnull List<Integer> getKeys();
 
+  /**
+   * Applies mapping to this distribution trait.
+   *
+   * <p>Mapping can change the distribution trait only if it depends on distribution keys.
+   *
+   * <p>For example if relation is HASH distributed by keys [0, 1], after applying
+   * a mapping (3, 2, 1, 0), the relation will have a distribution HASH(2,3) because
+   * distribution keys changed their ordinals.
+   *
+   * <p>If mapping eliminates one of the distribution keys, the {@link Type#ANY}
+   * distribution will be returned.
+   *
+   * <p>If distribution doesn't have keys (BROADCAST or SINGLETON), method will return
+   * the same distribution.
+   *
+   * @param mapping   Mapping
+   * @return distribution with mapping applied
+   */
   RelDistribution apply(Mappings.TargetMapping mapping);
 
   /** Type of distribution. */
