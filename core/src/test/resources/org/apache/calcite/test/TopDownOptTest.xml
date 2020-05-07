@@ -40,7 +40,9 @@ EnumerableLimit(fetch=[5])
     </TestCase>
   <TestCase name="testSortAggPartialKey">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select mgr,deptno,comm,count(*) from sales.emp
+        group by mgr,deptno,comm
+        order by comm desc nulls last, deptno nulls first]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -61,7 +63,9 @@ EnumerableProject(MGR=[$0], DEPTNO=[$2], COMM=[$1], EXPR$3=[$3])
   </TestCase>
   <TestCase name="testSortMergeJoin">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from
+        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+        order by r.job desc nulls last, r.ename nulls first]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -84,7 +88,9 @@ EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
   </TestCase>
   <TestCase name="testSortMergeJoinRight">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from
+        sales.emp r join sales.bonus s on r.ename=s.ename and r.job=s.job
+        order by s.job desc nulls last, s.ename nulls first]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -107,7 +113,9 @@ EnumerableMergeJoin(condition=[AND(=($1, $9), =($2, $10))], joinType=[inner])
   </TestCase>
   <TestCase name="testMergeJoinDeriveLeft1">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from
+        (select ename, job, max(sal) from sales.emp group by ename, job) r
+        join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -132,7 +140,9 @@ EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
   </TestCase>
   <TestCase name="testMergeJoinDeriveLeft2">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from
+        (select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
+        join sales.bonus s on r.job=s.job and r.ename=s.ename]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -157,7 +167,9 @@ EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
   </TestCase>
   <TestCase name="testMergeJoinDeriveRight1">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from sales.bonus s join
+        (select ename, job, max(sal) from sales.emp group by ename, job) r
+        on r.job=s.job and r.ename=s.ename]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
@@ -182,7 +194,9 @@ EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $4))], joinType=[inner])
   </TestCase>
   <TestCase name="testMergeJoinDeriveRight2">
     <Resource name="sql">
-      <![CDATA[]]>
+      <![CDATA[select * from sales.bonus s join
+        (select ename, job, mgr, max(sal) from sales.emp group by ename, job, mgr) r
+        on r.job=s.job and r.ename=s.ename]]>
     </Resource>
     <Resource name="planBefore">
       <![CDATA[
