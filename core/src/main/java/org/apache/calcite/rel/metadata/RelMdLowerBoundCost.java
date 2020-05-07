@@ -62,7 +62,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
       return null;
     }
 
-    RelOptCost winner = subset.getWinner();
+    RelOptCost winner = subset.getWinnerCost();
     if (winner != null) {
       // when this subset is fully optimized, just return the winner
       return winner;

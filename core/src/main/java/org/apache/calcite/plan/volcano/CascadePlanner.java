@@ -18,7 +18,6 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -62,6 +61,11 @@ public class CascadePlanner extends VolcanoPlanner {
    */
   private ApplyRule applying = null;
 
+  /**
+   * convention of root
+   */
+  private Convention rootConvention = null;
+
   //~ Constructors -----------------------------------------------------------
 
   public CascadePlanner(RelOptCostFactory factory, Context context) {
@@ -98,6 +102,15 @@ public class CascadePlanner extends VolcanoPlanner {
   }
 
   /**
+   * decide whether a rule is logical or not
+   * @param relNode the specific rel node
+   * @return true if the relnode is a logical node
+   */
+  protected boolean isLogical(RelNode relNode) {
+    return relNode.getConvention() != rootConvention;
+  }
+
+  /**
    * gets the lower bound cost of a relational operator
    * @param rel the rel node
    * @return the lower bound cost of the given rel. The value is ensured NOT NULL.
@@ -124,7 +137,13 @@ public class CascadePlanner extends VolcanoPlanner {
       RelOptRuleCall match, RelOptRuleOperand op) {
     List<RelOptRuleOperand> children = op.getChildOperands();
     if (children == null || children.isEmpty()) {
-      return getLowerBound((RelNode) match.rel(op.ordinalInRule));
+      RelNode rel = match.rel(op.ordinalInRule);
+      RelOptCost sum = zeroCost;
+      for (RelNode input : rel.getInputs()) {
+        RelOptCost lb = getLowerBound(input);
+        sum = sum == zeroCost ? lb : sum.plus(lb);
+      }
+      return sum;
     }
     RelOptCost sum = null;
     for (RelOptRuleOperand child : children) {
@@ -152,6 +171,7 @@ public class CascadePlanner extends VolcanoPlanner {
   @Override public RelNode findBestExp() {
     registerMaterializations();
     TaskDescriptor description = new TaskDescriptor();
+    rootConvention = root.getConvention();
     tasks.push(
         new OptimizeGroup((CascadeRelSubset) root,
             costFactory.makeInfiniteCost()));
@@ -159,6 +179,10 @@ public class CascadePlanner extends VolcanoPlanner {
       Task task = tasks.pop();
       description.log(task);
       task.perform();
+    }
+    if (LOGGER.isTraceEnabled()) {
+      String dump = dumpToString();
+      LOGGER.trace(dump);
     }
     return root.buildCheapestPlan(this);
   }
@@ -198,12 +222,13 @@ public class CascadePlanner extends VolcanoPlanner {
         for (RelNode parentRel : parentRels) {
           clearProcessed((CascadeRelSet) getSet(parentRel));
         }
+        if (group == root) {
+          tasks.push(
+              new OptimizeGroup((CascadeRelSubset) root,
+                  costFactory.makeInfiniteCost()));
+        }
       }
     }
-  }
-
-  public boolean isPruned(RelNode rel) {
-    return prunedNodes.contains(rel);
   }
 
   @Override void fireRules(RelNode rel) {
@@ -252,11 +277,6 @@ public class CascadePlanner extends VolcanoPlanner {
       set = set.equivalentSet;
     }
     return set;
-  }
-
-  private boolean isLogical(RelNode relNode) {
-    return relNode.getTraitSet().getTrait(ConventionTraitDef.INSTANCE)
-        == Convention.NONE;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -322,7 +342,7 @@ public class CascadePlanner extends VolcanoPlanner {
     }
 
     @Override public void perform() {
-      RelOptCost winner = group.getWinner();
+      RelOptCost winner = group.getWinnerCost();
       if (winner != null) {
         return;
       }
@@ -346,13 +366,13 @@ public class CascadePlanner extends VolcanoPlanner {
       // so delay the lower bound checking
 
       // a gate keeper to update context
-      tasks.add(new GroupOptimized(group));
+      tasks.push(new GroupOptimized(group));
 
       // optimize mExprs in group
       List<Task> physicals = new ArrayList<>();
       for (RelNode rel : group.set.rels) {
         if (isLogical(rel)) {
-          tasks.add(new OptimizeMExpr(rel, group, upperBound, false));
+          tasks.push(new OptimizeMExpr(rel, group, upperBound, false));
         } else {
           if (!acceptConverter && rel instanceof AbstractConverter) {
             LOGGER.debug("Skip optimizing AC: {}", rel);
@@ -484,7 +504,7 @@ public class CascadePlanner extends VolcanoPlanner {
       }
       for (RelNode rel : group.set.rels) {
         if (isLogical(rel)) {
-          tasks.add(
+          tasks.push(
               new OptimizeMExpr(
                   rel, group, costFactory.makeInfiniteCost(), true));
         }
@@ -609,12 +629,11 @@ public class CascadePlanner extends VolcanoPlanner {
           CascadeRelSet set = subset.getSet();
           for (RelSubset relSubset : set.subsets) {
             CascadeRelSubset g = (CascadeRelSubset) relSubset;
-            if (g.state == CascadeRelSubset.OptimizeState.OPTIMIZING
-                && node.getTraitSet().satisfies(subset.getTraitSet())) {
-              if (upperBound.isLt(g.upperBound)) {
-                upperBound = g.upperBound;
-                group = g;
-              }
+            if ((g == root || g.state == CascadeRelSubset.OptimizeState.OPTIMIZING)
+                && node.getTraitSet().satisfies(subset.getTraitSet())
+                && upperBound.isLt(g.upperBound)) {
+              upperBound = g.upperBound;
+              group = g;
             }
           }
         }
@@ -623,10 +642,10 @@ public class CascadePlanner extends VolcanoPlanner {
         }
         Task task = getOptimizeInputTask(node, group, upperBound);
         if (task != null) {
-          tasks.add(task);
+          tasks.push(task);
         }
       } else {
-        tasks.add(new OptimizeMExpr(node, group, upperBound, exploring));
+        tasks.push(new OptimizeMExpr(node, group, upperBound, exploring));
       }
     }
   }
@@ -641,7 +660,7 @@ public class CascadePlanner extends VolcanoPlanner {
     }
     boolean unProcess = false;
     for (RelNode input : rel.getInputs()) {
-      RelOptCost winner = ((CascadeRelSubset) input).getWinner();
+      RelOptCost winner = ((CascadeRelSubset) input).getWinnerCost();
       if (winner == null) {
         unProcess = true;
         break;
@@ -695,10 +714,10 @@ public class CascadePlanner extends VolcanoPlanner {
       CascadeRelSubset input = (CascadeRelSubset) mExpr.getInput(0);
 
       // Apply enforcing rules
-      tasks.add(new ApplyRules(mExpr, group, upperBound, false));
+      tasks.push(new ApplyRules(mExpr, group, upperBound, false));
 
       tasks.push(new CheckInput(null, mExpr, input, 0, upperForInput));
-      tasks.add(
+      tasks.push(
           new OptimizeGroup(input,
               upperForInput, !(mExpr instanceof AbstractConverter)));
     }
@@ -769,14 +788,14 @@ public class CascadePlanner extends VolcanoPlanner {
 
       if (processingChild == 0) {
         // Apply enforcing rules
-        tasks.add(new ApplyRules(mExpr, group, upperBound, false));
+        tasks.push(new ApplyRules(mExpr, group, upperBound, false));
       }
 
       while (processingChild < childCount) {
         CascadeRelSubset input =
             (CascadeRelSubset) mExpr.getInput(processingChild);
 
-        RelOptCost winner = input.getWinner();
+        RelOptCost winner = input.getWinnerCost();
         if (winner != null) {
           ++ processingChild;
           continue;
@@ -838,7 +857,7 @@ public class CascadePlanner extends VolcanoPlanner {
       if (context == null) {
         return;
       }
-      RelOptCost winner = input.getWinner();
+      RelOptCost winner = input.getWinnerCost();
       if (winner == null) {
         // the input fail to optimize due to group pruning
         context.lowerBoundSum = infCost;

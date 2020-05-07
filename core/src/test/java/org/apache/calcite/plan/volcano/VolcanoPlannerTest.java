@@ -78,7 +78,7 @@ class VolcanoPlannerTest {
    * Tests transformation of a leaf from NONE to PHYS.
    */
   @Test void testTransformLeaf() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -102,7 +102,7 @@ class VolcanoPlannerTest {
    * Tests transformation of a single+leaf from NONE to PHYS.
    */
   @Test void testTransformSingleGood() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
@@ -209,7 +209,7 @@ class VolcanoPlannerTest {
    * once per rel in a set or rel in a subset)
    */
   @Test void testSubsetRule() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
 
@@ -291,7 +291,7 @@ class VolcanoPlannerTest {
    */
   @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test void testTransformSingleReformed() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
@@ -316,7 +316,7 @@ class VolcanoPlannerTest {
   }
 
   private void removeTrivialProject(boolean useRule) {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
@@ -382,7 +382,7 @@ class VolcanoPlannerTest {
    */
   @Disabled // broken, because ReformedSingleRule matches child traits strictly
   @Test void testRemoveSingleReformed() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
@@ -416,7 +416,7 @@ class VolcanoPlannerTest {
    * first).
    */
   @Test void testRemoveSingleGood() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new PhysLeafRule());
@@ -447,7 +447,7 @@ class VolcanoPlannerTest {
 
   @Disabled("CALCITE-2592 EnumerableMergeJoin is never taken")
   @Test void testMergeJoin() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     // Below two lines are important for the planner to use collation trait and generate merge join
@@ -517,7 +517,7 @@ class VolcanoPlannerTest {
   @Test void testListener() {
     TestListener listener = new TestListener();
 
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addListener(listener);
 
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

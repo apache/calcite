@@ -105,6 +105,12 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
   PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
 
+  /** Planner factory.
+   *
+   * <p>The name of a class that implements
+   * {@link org.apache.calcite.plan.PlannerFactory}. */
+  PLANNER_FACTORY("plannerFactory", Type.PLUGIN, null, false),
+
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
 

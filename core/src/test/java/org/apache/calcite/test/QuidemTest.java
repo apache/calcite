@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.avatica.AvaticaUtils;
 import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.volcano.VolcanoPlannerFactory;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -54,6 +55,7 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -121,13 +123,15 @@ public abstract class QuidemTest {
     if (f.isAbsolute()) {
       // e.g. path = "/tmp/foo.iq"
       inFile = f;
-      outFile = new File(path + ".out");
+      String outPath = cascade() ? path + ".cas" : path + "out";
+      outFile = new File(outPath);
     } else {
       // e.g. path = "sql/outer.iq"
       // inUrl = "file:/home/fred/calcite/core/target/test-classes/sql/outer.iq"
       final URL inUrl = JdbcTest.class.getResource("/" + n2u(path));
       inFile = Sources.of(inUrl).file();
-      outFile = new File(inFile.getAbsoluteFile().getParent(), u2n("surefire/") + path);
+      String parentPath = cascade() ? u2n("surefire/cascade/") : u2n("surefire/");
+      outFile = new File(inFile.getAbsoluteFile().getParent(), parentPath + path);
     }
     Util.discard(outFile.getParentFile().mkdirs());
     try (Reader reader = Util.reader(inFile);
@@ -156,6 +160,17 @@ public abstract class QuidemTest {
     }
     final String diff = DiffTestCase.diff(inFile, outFile);
     if (!diff.isEmpty()) {
+      if (cascade()) {
+        File diffFile = new File(inFile.getAbsoluteFile().getParent(), inFile.getName() + ".cas");
+        if (diffFile.exists()) {
+          String expectedDiff = DiffTestCase.fileContents(diffFile);
+          String diffFlag = "DIFF_BEGIN:";
+          expectedDiff = expectedDiff.substring(expectedDiff.indexOf(diffFlag) + diffFlag.length());
+          if (expectedDiff.equals(diff)) {
+            return;
+          }
+        }
+      }
       fail("Files differ: " + outFile + " " + inFile + "\n"
           + diff);
     }
@@ -169,6 +184,11 @@ public abstract class QuidemTest {
   /** Creates a connection factory. */
   protected Quidem.ConnectionFactory createConnectionFactory() {
     return new QuidemConnectionFactory();
+  }
+
+  /** Whether to use CascadePlanner */
+  protected boolean cascade() {
+    return false;
   }
 
   /** Converts a path from Unix to native. On Windows, converts
@@ -208,13 +228,28 @@ public abstract class QuidemTest {
   }
 
   /** Quidem connection factory for Calcite's built-in test schemas. */
-  protected static class QuidemConnectionFactory
-      implements Quidem.ConnectionFactory {
+  protected class QuidemConnectionFactory implements Quidem.ConnectionFactory {
     public Connection connect(String name) throws Exception {
       return connect(name, false);
     }
 
     public Connection connect(String name, boolean reference)
+        throws Exception {
+      Connection connection = connectInternal(name, reference);
+      if (cascade() && connection instanceof CalciteConnection) {
+        try {
+          CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
+          Properties properties = calciteConnection.getProperties();
+          properties.setProperty(CalciteConnectionProperty.PLANNER_FACTORY.camelName(),
+              VolcanoPlannerFactory.CASCADE_PLANNER);
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      }
+      return connection;
+    }
+
+    public Connection connectInternal(String name, boolean reference)
         throws Exception {
       if (reference) {
         if (name.equals("foodmart")) {

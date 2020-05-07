@@ -150,6 +150,12 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getPlugin(parserFactoryClass, defaultParserFactory);
   }
 
+  public <T> T plannerFactory(Class<T> plannerFactoryClass,
+      T defaultPlannerFactory) {
+    return CalciteConnectionProperty.PLANNER_FACTORY.wrap(properties)
+        .getPlugin(plannerFactoryClass, defaultPlannerFactory);
+  }
+
   public <T> T schemaFactory(Class<T> schemaFactoryClass,
       T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)

@@ -14,34 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.plan.volcano;
-
-import org.apache.calcite.plan.Context;
-import org.apache.calcite.plan.RelOptCostFactory;
+package org.apache.calcite.plan;
 
 /**
- * containing some helper method for tet cases
+ * Factory that creates a planner with specific configurations
  */
-public class VolcanoPlannerTestHelper {
-
-  private VolcanoPlannerTestHelper() {}
+public interface PlannerFactory {
 
   /**
-   * creating planners according to system properties
+   * creating planners with specific configurations
    */
-  public static VolcanoPlanner getPlanner() {
-    return getPlanner(null, null);
-  }
-
-  /**
-   * creating planners according to system properties
-   */
-  public static VolcanoPlanner getPlanner(RelOptCostFactory costFactory,
-      Context externalContext) {
-    if ("true".equalsIgnoreCase(System.getProperty("cascade", "false"))) {
-      return new CascadePlanner(costFactory, externalContext);
-    } else {
-      return new VolcanoPlanner(costFactory, externalContext);
-    }
-  }
+  RelOptPlanner create(RelOptCostFactory costFactory, Context externalContext);
 }

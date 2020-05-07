@@ -34,7 +34,7 @@ import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
-import org.apache.calcite.plan.volcano.VolcanoPlannerTestHelper;
+import org.apache.calcite.plan.volcano.VolcanoPlannerFactory;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -6492,7 +6492,7 @@ class RelOptRulesTest extends RelOptTestBase {
     String sql = "(select n_nationkey from SALES.CUSTOMER) union all\n"
         + "(select n_name from CUSTOMER_MODIFIABLEVIEW)";
 
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     Tester dynamicTester = createDynamicTester().withDecorrelation(true)

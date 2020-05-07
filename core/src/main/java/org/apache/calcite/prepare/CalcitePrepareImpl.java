@@ -58,6 +58,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.plan.volcano.VolcanoPlannerFactory;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -426,7 +427,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
       externalContext = Contexts.of(prepareContext.config());
     }
     final VolcanoPlanner planner =
-        new VolcanoPlanner(costFactory, externalContext);
+        VolcanoPlannerFactory.getPlanner(costFactory, externalContext);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);

@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ComboRuleTest {
 
   @Test void testCombo() {
-    VolcanoPlanner planner = VolcanoPlannerTestHelper.getPlanner();
+    VolcanoPlanner planner = VolcanoPlannerFactory.getPlanner();
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
 
     planner.addRule(new ComboRule());

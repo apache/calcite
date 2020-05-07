@@ -45,7 +45,7 @@ public class CascadeRelSubset extends RelSubset {
     /**
      * the subset is optimized. It may have a winner (best).
      * Or it may fail to optimize,
-     * in which case, best == null or best.isLt(upperBound)
+     * in which case, best == null or !bestCost.isLt(upperBound)
      */
     OPTIMIZED
   }
@@ -61,7 +61,7 @@ public class CascadeRelSubset extends RelSubset {
     super(cluster, set, traits);
   }
 
-  public RelOptCost getWinner() {
+  public RelOptCost getWinnerCost() {
     if (bestCost == upperBound) {
       return bestCost;
     }
@@ -79,7 +79,7 @@ public class CascadeRelSubset extends RelSubset {
 
   public void optimized() {
     state = OptimizeState.OPTIMIZED;
-    if (bestCost.isLt(upperBound)) {
+    if (upperBound == null || bestCost.isLt(upperBound)) {
       upperBound = bestCost;
     }
   }

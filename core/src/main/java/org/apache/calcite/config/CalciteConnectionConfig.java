@@ -58,6 +58,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   boolean caseSensitive();
   /** @see CalciteConnectionProperty#PARSER_FACTORY */
   <T> T parserFactory(Class<T> parserFactoryClass, T defaultParserFactory);
+  /** @see CalciteConnectionProperty#PARSER_FACTORY */
+  <T> T plannerFactory(Class<T> plannerFactoryClass, T defaultPlannerFactory);
   /** @see CalciteConnectionProperty#SCHEMA_FACTORY */
   <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
   /** @see CalciteConnectionProperty#SCHEMA_TYPE */

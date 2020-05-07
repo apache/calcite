@@ -18,9 +18,6 @@ package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.rel.RelNode;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -66,21 +63,10 @@ public class CascadeRuleQueue {
         continue;
       }
       iterator.remove();
-      if (!skipMatch(next)) {
+      if (!planner.skipMatch(next)) {
         return next;
       }
     }
     return null;
-  }
-
-  private Multimap<Integer, VolcanoRuleMatch> skipped = HashMultimap.create();
-  private boolean skipMatch(VolcanoRuleMatch match) {
-    for (RelNode rel : match.rels) {
-      if (planner.isPruned(rel)) {
-        skipped.put(rel.getId(), match);
-        return true;
-      }
-    }
-    return false;
   }
 }
