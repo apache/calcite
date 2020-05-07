@@ -1348,7 +1348,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
   }
 
   /** Edge for graph */
-  protected static class Edge extends DefaultEdge {
+  protected static class Edge extends DefaultEdge<RelTableRef> {
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
 

@@ -644,7 +644,7 @@ public class LatticeSuggester {
   }
 
   /** Use of a step within a query. A step can be used more than once. */
-  private static class StepRef extends DefaultEdge {
+  private static class StepRef extends DefaultEdge<TableRef> {
     final Step step;
     private final int ordinalInQuery;
 
@@ -670,11 +670,11 @@ public class LatticeSuggester {
     }
 
     TableRef source() {
-      return (TableRef) source;
+      return source;
     }
 
     TableRef target() {
-      return (TableRef) target;
+      return target;
     }
 
     /** Creates {@link StepRef} instances. */

@@ -101,7 +101,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * single-rooted DAG, possibly with additional roots corresponding to
    * discarded plan fragments which remain to be garbage-collected.
    */
-  private final DirectedGraph<HepRelVertex, DefaultEdge> graph =
+  private final DirectedGraph<HepRelVertex, DefaultEdge<HepRelVertex>> graph =
       DefaultDirectedGraph.create();
 
   private final Function2<RelNode, RelNode, Void> onCopyHook;
@@ -879,10 +879,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (!RelMdUtil.clearCache(vertex)) {
       return;
     }
-    Queue<DefaultEdge> queue =
+    Queue<DefaultEdge<HepRelVertex>> queue =
         new LinkedList<>(graph.getInwardEdges(vertex));
     while (!queue.isEmpty()) {
-      DefaultEdge edge = queue.remove();
+      DefaultEdge<HepRelVertex> edge = queue.remove();
       HepRelVertex source = (HepRelVertex) edge.source;
       RelMdUtil.clearCache(source.getCurrentRel());
       if (RelMdUtil.clearCache(source)) {
@@ -989,7 +989,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private void assertNoCycles() {
     // Verify that the graph is acyclic.
-    final CycleDetector<HepRelVertex, DefaultEdge> cycleDetector =
+    final CycleDetector<HepRelVertex, DefaultEdge<HepRelVertex>> cycleDetector =
         new CycleDetector<>(graph);
     Set<HepRelVertex> cyclicVertices = cycleDetector.findCycles();
     if (cyclicVertices.isEmpty()) {

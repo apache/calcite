@@ -36,7 +36,7 @@ public class Graphs {
   private Graphs() {
   }
 
-  public static <V, E extends DefaultEdge> List<V> predecessorListOf(
+  public static <V, E extends DefaultEdge<V>> List<V> predecessorListOf(
       DirectedGraph<V, E> graph, V vertex) {
     final List<E> edges = graph.getInwardEdges(vertex);
     return new AbstractList<V>() {
@@ -52,7 +52,7 @@ public class Graphs {
   }
 
   /** Returns a map of the shortest paths between any pair of nodes. */
-  public static <V, E extends DefaultEdge> FrozenGraph<V, E> makeImmutable(
+  public static <V, E extends DefaultEdge<V>> FrozenGraph<V, E> makeImmutable(
       DirectedGraph<V, E> graph) {
     DefaultDirectedGraph<V, E> graph1 = (DefaultDirectedGraph<V, E>) graph;
     Map<Pair<V, V>, int[]> shortestDistances = new HashMap<>();
@@ -97,7 +97,7 @@ public class Graphs {
    * @param <V> Vertex type
    * @param <E> Edge type
    */
-  public static class FrozenGraph<V, E extends DefaultEdge> {
+  public static class FrozenGraph<V, E extends DefaultEdge<V>> {
     private final DefaultDirectedGraph<V, E> graph;
     private final Map<Pair<V, V>, int[]> shortestDistances;
 

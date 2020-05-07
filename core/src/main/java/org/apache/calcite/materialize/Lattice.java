@@ -502,7 +502,7 @@ public class Lattice {
   }
 
   /** Edge in the temporary graph. */
-  private static class Edge extends DefaultEdge {
+  private static class Edge extends DefaultEdge<Vertex> {
     public static final DirectedGraph.EdgeFactory<Vertex, Edge> FACTORY =
         Edge::new;
 
@@ -513,11 +513,11 @@ public class Lattice {
     }
 
     Vertex getTarget() {
-      return (Vertex) target;
+      return target;
     }
 
     Vertex getSource() {
-      return (Vertex) source;
+      return source;
     }
   }
 

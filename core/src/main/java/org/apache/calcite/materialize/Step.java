@@ -36,7 +36,7 @@ import java.util.Objects;
  * <p>When created via
  * {@link LatticeSpace#addEdge(LatticeTable, LatticeTable, List)}
  * it is unique within the {@link LatticeSpace}. */
-class Step extends DefaultEdge {
+class Step extends DefaultEdge<LatticeTable> {
   final List<IntPair> keys;
 
   /** String representation of {@link #keys}. Computing the string requires a
@@ -81,11 +81,11 @@ class Step extends DefaultEdge {
   }
 
   LatticeTable source() {
-    return (LatticeTable) source;
+    return source;
   }
 
   LatticeTable target() {
-    return (LatticeTable) target;
+    return target;
   }
 
   boolean isBackwards(SqlStatisticProvider statisticProvider) {

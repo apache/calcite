@@ -24,7 +24,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class CycleDetector<V, E extends DefaultEdge> {
+public class CycleDetector<V, E extends DefaultEdge<V>> {
   private final DirectedGraph<V, E> graph;
 
   public CycleDetector(DirectedGraph<V, E> graph) {

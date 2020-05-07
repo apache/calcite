@@ -127,7 +127,7 @@ public abstract class RelOptMaterializations {
    */
   public static List<RelOptMaterialization> getApplicableMaterializations(
       RelNode rel, List<RelOptMaterialization> materializations) {
-    DirectedGraph<List<String>, DefaultEdge> usesGraph =
+    DirectedGraph<List<String>, DefaultEdge<List<String>>> usesGraph =
         DefaultDirectedGraph.create();
     final Map<List<String>, RelOptMaterialization> qnameMap = new HashMap<>();
     for (RelOptMaterialization materialization : materializations) {
@@ -154,7 +154,7 @@ public abstract class RelOptMaterializations {
     // the graph will contain
     //   (T, Emps), (T, Depts), (T2, T)
     // and therefore we can deduce T2 uses Emps.
-    final Graphs.FrozenGraph<List<String>, DefaultEdge> frozenGraph =
+    final Graphs.FrozenGraph<List<String>, DefaultEdge<List<String>>> frozenGraph =
         Graphs.makeImmutable(usesGraph);
     final Set<RelOptTable> queryTablesUsed = RelOptUtil.findTables(rel);
     final List<RelOptMaterialization> applicableMaterializations =
@@ -240,7 +240,7 @@ public abstract class RelOptMaterializations {
   private static boolean usesTable(
       List<String> qualifiedName,
       Set<RelOptTable> usedTables,
-      Graphs.FrozenGraph<List<String>, DefaultEdge> usesGraph) {
+      Graphs.FrozenGraph<List<String>, DefaultEdge<List<String>>> usesGraph) {
     for (RelOptTable queryTable : usedTables) {
       if (usesGraph.getShortestDistance(queryTable.getQualifiedName(), qualifiedName)
           != -1) {

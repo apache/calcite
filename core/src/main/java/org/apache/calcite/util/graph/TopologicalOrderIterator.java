@@ -29,7 +29,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class TopologicalOrderIterator<V, E extends DefaultEdge>
+public class TopologicalOrderIterator<V, E extends DefaultEdge<V>>
     implements Iterator<V> {
   final Map<V, int[]> countMap = new HashMap<>();
   final List<V> empties = new ArrayList<>();
@@ -40,7 +40,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     populate(countMap, empties);
   }
 
-  public static <V, E extends DefaultEdge> Iterable<V> of(
+  public static <V, E extends DefaultEdge<V>> Iterable<V> of(
       final DirectedGraph<V, E> graph) {
     return () -> new TopologicalOrderIterator<>(graph);
   }

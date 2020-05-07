@@ -208,7 +208,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
 
   /** Workspace for converting from one convention to another. */
   private static final class ConversionData {
-    final DirectedGraph<Convention, DefaultEdge> conversionGraph =
+    final DirectedGraph<Convention, DefaultEdge<Convention>> conversionGraph =
         DefaultDirectedGraph.create();
 
     /**
@@ -219,7 +219,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     final Multimap<Pair<Convention, Convention>, ConverterRule> mapArcToConverterRule =
         HashMultimap.create();
 
-    private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
+    private Graphs.FrozenGraph<Convention, DefaultEdge<Convention>> pathMap;
 
     public List<List<Convention>> getPaths(
         Convention fromConvention,
@@ -227,7 +227,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       return getPathMap().getPaths(fromConvention, toConvention);
     }
 
-    private Graphs.FrozenGraph<Convention, DefaultEdge> getPathMap() {
+    private Graphs.FrozenGraph<Convention, DefaultEdge<Convention>> getPathMap() {
       if (pathMap == null) {
         pathMap = Graphs.makeImmutable(conversionGraph);
       }

@@ -428,7 +428,7 @@ public abstract class CalcRelSplitter {
   private List<Integer> computeTopologicalOrdering(
       RexNode[] exprs,
       List<Set<Integer>> cohorts) {
-    final DirectedGraph<Integer, DefaultEdge> graph =
+    final DirectedGraph<Integer, DefaultEdge<Integer>> graph =
         DefaultDirectedGraph.create();
     for (int i = 0; i < exprs.length; i++) {
       graph.addVertex(i);
@@ -452,7 +452,7 @@ public abstract class CalcRelSplitter {
             }
           });
     }
-    TopologicalOrderIterator<Integer, DefaultEdge> iter =
+    TopologicalOrderIterator<Integer, DefaultEdge<Integer>> iter =
         new TopologicalOrderIterator<>(graph);
     final List<Integer> permutation = new ArrayList<>();
     while (iter.hasNext()) {
