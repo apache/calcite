@@ -68,8 +68,8 @@ public class RelOptCostImpl implements RelOptCost {
     return false;
   }
 
-  @Override public int compareTo(RelOptCost other) {
-    return Double.compare(this.getRows(), other.getRows());
+  @Override public ComparisonResult compareCost(RelOptCost other) {
+    return ComparisonResult.signumToEnum(Double.compare(this.getRows(), other.getRows()));
   }
 
   // implement RelOptCost

@@ -26,7 +26,52 @@ package org.apache.calcite.plan;
  * Optimizers which supply their own cost models may also extend this interface
  * with additional cost metrics such as memory usage.
  */
-public interface RelOptCost extends Comparable<RelOptCost> {
+public interface RelOptCost {
+
+  /**
+   * This is used to represent the result of comparing two {@link RelOptCost} objects.
+   * Please note that a set of {@link RelOptCost} objects forms a partial order,
+   * so there can be objects that cannot be compared. We use UD to represent
+   * the results of such comparisons.
+   */
+  enum ComparisonResult {
+    /**
+     * Less than.
+     */
+    LT,
+
+    /**
+     * Equal to.
+     */
+    EQ,
+
+    /**
+     * Greater than.
+     */
+    GT,
+
+    /**
+     * Undefined.
+     */
+    UD;
+
+    /**
+     * Converts the result of a signum function to an enum.
+     */
+    public static ComparisonResult signumToEnum(int signum) {
+      switch (signum) {
+      case -1:
+        return LT;
+      case 0:
+        return EQ;
+      case 1:
+        return GT;
+      default:
+        return UD;
+      }
+    }
+  }
+
   //~ Methods ----------------------------------------------------------------
 
   /**
@@ -58,14 +103,22 @@ public interface RelOptCost extends Comparable<RelOptCost> {
   // to Comparator/equals/hashCode
 
   /**
+   * Compare two {@link RelOptCost} objects.
+   * @param cost the other cost to compare.
+   * @return the comparison result.
+   */
+  ComparisonResult compareCost(RelOptCost cost);
+
+  /**
    * Compares this to another cost.
+   * This is based on the implementation of  method {@link #compareCost(RelOptCost)},
+   * and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is exactly equal to other cost
    */
-  @Deprecated
   default boolean equals(RelOptCost cost) {
-    return this.compareTo(cost) == 0;
+    return compareCost(cost) == ComparisonResult.EQ;
   }
 
   /**
@@ -79,24 +132,27 @@ public interface RelOptCost extends Comparable<RelOptCost> {
 
   /**
    * Compares this to another cost.
+   * This is based on the implementation of method {@link #compareCost(RelOptCost)},
+   *  and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is less than or equal to other cost
    */
-  @Deprecated
   default boolean isLe(RelOptCost cost) {
-    return this.compareTo(cost) <= 0;
+    ComparisonResult result = compareCost(cost);
+    return result == ComparisonResult.LT || result == ComparisonResult.EQ;
   }
 
   /**
    * Compares this to another cost.
+   * This is based on the implementation of method {@link #compareCost(RelOptCost)},
+   * and is not intended to be overridden.
    *
    * @param cost another cost
    * @return true iff this is strictly less than other cost
    */
-  @Deprecated
   default boolean isLt(RelOptCost cost) {
-    return this.compareTo(cost) < 0;
+    return compareCost(cost) == ComparisonResult.LT;
   }
 
   /**

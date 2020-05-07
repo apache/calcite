@@ -18,8 +18,6 @@ package org.apache.calcite.test;
 
 import org.apache.calcite.plan.RelOptCost;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * MockRelOptCost is a mock implementation of the {@link RelOptCost} interface.
  * TODO: constructors for various scenarios
@@ -53,8 +51,8 @@ public class MockRelOptCost implements RelOptCost {
     return 0;
   }
 
-  @Override public int compareTo(@NotNull RelOptCost o) {
-    return 0;
+  @Override public ComparisonResult compareCost(RelOptCost o) {
+    return ComparisonResult.EQ;
   }
 
   public boolean isEqWithEpsilon(RelOptCost cost) {

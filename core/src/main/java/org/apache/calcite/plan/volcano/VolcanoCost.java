@@ -112,9 +112,9 @@ class VolcanoCost implements RelOptCost {
     return false;
   }
 
-  @Override public int compareTo(RelOptCost other) {
+  @Override public ComparisonResult compareCost(RelOptCost other) {
     VolcanoCost that = (VolcanoCost) other;
-    return Double.compare(this.rowCount, that.rowCount);
+    return ComparisonResult.signumToEnum(Double.compare(this.rowCount, that.rowCount));
   }
 
   public boolean isEqWithEpsilon(RelOptCost other) {
