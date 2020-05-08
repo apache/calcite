@@ -17,15 +17,13 @@
 package org.apache.calcite.runtime;
 
 import org.apache.calcite.avatica.util.ByteString;
-import org.apache.calcite.sql.SqlKind;
 
-import java.util.function.Supplier;
-import java.util.stream.IntStream;
+import java.util.function.BinaryOperator;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
- * A collection of functions used in Bitwise processing.
+ * A collection of functions used in bitwise processing.
  */
 public class BitwiseFunctions {
 
@@ -39,7 +37,7 @@ public class BitwiseFunctions {
 
   /** Helper function for implementing <code>BIT_AND</code> applied to binary values */
   public static ByteString bitAnd(ByteString b0, ByteString b1) {
-    return binaryOperator(b0, b1, () -> SqlKind.BIT_AND);
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x & y));
   }
 
   // |
@@ -50,7 +48,7 @@ public class BitwiseFunctions {
 
   /** Helper function for implementing <code>BIT_OR</code> applied to binary values */
   public static ByteString bitOr(ByteString b0, ByteString b1) {
-    return binaryOperator(b0, b1, () -> SqlKind.BIT_OR);
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x | y));
   }
 
   // ^
@@ -61,22 +59,19 @@ public class BitwiseFunctions {
 
   /** Helper function for implementing <code>BIT_XOR</code> applied to binary values */
   public static ByteString bitXor(ByteString b0, ByteString b1) {
-
-    return binaryOperator(b0, b1, () -> SqlKind.BIT_XOR);
+    return binaryOperator(b0, b1, (x, y) -> (byte) (x ^ y));
   }
 
   /**
-   * Util for bitwise function applied to two byteString values.
+   * Utility for bitwise function applied to two byteString values.
+   *
    * @param b0 The first byteString value operand of bitwise function.
    * @param b1 The second byteString value operand of bitwise function.
-   * @param operator BitWise Operator.
-   * @return
+   * @param bitOp BitWise binary operator.
+   * @return ByteString after bitwise operation.
    */
   private static ByteString binaryOperator(
-      ByteString b0, ByteString b1, Supplier<SqlKind> operator) {
-
-    SqlKind kind = operator.get();
-
+      ByteString b0, ByteString b1, BinaryOperator<Byte> bitOp) {
     if (b0.length() == 0) {
       return b1;
     }
@@ -85,32 +80,15 @@ public class BitwiseFunctions {
     }
 
     if (b0.length() != b1.length()) {
-      throw RESOURCE.differentLengthForBitwiseOperands(b0.length(), b1.length()).ex();
+      throw RESOURCE.differentLengthForBitwiseOperands(
+          b0.length(), b1.length()).ex();
     }
-    byte[] bytes0 = b0.getBytes();
-    byte[] bytes1 = b1.getBytes();
-    byte[] result = new byte[b0.length()];
 
-    switch (kind) {
-    case BIT_AND:
-      IntStream.range(0, bytes0.length).forEach(i -> {
-        result[i] = (byte) (bytes0[i] & bytes1[i]);
-      });
-      break;
-    case BIT_OR:
-      IntStream.range(0, bytes0.length).forEach(i -> {
-        result[i] = (byte) (bytes0[i] | bytes1[i]);
-      });
-      break;
-    case BIT_XOR:
-      IntStream.range(0, bytes0.length).forEach(i -> {
-        result[i] = (byte) (bytes0[i] ^ bytes1[i]);
-      });
-      break;
-    default:
-      throw new IllegalArgumentException("Unknown " + kind.name()
-          + ". Only support bit_and, bit_or and bit_xor.");
+    final byte[] result = new byte[b0.length()];
+    for (int i = 0; i < b0.length(); i++) {
+      result[i] = bitOp.apply(b0.byteAt(i), b1.byteAt(i));
     }
+
     return new ByteString(result);
   }
 }
