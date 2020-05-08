@@ -1246,7 +1246,8 @@ public abstract class SqlImplementor {
           @Override public SqlImplementor implementor() {
             final RelNode scalarSubQuery = relNode.accept(new RexShuttle() {
               @Override public RexNode visitSubQuery(RexSubQuery subQuery) {
-                if (subQuery.getOperator() == SqlStdOperatorTable.SCALAR_QUERY) {
+                if (subQuery.getOperator() == SqlStdOperatorTable.SCALAR_QUERY
+                    || subQuery.getOperator() == SqlStdOperatorTable.IN) {
                   return subQuery;
                 }
                 return null;
