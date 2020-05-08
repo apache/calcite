@@ -230,16 +230,11 @@ public class RelBuilder {
     return cluster.getTypeFactory();
   }
 
-  /** Returns new RelBuilder with the RelFactories struct provided. */
-  public RelBuilder withRelFactories(RelFactories.Struct struct) {
-    this.struct = struct;
-    return this;
-  }
-
   /** Returns new RelBuilder that adopts the convention provided.
    * RelNode will be created with such convention if corresponding factory is provided. */
   public RelBuilder adoptConvention(Convention convention) {
-    return convention.transformRelBuilder(this);
+    this.struct = convention.getRelFactories();
+    return this;
   }
 
   /** Returns the builder for {@link RexNode} expressions. */

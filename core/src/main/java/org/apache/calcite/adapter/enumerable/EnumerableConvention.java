@@ -27,7 +27,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
-import org.apache.calcite.tools.RelBuilder;
+
 /**
  * Family of calling conventions that return results as an
  * {@link org.apache.calcite.linq4j.Enumerable}.
@@ -87,13 +87,12 @@ public enum EnumerableConvention implements Convention {
     return true;
   }
 
-  public RelBuilder transformRelBuilder(RelBuilder oldRelBuilder) {
-    return oldRelBuilder.withRelFactories(
-        RelFactories.Struct.fromContext(
+  public RelFactories.Struct getRelFactories() {
+    return RelFactories.Struct.fromContext(
             Contexts.of(
                 EnumerableRelFactories.ENUMERABLE_TABLE_SCAN_FACTORY,
                 EnumerableRelFactories.ENUMERABLE_PROJECT_FACTORY,
                 EnumerableRelFactories.ENUMERABLE_FILTER_FACTORY,
-                EnumerableRelFactories.ENUMERABLE_SORT_FACTORY)));
+                EnumerableRelFactories.ENUMERABLE_SORT_FACTORY));
   }
 }
