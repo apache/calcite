@@ -17,8 +17,10 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.Convention;
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.PhysicalNode;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.trace.CalciteTrace;
@@ -132,9 +134,28 @@ abstract class OptimizeTask {
         final int numSubset = input.set.subsets.size();
         for (int j = 0; j < numSubset; j++) {
           RelSubset subset = input.set.subsets.get(j);
-          if (!subset.isDelivered()
-              // TODO: should use matching type to determine
-              || required.equals(subset.getTraitSet())) {
+          if (!subset.isDelivered() || equalsSansConvention(
+              subset.getTraitSet(), rel.getCluster().traitSet())) {
+            // TODO: should use matching type to determine
+            // Ideally we should stop deriving new relnodes when the
+            // subset's traitSet equals with input traitSet, but
+            // in case someone manually builds a physical relnode
+            // tree, which is highly discouraged, without specifying
+            // correct traitSet, e.g.
+            //   EnumerableFilter  [].ANY
+            //       -> EnumerableMergeJoin  [a].Hash[a]
+            // We should still be able to derive the correct traitSet
+            // for the dumb filter, even though the filter's traitSet
+            // should be derived from the MergeJoin when it is created.
+            // But if the subset's traitSet equals with the default
+            // empty traitSet sans convention (the default traitSet
+            // from cluster may have logical convention, NONE, which
+            // is not interesting), we are safe to ignore it, because
+            // a physical filter with non default traitSet, but has a
+            // input with default empty traitSet, e.g.
+            //   EnumerableFilter  [a].Hash[a]
+            //       -> EnumerableProject  [].ANY
+            // is definitely wrong, we should fail fast.
             continue;
           }
 
@@ -142,7 +163,7 @@ abstract class OptimizeTask {
             traits.add(subset.getTraitSet());
           } else {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
-            if (newRel != null) {
+            if (newRel != null && !planner.isRegistered(newRel)) {
               RelSubset relSubset = planner.register(newRel, node);
               assert relSubset.set == planner.getSubset(node).set;
             }
@@ -163,6 +184,24 @@ abstract class OptimizeTask {
       }
 
       LOGGER.debug("Completed task(id={}) for {}", id, node);
+    }
+
+    /**
+     * Returns whether the 2 traitSets are equal without Convention.
+     * It assumes they have the same traitDefs order.
+     */
+    private boolean equalsSansConvention(RelTraitSet ts1, RelTraitSet ts2) {
+      assert ts1.size() == ts2.size();
+      for (int i = 0; i < ts1.size(); i++) {
+        RelTrait trait = ts1.getTrait(i);
+        if (trait.getTraitDef() == ConventionTraitDef.INSTANCE) {
+          continue;
+        }
+        if (!trait.equals(ts2.getTrait(i))) {
+          return false;
+        }
+      }
+      return true;
     }
 
     @Override public String toString() {
@@ -197,7 +236,7 @@ abstract class OptimizeTask {
 
         RelNode node = ((PhysicalNode) rel).passThrough(
             subset.getTraitSet());
-        if (node != null) {
+        if (node != null && !planner.isRegistered(node)) {
           RelSubset newSubset = planner.register(node, subset);
           derivedSubsets.put(newSubset.getTraitSet(), newSubset);
         } else {
