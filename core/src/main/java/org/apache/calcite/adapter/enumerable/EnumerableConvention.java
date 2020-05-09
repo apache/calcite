@@ -59,7 +59,8 @@ public enum EnumerableConvention implements Convention {
           input, INSTANCE, true);
     }
     RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
-    if (collation != null && !collation.getFieldCollations().isEmpty()) {
+    if (collation != null) {
+      assert !collation.getFieldCollations().isEmpty();
       rel = EnumerableSort.create(rel, collation, null, null);
     }
     return rel;

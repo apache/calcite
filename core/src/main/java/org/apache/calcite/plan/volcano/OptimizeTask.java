@@ -29,9 +29,9 @@ import org.apiguardian.api.API;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * <code>OptimizeTask</code> represents the optimization task
@@ -75,6 +75,9 @@ abstract class OptimizeTask {
 
   /**
    * Task for optimizing RelNode.
+   *
+   * <p>Optimize input RelSubsets and derive new RelNodes
+   * from child traitSets.</p>
    */
   static class OptRelNodeTask extends OptimizeTask {
     final RelNode node;
@@ -127,7 +130,6 @@ abstract class OptimizeTask {
         }
 
         RelSubset input = (RelSubset) node.getInput(childId);
-        RelTraitSet required = input.getTraitSet();
         List<RelTraitSet> traits = new ArrayList<>();
         inputTraits.add(traits);
 
@@ -179,7 +181,9 @@ abstract class OptimizeTask {
       if (mode == DeriveMode.OMAKASE) {
         List<RelNode> relList = rel.derive(inputTraits);
         for (RelNode relNode : relList) {
-          planner.register(relNode, node);
+          if (!planner.isRegistered(relNode)) {
+            planner.register(relNode, node);
+          }
         }
       }
 
@@ -211,10 +215,13 @@ abstract class OptimizeTask {
 
   /**
    * Task for optimizing RelSubset.
+   *
+   * <p>Pass down the trait requirements of current RelSubset
+   * and add enforcers to the new delivered subsets.</p>
    */
   static class OptSubsetTask extends OptimizeTask {
     final RelSubset subset;
-    final Map<RelTraitSet, RelSubset> derivedSubsets = new HashMap<>();
+    final Set<RelSubset> deliveredSubsets = new HashSet<>();
 
     OptSubsetTask(RelSubset subset) {
       super(subset);
@@ -238,7 +245,7 @@ abstract class OptimizeTask {
             subset.getTraitSet());
         if (node != null && !planner.isRegistered(node)) {
           RelSubset newSubset = planner.register(node, subset);
-          derivedSubsets.put(newSubset.getTraitSet(), newSubset);
+          deliveredSubsets.add(newSubset);
         } else {
           // TODO: should we consider stop trying propagation on node
           // with the same traitset as phyNode?
@@ -261,8 +268,8 @@ abstract class OptimizeTask {
 
       subset.set.addConverters(subset, true, false);
 
-      for (RelSubset derived : derivedSubsets.values()) {
-        subset.set.addConverters(derived, false, false);
+      for (RelSubset delivered : deliveredSubsets) {
+        subset.set.addConverters(delivered, false, false);
       }
 
       subset.taskState = State.COMPLETED;

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.linq4j.tree.BlockStatement;
+import org.apache.calcite.plan.DeriveMode;
 import org.apache.calcite.plan.PhysicalNode;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.util.Pair;
@@ -41,6 +42,10 @@ public interface EnumerableRel
   @Override default Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {
     return null;
+  }
+
+  @Override default DeriveMode getDeriveMode() {
+    return DeriveMode.LEFT_FIRST;
   }
 
   /**
