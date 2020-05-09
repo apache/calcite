@@ -124,4 +124,63 @@ class RelFieldTrimmerTest {
         + "    LogicalTableScan(table=[[scott, EMP]])\n";
     assertThat(trimmed, hasTree(expected));
   }
+
+  @Test public void testExchangeFieldTrimmer() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.hash(Lists.newArrayList(1)))
+            .project(builder.field("EMPNO"), builder.field("ENAME"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalExchange(distribution=[hash[1]])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test public void testExchangeFieldTrimmerWhenProjectCannotBeMerged() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.hash(Lists.newArrayList(1)))
+            .project(builder.field("EMPNO"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0])\n"
+        + "  LogicalExchange(distribution=[hash[1]])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test public void testExchangeFieldTrimmerWithSingletonDistribution() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .project(builder.field("EMPNO"), builder.field("ENAME"))
+            .build();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(root);
+
+    final String expected = ""
+        + "LogicalExchange(distribution=[single])\n"
+        + "  LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
 }
