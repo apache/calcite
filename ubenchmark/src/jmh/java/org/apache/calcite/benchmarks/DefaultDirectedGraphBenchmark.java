@@ -17,8 +17,8 @@
 package org.apache.calcite.benchmarks;
 
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.collect.Lists;
 
@@ -72,7 +72,7 @@ public class DefaultDirectedGraphBenchmark {
 
     static final int NUM_LAYERS = 8;
 
-    DirectedGraph<Node, DefaultEdge<Node>> graph;
+    DirectedGraph<Node, TypedEdge<Node>> graph;
 
     List<Node> nodes;
 
@@ -114,7 +114,7 @@ public class DefaultDirectedGraphBenchmark {
   }
 
   /**
-   * State object for {@link DefaultDirectedGraphBenchmark#removeVerticesBenchmark(GraphRemoveState)}..
+   * State object for {@link DefaultDirectedGraphBenchmark#removeVertices(GraphRemoveState)}..
    */
   @State(Scope.Benchmark)
   public static class GraphRemoveState {
@@ -142,7 +142,7 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public int getInwardEdgesBenchmark(GraphState state) {
+  public int getInwardEdges(GraphState state) {
     int sum = 0;
     int curId = 1;
     for (int i = 0; i < GraphState.NUM_LAYERS; i++) {
@@ -157,7 +157,7 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public int getOutwardEdgesBenchmark(GraphState state) {
+  public int getOutwardEdges(GraphState state) {
     int sum = 0;
     int curId = 1;
     for (int i = 0; i < GraphState.NUM_LAYERS; i++) {
@@ -172,42 +172,42 @@ public class DefaultDirectedGraphBenchmark {
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public boolean addVertexBenchmark(GraphState state) {
+  public boolean addVertex(GraphState state) {
     return state.graph.addVertex(new Node(100));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge<Node> addEdgeBenchmark(GraphState state) {
+  public TypedEdge<Node> addEdge(GraphState state) {
     return state.graph.addEdge(state.nodes.get(0), state.nodes.get(5));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public DefaultEdge<Node> getEdgeBenchmark(GraphState state) {
+  public TypedEdge<Node> getEdge(GraphState state) {
     return state.graph.getEdge(state.nodes.get(0), state.nodes.get(1));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public boolean removeEdgeBenchmark(GraphState state) {
+  public boolean removeEdge(GraphState state) {
     return state.graph.removeEdge(state.nodes.get(0), state.nodes.get(1));
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeVerticesBenchmark(GraphRemoveState state) {
+  public void removeVertices(GraphRemoveState state) {
     state.innerState.graph.removeAllVertices(state.nodesToRemove);
   }
 
   @Benchmark
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
-  public void removeAllVerticesBenchmark(GraphState state) {
+  public void removeAllVertices(GraphState state) {
     state.graph.removeAllVertices(state.nodes);
   }
 
