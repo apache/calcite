@@ -80,18 +80,10 @@ class Step extends TypedEdge<LatticeTable> {
     return "Step(" + source + ", " + target + "," + keyString + ")";
   }
 
-  LatticeTable source() {
-    return source;
-  }
-
-  LatticeTable target() {
-    return target;
-  }
-
   boolean isBackwards(SqlStatisticProvider statisticProvider) {
-    final RelOptTable sourceTable = source().t;
+    final RelOptTable sourceTable = source.t;
     final List<Integer> sourceColumns = IntPair.left(keys);
-    final RelOptTable targetTable = target().t;
+    final RelOptTable targetTable = target.t;
     final List<Integer> targetColumns = IntPair.right(keys);
     final boolean noDerivedSourceColumns =
         sourceColumns.stream().allMatch(i ->

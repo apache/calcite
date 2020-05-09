@@ -511,14 +511,6 @@ public class Lattice {
     Edge(Vertex source, Vertex target) {
       super(source, target);
     }
-
-    Vertex getTarget() {
-      return target;
-    }
-
-    Vertex getSource() {
-      return source;
-    }
   }
 
   /** Vertex in the temporary graph. */
