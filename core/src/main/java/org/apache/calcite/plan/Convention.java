@@ -46,7 +46,8 @@ public interface Convention extends RelTrait {
    * @return Enforcer that satisfies the required traits
    */
   default RelNode enforce(RelNode input, RelTraitSet required) {
-    return null;
+    throw new RuntimeException(getClass().getName()
+        + "#enforce() is not implemented.");
   }
 
   /**
@@ -110,6 +111,11 @@ public interface Convention extends RelTrait {
 
     public RelTraitDef getTraitDef() {
       return ConventionTraitDef.INSTANCE;
+    }
+
+    @Override public RelNode enforce(final RelNode input,
+        final RelTraitSet required) {
+      return null;
     }
 
     public boolean canConvertConvention(Convention toConvention) {

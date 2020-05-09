@@ -56,7 +56,8 @@ public interface PhysicalNode extends RelNode {
    */
   default Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
-    throw new RuntimeException("Not implemented!");
+    throw new RuntimeException(getClass().getName()
+        + "#passThroughTraits() is not implemented.");
   }
 
   /**
@@ -88,7 +89,8 @@ public interface PhysicalNode extends RelNode {
    */
   default Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {
-    throw new RuntimeException("Not implemented!");
+    throw new RuntimeException(getClass().getName()
+        + "#deriveTraits() is not implemented.");
   }
 
   /**
@@ -98,7 +100,8 @@ public interface PhysicalNode extends RelNode {
    * ONLY when the derive mode is OMAKASE.
    */
   default List<RelNode> derive(List<List<RelTraitSet>> inputTraits) {
-    throw new RuntimeException("Not implemented!");
+    throw new RuntimeException(getClass().getName()
+        + "#derive() is not implemented.");
   }
 
   /**
