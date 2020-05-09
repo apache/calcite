@@ -34,7 +34,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class DefaultDirectedGraph<V, E extends DefaultEdge<V>>
+public class DefaultDirectedGraph<V, E extends TypedEdge<V>>
     implements DirectedGraph<V, E> {
   final Set<E> edges = new LinkedHashSet<>();
   final Map<V, VertexInfo<V, E>> vertexMap = new LinkedHashMap<>();
@@ -45,11 +45,11 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge<V>>
     this.edgeFactory = edgeFactory;
   }
 
-  public static <V> DefaultDirectedGraph<V, DefaultEdge<V>> create() {
-    return create(DefaultEdge.factory());
+  public static <V> DefaultDirectedGraph<V, TypedEdge<V>> create() {
+    return create(TypedEdge.factory());
   }
 
-  public static <V, E extends DefaultEdge<V>> DefaultDirectedGraph<V, E> create(
+  public static <V, E extends TypedEdge<V>> DefaultDirectedGraph<V, E> create(
       EdgeFactory<V, E> edgeFactory) {
     return new DefaultDirectedGraph<>(edgeFactory);
   }

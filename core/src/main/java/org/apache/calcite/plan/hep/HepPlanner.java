@@ -45,11 +45,11 @@ import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.BreadthFirstIterator;
 import org.apache.calcite.util.graph.CycleDetector;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DepthFirstIterator;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.Graphs;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.collect.ImmutableList;
 
@@ -101,7 +101,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
    * single-rooted DAG, possibly with additional roots corresponding to
    * discarded plan fragments which remain to be garbage-collected.
    */
-  private final DirectedGraph<HepRelVertex, DefaultEdge<HepRelVertex>> graph =
+  private final DirectedGraph<HepRelVertex, TypedEdge<HepRelVertex>> graph =
       DefaultDirectedGraph.create();
 
   private final Function2<RelNode, RelNode, Void> onCopyHook;
@@ -879,10 +879,10 @@ public class HepPlanner extends AbstractRelOptPlanner {
     if (!RelMdUtil.clearCache(vertex)) {
       return;
     }
-    Queue<DefaultEdge<HepRelVertex>> queue =
+    Queue<TypedEdge<HepRelVertex>> queue =
         new LinkedList<>(graph.getInwardEdges(vertex));
     while (!queue.isEmpty()) {
-      DefaultEdge<HepRelVertex> edge = queue.remove();
+      TypedEdge<HepRelVertex> edge = queue.remove();
       HepRelVertex source = (HepRelVertex) edge.source;
       RelMdUtil.clearCache(source.getCurrentRel());
       if (RelMdUtil.clearCache(source)) {
@@ -989,7 +989,7 @@ public class HepPlanner extends AbstractRelOptPlanner {
 
   private void assertNoCycles() {
     // Verify that the graph is acyclic.
-    final CycleDetector<HepRelVertex, DefaultEdge<HepRelVertex>> cycleDetector =
+    final CycleDetector<HepRelVertex, TypedEdge<HepRelVertex>> cycleDetector =
         new CycleDetector<>(graph);
     Set<HepRelVertex> cyclicVertices = cycleDetector.findCycles();
     if (cyclicVertices.isEmpty()) {

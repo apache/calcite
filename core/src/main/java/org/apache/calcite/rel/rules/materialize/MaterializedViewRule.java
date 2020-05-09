@@ -52,8 +52,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.Mapping;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -1348,7 +1348,7 @@ public abstract class MaterializedViewRule extends RelOptRule {
   }
 
   /** Edge for graph */
-  protected static class Edge extends DefaultEdge<RelTableRef> {
+  protected static class Edge extends TypedEdge<RelTableRef> {
     final Multimap<RexTableInputRef, RexTableInputRef> equiColumns =
         ArrayListMultimap.create();
 

@@ -20,13 +20,12 @@ import java.util.Objects;
 
 /**
  * Default implementation of Edge.
- * @param <V> vertex type.
  */
-public class DefaultEdge<V> {
-  public final V source;
-  public final V target;
+public class DefaultEdge {
+  public final Object source;
+  public final Object target;
 
-  public DefaultEdge(V source, V target) {
+  public DefaultEdge(Object source, Object target) {
     this.source = Objects.requireNonNull(source);
     this.target = Objects.requireNonNull(target);
   }
@@ -38,11 +37,11 @@ public class DefaultEdge<V> {
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof DefaultEdge
-        && ((DefaultEdge<V>) obj).source.equals(source)
-        && ((DefaultEdge<V>) obj).target.equals(target);
+        && ((DefaultEdge) obj).source.equals(source)
+        && ((DefaultEdge) obj).target.equals(target);
   }
 
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge<V>> factory() {
+  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
     return DefaultEdge::new;
   }
 }

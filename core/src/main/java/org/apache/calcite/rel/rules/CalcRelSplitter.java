@@ -39,9 +39,9 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
@@ -428,7 +428,7 @@ public abstract class CalcRelSplitter {
   private List<Integer> computeTopologicalOrdering(
       RexNode[] exprs,
       List<Set<Integer>> cohorts) {
-    final DirectedGraph<Integer, DefaultEdge<Integer>> graph =
+    final DirectedGraph<Integer, TypedEdge<Integer>> graph =
         DefaultDirectedGraph.create();
     for (int i = 0; i < exprs.length; i++) {
       graph.addVertex(i);
@@ -452,7 +452,7 @@ public abstract class CalcRelSplitter {
             }
           });
     }
-    TopologicalOrderIterator<Integer, DefaultEdge<Integer>> iter =
+    TopologicalOrderIterator<Integer, TypedEdge<Integer>> iter =
         new TopologicalOrderIterator<>(graph);
     final List<Integer> permutation = new ArrayList<>();
     while (iter.hasNext()) {

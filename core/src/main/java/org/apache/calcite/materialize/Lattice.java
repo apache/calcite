@@ -52,9 +52,9 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.base.Preconditions;
@@ -502,7 +502,7 @@ public class Lattice {
   }
 
   /** Edge in the temporary graph. */
-  private static class Edge extends DefaultEdge<Vertex> {
+  private static class Edge extends TypedEdge<Vertex> {
     public static final DirectedGraph.EdgeFactory<Vertex, Edge> FACTORY =
         Edge::new;
 

@@ -44,8 +44,8 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
 import org.apache.calcite.util.graph.CycleDetector;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
@@ -644,7 +644,7 @@ public class LatticeSuggester {
   }
 
   /** Use of a step within a query. A step can be used more than once. */
-  private static class StepRef extends DefaultEdge<TableRef> {
+  private static class StepRef extends TypedEdge<TableRef> {
     final Step step;
     private final int ordinalInQuery;
 

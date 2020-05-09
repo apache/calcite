@@ -18,7 +18,7 @@ package org.apache.calcite.materialize;
 
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.util.graph.AttributedDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
+import org.apache.calcite.util.graph.TypedEdge;
 import org.apache.calcite.util.mapping.IntPair;
 
 import com.google.common.collect.ImmutableList;
@@ -36,7 +36,7 @@ import java.util.Objects;
  * <p>When created via
  * {@link LatticeSpace#addEdge(LatticeTable, LatticeTable, List)}
  * it is unique within the {@link LatticeSpace}. */
-class Step extends DefaultEdge<LatticeTable> {
+class Step extends TypedEdge<LatticeTable> {
   final List<IntPair> keys;
 
   /** String representation of {@link #keys}. Computing the string requires a

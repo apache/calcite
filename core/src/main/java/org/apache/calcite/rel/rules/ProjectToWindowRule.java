@@ -41,9 +41,9 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.graph.DefaultDirectedGraph;
-import org.apache.calcite.util.graph.DefaultEdge;
 import org.apache.calcite.util.graph.DirectedGraph;
 import org.apache.calcite.util.graph.TopologicalOrderIterator;
+import org.apache.calcite.util.graph.TypedEdge;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -267,7 +267,7 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
       // (1). They have the same RexWindow
       // (2). They are not dependent on each other
       final List<RexNode> exprs = this.program.getExprList();
-      final DirectedGraph<Integer, DefaultEdge<Integer>> graph =
+      final DirectedGraph<Integer, TypedEdge<Integer>> graph =
           createGraphFromExpression(exprs);
       final List<Integer> rank = getRank(graph);
 
@@ -315,7 +315,7 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
       return cohorts;
     }
 
-    private boolean isDependent(final DirectedGraph<Integer, DefaultEdge<Integer>> graph,
+    private boolean isDependent(final DirectedGraph<Integer, TypedEdge<Integer>> graph,
         final List<Integer> rank,
         final int ordinal1,
         final int ordinal2) {
@@ -339,7 +339,7 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
         }
 
         visited.add(source);
-        for (DefaultEdge<Integer> e : graph.getOutwardEdges(source)) {
+        for (TypedEdge<Integer> e : graph.getOutwardEdges(source)) {
           int target = e.target;
           if (rank.get(target) <= rank.get(ordinal1)) {
             dfs.push(target);
@@ -350,7 +350,7 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
       return false;
     }
 
-    private List<Integer> getRank(DirectedGraph<Integer, DefaultEdge<Integer>> graph) {
+    private List<Integer> getRank(DirectedGraph<Integer, TypedEdge<Integer>> graph) {
       final int[] rankArr = new int[graph.vertexSet().size()];
       int rank = 0;
       for (int i : TopologicalOrderIterator.of(graph)) {
@@ -359,9 +359,9 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
       return ImmutableIntList.of(rankArr);
     }
 
-    private DirectedGraph<Integer, DefaultEdge<Integer>> createGraphFromExpression(
+    private DirectedGraph<Integer, TypedEdge<Integer>> createGraphFromExpression(
         final List<RexNode> exprs) {
-      final DirectedGraph<Integer, DefaultEdge<Integer>> graph =
+      final DirectedGraph<Integer, TypedEdge<Integer>> graph =
           DefaultDirectedGraph.create();
       for (int i = 0; i < exprs.size(); i++) {
         graph.addVertex(i);

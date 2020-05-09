@@ -28,7 +28,7 @@ import java.util.Set;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class BreadthFirstIterator<V, E extends DefaultEdge<V>>
+public class BreadthFirstIterator<V, E extends TypedEdge<V>>
     implements Iterator<V> {
   private final DirectedGraph<V, E> graph;
   private final Deque<V> deque = new ArrayDeque<>();
@@ -39,13 +39,13 @@ public class BreadthFirstIterator<V, E extends DefaultEdge<V>>
     this.deque.add(root);
   }
 
-  public static <V, E extends DefaultEdge<V>> Iterable<V> of(
+  public static <V, E extends TypedEdge<V>> Iterable<V> of(
       final DirectedGraph<V, E> graph, final V root) {
     return () -> new BreadthFirstIterator<>(graph, root);
   }
 
   /** Populates a set with the nodes reachable from a given node. */
-  public static <V, E extends DefaultEdge<V>> void reachable(Set<V> set,
+  public static <V, E extends TypedEdge<V>> void reachable(Set<V> set,
       final DirectedGraph<V, E> graph, final V root) {
     final Deque<V> deque = new ArrayDeque<>();
     deque.add(root);

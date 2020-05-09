@@ -27,14 +27,14 @@ import java.util.List;
  * @param <V> Vertex type
  * @param <E> Edge type
  */
-public class AttributedDirectedGraph<V, E extends DefaultEdge<V>>
+public class AttributedDirectedGraph<V, E extends TypedEdge<V>>
     extends DefaultDirectedGraph<V, E> {
   /** Creates an attributed graph. */
   public AttributedDirectedGraph(AttributedEdgeFactory<V, E> edgeFactory) {
     super(edgeFactory);
   }
 
-  public static <V, E extends DefaultEdge<V>> AttributedDirectedGraph<V, E> create(
+  public static <V, E extends TypedEdge<V>> AttributedDirectedGraph<V, E> create(
       AttributedEdgeFactory<V, E> edgeFactory) {
     return new AttributedDirectedGraph<>(edgeFactory);
   }
