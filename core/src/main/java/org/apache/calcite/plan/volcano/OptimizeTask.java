@@ -19,9 +19,9 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.DeriveMode;
-import org.apache.calcite.plan.PhysicalNode;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.trace.CalciteTrace;
 

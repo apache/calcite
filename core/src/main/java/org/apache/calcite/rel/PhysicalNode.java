@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.plan;
+package org.apache.calcite.rel;
 
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.DeriveMode;
+import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.util.Pair;
 
 import java.util.ArrayList;
