@@ -19,8 +19,6 @@ package org.apache.calcite.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
-import org.apiguardian.api.API;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -129,7 +127,6 @@ public final class CalciteSystemProperty<T> {
    * <p>Note: Enabling top-down optimization will automatically disable
    * the use of AbstractConverter and related rules.</p>
    */
-  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
 

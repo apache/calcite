@@ -57,8 +57,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
-import org.apiguardian.api.API;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayDeque;
@@ -248,7 +246,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * <p>Note: Enabling top-down optimization will automatically disable
    * the use of AbstractConverter and related rules.</p>
    */
-  @API(since = "1.23", status = API.Status.EXPERIMENTAL)
   public void setTopDownOpt(boolean value) {
     topDownOpt = value;
   }
