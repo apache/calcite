@@ -44,9 +44,9 @@ abstract class OptimizeTask {
 
   static OptimizeTask create(RelNode node) {
     if (node instanceof RelSubset) {
-      return new OptSubsetTask((RelSubset) node);
+      return new RelSubsetOptTask((RelSubset) node);
     }
-    return new OptRelNodeTask(node);
+    return new RelNodeOptTask(node);
   }
 
   final VolcanoPlanner planner;
@@ -79,11 +79,11 @@ abstract class OptimizeTask {
    * <p>Optimize input RelSubsets and derive new RelNodes
    * from child traitSets.</p>
    */
-  static class OptRelNodeTask extends OptimizeTask {
+  static class RelNodeOptTask extends OptimizeTask {
     final RelNode node;
     int nextId = 0; // next child index
 
-    OptRelNodeTask(RelNode node) {
+    RelNodeOptTask(RelNode node) {
       super(node);
       this.node = node;
     }
@@ -106,7 +106,7 @@ abstract class OptimizeTask {
 
     @Override OptimizeTask nextSubTask() {
       RelNode child = node.getInput(nextId++);
-      return new OptSubsetTask((RelSubset) child);
+      return new RelSubsetOptTask((RelSubset) child);
     }
 
     @Override void execute() {
@@ -209,7 +209,7 @@ abstract class OptimizeTask {
     }
 
     @Override public String toString() {
-      return "#" + id + ":OptRelNodeTask{ " + node + " }";
+      return "Task#" + id + ":{ " + node + " }";
     }
   }
 
@@ -219,11 +219,11 @@ abstract class OptimizeTask {
    * <p>Pass down the trait requirements of current RelSubset
    * and add enforcers to the new delivered subsets.</p>
    */
-  static class OptSubsetTask extends OptimizeTask {
+  static class RelSubsetOptTask extends OptimizeTask {
     final RelSubset subset;
     final Set<RelSubset> deliveredSubsets = new HashSet<>();
 
-    OptSubsetTask(RelSubset subset) {
+    RelSubsetOptTask(RelSubset subset) {
       super(subset);
       this.subset = subset;
       subset.taskState = State.SCHEDULED;
@@ -260,7 +260,7 @@ abstract class OptimizeTask {
 
     @Override OptimizeTask nextSubTask() {
       RelNode rel = subset.set.nextPhysicalNode();
-      return new OptRelNodeTask(rel);
+      return new RelNodeOptTask(rel);
     }
 
     @Override void execute() {
@@ -277,7 +277,7 @@ abstract class OptimizeTask {
     }
 
     @Override public String toString() {
-      return "#" + id + ":OptSubsetTask{ " + subset + " }";
+      return "Task#" + id + ":{ " + subset + " }";
     }
   }
 }
