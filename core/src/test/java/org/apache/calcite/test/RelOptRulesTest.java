@@ -558,6 +558,23 @@ class RelOptRulesTest extends RelOptTestBase {
   }
 
   /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3979">[CALCITE-3979]
+   * ReduceExpressionsRule might have removed CAST expression(s) incorrectly</a>. */
+  @Test public void testCastRemove() throws Exception {
+    final String sql = "select\n"
+        + "case when cast(ename as double) < 5 then 0.0\n"
+        + "     else coalesce(cast(ename as double), 1.0)\n"
+        + "     end as t\n"
+        + " from (\n"
+        + "       select\n"
+        + "          case when ename > 'abc' then ename\n"
+        + "               else null\n"
+        + "               end as ename from emp\n"
+        + " )";
+    sql(sql).withRule(ReduceExpressionsRule.PROJECT_INSTANCE).checkUnchanged();
+  }
+
+  /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3887">[CALCITE-3887]
    * Filter and Join conditions may not need to retain nullability during simplifications</a>. */
   @Test void testPushSemiJoinConditions() {

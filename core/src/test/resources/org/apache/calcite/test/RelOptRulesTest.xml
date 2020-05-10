@@ -684,6 +684,32 @@ LogicalProject(EMPNO=[$0])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testCastRemove">
+        <Resource name="sql">
+            <![CDATA[select
+case when cast(ename as double) < 5 then 0.0
+     else coalesce(cast(ename as double), 1.0)
+     end as t
+ from (
+       select
+          case when ename > 'abc' then ename
+               else null
+               end as ename from emp
+ )]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5), 0.0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+LogicalProject(T=[CASE(<(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE, 5), 0.0:DOUBLE, CASE(IS NOT NULL(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE), CAST(CAST(CASE(>($1, 'abc'), $1, null:VARCHAR(20))):DOUBLE):DOUBLE NOT NULL, 1.0:DOUBLE))])
+  LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testCorrelationScalarAggAndFilter">
         <Resource name="sql">
             <![CDATA[SELECT e1.empno
@@ -12485,7 +12511,9 @@ LogicalProject(**=[$1])
     </TestCase>
     <TestCase name="testSwapOuterJoinFieldAccess">
         <Resource name="sql">
-            <![CDATA[select t1.name, e.ename from DEPT_NESTED as t1 left outer join sales.emp e on t1.skill.type = e.job]]>
+            <![CDATA[select t1.name, e.ename
+from DEPT_NESTED as t1 left outer join sales.emp e
+ on t1.skill.type = e.job]]>
         </Resource>
         <Resource name="planBefore">
             <![CDATA[
