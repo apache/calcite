@@ -755,6 +755,7 @@ class TpchTest {
           + "order by\n"
           + "  cntrycode");
 
+  @Disabled("it's wasting time")
   @Test void testRegion() {
     with()
         .query("select * from tpch.region")
@@ -911,6 +912,7 @@ class TpchTest {
 
   // a bit slow
   @Timeout(value = 10, unit = TimeUnit.MINUTES)
+  @Disabled("Too slow, more than 5 min")
   @Test void testQuery19() {
     checkQuery(19);
   }
