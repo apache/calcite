@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.plan;
 
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.util.mapping.Mappings;
 
@@ -262,6 +266,116 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       newTraits[i] = traits[i].apply(mapping);
     }
     return cache.getOrAdd(new RelTraitSet(cache, newTraits));
+  }
+
+  /**
+   * Returns whether all the traits are default trait value.
+   */
+  public boolean isDefault() {
+    for (final RelTrait trait : traits) {
+      if (trait != trait.getTraitDef().getDefault()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether all the traits except {@link Convention}
+   * are default trait value.
+   */
+  public boolean isDefaultSansConvention() {
+    for (final RelTrait trait : traits) {
+      if (trait.getTraitDef() == ConventionTraitDef.INSTANCE) {
+        continue;
+      }
+      if (trait != trait.getTraitDef().getDefault()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns whether all the traits except {@link Convention}
+   * equals with traits in {@code other} traitSet.
+   */
+  public boolean equalsSansConvention(RelTraitSet other) {
+    if (this == other) {
+      return true;
+    }
+    for (int i = 0; i < traits.length; i++) {
+      if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
+        continue;
+      }
+      if (!traits[i].equals(other.traits[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Returns a new traitSet with same traitDefs with
+   * current traitSet, but each trait is the default
+   * trait value.
+   */
+  public RelTraitSet getDefault() {
+    RelTrait[] newTraits = new RelTrait[traits.length];
+    for (int i = 0; i < traits.length; i++) {
+      newTraits[i] = traits[i].getTraitDef().getDefault();
+    }
+    return cache.getOrAdd(new RelTraitSet(cache, newTraits));
+  }
+
+  /**
+   * Returns a new traitSet with same traitDefs with
+   * current traitSet, but each trait except {@link Convention}
+   * is the default trait value. {@link Convention} trait
+   * remains the same with current traitSet.
+   */
+  public RelTraitSet getDefaultSansConvention() {
+    RelTrait[] newTraits = new RelTrait[traits.length];
+    for (int i = 0; i < traits.length; i++) {
+      if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
+        newTraits[i] = traits[i];
+      } else {
+        newTraits[i] = traits[i].getTraitDef().getDefault();
+      }
+    }
+    return cache.getOrAdd(new RelTraitSet(cache, newTraits));
+  }
+
+  /**
+   * Returns {@link Convention} trait defined by
+   * {@link ConventionTraitDef#INSTANCE}, or null if the
+   * {@link ConventionTraitDef#INSTANCE} is not registered
+   * in this traitSet.
+   */
+  public Convention getConvention() {
+    return getTrait(ConventionTraitDef.INSTANCE);
+  }
+
+  /**
+   * Returns {@link RelDistribution} trait defined by
+   * {@link RelDistributionTraitDef#INSTANCE}, or null if the
+   * {@link RelDistributionTraitDef#INSTANCE} is not registered
+   * in this traitSet.
+   */
+  public <T extends RelDistribution> T getDistribution() {
+    //noinspection unchecked
+    return (T) getTrait(RelDistributionTraitDef.INSTANCE);
+  }
+
+  /**
+   * Returns {@link RelCollation} trait defined by
+   * {@link RelCollationTraitDef#INSTANCE}, or null if the
+   * {@link RelCollationTraitDef#INSTANCE} is not registered
+   * in this traitSet.
+   */
+  public <T extends RelCollation> T getCollation() {
+    //noinspection unchecked
+    return (T) getTrait(RelCollationTraitDef.INSTANCE);
   }
 
   /**
