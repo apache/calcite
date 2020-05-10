@@ -37,7 +37,6 @@ import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalWindow;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
@@ -63,7 +62,6 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlRowOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -650,31 +648,10 @@ public abstract class ReduceExpressionsRule extends RelOptRule
     // Find reducible expressions.
     final List<RexNode> constExps = new ArrayList<>();
     List<Boolean> addCasts = new ArrayList<>();
-    final List<RexNode> removableCasts = new ArrayList<>();
     findReducibleExps(rel.getCluster().getTypeFactory(), expList,
-        predicates.constantMap, constExps, addCasts, removableCasts);
-    if (constExps.isEmpty() && removableCasts.isEmpty()) {
-      return changed;
-    }
-
-    // Remove redundant casts before reducing constant expressions.
-    // If the argument to the redundant cast is a reducible constant,
-    // reducing that argument to a constant first will result in not being
-    // able to locate the original cast expression.
-    if (!removableCasts.isEmpty()) {
-      final List<RexNode> reducedExprs = new ArrayList<>();
-      for (RexNode exp : removableCasts) {
-        RexCall call = (RexCall) exp;
-        reducedExprs.add(call.getOperands().get(0));
-      }
-      RexReplacer replacer =
-          new RexReplacer(simplify, unknownAs, removableCasts, reducedExprs,
-              Collections.nCopies(removableCasts.size(), false));
-      replacer.mutate(expList);
-    }
-
+        predicates.constantMap, constExps, addCasts);
     if (constExps.isEmpty()) {
-      return true;
+      return changed;
     }
 
     final List<RexNode> constExps2 = Lists.newArrayList(constExps);
@@ -739,15 +716,13 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    * @param addCasts       indicator for each expression that can be constant
    *                       reduced, whether a cast of the resulting reduced
    *                       expression is potentially necessary
-   * @param removableCasts returns the list of cast expressions where the cast
    */
   protected static void findReducibleExps(RelDataTypeFactory typeFactory,
       List<RexNode> exps, ImmutableMap<RexNode, RexNode> constants,
-      List<RexNode> constExps, List<Boolean> addCasts,
-      List<RexNode> removableCasts) {
+      List<RexNode> constExps, List<Boolean> addCasts) {
     ReducibleExprLocator gardener =
         new ReducibleExprLocator(typeFactory, constants, constExps,
-            addCasts, removableCasts);
+            addCasts);
     for (RexNode exp : exps) {
       gardener.analyze(exp);
     }
@@ -920,20 +895,17 @@ public abstract class ReduceExpressionsRule extends RelOptRule
 
     private final List<Boolean> addCasts;
 
-    private final List<RexNode> removableCasts;
-
     private final Deque<SqlOperator> parentCallTypeStack = new ArrayDeque<>();
 
     ReducibleExprLocator(RelDataTypeFactory typeFactory,
         ImmutableMap<RexNode, RexNode> constants, List<RexNode> constExprs,
-        List<Boolean> addCasts, List<RexNode> removableCasts) {
+        List<Boolean> addCasts) {
       // go deep
       super(true);
       this.typeFactory = typeFactory;
       this.constants = constants;
       this.constExprs = constExprs;
       this.addCasts = addCasts;
-      this.removableCasts = removableCasts;
     }
 
     public void analyze(RexNode exp) {
@@ -1071,12 +1043,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule
             addResult(call.getOperands().get(iOperand));
           }
         }
-
-        // if this cast expression can't be reduced to a literal,
-        // then see if we can remove the cast
-        if (call.getOperator() == SqlStdOperatorTable.CAST) {
-          reduceCasts(call);
-        }
       }
 
       // pop operands off of the stack
@@ -1087,45 +1053,6 @@ public abstract class ReduceExpressionsRule extends RelOptRule
 
       // push constancy result for this call onto stack
       stack.add(callConstancy);
-    }
-
-    private void reduceCasts(RexCall outerCast) {
-      List<RexNode> operands = outerCast.getOperands();
-      if (operands.size() != 1) {
-        return;
-      }
-      RelDataType outerCastType = outerCast.getType();
-      RelDataType operandType = operands.get(0).getType();
-      if (operandType.equals(outerCastType)) {
-        removableCasts.add(outerCast);
-        return;
-      }
-
-      // See if the reduction
-      // CAST((CAST x AS type) AS type NOT NULL)
-      // -> CAST(x AS type NOT NULL)
-      // applies.  TODO jvs 15-Dec-2008:  consider
-      // similar cases for precision changes.
-      if (!(operands.get(0) instanceof RexCall)) {
-        return;
-      }
-      RexCall innerCast = (RexCall) operands.get(0);
-      if (innerCast.getOperator() != SqlStdOperatorTable.CAST) {
-        return;
-      }
-      if (innerCast.getOperands().size() != 1) {
-        return;
-      }
-      RelDataType outerTypeNullable =
-          typeFactory.createTypeWithNullability(outerCastType, true);
-      RelDataType innerTypeNullable =
-          typeFactory.createTypeWithNullability(operandType, true);
-      if (outerTypeNullable != innerTypeNullable) {
-        return;
-      }
-      if (operandType.isNullable()) {
-        removableCasts.add(innerCast);
-      }
     }
 
     @Override public Void visitDynamicParam(RexDynamicParam dynamicParam) {
