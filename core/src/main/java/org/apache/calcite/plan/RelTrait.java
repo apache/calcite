@@ -96,8 +96,8 @@ public interface RelTrait {
    * <p>Some traits may be changed if the columns order is changed by a mapping of the
    * {@link Project} operator. </p>
    *
-   * <p>For example, if relation {@code ORDER BY a, b} is sorted by columns [0, 1], then the
-   * project {@code SELECT b, a} over this relation will be sorted by columns [1, 0].
+   * <p>For example, if relation {@code SELECT a, b ORDER BY a, b} is sorted by columns [0, 1],
+   * then the project {@code SELECT b, a} over this relation will be sorted by columns [1, 0].
    * In the same time project {@code SELECT b} will not be sorted at all because it doesn't
    * contain the collation prefix and this method will return an empty collation. </p>
    *
