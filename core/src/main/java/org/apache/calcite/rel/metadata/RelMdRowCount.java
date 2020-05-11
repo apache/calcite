@@ -108,7 +108,15 @@ public class RelMdRowCount
         rowCount = partialRowCount;
       }
     }
-    return rowCount;
+    if (!rel.all) {
+      return rowCount;
+    } else {
+      if (rowCount != null) {
+        return rowCount * 2;
+      } else {
+        return rowCount;
+      }
+    }
   }
 
   public Double getRowCount(Minus rel, RelMetadataQuery mq) {
