@@ -1422,7 +1422,7 @@ public abstract class Mappings {
      * @return target
      */
     public int getTarget(int source) {
-      if (source < 0 || source >= size) {
+      if (source < 0 || (size != -1 && source >= size)) {
         throw new IndexOutOfBoundsException("source #" + source
             + " has no target in identity mapping of size " + size);
       }
@@ -1436,7 +1436,7 @@ public abstract class Mappings {
      * @return target
      */
     public int getTargetOpt(int source) {
-      if (source < 0 || source >= size) {
+      if (source < 0 || (size != -1 && source >= size)) {
         throw new IndexOutOfBoundsException("source #" + source
             + " has no target in identity mapping of size " + size);
       }
@@ -1450,7 +1450,7 @@ public abstract class Mappings {
      * @return source
      */
     public int getSource(int target) {
-      if (target < 0 || target >= size) {
+      if (target < 0 || (size != -1 && target >= size)) {
         throw new IndexOutOfBoundsException("target #" + target
             + " has no source in identity mapping of size " + size);
       }
@@ -1464,7 +1464,7 @@ public abstract class Mappings {
      * @return source
      */
     public int getSourceOpt(int target) {
-      if (target < 0 || target >= size) {
+      if (target < 0 || (size != -1 && target >= size)) {
         throw new IndexOutOfBoundsException("target #" + target
             + " has no source in identity mapping of size " + size);
       }

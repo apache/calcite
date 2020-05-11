@@ -71,6 +71,14 @@ class MappingTest {
     assertThrows(IndexOutOfBoundsException.class, () -> identity.getSource(-1));
     assertThrows(IndexOutOfBoundsException.class, () -> identity.getTargetOpt(-1));
     assertThrows(IndexOutOfBoundsException.class, () -> identity.getTarget(-1));
+
+    Mapping infiniteIdentity = Mappings.createIdentity(-1);
+    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getTarget(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getSource(-2));
+    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getTargetOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> infiniteIdentity.getSourceOpt(-2));
+    assertThat(infiniteIdentity.getTarget(100), equalTo(100));
+    assertThat(infiniteIdentity.getSource(100), equalTo(100));
   }
 
   /**
