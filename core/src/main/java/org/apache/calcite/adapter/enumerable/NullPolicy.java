@@ -25,6 +25,10 @@ package org.apache.calcite.adapter.enumerable;
  * ANY whenever possible.</p>
  */
 public enum NullPolicy {
+
+  /** Returns null if and only if all of the arguments are null;
+   * If all of the arguments are false return false otherwise true. */
+  ALL,
   /** Returns null if and only if one of the arguments are null. */
   STRICT,
   /** Returns null if one of the arguments is null, and possibly other times. */

@@ -318,7 +318,7 @@ public class RexImpTable {
       tvfImplementorMap = new HashMap<>();
 
   RexImpTable() {
-    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ANY);
+    defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.ALL);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
     defineMethod(LOWER, BuiltInMethod.LOWER.method, NullPolicy.STRICT);
     defineMethod(INITCAP,  BuiltInMethod.INITCAP.method, NullPolicy.STRICT);
@@ -728,6 +728,7 @@ public class RexImpTable {
       final NullPolicy nullPolicy,
       final boolean harmonize) {
     switch (nullPolicy) {
+    case ALL:
     case ANY:
     case STRICT:
     case SEMI_STRICT:
@@ -1146,7 +1147,10 @@ public class RexImpTable {
           list.add(
               translator.translate(
                   operand.e, NullAs.IS_NULL));
-          translator = translator.setNullable(operand.e, false);
+          //If column is not ROW
+          if (nullPolicy != NullPolicy.ALL) {
+            translator = translator.setNullable(operand.e, false);
+          }
         }
       }
       final Expression box =
@@ -1166,9 +1170,22 @@ public class RexImpTable {
       default:
         throw new AssertionError();
       }
+
+      // Condition for regular cases: v0 == null || v1 == null
+      Expression condition = Expressions.foldOr(list);
+      if (nullPolicy == NullPolicy.ALL) {
+        // if some operands are not nullable ROW can not be null
+        if (list.size() < conditionalOps.size()) {
+          condition = FALSE_EXPR;
+        } else {
+          // Condition for NullPolicy.ALL: v0 == null && v1 == null
+          condition = Expressions.foldAnd(list);
+        }
+      }
+
       return optimize(
           Expressions.condition(
-              Expressions.foldOr(list),
+              condition,
               ifTrue,
               box));
     case FALSE:

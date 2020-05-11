@@ -83,4 +83,81 @@ where t.struct = ROW(2, ROW(3,4));
 
 !ok
 
+# [CALCITE-3627] Null check if all fields of ROW are null
+select ROW(null, null, null) is null;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Not Null check if all fields of ROW are null
+select ROW(null, null, null) is not null;
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Null check if all fields of ROW are null except one
+select ROW(null, 1, null) is null;
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Not Null check if all fields of ROW are null except one
+select ROW(null, 1, null) is not null;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Reverse Null check if all fields of ROW are null except one
+select NOT(ROW(null, 1, null) is null);
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Null check if all fields of ROW are null include nested ROW
+select ROW(null, ROW(null, null), null) is null;
++--------+
+| EXPR$0 |
++--------+
+| true   |
++--------+
+(1 row)
+
+!ok
+
+# [CALCITE-3627] Null check if all fields of ROW are null except nested ROW
+select ROW(null, ROW(null, 1), null) is null;
++--------+
+| EXPR$0 |
++--------+
+| false  |
++--------+
+(1 row)
+
+!ok
+
 # End struct.iq
