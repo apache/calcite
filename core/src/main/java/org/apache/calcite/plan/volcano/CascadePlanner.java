@@ -71,6 +71,9 @@ public class CascadePlanner extends VolcanoPlanner {
   public CascadePlanner(RelOptCostFactory factory, Context context) {
     super(factory, context);
     infCost = costFactory.makeInfiniteCost();
+    // topDownOpt will remove AbstractConverters which are essential in
+    // marking canConvert and needConvert relation between subsets
+    super.setTopDownOpt(false);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -246,6 +249,11 @@ public class CascadePlanner extends VolcanoPlanner {
     if (rootSet != this.root.set) {
       this.root = rootSet.getSubset(root.getTraitSet());
     }
+  }
+
+  @Override public void setTopDownOpt(boolean value) {
+    // Do Nothing. AbstractConverters is essential
+    // in marking canConvert and needConvert
   }
 
   @Override protected RelSet newRelSet(int id,

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-DIFF_BEGIN:342c342
+342c342
 < EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t0])
 ---
 > EnumerableCalc(expr#0..1=[{inputs}], deptno=[$t1])

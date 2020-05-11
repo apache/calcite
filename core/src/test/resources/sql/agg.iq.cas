@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-DIFF_BEGIN:2293,2295c2293,2295
+2293,2295c2293,2295
 < EnumerableAggregate(group=[{0}], EXPR$1=[COUNT($1, $2) FILTER $5], EXPR$2=[MIN($3) FILTER $6], EXPR$3=[MIN($4) FILTER $6])
 <   EnumerableCalc(expr#0..5=[{inputs}], expr#6=[0], expr#7=[=($t5, $t6)], expr#8=[3], expr#9=[=($t5, $t8)], MGR=[$t1], DEPTNO=[$t2], JOB=[$t0], EXPR$2=[$t3], EXPR$3=[$t4], $g_0=[$t7], $g_3=[$t9])
 <     EnumerableAggregate(group=[{2, 3, 7}], groups=[[{2, 3, 7}, {3}]], EXPR$2=[MIN($5)], EXPR$3=[MAX($5)], $g=[GROUPING($3, $7, $2)])

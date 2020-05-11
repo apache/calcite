@@ -53,6 +53,7 @@ import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -162,13 +163,19 @@ public abstract class QuidemTest {
     if (!diff.isEmpty()) {
       if (cascade()) {
         File diffFile = new File(inFile.getAbsoluteFile().getParent(), inFile.getName() + ".cas");
+        System.err.println("will compare with diff file: " + diffFile.getAbsolutePath());
         if (diffFile.exists()) {
-          String expectedDiff = DiffTestCase.fileContents(diffFile);
-          String diffFlag = "DIFF_BEGIN:";
-          expectedDiff = expectedDiff.substring(expectedDiff.indexOf(diffFlag) + diffFlag.length());
-          if (expectedDiff.equals(diff)) {
+          List<String> diffLines = DiffTestCase.fileLines(diffFile);
+          String diff4Diff = DiffTestCase.diffLines(
+              diffLines.subList(17, diffLines.size()),
+              Arrays.asList(diff.split("\n")));
+          if (diff4Diff.isEmpty()) {
             return;
+          } else {
+            System.err.println("Contents not match: " + diff4Diff);
           }
+        } else {
+          System.err.println("Diff file not found");
         }
       }
       fail("Files differ: " + outFile + " " + inFile + "\n"

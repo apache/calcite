@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.test;
 
+import java.util.Collection;
+import java.util.stream.Collectors;
+
 /**
  * Test that runs every Quidem file in the "core" module with CascadePlanner
  */
@@ -32,6 +35,12 @@ class CoreCascadeQuidemTest extends CoreQuidemTest {
     for (String arg : args) {
       new CoreCascadeQuidemTest().test(arg);
     }
+  }
+
+  public static Collection<Object[]> data() {
+    // skip sql/sequence.iq as its result is not stable running multiple times
+    return CoreQuidemTest.data().stream().filter(
+        objs -> !objs[0].equals("sql/sequence.iq")).collect(Collectors.toList());
   }
 
   @Override protected boolean cascade() {

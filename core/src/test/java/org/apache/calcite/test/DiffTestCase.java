@@ -451,7 +451,7 @@ public abstract class DiffTestCase {
    * @param file File
    * @return List of lines
    */
-  private static List<String> fileLines(File file) {
+  public static List<String> fileLines(File file) {
     List<String> lines = new ArrayList<>();
     try (LineNumberReader r = new LineNumberReader(Util.reader(file))) {
       String line;
