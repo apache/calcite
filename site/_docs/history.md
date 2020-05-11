@@ -28,8 +28,19 @@ For a full list of releases, see
 Downloads are available on the
 [downloads page]({{ site.baseurl }}/downloads/).
 
-## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / under development
+## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / 2020-05-12
 {: #v1-23-0}
+
+This release comes two months after 1.22.0. It includes more than 100 resolved
+issues, comprising a lot of new features as well as general improvements
+and bug-fixes. Among others, it is worth highlighting the following.
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3896">CALCITE-3896</a>] `VolcanoPlanner` supports top down trait request and trait enforcement without abstract converter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3753">CALCITE-3753</a>] Boost `VolcanoPlanner` performance by removing rule match and subset importance
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2970">CALCITE-2970</a>] Improve `VolcanoPlanner` performance when abstract converter is enabled
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2157">CALCITE-2157</a>] ClickHouse dialect implementation (Chris Baynes)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3780">CALCITE-3780</a>] Support `SESSION` Table function (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3737">CALCITE-3737</a>] Support `HOP` Table function (Rui Wang)
 
 Compatibility: This release is tested on Linux, macOS, Microsoft Windows;
 using Oracle JDK 8, 9, 10, 11, 12, 13, 14 and OpenJDK 8, 9, 10, 11, 12, 13, 14;
@@ -38,8 +49,141 @@ other software versions as specified in gradle.properties.
 
 #### Breaking Changes
 
-* [<a href="https://issues.apache.org/jira/browse/CALCITE-3877">CALCITE-3877</a>]
-  In `RexWindow`, make fields `upperBound` and `lowerBound` not-nullable
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3877">CALCITE-3877</a>] In `RexWindow`, make fields `upperBound` and `lowerBound` not-nullable
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3868">CALCITE-3868</a>] Remove redundant `ruleSet`(protected）and `ruleNames`(private) in `VolcanoPlanner`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3753">CALCITE-3753</a>] `VolcanoPlanner` flags `impatient` and `ambitious` are removed, alternatively use `checkCancel()` to achieve `impatient` mode
+
+#### New features
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3984">CALCITE-3984</a>] Support `Exchange` operator in `RelFieldTrimmer` (Xu Zhaohui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3971">CALCITE-3971</a>] Support `Calc` in `RelMdColumnOrigins` (Xu ZhaoHui)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3921">CALCITE-3921</a>] Support `TableModify` json serialization and deserialization (Wang Yanlin)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3938">CALCITE-3938</a>] Support `LogicalCalc` in `RelShuttle` (dz)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3896">CALCITE-3896</a>] `VolcanoPlanner` supports top down trait request and trait enforcement without abstract converter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3880">CALCITE-3880</a>] Add `SortExchange` support to `RelFieldTrimmer` (Krisztian Kasa)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3867">CALCITE-3867</a>] Support `RelDistribution` json serialization (Krisztian Kasa)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3780">CALCITE-3780</a>] Support `SESSION` Table function (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3737">CALCITE-3737</a>] Support `HOP` Table function (Rui Wang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3718">CALCITE-3718</a>] Support `Intersect` and `Minus` in `Bindables` (xzh)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3789">CALCITE-3789</a>] Support Presto style `unnest` with items alias (Will Yu)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2157">CALCITE-2157</a>] ClickHouse dialect implementation (Chris Baynes)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3833">CALCITE-3833</a>] Support `SemiJoin` in `EnumerableMergeJoin`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3684">CALCITE-3684</a>] Support `CONCAT` for variable arguments (Wenhui Tang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3285">CALCITE-3285</a>] `EnumerableMergeJoin` support non-equi join conditions
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3694">CALCITE-3694</a>] Implement `SINH` function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3647">CALCITE-3647</a>] Support MySQL `COMPRESS` function (ritesh-kapoor)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3726">CALCITE-3726</a>] Allow declaring type objects (ritesh-kapoor)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3815">CALCITE-3815</a>] Support SQL standard aggregate functions: `EVERY`, `SOME`, `INTERSECTION`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3704">CALCITE-3704</a>] Implement `STRCMP` function
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3634">CALCITE-3634</a>] Add `IntersectOnCalcsToIntersectUnifyRule` for materialized view recognition (dz)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3934">CALCITE-3934</a>] Allow type-coercion in `CONCAT` operator
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3889">CALCITE-3889</a>] Add `apply(Mappings.Mapping)` to `RelTrait` and `RelTraitSet`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3838">CALCITE-3838</a>] Support `Calc` in `RelMdSize`, `RelMdSelectivity`, `RelMdMaxRowCount`, `RelMdMinRowCount`, `RelMdTableReferences`
+
+#### Bug fixes, API changes and minor enhancements
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3877">CALCITE-3877</a>] In `RexWindow`, make fields `upperBound` and `lowerBound` not-nullable
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3969">CALCITE-3969</a>] Trait keys remapping may throw exception when some trait key is not mapped (Roman Kondakov)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3982">CALCITE-3982</a>] Simplify FilterMergeRule to rely on RelBuilder instead of RexProgram
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3983">CALCITE-3983</a>] Add utility methods to RelTraitSet
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3980">CALCITE-3980</a>] Redis-adapter redis connection is not reused when RedisTable is created (Xu Zhang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3961">CALCITE-3961</a>] VolcanoPlanner.prunedNodes info is lost when duplicate relNode is discarded (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3866">CALCITE-3866</a>] "numeric field overflow" when running the generated SQL in PostgreSQL (Wenhui Tang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3926">CALCITE-3926</a>] CannotPlanException when an empty LogicalValues requires a certain collation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3973">CALCITE-3973</a>] Hints should not unparse as enclosed in parentheses (Alex Baden)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3887">CALCITE-3887</a>] Filter and Join conditions may not need to retain nullability during simplifications
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3966">CALCITE-3966</a>] Trigger rules for existing RelSubset when it becomes delivered
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3928">CALCITE-3928</a>] Trim unused fields before materialized view matching (dz)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3962">CALCITE-3962</a>] Make JSON_VALUE operands varadic
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3827">CALCITE-3827</a>] Reduce the time complexity of finding in-edges of a vertex in the graph (Liya Fan)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3878">CALCITE-3878</a>] Create ArrayList with initial capacity when size is known (Xu Zhang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3949">CALCITE-3949</a>] RelDistributions.of() and RelCollations.of() should canonize trait instance
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3954">CALCITE-3954</a>] Always compare types using equals
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3955">CALCITE-3955</a>] Remove the first operand of RexCall from SqlWindowTableFunction
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3915">CALCITE-3915</a>] Add rule listener to report rule attempts and time at DEBUG log level (Xiening Dai)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3948">CALCITE-3948</a>] RelSubset matching is not properly handled in VolcanoRuleCall (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3758">CALCITE-3758</a>] FilterTableScanRule generate wrong mapping for filter condition when underlying is BindableTableScan (Jin Xing)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3942">CALCITE-3942</a>] Move type-coercion configurations into SqlValidator.Config
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3939">CALCITE-3939</a>] Change UnionEliminatorRule and ProjectRemoveRule to auto pruning SubstitutionRule (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3944">CALCITE-3944</a>] Move dumpSets and dumpGraphviz out of VolcanoPlanner
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3927">CALCITE-3927</a>] RelSubset is not fired for rule when set gets merged (Botong Huang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3868">CALCITE-3868</a>] Remove redundant `ruleSet`(protected）and `ruleNames`(private) in VolcanoPlanner
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3940">CALCITE-3940</a>] Hint item can not parse correctly if the name is right after token /*+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3447">CALCITE-3447</a>] MutableScans with the same qualified name are not equivalent (Dai Min, Jin Xing)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3931">CALCITE-3931</a>] Add LOOKAHEAD(2) for methods defined in createStatementParserMethods
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3790">CALCITE-3790</a>] Make the url() of Sources.of(file) available
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3894">CALCITE-3894</a>] SET operation between DATE and TIMESTAMP returns a wrong result
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3881">CALCITE-3881</a>] SqlFunctions#addMonths yields incorrect results in some corner case (Zhenghua Gao)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3324">CALCITE-3324</a>] Set updateCount when creating MetaResultSet (Robert Yokota)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3733">CALCITE-3733</a>] In JDBC adapter, when generating SQL for MYSQL, generate TIMESTAMP type as DATETIME for CAST (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3909">CALCITE-3909</a>] RelMdMinRowCount doesn't take into account UNION DISTINCT
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3576">CALCITE-3576</a>] Remove enumerable convention check in FilterIntoJoinRule
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2593">CALCITE-2593</a>] Plan error when transforming multiple collations to single collation
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2010">CALCITE-2010</a>] Cannot plan query that is UNION ALL applied to VALUES
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3865">CALCITE-3865</a>] RelCollationTraitDef.canConvert should always return true
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2970">CALCITE-2970</a>] Improve VolcanoPlanner performance when enabling abstract converter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3914">CALCITE-3914</a>] Improve SubstitutionVisitor to consider RexCall of type PLUS and TIMES for canonicalization (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3912">CALCITE-3912</a>] Incorrect mapping parsing when properties have same name as reserved keywords in ElasticSearch
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3900">CALCITE-3900</a>] Add Config for SqlValidator
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3908">CALCITE-3908</a>] JoinCommuteRule should update all input references in join condition
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3898">CALCITE-3898</a>] RelOptPredicateList may generate incorrect map of constant values
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3835">CALCITE-3835</a>] Overloaded table functions fail with an assertion error if param types differ
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3851">CALCITE-3851</a>] Replace the node importance map with a set for pruned nodes
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3872">CALCITE-3872</a>] Simplify expressions with unary minus
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3814">CALCITE-3814</a>] Support JDK 14 and guava 28.2-jre
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3876">CALCITE-3876</a>] RelToSqlConverter should not merge a Project that contains a window function that references a window function in input Project
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3891">CALCITE-3891</a>] Remove use of Pair.zip in RelTraitSet
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3885">CALCITE-3885</a>] Restore trace logging for rules queue and Volcano planner's internal state (Roman Kondakov)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3886">CALCITE-3886</a>] Execute substitution rule according to the order they get matched
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3882">CALCITE-3882</a>] Remove duplicated code from SqlTypeAssignmentRule (Wenhui Tang)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3846">CALCITE-3846</a>] EnumerableMergeJoin: wrong comparison of composite key with null values
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3829">CALCITE-3829</a>] MergeJoinEnumerator should not use inputs enumerators until it is really required
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3840">CALCITE-3840</a>] Re-aliasing of VALUES that has column aliases produces wrong SQL in the JDBC adapter
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3810">CALCITE-3810</a>] Render ANTI and SEMI join to NOT EXISTS and EXISTS in the JDBC adapter. Also add forgotten IS_DISTINCT_FROM translation support
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3852">CALCITE-3852</a>] RexSimplify doesn't simplify NOT EQUAL predicates
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3862">CALCITE-3862</a>] Materialized view rewriting algorithm throws IndexOutOfBoundsException (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3856">CALCITE-3856</a>] Remove code to be removed before 1.23
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3855">CALCITE-3855</a>] Supports snapshot on table with virtual columns during sql-to-rel conversion
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3853">CALCITE-3853</a>] Minor improvements in SortJoinCopyRule
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3848">CALCITE-3848</a>] Rewriting for materialized view consisting of group by on join keys fails with Mappings$NoElementException (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3845">CALCITE-3845</a>] CASE WHEN expression with nullability CAST is considered as reduced wrongly in ReduceExpressionsRule
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3847">CALCITE-3847</a>] Decorrelation for join with lateral table outputs wrong plan if the join condition contains correlation variables
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3753">CALCITE-3753</a>] Boost VolcanoPlanner performance by removing rule match and subset importance
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3823">CALCITE-3823</a>] Do not use String.replaceAll
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3412">CALCITE-3412</a>] FLOOR(timestamp TO WEEK) gives wrong result
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3839">CALCITE-3839</a>] After calling RelBuilder.aggregate, cannot lookup field by name
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3819">CALCITE-3819</a>] Prune parent RelNode when merging child RelSet with parent RelSet
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3809">CALCITE-3809</a>] RexSimplify simplifies nondeterministic function incorrectly
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3828">CALCITE-3828</a>] MergeJoin throws NPE in case of null keys
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3820">CALCITE-3820</a>] EnumerableDefaults#orderBy should be lazily computed + support enumerator re-initialization
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3837">CALCITE-3837</a>] AntiJoin with empty right input can always be transformed as its left input
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3821">CALCITE-3821</a>] RelOptUtil::containsMultisetOrWindowedAgg doesn't really check multiset (Xiening Dai)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3825">CALCITE-3825</a>] Split AbstractMaterializedViewRule into multiple classes (addendum)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3824">CALCITE-3824</a>] JoinProjectTransposeRule should skip Projects containing windowing expression (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3734">CALCITE-3734</a>] MySQL JDBC rewrite is producing queries with CHAR with range beyond 255 (Vineet Garg)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3817">CALCITE-3817</a>] VolcanoPlanner does not remove the entry in ruleNames when removing a rule
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-2592">CALCITE-2592</a>] EnumerableMergeJoin is never taken
+
+#### Build and test suite
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3965">CALCITE-3965</a>] Avoid DiffRepository lock contention
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3924">CALCITE-3924</a>] Fix flakey test to handle TIMESTAMP and TIMESTAMP(0) correctly (neoReMinD)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3888">CALCITE-3888</a>] Switch avatica-server to be test dependency for core
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3660">CALCITE-3660</a>] Disable flaky test PigRelBuilderStyleTest since it fails too often for no reason
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3892">CALCITE-3892</a>] Make junit test classes and methods non-public where possible
+* Update release-plugins: 1.65 -> 1.70
+* Avoid failures in SourceTest when filesystem does not support unicode paths
+* Add AvoidStarImport Checkstyle rule
+
+#### Web site and documentation
+
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3958">CALCITE-3958</a>] Revise documentation of gradle.properties in Cassandra/Piglet and SubstitutionVisitor (xzh)
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-3726">CALCITE-3726</a>] Documentation for Declaring Objects For Types Defined In Schema (ritesh-kapoor)
+* Site: Add Ant Financial logo in powered-by image (Wang Yanlin)
+* Site: Change affiliation of Stamatis Zampetakis
+* Site: Add Forward Xu, Jin Xing, Wang Yanlin, as committers
+* Site: Add Vineet Garg as committer
+* Site: Add Feng Zhu as committer
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.22.0">1.22.0</a> / 2020-03-05
 {: #v1-22-0}
