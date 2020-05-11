@@ -63,14 +63,14 @@ class MappingTest {
     assertThat(identity.getTargetOpt(4), equalTo(4));
     assertThat(identity.getSourceOpt(4), equalTo(4));
 
-    assertThrows(Mappings.NoElementException.class, () -> identity.getSourceOpt(5));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getSource(5));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getTargetOpt(5));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getTarget(5));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getSourceOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getSource(-1));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getTargetOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> identity.getTarget(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSourceOpt(5));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSource(5));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTargetOpt(5));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTarget(5));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSourceOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getSource(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTargetOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> identity.getTarget(-1));
   }
 
   /**
@@ -156,10 +156,11 @@ class MappingTest {
     assertThat(mapping.getTargetCount(), equalTo(10));
     assertThat(mapping.getSourceCount(), equalTo(5));
 
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(10));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(10));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(5));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(10));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(10));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
 
     final List<Integer> integers = Mappings.asList(mapping);
     assertThat(integers, equalTo(targets));
@@ -179,10 +180,11 @@ class MappingTest {
     assertThat(mapping.getTarget(4), equalTo(2));
 
     assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(0));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(10));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(10));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(-1));
+
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(10));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(10));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
 
     assertThat(mapping.getTargetCount(), equalTo(5));
     assertThat(mapping.getSourceCount(), equalTo(10));
@@ -205,14 +207,14 @@ class MappingTest {
     assertThat(mapping.getSource(3), equalTo(0));
     assertThat(mapping.getSourceOpt(3), equalTo(0));
 
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getSourceOpt(4));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getSource(4));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(4));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(4));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getSourceOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getSource(-1));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTargetOpt(-1));
-    assertThrows(Mappings.NoElementException.class, () -> mapping.getTarget(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSourceOpt(4));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSource(4));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(4));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(4));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSourceOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getSource(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTargetOpt(-1));
+    assertThrows(IndexOutOfBoundsException.class, () -> mapping.getTarget(-1));
 
     assertThat(mapping.getTargetCount(), equalTo(4));
     assertThat(mapping.getSourceCount(), equalTo(4));

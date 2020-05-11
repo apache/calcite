@@ -1273,28 +1273,16 @@ public abstract class Mappings {
 
     /**
      * Returns the source that a target maps to, or -1 if it is not mapped.
-     *
-     *  @throws NoElementException if target is out of sources range.
      */
     public int getSourceOpt(int target) {
-      try {
         return sources[target];
-      } catch (ArrayIndexOutOfBoundsException e) {
-        throw new Mappings.NoElementException("invalid target " + target);
-      }
     }
 
     /**
      * Returns the target that a source maps to, or -1 if it is not mapped.
-     *
-     * @throws NoElementException if source is out of targets range.
      */
     public int getTargetOpt(int source) {
-      try {
         return targets[source];
-      } catch (ArrayIndexOutOfBoundsException e) {
-        throw new Mappings.NoElementException("invalid source " + source);
-      }
     }
 
     public boolean isIdentity() {
@@ -1432,11 +1420,10 @@ public abstract class Mappings {
      *
      * @param source source
      * @return target
-     * @throws NoElementException if source is not mapped
      */
     public int getTarget(int source) {
       if (source < 0 || source >= size) {
-        throw new Mappings.NoElementException("source #" + source
+        throw new IndexOutOfBoundsException("source #" + source
             + " has no target in identity mapping of size " + size);
       }
       return source;
@@ -1445,12 +1432,12 @@ public abstract class Mappings {
     /**
      * Returns the target that a source maps to, or -1 if it is not mapped.
      *
+     * @param source source
      * @return target
-     * @throws NoElementException if source is out of sources range
      */
     public int getTargetOpt(int source) {
       if (source < 0 || source >= size) {
-        throw new Mappings.NoElementException("source #" + source
+        throw new IndexOutOfBoundsException("source #" + source
             + " has no target in identity mapping of size " + size);
       }
       return source;
@@ -1461,11 +1448,10 @@ public abstract class Mappings {
      *
      * @param target target
      * @return source
-     * @throws NoElementException if target is not mapped
      */
     public int getSource(int target) {
       if (target < 0 || target >= size) {
-        throw new Mappings.NoElementException("target #" + target
+        throw new IndexOutOfBoundsException("target #" + target
             + " has no source in identity mapping of size " + size);
       }
       return target;
@@ -1474,12 +1460,12 @@ public abstract class Mappings {
     /**
      * Returns the source that a target maps to, or -1 if it is not mapped.
      *
+     * @param target target
      * @return source
-     * @throws NoElementException if target is out of targets range
      */
     public int getSourceOpt(int target) {
       if (target < 0 || target >= size) {
-        throw new Mappings.NoElementException("target #" + target
+        throw new IndexOutOfBoundsException("target #" + target
             + " has no source in identity mapping of size " + size);
       }
       return target;
@@ -1748,14 +1734,9 @@ public abstract class Mappings {
      * Returns the target that a source maps to, or -1 if it is not mapped.
      *
      * @return target
-     * @throws NoElementException if source is out of sources range
      */
     public int getTargetOpt(int source) {
-      try {
         return targets[source];
-      } catch (ArrayIndexOutOfBoundsException e) {
-        throw new Mappings.NoElementException("invalid source " + source);
-      }
     }
   }
 
