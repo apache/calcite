@@ -415,14 +415,14 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * Returns the position that <code>source</code> is mapped to.
    */
   public int getTarget(int source) {
-      return targets[source];
+    return targets[source];
   }
 
   /**
    * Returns the position which maps to <code>target</code>.
    */
   public int getSource(int target) {
-      return sources[target];
+    return sources[target];
   }
 
   /**

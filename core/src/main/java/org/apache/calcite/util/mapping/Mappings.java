@@ -1275,14 +1275,14 @@ public abstract class Mappings {
      * Returns the source that a target maps to, or -1 if it is not mapped.
      */
     public int getSourceOpt(int target) {
-        return sources[target];
+      return sources[target];
     }
 
     /**
      * Returns the target that a source maps to, or -1 if it is not mapped.
      */
     public int getTargetOpt(int source) {
-        return targets[source];
+      return targets[source];
     }
 
     public boolean isIdentity() {
@@ -1736,7 +1736,7 @@ public abstract class Mappings {
      * @return target
      */
     public int getTargetOpt(int source) {
-        return targets[source];
+      return targets[source];
     }
   }
 
