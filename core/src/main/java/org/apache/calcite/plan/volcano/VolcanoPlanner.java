@@ -773,25 +773,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public RelSubset getSubset(
-      RelNode rel,
-      RelTraitSet traits) {
-    return getSubset(rel, traits, false);
-  }
-
-  public RelSubset getSubset(
-      RelNode rel,
-      RelTraitSet traits,
-      boolean createIfMissing) {
+  public RelSubset getSubset(RelNode rel, RelTraitSet traits) {
     if ((rel instanceof RelSubset) && (rel.getTraitSet().equals(traits))) {
       return (RelSubset) rel;
     }
     RelSet set = getSet(rel);
     if (set == null) {
       return null;
-    }
-    if (createIfMissing) {
-      return set.getOrCreateSubset(rel.getCluster(), traits);
     }
     return set.getSubset(traits);
   }
@@ -1097,10 +1085,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
-      root =
-          set.getOrCreateSubset(
-              root.getCluster(),
-              root.getTraitSet());
+      root = set.getOrCreateSubset(
+          root.getCluster(), root.getTraitSet(), root.isRequired());
       ensureRootConverters();
     }
 

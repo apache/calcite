@@ -282,10 +282,6 @@ class RelSet {
     }
   }
 
-  RelSubset getOrCreateSubset(RelOptCluster cluster, RelTraitSet traits) {
-    return getOrCreateSubset(cluster, traits, false);
-  }
-
   RelSubset getOrCreateSubset(
       RelOptCluster cluster, RelTraitSet traits, boolean required) {
     boolean needsConverter = false;
