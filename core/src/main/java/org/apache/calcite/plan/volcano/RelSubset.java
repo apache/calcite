@@ -194,7 +194,7 @@ public class RelSubset extends AbstractRelNode {
       if (traitSet1.equals(this.traitSet)) {
         return this;
       }
-      return set.getOrCreateSubset(getCluster(), traitSet1);
+      return set.getOrCreateSubset(getCluster(), traitSet1, isRequired());
     }
     throw new UnsupportedOperationException();
   }
