@@ -20,6 +20,7 @@ import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.volcano.CascadePlanner;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
@@ -71,7 +72,7 @@ class TopDownOptTest extends RelOptTestBase {
   }
 
   Sql sql(String sql) {
-    VolcanoPlanner planner = new VolcanoPlanner();
+    VolcanoPlanner planner = new CascadePlanner(null, null);
     // Always use top-down optimization
     planner.setTopDownOpt(true);
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);

@@ -64,4 +64,23 @@ public class CascadeRelSet extends RelSet {
   public ExploreState getState() {
     return state;
   }
+
+  @Override RelSubset getOrCreateSubset(
+      RelOptCluster cluster, RelTraitSet traits, boolean require) {
+    // always add converters eagerly
+    return getOrCreateSubset(cluster, traits, require, true);
+  }
+
+  @Override void mergeWith(VolcanoPlanner planner, RelSet otherSet) {
+    super.mergeWith(planner, otherSet);
+    for (RelSubset subset : otherSet.subsets) {
+      CascadeRelSubset cascadeRelSubset = (CascadeRelSubset) subset;
+      CascadeRelSubset newSubset = (CascadeRelSubset) getSubset(subset.getTraitSet());
+      if (newSubset.passThroughCache == null) {
+        newSubset.passThroughCache = cascadeRelSubset.passThroughCache;
+      } else if (cascadeRelSubset.passThroughCache != null) {
+        newSubset.passThroughCache.addAll(cascadeRelSubset.passThroughCache);
+      }
+    }
+  }
 }

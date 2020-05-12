@@ -19,6 +19,14 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.PhysicalNode;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.util.Pair;
+
+import java.util.HashSet;
+import java.util.Queue;
+import java.util.Set;
 
 /***
  * An implementation of RelSubset for CascadePlanner.
@@ -57,20 +65,29 @@ public class CascadeRelSubset extends RelSubset {
    */
   RelOptCost upperBound;
 
+  /**
+   * RelNode ids that is invoked passThrough method before
+   */
+  Set<Integer> passThroughCache;
+
   CascadeRelSubset(RelOptCluster cluster, RelSet set, RelTraitSet traits) {
     super(cluster, set, traits);
+    upperBound = bestCost;
   }
 
   public RelOptCost getWinnerCost() {
-    if (bestCost == upperBound) {
+    if (bestCost == upperBound && state == OptimizeState.OPTIMIZED) {
       return bestCost;
     }
+    // if bestCost != upperBound, it means optimize failed
     return null;
   }
 
   public void startOptimize(RelOptCost ub) {
+    if (ub.isLt(bestCost)) {
+      upperBound = ub;
+    }
     state = OptimizeState.OPTIMIZING;
-    this.upperBound = ub;
   }
 
   @Override public CascadeRelSet getSet() {
@@ -79,15 +96,35 @@ public class CascadeRelSubset extends RelSubset {
 
   public void optimized() {
     state = OptimizeState.OPTIMIZED;
-    if (upperBound == null || bestCost.isLt(upperBound)) {
-      upperBound = bestCost;
-    }
   }
 
   public boolean resetOptimizing() {
     boolean optimized = state != OptimizeState.NEW;
     state = OptimizeState.NEW;
-    upperBound = null;
+    upperBound = bestCost;
     return optimized;
+  }
+
+  @Override void propagateCostImprovements0(
+      VolcanoPlanner planner, RelMetadataQuery mq,
+      RelNode rel, Set<RelSubset> activeSet,
+      Queue<Pair<RelSubset, RelNode>> propagationQueue) {
+    super.propagateCostImprovements0(planner, mq, rel, activeSet, propagationQueue);
+    if (bestCost != upperBound && bestCost.isLe(upperBound)) {
+      upperBound = bestCost;
+    }
+  }
+
+  public RelNode passThrough(RelNode rel) {
+    if (!(rel instanceof PhysicalNode)) {
+      return null;
+    }
+    if (passThroughCache == null) {
+      passThroughCache = new HashSet<>();
+      passThroughCache.add(rel.getId());
+    } else if (!passThroughCache.add(rel.getId())) {
+      return null;
+    }
+    return ((PhysicalNode) rel).passThrough(this.getTraitSet());
   }
 }

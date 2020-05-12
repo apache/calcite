@@ -288,6 +288,12 @@ class RelSet {
 
   RelSubset getOrCreateSubset(
       RelOptCluster cluster, RelTraitSet traits, boolean required) {
+    final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
+    return getOrCreateSubset(cluster, traits, required, !planner.topDownOpt);
+  }
+
+  RelSubset getOrCreateSubset(
+      RelOptCluster cluster, RelTraitSet traits, boolean required, boolean eagerConverter) {
     boolean needsConverter = false;
     final VolcanoPlanner planner = (VolcanoPlanner) cluster.getPlanner();
     RelSubset subset = getSubset(traits);
@@ -317,8 +323,8 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter && !planner.topDownOpt) {
-      addConverters(subset, required, true);
+    if (needsConverter && eagerConverter) {
+      addConverters(subset, required, !planner.topDownOpt);
     }
 
     return subset;
