@@ -67,6 +67,9 @@ public abstract class InferTypes {
    */
   public static final SqlOperandTypeInference RETURN_TYPE =
       (callBinding, returnType, operandTypes) -> {
+        if (returnType == null) {
+          return;
+        }
         for (int i = 0; i < operandTypes.length; ++i) {
           operandTypes[i] =
               returnType.isStruct()
