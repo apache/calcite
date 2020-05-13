@@ -43,6 +43,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   private final Cache cache;
   private final RelTrait[] traits;
   private final String string;
+  /** Cache the hash code for the traits */
+  private int hash = 0;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -308,7 +310,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
         continue;
       }
-      if (!traits[i].equals(other.traits[i])) {
+      // each trait should be canonized already
+      if (traits[i] != other.traits[i]) {
         return false;
       }
     }
@@ -417,13 +420,34 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * @return true if traits are equal and in the same order, false otherwise
    */
   @Override public boolean equals(Object obj) {
-    return this == obj
-        || obj instanceof RelTraitSet
-        && Arrays.equals(traits, ((RelTraitSet) obj).traits);
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof RelTraitSet)) {
+      return false;
+    }
+    RelTraitSet that = (RelTraitSet) obj;
+    if (this.hash != 0
+        && that.hash != 0
+        && this.hash != that.hash) {
+      return false;
+    }
+    if (traits.length != that.traits.length) {
+      return false;
+    }
+    for (int i = 0; i < traits.length; i++) {
+      if (traits[i] != that.traits[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override public int hashCode() {
-    return Arrays.hashCode(traits);
+    if (hash == 0) {
+      hash = Arrays.hashCode(traits);
+    }
+    return hash;
   }
 
   /**
@@ -690,8 +714,12 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       if (traitSet1 != null) {
         return traitSet1;
       }
-      final RelTraitSet traitSet =
-          new RelTraitSet(this, traits.toArray(new RelTrait[0]));
+      final RelTraitSet traitSet;
+      if (traits instanceof RelTraitSet) {
+        traitSet = (RelTraitSet) traits;
+      } else {
+        traitSet = new RelTraitSet(this, traits.toArray(new RelTrait[0]));
+      }
       map.put(traits, traitSet);
       return traitSet;
     }
