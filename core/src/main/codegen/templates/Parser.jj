@@ -6056,22 +6056,22 @@ SqlCall GroupByWindowingCall():
     (
         <TUMBLE>
         {
-            s = span();
             op = SqlStdOperatorTable.TUMBLE_OLD;
         }
     |
         <HOP>
         {
-            s = span();
             op = SqlStdOperatorTable.HOP_OLD;
         }
     |
         <SESSION>
         {
-            s = span();
             op = SqlStdOperatorTable.SESSION_OLD;
         }
     )
+    {
+        s = span();
+    }
     args = UnquantifiedFunctionParameterList(ExprContext.ACCEPT_SUB_QUERY) {
         return op.createCall(s.end(this), args);
     }
