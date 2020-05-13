@@ -170,7 +170,7 @@ public abstract class DateRangeRules {
   /** Rule that converts EXTRACT, FLOOR and CEIL in a {@link Filter} into a date
    * range. */
   @SuppressWarnings("WeakerAccess")
-  public static class FilterDateRangeRule extends RelOptRule {
+  public static class FilterDateRangeRule extends RelOptRule implements TransformationRule {
     public FilterDateRangeRule(RelBuilderFactory relBuilderFactory) {
       super(operandJ(Filter.class, null, FILTER_PREDICATE, any()),
           relBuilderFactory, "FilterDateRangeRule");

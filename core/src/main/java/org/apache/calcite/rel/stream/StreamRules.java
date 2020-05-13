@@ -38,6 +38,7 @@ import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.logical.LogicalUnion;
+import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.schema.StreamableTable;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.tools.RelBuilder;
@@ -67,7 +68,7 @@ public class StreamRules {
           new DeltaTableScanToEmptyRule(RelFactories.LOGICAL_BUILDER));
 
   /** Planner rule that pushes a {@link Delta} through a {@link Project}. */
-  public static class DeltaProjectTransposeRule extends RelOptRule {
+  public static class DeltaProjectTransposeRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaProjectTransposeRule.
@@ -96,7 +97,7 @@ public class StreamRules {
   }
 
   /** Planner rule that pushes a {@link Delta} through a {@link Filter}. */
-  public static class DeltaFilterTransposeRule extends RelOptRule {
+  public static class DeltaFilterTransposeRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaFilterTransposeRule.
@@ -122,7 +123,7 @@ public class StreamRules {
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Aggregate}. */
-  public static class DeltaAggregateTransposeRule extends RelOptRule {
+  public static class DeltaAggregateTransposeRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaAggregateTransposeRule.
@@ -151,7 +152,7 @@ public class StreamRules {
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Sort}. */
-  public static class DeltaSortTransposeRule extends RelOptRule {
+  public static class DeltaSortTransposeRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaSortTransposeRule.
@@ -178,7 +179,7 @@ public class StreamRules {
   }
 
   /** Planner rule that pushes a {@link Delta} through an {@link Union}. */
-  public static class DeltaUnionTransposeRule extends RelOptRule {
+  public static class DeltaUnionTransposeRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaUnionTransposeRule.
@@ -213,7 +214,7 @@ public class StreamRules {
    * <p>Very likely, the stream was only represented as a table for uniformity
    * with the other relations in the system. The Delta disappears and the stream
    * can be implemented directly. */
-  public static class DeltaTableScanRule extends RelOptRule {
+  public static class DeltaTableScanRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaTableScanRule.
@@ -254,7 +255,7 @@ public class StreamRules {
    * a table other than {@link org.apache.calcite.schema.StreamableTable} to
    * an empty {@link Values}.
    */
-  public static class DeltaTableScanToEmptyRule extends RelOptRule {
+  public static class DeltaTableScanToEmptyRule extends RelOptRule implements TransformationRule {
 
     /**
      * Creates a DeltaTableScanToEmptyRule.
@@ -291,7 +292,7 @@ public class StreamRules {
    * <blockquote><code>stream(x join y) &rarr;
    * x join stream(y) union all stream(x) join y</code></blockquote>
    */
-  public static class DeltaJoinTransposeRule extends RelOptRule {
+  public static class DeltaJoinTransposeRule extends RelOptRule implements TransformationRule {
 
     @Deprecated // to be removed before 2.0
     public DeltaJoinTransposeRule() {

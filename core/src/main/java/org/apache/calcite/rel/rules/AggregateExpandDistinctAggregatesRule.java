@@ -77,7 +77,8 @@ import java.util.stream.Stream;
  * the rule creates separate {@code Aggregate}s and combines using a
  * {@link org.apache.calcite.rel.core.Join}.
  */
-public final class AggregateExpandDistinctAggregatesRule extends RelOptRule {
+public final class AggregateExpandDistinctAggregatesRule extends RelOptRule
+    implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The default instance of the rule; operates only on logical expressions. */

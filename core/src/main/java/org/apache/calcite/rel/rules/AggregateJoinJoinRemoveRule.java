@@ -66,7 +66,8 @@ import java.util.Set;
  * on s.product_id = pc.product_id</pre></blockquote>
  *
  */
-public class AggregateJoinJoinRemoveRule extends RelOptRule {
+public class AggregateJoinJoinRemoveRule extends RelOptRule
+    implements TransformationRule {
   public static final AggregateJoinJoinRemoveRule INSTANCE =
       new AggregateJoinJoinRemoveRule(LogicalAggregate.class,
           LogicalJoin.class, RelFactories.LOGICAL_BUILDER);

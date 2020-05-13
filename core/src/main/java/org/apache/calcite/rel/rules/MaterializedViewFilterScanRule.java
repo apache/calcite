@@ -41,7 +41,7 @@ import java.util.List;
  * on a {@link org.apache.calcite.rel.core.TableScan}
  * to a {@link org.apache.calcite.rel.core.Filter} on Materialized View
  */
-public class MaterializedViewFilterScanRule extends RelOptRule {
+public class MaterializedViewFilterScanRule extends RelOptRule implements TransformationRule {
   public static final MaterializedViewFilterScanRule INSTANCE =
       new MaterializedViewFilterScanRule(RelFactories.LOGICAL_BUILDER);
 

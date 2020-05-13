@@ -61,7 +61,7 @@ import java.util.TreeMap;
  * {@link org.apache.calcite.rel.core.Aggregate}
  * past a {@link org.apache.calcite.rel.core.Join}.
  */
-public class AggregateJoinTransposeRule extends RelOptRule {
+public class AggregateJoinTransposeRule extends RelOptRule implements TransformationRule {
   public static final AggregateJoinTransposeRule INSTANCE =
       new AggregateJoinTransposeRule(LogicalAggregate.class, LogicalJoin.class,
           RelFactories.LOGICAL_BUILDER, false);

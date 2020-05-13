@@ -59,7 +59,7 @@ import java.util.List;
  * <p>This pattern indicates that an aggregate table may exist. The rule asks
  * the star table for an aggregate table at the required level of aggregation.
  */
-public class AggregateStarTableRule extends RelOptRule {
+public class AggregateStarTableRule extends RelOptRule implements TransformationRule {
   public static final AggregateStarTableRule INSTANCE =
       new AggregateStarTableRule(
           operandJ(Aggregate.class, null, Aggregate::isSimple,

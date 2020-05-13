@@ -45,7 +45,7 @@ import java.util.Map;
 /**
  * Planner rule that pulls up constants through a Union operator.
  */
-public class UnionPullUpConstantsRule extends RelOptRule {
+public class UnionPullUpConstantsRule extends RelOptRule implements TransformationRule {
 
   public static final UnionPullUpConstantsRule INSTANCE =
       new UnionPullUpConstantsRule(Union.class, RelFactories.LOGICAL_BUILDER);

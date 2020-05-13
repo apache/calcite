@@ -65,7 +65,7 @@ import java.util.TreeSet;
  * {@link org.apache.calcite.rel.logical.LogicalProject}
  * ({@link MultiJoin}).
  */
-public class LoptOptimizeJoinRule extends RelOptRule {
+public class LoptOptimizeJoinRule extends RelOptRule implements TransformationRule {
   public static final LoptOptimizeJoinRule INSTANCE =
       new LoptOptimizeJoinRule(RelFactories.LOGICAL_BUILDER);
 

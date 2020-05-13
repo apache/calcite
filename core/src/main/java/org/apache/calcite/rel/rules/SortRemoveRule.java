@@ -31,7 +31,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * <p>Requires {@link RelCollationTraitDef}.
  */
-public class SortRemoveRule extends RelOptRule {
+public class SortRemoveRule extends RelOptRule implements TransformationRule {
   public static final SortRemoveRule INSTANCE =
       new SortRemoveRule(RelFactories.LOGICAL_BUILDER);
 

@@ -42,7 +42,7 @@ import org.apache.calcite.util.Pair;
  *
  * @see FilterCalcMergeRule
  */
-public class ProjectCalcMergeRule extends RelOptRule {
+public class ProjectCalcMergeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectCalcMergeRule INSTANCE =

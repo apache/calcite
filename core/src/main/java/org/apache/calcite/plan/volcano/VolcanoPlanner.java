@@ -37,6 +37,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -46,6 +47,7 @@ import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -410,6 +412,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     for (RelOptRuleOperand operand : rule.getOperands()) {
       for (Class<? extends RelNode> subClass
           : subClasses(operand.getMatchedClass())) {
+        if (PhysicalNode.class.isAssignableFrom(subClass)
+            && rule instanceof TransformationRule) {
+          continue;
+        }
         classOperands.put(subClass, operand);
       }
     }
@@ -456,10 +462,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   @Override protected void onNewClass(RelNode node) {
     super.onNewClass(node);
 
+    final boolean isPhysical = node instanceof PhysicalNode;
     // Create mappings so that instances of this class will match existing
     // operands.
     final Class<? extends RelNode> clazz = node.getClass();
     for (RelOptRule rule : mapDescToRule.values()) {
+      if (isPhysical && rule instanceof TransformationRule) {
+        continue;
+      }
       for (RelOptRuleOperand operand : rule.getOperands()) {
         if (operand.getMatchedClass().isAssignableFrom(clazz)) {
           classOperands.put(clazz, operand);

@@ -48,7 +48,7 @@ import java.util.List;
  * by splitting the projection into a projection on top of each child of
  * the join.
  */
-public class ProjectJoinTransposeRule extends RelOptRule {
+public class ProjectJoinTransposeRule extends RelOptRule implements TransformationRule {
   /**
    * A instance for ProjectJoinTransposeRule that pushes a
    * {@link org.apache.calcite.rel.logical.LogicalProject}

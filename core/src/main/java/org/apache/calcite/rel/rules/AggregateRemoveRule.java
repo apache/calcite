@@ -18,7 +18,6 @@ package org.apache.calcite.rel.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -124,7 +123,7 @@ public class AggregateRemoveRule extends RelOptRule implements SubstitutionRule 
       // aggregate functions, add a project for the same effect.
       relBuilder.project(relBuilder.fields(aggregate.getGroupSet()));
     }
-    call.getPlanner().setImportance(aggregate, 0d);
+    call.getPlanner().prune(aggregate);
     call.transformTo(relBuilder.build());
   }
 }

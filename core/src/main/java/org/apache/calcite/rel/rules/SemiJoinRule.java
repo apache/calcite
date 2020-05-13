@@ -42,7 +42,7 @@ import java.util.function.Predicate;
  * {@link org.apache.calcite.rel.core.Join} on top of a
  * {@link org.apache.calcite.rel.logical.LogicalAggregate}.
  */
-public abstract class SemiJoinRule extends RelOptRule {
+public abstract class SemiJoinRule extends RelOptRule implements TransformationRule {
   private static final Predicate<Join> NOT_GENERATE_NULLS_ON_LEFT =
       join -> !join.getJoinType().generatesNullsOnLeft();
 

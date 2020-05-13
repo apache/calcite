@@ -36,7 +36,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see FilterMergeRule
  */
-public class FilterCalcMergeRule extends RelOptRule {
+public class FilterCalcMergeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final FilterCalcMergeRule INSTANCE =

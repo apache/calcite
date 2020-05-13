@@ -36,7 +36,7 @@ import java.util.List;
  *
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  */
-public class FilterMultiJoinMergeRule extends RelOptRule {
+public class FilterMultiJoinMergeRule extends RelOptRule implements TransformationRule {
   public static final FilterMultiJoinMergeRule INSTANCE =
       new FilterMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
 

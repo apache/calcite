@@ -52,7 +52,7 @@ import java.util.Set;
  * <p>In some cases, this rule has the effect of trimming: the aggregate will
  * use fewer columns than the project did.
  */
-public class AggregateProjectMergeRule extends RelOptRule {
+public class AggregateProjectMergeRule extends RelOptRule implements TransformationRule {
   public static final AggregateProjectMergeRule INSTANCE =
       new AggregateProjectMergeRule(Aggregate.class, Project.class, RelFactories.LOGICAL_BUILDER);
 

@@ -39,7 +39,7 @@ import org.apache.calcite.util.Util;
  * <p>Originally written for {@link Union} (hence the name),
  * but now also applies to {@link Intersect}.
  */
-public class UnionMergeRule extends RelOptRule {
+public class UnionMergeRule extends RelOptRule implements TransformationRule {
   public static final UnionMergeRule INSTANCE =
       new UnionMergeRule(LogicalUnion.class, "UnionMergeRule",
           RelFactories.LOGICAL_BUILDER);

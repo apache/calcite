@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableList;
  *
  * @see org.apache.calcite.rel.rules.SortProjectTransposeRule
  */
-public class ProjectSortTransposeRule extends RelOptRule {
+public class ProjectSortTransposeRule extends RelOptRule implements TransformationRule {
   public static final ProjectSortTransposeRule INSTANCE =
       new ProjectSortTransposeRule(Project.class, Sort.class,
           RelFactories.LOGICAL_BUILDER);

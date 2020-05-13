@@ -38,7 +38,8 @@ import com.google.common.collect.ImmutableSet;
  * {@link org.apache.calcite.rel.core.Join}, not just
  * {@link org.apache.calcite.rel.logical.LogicalJoin}.
  */
-public class JoinAddRedundantSemiJoinRule extends RelOptRule {
+public class JoinAddRedundantSemiJoinRule extends RelOptRule
+    implements TransformationRule {
   public static final JoinAddRedundantSemiJoinRule INSTANCE =
       new JoinAddRedundantSemiJoinRule(LogicalJoin.class,
           RelFactories.LOGICAL_BUILDER);

@@ -38,7 +38,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * <p>The constructor is parameterized to allow any sub-class of
  * {@link org.apache.calcite.rel.core.Join}.</p>
  */
-public abstract class AbstractJoinExtractFilterRule extends RelOptRule {
+public abstract class AbstractJoinExtractFilterRule extends RelOptRule
+    implements TransformationRule {
   /** Creates an AbstractJoinExtractFilterRule. */
   protected AbstractJoinExtractFilterRule(RelOptRuleOperand operand,
       RelBuilderFactory relBuilderFactory, String description) {

@@ -38,7 +38,7 @@ import com.google.common.collect.ImmutableList;
  * specific tasks, such as optimizing before calling an
  * {@link org.apache.calcite.interpreter.Interpreter}.
  */
-public class CalcSplitRule extends RelOptRule {
+public class CalcSplitRule extends RelOptRule implements TransformationRule {
   public static final CalcSplitRule INSTANCE =
       new CalcSplitRule(RelFactories.LOGICAL_BUILDER);
 

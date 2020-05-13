@@ -35,7 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * "emp.deptno + 1". The resulting join condition is a simple combination
  * of AND, equals, and input fields, plus the remaining non-equal conditions.
  */
-public class JoinPushExpressionsRule extends RelOptRule {
+public class JoinPushExpressionsRule extends RelOptRule implements TransformationRule {
 
   public static final JoinPushExpressionsRule INSTANCE =
       new JoinPushExpressionsRule(Join.class, RelFactories.LOGICAL_BUILDER);

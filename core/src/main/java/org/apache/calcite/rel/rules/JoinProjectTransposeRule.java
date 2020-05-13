@@ -57,7 +57,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.logical.LogicalProject} doesn't originate from
  * a null generating input in an outer join.
  */
-public class JoinProjectTransposeRule extends RelOptRule {
+public class JoinProjectTransposeRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final JoinProjectTransposeRule BOTH_PROJECT =

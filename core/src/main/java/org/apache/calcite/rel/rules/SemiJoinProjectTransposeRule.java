@@ -53,7 +53,7 @@ import java.util.List;
  *
  * @see org.apache.calcite.rel.rules.SemiJoinFilterTransposeRule
  */
-public class SemiJoinProjectTransposeRule extends RelOptRule {
+public class SemiJoinProjectTransposeRule extends RelOptRule implements TransformationRule {
   public static final SemiJoinProjectTransposeRule INSTANCE =
       new SemiJoinProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
 

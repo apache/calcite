@@ -42,7 +42,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * However, an extension for full outer joins for this rule could be envisioned.
  * Special attention should be paid to null values for correctness issues.
  */
-public class SortJoinTransposeRule extends RelOptRule {
+public class SortJoinTransposeRule extends RelOptRule implements TransformationRule {
 
   public static final SortJoinTransposeRule INSTANCE =
       new SortJoinTransposeRule(LogicalSort.class,

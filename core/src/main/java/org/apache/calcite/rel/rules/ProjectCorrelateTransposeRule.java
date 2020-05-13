@@ -44,7 +44,7 @@ import java.util.Map;
 /**
  * Push Project under Correlate to apply on Correlate's left and right child
  */
-public class ProjectCorrelateTransposeRule extends RelOptRule {
+public class ProjectCorrelateTransposeRule extends RelOptRule implements TransformationRule {
 
   public static final ProjectCorrelateTransposeRule INSTANCE =
       new ProjectCorrelateTransposeRule(expr -> !(expr instanceof RexOver),

@@ -33,7 +33,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  */
-public class ProjectMultiJoinMergeRule extends RelOptRule {
+public class ProjectMultiJoinMergeRule extends RelOptRule implements TransformationRule {
   public static final ProjectMultiJoinMergeRule INSTANCE =
       new ProjectMultiJoinMergeRule(RelFactories.LOGICAL_BUILDER);
 

@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSet;
  *
  * @see SemiJoinProjectTransposeRule
  */
-public class SemiJoinFilterTransposeRule extends RelOptRule {
+public class SemiJoinFilterTransposeRule extends RelOptRule implements TransformationRule {
   public static final SemiJoinFilterTransposeRule INSTANCE =
       new SemiJoinFilterTransposeRule(RelFactories.LOGICAL_BUILDER);
 

@@ -34,7 +34,7 @@ import java.util.List;
  * {@link org.apache.calcite.rel.core.Union}.
  *
  */
-public class SortUnionTransposeRule extends RelOptRule {
+public class SortUnionTransposeRule extends RelOptRule implements TransformationRule {
 
   /** Rule instance for Union implementation that does not preserve the
    * ordering of its inputs. Thus, it makes no sense to match this rule

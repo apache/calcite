@@ -48,7 +48,8 @@ import java.util.List;
  * <p>To prevent cycles, this rule will not extract a {@code Project} if the
  * {@code Aggregate}s input is already a {@code Project}.
  */
-public class AggregateExtractProjectRule extends RelOptRule {
+public class AggregateExtractProjectRule extends RelOptRule
+    implements TransformationRule {
 
   /**
    * Creates an AggregateExtractProjectRule.

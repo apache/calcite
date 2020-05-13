@@ -62,7 +62,8 @@ import javax.annotation.Nullable;
  *   FROM Emp</code>
  * </blockquote>
  */
-public class AggregateCaseToFilterRule extends RelOptRule {
+public class AggregateCaseToFilterRule extends RelOptRule
+    implements TransformationRule {
   public static final AggregateCaseToFilterRule INSTANCE =
       new AggregateCaseToFilterRule(RelFactories.LOGICAL_BUILDER, null);
 

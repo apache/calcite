@@ -33,7 +33,7 @@ import java.util.List;
  * assist operator implementations which impose requirements on their input
  * types.
  */
-public class CoerceInputsRule extends RelOptRule {
+public class CoerceInputsRule extends RelOptRule implements TransformationRule {
   //~ Instance fields --------------------------------------------------------
 
   private final Class consumerRelClass;
