@@ -17,7 +17,6 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.RelMultipleTrait;
-import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.List;
@@ -48,12 +47,5 @@ public interface RelCollation extends RelMultipleTrait {
       keys[i] = collations.get(i).getFieldIndex();
     }
     return ImmutableIntList.of(keys);
-  }
-
-  /**
-   * Returns the bit set of the key column ordinals.
-   */
-  default @Nonnull ImmutableBitSet getKeysBits() {
-    return ImmutableBitSet.of(getKeys());
   }
 }
