@@ -17,6 +17,7 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.RelMultipleTrait;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.List;
@@ -47,6 +48,13 @@ public interface RelDistribution extends RelMultipleTrait {
    * SINGLETON) never have keys.
    */
   @Nonnull List<Integer> getKeys();
+
+  /**
+   * Returns the bit set of the key column ordinals.
+   */
+  default @Nonnull ImmutableBitSet getKeysBits() {
+    return ImmutableBitSet.of(getKeys());
+  }
 
   /**
    * Applies mapping to this distribution trait.

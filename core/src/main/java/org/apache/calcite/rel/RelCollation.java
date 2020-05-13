@@ -17,8 +17,11 @@
 package org.apache.calcite.rel;
 
 import org.apache.calcite.plan.RelMultipleTrait;
+import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 
 /**
  * Description of the physical ordering of a relational expression.
@@ -32,5 +35,25 @@ public interface RelCollation extends RelMultipleTrait {
   /**
    * Returns the ordinals and directions of the columns in this ordering.
    */
-  List<RelFieldCollation> getFieldCollations();
+  @Nonnull List<RelFieldCollation> getFieldCollations();
+
+  /**
+   * Returns the ordinals of the key columns.
+   */
+  default @Nonnull List<Integer> getKeys() {
+    final List<RelFieldCollation> collations = getFieldCollations();
+    final int size = collations.size();
+    final int[] keys = new int[size];
+    for (int i = 0; i < size; i++) {
+      keys[i] = collations.get(i).getFieldIndex();
+    }
+    return ImmutableIntList.of(keys);
+  }
+
+  /**
+   * Returns the bit set of the key column ordinals.
+   */
+  default @Nonnull ImmutableBitSet getKeysBits() {
+    return ImmutableBitSet.of(getKeys());
+  }
 }
