@@ -57,7 +57,8 @@ import java.util.TreeMap;
  * reduced aggregate. If those constants are not used, another rule will remove
  * them from the project.
  */
-public class AggregateProjectPullUpConstantsRule extends RelOptRule {
+public class AggregateProjectPullUpConstantsRule extends RelOptRule
+    implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */

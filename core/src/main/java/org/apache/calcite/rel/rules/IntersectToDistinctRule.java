@@ -66,7 +66,7 @@ import java.math.BigDecimal;
  *
  * @see org.apache.calcite.rel.rules.UnionToDistinctRule
  */
-public class IntersectToDistinctRule extends RelOptRule {
+public class IntersectToDistinctRule extends RelOptRule implements TransformationRule {
   public static final IntersectToDistinctRule INSTANCE =
           new IntersectToDistinctRule(LogicalIntersect.class, RelFactories.LOGICAL_BUILDER);
 

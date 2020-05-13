@@ -26,7 +26,7 @@ import org.apache.calcite.rel.logical.LogicalMatch;
  * {@link LogicalMatch} to the result
  * of calling {@link LogicalMatch#copy}.
  */
-public class MatchRule extends RelOptRule {
+public class MatchRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final MatchRule INSTANCE = new MatchRule();

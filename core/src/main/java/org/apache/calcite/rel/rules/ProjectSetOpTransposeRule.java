@@ -39,7 +39,7 @@ import java.util.List;
  * only the {@link RexInputRef}s referenced in the original
  * {@code LogicalProject}.
  */
-public class ProjectSetOpTransposeRule extends RelOptRule {
+public class ProjectSetOpTransposeRule extends RelOptRule implements TransformationRule {
   public static final ProjectSetOpTransposeRule INSTANCE =
       new ProjectSetOpTransposeRule(expr -> !(expr instanceof RexOver),
           RelFactories.LOGICAL_BUILDER);

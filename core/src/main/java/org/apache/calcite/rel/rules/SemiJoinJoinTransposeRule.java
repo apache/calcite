@@ -49,7 +49,7 @@ import java.util.List;
  * first or second conversion is applied depends on which operands actually
  * participate in the semi-join.</p>
  */
-public class SemiJoinJoinTransposeRule extends RelOptRule {
+public class SemiJoinJoinTransposeRule extends RelOptRule implements TransformationRule {
   public static final SemiJoinJoinTransposeRule INSTANCE =
       new SemiJoinJoinTransposeRule(RelFactories.LOGICAL_BUILDER);
 

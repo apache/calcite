@@ -68,7 +68,7 @@ import static org.apache.calcite.util.mapping.Mappings.TargetMapping;
  *       e.g. {@code t0.c1 = t1.c1 and t1.c2 = t0.c3}
  * </ol>
  */
-public class MultiJoinOptimizeBushyRule extends RelOptRule {
+public class MultiJoinOptimizeBushyRule extends RelOptRule implements TransformationRule {
   public static final MultiJoinOptimizeBushyRule INSTANCE =
       new MultiJoinOptimizeBushyRule(RelFactories.LOGICAL_BUILDER);
 

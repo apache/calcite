@@ -37,7 +37,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
  *
  * @see org.apache.calcite.sql.fun.SqlStdOperatorTable#IS_NOT_DISTINCT_FROM
  */
-public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule {
+public final class FilterRemoveIsNotDistinctFromRule extends RelOptRule
+    implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */

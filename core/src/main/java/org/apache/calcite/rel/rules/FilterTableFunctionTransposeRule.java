@@ -39,7 +39,8 @@ import java.util.Set;
  * a {@link org.apache.calcite.rel.logical.LogicalFilter}
  * past a {@link org.apache.calcite.rel.logical.LogicalTableFunctionScan}.
  */
-public class FilterTableFunctionTransposeRule extends RelOptRule {
+public class FilterTableFunctionTransposeRule extends RelOptRule
+    implements TransformationRule {
   public static final FilterTableFunctionTransposeRule INSTANCE =
       new FilterTableFunctionTransposeRule(RelFactories.LOGICAL_BUILDER);
 

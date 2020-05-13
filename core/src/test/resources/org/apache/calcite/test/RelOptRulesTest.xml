@@ -12532,4 +12532,28 @@ LogicalProject(NAME=[$10], ENAME=[$1])
 ]]>
         </Resource>
     </TestCase>
+  <TestCase name="testMergeJoinCollation">
+    <Resource name="sql">
+      <![CDATA[select * from
+        sales.emp r join sales.bonus s
+        on r.ename=s.ename where r.sal+1=s.sal]]>
+    </Resource>
+    <Resource name="planBefore">
+      <![CDATA[
+LogicalProject(ENAME=[$1], SAL=[$11])
+  LogicalFilter(condition=[=(+($5, 1), $11)])
+    LogicalJoin(condition=[=($1, $9)], joinType=[inner])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+    </Resource>
+    <Resource name="planAfter">
+      <![CDATA[
+EnumerableProject(ENAME=[$5], SAL=[$2])
+  EnumerableHashJoin(condition=[AND(=($0, $5), =(+($9, 1), $2))], joinType=[inner])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+    </Resource>
+  </TestCase>
 </Root>

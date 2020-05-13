@@ -39,7 +39,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.core.Union}s
  * still have only two inputs.
  */
-public class AggregateUnionAggregateRule extends RelOptRule {
+public class AggregateUnionAggregateRule extends RelOptRule implements TransformationRule {
   /** Instance that matches an {@code Aggregate} as the left input of
    * {@code Union}. */
   public static final AggregateUnionAggregateRule AGG_ON_FIRST_INPUT =

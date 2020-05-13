@@ -44,7 +44,7 @@ import java.util.List;
  *
  * @see org.apache.calcite.rel.rules.AggregateFilterTransposeRule
  */
-public class FilterAggregateTransposeRule extends RelOptRule {
+public class FilterAggregateTransposeRule extends RelOptRule implements TransformationRule {
 
   /** The default instance of
    * {@link FilterAggregateTransposeRule}.

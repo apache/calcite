@@ -38,7 +38,7 @@ import java.util.List;
  * Planner rule that pushes a {@link Filter} above a {@link Correlate} into the
  * inputs of the Correlate.
  */
-public class FilterCorrelateRule extends RelOptRule {
+public class FilterCorrelateRule extends RelOptRule implements TransformationRule {
 
   public static final FilterCorrelateRule INSTANCE =
       new FilterCorrelateRule(RelFactories.LOGICAL_BUILDER);

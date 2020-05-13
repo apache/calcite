@@ -53,7 +53,7 @@ import java.util.Objects;
  *
  * @see org.apache.calcite.rel.rules.ProjectSortTransposeRule
  */
-public class SortProjectTransposeRule extends RelOptRule {
+public class SortProjectTransposeRule extends RelOptRule implements TransformationRule {
   public static final SortProjectTransposeRule INSTANCE =
       new SortProjectTransposeRule(Sort.class, LogicalProject.class,
           RelFactories.LOGICAL_BUILDER, null);

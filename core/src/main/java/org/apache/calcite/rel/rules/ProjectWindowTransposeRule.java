@@ -46,7 +46,7 @@ import java.util.List;
  * a {@link org.apache.calcite.rel.logical.LogicalProject}
  * past a {@link org.apache.calcite.rel.logical.LogicalWindow}.
  */
-public class ProjectWindowTransposeRule extends RelOptRule {
+public class ProjectWindowTransposeRule extends RelOptRule implements TransformationRule {
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.ProjectWindowTransposeRule}. */
   public static final ProjectWindowTransposeRule INSTANCE =

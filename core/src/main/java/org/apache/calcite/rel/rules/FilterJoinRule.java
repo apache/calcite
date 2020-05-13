@@ -47,7 +47,7 @@ import static org.apache.calcite.plan.RelOptUtil.conjunctions;
  * Planner rule that pushes filters above and
  * within a join node into the join node and/or its children nodes.
  */
-public abstract class FilterJoinRule extends RelOptRule {
+public abstract class FilterJoinRule extends RelOptRule implements TransformationRule {
   /** Predicate that always returns true. With this predicate, every filter
    * will be pushed into the ON clause. */
   public static final Predicate TRUE_PREDICATE = (join, joinType, exp) -> true;

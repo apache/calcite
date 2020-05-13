@@ -46,7 +46,7 @@ import java.util.Objects;
  * MAX of MAX becomes MAX; MIN of MIN becomes MIN. AVG of AVG would not
  * match, nor would COUNT of COUNT.
  */
-public class AggregateMergeRule extends RelOptRule {
+public class AggregateMergeRule extends RelOptRule implements TransformationRule {
   public static final AggregateMergeRule INSTANCE =
       new AggregateMergeRule();
 

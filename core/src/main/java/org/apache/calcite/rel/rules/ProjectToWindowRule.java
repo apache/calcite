@@ -72,7 +72,7 @@ import java.util.Set;
  * <p>There is also a variant that matches
  * {@link org.apache.calcite.rel.core.Calc} rather than {@code Project}.
  */
-public abstract class ProjectToWindowRule extends RelOptRule {
+public abstract class ProjectToWindowRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final ProjectToWindowRule INSTANCE =

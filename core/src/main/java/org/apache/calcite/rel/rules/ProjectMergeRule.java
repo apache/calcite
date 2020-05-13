@@ -36,7 +36,7 @@ import java.util.List;
  * another {@link org.apache.calcite.rel.core.Project},
  * provided the projects aren't projecting identical sets of input references.
  */
-public class ProjectMergeRule extends RelOptRule {
+public class ProjectMergeRule extends RelOptRule implements TransformationRule {
   /** Default amount by which complexity is allowed to increase. */
   public static final int DEFAULT_BLOAT = 100;
 
@@ -80,6 +80,12 @@ public class ProjectMergeRule extends RelOptRule {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  @Override public boolean matches(RelOptRuleCall call) {
+    final Project topProject = call.rel(0);
+    final Project bottomProject = call.rel(1);
+    return topProject.getConvention() == bottomProject.getConvention();
+  }
 
   public void onMatch(RelOptRuleCall call) {
     final Project topProject = call.rel(0);

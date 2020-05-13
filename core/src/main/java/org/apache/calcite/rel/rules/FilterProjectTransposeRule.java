@@ -41,7 +41,7 @@ import java.util.function.Predicate;
  * a {@link org.apache.calcite.rel.core.Filter}
  * past a {@link org.apache.calcite.rel.core.Project}.
  */
-public class FilterProjectTransposeRule extends RelOptRule {
+public class FilterProjectTransposeRule extends RelOptRule implements TransformationRule {
   /** The default instance of
    * {@link org.apache.calcite.rel.rules.FilterProjectTransposeRule}.
    *

@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
  * the rewrite, and the product of the rewrite will be a {@link Correlate}.
  * The Correlate can be removed using {@link RelDecorrelator}.
  */
-public abstract class SubQueryRemoveRule extends RelOptRule {
+public abstract class SubQueryRemoveRule extends RelOptRule implements TransformationRule {
   public static final SubQueryRemoveRule PROJECT =
       new SubQueryProjectRemoveRule(RelFactories.LOGICAL_BUILDER);
 

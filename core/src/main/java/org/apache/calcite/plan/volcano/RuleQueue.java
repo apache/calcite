@@ -17,8 +17,8 @@
 package org.apache.calcite.plan.volcano;
 
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 

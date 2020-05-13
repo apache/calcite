@@ -34,7 +34,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * has called {@link RelOptTable#toRel(RelOptTable.ToRelContext)}.
  */
 @Deprecated // to be removed before 2.0
-public class TableScanRule extends RelOptRule {
+public class TableScanRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final TableScanRule INSTANCE =

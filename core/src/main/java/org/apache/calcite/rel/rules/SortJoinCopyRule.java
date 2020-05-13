@@ -48,7 +48,7 @@ import java.util.List;
  * sorted inputs; and allowing the sort to be performed on a possibly smaller
  * result.
  */
-public class SortJoinCopyRule extends RelOptRule {
+public class SortJoinCopyRule extends RelOptRule implements TransformationRule {
 
   public static final SortJoinCopyRule INSTANCE =
       new SortJoinCopyRule(LogicalSort.class,

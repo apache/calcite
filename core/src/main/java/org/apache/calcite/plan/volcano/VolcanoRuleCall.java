@@ -21,8 +21,8 @@ import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
-import org.apache.calcite.plan.SubstitutionRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

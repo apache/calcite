@@ -102,7 +102,7 @@ import java.util.Map;
  * @see org.apache.calcite.rel.rules.FilterMultiJoinMergeRule
  * @see org.apache.calcite.rel.rules.ProjectMultiJoinMergeRule
  */
-public class JoinToMultiJoinRule extends RelOptRule {
+public class JoinToMultiJoinRule extends RelOptRule implements TransformationRule {
   public static final JoinToMultiJoinRule INSTANCE =
       new JoinToMultiJoinRule(LogicalJoin.class, RelFactories.LOGICAL_BUILDER);
 

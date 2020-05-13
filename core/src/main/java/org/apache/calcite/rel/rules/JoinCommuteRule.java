@@ -48,7 +48,7 @@ import java.util.function.Predicate;
  * <p>To preserve the order of columns in the output row, the rule adds a
  * {@link org.apache.calcite.rel.core.Project}.
  */
-public class JoinCommuteRule extends RelOptRule {
+public class JoinCommuteRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Instance of the rule that only swaps inner joins. */

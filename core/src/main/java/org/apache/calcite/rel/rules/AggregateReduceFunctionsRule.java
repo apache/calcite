@@ -92,7 +92,8 @@ import java.util.Objects;
  * forms like {@code COUNT(x)}, the rule gathers common sub-expressions as it
  * goes.
  */
-public class AggregateReduceFunctionsRule extends RelOptRule {
+public class AggregateReduceFunctionsRule extends RelOptRule
+    implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   /** The singleton. */

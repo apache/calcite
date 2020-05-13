@@ -62,7 +62,7 @@ import java.util.List;
  * <p>Before the rule, one join has two conditions and the other has none
  * ({@code ON TRUE}). After the rule, each join has one condition.</p>
  */
-public class JoinPushThroughJoinRule extends RelOptRule {
+public class JoinPushThroughJoinRule extends RelOptRule implements TransformationRule {
   /** Instance of the rule that works on logical joins only, and pushes to the
    * right. */
   public static final RelOptRule RIGHT =

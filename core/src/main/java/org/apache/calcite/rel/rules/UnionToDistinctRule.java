@@ -32,7 +32,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * on top of a non-distinct {@link org.apache.calcite.rel.core.Union}
  * (<code>all</code> = <code>true</code>).
  */
-public class UnionToDistinctRule extends RelOptRule {
+public class UnionToDistinctRule extends RelOptRule implements TransformationRule {
   public static final UnionToDistinctRule INSTANCE =
       new UnionToDistinctRule(LogicalUnion.class, RelFactories.LOGICAL_BUILDER);
 

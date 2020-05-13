@@ -63,7 +63,7 @@ import java.util.List;
  * <p>Ignores an empty {@code Values}; this is better dealt with by
  * {@link PruneEmptyRules}.
  */
-public abstract class ValuesReduceRule extends RelOptRule {
+public abstract class ValuesReduceRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();

@@ -162,6 +162,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -6615,6 +6616,29 @@ class RelOptRulesTest extends RelOptTestBase {
         + "ON t1.deptno = t2.deptno "
         + "WHERE t1.ename is not distinct from t2.ename";
     sql(query).withRule(FilterJoinRule.FILTER_ON_JOIN).check();
+  }
+
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3997">[CALCITE-3997]
+   * Logical rules applied on physical operator but failed handle traits</a>
+   */
+  @Test void testMergeJoinCollation() {
+    final String sql = "select r.ename, s.sal from\n"
+        + "sales.emp r join sales.bonus s\n"
+        + "on r.ename=s.ename where r.sal+1=s.sal";
+    sql(sql, false).check();
+  }
+
+  Sql sql(String sql, boolean topDown) {
+    VolcanoPlanner planner = new VolcanoPlanner();
+    planner.setTopDownOpt(topDown);
+    planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+    planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+    RelOptUtil.registerDefaultRules(planner, false, false);
+    Tester tester = createTester().withDecorrelation(true)
+        .withClusterFactory(cluster -> RelOptCluster.create(planner, cluster.getRexBuilder()));
+    return new Sql(tester, sql, null, planner,
+        ImmutableMap.of(), ImmutableList.of());
   }
 
   /**

@@ -53,7 +53,7 @@ import java.util.Map;
  * {@link org.apache.calcite.rel.core.Aggregate}
  * past a non-distinct {@link org.apache.calcite.rel.core.Union}.
  */
-public class AggregateUnionTransposeRule extends RelOptRule {
+public class AggregateUnionTransposeRule extends RelOptRule implements TransformationRule {
   public static final AggregateUnionTransposeRule INSTANCE =
       new AggregateUnionTransposeRule(LogicalAggregate.class,
           LogicalUnion.class, RelFactories.LOGICAL_BUILDER);

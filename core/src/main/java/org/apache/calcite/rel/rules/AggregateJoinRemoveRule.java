@@ -58,7 +58,7 @@ import java.util.Set;
  * <pre>select distinct s.product_id from sales as s</pre></blockquote>
  *
  */
-public class AggregateJoinRemoveRule extends RelOptRule {
+public class AggregateJoinRemoveRule extends RelOptRule implements TransformationRule {
   public static final AggregateJoinRemoveRule INSTANCE =
       new AggregateJoinRemoveRule(LogicalAggregate.class, LogicalJoin.class,
           RelFactories.LOGICAL_BUILDER);

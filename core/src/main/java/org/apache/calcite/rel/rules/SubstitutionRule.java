@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.calcite.plan;
+package org.apache.calcite.rel.rules;
 
 /**
  * A rule that implements this interface indicates that the new RelNode
@@ -22,7 +22,7 @@ package org.apache.calcite.plan;
  * be executed first until they are done. The execution order of
  * substitution rules depends on the match order.
  */
-public interface SubstitutionRule {
+public interface SubstitutionRule extends TransformationRule {
 
   /**
    * Whether the planner should automatically prune old node when

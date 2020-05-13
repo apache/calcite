@@ -42,7 +42,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.logical.LogicalFilter} will eventually be
  * converted by {@link FilterCalcMergeRule}.
  */
-public class FilterToCalcRule extends RelOptRule {
+public class FilterToCalcRule extends RelOptRule implements TransformationRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final FilterToCalcRule INSTANCE =
