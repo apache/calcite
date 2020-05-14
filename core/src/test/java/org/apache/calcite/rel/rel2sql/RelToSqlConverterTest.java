@@ -196,7 +196,7 @@ class RelToSqlConverterTest {
   /** Converts a relational expression to SQL in a given dialect. */
   private static String toSql(RelNode root, SqlDialect dialect) {
     final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    final SqlNode sqlNode = converter.visitChild(0, root).asStatement();
+    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
     return sqlNode.toSqlString(dialect).getSql();
   }
 
@@ -680,8 +680,8 @@ class RelToSqlConverterTest {
         .build();
     final SqlDialect dialect = SqlDialect.DatabaseProduct.CALCITE.getDialect();
     final RelNode root = relFn.apply(relBuilder());
-    final SqlNode sqlNode = new RelToSqlConverter(dialect)
-        .visitChild(0, root).asStatement();
+    final RelToSqlConverter converter = new RelToSqlConverter(dialect);
+    final SqlNode sqlNode = converter.visitRoot(root).asStatement();
     final String sqlString = sqlNode.accept(new SqlShuttle())
         .toSqlString(dialect).getSql();
     assertThat(sqlString, notNullValue());
@@ -1052,7 +1052,7 @@ class RelToSqlConverterTest {
    * <a href="https://issues.apache.org/jira/browse/CALCITE-3896">[CALCITE-3896]
    * JDBC adapter, when generating SQL, changes target of ambiguous HAVING
    * clause with a Project on Filter on Aggregate</a>. */
-  @Disabled // TODO
+//  @Disabled // TODO
   @Test void testHavingAlias2() {
     final String query = "select \"product_id\" + 1,\n"
         + "  sum(\"gross_weight\") as gross_weight\n"

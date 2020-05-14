@@ -53,7 +53,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
   }
 
   @Override public Result visit(Aggregate e) {
-    final Result x = visitChild(0, e.getInput());
+    final Result x = visitInput(e, 0);
     final boolean isProjectOutput = e.getInput() instanceof Project
         || (e.getInput() instanceof EnumerableInterpreter
             && ((EnumerableInterpreter) e.getInput()).getInput()
@@ -84,7 +84,7 @@ public class PigRelToSqlConverter extends RelToSqlConverter {
 
   /** @see #dispatch */
   public Result visit(Window e) {
-    final Result x = visitChild(0, e.getInput());
+    final Result x = visitInput(e, 0);
     final Builder builder = x.builder(e, Clause.SELECT);
     final List<SqlNode> selectList =
         new ArrayList<>(builder.context.fieldList());

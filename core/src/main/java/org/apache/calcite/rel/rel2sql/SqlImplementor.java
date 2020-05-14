@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -124,31 +125,41 @@ public abstract class SqlImplementor {
     this.dialect = Objects.requireNonNull(dialect);
   }
 
-  /** Visits an input of the current relational expression,
-   * deducing {@code anon} using {@link #isAnon()}. */
+  /** Visits a relational expression that has no parent. */
+  public final Result visitRoot(RelNode e) {
+    return visitInput(holder(e), 0);
+  }
+
+  /** Creates a relational expression that has {@code r} as its input. */
+  private static RelNode holder(RelNode r) {
+    return new SingleRel(r.getCluster(), r.getTraitSet(), r) {
+    };
+  }
+
+  /** @deprecated Use either {@link #visitRoot(RelNode)} or
+   * {@link #visitInput(RelNode, int)}. */
+  @Deprecated
   public final Result visitChild(int i, RelNode e) {
-    return visitChild(i, e, isAnon(), false, ImmutableSet.of());
+    throw new UnsupportedOperationException();
   }
 
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
-  public final Result visitChild(int i, RelNode e, boolean ignoreClauses,
-      Clause... clauses) {
-    return visitChild(i, e, isAnon(), ignoreClauses,
-        ImmutableSet.copyOf(clauses));
+  public final Result visitInput(RelNode e, int i) {
+    return visitInput(e, i, isAnon(), false, ImmutableSet.of());
   }
 
   /** Visits an input of the current relational expression,
    * deducing {@code anon} using {@link #isAnon()}. */
-  public final Result visitChild(int i, RelNode e, Clause... clauses) {
-    return visitChild(i, e, isAnon(), false, ImmutableSet.copyOf(clauses));
+  public final Result visitInput(RelNode e, int i, Clause... clauses) {
+    return visitInput(e, i, isAnon(), false, ImmutableSet.copyOf(clauses));
   }
 
-  /** Visits {@code e}, the {@code i}th input of the current relational
+  /** Visits the {@code i}th input of {@code e}, the current relational
    * expression.
    *
-   * @param i Ordinal of input within its consumer
-   * @param e Relational expression
+   * @param e Current relational expression
+   * @param i Ordinal of input within {@code e}
    * @param anon Whether to remove trivial aliases such as "EXPR$0"
    * @param ignoreClauses Whether to ignore the expected clauses when deciding
    *   whether a sub-query is required
@@ -158,7 +169,7 @@ public abstract class SqlImplementor {
    *
    * @see #isAnon()
    */
-  public abstract Result visitChild(int i, RelNode e, boolean anon,
+  public abstract Result visitInput(RelNode e, int i, boolean anon,
       boolean ignoreClauses, Set<Clause> expectedClauses);
 
   public void addSelect(List<SqlNode> selectList, SqlNode node,
@@ -215,7 +226,7 @@ public abstract class SqlImplementor {
   public Result setOpToSql(SqlSetOperator operator, RelNode rel) {
     SqlNode node = null;
     for (Ord<RelNode> input : Ord.zip(rel.getInputs())) {
-      final Result result = visitChild(input.i, input.e);
+      final Result result = visitInput(rel, input.i);
       if (node == null) {
         node = result.asSelect();
       } else {
@@ -764,7 +775,7 @@ public abstract class SqlImplementor {
         if (rex instanceof RexSubQuery) {
           subQuery = (RexSubQuery) rex;
           sqlSubQuery =
-              implementor().visitChild(0, subQuery.rel).asQueryOrValues();
+              implementor().visitRoot(subQuery.rel).asQueryOrValues();
           final List<RexNode> operands = subQuery.operands;
           SqlNode op0;
           if (operands.size() == 1) {
@@ -785,8 +796,7 @@ public abstract class SqlImplementor {
       case SCALAR_QUERY:
         subQuery = (RexSubQuery) rex;
         sqlSubQuery =
-            implementor().visitChild(0, subQuery.rel)
-                .asQueryOrValues();
+            implementor().visitRoot(subQuery.rel).asQueryOrValues();
         return subQuery.getOperator().createCall(POS, sqlSubQuery);
 
       case NOT:
@@ -1346,16 +1356,19 @@ public abstract class SqlImplementor {
     /** Clauses that will be generated to implement current relational
      * expression. */
     private final ImmutableSet<Clause> expectedClauses;
+    private final RelNode expectedRel;
+    private final boolean needNew;
 
     public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
-          ImmutableSet.of());
+          ImmutableSet.of(), null);
     }
 
     private Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
         RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
-        boolean ignoreClauses, Set<Clause> expectedClauses) {
+        boolean ignoreClauses, Set<Clause> expectedClauses,
+        RelNode expectedRel) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1364,6 +1377,9 @@ public abstract class SqlImplementor {
       this.anon = anon;
       this.ignoreClauses = ignoreClauses;
       this.expectedClauses = ImmutableSet.copyOf(expectedClauses);
+      this.expectedRel = expectedRel;
+      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : expectedClauses.toArray(new Clause[0]);
+      this.needNew = expectedRel != null && needNewSubQuery(expectedRel, this.clauses, clauses2);
     }
 
     public Builder builderX(RelNode rel) {
@@ -1390,8 +1406,10 @@ public abstract class SqlImplementor {
      */
     public Builder builder(RelNode rel, Clause... clauses) {
       assert expectedClauses.containsAll(Arrays.asList(clauses));
-      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : clauses;
-      final boolean needNew = needNewSubQuery(rel, clauses2);
+      assert rel.equals(expectedRel);
+      final Clause[] clauses2 = ignoreClauses ? new Clause[0] : expectedClauses.toArray(new Clause[0]); // TODO clauses;
+      final boolean needNew = needNewSubQuery(rel, this.clauses, clauses2);
+      assert needNew == this.needNew;
       SqlSelect select;
       Expressions.FluentList<Clause> clauseList = Expressions.list();
       if (needNew) {
@@ -1464,12 +1482,12 @@ public abstract class SqlImplementor {
     }
 
     /** Returns whether a new sub-query is required. */
-    private boolean needNewSubQuery(RelNode rel, Clause[] clauses) {
-      final Clause maxClause = maxClause();
+    private boolean needNewSubQuery(RelNode rel, List<Clause> clauses, Clause[] expectedClauses) {
+      final Clause maxClause = maxClause(clauses);
       // If old and new clause are equal and belong to below set,
       // then new SELECT wrap is not required
       final Set<Clause> nonWrapSet = ImmutableSet.of(Clause.SELECT);
-      for (Clause clause : clauses) {
+      for (Clause clause : expectedClauses) {
         if (maxClause.ordinal() > clause.ordinal()
             || (maxClause == clause
                 && !nonWrapSet.contains(clause))) {
@@ -1478,7 +1496,7 @@ public abstract class SqlImplementor {
       }
 
       if (rel instanceof Project
-          && this.clauses.contains(Clause.HAVING)
+          && clauses.contains(Clause.HAVING)
           && dialect.getConformance().isHavingAlias()) {
         return true;
       }
@@ -1499,7 +1517,7 @@ public abstract class SqlImplementor {
           return true;
         }
 
-        if (this.clauses.contains(Clause.GROUP_BY)) {
+        if (clauses.contains(Clause.GROUP_BY)) {
           // Avoid losing the distinct attribute of inner aggregate.
           return !hasNestedAgg || Aggregate.isNotGrandTotal(agg);
         }
@@ -1534,7 +1552,12 @@ public abstract class SqlImplementor {
     }
 
     /** Returns the highest clause that is in use. */
+    @Deprecated
     public Clause maxClause() {
+      return maxClause(clauses);
+    }
+
+    private Clause maxClause(List<Clause> clauses) {
       Clause maxClause = null;
       for (Clause clause : clauses) {
         if (maxClause == null || clause.ordinal() > maxClause.ordinal()) {
@@ -1676,7 +1699,7 @@ public abstract class SqlImplementor {
       } else {
         return new Result(node, clauses, neededAlias, neededType,
             ImmutableMap.of(neededAlias, neededType), anon, ignoreClauses,
-            expectedClauses);
+            expectedClauses, expectedRel);
       }
     }
 
@@ -1689,25 +1712,26 @@ public abstract class SqlImplementor {
     public Result resetAlias(String alias, RelDataType type) {
       return new Result(node, clauses, alias, neededType,
           ImmutableMap.of(alias, type), anon, ignoreClauses,
-          expectedClauses);
+          expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of {@code anon}. */
     Result withAnon(boolean anon) {
       return anon == this.anon ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, expectedClauses);
+              ignoreClauses, expectedClauses, expectedRel);
     }
 
     /** Returns a copy of this Result, overriding the value of
      * {@code ignoreClauses} and {@code expectedClauses}. */
     Result withExpectedClauses(boolean ignoreClauses,
-        Set<? extends Clause> expectedClauses) {
+        Set<? extends Clause> expectedClauses, RelNode expectedRel) {
       return ignoreClauses == this.ignoreClauses
           && expectedClauses.equals(this.expectedClauses)
+          && expectedRel == this.expectedRel
           ? this
           : new Result(node, clauses, neededAlias, neededType, aliases, anon,
-              ignoreClauses, ImmutableSet.copyOf(expectedClauses));
+              ignoreClauses, ImmutableSet.copyOf(expectedClauses), expectedRel);
     }
   }
 

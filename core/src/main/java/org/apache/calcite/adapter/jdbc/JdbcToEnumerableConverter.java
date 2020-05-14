@@ -330,7 +330,7 @@ public class JdbcToEnumerableConverter
         new JdbcImplementor(dialect,
             (JavaTypeFactory) getCluster().getTypeFactory());
     final JdbcImplementor.Result result =
-        jdbcImplementor.visitChild(0, getInput());
+        jdbcImplementor.visitInput(this, 0);
     return result.asStatement().toSqlString(dialect);
   }
 }

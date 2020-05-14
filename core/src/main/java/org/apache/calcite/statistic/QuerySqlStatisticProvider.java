@@ -192,7 +192,7 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
 
   protected String toSql(RelNode rel, SqlDialect dialect) {
     final RelToSqlConverter converter = new RelToSqlConverter(dialect);
-    SqlImplementor.Result result = converter.visitChild(0, rel);
+    SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(dialect).getSql();
     sqlConsumer.accept(sql);
