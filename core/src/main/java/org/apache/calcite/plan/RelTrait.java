@@ -116,6 +116,6 @@ public interface RelTrait {
    * Returns whether this trait is the default trait value.
    */
   default boolean isDefault() {
-    return equals(getTraitDef().getDefault());
+    return this == getTraitDef().getDefault();
   }
 }

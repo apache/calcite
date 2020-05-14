@@ -310,7 +310,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
       if (traits[i].getTraitDef() == ConventionTraitDef.INSTANCE) {
         continue;
       }
-      if (!traits[i].equals(other.traits[i])) {
+      // each trait should be canonized already
+      if (traits[i] != other.traits[i]) {
         return false;
       }
     }
@@ -431,7 +432,15 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
         && this.hash != that.hash) {
       return false;
     }
-    return Arrays.equals(traits, that.traits);
+    if (traits.length != that.traits.length) {
+      return false;
+    }
+    for (int i = 0; i < traits.length; i++) {
+      if (traits[i] != that.traits[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override public int hashCode() {
