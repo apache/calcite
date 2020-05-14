@@ -30,7 +30,6 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 
 import java.sql.Connection;
@@ -41,10 +40,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
@@ -59,37 +55,21 @@ final class JdbcUtils {
 
   /** Pool of dialects. */
   static class DialectPool {
-    final Map<DataSource, Map<SqlDialectFactory, SqlDialect>> map0 = new IdentityHashMap<>();
-    final Map<List, SqlDialect> map = new HashMap<>();
-
     public static final DialectPool INSTANCE = new DialectPool();
 
-    // TODO: Discuss why we need a pool. If we do, I'd like to improve performance
-    synchronized SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
-      Map<SqlDialectFactory, SqlDialect> dialectMap = map0.get(dataSource);
-      if (dialectMap != null) {
-        final SqlDialect sqlDialect = dialectMap.get(dialectFactory);
-        if (sqlDialect != null) {
-          return sqlDialect;
-        }
-      }
+    private final LoadingCache<Pair<SqlDialectFactory, DataSource>, SqlDialect> cache =
+        CacheBuilder.newBuilder().softValues()
+            .build(CacheLoader.from(DialectPool::dialect));
+
+    private static @Nonnull SqlDialect dialect(
+        @Nonnull Pair<SqlDialectFactory, DataSource> key) {
+      SqlDialectFactory dialectFactory = key.left;
+      DataSource dataSource = key.right;
       Connection connection = null;
       try {
         connection = dataSource.getConnection();
         DatabaseMetaData metaData = connection.getMetaData();
-        String productName = metaData.getDatabaseProductName();
-        String productVersion = metaData.getDatabaseProductVersion();
-        List key = ImmutableList.of(productName, productVersion, dialectFactory);
-        SqlDialect dialect = map.get(key);
-        if (dialect == null) {
-          dialect = dialectFactory.create(metaData);
-          map.put(key, dialect);
-          if (dialectMap == null) {
-            dialectMap = new IdentityHashMap<>();
-            map0.put(dataSource, dialectMap);
-          }
-          dialectMap.put(dialectFactory, dialect);
-        }
+        SqlDialect dialect = dialectFactory.create(metaData);
         connection.close();
         connection = null;
         return dialect;
@@ -104,6 +84,12 @@ final class JdbcUtils {
           }
         }
       }
+    }
+
+    public SqlDialect get(SqlDialectFactory dialectFactory, DataSource dataSource) {
+      final Pair<SqlDialectFactory, DataSource> key =
+          Pair.of(dialectFactory, dataSource);
+      return cache.getUnchecked(key);
     }
   }
 
