@@ -35,7 +35,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
  * {@link org.apache.calcite.rel.logical.LogicalCalc}, but expressed in terms of
  * the lower {@link org.apache.calcite.rel.logical.LogicalCalc}'s inputs.
  */
-public class CalcMergeRule extends RelOptRule implements TransformationRule {
+public class CalcMergeRule extends RelOptRule {
   //~ Static fields/initializers ---------------------------------------------
 
   public static final CalcMergeRule INSTANCE =
