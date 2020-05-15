@@ -185,6 +185,70 @@ public class RelOptRuleOperand {
   }
 
   /**
+   * <b>FOR DEBUG ONLY.</b>
+   *
+   * <p>To facilitate IDE shows the operand description in the debugger,
+   * returns the root operand description, but highlight current
+   * operand's matched class with '*' in the description.</p>
+   *
+   * <p>e.g. The following are examples of rule operand description for
+   * the operands that match with {@code LogicalFilter}.</p>
+   *
+   * <ul>
+   * <li>SemiJoinRule:project: Project(Join(*RelNode*, Aggregate))</li>
+   * <li>ProjectFilterTransposeRule: LogicalProject(*LogicalFilter*)</li>
+   * <li>FilterProjectTransposeRule: *Filter*(Project)</li>
+   * <li>ReduceExpressionsRule(Filter): *LogicalFilter*</li>
+   * <li>PruneEmptyJoin(right): Join(*RelNode*, Values)</li>
+   * </ul>
+   *
+   * @see #describeIt(RelOptRuleOperand)
+   */
+  @Override public String toString() {
+    RelOptRuleOperand root = this;
+    while (root.parent != null) {
+      root = root.parent;
+    }
+    StringBuilder s = root.describeIt(this);
+    return s.toString();
+  }
+
+  /**
+   * Returns this rule operand description, and highlight the operand's
+   * class name with '*' if {@code that} operand equals current operand.
+   *
+   * @param that The rule operand that needs to be highlighted
+   * @return The string builder that describes this rule operand
+   * @see #toString()
+   */
+  StringBuilder describeIt(RelOptRuleOperand that) {
+    StringBuilder s = new StringBuilder();
+    if (parent == null) {
+      s.append(rule).append(": ");
+    }
+    if (this == that) {
+      s.append('*');
+    }
+    s.append(clazz.getSimpleName());
+    if (this == that) {
+      s.append('*');
+    }
+    if (!children.isEmpty()) {
+      s.append('(');
+      boolean first = true;
+      for (RelOptRuleOperand child : children) {
+        if (!first) {
+          s.append(", ");
+        }
+        s.append(child.describeIt(that));
+        first = false;
+      }
+      s.append(')');
+    }
+    return s;
+  }
+
+  /**
    * @return relational expression class matched by this operand
    */
   public Class<? extends RelNode> getMatchedClass() {
