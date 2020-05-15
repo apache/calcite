@@ -40,8 +40,8 @@ public class SqlColumnDeclaration extends SqlCall {
   private static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("COLUMN_DECL", SqlKind.COLUMN_DECL);
 
-  final SqlIdentifier name;
-  final SqlDataTypeSpec dataType;
+  public final SqlIdentifier name;
+  public final SqlDataTypeSpec dataType;
   final SqlNode expression;
   final ColumnStrategy strategy;
 

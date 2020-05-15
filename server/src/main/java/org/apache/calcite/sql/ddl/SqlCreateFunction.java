@@ -42,7 +42,7 @@ import java.util.Objects;
  */
 public class SqlCreateFunction extends SqlCreate
     implements SqlExecutableStatement {
-  private final SqlIdentifier name;
+  public final SqlIdentifier name;
   private final SqlNode className;
   private final SqlNodeList usingList;
 

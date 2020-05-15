@@ -71,7 +71,7 @@ import javax.annotation.Nullable;
  */
 public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
-  private final SqlTypeName sqlTypeName;
+  public final SqlTypeName sqlTypeName;
 
   private int precision;
   private int scale;
