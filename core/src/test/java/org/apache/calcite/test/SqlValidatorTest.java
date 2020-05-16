@@ -10225,22 +10225,33 @@ class SqlValidatorTest extends SqlValidatorTestCase {
 
   @Test public void testTumbleTableFunction() {
     sql("select * from table(\n"
-        + "^tumble(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
+        + "^tumble(table orders, descriptor(rowtime))^)")
         .fails("Invalid number of arguments to function 'TUMBLE'. Was expecting 3 arguments");
     sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
         + "tumble(table orders, descriptor(rowtime), interval '2' hour))").ok();
+    sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
+        + "tumble(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour))").ok();
     sql("select * from table(\n"
         + "^tumble(table orders, descriptor(rowtime), 'test')^)")
         .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>,"
             + " <CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
-            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval\\)");
+            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval"
+            + "\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^tumble(table orders, 'test', interval '2' hour)^)")
         .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
             + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\"
             + "(4\\)>, <INTERVAL HOUR>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
-            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval\\)");
+            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval"
+            + "\\[, datetime interval\\]\\)");
+    sql("select rowtime, productid, orderid, 'window_start', 'window_end' from table(\n"
+        + "^tumble(table orders, descriptor(rowtime), interval '2' hour, 'test')^)")
+        .fails("Cannot apply 'TUMBLE' to arguments of type 'TUMBLE\\(<RECORDTYPE\\"
+            + "(TIMESTAMP\\(0\\) ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>,"
+            + " <INTERVAL HOUR>, <CHAR\\(4\\)>\\)'\\. Supported form\\(s\\): TUMBLE\\(TABLE "
+            + "table_name, DESCRIPTOR\\(col1, col2 \\.\\.\\.\\), datetime interval"
+            + "\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "tumble(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");
@@ -10250,6 +10261,9 @@ class SqlValidatorTest extends SqlValidatorTestCase {
     sql("select * from table(\n"
         + "hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour))").ok();
     sql("select * from table(\n"
+        + "hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour, "
+        + "interval '20' minute))").ok();
+    sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), interval '2' hour)^)")
         .fails("Invalid number of arguments to function 'HOP'. Was expecting 4 arguments");
     sql("select * from table(\n"
@@ -10257,19 +10271,25 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
             + "<CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^hop(table orders, descriptor(rowtime), 'test', interval '2' hour)^)")
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <CHAR\\(4\\)>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "^hop(table orders, 'test', interval '2' hour, interval '2' hour)^)")
         .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
             + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <CHAR\\(4\\)>, <INTERVAL HOUR>, "
             + "<INTERVAL HOUR>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, DESCRIPTOR\\("
-            + "col\\), datetime interval, datetime interval\\)");
+            + "col\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
+    sql("select * from table(\n"
+        + "^hop(table orders, descriptor(rowtime), interval '2' hour, interval '1' hour, 'test')^)")
+        .fails("Cannot apply 'HOP' to arguments of type 'HOP\\(<RECORDTYPE\\(TIMESTAMP\\(0\\) "
+            + "ROWTIME, INTEGER PRODUCTID, INTEGER ORDERID\\)>, <COLUMN_LIST>, <INTERVAL HOUR>, "
+            + "<INTERVAL HOUR>, <CHAR\\(4\\)>\\)'. Supported form\\(s\\): HOP\\(TABLE table_name, "
+            + "DESCRIPTOR\\(col\\), datetime interval, datetime interval\\[, datetime interval\\]\\)");
     sql("select * from table(\n"
         + "hop(TABLE ^tabler_not_exist^, descriptor(rowtime), interval '2' hour, interval '1' hour))")
         .fails("Object 'TABLER_NOT_EXIST' not found");

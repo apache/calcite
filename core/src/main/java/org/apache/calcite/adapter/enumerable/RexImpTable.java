@@ -3394,7 +3394,6 @@ public class RexImpTable {
       // represents the input, see StandardConvertletTable#convertWindowFunction.
       Expression intervalExpression = translator.translate(call.getOperands().get(1));
       RexCall descriptor = (RexCall) call.getOperands().get(0);
-      List<Expression> translatedOperands = new ArrayList<>();
       final ParameterExpression parameter =
           Expressions.parameter(Primitive.box(inputPhysType.getJavaRowType()),
               "_input");
@@ -3403,12 +3402,22 @@ public class RexImpTable {
               ((RexInputRef) descriptor.getOperands().get(0)).getIndex(),
               outputPhysType.getJavaFieldType(
                   inputPhysType.getRowType().getFieldCount()));
-      translatedOperands.add(wmColExpr);
-      translatedOperands.add(intervalExpression);
 
-      return Expressions.call(BuiltInMethod.TUMBLING.method, inputEnumerable,
-          EnumUtils.tumblingWindowSelector(inputPhysType, outputPhysType,
-              translatedOperands.get(0), translatedOperands.get(1)));
+      // handle the optional offset parameter. Use 0 for the default value when offset
+      // parameter is not set.
+      final Expression offsetExpr = call.getOperands().size() > 2
+          ? translator.translate(call.getOperands().get(2))
+          : Expressions.constant(0, long.class);
+
+      return Expressions.call(
+          BuiltInMethod.TUMBLING.method,
+          inputEnumerable,
+          EnumUtils.tumblingWindowSelector(
+              inputPhysType,
+              outputPhysType,
+              wmColExpr,
+              intervalExpression,
+              offsetExpr));
     }
   }
 
@@ -3419,20 +3428,24 @@ public class RexImpTable {
       Expression slidingInterval = translator.translate(call.getOperands().get(1));
       Expression windowSize = translator.translate(call.getOperands().get(2));
       RexCall descriptor = (RexCall) call.getOperands().get(0);
-      List<Expression> translatedOperands = new ArrayList<>();
       Expression wmColIndexExpr =
           Expressions.constant(((RexInputRef) descriptor.getOperands().get(0)).getIndex());
-      translatedOperands.add(wmColIndexExpr);
-      translatedOperands.add(slidingInterval);
-      translatedOperands.add(windowSize);
 
-      return Expressions.call(BuiltInMethod.HOPPING.method,
+      // handle the optional offset parameter. Use 0 for the default value when offset
+      // parameter is not set.
+      final Expression offsetExpr = call.getOperands().size() > 3
+          ? translator.translate(call.getOperands().get(3))
+          : Expressions.constant(0, long.class);
+
+      return Expressions.call(
+          BuiltInMethod.HOPPING.method,
           Expressions.list(
               Expressions.call(inputEnumerable,
                   BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
-              translatedOperands.get(0),
-              translatedOperands.get(1),
-              translatedOperands.get(2)));
+              wmColIndexExpr,
+              slidingInterval,
+              windowSize,
+              offsetExpr));
     }
   }
 
@@ -3444,21 +3457,17 @@ public class RexImpTable {
       RexCall keyDescriptor = (RexCall) call.getOperands().get(1);
       Expression gapInterval = translator.translate(call.getOperands().get(2));
 
-      List<Expression> translatedOperands = new ArrayList<>();
       Expression wmColIndexExpr =
           Expressions.constant(((RexInputRef) timestampDescriptor.getOperands().get(0)).getIndex());
       Expression keyColIndexExpr =
           Expressions.constant(((RexInputRef) keyDescriptor.getOperands().get(0)).getIndex());
-      translatedOperands.add(wmColIndexExpr);
-      translatedOperands.add(keyColIndexExpr);
-      translatedOperands.add(gapInterval);
 
       return Expressions.call(BuiltInMethod.SESSIONIZATION.method,
           Expressions.list(
               Expressions.call(inputEnumerable, BuiltInMethod.ENUMERABLE_ENUMERATOR.method),
-              translatedOperands.get(0),
-              translatedOperands.get(1),
-              translatedOperands.get(2)));
+              wmColIndexExpr,
+              keyColIndexExpr,
+              gapInterval));
     }
   }
 }

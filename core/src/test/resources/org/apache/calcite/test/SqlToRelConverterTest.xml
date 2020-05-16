@@ -4996,6 +4996,20 @@ LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3], O
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testTableFunctionTumbleWithOffset">
+        <Resource name="sql">
+            <![CDATA[select *
+from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '10' MINUTE, INTERVAL '1' MINUTE))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[TUMBLE(DESCRIPTOR($1), 600000:INTERVAL MINUTE, 60000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testTableFunctionHop">
         <Resource name="sql">
             <![CDATA[select *
@@ -5005,6 +5019,20 @@ from table(hop(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE, INTERV
             <![CDATA[
 LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
   LogicalTableFunctionScan(invocation=[HOP(DESCRIPTOR($1), 60000:INTERVAL MINUTE, 120000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
+    LogicalProject(ORDERID=[$0], ROWTIME=[$1])
+      LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testTableFunctionHopWithOffset">
+        <Resource name="sql">
+            <![CDATA[select *
+from table(hop(table Shipments, descriptor(rowtime), INTERVAL '1' MINUTE, INTERVAL '5' MINUTE, INTERVAL '3' MINUTE))]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(ORDERID=[$0], ROWTIME=[$1], window_start=[$2], window_end=[$3])
+  LogicalTableFunctionScan(invocation=[HOP(DESCRIPTOR($1), 60000:INTERVAL MINUTE, 300000:INTERVAL MINUTE, 180000:INTERVAL MINUTE)], rowType=[RecordType(INTEGER ORDERID, TIMESTAMP(0) ROWTIME, TIMESTAMP(0) window_start, TIMESTAMP(0) window_end)])
     LogicalProject(ORDERID=[$0], ROWTIME=[$1])
       LogicalTableScan(table=[[CATALOG, SALES, SHIPMENTS]])
 ]]>

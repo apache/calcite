@@ -36,7 +36,7 @@ public class SqlTumbleTableFunction extends SqlWindowTableFunction {
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(3);
+    return SqlOperandCountRanges.between(3, 4);
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
@@ -58,10 +58,17 @@ public class SqlTumbleTableFunction extends SqlWindowTableFunction {
     if (!SqlTypeUtil.isInterval(type2)) {
       return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
     }
+    if (callBinding.getOperandCount() > 3) {
+      final RelDataType type3 = validator.getValidatedNodeType(callBinding.operand(3));
+      if (!SqlTypeUtil.isInterval(type3)) {
+        return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
+    }
     return true;
   }
 
   @Override public String getAllowedSignatures(String opNameToUse) {
-    return getName() + "(TABLE table_name, DESCRIPTOR(col1, col2 ...), datetime interval)";
+    return getName() + "(TABLE table_name, DESCRIPTOR(col1, col2 ...), datetime interval"
+        + "[, datetime interval])";
   }
 }

@@ -1866,7 +1866,7 @@ Not implemented:
 |:-------------------- |:-----------
 | DESCRIPTOR(name [, name ]*) | DESCRIPTOR appears as an argument in a function to indicate a list of names. The interpretation of names is left to the function.
 
-### Table functions.
+### Table functions
 Table functions occur in the `FROM` clause.
 
 #### TUMBLE
@@ -1876,7 +1876,7 @@ is named as "fixed windowing".
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| TUMBLE(table, DESCRIPTOR(datetime), interval) | Indicates a tumbling window of *interval* for *datetime*.
+| TUMBLE(table, DESCRIPTOR(datetime), interval [, offset ]) | Indicates a tumbling window of *interval* for *datetime*, optionally aligned at offset.
 
 Here is an example:
 `SELECT * FROM TABLE(TUMBLE(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '1' MINUTE))`,
@@ -1890,7 +1890,7 @@ on a timestamp column. Windows assigned could have overlapping so hopping someti
 
 | Operator syntax      | Description
 |:-------------------- |:-----------
-| HOP(table, DESCRIPTOR(datetime), slide, size) | Indicates a hopping window for *datetime*, covering rows within the interval of *size*, shifting every *slide*.
+| HOP(table, DESCRIPTOR(datetime), slide, size [, offset ]) | Indicates a hopping window for *datetime*, covering rows within the interval of *size*, shifting every *slide* and optionally aligned at offset.
 
 Here is an example:
 `SELECT * FROM TABLE(HOP(TABLE orders, DESCRIPTOR(rowtime), INTERVAL '2' MINUTE, INTERVAL '5' MINUTE))`,

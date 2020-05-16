@@ -35,7 +35,7 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
-    return SqlOperandCountRanges.of(4);
+    return SqlOperandCountRanges.between(4, 5);
   }
 
   @Override public boolean checkOperandTypes(SqlCallBinding callBinding,
@@ -59,11 +59,17 @@ public class SqlHopTableFunction extends SqlWindowTableFunction {
     if (!SqlTypeUtil.isInterval(type3)) {
       return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
     }
+    if (callBinding.getOperandCount() > 4) {
+      final RelDataType type4 = validator.getValidatedNodeType(callBinding.operand(4));
+      if (!SqlTypeUtil.isInterval(type4)) {
+        return throwValidationSignatureErrorOrReturnFalse(callBinding, throwOnFailure);
+      }
+    }
     return true;
   }
 
   @Override public String getAllowedSignatures(String opNameToUse) {
     return getName() + "(TABLE table_name, DESCRIPTOR(col), "
-        + "datetime interval, datetime interval)";
+        + "datetime interval, datetime interval[, datetime interval])";
   }
 }
