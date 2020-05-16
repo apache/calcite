@@ -1821,10 +1821,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test void testTableFunctionTumbleWithOffset() {
+    final String sql = "select *\n"
+        + "from table(tumble(table Shipments, descriptor(rowtime), INTERVAL '10' MINUTE, \n"
+        + "INTERVAL '1' MINUTE))";
+    sql(sql).ok();
+  }
+
   @Test public void testTableFunctionHop() {
     final String sql = "select *\n"
         + "from table(hop(table Shipments, descriptor(rowtime), "
         + "INTERVAL '1' MINUTE, INTERVAL '2' MINUTE))";
+    sql(sql).ok();
+  }
+
+  @Test public void testTableFunctionHopWithOffset() {
+    final String sql = "select *\n"
+        + "from table(hop(table Shipments, descriptor(rowtime), "
+        + "INTERVAL '1' MINUTE, INTERVAL '5' MINUTE, INTERVAL '3' MINUTE))";
     sql(sql).ok();
   }
 

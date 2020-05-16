@@ -768,7 +768,8 @@ public class EnumUtils {
       PhysType inputPhysType,
       PhysType outputPhysType,
       Expression wmColExpr,
-      Expression intervalExpr) {
+      Expression windowSizeExpr,
+      Expression offsetExpr) {
     // Generate all fields.
     final List<Expression> expressions = new ArrayList<>();
     // If input item is just a primitive, we do not generate specialized
@@ -786,28 +787,29 @@ public class EnumUtils {
     final Expression wmColExprToLong = EnumUtils.convert(wmColExpr, long.class);
     final Expression shiftExpr = Expressions.constant(1, long.class);
 
-    // Find the fixed window for a timestamp given a window size and return the window start.
-    // Fixed windows counts from timestamp 0.
-    // wmMillis / intervalMillis * intervalMillis
-    expressions.add(
-        Expressions.multiply(
-            Expressions.divide(
-                wmColExprToLong,
-                intervalExpr),
-            intervalExpr));
-
-    // Find the fixed window for a timestamp given a window size and return the window end.
-    // Fixed windows counts from timestamp 0.
-
-    // (wmMillis / sizeMillis + 1L) * sizeMillis;
-    expressions.add(
-        Expressions.multiply(
+    // Find the fixed window for a timestamp given a window size and an offset, and return the
+    // window start.
+    // wmColExprToLong - (wmColExprToLong + windowSizeMillis - offsetMillis) % windowSizeMillis
+    Expression windowStartExpr = Expressions.subtract(
+        wmColExprToLong,
+        Expressions.modulo(
             Expressions.add(
-                Expressions.divide(
-                    wmColExprToLong,
-                    intervalExpr),
-                shiftExpr),
-            intervalExpr));
+                wmColExprToLong,
+            Expressions.subtract(
+                windowSizeExpr,
+                offsetExpr
+            )),
+            windowSizeExpr));
+
+    expressions.add(windowStartExpr);
+
+    // The window end equals to the window start plus window size.
+    // windowStartMillis + sizeMillis
+    Expression windowEndExpr = Expressions.add(
+        windowStartExpr,
+        windowSizeExpr);
+
+    expressions.add(windowEndExpr);
 
     return Expressions.lambda(
         Function1.class,
@@ -961,11 +963,11 @@ public class EnumUtils {
    * enumerator and produces at least one element for each input element.
    */
   public static Enumerable<Object[]> hopping(Enumerator<Object[]> inputEnumerator,
-      int indexOfWatermarkedColumn, long emitFrequency, long intervalSize) {
+      int indexOfWatermarkedColumn, long emitFrequency, long windowSize, long offset) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         return new HopEnumerator(inputEnumerator,
-            indexOfWatermarkedColumn, emitFrequency, intervalSize);
+            indexOfWatermarkedColumn, emitFrequency, windowSize, offset);
       }
     };
   }
@@ -974,7 +976,8 @@ public class EnumUtils {
     private final Enumerator<Object[]> inputEnumerator;
     private final int indexOfWatermarkedColumn;
     private final long emitFrequency;
-    private final long intervalSize;
+    private final long windowSize;
+    private final long offset;
     private LinkedList<Object[]> list;
 
     /**
@@ -983,14 +986,16 @@ public class EnumUtils {
      * @param inputEnumerator the enumerator to provide an array of objects as input
      * @param indexOfWatermarkedColumn the index of timestamp column upon which a watermark is built
      * @param slide sliding size
-     * @param intervalSize window size
+     * @param windowSize window size
+     * @param offset indicates how much windows should off
      */
     HopEnumerator(Enumerator<Object[]> inputEnumerator,
-        int indexOfWatermarkedColumn, long slide, long intervalSize) {
+        int indexOfWatermarkedColumn, long slide, long windowSize, long offset) {
       this.inputEnumerator = inputEnumerator;
       this.indexOfWatermarkedColumn = indexOfWatermarkedColumn;
       this.emitFrequency = slide;
-      this.intervalSize = intervalSize;
+      this.windowSize = windowSize;
+      this.offset = offset;
       list = new LinkedList<>();
     }
 
@@ -1000,7 +1005,7 @@ public class EnumUtils {
       } else {
         Object[] current = inputEnumerator.current();
         List<Pair> windows = hopWindows(SqlFunctions.toLong(current[indexOfWatermarkedColumn]),
-            emitFrequency, intervalSize);
+            emitFrequency, windowSize, offset);
         for (Pair window : windows) {
           Object[] curWithWindow = new Object[current.length + 2];
           System.arraycopy(current, 0, curWithWindow, 0, current.length);
@@ -1029,9 +1034,10 @@ public class EnumUtils {
     }
   }
 
-  private static List<Pair> hopWindows(long tsMillis, long periodMillis, long sizeMillis) {
+  private static List<Pair> hopWindows(
+      long tsMillis, long periodMillis, long sizeMillis, long offsetMillis) {
     ArrayList<Pair> ret = new ArrayList<>(Math.toIntExact(sizeMillis / periodMillis));
-    long lastStart = tsMillis - ((tsMillis + periodMillis) % periodMillis);
+    long lastStart = tsMillis - ((tsMillis + periodMillis - offsetMillis) % periodMillis);
     for (long start = lastStart;
          start > tsMillis - sizeMillis;
          start -= periodMillis) {

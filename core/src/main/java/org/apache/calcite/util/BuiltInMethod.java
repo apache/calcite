@@ -608,7 +608,7 @@ public enum BuiltInMethod {
       "singleGroupResultSelector", Function1.class),
   TUMBLING(EnumUtils.class, "tumbling", Enumerable.class, Function1.class),
   HOPPING(EnumUtils.class, "hopping", Enumerator.class, int.class, long.class,
-      long.class),
+      long.class, long.class),
   SESSIONIZATION(EnumUtils.class, "sessionize", Enumerator.class, int.class, int.class,
       long.class);
 
