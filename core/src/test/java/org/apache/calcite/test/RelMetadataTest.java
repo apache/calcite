@@ -2688,6 +2688,25 @@ public class RelMetadataTest extends SqlToRelTestBase {
             + "[CATALOG, SALES, EMP].#2, [CATALOG, SALES, EMP].#3]"));
   }
 
+  @Test void testAllPredicatesAndTablesCalc() {
+    final String sql = "select empno as a, sal as b from emp where empno > 5";
+    final RelNode relNode = convertSql(sql);
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(CoreRules.PROJECT_TO_CALC)
+        .addRuleInstance(CoreRules.FILTER_TO_CALC)
+        .build();
+    final HepPlanner planner = new HepPlanner(hepProgram);
+    planner.setRoot(relNode);
+    final RelNode rel = planner.findBestExp();
+    final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
+    assertThat(inputSet.pulledUpPredicates,
+        sortsAs("[>([CATALOG, SALES, EMP].#0.$0, 5)]"));
+    final Set<RelTableRef> tableReferences = Sets.newTreeSet(mq.getTableReferences(rel));
+    assertThat(tableReferences.toString(),
+        equalTo("[[CATALOG, SALES, EMP].#0]"));
+  }
+
   @Test void testAllPredicatesAndTableUnion() {
     final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
         + "cross join (select * from dept limit 1) as b\n"
@@ -2698,6 +2717,36 @@ public class RelMetadataTest extends SqlToRelTestBase {
         + "cross join (select * from dept limit 1) as b\n"
         + "inner join (select * from emp limit 2) as c\n"
         + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  @Test void testAllPredicatesAndTableIntersect() {
+    final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno\n"
+        + "intersect all\n"
+        + "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  @Test void testAllPredicatesAndTableMinus() {
+    final String sql = "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno\n"
+        + "except all\n"
+        + "select a.deptno, c.sal from (select * from emp limit 7) as a\n"
+        + "cross join (select * from dept limit 1) as b\n"
+        + "inner join (select * from emp limit 2) as c\n"
+        + "on a.deptno = c.deptno";
+    checkAllPredicatesAndTableSetOp(sql);
+  }
+
+  public void checkAllPredicatesAndTableSetOp(String sql) {
     final RelNode rel = convertSql(sql);
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final RelOptPredicateList inputSet = mq.getAllPredicates(rel);
