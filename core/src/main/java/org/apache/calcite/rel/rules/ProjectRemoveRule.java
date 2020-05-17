@@ -66,6 +66,7 @@ public class ProjectRemoveRule extends RelOptRule implements SubstitutionRule {
           childProject.getInput(), childProject.getProjects(),
           project.getRowType());
     }
+    stripped = convert(stripped, project.getConvention());
     call.transformTo(stripped);
   }
 

@@ -34,6 +34,8 @@ Downloads are available on the
 
 * [<a href="https://issues.apache.org/jira/browse/CALCITE-4032">CALCITE-4032</a>]
   Mark `CalcMergeRule` as `TransformationRule`
+* [<a href="https://issues.apache.org/jira/browse/CALCITE-4003">CALCITE-4003</a>]
+  Disallow cross convention matching and `PhysicalNode` generation in `TransformationRule`
 
 ## <a href="https://github.com/apache/calcite/releases/tag/calcite-1.23.0">1.23.0</a> / 2020-05-23
 {: #v1-23-0}

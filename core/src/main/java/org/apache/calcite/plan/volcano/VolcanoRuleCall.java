@@ -21,8 +21,10 @@ import org.apache.calcite.plan.RelOptListener;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptRuleOperandChildPolicy;
+import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.SubstitutionRule;
+import org.apache.calcite.rel.rules.TransformationRule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -92,6 +94,12 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   // implement RelOptRuleCall
   public void transformTo(RelNode rel, Map<RelNode, RelNode> equiv,
       RelHintsPropagator handler) {
+    if (rel instanceof PhysicalNode
+        && rule instanceof TransformationRule) {
+      throw new RuntimeException(
+          rel + " is a PhysicalNode, which is not allowed in " + rule);
+    }
+
     rel = handler.propagate(rels[0], rel);
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Transform to: rel#{} via {}{}", rel.getId(), getRule(),
@@ -136,7 +144,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.ensureRegistered(
             entry.getKey(), entry.getValue());
       }
-      volcanoPlanner.ensureRegistered(rel, rels[0]);
+      // The subset is not used, but we need it, just for debugging
+      //noinspection unused
+      RelSubset subset = volcanoPlanner.ensureRegistered(rel, rels[0]);
       rels[0].getCluster().invalidateMetadataQuery();
 
       if (volcanoPlanner.getListener() != null) {
@@ -349,6 +359,10 @@ public class VolcanoRuleCall extends RelOptRuleCall {
       }
 
       for (RelNode rel : successors) {
+        if (operand.getRule() instanceof TransformationRule
+            && rel.getConvention() != previous.getConvention()) {
+          continue;
+        }
         if (!operand.matches(rel)) {
           continue;
         }

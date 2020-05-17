@@ -61,7 +61,8 @@ public class SortRemoveRule extends RelOptRule implements TransformationRule {
     final RelCollation collation = sort.getCollation();
     assert collation == sort.getTraitSet()
         .getTrait(RelCollationTraitDef.INSTANCE);
-    final RelTraitSet traits = sort.getInput().getTraitSet().replace(collation);
+    final RelTraitSet traits = sort.getInput().getTraitSet()
+        .replace(collation).replace(sort.getConvention());
     call.transformTo(convert(sort.getInput(), traits));
   }
 }
