@@ -109,7 +109,7 @@ public abstract class ReduceExpressionsRule extends RelOptRule
    */
   public static final ReduceExpressionsRule FILTER_INSTANCE =
       new FilterReduceExpressionsRule(LogicalFilter.class, false,
-          RelFactories.DEFAULT_BUILDER);
+          RelFactories.LOGICAL_BUILDER);
 
   /**
    * Singleton rule that reduces constants inside a
