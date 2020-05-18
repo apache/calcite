@@ -476,6 +476,15 @@ class SqlValidatorTest extends SqlValidatorTestCase {
     expr("mod(5.1, 3)").ok();
     expr("mod(2,5.1)").ok();
     expr("exp(3.67)").ok();
+
+    expr("CURRENT_DATE+1")
+        .withConformance(SqlConformanceEnum.BABEL).ok();
+    expr("1+CURRENT_DATE")
+        .withConformance(SqlConformanceEnum.BABEL).ok();
+    expr("CURRENT_DATE-1")
+        .withConformance(SqlConformanceEnum.BABEL).ok();
+    expr("-1+CURRENT_DATE")
+        .withConformance(SqlConformanceEnum.BABEL).ok();
   }
 
   @Test void testArithmeticOperatorsFails() {
@@ -506,6 +515,19 @@ class SqlValidatorTest extends SqlValidatorTestCase {
         .fails("(?s).*Cannot apply 'EXP' to arguments of type 'EXP.<CHAR.3.>.*");
     expr("exp('abc')")
         .columnType("DOUBLE NOT NULL");
+
+    expr("^CURRENT_DATE+1^")
+        .fails("(?s).*Cannot apply '\\+' to arguments of type "
+            + "'<DATE> \\+ <INTEGER>'.*");
+    expr("^1+CURRENT_DATE^")
+        .fails("(?s).*Cannot apply '\\+' to arguments of type "
+            + "'<INTEGER> \\+ <DATE>'.*");
+    expr("^CURRENT_DATE-1^")
+        .fails("(?s).*Cannot apply '-' to arguments of type "
+            + "'<DATE> - <INTEGER>'.*");
+    expr("^-1+CURRENT_DATE^")
+        .fails("(?s).*Cannot apply '\\+' to arguments of type "
+            + "'<INTEGER> \\+ <DATE>'.*");
   }
 
   @Test void testCaseExpression() {

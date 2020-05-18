@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.validate.implicit;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -24,10 +25,13 @@ import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.SqlIntervalLiteral;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
@@ -36,6 +40,7 @@ import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
@@ -123,13 +128,16 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
   }
 
   /**
-   * Coerces operands in binary arithmetic expressions to NUMERIC types.
+   * Coerces operands in binary arithmetic expressions to appropriate types.
    *
    * <p>For binary arithmetic operators like [+, -, *, /, %]:
    * If the operand is VARCHAR,
    * coerce it to data type of the other operand if its data type is NUMERIC;
    * If the other operand is DECIMAL,
    * coerce the STRING operand to max precision/scale DECIMAL.
+   *
+   * <p>For binary arithmetic operators + and - with a DATE, coerce the other
+   * operand to a INTERVAL_DAY if it is a NUMERIC.
    */
   public boolean binaryArithmeticCoercion(SqlCallBinding binding) {
     // Assume the operator has NUMERIC family operand type checker.
@@ -140,10 +148,12 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (binding.getOperandCount() == 2) {
       final RelDataType type1 = binding.getOperandType(0);
       final RelDataType type2 = binding.getOperandType(1);
-      // Special case for datetime + interval or datetime - interval
       if (kind == SqlKind.PLUS || kind == SqlKind.MINUS) {
+        // Special case for datetime + interval or datetime - interval
         if (SqlTypeUtil.isInterval(type1) || SqlTypeUtil.isInterval(type2)) {
           return false;
+        } else if (binaryArithmeticWithDateAndNumeric(binding, type1, type2)) {
+          return true;
         }
       }
       // Binary arithmetic operator like: + - * / %
@@ -152,6 +162,36 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
       }
     }
     return coerced;
+  }
+
+  /** For NUMERIC and DATE operands, cast NUMERIC to an INTERVAL_DAY.
+   *  <p>Only enable this coercion in Babel conformance mode.
+   */
+  protected boolean binaryArithmeticWithDateAndNumeric(
+      SqlCallBinding binding, RelDataType left, RelDataType right) {
+    // For expression "NUMERIC <OP> DATE" (or vice versa),
+    // TeradataSQL and Oracle would coerce the NUMERIC to an INTERVAL_DAY.
+    if (validator.getConformance() != SqlConformanceEnum.BABEL) {
+      return false;
+    }
+    int numericIndex;
+    if (SqlTypeUtil.isNumeric(left) && SqlTypeUtil.isDate(right)) {
+      numericIndex = 0;
+    } else if (SqlTypeUtil.isDate(left) && SqlTypeUtil.isNumeric(right)) {
+      numericIndex = 1;
+    } else {
+      return false;
+    }
+    SqlCall call = binding.getCall();
+    SqlNumericLiteral numeric = (SqlNumericLiteral) call.getOperandList().get(numericIndex);
+    SqlIntervalQualifier qualifier =
+        new SqlIntervalQualifier(TimeUnit.DAY, TimeUnit.DAY, numeric.getParserPosition());
+    int sign = ((BigDecimal) numeric.getValue()).signum();
+    SqlIntervalLiteral interval =
+        SqlLiteral.createInterval(sign, numeric.toValue(), qualifier, numeric.getParserPosition());
+    call.setOperand(numericIndex, interval);
+    updateInferredType(numeric, factory.createSqlIntervalType(qualifier));
+    return true;
   }
 
   /**
