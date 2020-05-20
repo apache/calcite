@@ -18,6 +18,7 @@ package org.apache.calcite.adapter.enumerable;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -26,6 +27,11 @@ import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.Pair;
+
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -67,5 +73,27 @@ public class EnumerableFilter
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalc is always better
     throw new UnsupportedOperationException();
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      RelTraitSet required) {
+    if (required.getCollation() == null || required.isDefaultSansConvention()) {
+      return null;
+    }
+
+    // Filter, not like Project, does not change on which column that collation defines.
+    RelCollation collation = required.getCollation();
+    RelTraitSet traits = traitSet.replace(collation);
+    return Pair.of(traits, ImmutableList.of(traits));
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    if (childTraits.getCollation() == null || childTraits.isDefaultSansConvention()) {
+      return null;
+    }
+
+    RelCollation collation = childTraits.getCollation();
+    return Pair.of(traitSet.replace(collation), ImmutableList.of(childTraits));
   }
 }

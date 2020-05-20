@@ -227,8 +227,11 @@ abstract class OptimizeTask {
           } else {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
             if (newRel != null && !planner.isRegistered(newRel)) {
-              RelSubset relSubset = planner.register(newRel, node);
-              assert relSubset.set == planner.getSubset(node).set;
+              planner.register(newRel, node);
+              // TODO: To enable the following assert, please investigate:
+              // https://issues.apache.org/jira/browse/CALCITE-4030.
+              // RelSubset relSubset = planner.register(newRel, node);
+              // assert relSubset.set == planner.getSubset(node).set;
             }
           }
         }

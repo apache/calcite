@@ -159,7 +159,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
 
   /** Whether to make create implicit functions if functions do not exist
    * in the operator table, default false. */
-  LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false);
+  LENIENT_OPERATOR_LOOKUP("lenientOperatorLookup", Type.BOOLEAN, false, false),
+
+  /** Whether to enable top-down optimization in Volcano planner. */
+  TOPDOWN_OPT("topDownOpt", Type.BOOLEAN, CalciteSystemProperty.TOPDOWN_OPT.value(), false);
 
   private final String camelName;
   private final Type type;
