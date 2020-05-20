@@ -3817,6 +3817,24 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-2997">[CALCITE-2997]
+   * Avoid pushing down join condition in SqlToRelConverter</a>. */
+  @Test void testDoNotPushDownJoinCondition() {
+    final String sql = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d on e.deptno + 20 = d.deptno / 2";
+    sql(sql).withConfig(b -> b.withPushJoinCondition(false)).ok();
+  }
+
+  /** As {@link #testDoNotPushDownJoinCondition()}. */
+  @Test void testPushDownJoinCondition() {
+    final String sql = "select *\n"
+        + "from emp as e\n"
+        + "join dept as d on e.deptno + 20 = d.deptno / 2";
+    sql(sql).ok();
+  }
+
   @Test void testCoalesceOnNullableField() {
     final String sql = "select coalesce(mgr, 0) from emp";
     sql(sql).ok();

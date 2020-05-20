@@ -87,6 +87,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.TableFunctionReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
+import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -2134,9 +2135,15 @@ public class RelBuilder {
           struct.correlateFactory.createCorrelate(left.rel, right.rel, id,
               requiredColumns, joinType);
     } else {
-      join =
+      RelNode join0 =
           struct.joinFactory.createJoin(left.rel, right.rel,
               ImmutableList.of(), condition, variablesSet, joinType, false);
+
+      if (join0 instanceof Join && config.pushJoinCondition()) {
+        join = RelOptUtil.pushDownJoinConditions((Join) join0, this);
+      } else {
+        join = join0;
+      }
     }
     final ImmutableList.Builder<Field> fields = ImmutableList.builder();
     fields.addAll(left.fields);
@@ -3188,6 +3195,16 @@ public class RelBuilder {
 
     /** Sets {@link #pruneInputOfAggregate}. */
     Config withPruneInputOfAggregate(boolean pruneInputOfAggregate);
+
+    /** Whether to push down join conditions; default false (but see
+     * {@link SqlToRelConverter.ConfigBuilder#withPushJoinCondition(boolean)},
+     * default true). */
+    @ImmutableBeans.Property
+    @ImmutableBeans.BooleanDefault(false)
+    boolean pushJoinCondition();
+
+    /** Sets {@link #pushJoinCondition()}. */
+    Config withPushJoinCondition(boolean pushJoinCondition);
 
     /** Whether to simplify expressions; default true. */
     @ImmutableBeans.Property

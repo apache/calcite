@@ -374,7 +374,7 @@ class RexTransformerTest {
         null,
         null);
 
-    assertThat(remaining.toStringRaw(), is("<>(CAST($0):INTEGER NOT NULL, $9)"));
+    assertThat(remaining.toStringRaw(), is("<>($0, $9)"));
     assertThat(leftJoinKeys.isEmpty(), is(true));
     assertThat(rightJoinKeys.isEmpty(), is(true));
   }

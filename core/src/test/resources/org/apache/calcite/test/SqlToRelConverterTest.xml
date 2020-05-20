@@ -985,6 +985,21 @@ LogicalProject(EXPR$0=[CHAR_LENGTH('foo')])
             <![CDATA[values (character_length('foo'))]]>
         </Resource>
     </TestCase>
+    <TestCase name="testDoNotPushDownJoinCondition">
+        <Resource name="sql">
+            <![CDATA[select *
+from emp as e
+join dept as d on e.deptno + 20 = d.deptno / 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$9], NAME=[$10])
+  LogicalJoin(condition=[=(+($7, 20), /($9, 2))], joinType=[inner])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testDotLiteralAfterNestedRow">
         <Resource name="sql">
             <![CDATA[select ((1,2),(3,4,5))."EXPR$1"."EXPR$2" from emp]]>
@@ -4698,6 +4713,23 @@ LogicalProject(C1=[COUNT() OVER (ORDER BY $7)], C2=[COUNT() OVER (ORDER BY $7)],
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testPushDownJoinCondition">
+        <Resource name="sql">
+            <![CDATA[select *
+from emp as e
+join dept as d on e.deptno + 20 = d.deptno / 2]]>
+        </Resource>
+        <Resource name="plan">
+            <![CDATA[
+LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], DEPTNO0=[$10], NAME=[$11])
+  LogicalJoin(condition=[=($9, $12)], joinType=[inner])
+    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8], $f9=[+($7, 20)])
+      LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(DEPTNO=[$0], NAME=[$1], $f2=[/($0, 2)])
+      LogicalTableScan(table=[[CATALOG, SALES, DEPT]])
+]]>
+        </Resource>
+    </TestCase>
     <TestCase name="testSelectWithoutFrom">
         <Resource name="sql">
             <![CDATA[select 2+2]]>
@@ -5423,6 +5455,11 @@ LogicalProject(DEPTNO=[$0], EMPNO=[$5.EMPNO])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
         </Resource>
+        <Resource name="sql">
+            <![CDATA[select d.deptno, employee.empno
+from dept_nested_expanded as d,
+ UNNEST(d.employees) as t(employee)]]>
+        </Resource>
     </TestCase>
     <TestCase name="testAliasUnnestArrayPlanWithDoubleColumn">
         <Resource name="plan">
@@ -5434,6 +5471,11 @@ LogicalProject(DEPTNO=[$0], E=[$5], EMPNO=[$6.EMPNO])
       LogicalProject(ADMINS=[$cor0.ADMINS], EMPLOYEES=[$cor0.EMPLOYEES])
         LogicalValues(tuples=[[{ 0 }]])
 ]]>
+        </Resource>
+        <Resource name="sql">
+            <![CDATA[select d.deptno, e, k.empno
+from dept_nested_expanded as d CROSS JOIN
+ UNNEST(d.admins, d.employees) as t(e, k)]]>
         </Resource>
     </TestCase>
     <TestCase name="testWithInsideWhereExistsDecorrelateRex">

@@ -1958,25 +1958,69 @@ public class RelBuilderTest {
     assertThat(root, hasTree(expected));
   }
 
-  /** Checks if simplification is run in {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for join conditions */
+  /** Tests that simplification is run in
+   * {@link org.apache.calcite.rex.RexUnknownAs#FALSE} mode for join
+   * conditions. */
   @Test void testJoinConditionSimplification() {
-    final RelBuilder builder = RelBuilder.create(config().build());
-    final RelNode root =
-        builder.scan("EMP")
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
             .scan("DEPT")
             .join(JoinRelType.INNER,
-                builder.or(builder.literal(null),
-                    builder.and(
-                        builder.equals(builder.field(2, 0, "DEPTNO"), builder.literal(1)),
-                        builder.equals(builder.field(2, 0, "DEPTNO"), builder.literal(2)),
-                        builder.equals(builder.field(2, 1, "DEPTNO"),
-                            builder.field(2, 0, "DEPTNO")))))
+                b.or(b.literal(null),
+                    b.and(b.equals(b.field(2, 0, "DEPTNO"), b.literal(1)),
+                        b.equals(b.field(2, 0, "DEPTNO"), b.literal(2)),
+                        b.equals(b.field(2, 1, "DEPTNO"),
+                            b.field(2, 0, "DEPTNO")))))
             .build();
-    assertThat(
-        root, hasTree(
-        "LogicalJoin(condition=[false], joinType=[inner])\n"
+    final String expected = ""
+        + "LogicalJoin(condition=[false], joinType=[inner])\n"
         + "  LogicalTableScan(table=[[scott, EMP]])\n"
-        + "  LogicalTableScan(table=[[scott, DEPT]])\n"));
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String expectedWithoutSimplify = ""
+        + "LogicalJoin(condition=[OR(null:NULL, "
+        + "AND(=($7, 1), =($7, 2), =($8, $7)))], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(true))),
+        hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withSimplify(false))),
+        hasTree(expectedWithoutSimplify));
+  }
+
+  @Test void testJoinPushCondition() {
+    final Function<RelBuilder, RelNode> f = b ->
+        b.scan("EMP")
+            .scan("DEPT")
+            .join(JoinRelType.INNER,
+                b.equals(
+                    b.call(SqlStdOperatorTable.PLUS,
+                        b.field(2, 0, "DEPTNO"),
+                        b.field(2, 0, "EMPNO")),
+                    b.field(2, 1, "DEPTNO")))
+            .build();
+    // SELECT * FROM EMP AS e JOIN DEPT AS d ON e.DEPTNO + e.EMPNO = d.DEPTNO
+    //  becomes
+    // SELECT * FROM (SELECT *, EMPNO + DEPTNO AS x FROM EMP) AS e
+    // JOIN DEPT AS d ON e.x = d.DEPTNO
+    final String expectedWithoutPush = ""
+        + "LogicalJoin(condition=[=(+($7, $0), $8)], joinType=[inner])\n"
+        + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        + "  LogicalTableScan(table=[[scott, DEPT]])\n";
+    final String expected = ""
+        + "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], DEPTNO0=[$9], "
+        + "DNAME=[$10], LOC=[$11])\n"
+        + "  LogicalJoin(condition=[=($8, $9)], joinType=[inner])\n"
+        + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], "
+        + "HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], $f8=[+($7, $0)])\n"
+        + "      LogicalTableScan(table=[[scott, EMP]])\n"
+        + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    assertThat(f.apply(createBuilder()), hasTree(expectedWithoutPush));
+    assertThat(f.apply(createBuilder(c -> c.withPushJoinCondition(true))),
+        hasTree(expected));
+    assertThat(f.apply(createBuilder(c -> c.withPushJoinCondition(false))),
+        hasTree(expectedWithoutPush));
   }
 
   @Test void testJoinCartesian() {

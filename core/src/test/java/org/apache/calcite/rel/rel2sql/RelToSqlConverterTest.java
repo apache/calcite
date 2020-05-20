@@ -37,6 +37,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.runtime.FlatLists;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -2542,7 +2543,11 @@ class RelToSqlConverterTest {
         + "ON \"sales_fact_1997\".\"product_id\" = \"product\".\"product_id\""
         + " OR TRUE"
         + " OR TRUE";
-    sql(query).ok(expected);
+    // The hook prevents RelBuilder from removing "FALSE AND FALSE" and such
+    try (Hook.Closeable ignore =
+             Hook.REL_BUILDER_SIMPLIFY.addThread(Hook.propertyJ(false))) {
+      sql(query).ok(expected);
+    }
   }
 
 

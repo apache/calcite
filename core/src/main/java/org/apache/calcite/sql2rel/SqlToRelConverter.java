@@ -201,7 +201,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
@@ -220,8 +222,6 @@ public class SqlToRelConverter {
 
   protected static final Logger SQL2REL_LOGGER =
       CalciteTrace.getSqlToRelTracer();
-
-  private static final BigDecimal TWO = BigDecimal.valueOf(2L);
 
   /** Size of the smallest IN list that will be converted to a semijoin to a
    * static table. */
@@ -326,7 +326,8 @@ public class SqlToRelConverter {
     this.exprConverter = new SqlNodeToRexConverterImpl(convertletTable);
     this.explainParamCount = 0;
     this.config = new ConfigBuilder().withConfig(config).build();
-    this.relBuilder = config.getRelBuilderFactory().create(cluster, null);
+    this.relBuilder = config.getRelBuilderFactory().create(cluster, null)
+        .transform(config.getRelBuilderConfigTransform());
     this.hintStrategies = config.getHintStrategyTable();
 
     cluster.setHintStrategies(this.hintStrategies);
@@ -2610,11 +2611,12 @@ public class SqlToRelConverter {
       return corr;
     }
 
-    final Join originalJoin =
-        (Join) RelFactories.DEFAULT_JOIN_FACTORY.createJoin(leftRel, rightRel,
-            ImmutableList.of(), joinCond, ImmutableSet.of(), joinType, false);
+    final RelNode node =
+        relBuilder.push(leftRel)
+            .push(rightRel)
+            .join(joinType, joinCond)
+            .build();
 
-    RelNode node = RelOptUtil.pushDownJoinConditions(originalJoin, relBuilder);
     // If join conditions are pushed down, update the leaves.
     if (node instanceof Project) {
       final Join newJoin = (Join) node.getInputs().get(0);
@@ -5859,6 +5861,10 @@ public class SqlToRelConverter {
      * {@link RelFactories#LOGICAL_BUILDER}. */
     RelBuilderFactory getRelBuilderFactory();
 
+    /** Returns a function that takes a {@link RelBuilder.Config} and returns
+     * another. Default is the identity function. */
+    UnaryOperator<RelBuilder.Config> getRelBuilderConfigTransform();
+
     /** Returns the hint strategies used to decide how the hints are propagated to
      * the relational expressions. Default is
      * {@link HintStrategyTable#EMPTY}. */
@@ -5873,6 +5879,8 @@ public class SqlToRelConverter {
     private boolean explain;
     private boolean expand = true;
     private int inSubQueryThreshold = DEFAULT_IN_SUB_QUERY_THRESHOLD;
+    private UnaryOperator<RelBuilder.Config> relBuilderConfigTransform = c ->
+        c.withPushJoinCondition(true);
     private RelBuilderFactory relBuilderFactory = RelFactories.LOGICAL_BUILDER;
     private HintStrategyTable hintStrategyTable = HintStrategyTable.EMPTY;
 
@@ -5886,6 +5894,7 @@ public class SqlToRelConverter {
       this.explain = config.isExplain();
       this.expand = config.isExpand();
       this.inSubQueryThreshold = config.getInSubQueryThreshold();
+      this.relBuilderConfigTransform = config.getRelBuilderConfigTransform();
       this.relBuilderFactory = config.getRelBuilderFactory();
       this.hintStrategyTable = config.getHintStrategyTable();
       return this;
@@ -5916,6 +5925,18 @@ public class SqlToRelConverter {
       return this;
     }
 
+    /** Whether to push down join conditions; default true. */
+    public ConfigBuilder withPushJoinCondition(boolean pushJoinCondition) {
+      return withRelBuilderConfigTransform(
+          compose(relBuilderConfigTransform,
+              c -> c.withPushJoinCondition(pushJoinCondition)));
+    }
+
+    private static <X> UnaryOperator<X> compose(Function<X, X> f1,
+        Function<X, X> f2) {
+      return x -> f2.apply(f1.apply(x));
+    }
+
     @Deprecated // to be removed before 2.0
     public ConfigBuilder withInSubqueryThreshold(int inSubQueryThreshold) {
       return withInSubQueryThreshold(inSubQueryThreshold);
@@ -5923,6 +5944,12 @@ public class SqlToRelConverter {
 
     public ConfigBuilder withInSubQueryThreshold(int inSubQueryThreshold) {
       this.inSubQueryThreshold = inSubQueryThreshold;
+      return this;
+    }
+
+    public ConfigBuilder withRelBuilderConfigTransform(
+        UnaryOperator<RelBuilder.Config> relBuilderConfigTransform) {
+      this.relBuilderConfigTransform = relBuilderConfigTransform;
       return this;
     }
 
@@ -5942,7 +5969,8 @@ public class SqlToRelConverter {
     public Config build() {
       return new ConfigImpl(decorrelationEnabled,
           trimUnusedFields, createValuesRel, explain, expand,
-          inSubQueryThreshold, relBuilderFactory, hintStrategyTable);
+          inSubQueryThreshold, relBuilderConfigTransform, relBuilderFactory,
+          hintStrategyTable);
     }
   }
 
@@ -5955,12 +5983,14 @@ public class SqlToRelConverter {
     private final boolean explain;
     private final boolean expand;
     private final int inSubQueryThreshold;
+    private final UnaryOperator<RelBuilder.Config> relBuilderConfigTransform;
     private final RelBuilderFactory relBuilderFactory;
     private final HintStrategyTable hintStrategyTable;
 
     private ConfigImpl(boolean decorrelationEnabled,
         boolean trimUnusedFields, boolean createValuesRel, boolean explain,
         boolean expand, int inSubQueryThreshold,
+        UnaryOperator<RelBuilder.Config> relBuilderConfigTransform,
         RelBuilderFactory relBuilderFactory,
         HintStrategyTable hintStrategyTable) {
       this.decorrelationEnabled = decorrelationEnabled;
@@ -5969,6 +5999,7 @@ public class SqlToRelConverter {
       this.explain = explain;
       this.expand = expand;
       this.inSubQueryThreshold = inSubQueryThreshold;
+      this.relBuilderConfigTransform = relBuilderConfigTransform;
       this.relBuilderFactory = relBuilderFactory;
       this.hintStrategyTable = hintStrategyTable;
     }
@@ -6014,6 +6045,10 @@ public class SqlToRelConverter {
 
     public int getInSubQueryThreshold() {
       return inSubQueryThreshold;
+    }
+
+    public UnaryOperator<RelBuilder.Config> getRelBuilderConfigTransform() {
+      return relBuilderConfigTransform;
     }
 
     public RelBuilderFactory getRelBuilderFactory() {

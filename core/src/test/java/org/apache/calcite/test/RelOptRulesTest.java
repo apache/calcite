@@ -417,6 +417,7 @@ class RelOptRulesTest extends RelOptTestBase {
     final String sql = "select 1 from emp inner join dept\n"
         + "on emp.deptno=dept.deptno and emp.ename is not null";
     sql(sql).withRule(JoinPushExpressionsRule.INSTANCE)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
         .checkUnchanged();
   }
 
@@ -3559,20 +3560,22 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withPre(preProgram).with(program).check();
   }
 
-  @Test void testReduceCasts() throws Exception {
+  @Test void testReduceCasts() {
     HepProgram program = new HepProgramBuilder()
         .addRuleInstance(ReduceExpressionsRule.PROJECT_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.FILTER_INSTANCE)
         .addRuleInstance(ReduceExpressionsRule.JOIN_INSTANCE)
         .build();
 
+    // Disable simplify in RelBuilder so that there are casts in 'before';
     // The resulting plan should have no cast expressions
     final String sql = "select cast(d.name as varchar(128)), cast(e.empno as integer)\n"
         + "from dept as d inner join emp as e\n"
         + "on cast(d.deptno as integer) = cast(e.deptno as integer)\n"
         + "where cast(e.job as varchar(1)) = 'Manager'";
     sql(sql).with(program)
-        .checkUnchanged();
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .check();
   }
 
   /** Tests that a cast from a TIME to a TIMESTAMP is not reduced. It is not
@@ -4893,7 +4896,9 @@ class RelOptRulesTest extends RelOptTestBase {
         .build();
     final String sql = "select * from sales.emp d\n"
         + "join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)";
-    sql(sql).withDecorrelation(true).with(program).check();
+    sql(sql)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .withDecorrelation(true).with(program).check();
   }
 
   /** Test case for
@@ -6531,7 +6536,10 @@ class RelOptRulesTest extends RelOptTestBase {
   @Test void testPushProjectWithIsNotDistinctFromPastJoin() {
     final String sql = "select e.sal + b.comm from emp e inner join bonus b\n"
         + "on (e.ename || e.job) IS NOT DISTINCT FROM (b.ename || b.job) and e.deptno = 10";
-    sql(sql).withRule(ProjectJoinTransposeRule.INSTANCE).check();
+    sql(sql)
+        .withProperty(Hook.REL_BUILDER_SIMPLIFY, false)
+        .withRule(ProjectJoinTransposeRule.INSTANCE)
+        .check();
   }
 
   @Test void testDynamicStarWithUnion() {
