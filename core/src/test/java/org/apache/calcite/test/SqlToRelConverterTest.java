@@ -65,8 +65,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -84,8 +86,8 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
 
   /** Sets the SQL statement for a test. */
   public final Sql sql(String sql) {
-    return new Sql(sql, true, true, tester, false,
-        SqlToRelConverter.Config.DEFAULT, tester.getConformance());
+    return new Sql(sql, true, tester, false,
+        b -> b.withExpand(true), tester.getConformance());
   }
 
   @Test void testDotLiteralAfterNestedRow() {
@@ -3261,13 +3263,11 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
         + "FROM emp AS e\n"
         + "WHERE cast(e.empno as bigint) in (130, 131, 132, 133, 134)";
     // No conversion to join since less than IN-list size threshold 10
-    SqlToRelConverter.Config noConvertConfig =
-        SqlToRelConverter.configBuilder().withInSubQueryThreshold(10).build();
-    sql(sql).withConfig(noConvertConfig).convertsTo("${planNotConverted}");
+    sql(sql).withConfig(b -> b.withInSubQueryThreshold(10))
+        .convertsTo("${planNotConverted}");
     // Conversion to join since greater than IN-list size threshold 2
-    SqlToRelConverter.Config convertConfig =
-        SqlToRelConverter.configBuilder().withInSubQueryThreshold(2).build();
-    sql(sql).withConfig(convertConfig).convertsTo("${planConverted}");
+    sql(sql).withConfig(b -> b.withInSubQueryThreshold(2))
+        .convertsTo("${planConverted}");
   }
 
   /** Test case for
@@ -3806,6 +3806,9 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3575">[CALCITE-3575]
+   * IndexOutOfBoundsException when converting SQL to rel</a>. */
   @Test void testPushDownJoinConditionWithProjectMerge() {
     final String sql = "select * from\n"
         + " (select empno, deptno from emp) a\n"
@@ -3868,18 +3871,16 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
   /** Allows fluent testing. */
   public class Sql {
     private final String sql;
-    private final boolean expand;
     private final boolean decorrelate;
     private final Tester tester;
     private final boolean trim;
-    private final SqlToRelConverter.Config config;
+    private final UnaryOperator<SqlToRelConverter.ConfigBuilder> config;
     private final SqlConformance conformance;
 
-    Sql(String sql, boolean expand, boolean decorrelate, Tester tester,
-        boolean trim, SqlToRelConverter.Config config,
+    Sql(String sql, boolean decorrelate, Tester tester,
+        boolean trim, UnaryOperator<SqlToRelConverter.ConfigBuilder> config,
         SqlConformance conformance) {
       this.sql = sql;
-      this.expand = expand;
       this.decorrelate = decorrelate;
       this.tester = tester;
       this.trim = trim;
@@ -3892,40 +3893,42 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     }
 
     public void convertsTo(String plan) {
-      tester.withExpand(expand)
-          .withDecorrelation(decorrelate)
+      final SqlToRelConverter.ConfigBuilder configBuilder =
+          SqlToRelConverter.configBuilder().withTrimUnusedFields(true);
+      tester.withDecorrelation(decorrelate)
           .withConformance(conformance)
-          .withConfig(config)
+          .withConfig(config.apply(configBuilder).build())
           .assertConvertsTo(sql, plan, trim);
     }
 
-    public Sql withConfig(SqlToRelConverter.Config config) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
-          conformance);
+    public Sql withConfig(
+        UnaryOperator<SqlToRelConverter.ConfigBuilder> config) {
+      Objects.requireNonNull(config);
+      return new Sql(sql, decorrelate, tester, trim,
+          b -> config.apply(this.config.apply(b)), conformance);
     }
 
     public Sql expand(boolean expand) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
-          conformance);
+      return withConfig(b -> b.withExpand(expand));
     }
 
     public Sql decorrelate(boolean decorrelate) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
+      return new Sql(sql, decorrelate, tester, trim, config,
           conformance);
     }
 
     public Sql with(Tester tester) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
+      return new Sql(sql, decorrelate, tester, trim, config,
           conformance);
     }
 
     public Sql trim(boolean trim) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
+      return new Sql(sql, decorrelate, tester, trim, config,
           conformance);
     }
 
     public Sql conformance(SqlConformance conformance) {
-      return new Sql(sql, expand, decorrelate, tester, trim, config,
+      return new Sql(sql, decorrelate, tester, trim, config,
           conformance);
     }
   }

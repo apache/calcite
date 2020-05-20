@@ -5973,8 +5973,23 @@ public class SqlToRelConverter {
       this.hintStrategyTable = hintStrategyTable;
     }
 
-    public boolean isConvertTableAccess() {
-      return true;
+    @Override public boolean equals(Object obj) {
+      return this == obj
+          || obj instanceof ConfigImpl
+          && decorrelationEnabled == ((ConfigImpl) obj).decorrelationEnabled
+          && trimUnusedFields == ((ConfigImpl) obj).trimUnusedFields
+          && createValuesRel == ((ConfigImpl) obj).createValuesRel
+          && explain == ((ConfigImpl) obj).explain
+          && expand == ((ConfigImpl) obj).expand
+          && inSubQueryThreshold == ((ConfigImpl) obj).inSubQueryThreshold
+          && relBuilderFactory == ((ConfigImpl) obj).relBuilderFactory
+          && hintStrategyTable == ((ConfigImpl) obj).hintStrategyTable;
+    }
+
+    @Override public int hashCode() {
+      return Objects.hash(decorrelationEnabled, trimUnusedFields,
+          createValuesRel, explain, expand, inSubQueryThreshold,
+          relBuilderFactory, hintStrategyTable);
     }
 
     public boolean isDecorrelationEnabled() {
