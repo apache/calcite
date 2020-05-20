@@ -139,7 +139,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
   @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     final int keyCount = joinInfo.leftKeys.size();
-    RelCollation collation = childTraits.getTrait(RelCollationTraitDef.INSTANCE);
+    RelCollation collation = childTraits.getCollation();
     final int colCount = collation.getFieldCollations().size();
     if (colCount < keyCount || keyCount == 0) {
       return null;

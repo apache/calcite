@@ -38,6 +38,435 @@ EnumerableLimit(fetch=[5])
 ]]>
         </Resource>
     </TestCase>
+    <TestCase name="testSortProject">
+        <Resource name="sql">
+            <![CDATA[select mgr from sales.emp order by mgr desc nulls last]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], dir0=[DESC-nulls-last])
+  LogicalProject(MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(MGR=[$3])
+  EnumerableSort(sort0=[$3], dir0=[DESC-nulls-last])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive2">
+        <Resource name="sql">
+            <![CDATA[
+select distinct ename, sal*-2, mgr
+from (select ename, mgr, sal from sales.emp order by ename, mgr, sal limit 100) t
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalAggregate(group=[{0, 1, 2}])
+  LogicalProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
+    LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[100])
+      LogicalProject(ENAME=[$1], MGR=[$3], SAL=[$5])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableSortedAggregate(group=[{0, 1, 2}])
+  EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+    EnumerableProject(ENAME=[$0], EXPR$1=[*($2, -2)], MGR=[$1])
+      EnumerableLimit(fetch=[100])
+        EnumerableProject(ENAME=[$1], MGR=[$3], SAL=[$5])
+          EnumerableSort(sort0=[$1], sort1=[$3], sort2=[$5], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectOnRexCall">
+        <Resource name="sql">
+            <![CDATA[
+select ename, sal * -1 as sal, mgr from
+sales.emp order by ename desc, sal desc, mgr desc nulls last
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
+  LogicalProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableSort(sort0=[$0], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[DESC], dir2=[DESC-nulls-last])
+  EnumerableProject(ENAME=[$1], SAL=[*($5, -1)], MGR=[$3])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDeriveOnRexCall">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, sal * -1 as sal, max_job from
+(select ename, sal, max(job) as max_job from sales.emp group by ename, sal) t) r
+join sales.bonus s on r.sal=s.sal and r.ename=s.ename
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], SAL=[$1], MAX_JOB=[$2], ENAME0=[$3], JOB=[$4], SAL0=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
+      LogicalAggregate(group=[{0, 1}], MAX_JOB=[MAX($2)])
+        LogicalProject(ENAME=[$1], SAL=[$5], JOB=[$2])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $5), =($0, $3))], joinType=[inner])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableProject(ENAME=[$0], SAL=[*($1, -1)], MAX_JOB=[$2])
+      EnumerableSortedAggregate(group=[{1, 5}], MAX_JOB=[MAX($2)])
+        EnumerableSort(sort0=[$1], sort1=[$5], dir0=[ASC], dir1=[ASC])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$2], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectWhenCastLeadingToMonotonic">
+        <Resource name="sql">
+            <![CDATA[select deptno from sales.emp order by cast(deptno as float) desc]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):FLOAT NOT NULL])
+  EnumerableSort(sort0=[$7], dir0=[DESC])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectWhenCastLeadingToNonMonotonic">
+        <Resource name="sql">
+            <![CDATA[select deptno from sales.emp order by cast(deptno as varchar) desc]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$1], dir0=[DESC])
+  LogicalProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+    LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableSort(sort0=[$1], dir0=[DESC])
+  EnumerableProject(DEPTNO=[$7], EXPR$1=[CAST($7):VARCHAR NOT NULL])
+    EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDeriveWhenCastLeadingToNonMonotonic">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, cast(job as numeric) as job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename"
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
+  LogicalJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 19) NOT NULL])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 19) NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$4], JOB0=[$5], SAL=[$6], COMM=[$7])
+  EnumerableMergeJoin(condition=[AND(=($3, $8), =($0, $4))], joinType=[inner])
+    EnumerableSort(sort0=[$3], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):DECIMAL(19, 0) NOT NULL], EXPR$2=[+($2, 1)], JOB0=[CAST(CAST($1):DECIMAL(19, 0) NOT NULL):DECIMAL(19, 19) NOT NULL])
+        EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+          EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):DECIMAL(19, 19) NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDeriveWhenCastLeadingToMonotonic">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, cast(job as varchar) as job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename"
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+        EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+          EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive3">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, cast(job as varchar) as job, sal + 1 from
+(select ename, job, sal from sales.emp limit 100) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalSort(fetch=[100])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableProject(ENAME=[$0], JOB=[CAST($1):VARCHAR NOT NULL], EXPR$2=[+($2, 1)])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+        EnumerableLimit(fetch=[100])
+          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):VARCHAR NOT NULL])
+      EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive4">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, cast(job as bigint) as job, sal + 1 from
+(select ename, job, sal from sales.emp limit 100) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
+      LogicalSort(fetch=[100])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
+      LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  EnumerableMergeJoin(condition=[AND(=($1, $7), =($0, $3))], joinType=[inner])
+    EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[CAST($1):BIGINT NOT NULL], EXPR$2=[+($2, 1)])
+        EnumerableLimit(fetch=[100])
+          EnumerableProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+    EnumerableSort(sort0=[$4], sort1=[$0], dir0=[ASC], dir1=[ASC])
+      EnumerableProject(ENAME=[$0], JOB=[$1], SAL=[$2], COMM=[$3], JOB0=[CAST($1):BIGINT NOT NULL])
+        EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive5">
+        <Resource name="sql">
+            <![CDATA[
+select ename, empno*-1, job from
+(select * from sales.emp order by ename, empno, job limit 10) order by ename, job
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  LogicalProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
+    LogicalSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(ENAME=[$1], EXPR$1=[*($0, -1)], JOB=[$2])
+  EnumerableSort(sort0=[$1], sort1=[$2], dir0=[ASC], dir1=[ASC])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$1], sort1=[$0], sort2=[$2], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, job, max_sal + 1 from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
+      LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+        LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+  EnumerableProject(ENAME=[$0], JOB=[$1], EXPR$2=[+($2, 1)])
+    EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+      EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortProjectDerive6">
+        <Resource name="sql">
+            <![CDATA[
+select comm, deptno, slacker from
+(select * from sales.emp order by comm, deptno, slacker limit 10) t
+order by comm, slacker
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$0], sort1=[$2], dir0=[ASC], dir1=[ASC])
+  LogicalProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+    LogicalSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC], fetch=[10])
+      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+        LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableProject(COMM=[$6], DEPTNO=[$7], SLACKER=[$8])
+  EnumerableSort(sort0=[$6], sort1=[$8], dir0=[ASC], dir1=[ASC])
+    EnumerableLimit(fetch=[10])
+      EnumerableSort(sort0=[$6], sort1=[$7], sort2=[$8], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortFilter">
+        <Resource name="sql">
+            <![CDATA[
+select ename, job, mgr, max_sal from
+(select ename, job, mgr, max(sal) as max_sal from sales.emp group by ename, job, mgr) as t
+where max_sal > 1000
+order by mgr desc, ename
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalSort(sort0=[$2], sort1=[$0], dir0=[DESC], dir1=[ASC])
+  LogicalProject(ENAME=[$0], JOB=[$1], MGR=[$2], MAX_SAL=[$3])
+    LogicalFilter(condition=[>($3, 1000)])
+      LogicalAggregate(group=[{0, 1, 2}], MAX_SAL=[MAX($3)])
+        LogicalProject(ENAME=[$1], JOB=[$2], MGR=[$3], SAL=[$5])
+          LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableFilter(condition=[>($3, 1000)])
+  EnumerableSortedAggregate(group=[{1, 2, 3}], MAX_SAL=[MAX($5)])
+    EnumerableSort(sort0=[$3], sort1=[$1], sort2=[$2], dir0=[DESC], dir1=[ASC], dir2=[ASC])
+      EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+]]>
+        </Resource>
+    </TestCase>
+    <TestCase name="testSortFilterDerive">
+        <Resource name="sql">
+            <![CDATA[
+select * from
+(select ename, job, max_sal from
+(select ename, job, max(sal) as max_sal from sales.emp group by ename, job) t where job > 1000) r
+join sales.bonus s on r.job=s.job and r.ename=s.ename";
+]]>
+        </Resource>
+        <Resource name="planBefore">
+            <![CDATA[
+LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2], ENAME0=[$3], JOB0=[$4], SAL=[$5], COMM=[$6])
+  LogicalJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+    LogicalProject(ENAME=[$0], JOB=[$1], MAX_SAL=[$2])
+      LogicalFilter(condition=[>(CAST($1):INTEGER NOT NULL, 1000)])
+        LogicalAggregate(group=[{0, 1}], MAX_SAL=[MAX($2)])
+          LogicalProject(ENAME=[$1], JOB=[$2], SAL=[$5])
+            LogicalTableScan(table=[[CATALOG, SALES, EMP]])
+    LogicalTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+        <Resource name="planAfter">
+            <![CDATA[
+EnumerableMergeJoin(condition=[AND(=($1, $4), =($0, $3))], joinType=[inner])
+  EnumerableSortedAggregate(group=[{1, 2}], MAX_SAL=[MAX($5)])
+    EnumerableSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])
+      EnumerableFilter(condition=[>(CAST($2):INTEGER NOT NULL, 1000)])
+        EnumerableTableScan(table=[[CATALOG, SALES, EMP]])
+  EnumerableSort(sort0=[$1], sort1=[$0], dir0=[ASC], dir1=[ASC])
+    EnumerableTableScan(table=[[CATALOG, SALES, BONUS]])
+]]>
+        </Resource>
+    </TestCase>
   <TestCase name="testSortAggPartialKey">
     <Resource name="sql">
       <![CDATA[select mgr,deptno,comm,count(*) from sales.emp

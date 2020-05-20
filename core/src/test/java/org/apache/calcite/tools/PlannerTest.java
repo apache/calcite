@@ -969,7 +969,7 @@ public class PlannerTest {
     RelNode transform = planner.transform(0, traitSet, convert);
     assertThat(toString(transform),
         containsString(
-            "EnumerableMergeJoin(condition=[=($0, $5)], joinType=[inner])"));
+            "EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])"));
   }
 
   /** Test case for
@@ -1030,12 +1030,10 @@ public class PlannerTest {
         + "EnumerableProject(empid=[$2], deptno=[$3], name=[$4], salary=[$5], commission=[$6], deptno0=[$7], name0=[$8], employees=[$9], location=[ROW($10, $11)], empid0=[$0], name1=[$1])\n"
         + "  EnumerableHashJoin(condition=[=($0, $2)], joinType=[left])\n"
         + "    EnumerableTableScan(table=[[hr, dependents]])\n"
-        + "    EnumerableMergeJoin(condition=[=($1, $5)], joinType=[inner])\n"
-        + "      EnumerableSort(sort0=[$1], dir0=[ASC])\n"
-        + "        EnumerableTableScan(table=[[hr, emps]])\n"
-        + "      EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "        EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
-        + "          EnumerableTableScan(table=[[hr, depts]])";
+        + "    EnumerableHashJoin(condition=[=($1, $5)], joinType=[inner])\n"
+        + "      EnumerableTableScan(table=[[hr, emps]])\n"
+        + "      EnumerableProject(deptno=[$0], name=[$1], employees=[$2], x=[$3.x], y=[$3.y])\n"
+        + "        EnumerableTableScan(table=[[hr, depts]])";
     checkHeuristic(sql, expected);
   }
 
@@ -1100,11 +1098,10 @@ public class PlannerTest {
         + "      EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
         + "        EnumerableTableScan(table=[[foodmart2, customer]])\n"
         + "      EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])\n"
-        + "        EnumerableMergeJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "        EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])\n"
         + "          EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-        + "          EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "            EnumerableFilter(condition=[=($2, 'Washington')])\n"
-        + "              EnumerableTableScan(table=[[foodmart2, product]])\n"
+        + "          EnumerableFilter(condition=[=($2, 'Washington')])\n"
+        + "            EnumerableTableScan(table=[[foodmart2, product]])\n"
         + "        EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
     checkBushy(sql, expected);
   }
@@ -1131,13 +1128,11 @@ public class PlannerTest {
         + "      EnumerableHashJoin(condition=[=($0, $51)], joinType=[inner])\n"
         + "        EnumerableFilter(condition=[=($9, 'San Francisco')])\n"
         + "          EnumerableTableScan(table=[[foodmart2, customer]])\n"
-        + "        EnumerableMergeJoin(condition=[=($6, $20)], joinType=[inner])\n"
-        + "          EnumerableSort(sort0=[$6], dir0=[ASC])\n"
-        + "            EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])\n"
-        + "              EnumerableTableScan(table=[[foodmart2, product_class]])\n"
-        + "              EnumerableTableScan(table=[[foodmart2, product]])\n"
-        + "          EnumerableSort(sort0=[$0], dir0=[ASC])\n"
-        + "            EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
+        + "        EnumerableHashJoin(condition=[=($6, $20)], joinType=[inner])\n"
+        + "          EnumerableHashJoin(condition=[=($0, $5)], joinType=[inner])\n"
+        + "            EnumerableTableScan(table=[[foodmart2, product_class]])\n"
+        + "            EnumerableTableScan(table=[[foodmart2, product]])\n"
+        + "          EnumerableTableScan(table=[[foodmart2, sales_fact_1997]])\n";
     checkBushy(sql, expected);
   }
 

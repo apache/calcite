@@ -24,7 +24,7 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
@@ -60,9 +60,8 @@ public enum EnumerableConvention implements Convention {
           input.getCluster().getPlanner(),
           input, INSTANCE, true);
     }
-    RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
-    if (collation != null) {
-      assert !collation.getFieldCollations().isEmpty();
+    RelCollation collation = required.getCollation();
+    if (collation != null && collation != RelCollations.EMPTY) {
       rel = EnumerableSort.create(rel, collation, null, null);
     }
     return rel;

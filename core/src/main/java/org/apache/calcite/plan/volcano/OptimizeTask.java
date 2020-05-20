@@ -228,7 +228,8 @@ abstract class OptimizeTask {
             RelNode newRel = rel.derive(subset.getTraitSet(), childId);
             if (newRel != null && !planner.isRegistered(newRel)) {
               RelSubset relSubset = planner.register(newRel, node);
-              assert relSubset.set == planner.getSubset(node).set;
+              // TODO: CALCITE-4030
+              // assert relSubset.set == planner.getSubset(node).set;
             }
           }
         }

@@ -199,4 +199,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return CalciteConnectionProperty.LENIENT_OPERATOR_LOOKUP.wrap(properties)
         .getBoolean();
   }
+
+  public boolean topDownOpt() {
+    return CalciteConnectionProperty.TOPDOWN_OPT.wrap(properties).getBoolean();
+  }
 }

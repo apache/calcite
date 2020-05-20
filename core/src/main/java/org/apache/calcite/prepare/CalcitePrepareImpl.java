@@ -431,6 +431,7 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
     }
+    planner.setTopDownOpt(prepareContext.config().topDownOpt());
     RelOptUtil.registerDefaultRules(planner,
         prepareContext.config().materializationsEnabled(),
         enableBindable);

@@ -16,20 +16,37 @@
  */
 package org.apache.calcite.adapter.enumerable;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
+import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMdCollation;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.validate.SqlMonotonicity;
+import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
+import org.apache.calcite.util.mapping.MappingType;
+import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
 
 /** Implementation of {@link org.apache.calcite.rel.core.Project} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -85,5 +102,102 @@ public class EnumerableProject extends Project implements EnumerableRel {
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
     // EnumerableCalcRel is always better
     throw new UnsupportedOperationException();
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+      RelTraitSet required) {
+    RelCollation collation = required.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+
+    final Mappings.TargetMapping map =
+        RelOptUtil.permutationIgnoreCast(
+            getProjects(), getInput().getRowType());
+
+    for (RelFieldCollation rc : collation.getFieldCollations()) {
+      if (!isCollationOnTrivialExpr(map, rc, true)) {
+        return null;
+      }
+    }
+
+    final RelCollation newCollation = collation.apply(map);
+    return Pair.of(traitSet.replace(collation),
+        ImmutableList.of(traitSet.replace(newCollation)));
+  }
+
+  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+      final RelTraitSet childTraits, final int childId) {
+    RelCollation collation = childTraits.getCollation();
+    if (collation == null || collation == RelCollations.EMPTY) {
+      return null;
+    }
+
+    int maxField = Math.max(getProjects().size(),
+        getInput().getRowType().getFieldCount());
+    Mappings.TargetMapping mapping = Mappings
+        .create(MappingType.FUNCTION, maxField, maxField);
+    for (Ord<RexNode> node : Ord.zip(getProjects())) {
+      if (node.e instanceof RexInputRef) {
+        mapping.set(((RexInputRef) node.e).getIndex(), node.i);
+      } else if (node.e.isA(SqlKind.CAST)) {
+        final RexNode operand = ((RexCall) node.e).getOperands().get(0);
+        if (operand instanceof RexInputRef) {
+          mapping.set(((RexInputRef) operand).getIndex(), node.i);
+        }
+      }
+    }
+
+    List<RelFieldCollation> collationFieldsToDerive = new ArrayList<>();
+    for (RelFieldCollation rc : collation.getFieldCollations()) {
+      if (isCollationOnTrivialExpr(mapping, rc, false)) {
+        collationFieldsToDerive.add(rc);
+      } else {
+        break;
+      }
+    }
+
+    if (collationFieldsToDerive.size() > 0) {
+      final RelCollation newCollation = RelCollations
+          .of(collationFieldsToDerive).apply(mapping);
+      return Pair.of(traitSet.replace(newCollation),
+          ImmutableList.of(traitSet.replace(collation)));
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Determine whether there is mapping between project input and output fields.
+   * Bail out if sort relies on non-trivial expressions.
+   */
+  private boolean isCollationOnTrivialExpr(
+      Mappings.TargetMapping map, RelFieldCollation fc, boolean passdown) {
+    int target = map.getTargetOpt(fc.getFieldIndex());
+    if (target < 0) {
+      return false;
+    }
+
+    final RexNode node;
+    if (passdown) {
+      node = getProjects().get(fc.getFieldIndex());
+    } else {
+      node = getProjects().get(target);
+    }
+
+    if (node.isA(SqlKind.CAST)) {
+      // Check whether it is a monotonic preserving cast
+      final RexCall cast = (RexCall) node;
+      RelFieldCollation newFc = Objects.requireNonNull(RexUtil.apply(map, fc));
+      final RexCallBinding binding =
+          RexCallBinding.create(getCluster().getTypeFactory(), cast,
+              ImmutableList.of(RelCollations.of(newFc)));
+      if (cast.getOperator().getMonotonicity(binding)
+          == SqlMonotonicity.NOT_MONOTONIC) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

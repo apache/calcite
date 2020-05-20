@@ -122,7 +122,8 @@ public final class CalciteSystemProperty<T> {
       booleanProperty("calcite.volcano.dump.sets", true);
 
   /**
-   * Whether to enable top-down optimization.
+   * Whether to enable top-down optimization. This config can be overridden
+   * by {@link CalciteConnectionProperty#TOPDOWN_OPT}.
    *
    * <p>Note: Enabling top-down optimization will automatically disable
    * the use of AbstractConverter and related rules.</p>
