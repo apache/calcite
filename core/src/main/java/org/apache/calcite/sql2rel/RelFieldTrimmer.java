@@ -26,6 +26,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.Exchange;
 import org.apache.calcite.rel.core.Filter;
@@ -52,6 +53,7 @@ import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
+import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.sql.SqlExplainFormat;
@@ -71,10 +73,12 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -348,6 +352,91 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     Util.discard(fieldsUsed);
     return result(rel,
         Mappings.createIdentity(rel.getRowType().getFieldCount()));
+  }
+
+  /**
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * {@link org.apache.calcite.rel.logical.LogicalCalc}.
+   */
+  public TrimResult trimFields(
+      Calc calc,
+      ImmutableBitSet fieldsUsed,
+      Set<RelDataTypeField> extraFields) {
+    final RexProgram rexProgram = calc.getProgram();
+    final List<RexNode> projs = Lists.transform(rexProgram.getProjectList(),
+        rexProgram::expandLocalRef);
+
+    final RelDataType rowType = calc.getRowType();
+    final int fieldCount = rowType.getFieldCount();
+    final RelNode input = calc.getInput();
+
+    final Set<RelDataTypeField> inputExtraFields =
+        new HashSet<>(extraFields);
+    RelOptUtil.InputFinder inputFinder =
+        new RelOptUtil.InputFinder(inputExtraFields);
+    for (Ord<RexNode> ord : Ord.zip(projs)) {
+      if (fieldsUsed.get(ord.i)) {
+        ord.e.accept(inputFinder);
+      }
+    }
+    ImmutableBitSet inputFieldsUsed = inputFinder.build();
+
+    // Create input with trimmed columns.
+    TrimResult trimResult =
+        trimChild(calc, input, inputFieldsUsed, inputExtraFields);
+    RelNode newInput = trimResult.left;
+    final Mapping inputMapping = trimResult.right;
+
+    // If the input is unchanged, and we need to project all columns,
+    // there's nothing we can do.
+    if (newInput == input
+        && fieldsUsed.cardinality() == fieldCount) {
+      return result(calc, Mappings.createIdentity(fieldCount));
+    }
+
+    // Some parts of the system can't handle rows with zero fields, so
+    // pretend that one field is used.
+    if (fieldsUsed.cardinality() == 0) {
+      return dummyProject(fieldCount, newInput);
+    }
+
+    // Build new project expressions, and populate the mapping.
+    final List<RexNode> newProjects = new ArrayList<>();
+    final RexVisitor<RexNode> shuttle =
+        new RexPermuteInputsShuttle(
+            inputMapping, newInput);
+    final Mapping mapping =
+        Mappings.create(
+            MappingType.INVERSE_SURJECTION,
+            fieldCount,
+            fieldsUsed.cardinality());
+    for (Ord<RexNode> ord : Ord.zip(projs)) {
+      if (fieldsUsed.get(ord.i)) {
+        mapping.set(ord.i, newProjects.size());
+        RexNode newProjectExpr = ord.e.accept(shuttle);
+        newProjects.add(newProjectExpr);
+      }
+    }
+
+    final RelDataType newRowType =
+        RelOptUtil.permute(calc.getCluster().getTypeFactory(), rowType,
+            mapping);
+
+    final RelNode newInputRelNode = relBuilder.push(newInput).build();
+    RexNode newConditionExpr = null;
+    if (rexProgram.getCondition() != null) {
+      final List<RexNode> filter = Lists.transform(
+          ImmutableList.of(
+              rexProgram.getCondition()), rexProgram::expandLocalRef);
+      assert filter.size() == 1;
+      final RexNode conditionExpr = filter.get(0);
+      newConditionExpr = conditionExpr.accept(shuttle);
+    }
+    final RexProgram newRexProgram = RexProgram.create(newInputRelNode.getRowType(),
+        newProjects, newConditionExpr, newRowType.getFieldNames(),
+        newInputRelNode.getCluster().getRexBuilder());
+    final Calc newCalc = calc.copy(calc.getTraitSet(), newInputRelNode, newRexProgram);
+    return result(newCalc, mapping);
   }
 
   /**

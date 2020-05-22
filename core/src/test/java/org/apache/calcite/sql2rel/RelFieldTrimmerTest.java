@@ -17,17 +17,25 @@
 package org.apache.calcite.sql2rel;
 
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Calc;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.hint.HintPredicates;
 import org.apache.calcite.rel.hint.HintStrategyTable;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.rules.CalcMergeRule;
+import org.apache.calcite.rel.rules.FilterToCalcRule;
+import org.apache.calcite.rel.rules.ProjectToCalcRule;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
@@ -304,6 +312,145 @@ class RelFieldTrimmerTest {
     assertTrue(trimmed.getInput(0) instanceof Project);
     final Project project = (Project) trimmed.getInput(0);
     assertTrue(project.getHints().contains(projectHint));
+  }
+
+  @Test void testCalcFieldTrimmer0() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .project(builder.field("EMPNO"), builder.field("ENAME"))
+            .build();
+
+    final HepProgram hepProgram = new HepProgramBuilder().
+        addRuleInstance(ProjectToCalcRule.INSTANCE).build();
+
+    final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(root);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(relNode);
+
+    final String expected = ""
+        + "LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])\n"
+        + "  LogicalExchange(distribution=[single])\n"
+        + "    LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])\n"
+        + "      LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test void testCalcFieldTrimmer1() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field("EMPNO"), builder.literal(100)))
+            .build();
+
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .build();
+
+    final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(root);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(relNode);
+
+    final String expected = ""
+        + "LogicalCalc(expr#0..2=[{inputs}], expr#3=[100], expr#4=[>($t0, $t3)], proj#0."
+        + ".2=[{exprs}], $condition=[$t4])\n"
+        + "  LogicalExchange(distribution=[single])\n"
+        + "    LogicalCalc(expr#0..2=[{inputs}], proj#0..2=[{exprs}])\n"
+        + "      LogicalProject(EMPNO=[$0], ENAME=[$1], DEPTNO=[$7])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test void testCalcFieldTrimmer2() {
+    final RelBuilder builder = RelBuilder.create(config().build());
+    final RelNode root =
+        builder.scan("EMP")
+            .project(builder.field("EMPNO"), builder.field("ENAME"), builder.field("DEPTNO"))
+            .exchange(RelDistributions.SINGLETON)
+            .filter(
+                builder.call(SqlStdOperatorTable.GREATER_THAN,
+                    builder.field("EMPNO"), builder.literal(100)))
+            .project(builder.field("EMPNO"), builder.field("ENAME"))
+            .build();
+
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .addRuleInstance(FilterToCalcRule.INSTANCE)
+        .addRuleInstance(CalcMergeRule.INSTANCE).build();
+
+    final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(root);
+    final RelNode relNode = hepPlanner.findBestExp();
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(relNode);
+
+    final String expected = ""
+        + "LogicalCalc(expr#0..1=[{inputs}], expr#2=[100], expr#3=[>($t0, $t2)], proj#0."
+        + ".1=[{exprs}], $condition=[$t3])\n"
+        + "  LogicalExchange(distribution=[single])\n"
+        + "    LogicalCalc(expr#0..1=[{inputs}], proj#0..1=[{exprs}])\n"
+        + "      LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+  }
+
+  @Test void testCalcWithHints() {
+    final RelHint calcHint = RelHint.builder("resource").build();
+    final RelBuilder builder = RelBuilder.create(config().build());
+    builder.getCluster().setHintStrategies(
+        HintStrategyTable.builder().hintStrategy("resource", HintPredicates.CALC).build());
+    final RelNode original =
+        builder.scan("EMP")
+            .project(
+                builder.field("EMPNO"),
+                builder.field("ENAME"),
+                builder.field("DEPTNO")
+            ).hints(calcHint)
+            .sort(builder.field("EMPNO"))
+            .project(builder.field("EMPNO"))
+            .build();
+
+    final HepProgram hepProgram = new HepProgramBuilder()
+        .addRuleInstance(ProjectToCalcRule.INSTANCE)
+        .build();
+    final HepPlanner hepPlanner = new HepPlanner(hepProgram);
+    hepPlanner.setRoot(original);
+    final RelNode relNode = hepPlanner.findBestExp();
+
+    final RelFieldTrimmer fieldTrimmer = new RelFieldTrimmer(null, builder);
+    final RelNode trimmed = fieldTrimmer.trim(relNode);
+
+    final String expected = ""
+        + "LogicalCalc(expr#0=[{inputs}], EMPNO=[$t0])\n"
+        + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+        + "    LogicalCalc(expr#0=[{inputs}], EMPNO=[$t0])\n"
+        + "      LogicalProject(EMPNO=[$0])\n"
+        + "        LogicalTableScan(table=[[scott, EMP]])\n";
+    assertThat(trimmed, hasTree(expected));
+
+    assertTrue(original.getInput(0).getInput(0) instanceof Project);
+    final Project originalProject = (Project) original.getInput(0).getInput(0);
+    assertTrue(originalProject.getHints().contains(calcHint));
+
+    assertTrue(relNode.getInput(0).getInput(0) instanceof Calc);
+    final Calc originalCalc = (Calc) relNode.getInput(0).getInput(0);
+    assertTrue(originalCalc.getHints().contains(calcHint));
+
+    assertTrue(trimmed.getInput(0).getInput(0) instanceof Calc);
+    final Calc calc = (Calc) trimmed.getInput(0).getInput(0);
+    assertTrue(calc.getHints().contains(calcHint));
   }
 
 }
