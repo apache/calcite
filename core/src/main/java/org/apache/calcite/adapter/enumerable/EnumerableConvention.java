@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.tools.RelBuilder;
 
 /**
  * Family of calling conventions that return results as an
@@ -63,7 +64,12 @@ public enum EnumerableConvention implements Convention {
     RelCollation collation = required.getTrait(RelCollationTraitDef.INSTANCE);
     if (collation != null) {
       assert !collation.getFieldCollations().isEmpty();
-      rel = EnumerableSort.create(rel, collation, null, null);
+      RelBuilder builder =
+          RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
+      rel = builder.push(rel)
+                   .adoptConvention(this)
+                   .sort(collation)
+                   .build();
     }
     return rel;
   }

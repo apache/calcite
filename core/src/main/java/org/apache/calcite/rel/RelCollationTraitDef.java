@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
@@ -70,12 +69,9 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
       return null;
     }
 
-    // Create a sort operator based on given convention
-    Convention toConvention = rel.getConvention();
     RelBuilder builder =
         RelFactories.LOGICAL_BUILDER.create(rel.getCluster(), null);
     RelNode sort = builder.push(rel)
-                          .adoptConvention(toConvention)
                           .sort(toCollation)
                           .build();
     RelNode newRel = planner.register(sort, rel);
