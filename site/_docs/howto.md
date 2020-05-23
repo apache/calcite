@@ -31,15 +31,15 @@ adapters.
 
 ## Building from a source distribution
 
-Prerequisite is Java (JDK 8, 9, 10, 11, 12, or 13) on your path.
+Prerequisite is Java (JDK 8, 9, 10, 11, 12, 13, or 14) on your path.
 
 Unpack the source distribution `.tar.gz` file,
 `cd` to the root directory of the unpacked source,
 then build using the included maven wrapper:
 
 {% highlight bash %}
-$ tar xvfz calcite-1.23.0-source.tar.gz
-$ cd calcite-1.23.0
+$ tar xvfz apache-calcite-1.23.0-src.tar.gz
+$ cd apache-calcite-1.23.0-src
 $ ./gradlew build
 {% endhighlight %}
 
@@ -49,7 +49,7 @@ tests.
 ## Building from Git
 
 Prerequisites are git
-and Java (JDK 8, 9, 10, 11, 12, or 13) on your path.
+and Java (JDK 8, 9, 10, 11, 12, 13, or 14) on your path.
 
 Create a local copy of the github repository,
 `cd` to its root directory,
