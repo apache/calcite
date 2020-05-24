@@ -46,7 +46,7 @@ Site generation currently works best with ruby-2.5.1.
    `rmdir site\target\javadocAggregate /S /Q` (Windows)
 4. `mkdir site/target`
    `mkdir site\target` (Windows)
-4. `mv build/docs/javadocAggregate site/target`
+5. `mv build/docs/javadocAggregate site/target`
    `for /d %a in (build\docs\javadocAggregate*) do move %a site\target` (Windows)
 
 ### Running locally
@@ -89,8 +89,9 @@ As you make changes to the site, the site will automatically rebuild.
 
 1. `cd site/target`
 2. `git init`
-3. `git remote add origin https://github.com/apache/calcite-site`
-4. `git reset origin/master --soft`
+3. `git remote add origin git@github.com:apache/calcite-site.git`
+4. `git fetch`
+5. `git reset origin/master --soft`
 
 If you have not regenerated the javadoc and they are missing, restore them:
 
