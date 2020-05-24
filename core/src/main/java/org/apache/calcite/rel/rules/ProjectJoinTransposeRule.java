@@ -19,11 +19,6 @@ package org.apache.calcite.rel.rules;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -35,9 +30,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexShuttle;
-import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.mapping.Mappings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -152,40 +145,11 @@ public class ProjectJoinTransposeRule extends RelOptRule implements Transformati
               projJoinFieldList,
               adjustments);
     }
-    RelTraitSet traits = join.getTraitSet();
-    final List<RelCollation> originCollations = traits.getTraits(RelCollationTraitDef.INSTANCE);
 
-    if (originCollations != null && !originCollations.isEmpty()) {
-      List<RelCollation> newCollations = new ArrayList<>();
-      final int originLeftCnt = join.getLeft().getRowType().getFieldCount();
-      final Mappings.TargetMapping leftMapping = RelOptUtil.permutationPushDownProject(
-              ((Project) leftProjRel).getProjects(), join.getLeft().getRowType(),
-              0, 0);
-      final Mappings.TargetMapping rightMapping = RelOptUtil.permutationPushDownProject(
-              ((Project) rightProjRel).getProjects(), join.getRight().getRowType(),
-              originLeftCnt, leftProjRel.getRowType().getFieldCount());
-      for (RelCollation collation: originCollations) {
-        List<RelFieldCollation> fc = new ArrayList<>();
-        final List<RelFieldCollation> fieldCollations = collation.getFieldCollations();
-        for (RelFieldCollation relFieldCollation: fieldCollations) {
-          final int fieldIndex = relFieldCollation.getFieldIndex();
-          Mappings.TargetMapping mapping = fieldIndex < originLeftCnt ? leftMapping : rightMapping;
-          RelFieldCollation newFieldCollation = RexUtil.apply(mapping, relFieldCollation);
-          if (newFieldCollation == null) {
-            break;
-          }
-          fc.add(newFieldCollation);
-        }
-        newCollations.add(RelCollations.of(fc));
-      }
-      if (!newCollations.isEmpty()) {
-        traits = traits.replace(newCollations);
-      }
-    }
     // create a new join with the projected children
     Join newJoinRel =
         join.copy(
-            traits,
+            join.getTraitSet(),
             newJoinFilter,
             leftProjRel,
             rightProjRel,
