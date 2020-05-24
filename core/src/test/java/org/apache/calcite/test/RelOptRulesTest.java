@@ -132,7 +132,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
@@ -142,7 +141,6 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.sql.SqlSpecialOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -151,8 +149,6 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql2rel.RelDecorrelator;
 import org.apache.calcite.sql2rel.SqlToRelConverter;
 import org.apache.calcite.test.catalog.MockCatalogReader;
-import org.apache.calcite.tools.FrameworkConfig;
-import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Program;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
@@ -994,51 +990,6 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql)
         .withRule(JoinProjectTransposeRule.BOTH_PROJECT)
         .check();
-  }
-
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3353">[CALCITE-3353]
-   * ProjectJoinTransposeRule caused AssertionError when creating a new Join</a>.
-   */
-  @Test void testProjectJoinTransposeWithMergeJoin() {
-    ProjectJoinTransposeRule testRule = new ProjectJoinTransposeRule(
-            Project.class, Join.class, expr -> !(expr instanceof RexOver),
-            RelFactories.LOGICAL_BUILDER);
-    ImmutableList<RelOptRule> commonRules = ImmutableList.of(
-            EnumerableRules.ENUMERABLE_PROJECT_RULE,
-            EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-            EnumerableRules.ENUMERABLE_SORT_RULE,
-            EnumerableRules.ENUMERABLE_VALUES_RULE);
-    final RuleSet rules = RuleSets.ofList(ImmutableList.<RelOptRule>builder()
-            .addAll(commonRules)
-            .add(ProjectJoinTransposeRule.INSTANCE)
-            .build());
-    final RuleSet testRules = RuleSets.ofList(ImmutableList.<RelOptRule>builder()
-            .addAll(commonRules)
-            .add(testRule).build());
-
-    FrameworkConfig config = Frameworks.newConfigBuilder()
-            .parserConfig(SqlParser.Config.DEFAULT)
-            .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
-            .build();
-
-    RelBuilder builder = RelBuilder.create(config);
-    RelNode logicalPlan = builder
-            .values(new String[]{"id", "name"}, "1", "anna", "2", "bob", "3", "tom")
-            .values(new String[]{"name", "age"}, "anna", "14", "bob", "17", "tom", "22")
-            .join(JoinRelType.INNER, "name")
-            .project(builder.field(3))
-            .build();
-
-    RelTraitSet desiredTraits = logicalPlan.getTraitSet()
-            .replace(EnumerableConvention.INSTANCE);
-    RelOptPlanner planner = logicalPlan.getCluster().getPlanner();
-    RelNode enumerablePlan1 = Programs.of(rules).run(planner, logicalPlan,
-            desiredTraits, ImmutableList.of(), ImmutableList.of());
-    RelNode enumerablePlan2 = Programs.of(testRules).run(planner, logicalPlan,
-            desiredTraits, ImmutableList.of(), ImmutableList.of());
-    assertEquals(RelOptUtil.toString(enumerablePlan1), RelOptUtil.toString(enumerablePlan2));
   }
 
   /** Test case for
