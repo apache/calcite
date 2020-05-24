@@ -62,7 +62,11 @@ public class SqlInsert extends SqlCall {
   }
 
   public List<SqlNode> getOperandList() {
-    return ImmutableNullableList.of(keywords, targetTable, source, columnList);
+    if (columnList == null) {
+      return ImmutableNullableList.of(keywords, targetTable, source);
+    } else {
+      return ImmutableNullableList.of(keywords, targetTable, source, columnList);
+    }
   }
 
   /** Returns whether this is an UPSERT statement.

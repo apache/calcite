@@ -31,6 +31,7 @@ import org.apache.calcite.sql.dialect.AnsiSqlDialect;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.test.SqlTests;
+import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.test.DiffTestCase;
@@ -75,6 +76,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -5745,6 +5747,19 @@ public class SqlParserTest {
     // just need to check for 0
     expr("INTERVAL '0' MONTH(0)")
         .ok("INTERVAL '0' MONTH(0)");
+  }
+
+  @Test void testSqlParserPosPlus() throws Exception {
+    final String sql = "insert into emps select * from emps";
+    final SqlNode sqlNode = getSqlParser(sql).parseStmt();
+    final SqlNode sqlNodeVisited = sqlNode.accept(new SqlShuttle() {
+      @Override public SqlNode visit(SqlIdentifier identifier) {
+        return new SqlIdentifier(identifier.names,
+            identifier.getParserPosition());
+      }
+    });
+    assertTrue(sqlNodeVisited != sqlNode);
+    assertTrue(sqlNodeVisited.getKind() == SqlKind.INSERT);
   }
 
   /**
