@@ -236,6 +236,8 @@ public abstract class SqlImplementor {
       return sqlCondition;
 
     case EQUALS:
+    case IN:
+    case NOT:
     case IS_NOT_DISTINCT_FROM:
     case NOT_EQUALS:
     case GREATER_THAN:
