@@ -35,11 +35,8 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.NumberUtil;
-import org.apache.calcite.util.Util;
 
 /**
  * RelMdRowCount supplies a default implementation of
@@ -68,20 +65,7 @@ public class RelMdRowCount
   }
 
   public Double getRowCount(RelSubset subset, RelMetadataQuery mq) {
-    if (!Bug.CALCITE_1048_FIXED) {
-      return mq.getRowCount(Util.first(subset.getBest(), subset.getOriginal()));
-    }
-    Double v = null;
-    for (RelNode r : subset.getRels()) {
-      try {
-        v = NumberUtil.min(v, mq.getRowCount(r));
-      } catch (CyclicMetadataException e) {
-        // ignore this rel; there will be other, non-cyclic ones
-      } catch (Throwable e) {
-        e.printStackTrace();
-      }
-    }
-    return Util.first(v, 1e6d); // if set is empty, estimate large
+    return mq.getRowCount(subset.getOriginal());
   }
 
   public Double getRowCount(Union rel, RelMetadataQuery mq) {

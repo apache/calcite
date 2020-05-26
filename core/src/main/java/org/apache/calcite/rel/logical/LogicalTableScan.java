@@ -20,6 +20,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
@@ -57,7 +58,7 @@ import java.util.List;
  * <p>can. It is the optimizer's responsibility to find these ways, by applying
  * transformation rules.</p>
  */
-public final class LogicalTableScan extends TableScan {
+public final class LogicalTableScan extends TableScan implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
@@ -92,6 +93,10 @@ public final class LogicalTableScan extends TableScan {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
     return this;
+  }
+
+  @Override public LogicalNode.StatsEstimateConfidenceLevel getStatsEstimateConfidence() {
+    return StatsEstimateConfidenceLevel.High;
   }
 
   /** Creates a LogicalTableScan.

@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Window;
@@ -56,7 +57,7 @@ import java.util.Objects;
  * Sub-class of {@link org.apache.calcite.rel.core.Window}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalWindow extends Window {
+public final class LogicalWindow extends Window implements LogicalNode {
   /**
    * Creates a LogicalWindow.
    *

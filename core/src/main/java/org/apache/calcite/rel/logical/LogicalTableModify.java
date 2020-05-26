@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.prepare.Prepare;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
@@ -32,7 +33,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.TableModify}
  * not targeted at any particular engine or calling convention.
  */
-public final class LogicalTableModify extends TableModify {
+public final class LogicalTableModify extends TableModify implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**

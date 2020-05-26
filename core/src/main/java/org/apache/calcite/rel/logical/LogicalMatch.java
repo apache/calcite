@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -35,7 +36,7 @@ import java.util.SortedSet;
  * Sub-class of {@link Match}
  * not targeted at any particular engine or calling convention.
  */
-public class LogicalMatch extends Match {
+public class LogicalMatch extends Match implements LogicalNode {
 
   /**
    * Creates a LogicalMatch.

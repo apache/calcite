@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelInput;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
@@ -54,7 +55,7 @@ import java.util.Set;
  *
  * </ul>
  */
-public final class LogicalJoin extends Join {
+public final class LogicalJoin extends Join implements LogicalNode {
   //~ Instance fields --------------------------------------------------------
 
   // NOTE jvs 14-Mar-2006:  Normally we don't use state like this

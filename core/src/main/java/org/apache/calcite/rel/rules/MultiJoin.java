@@ -21,6 +21,7 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -44,7 +45,7 @@ import java.util.Map;
  * A MultiJoin represents a join of N inputs, whereas regular Joins
  * represent strictly binary joins.
  */
-public final class MultiJoin extends AbstractRelNode {
+public final class MultiJoin extends AbstractRelNode implements LogicalNode {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelNode> inputs;
@@ -264,6 +265,10 @@ public final class MultiJoin extends AbstractRelNode {
    */
   public RexNode getPostJoinFilter() {
     return postJoinFilter;
+  }
+
+  @Override public StatsEstimateConfidenceLevel getStatsEstimateConfidence() {
+    return StatsEstimateConfidenceLevel.Low;
   }
 
   boolean containsOuter() {

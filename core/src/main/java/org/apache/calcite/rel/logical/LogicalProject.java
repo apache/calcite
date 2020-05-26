@@ -19,6 +19,7 @@ package org.apache.calcite.rel.logical;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.LogicalNode;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelInput;
@@ -42,7 +43,7 @@ import java.util.List;
  * Sub-class of {@link org.apache.calcite.rel.core.Project} not
  * targeted at any particular engine or calling convention.
  */
-public final class LogicalProject extends Project {
+public final class LogicalProject extends Project implements LogicalNode {
   //~ Constructors -----------------------------------------------------------
 
   /**
