@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 
 /**
  * Calling convention that returns results as an
@@ -49,6 +50,10 @@ public enum BindableConvention implements Convention {
 
   public String getName() {
     return "BINDABLE";
+  }
+
+  @Override public RelNode enforce(RelNode input, RelTraitSet required) {
+    return null;
   }
 
   public RelTraitDef getTraitDef() {

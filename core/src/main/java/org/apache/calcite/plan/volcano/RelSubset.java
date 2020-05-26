@@ -25,6 +25,7 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
+import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -36,6 +37,8 @@ import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
+
+import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
 import org.slf4j.Logger;
@@ -84,7 +87,7 @@ public class RelSubset extends AbstractRelNode {
   /**
    * Optimization task state
    */
-  OptimizeTask.State taskState;
+  OptimizeState taskState;
 
   /**
    * cost of best known plan (it may have improved since)
@@ -128,6 +131,17 @@ public class RelSubset extends AbstractRelNode {
    */
   private boolean enforceDisabled = false;
 
+  /**
+   * The upper bound of the last OptimizeGroup call.
+   */
+  RelOptCost upperBound;
+
+  /**
+   * A cache that recognize which RelNode has invoked the passThrough method
+   * so as to avoid duplicate invocation.
+   */
+  Set<RelNode> passThroughCache;
+
   //~ Constructors -----------------------------------------------------------
 
   RelSubset(
@@ -138,6 +152,7 @@ public class RelSubset extends AbstractRelNode {
     this.set = set;
     assert traits.allSimple();
     computeBestCost(cluster.getPlanner());
+    upperBound = bestCost;
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -414,6 +429,7 @@ public class RelSubset extends AbstractRelNode {
 
         bestCost = cost;
         best = rel;
+        upperBound = bestCost;
         // since best was changed, cached metadata for this subset should be removed
         mq.clearCache(this);
 
@@ -487,6 +503,70 @@ public class RelSubset extends AbstractRelNode {
   public Stream<RelSubset> getSatisfyingSubsets() {
     return set.subsets.stream()
       .filter(s -> traitSet.satisfies(s.getTraitSet()));
+  }
+
+  /**
+   * Returns the best cost if this subset is fully optimized
+   * or null if the subset is not fully optimized.
+   */
+  @API(since = "1.24", status = API.Status.INTERNAL)
+  public RelOptCost getWinnerCost() {
+    if (taskState == OptimizeState.COMPLETED && bestCost.isLe(upperBound)) {
+      return bestCost;
+    }
+    // if bestCost != upperBound, it means optimize failed
+    return null;
+  }
+
+  void startOptimize(RelOptCost ub) {
+    assert getWinnerCost() == null : this + " is already optimized";
+    if (upperBound.isLt(ub)) {
+      upperBound = ub;
+      if (bestCost.isLt(upperBound)) {
+        upperBound = bestCost;
+      }
+    }
+    taskState = OptimizeState.OPTIMIZING;
+  }
+
+  void setOptimized() {
+    taskState = OptimizeState.COMPLETED;
+  }
+
+  boolean resetTaskState() {
+    boolean optimized = taskState != null;
+    taskState = null;
+    upperBound = bestCost;
+    return optimized;
+  }
+
+  RelNode passThrough(RelNode rel) {
+    if (!(rel instanceof PhysicalNode)) {
+      return null;
+    }
+    if (passThroughCache == null) {
+      passThroughCache = Sets.newIdentityHashSet();
+      passThroughCache.add(rel);
+    } else if (!passThroughCache.add(rel)) {
+      return null;
+    }
+    return ((PhysicalNode) rel).passThrough(this.getTraitSet());
+  }
+
+  boolean isExplored() {
+    return set.exploringState == RelSet.ExploringState.EXPLORED;
+  }
+
+  boolean explore() {
+    if (set.exploringState != null) {
+      return false;
+    }
+    set.exploringState = RelSet.ExploringState.EXPLORING;
+    return true;
+  }
+
+  void setExplored() {
+    set.exploringState = RelSet.ExploringState.EXPLORED;
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -699,5 +779,10 @@ public class RelSubset extends AbstractRelNode {
       }
       return p;
     }
+  }
+
+  enum OptimizeState {
+    OPTIMIZING,
+    COMPLETED
   }
 }

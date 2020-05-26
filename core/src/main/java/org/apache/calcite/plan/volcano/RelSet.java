@@ -23,7 +23,6 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.Converter;
 import org.apache.calcite.rel.core.CorrelationId;
@@ -76,15 +75,9 @@ class RelSet {
   RelNode rel;
 
   /**
-   * The position indicator of rel node that is to be processed.
+   * Exploring state of current RelSet.
    */
-  private int relCursor = 0;
-
-  /**
-   * The relnodes after applying logical rules and physical rules,
-   * before trait propagation and enforcement.
-   */
-  final Set<RelNode> seeds = new HashSet<>();
+  ExploringState exploringState;
 
   /**
    * Records conversions / enforcements that have happened on the
@@ -164,32 +157,6 @@ class RelSet {
       }
     }
     return null;
-  }
-
-  public int getSeedSize() {
-    if (seeds.isEmpty()) {
-      seeds.addAll(rels);
-    }
-    return seeds.size();
-  }
-
-  public boolean hasNextPhysicalNode() {
-    while (relCursor < rels.size()) {
-      RelNode node = rels.get(relCursor);
-      if (node instanceof PhysicalNode
-          && node.getConvention() != Convention.NONE) {
-        // enforcer may be manually created for some reason
-        if (relCursor < getSeedSize() || !node.isEnforcer()) {
-          return true;
-        }
-      }
-      relCursor++;
-    }
-    return false;
-  }
-
-  public RelNode nextPhysicalNode() {
-    return rels.get(relCursor++);
   }
 
   /**
@@ -315,8 +282,8 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter && !planner.topDownOpt) {
-      addConverters(subset, required, true);
+    if (needsConverter) {
+      addConverters(subset, required, !planner.topDownOpt);
     }
 
     return subset;
@@ -410,6 +377,13 @@ class RelSet {
         subset = getOrCreateSubset(cluster, otherTraits, true);
       }
 
+      assert subset != null;
+      if (subset.passThroughCache == null) {
+        subset.passThroughCache = otherSubset.passThroughCache;
+      } else if (otherSubset.passThroughCache != null) {
+        subset.passThroughCache.addAll(otherSubset.passThroughCache);
+      }
+
       // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
         changedSubsets.put(subset, otherSubset.best);
@@ -487,5 +461,24 @@ class RelSet {
     for (RelSubset subset : subsets) {
       planner.fireRules(subset);
     }
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * An enum representing exploring state of current RelSet.
+   */
+  enum ExploringState {
+    /**
+     * The RelSet is exploring.
+     * It means all possible rule matches are scheduled, but not fully applied.
+     * This RelSet will refuse to explore again, but cannot provide a valid LB.
+     */
+    EXPLORING,
+
+    /**
+     * The RelSet is fully explored and is able to provide a valid LB.
+     */
+    EXPLORED
   }
 }

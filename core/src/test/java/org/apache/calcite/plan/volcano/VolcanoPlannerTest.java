@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -64,7 +65,7 @@ import static org.apache.calcite.test.Matchers.isLinux;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -501,12 +502,18 @@ class VolcanoPlannerTest {
 
     // verify that the rule match cannot be popped,
     // as the related node has been pruned
+    RuleQueue ruleQueue = planner.ruleDriver.getRuleQueue();
     while (true) {
-      VolcanoRuleMatch ruleMatch = planner.ruleQueue.popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      VolcanoRuleMatch ruleMatch;
+      if (ruleQueue instanceof IterativeRuleQueue) {
+        ruleMatch = ((IterativeRuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      } else {
+        ruleMatch = ((TopDownRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
+      }
       if (ruleMatch == null) {
         break;
       }
-      assertFalse(ruleMatch.rels[0] == leafRel);
+      assertNotSame(leafRel, ruleMatch.rels[0]);
     }
   }
 

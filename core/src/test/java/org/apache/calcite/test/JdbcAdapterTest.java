@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.test;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.Lex;
 import org.apache.calcite.test.CalciteAssert.AssertThat;
 import org.apache.calcite.test.CalciteAssert.DatabaseInstance;
@@ -179,6 +180,7 @@ class JdbcAdapterTest {
 
   @Test void testPushDownSort() {
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
         .query("select ename\n"
             + "from scott.emp\n"
             + "order by empno")
@@ -211,6 +213,7 @@ class JdbcAdapterTest {
         + "GROUP BY \"JOB\", \"DEPTNO\"\n"
         + "ORDER BY \"DEPTNO\" NULLS LAST, \"JOB\" NULLS LAST";
     CalciteAssert.model(JdbcTest.SCOTT_MODEL)
+        .with(CalciteConnectionProperty.TOPDOWN_OPT.camelName(), false)
         .query(sql)
         .explainContains(explain)
         .runs()
