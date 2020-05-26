@@ -16,10 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
-import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.SubstitutionRule;
-import org.apache.calcite.util.Util;
 import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.HashMultimap;
@@ -30,8 +27,6 @@ import org.slf4j.Logger;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -43,7 +38,7 @@ import java.util.Set;
  * Priority queue of relexps whose rules have not been called, and rule-matches
  * which have not yet been acted upon.
  */
-class RuleQueue {
+class RuleQueue implements IRuleQueue<VolcanoPlannerPhase> {
   //~ Static fields/initializers ---------------------------------------------
 
   private static final Logger LOGGER = CalciteTrace.getPlannerTracer();
@@ -116,7 +111,7 @@ class RuleQueue {
    * Removes the {@link PhaseMatchList rule-match list} for the given planner
    * phase.
    */
-  public void phaseCompleted(VolcanoPlannerPhase phase) {
+  public void clear(VolcanoPlannerPhase phase) {
     matchListMap.get(phase).clear();
   }
 
@@ -125,7 +120,7 @@ class RuleQueue {
    * existing {@link PhaseMatchList per-phase rule-match lists} which allow
    * the rule referenced by the match.
    */
-  void addMatch(VolcanoRuleMatch match) {
+  public void addMatch(VolcanoRuleMatch match) {
     final String matchName = match.toString();
     for (PhaseMatchList matchList : matchListMap.values()) {
       Set<String> phaseRuleSet = phaseRuleMapping.get(matchList.phase);
@@ -161,9 +156,9 @@ class RuleQueue {
    *
    * @throws java.lang.AssertionError if this method is called with a phase
    *                              previously marked as completed via
-   *                              {@link #phaseCompleted(VolcanoPlannerPhase)}.
+   *                              {@link #clear(VolcanoPlannerPhase)}.
    */
-  VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
+  public VolcanoRuleMatch popMatch(VolcanoPlannerPhase phase) {
     dumpPlannerState();
 
     PhaseMatchList phaseMatchList = matchListMap.get(phase);
@@ -182,7 +177,7 @@ class RuleQueue {
 
       match = phaseMatchList.poll();
 
-      if (skipMatch(match)) {
+      if (planner.skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
       } else {
         break;
@@ -230,66 +225,6 @@ class RuleQueue {
       pw.flush();
       LOGGER.trace(sw.toString());
       planner.getRoot().getCluster().invalidateMetadataQuery();
-    }
-  }
-
-  /** Returns whether to skip a match. This happens if any of the
-   * {@link RelNode}s have importance zero. */
-  private boolean skipMatch(VolcanoRuleMatch match) {
-    for (RelNode rel : match.rels) {
-      if (planner.prunedNodes.contains(rel)) {
-        return true;
-      }
-    }
-
-    // If the same subset appears more than once along any path from root
-    // operand to a leaf operand, we have matched a cycle. A relational
-    // expression that consumes its own output can never be implemented, and
-    // furthermore, if we fire rules on it we may generate lots of garbage.
-    // For example, if
-    //   Project(A, X = X + 0)
-    // is in the same subset as A, then we would generate
-    //   Project(A, X = X + 0 + 0)
-    //   Project(A, X = X + 0 + 0 + 0)
-    // also in the same subset. They are valid but useless.
-    final Deque<RelSubset> subsets = new ArrayDeque<>();
-    try {
-      checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
-    } catch (Util.FoundOne e) {
-      return true;
-    }
-    return false;
-  }
-
-  /** Recursively checks whether there are any duplicate subsets along any path
-   * from root of the operand tree to one of the leaves.
-   *
-   * <p>It is OK for a match to have duplicate subsets if they are not on the
-   * same path. For example,
-   *
-   * <blockquote><pre>
-   *   Join
-   *  /   \
-   * X     X
-   * </pre></blockquote>
-   *
-   * <p>is a valid match.
-   *
-   * @throws org.apache.calcite.util.Util.FoundOne on match
-   */
-  private void checkDuplicateSubsets(Deque<RelSubset> subsets,
-      RelOptRuleOperand operand, RelNode[] rels) {
-    final RelSubset subset = planner.getSubset(rels[operand.ordinalInRule]);
-    if (subsets.contains(subset)) {
-      throw Util.FoundOne.NULL;
-    }
-    if (!operand.getChildOperands().isEmpty()) {
-      subsets.push(subset);
-      for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
-        checkDuplicateSubsets(subsets, childOperand, rels);
-      }
-      final RelSubset x = subsets.pop();
-      assert x == subset;
     }
   }
 

@@ -622,6 +622,21 @@ public abstract class BuiltInMetadata {
     }
   }
 
+  /** Metadata to get the lower bound cost of a RelNode */
+  public interface LowerBoundCost extends Metadata {
+    MetadataDef<LowerBoundCost> DEF = MetadataDef.of(LowerBoundCost.class,
+        LowerBoundCost.Handler.class, BuiltInMethod.LOWER_BOUND_COST.method);
+
+    /** Returns the lower bound cost of a RelNode */
+    RelOptCost getLowerBoundCost(RelOptPlanner planner);
+
+    /** Handler API. */
+    interface Handler extends MetadataHandler<LowerBoundCost> {
+      RelOptCost getLowerBoundCost(
+          RelNode r, RelMetadataQuery mq, RelOptPlanner planner);
+    }
+  }
+
   /** Metadata about the memory use of an operator. */
   public interface Memory extends Metadata {
     MetadataDef<Memory> DEF = MetadataDef.of(Memory.class,

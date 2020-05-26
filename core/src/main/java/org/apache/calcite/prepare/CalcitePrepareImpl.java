@@ -426,6 +426,11 @@ public class CalcitePrepareImpl implements CalcitePrepare {
     }
     final VolcanoPlanner planner =
         new VolcanoPlanner(costFactory, externalContext);
+    CalciteConnectionConfig config =
+        externalContext.unwrap(CalciteConnectionConfig.class);
+    if (config != null && !config.topDownOpt()) {
+      planner.setTopDownOpt(false);
+    }
     planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
     if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);

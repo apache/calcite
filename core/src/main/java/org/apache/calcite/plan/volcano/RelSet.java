@@ -81,6 +81,11 @@ class RelSet {
   private int relCursor = 0;
 
   /**
+   * Exploring state of current RelSet
+   */
+  ExploringState exploringState;
+
+  /**
    * The relnodes after applying logical rules and physical rules,
    * before trait propagation and enforcement.
    */
@@ -315,8 +320,8 @@ class RelSet {
       subset.setDelivered();
     }
 
-    if (needsConverter && !planner.topDownOpt) {
-      addConverters(subset, required, true);
+    if (needsConverter && (planner.topDownOpt || !planner.topDownTraits)) {
+      addConverters(subset, required, !planner.topDownTraits);
     }
 
     return subset;
@@ -410,6 +415,13 @@ class RelSet {
         subset = getOrCreateSubset(cluster, otherTraits, true);
       }
 
+      assert subset != null;
+      if (subset.passThroughCache == null) {
+        subset.passThroughCache = otherSubset.passThroughCache;
+      } else if (otherSubset.passThroughCache != null) {
+        subset.passThroughCache.addAll(otherSubset.passThroughCache);
+      }
+
       // collect RelSubset instances, whose best should be changed
       if (otherSubset.bestCost.isLt(subset.bestCost)) {
         changedSubsets.put(subset, otherSubset.best);
@@ -487,5 +499,24 @@ class RelSet {
     for (RelSubset subset : subsets) {
       planner.fireRules(subset);
     }
+  }
+
+  //~ Inner Classes ----------------------------------------------------------
+
+  /**
+   * An enum representing exploring state of current RelSet
+   */
+  public enum ExploringState {
+    /**
+     * The RelSet is exploring.
+     * It means all possible rule matches are scheduled, but not fully applied.
+     * This RelSet will refuse to explore again, but cannot provide a valid LB.
+     */
+    EXPLORING,
+
+    /**
+     * The RelSet is fully explored and is able to provide a valid LB.
+     */
+    EXPLORED
   }
 }

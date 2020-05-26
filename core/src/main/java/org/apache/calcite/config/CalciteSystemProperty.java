@@ -125,11 +125,20 @@ public final class CalciteSystemProperty<T> {
    * Whether to enable top-down optimization. This config can be overridden
    * by {@link CalciteConnectionProperty#TOPDOWN_OPT}.
    *
-   * <p>Note: Enabling top-down optimization will automatically disable
-   * the use of AbstractConverter and related rules.</p>
+   * <p>Note: Enabling top-down optimization will automatically enable
+   * top-down trait propagation.</p>
    */
   public static final CalciteSystemProperty<Boolean> TOPDOWN_OPT =
       booleanProperty("calcite.planner.topdown.opt", false);
+
+  /**
+   * Whether to enable top-down trait propagation.
+   *
+   * <p>Note: Enabling top-down optimization will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
+  public static final CalciteSystemProperty<Boolean> TOPDOWN_TRAITS =
+      booleanProperty("calcite.planner.topdown.traits", false);
 
   /**
    * Whether to run integration tests.

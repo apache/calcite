@@ -2799,11 +2799,11 @@ public class JdbcTest {
         .query("select empno, desc from sales.emps,\n"
             + "  (SELECT * FROM (VALUES (10, 'SameName')) AS t (id, desc)) as sn\n"
             + "where emps.deptno = sn.id and sn.desc = 'SameName' group by empno, desc")
-        .explainContains("EnumerableAggregate(group=[{0, 3}])\n"
-            + "  EnumerableNestedLoopJoin(condition=[=(CAST($1):INTEGER NOT NULL, $2)], joinType=[inner])\n"
-            + "    EnumerableTableScan(table=[[SALES, EMPS]])\n"
-            + "    EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
-            + "      EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
+        .explainContains("EnumerableCalc(expr#0..1=[{inputs}], EMPNO=[$t1], DESC=[$t0])\n"
+            + "  EnumerableAggregate(group=[{1, 2}])\n"
+            + "    EnumerableNestedLoopJoin(condition=[=(CAST($3):INTEGER NOT NULL, $0)], joinType=[inner])\n"
+            + "      EnumerableCalc(expr#0..1=[{inputs}], expr#2=['SameName'], expr#3=[=($t1, $t2)], proj#0..1=[{exprs}], $condition=[$t3])\n"
+            + "        EnumerableValues(tuples=[[{ 10, 'SameName' }]])\n")
         .returns("EMPNO=1; DESC=SameName\n");
   }
 

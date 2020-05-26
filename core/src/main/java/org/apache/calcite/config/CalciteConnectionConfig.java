@@ -68,6 +68,8 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   JsonSchema.Type schemaType();
   /** @see CalciteConnectionProperty#SPARK */
   boolean spark();
+  /** @see CalciteConnectionProperty#TOP_DOWN_OPT */
+  boolean topDownOpt();
   /** @see CalciteConnectionProperty#FORCE_DECORRELATE */
   boolean forceDecorrelate();
   /** @see CalciteConnectionProperty#TYPE_SYSTEM */

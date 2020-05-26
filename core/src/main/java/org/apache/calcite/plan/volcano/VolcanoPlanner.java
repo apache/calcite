@@ -48,6 +48,7 @@ import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMdUtil;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.rel.rules.TransformationRule;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlExplainLevel;
@@ -135,7 +136,13 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Holds rule calls waiting to be fired.
    */
-  final RuleQueue ruleQueue = new RuleQueue(this);
+  IRuleQueue<?> ruleQueue;
+
+  /**
+   * The RuleDriver that apply rules in top-down manners.
+   * May be null if the planner does not enable top-down optimization
+   */
+  private TopDownRuleDriver ruleDriver = null;
 
   /**
    * Holds the currently registered RelTraitDefs.
@@ -145,6 +152,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   private int nextSetId = 0;
 
   private RelNode originalRoot;
+
+  private Convention rootConvention;
 
   /**
    * Whether the planner can accept new rules.
@@ -171,7 +180,11 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   /** Zero cost, according to {@link #costFactory}. Not necessarily a
    * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
-  private final RelOptCost zeroCost;
+  final RelOptCost zeroCost;
+
+  /** Infinite cost, according to {@link #costFactory}. Not necessarily a
+   * {@link org.apache.calcite.plan.volcano.VolcanoCost}. */
+  final RelOptCost infCost;
 
   /**
    * Optimization tasks including trait propagation, enforcement.
@@ -187,6 +200,16 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Whether to enable top-down optimization or not.
    */
   boolean topDownOpt = CalciteSystemProperty.TOPDOWN_OPT.value();
+
+  /**
+   * extra roots for explorations
+   */
+  Set<RelSubset> explorationRoots = new HashSet<>();
+
+  /**
+   * Whether to enable top-down trait propagation
+   */
+  boolean topDownTraits = CalciteSystemProperty.TOPDOWN_TRAITS.value();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -216,9 +239,23 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory,
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
+    this.infCost = this.costFactory.makeInfiniteCost();
     // If LOGGER is debug enabled, enable provenance information to be captured
     this.provenanceMap = LOGGER.isDebugEnabled() ? new HashMap<>()
         : Util.blackholeMap();
+    if (topDownOpt) {
+      topDownTraits = true;
+    }
+    initRuleQueue();
+  }
+
+  private void initRuleQueue() {
+    if (topDownOpt) {
+      ruleDriver = new TopDownRuleDriver(this);
+      ruleQueue = ruleDriver.ruleQueue();
+    } else {
+      ruleQueue = new RuleQueue(this);
+    }
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -236,11 +273,32 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Enable or disable top-down optimization.
    *
-   * <p>Note: Enabling top-down optimization will automatically disable
-   * the use of AbstractConverter and related rules.</p>
+   * <p>Note: Enabling top-down optimization will automatically enable
+   * top-down trait propagation.</p>
    */
   public void setTopDownOpt(boolean value) {
+    if (topDownOpt == value) {
+      return;
+    }
     topDownOpt = value;
+    if (value) {
+      topDownTraits = true;
+    }
+    initRuleQueue();
+  }
+
+  /**
+   * Enable or disable top-down trait propagation.
+   *
+   * <p>Note: Enabling top-down propagation will automatically disable
+   * the use of AbstractConverter and related rules.</p>
+   */
+  public void setTopDownTraitPropagates(boolean value) {
+    topDownTraits = value;
+    if (!value && topDownOpt) {
+      topDownOpt = false;
+      initRuleQueue();
+    }
   }
 
   // implement RelOptPlanner
@@ -259,6 +317,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       this.originalRoot = rel;
     }
 
+    rootConvention = this.root.getConvention();
     ensureRootConverters();
   }
 
@@ -311,6 +370,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
     for (RelOptMaterialization materialization : applicableMaterializations) {
       RelSubset subset = registerImpl(materialization.queryRel, null);
+      explorationRoots.add(subset);
       RelNode tableRel2 =
           RelOptUtil.createCastRel(
               materialization.tableRel,
@@ -383,6 +443,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.mapRel2Subset.clear();
     this.prunedNodes.clear();
     this.ruleQueue.clear();
+    if (ruleDriver != null) {
+      ruleDriver.reset();
+    }
     this.materializations.clear();
     this.latticeByName.clear();
     this.provenanceMap.clear();
@@ -490,19 +553,57 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Finds the most efficient expression to implement the query given via
    * {@link org.apache.calcite.plan.RelOptPlanner#setRoot(org.apache.calcite.rel.RelNode)}.
    *
-   * <p>The algorithm executes repeatedly in a series of phases. In each phase
-   * the exact rules that may be fired varies. The mapping of phases to rule
-   * sets is maintained in the {@link #ruleQueue}.
-   *
-   * <p>In each phase, the planner then iterates over the rule matches presented
-   * by the rule queue until the rule queue becomes empty.
-   *
    * @return the most efficient RelNode tree found for implementing the given
    * query
    */
   public RelNode findBestExp() {
     ensureRootConverters();
     registerMaterializations();
+
+    if (topDownOpt) {
+      applyRulesTopDown();
+    } else {
+      applyRules();
+    }
+
+    if (LOGGER.isTraceEnabled()) {
+      StringWriter sw = new StringWriter();
+      final PrintWriter pw = new PrintWriter(sw);
+      dump(pw);
+      pw.flush();
+      LOGGER.info(sw.toString());
+    }
+    dumpRuleAttemptsInfo();
+    RelNode cheapest = root.buildCheapestPlan(this);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Cheapest plan:\n{}", RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
+
+      if (!provenanceMap.isEmpty()) {
+        LOGGER.debug("Provenance:\n{}", Dumpers.provenance(provenanceMap, cheapest));
+      }
+    }
+    return cheapest;
+  }
+
+  /**
+   * <p>The algorithm will execute rules in top-down ways,
+   * inspired by the Columbia optimizer generator
+   */
+  private void applyRulesTopDown() {
+    ruleDriver.execute();
+  }
+
+  /**
+   * The algorithm executes repeatedly in a series of phases. In each phase
+   * the exact rules that may be fired varies. The mapping of phases to rule
+   * sets is maintained in the {@link #ruleQueue}.
+   *
+   * <p>In each phase, the planner then iterates over the rule matches presented
+   * by the rule queue until the rule queue becomes empty.
+   */
+  private void applyRules() {
+    final RuleQueue ruleQueue = (RuleQueue) this.ruleQueue;
 
     PLANNING:
     for (VolcanoPlannerPhase phase : VolcanoPlannerPhase.values()) {
@@ -521,7 +622,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         } catch (VolcanoTimeoutException e) {
           LOGGER.warn("Volcano planning times out, cancels the subsequent optimization.");
           root = canonize(root);
-          ruleQueue.phaseCompleted(phase);
+          ruleQueue.clear(phase);
           break PLANNING;
         }
 
@@ -530,10 +631,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         root = canonize(root);
       }
 
-      ruleQueue.phaseCompleted(phase);
+      ruleQueue.clear(phase);
     }
 
-    if (topDownOpt) {
+    if (topDownTraits) {
       tasks.push(OptimizeTask.create(root));
       while (!tasks.isEmpty()) {
         OptimizeTask task = tasks.peek();
@@ -545,25 +646,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         task.execute();
       }
     }
-
-    if (LOGGER.isTraceEnabled()) {
-      StringWriter sw = new StringWriter();
-      final PrintWriter pw = new PrintWriter(sw);
-      dump(pw);
-      pw.flush();
-      LOGGER.trace(sw.toString());
-    }
-    dumpRuleAttemptsInfo();
-    RelNode cheapest = root.buildCheapestPlan(this);
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Cheapest plan:\n{}", RelOptUtil.toString(cheapest, SqlExplainLevel.ALL_ATTRIBUTES));
-
-      if (!provenanceMap.isEmpty()) {
-        LOGGER.debug("Provenance:\n{}", Dumpers.provenance(provenanceMap, cheapest));
-      }
-    }
-    return cheapest;
   }
 
   @Override public void checkCancel() {
@@ -840,6 +922,67 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     prunedNodes.add(rel);
   }
 
+
+  /** Returns whether to skip a match. This happens if any of the
+   * {@link RelNode}s have importance zero. */
+  boolean skipMatch(VolcanoRuleMatch match) {
+    for (RelNode rel : match.rels) {
+      if (prunedNodes.contains(rel)) {
+        return true;
+      }
+    }
+
+    // If the same subset appears more than once along any path from root
+    // operand to a leaf operand, we have matched a cycle. A relational
+    // expression that consumes its own output can never be implemented, and
+    // furthermore, if we fire rules on it we may generate lots of garbage.
+    // For example, if
+    //   Project(A, X = X + 0)
+    // is in the same subset as A, then we would generate
+    //   Project(A, X = X + 0 + 0)
+    //   Project(A, X = X + 0 + 0 + 0)
+    // also in the same subset. They are valid but useless.
+    final Deque<RelSubset> subsets = new ArrayDeque<>();
+    try {
+      checkDuplicateSubsets(subsets, match.rule.getOperand(), match.rels);
+    } catch (Util.FoundOne e) {
+      return true;
+    }
+    return false;
+  }
+
+  /** Recursively checks whether there are any duplicate subsets along any path
+   * from root of the operand tree to one of the leaves.
+   *
+   * <p>It is OK for a match to have duplicate subsets if they are not on the
+   * same path. For example,
+   *
+   * <blockquote><pre>
+   *   Join
+   *  /   \
+   * X     X
+   * </pre></blockquote>
+   *
+   * <p>is a valid match.
+   *
+   * @throws org.apache.calcite.util.Util.FoundOne on match
+   */
+  private void checkDuplicateSubsets(Deque<RelSubset> subsets,
+      RelOptRuleOperand operand, RelNode[] rels) {
+    final RelSubset subset = getSubset(rels[operand.ordinalInRule]);
+    if (subsets.contains(subset)) {
+      throw Util.FoundOne.NULL;
+    }
+    if (!operand.getChildOperands().isEmpty()) {
+      subsets.push(subset);
+      for (RelOptRuleOperand childOperand : operand.getChildOperands()) {
+        checkDuplicateSubsets(subsets, childOperand, rels);
+      }
+      final RelSubset x = subsets.pop();
+      assert x == subset;
+    }
+  }
+
   /**
    * Dumps the internal state of this VolcanoPlanner to a writer.
    *
@@ -1088,6 +1231,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       ensureRootConverters();
     }
 
+    if (ruleDriver != null) {
+      ruleDriver.onSetMerged(set);
+    }
     return set;
   }
 
@@ -1258,8 +1404,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     final int subsetBeforeCount = set.subsets.size();
     RelSubset subset = addRelToSet(rel, set);
 
-    final RelNode xx = mapDigestToRel.put(digest, rel);
-    assert xx == null || xx == rel : rel.getDigest();
+    final RelNode xx = mapDigestToRel.putIfAbsent(digest, rel);
 
     LOGGER.trace("Register {} in {}", rel, subset);
 
@@ -1301,6 +1446,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       subset.propagateCostImprovements(this, mq, rel, new HashSet<>());
     } catch (CyclicMetadataException e) {
       // ignore
+    }
+
+    if (ruleDriver != null) {
+      ruleDriver.onProduce(rel, subset);
     }
 
     return subset;
@@ -1395,6 +1544,103 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   public void setLocked(boolean locked) {
     this.locked = locked;
+  }
+
+  /**
+   * decide whether a rule is logical or not
+   * @param rel the specific rel node
+   * @return true if the relnode is a logical node
+   */
+  public boolean isLogical(RelNode rel) {
+    return !(rel instanceof PhysicalNode)
+        && rel.getConvention() != rootConvention;
+  }
+
+  /**
+   * check whether a rule match is a substitute rule match
+   * @param match the rule match to check
+   * @return true if the rule match is a substitute rule match
+   */
+  protected boolean isSubstituteRule(VolcanoRuleCall match) {
+    return match.getRule() instanceof SubstitutionRule;
+  }
+
+  /**
+   * check whether a rule match is a transformation rule match
+   * @param match the rule match to check
+   * @return true if the rule match is a transformation rule match
+   */
+  protected boolean isTransformationRule(VolcanoRuleCall match) {
+    if (match.getRule() instanceof SubstitutionRule) {
+      return true;
+    }
+    if (match.getRule() instanceof ConverterRule
+        && match.getRule().getOutTrait() == rootConvention) {
+      return false;
+    }
+    return match.getRule().getOperand().trait == Convention.NONE
+        || match.getRule().getOperand().trait == null;
+  }
+
+
+  /**
+   * gets the lower bound cost of a relational operator
+   * @param rel the rel node
+   * @return the lower bound cost of the given rel. The value is ensured NOT NULL.
+   */
+  protected RelOptCost getLowerBound(RelNode rel) {
+    RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
+    RelOptCost lowerBound = mq.getLowerBoundCost(rel, this);
+    if (lowerBound == null) {
+      return zeroCost;
+    }
+    return lowerBound;
+  }
+
+  /**
+   * Gets the lower bound cost of a RelOptRuleCall.
+   * A match match with inputs whose Sum(LB) is higher than upper bound
+   * needs not to be applied
+   */
+  protected RelOptCost getLowerBound(RelOptRuleCall match) {
+    return getLowerBoundInternal(match, match.getOperand0());
+  }
+
+  private RelOptCost getLowerBoundInternal(
+      RelOptRuleCall match, RelOptRuleOperand op) {
+    List<RelOptRuleOperand> children = op.getChildOperands();
+    if (children == null || children.isEmpty()) {
+      RelNode rel = match.rel(op.ordinalInRule);
+      RelOptCost sum = zeroCost;
+      for (RelNode input : rel.getInputs()) {
+        RelOptCost lb = getLowerBound(input);
+        sum = sum == zeroCost ? lb : sum.plus(lb);
+      }
+      return sum;
+    }
+    RelOptCost sum = null;
+    for (RelOptRuleOperand child : children) {
+      RelOptCost lb = getLowerBoundInternal(match, child);
+      sum = sum == null ? lb : sum.plus(lb);
+    }
+    return sum;
+  }
+
+  /**
+   * Gets the upper bound of its inputs.
+   * Allow users to overwrite this method as some implementations may have
+   * different cost model on some RelNodes, like Spool.
+   */
+  protected RelOptCost upperBoundForInputs(
+      RelNode mExpr, RelOptCost upperBound) {
+    if (!upperBound.isInfinite()) {
+      RelOptCost rootCost = mExpr.computeSelfCost(this,
+          mExpr.getCluster().getMetadataQuery());
+      if (!rootCost.isInfinite()) {
+        return upperBound.minus(rootCost);
+      }
+    }
+    return upperBound;
   }
 
   //~ Inner Classes ----------------------------------------------------------

@@ -104,6 +104,10 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
    * {@link org.apache.calcite.sql.parser.SqlParserImplFactory}. */
   PARSER_FACTORY("parserFactory", Type.PLUGIN, null, false),
 
+  /** Specifies whether to use top down optimization.
+   * {@link org.apache.calcite.plan.volcano.VolcanoPlanner#setTopDownOpt(boolean)} */
+  TOP_DOWN_OPT("topDownOpt", Type.BOOLEAN, true, false),
+
   /** Name of initial schema. */
   SCHEMA("schema", Type.STRING, null, false),
 

@@ -37,6 +37,7 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Pair;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -502,7 +503,13 @@ class VolcanoPlannerTest {
     // verify that the rule match cannot be popped,
     // as the related node has been pruned
     while (true) {
-      VolcanoRuleMatch ruleMatch = planner.ruleQueue.popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      IRuleQueue<?> ruleQueue = planner.ruleQueue;
+      VolcanoRuleMatch ruleMatch;
+      if (ruleQueue instanceof RuleQueue) {
+        ruleMatch = ((RuleQueue) ruleQueue).popMatch(VolcanoPlannerPhase.OPTIMIZE);
+      } else {
+        ruleMatch = ((CascadeRuleQueue) ruleQueue).popMatch(Pair.of(leafRel, null));
+      }
       if (ruleMatch == null) {
         break;
       }

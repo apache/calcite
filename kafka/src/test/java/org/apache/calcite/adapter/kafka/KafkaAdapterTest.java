@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.adapter.kafka;
 
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.test.CalciteAssert;
 
 import com.google.common.io.Resources;
@@ -73,6 +74,7 @@ class KafkaAdapterTest {
 
   @Test void testFilterWithProject() {
     assertModel(MODEL)
+        .with(CalciteConnectionProperty.TOP_DOWN_OPT.camelName(), false)
         .query("SELECT STREAM MSG_PARTITION,MSG_OFFSET,MSG_VALUE_BYTES FROM KAFKA.MOCKTABLE"
             + " WHERE MSG_OFFSET>0")
         .limit(1)
