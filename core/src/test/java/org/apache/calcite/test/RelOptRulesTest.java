@@ -1070,51 +1070,6 @@ class RelOptRulesTest extends RelOptTestBase {
         .check();
   }
 
-  /**
-   * Test case for
-   * <a href="https://issues.apache.org/jira/browse/CALCITE-3353">[CALCITE-3353]
-   * ProjectJoinTransposeRule caused AssertionError when creating a new Join</a>.
-   */
-  @Test void testProjectJoinTransposeWithMergeJoin() {
-    ProjectJoinTransposeRule testRule = new ProjectJoinTransposeRule(
-            Project.class, Join.class, expr -> !(expr instanceof RexOver),
-            RelFactories.DEFAULT_BUILDER);
-    ImmutableList<RelOptRule> commonRules = ImmutableList.of(
-            EnumerableRules.ENUMERABLE_PROJECT_RULE,
-            EnumerableRules.ENUMERABLE_MERGE_JOIN_RULE,
-            EnumerableRules.ENUMERABLE_SORT_RULE,
-            EnumerableRules.ENUMERABLE_VALUES_RULE);
-    final RuleSet rules = RuleSets.ofList(ImmutableList.<RelOptRule>builder()
-            .addAll(commonRules)
-            .add(ProjectJoinTransposeRule.INSTANCE)
-            .build());
-    final RuleSet testRules = RuleSets.ofList(ImmutableList.<RelOptRule>builder()
-            .addAll(commonRules)
-            .add(testRule).build());
-
-    FrameworkConfig config = Frameworks.newConfigBuilder()
-            .parserConfig(SqlParser.Config.DEFAULT)
-            .traitDefs(ConventionTraitDef.INSTANCE, RelCollationTraitDef.INSTANCE)
-            .build();
-
-    RelBuilder builder = RelBuilder.create(config);
-    RelNode logicalPlan = builder
-            .values(new String[]{"id", "name"}, "1", "anna", "2", "bob", "3", "tom")
-            .values(new String[]{"name", "age"}, "anna", "14", "bob", "17", "tom", "22")
-            .join(JoinRelType.INNER, "name")
-            .project(builder.field(3))
-            .build();
-
-    RelTraitSet desiredTraits = logicalPlan.getTraitSet()
-            .replace(EnumerableConvention.INSTANCE);
-    RelOptPlanner planner = logicalPlan.getCluster().getPlanner();
-    RelNode enumerablePlan1 = Programs.of(rules).run(planner, logicalPlan,
-            desiredTraits, ImmutableList.of(), ImmutableList.of());
-    RelNode enumerablePlan2 = Programs.of(testRules).run(planner, logicalPlan,
-            desiredTraits, ImmutableList.of(), ImmutableList.of());
-    assertEquals(RelOptUtil.toString(enumerablePlan1), RelOptUtil.toString(enumerablePlan2));
-  }
-
   /** Test case for
    * <a href="https://issues.apache.org/jira/browse/CALCITE-889">[CALCITE-889]
    * Implement SortUnionTransposeRule</a>. */
