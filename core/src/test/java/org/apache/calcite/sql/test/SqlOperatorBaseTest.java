@@ -93,6 +93,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PI;
+import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -6421,8 +6422,7 @@ public abstract class SqlOperatorBaseTest {
   }
 
   private static String toTimeString(TimeZone tz, Calendar cal) {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:", Locale.ROOT);
-    sdf.setTimeZone(tz);
+    SimpleDateFormat sdf = getDateFormatter("yyyy-MM-dd HH:", tz);
     return sdf.format(cal.getTime());
   }
 

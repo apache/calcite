@@ -34,6 +34,7 @@ import java.util.TimeZone;
 import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
+import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
 
 /**
  * Implementation of Druid time format extraction function.
@@ -64,8 +65,6 @@ public class TimeExtractionFunction implements ExtractionFunction {
       TimeUnitRange.HOUR,
       TimeUnitRange.MINUTE,
       TimeUnitRange.SECOND);
-
-  public static final String ISO_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   private final String format;
   private final Granularity granularity;
@@ -104,7 +103,8 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @return the time extraction function
    */
   public static TimeExtractionFunction createDefault(String timeZone) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, null, timeZone, null);
+    return new TimeExtractionFunction(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT,
+        null, timeZone, null);
   }
 
   /**
@@ -145,7 +145,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    */
   public static TimeExtractionFunction createFloorFromGranularity(
       Granularity granularity, String timeZone) {
-    return new TimeExtractionFunction(ISO_TIME_FORMAT, granularity, timeZone,
+    return new TimeExtractionFunction(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT, granularity, timeZone,
         Locale.ROOT.toLanguageTag());
   }
 

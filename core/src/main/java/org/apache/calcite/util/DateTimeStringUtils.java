@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.util;
 
+import org.apache.calcite.avatica.util.DateTimeUtils;
+
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
@@ -24,6 +28,16 @@ import java.util.TimeZone;
 public class DateTimeStringUtils {
 
   private DateTimeStringUtils() {}
+
+  /** The SimpleDateFormat string for ISO timestamps, "yyyy-MM-dd'T'HH:mm:ss'Z'"*/
+  public static final String ISO_DATETIME_FORMAT =
+      "yyyy-MM-dd'T'HH:mm:ss'Z'";
+
+
+  /** The SimpleDateFormat string for ISO timestamps with precisions, "yyyy-MM-dd'T'HH:mm:ss
+   * .SSS'Z'"*/
+  public static final String ISO_DATETIME_FRACTIONAL_SECOND_FORMAT =
+      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   static String pad(int length, long v) {
     StringBuilder s = new StringBuilder(Long.toString(v));
@@ -87,4 +101,20 @@ public class DateTimeStringUtils {
     return false;
   }
 
+  /**
+   * Create a SimpleDateFormat with format string with default time zone UTC.
+   */
+  public static SimpleDateFormat getDateFormatter(String format) {
+    return getDateFormatter(format, DateTimeUtils.UTC_ZONE);
+  }
+
+  /**
+   * Create a SimpleDateFormat with format string and time zone.
+   */
+  public static SimpleDateFormat getDateFormatter(String format, TimeZone timeZone) {
+    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
+        format, Locale.ROOT);
+    dateFormatter.setTimeZone(timeZone);
+    return dateFormatter;
+  }
 }
