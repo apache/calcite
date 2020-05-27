@@ -17,7 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.NullCollation;
@@ -57,6 +56,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
 
 /**
  * <code>SqlDialect</code> encapsulates the differences between dialects of SQL.
@@ -680,11 +681,7 @@ public class SqlDialect {
    * @return SQL timestamp literal
    */
   public String quoteTimestampLiteral(Timestamp timestamp) {
-    final SimpleDateFormat format =
-        new SimpleDateFormat(
-            "'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''",
-            Locale.ROOT);
-    format.setTimeZone(DateTimeUtils.UTC_ZONE);
+    final SimpleDateFormat format = getDateFormatter("'TIMESTAMP' ''yyyy-MM-DD HH:mm:SS''");
     return format.format(timestamp);
   }
 

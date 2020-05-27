@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import org.apache.calcite.avatica.util.DateTimeUtils;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLiteral;
@@ -39,13 +38,16 @@ import java.util.Locale;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
+import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
+import static org.apache.calcite.util.DateTimeStringUtils.getDateFormatter;
+
 /**
  * Filter element of a Druid "groupBy" or "topN" query.
  */
 abstract class DruidJsonFilter implements DruidJson {
 
-  private static final SimpleDateFormat DATE_FORMATTER = getDateFormatter();
-
+  private static final SimpleDateFormat DATE_FORMATTER =
+      getDateFormatter(ISO_DATETIME_FRACTIONAL_SECOND_FORMAT);
 
   /**
    * @param rexNode    rexNode to translate to Druid Json Filter
@@ -628,13 +630,5 @@ abstract class DruidJsonFilter implements DruidJson {
       DruidQuery.writeField(generator, "filter", filter);
       generator.writeEndObject();
     }
-  }
-
-  private static SimpleDateFormat getDateFormatter() {
-    final SimpleDateFormat dateFormatter = new SimpleDateFormat(
-        TimeExtractionFunction.ISO_TIME_FORMAT,
-        Locale.ROOT);
-    dateFormatter.setTimeZone(DateTimeUtils.UTC_ZONE);
-    return dateFormatter;
   }
 }

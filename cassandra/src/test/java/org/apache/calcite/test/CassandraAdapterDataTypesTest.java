@@ -79,6 +79,35 @@ class CassandraAdapterDataTypesTest {
                 + ", f_varint INTEGER]");
   }
 
+  @Test void testFilterWithNonStringLiteral() {
+    CalciteAssert.that()
+        .with(DTCASSANDRA)
+        .query("select * from \"test_type\" where \"f_id\" = 1")
+        .returns("");
+
+    CalciteAssert.that()
+        .with(DTCASSANDRA)
+        .query("select * from \"test_type\" where \"f_id\" > 1")
+        .returns("f_id=3000000000; f_user=ANNA\n");
+
+    CalciteAssert.that()
+        .with(DTCASSANDRA)
+        .query("select * from \"test_date_type\" where \"f_date\" = '2015-05-03'")
+        .returns("f_date=2015-05-03; f_user=ANNA\n");
+
+    CalciteAssert.that()
+        .with(DTCASSANDRA)
+        .query("select * from \"test_timestamp_type\" where cast(\"f_timestamp\" as timestamp "
+            + "with local time zone) = '2011-02-03 04:05:00 UTC'")
+        .returns("f_timestamp=2011-02-03 04:05:00; f_user=ANNA\n");
+
+    CalciteAssert.that()
+        .with(DTCASSANDRA)
+        .query("select * from \"test_timestamp_type\" where \"f_timestamp\""
+            + " = '2011-02-03 04:05:00'")
+        .returns("f_timestamp=2011-02-03 04:05:00; f_user=ANNA\n");
+  }
+
   @Test void testSimpleTypesValues() {
     CalciteAssert.that()
         .with(DTCASSANDRA)
