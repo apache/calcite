@@ -37,6 +37,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -141,7 +142,7 @@ class CollationConversionTest {
           input);
     }
 
-    @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+    @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }
@@ -189,7 +190,7 @@ class CollationConversionTest {
           label);
     }
 
-    public RelOptCost computeSelfCost(
+    public @Nullable RelOptCost computeSelfCost(
         RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
@@ -258,7 +259,7 @@ class CollationConversionTest {
       return LEAF_COLLATION;
     }
 
-    public RelNode convert(RelOptPlanner planner, RelNode rel,
+    public @Nullable RelNode convert(RelOptPlanner planner, RelNode rel,
         RelCollation toCollation, boolean allowInfiniteCostConverters) {
       if (toCollation.getFieldCollations().isEmpty()) {
         // An empty sort doesn't make sense.
@@ -288,7 +289,7 @@ class CollationConversionTest {
           offset, fetch);
     }
 
-    public RelOptCost computeSelfCost(RelOptPlanner planner,
+    public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
       return planner.getCostFactory().makeTinyCost();
     }

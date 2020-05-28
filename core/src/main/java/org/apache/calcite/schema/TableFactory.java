@@ -18,6 +18,8 @@ package org.apache.calcite.schema;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 
 /**
@@ -78,10 +80,11 @@ public interface TableFactory<T extends Table> {
    * @param name Name of this table
    * @param operand The "operand" JSON property
    * @param rowType Row type. Specified if the "columns" JSON property.
+   * @return created table
    */
   T create(
       SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      RelDataType rowType);
+      @Nullable RelDataType rowType);
 }

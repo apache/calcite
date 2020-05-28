@@ -16,13 +16,15 @@
  */
 package org.apache.calcite.rex;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Default implementation of a {@link RexBiVisitor} whose payload and return
  * type are the same.
  *
  * @param <R> Return type from each {@code visitXxx} method
  */
-public class RexUnaryBiVisitor<R> extends RexBiVisitorImpl<R, R> {
+public class RexUnaryBiVisitor<@Nullable R> extends RexBiVisitorImpl<R, R> {
   /** Creates a RexUnaryBiVisitor. */
   protected RexUnaryBiVisitor(boolean deep) {
     super(deep);

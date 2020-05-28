@@ -32,6 +32,8 @@ import java.lang.reflect.Field;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Factory that creates operator tables that consist of functions and operators
  * for particular named libraries. For example, the following code will return
@@ -66,6 +68,7 @@ public class SqlLibraryOperatorTableFactory {
 
   /** A cache that returns an operator table for a given library (or set of
    * libraries). */
+  @SuppressWarnings("methodref.receiver.bound.invalid")
   private final LoadingCache<ImmutableSet<SqlLibrary>, SqlOperatorTable> cache =
       CacheBuilder.newBuilder().build(CacheLoader.from(this::create));
 
@@ -97,7 +100,8 @@ public class SqlLibraryOperatorTableFactory {
         for (Field field : aClass.getFields()) {
           try {
             if (SqlOperator.class.isAssignableFrom(field.getType())) {
-              final SqlOperator op = (SqlOperator) field.get(this);
+              final SqlOperator op = (SqlOperator) requireNonNull(field.get(this),
+                  () -> "null value of " + field + " for " + this);
               if (operatorIsInLibrary(op.getName(), field, librarySet)) {
                 list.add(op);
               }

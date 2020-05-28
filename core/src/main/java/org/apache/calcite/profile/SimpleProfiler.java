@@ -27,6 +27,10 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -39,7 +43,8 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Basic implementation of {@link Profiler}.
@@ -88,7 +93,7 @@ public class SimpleProfiler implements Profiler {
   static class Run {
     private final List<Column> columns;
     final List<Space> spaces = new ArrayList<>();
-    final List<Space> singletonSpaces;
+    final List<@Nullable Space> singletonSpaces;
     final List<Statistic> statistics = new ArrayList<>();
     final PartiallyOrderedSet.Ordering<Space> ordering =
         (e1, e2) -> e2.columnOrdinals.contains(e1.columnOrdinals);
@@ -166,7 +171,7 @@ public class SimpleProfiler implements Profiler {
             for (int i : s.columnOrdinals) {
               final Space s1 = singletonSpaces.get(i);
               final ImmutableBitSet rest = s.columnOrdinals.clear(i);
-              for (ImmutableBitSet dependent : s1.dependents) {
+              for (ImmutableBitSet dependent : requireNonNull(s1, "s1").dependents) {
                 if (rest.contains(dependent)) {
                   // The "key" of this functional dependency is not minimal.
                   // For instance, if we know that
@@ -182,7 +187,7 @@ public class SimpleProfiler implements Profiler {
             }
             for (int dependent : dependents) {
               final Space s1 = singletonSpaces.get(dependent);
-              for (ImmutableBitSet d : s1.dependents) {
+              for (ImmutableBitSet d : requireNonNull(s1, "s1").dependents) {
                 if (s.columnOrdinals.contains(d)) {
                   ++nonMinimal;
                   continue dependents;
@@ -191,7 +196,9 @@ public class SimpleProfiler implements Profiler {
             }
             space.dependencies.or(dependents.toBitSet());
             for (int d : dependents) {
-              singletonSpaces.get(d).dependents.add(s.columnOrdinals);
+              Space spaceD = requireNonNull(singletonSpaces.get(d),
+                  () -> "singletonSpaces.get(d) is null for " + d);
+              spaceD.dependents.add(s.columnOrdinals);
             }
           }
         }
@@ -223,7 +230,9 @@ public class SimpleProfiler implements Profiler {
             final Distribution d2 =
                 distributions.get(space.columnOrdinals.clear(column.ordinal));
             final double d =
-                Lattice.getRowCount(rowCount, d1.cardinality, d2.cardinality);
+                Lattice.getRowCount(rowCount,
+                    requireNonNull(d1, "d1").cardinality,
+                    requireNonNull(d2, "d2").cardinality);
             expectedCardinality = Math.min(expectedCardinality, d);
           }
         }
@@ -242,7 +251,7 @@ public class SimpleProfiler implements Profiler {
       }
 
       for (Space s : singletonSpaces) {
-        for (ImmutableBitSet dependent : s.dependents) {
+        for (ImmutableBitSet dependent : requireNonNull(s, "s").dependents) {
           if (!containsKey(dependent, false)
               && !hasNull(dependent)) {
             statistics.add(
@@ -271,16 +280,22 @@ public class SimpleProfiler implements Profiler {
 
     private boolean hasNull(ImmutableBitSet columnOrdinals) {
       for (Integer columnOrdinal : columnOrdinals) {
-        if (singletonSpaces.get(columnOrdinal).nullCount > 0) {
+        Space space = requireNonNull(singletonSpaces.get(columnOrdinal),
+            () -> "singletonSpaces.get(columnOrdinal) is null for " + columnOrdinal);
+        if (space.nullCount > 0) {
           return true;
         }
       }
       return false;
     }
 
-    private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
+    @RequiresNonNull("columns")
+    private ImmutableSortedSet<Column> toColumns(
+        @UnknownInitialization Run this,
+        Iterable<Integer> ordinals) {
+      //noinspection Convert2MethodRef
       return ImmutableSortedSet.copyOf(
-          Util.transform(ordinals, columns::get));
+          Util.transform(ordinals, idx -> columns.get(idx)));
     }
   }
 
@@ -304,13 +319,13 @@ public class SimpleProfiler implements Profiler {
       return columnOrdinals.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Space
           && columnOrdinals.equals(((Space) o).columnOrdinals);
     }
 
-    @Override public int compareTo(@Nonnull Space o) {
+    @Override public int compareTo(Space o) {
       return columnOrdinals.equals(o.columnOrdinals) ? 0
           : columnOrdinals.contains(o.columnOrdinals) ? 1
               : -1;

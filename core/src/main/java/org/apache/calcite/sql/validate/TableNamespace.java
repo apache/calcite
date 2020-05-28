@@ -31,6 +31,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +67,7 @@ class TableNamespace extends AbstractNamespace {
     return builder.build();
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     // This is the only kind of namespace not based on a node in the parse tree.
     return null;
   }
@@ -104,7 +106,9 @@ class TableNamespace extends AbstractNamespace {
       final RelOptTable relOptTable =
           ((RelOptTable) table).extend(extendedFields);
       final SqlValidatorTable validatorTable =
-          relOptTable.unwrap(SqlValidatorTable.class);
+          Objects.requireNonNull(
+            relOptTable.unwrap(SqlValidatorTable.class),
+            () -> "cant unwrap SqlValidatorTable from " + relOptTable);
       return new TableNamespace(validator, validatorTable, ImmutableList.of());
     }
     return new TableNamespace(validator, table, extendedFields);
@@ -115,7 +119,9 @@ class TableNamespace extends AbstractNamespace {
    * columns of the underlying table.
    */
   private RelDataType getBaseRowType() {
-    final Table schemaTable = table.unwrap(Table.class);
+    final Table schemaTable = Objects.requireNonNull(
+        table.unwrap(Table.class),
+        () -> "can't unwrap Table from " + table);
     if (schemaTable instanceof ModifiableViewTable) {
       final Table underlying =
           ((ModifiableViewTable) schemaTable).unwrap(Table.class);

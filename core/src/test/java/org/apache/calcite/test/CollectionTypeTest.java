@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -395,7 +396,7 @@ class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -407,9 +408,9 @@ class CollectionTypeTest {
       return false;
     }
 
-    @Override public boolean rolledUpColumnValidInsideAgg(String column,
-                                                          SqlCall call, SqlNode parent,
-                                                          CalciteConnectionConfig config) {
+    @Override public boolean rolledUpColumnValidInsideAgg(
+        String column, SqlCall call, @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -435,7 +436,7 @@ class CollectionTypeTest {
       return Schema.TableType.TABLE;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return nestedRecordsEnumerator();
@@ -448,7 +449,7 @@ class CollectionTypeTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }

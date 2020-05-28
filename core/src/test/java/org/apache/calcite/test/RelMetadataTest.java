@@ -136,7 +136,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -1354,7 +1353,6 @@ public class RelMetadataTest extends SqlToRelTestBase {
         convertProjectAsCalc());
   }
 
-  @Nonnull
   private Function<String, RelNode> convertProjectAsCalc() {
     return s -> {
       Project project = (Project) convertSql(s);

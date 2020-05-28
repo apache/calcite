@@ -40,6 +40,8 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.sql.validate.SqlValidatorUtil.mapNameToIndex;
+
+import static java.util.Objects.requireNonNull;
 
 /** Extension to {@link ViewTable} that is modifiable. */
 public class ModifiableViewTable extends ViewTable
@@ -59,7 +63,7 @@ public class ModifiableViewTable extends ViewTable
 
   /** Creates a ModifiableViewTable. */
   public ModifiableViewTable(Type elementType, RelProtoDataType rowType,
-      String viewSql, List<String> schemaPath, List<String> viewPath,
+      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath,
       Table table, Path tablePath, RexNode constraint,
       ImmutableIntList columnMapping) {
     super(elementType, rowType, viewSql, schemaPath, viewPath);
@@ -87,7 +91,7 @@ public class ModifiableViewTable extends ViewTable
     return tablePath;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(initializerExpressionFactory)) {
       return aClass.cast(initializerExpressionFactory);
     } else if (aClass.isInstance(table)) {
@@ -158,10 +162,11 @@ public class ModifiableViewTable extends ViewTable
     newMapping.addAll(oldColumnMapping);
     int newMappedIndex = baseColumns.size();
     for (RelDataTypeField extendedColumn : extendedColumns) {
-      if (nameToIndex.containsKey(extendedColumn.getName())) {
+      String extendedColumnName = extendedColumn.getName();
+      if (nameToIndex.containsKey(extendedColumnName)) {
         // The extended column duplicates a column in the underlying table.
         // Map to the index in the underlying table.
-        newMapping.add(nameToIndex.get(extendedColumn.getName()));
+        newMapping.add(nameToIndex.get(extendedColumnName));
       } else {
         // The extended column is not in the underlying table.
         newMapping.add(newMappedIndex++);
@@ -195,8 +200,9 @@ public class ModifiableViewTable extends ViewTable
 
     @Override public ColumnStrategy generationStrategy(RelOptTable table,
         int iColumn) {
-      final ModifiableViewTable viewTable =
-          table.unwrap(ModifiableViewTable.class);
+      final ModifiableViewTable viewTable = requireNonNull(
+          table.unwrap(ModifiableViewTable.class),
+          () -> "unable to unwrap ModifiableViewTable from " + table);
       assert iColumn < viewTable.columnMapping.size();
 
       // Use the view constraint to generate the default value if the column is
@@ -222,7 +228,9 @@ public class ModifiableViewTable extends ViewTable
 
     @Override public RexNode newColumnDefaultValue(RelOptTable table,
         int iColumn, InitializerContext context) {
-      final ModifiableViewTable viewTable = table.unwrap(ModifiableViewTable.class);
+      final ModifiableViewTable viewTable = requireNonNull(
+          table.unwrap(ModifiableViewTable.class),
+          () -> "unable to unwrap ModifiableViewTable from " + table);
       assert iColumn < viewTable.columnMapping.size();
       final RexBuilder rexBuilder = context.getRexBuilder();
       final RelDataTypeFactory typeFactory = rexBuilder.getTypeFactory();

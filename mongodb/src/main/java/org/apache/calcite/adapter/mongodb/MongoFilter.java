@@ -36,6 +36,8 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -57,7 +59,7 @@ public class MongoFilter extends Filter implements MongoRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }

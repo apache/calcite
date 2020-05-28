@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -72,7 +74,7 @@ public class ConditionalStatement extends Statement {
     return collection.get(collection.size() - 1);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

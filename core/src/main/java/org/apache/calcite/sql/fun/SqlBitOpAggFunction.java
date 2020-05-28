@@ -26,6 +26,8 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Definition of the <code>BIT_AND</code> and <code>BIT_OR</code> aggregate functions,
  * returning the bitwise AND/OR of all non-null input values, or null if none.
@@ -54,7 +56,7 @@ public class SqlBitOpAggFunction extends SqlAggFunction {
         || kind == SqlKind.BIT_XOR);
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }

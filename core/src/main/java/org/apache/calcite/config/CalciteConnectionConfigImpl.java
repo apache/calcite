@@ -27,6 +27,9 @@ import org.apache.calcite.sql.fun.SqlLibraryOperatorTableFactory;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.List;
 import java.util.Properties;
 
@@ -103,7 +106,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getEnum(NullCollation.class, NullCollation.HIGH);
   }
 
-  @Override public <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable) {
+  @Override public <T> @PolyNull T fun(Class<T> operatorTableClass,
+      @PolyNull T defaultOperatorTable) {
     final String fun =
         CalciteConnectionProperty.FUN.wrap(properties).getString();
     if (fun == null || fun.equals("") || fun.equals("standard")) {
@@ -116,7 +120,7 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
     return operatorTableClass.cast(operatorTable);
   }
 
-  @Override public String model() {
+  @Override public @Nullable String model() {
     return CalciteConnectionProperty.MODEL.wrap(properties).getString();
   }
 
@@ -144,14 +148,14 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean(lex().caseSensitive);
   }
 
-  @Override public <T> T parserFactory(Class<T> parserFactoryClass,
-      T defaultParserFactory) {
+  @Override public <T> @PolyNull T parserFactory(Class<T> parserFactoryClass,
+      @PolyNull T defaultParserFactory) {
     return CalciteConnectionProperty.PARSER_FACTORY.wrap(properties)
         .getPlugin(parserFactoryClass, defaultParserFactory);
   }
 
-  @Override public <T> T schemaFactory(Class<T> schemaFactoryClass,
-      T defaultSchemaFactory) {
+  @Override public <T> @PolyNull T schemaFactory(Class<T> schemaFactoryClass,
+      @PolyNull T defaultSchemaFactory) {
     return CalciteConnectionProperty.SCHEMA_FACTORY.wrap(properties)
         .getPlugin(schemaFactoryClass, defaultSchemaFactory);
   }
@@ -170,7 +174,8 @@ public class CalciteConnectionConfigImpl extends ConnectionConfigImpl
         .getBoolean();
   }
 
-  @Override public <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem) {
+  @Override public <T> @PolyNull T typeSystem(Class<T> typeSystemClass,
+      @PolyNull T defaultTypeSystem) {
     return CalciteConnectionProperty.TYPE_SYSTEM.wrap(properties)
         .getPlugin(typeSystemClass, defaultTypeSystem);
   }

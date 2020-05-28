@@ -47,6 +47,9 @@ import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.IntPair;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -56,6 +59,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that implements the heuristic planner for determining optimal
@@ -301,15 +306,15 @@ public class LoptOptimizeJoinRule
     // self-join.
     final List<RelOptTable> repeatedTables = new ArrayList<>();
     final Map<Integer, Integer> selfJoinPairs = new HashMap<>();
-    Integer [] factors =
+    @KeyFor("simpleFactors") Integer [] factors =
         new TreeSet<>(simpleFactors.keySet()).toArray(new Integer[0]);
     for (int i = 0; i < factors.length; i++) {
       if (repeatedTables.contains(simpleFactors.get(factors[i]))) {
         continue;
       }
       for (int j = i + 1; j < factors.length; j++) {
-        int leftFactor = factors[i];
-        int rightFactor = factors[j];
+        @KeyFor("simpleFactors") int leftFactor = factors[i];
+        @KeyFor("simpleFactors") int rightFactor = factors[j];
         if (simpleFactors.get(leftFactor).getQualifiedName().equals(
             simpleFactors.get(rightFactor).getQualifiedName())) {
           selfJoinPairs.put(leftFactor, rightFactor);
@@ -403,7 +408,7 @@ public class LoptOptimizeJoinRule
     RelNode leftRel = multiJoin.getJoinFactor(leftFactor);
     RelNode rightRel = multiJoin.getJoinFactor(rightFactor);
     RexNode joinFilters =
-        RexUtil.composeConjunction(rexBuilder, joinFilterList, true);
+        RexUtil.composeConjunction(rexBuilder, joinFilterList);
 
     // Adjust the offsets in the filter by shifting the left factor
     // to the left and shifting the right factor to the left and then back
@@ -527,13 +532,15 @@ public class LoptOptimizeJoinRule
       for (int fieldPos = 0;
           fieldPos < multiJoin.getNumFieldsInJoinFactor(currFactor);
           fieldPos++) {
-        int newOffset = factorToOffsetMap.get(currFactor) + fieldPos;
+        int newOffset = requireNonNull(factorToOffsetMap.get(currFactor),
+            () -> "factorToOffsetMap.get(currFactor)") + fieldPos;
         if (leftFactor != null) {
           Integer leftOffset =
               multiJoin.getRightColumnMapping(currFactor, fieldPos);
           if (leftOffset != null) {
             newOffset =
-                factorToOffsetMap.get(leftFactor) + leftOffset;
+                requireNonNull(factorToOffsetMap.get(leftFactor),
+                    "factorToOffsetMap.get(leftFactor)") + leftOffset;
           }
         }
         newProjExprs.add(
@@ -568,7 +575,7 @@ public class LoptOptimizeJoinRule
    *
    * @return computed cardinality
    */
-  private Double computeJoinCardinality(
+  private @Nullable Double computeJoinCardinality(
       RelMetadataQuery mq,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
@@ -672,7 +679,7 @@ public class LoptOptimizeJoinRule
    * @return constructed join tree or null if it is not possible for
    * firstFactor to appear as the first factor in the join
    */
-  private LoptJoinTree createOrdering(
+  private @Nullable LoptJoinTree createOrdering(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -765,7 +772,7 @@ public class LoptOptimizeJoinRule
       BitSet factorsToAdd,
       BitSet factorsAdded,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree joinTree,
+      @Nullable LoptJoinTree joinTree,
       List<RexNode> filtersToAdd) {
     // iterate through the remaining factors and determine the
     // best one to add next
@@ -797,8 +804,9 @@ public class LoptOptimizeJoinRule
       // been added to the tree
       int dimWeight = 0;
       for (int prevFactor : BitSets.toIter(factorsAdded)) {
-        if (factorWeights[prevFactor][factor] > dimWeight) {
-          dimWeight = factorWeights[prevFactor][factor];
+        int[] factorWeight = requireNonNull(factorWeights, "factorWeights")[prevFactor];
+        if (factorWeight[factor] > dimWeight) {
+          dimWeight = factorWeight[factor];
         }
       }
 
@@ -814,7 +822,7 @@ public class LoptOptimizeJoinRule
               mq,
                 multiJoin,
                 semiJoinOpt,
-                joinTree,
+                requireNonNull(joinTree, "joinTree"),
                 filtersToAdd,
                 factor);
       }
@@ -870,12 +878,12 @@ public class LoptOptimizeJoinRule
    * @return optimal join tree with the new factor added if it is possible to
    * add the factor; otherwise, null is returned
    */
-  private LoptJoinTree addFactorToTree(
+  private @Nullable LoptJoinTree addFactorToTree(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree joinTree,
+      @Nullable LoptJoinTree joinTree,
       int factorToAdd,
       BitSet factorsNeeded,
       List<RexNode> filtersToAdd,
@@ -888,7 +896,7 @@ public class LoptOptimizeJoinRule
           relBuilder,
           multiJoin,
           semiJoinOpt,
-          joinTree,
+          requireNonNull(joinTree, "joinTree"),
           -1,
           factorToAdd,
           ImmutableIntList.of(),
@@ -962,6 +970,8 @@ public class LoptOptimizeJoinRule
     } else if (topTree == null) {
       bestTree = pushDownTree;
     } else {
+      requireNonNull(costPushDown, "costPushDown");
+      requireNonNull(costTop, "costTop");
       if (costPushDown.isEqWithEpsilon(costTop)) {
         // if both plans cost the same (with an allowable round-off
         // margin of error), favor the one that passes
@@ -1025,7 +1035,7 @@ public class LoptOptimizeJoinRule
    * join tree if it is possible to do the pushdown; otherwise, null is
    * returned
    */
-  private LoptJoinTree pushDownFactor(
+  private @Nullable LoptJoinTree pushDownFactor(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -1057,7 +1067,9 @@ public class LoptOptimizeJoinRule
     // half of the self-join.
     if (selfJoin) {
       BitSet selfJoinFactor = new BitSet(multiJoin.getNumJoinFactors());
-      selfJoinFactor.set(multiJoin.getOtherSelfJoinFactor(factorToAdd));
+      Integer factor = requireNonNull(multiJoin.getOtherSelfJoinFactor(factorToAdd),
+          () -> "multiJoin.getOtherSelfJoinFactor(" + factorToAdd + ") is null");
+      selfJoinFactor.set(factor);
       if (multiJoin.hasAllFactors(left, selfJoinFactor)) {
         childNo = 0;
       } else {
@@ -1120,8 +1132,8 @@ public class LoptOptimizeJoinRule
     newCondition =
         adjustFilter(
             multiJoin,
-            left,
-            right,
+            requireNonNull(left, "left"),
+            requireNonNull(right, "right"),
             newCondition,
             factorToAdd,
             origJoinOrder,
@@ -1177,7 +1189,7 @@ public class LoptOptimizeJoinRule
    *
    * @return new join tree
    */
-  private LoptJoinTree addToTop(
+  private @Nullable LoptJoinTree addToTop(
       RelMetadataQuery mq,
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
@@ -1218,7 +1230,8 @@ public class LoptOptimizeJoinRule
     // outer join condition
     RexNode condition;
     if ((joinType == JoinRelType.LEFT) || (joinType == JoinRelType.RIGHT)) {
-      condition = multiJoin.getOuterJoinCond(factorToAdd);
+      condition = requireNonNull(multiJoin.getOuterJoinCond(factorToAdd),
+          "multiJoin.getOuterJoinCond(factorToAdd)");
     } else {
       condition =
           addFilters(
@@ -1541,11 +1554,11 @@ public class LoptOptimizeJoinRule
    * @return created join tree or null if the corresponding fact table has not
    * been joined in yet
    */
-  private LoptJoinTree createReplacementSemiJoin(
+  private @Nullable LoptJoinTree createReplacementSemiJoin(
       RelBuilder relBuilder,
       LoptMultiJoin multiJoin,
       LoptSemiJoinOptimizer semiJoinOpt,
-      LoptJoinTree factTree,
+      @Nullable LoptJoinTree factTree,
       int dimIdx,
       List<RexNode> filtersToAdd) {
     // if the current join tree doesn't contain the fact table, then
@@ -1554,7 +1567,8 @@ public class LoptOptimizeJoinRule
       return null;
     }
 
-    int factIdx = multiJoin.getJoinRemovalFactor(dimIdx);
+    int factIdx = requireNonNull(multiJoin.getJoinRemovalFactor(dimIdx),
+        () -> "multiJoin.getJoinRemovalFactor(dimIdx) for " + dimIdx + ", " + multiJoin);
     final List<Integer> joinOrder = factTree.getTreeOrder();
     assert joinOrder.contains(factIdx);
 
@@ -1620,7 +1634,7 @@ public class LoptOptimizeJoinRule
       int leftIdx,
       int factorToAdd,
       ImmutableIntList newKeys,
-      Integer [] replacementKeys,
+      Integer @Nullable [] replacementKeys,
       List<RexNode> filtersToAdd) {
     // create a projection, projecting the fields from the join tree
     // containing the current joinRel and the new factor; for fields
@@ -1658,6 +1672,8 @@ public class LoptOptimizeJoinRule
         }
         projExpr = rexBuilder.makeNullLiteral(newType);
       } else {
+        // TODO: is the above if (replacementKeys==null) check placed properly?
+        requireNonNull(replacementKeys, "replacementKeys");
         RelDataTypeField mappedField = currFields.get(replacementKeys[i]);
         RexNode mappedInput =
             rexBuilder.makeInputRef(

@@ -19,6 +19,8 @@ package org.apache.calcite.config;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -257,7 +259,7 @@ public final class CalciteSystemProperty<T> {
   // The name of the property is not appropriate. A better alternative would be
   // calcite.test.foodmart.queries.ids. Moreover, I am not in favor of using system properties for
   // parameterized tests.
-  public static final CalciteSystemProperty<String> TEST_FOODMART_QUERY_IDS =
+  public static final CalciteSystemProperty<@Nullable String> TEST_FOODMART_QUERY_IDS =
       new CalciteSystemProperty<>("calcite.ids", Function.identity());
 
   /**
@@ -450,7 +452,8 @@ public final class CalciteSystemProperty<T> {
 
   private final T value;
 
-  private CalciteSystemProperty(String key, Function<String, T> valueParser) {
+  private CalciteSystemProperty(String key,
+      Function<? super @Nullable String, ? extends T> valueParser) {
     this.value = valueParser.apply(PROPERTIES.getProperty(key));
   }
 

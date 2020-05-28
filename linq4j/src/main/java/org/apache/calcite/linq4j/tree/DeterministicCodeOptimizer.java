@@ -21,6 +21,8 @@ import org.apache.calcite.linq4j.function.NonDeterministic;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -167,7 +169,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   }
 
   @Override public Expression visit(MethodCallExpression methodCallExpression,
-      Expression targetExpression, List<Expression> expressions) {
+      @Nullable Expression targetExpression, List<Expression> expressions) {
     Expression result =
         super.visit(methodCallExpression, targetExpression, expressions);
 
@@ -176,7 +178,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   }
 
   @Override public Expression visit(MemberExpression memberExpression,
-      Expression expression) {
+      @Nullable Expression expression) {
     Expression result = super.visit(memberExpression, expression);
 
     if (isConstant(expression)
@@ -187,7 +189,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
   }
 
   @Override public MemberDeclaration visit(FieldDeclaration fieldDeclaration,
-      Expression initializer) {
+      @Nullable Expression initializer) {
     if (Modifier.isStatic(fieldDeclaration.modifier)) {
       // Avoid optimization of static fields, since we'll have to track order
       // of static declarations.
@@ -224,7 +226,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression input expression
    * @return parameter of the already existing declaration, or null
    */
-  @Override protected ParameterExpression findDeclaredExpression(Expression expression) {
+  @Override protected @Nullable ParameterExpression findDeclaredExpression(Expression expression) {
     if (!dedup.isEmpty()) {
       ParameterExpression pe = dedup.get(expression);
       if (pe != null) {
@@ -294,7 +296,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    * @param expression expression to test
    * @return true when the expression is known to be constant
    */
-  @Override protected boolean isConstant(Expression expression) {
+  @Override protected boolean isConstant(@Nullable Expression expression) {
     return expression == null
         || expression instanceof ConstantExpression
         || !constants.isEmpty() && constants.containsKey(expression)
@@ -330,7 +332,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
         && constructor.isAnnotationPresent(Deterministic.class);
   }
 
-  private <C> Constructor<C> getConstructor(Class<C> klass) {
+  private <C> @Nullable Constructor<C> getConstructor(Class<C> klass) {
     try {
       return klass.getConstructor();
     } catch (NoSuchMethodException e) {
@@ -347,7 +349,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    */
   protected boolean allMethodsDeterministic(Class klass) {
     return DETERMINISTIC_CLASSES.contains(klass)
-        || klass.getCanonicalName().equals("org.apache.calcite.avatica.util.DateTimeUtils")
+        || "org.apache.calcite.avatica.util.DateTimeUtils".equals(klass.getCanonicalName())
         || klass.isAnnotationPresent(Deterministic.class);
   }
 

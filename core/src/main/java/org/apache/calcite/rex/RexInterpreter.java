@@ -26,6 +26,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -70,7 +72,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   }
 
   /** Evaluates an expression in an environment. */
-  public static Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
+  public static @Nullable Comparable evaluate(RexNode e, Map<RexNode, Comparable> map) {
     final Comparable v = e.accept(new RexInterpreter(map));
     if (false) {
       System.out.println("evaluate " + e + " on " + map + " returns " + v);

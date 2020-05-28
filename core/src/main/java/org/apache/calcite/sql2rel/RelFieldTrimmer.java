@@ -74,6 +74,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,10 +122,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    *
    * @param validator Validator
    */
-  public RelFieldTrimmer(SqlValidator validator, RelBuilder relBuilder) {
+  public RelFieldTrimmer(@Nullable SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
     this.relBuilder = relBuilder;
-    this.trimFieldsDispatcher =
+    @SuppressWarnings("argument.type.incompatible")
+    ReflectUtil.MethodDispatcher<TrimResult> dispatcher =
         ReflectUtil.createMethodDispatcher(
             TrimResult.class,
             this,
@@ -131,10 +134,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             RelNode.class,
             ImmutableBitSet.class,
             Set.class);
+    this.trimFieldsDispatcher = dispatcher;
   }
 
   @Deprecated // to be removed before 2.0
-  public RelFieldTrimmer(SqlValidator validator,
+  public RelFieldTrimmer(@Nullable SqlValidator validator,
       RelOptCluster cluster,
       RelFactories.ProjectFactory projectFactory,
       RelFactories.FilterFactory filterFactory,
@@ -530,7 +534,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param originalRelNode Source RelNode for hint propagation (or null if no propagation needed)
    * @return Dummy project
    */
-  protected TrimResult dummyProject(int fieldCount, RelNode input, RelNode originalRelNode) {
+  protected TrimResult dummyProject(int fieldCount, RelNode input,
+      @Nullable RelNode originalRelNode) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);

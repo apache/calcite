@@ -269,8 +269,7 @@ void debug_message1() {
 }
 
 JAVACODE String unquotedIdentifier() {
-    return SqlParserUtil.strip(getToken(0).image, null, null, null,
-        unquotedCasing);
+    return SqlParserUtil.toCase(getToken(0).image, unquotedCasing);
 }
 
 /**
@@ -4387,7 +4386,8 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_DOUBLE_QUOTED_STRING>
     {
-        p = SqlParserUtil.strip(getToken(0).image, DQ, DQ, "\\\"", Casing.UNCHANGED);
+        p = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, "\\\"",
+            Casing.UNCHANGED);
         try {
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
@@ -4398,7 +4398,8 @@ SqlNode StringLiteral() :
 |
     <BIG_QUERY_QUOTED_STRING>
     {
-        p = SqlParserUtil.strip(getToken(0).image, "'", "'", "\\'", Casing.UNCHANGED);
+        p = SqlParserUtil.stripQuotes(getToken(0).image, "'", "'", "\\'",
+            Casing.UNCHANGED);
         try {
             return SqlLiteral.createCharString(p, charSet, getPos());
         } catch (java.nio.charset.UnsupportedCharsetException e) {
@@ -4881,19 +4882,19 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
         }
     |
         <QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, DQ, DQ, DQDQ,
+            id = SqlParserUtil.stripQuotes(getToken(0).image, DQ, DQ, DQDQ,
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
     |
         <BACK_QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, "`", "`", "``",
+            id = SqlParserUtil.stripQuotes(getToken(0).image, "`", "`", "``",
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
     |
         <BRACKET_QUOTED_IDENTIFIER> {
-            id = SqlParserUtil.strip(getToken(0).image, "[", "]", "]]",
+            id = SqlParserUtil.stripQuotes(getToken(0).image, "[", "]", "]]",
                 quotedCasing);
             pos = getPos().withQuoting(true);
         }
@@ -4902,7 +4903,7 @@ void IdentifierSegment(List<String> names, List<SqlParserPos> positions) :
             span = span();
             String image = getToken(0).image;
             image = image.substring(image.indexOf('"'));
-            image = SqlParserUtil.strip(image, DQ, DQ, DQDQ, quotedCasing);
+            image = SqlParserUtil.stripQuotes(image, DQ, DQ, DQDQ, quotedCasing);
         }
         [
             <UESCAPE> <QUOTED_STRING> {

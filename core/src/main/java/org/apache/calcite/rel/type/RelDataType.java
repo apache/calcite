@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.type.SqlTypeName;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -46,6 +48,7 @@ public interface RelDataType {
    * @return whether this type has fields; examples include rows and
    * user-defined structured types in SQL, and classes in Java
    */
+  @Pure
   boolean isStruct();
 
   // NOTE jvs 17-Dec-2004:  once we move to Java generics, getFieldList()
@@ -103,7 +106,7 @@ public interface RelDataType {
    * @param elideRecord Whether to find fields nested within records
    * @return named field, or null if not found
    */
-  RelDataTypeField getField(String fieldName, boolean caseSensitive,
+  @Nullable RelDataTypeField getField(String fieldName, boolean caseSensitive,
       boolean elideRecord);
 
   /**
@@ -111,6 +114,7 @@ public interface RelDataType {
    *
    * @return whether type allows null values
    */
+  @Pure
   boolean isNullable();
 
   /**
@@ -118,21 +122,22 @@ public interface RelDataType {
    *
    * @return canonical type descriptor for components
    */
-  RelDataType getComponentType();
+  @Pure
+  @Nullable RelDataType getComponentType();
 
   /**
    * Gets the key type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for key
    */
-  RelDataType getKeyType();
+  @Nullable RelDataType getKeyType();
 
   /**
    * Gets the value type if this type is a map, otherwise null.
    *
    * @return canonical type descriptor for value
    */
-  RelDataType getValueType();
+  @Nullable RelDataType getValueType();
 
   /**
    * Gets this type's character set, or null if this type cannot carry a
@@ -140,7 +145,8 @@ public interface RelDataType {
    *
    * @return charset of type
    */
-  Charset getCharset();
+  @Pure
+  @Nullable Charset getCharset();
 
   /**
    * Gets this type's collation, or null if this type cannot carry a collation
@@ -148,7 +154,8 @@ public interface RelDataType {
    *
    * @return collation of type
    */
-  SqlCollation getCollation();
+  @Pure
+  @Nullable SqlCollation getCollation();
 
   /**
    * Gets this type's interval qualifier, or null if this is not an interval
@@ -156,7 +163,8 @@ public interface RelDataType {
    *
    * @return interval qualifier
    */
-  SqlIntervalQualifier getIntervalQualifier();
+  @Pure
+  @Nullable SqlIntervalQualifier getIntervalQualifier();
 
   /**
    * Gets the JDBC-defined precision for values of this type. Note that this
@@ -199,7 +207,8 @@ public interface RelDataType {
    *
    * @return SqlIdentifier, or null if this is not an SQL type
    */
-  SqlIdentifier getSqlIdentifier();
+  @Pure
+  @Nullable SqlIdentifier getSqlIdentifier();
 
   /**
    * Gets a string representation of this type without detail such as
@@ -242,7 +251,7 @@ public interface RelDataType {
    * field names. If it is not a struct, just return the result of {@code
    * #equals(Object)}. */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  default boolean equalsSansFieldNames(RelDataType that) {
+  default boolean equalsSansFieldNames(@Nullable RelDataType that) {
     if (this == that) {
       return true;
     }

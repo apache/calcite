@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -68,6 +69,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -75,6 +78,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /** Materialized view rewriting for aggregate.
  *
@@ -93,7 +98,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     super(config);
   }
 
-  @Override protected boolean isValidPlan(Project topProject, RelNode node,
+  @Override protected boolean isValidPlan(@Nullable Project topProject, RelNode node,
       RelMetadataQuery mq) {
     if (!(node instanceof Aggregate)) {
       return false;
@@ -106,16 +111,16 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return isValidRelNodePlan(aggregate.getInput(), mq);
   }
 
-  @Override protected ViewPartialRewriting compensateViewPartial(
+  @Override protected @Nullable ViewPartialRewriting compensateViewPartial(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
       RelNode input,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
       Set<RelTableRef> queryTableRefs,
       EquivalenceClasses queryEC,
-      Project topViewProject,
+      @Nullable Project topViewProject,
       RelNode viewNode,
       Set<RelTableRef> viewTableRefs) {
     // Modify view to join with missing tables and add Project on top to reorder columns.
@@ -134,12 +139,20 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         extraTableRefs.add(tRef);
       }
     }
-    Collection<RelNode> tableScanNodes = mq.getNodeTypes(node).get(TableScan.class);
+    Multimap<Class<? extends RelNode>, RelNode> nodeTypes = mq.getNodeTypes(node);
+    if (nodeTypes == null) {
+      return null;
+    }
+    Collection<RelNode> tableScanNodes = nodeTypes.get(TableScan.class);
+    if (tableScanNodes == null) {
+      return null;
+    }
     List<RelNode> newRels = new ArrayList<>();
     for (RelTableRef tRef : extraTableRefs) {
       int i = 0;
       for (RelNode relNode : tableScanNodes) {
-        if (tRef.getQualifiedName().equals(relNode.getTable().getQualifiedName())) {
+        TableScan scan = (TableScan) relNode;
+        if (tRef.getQualifiedName().equals(scan.getTable().getQualifiedName())) {
           if (tRef.getEntityNumber() == i++) {
             newRels.add(relNode);
             break;
@@ -221,14 +234,14 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return ViewPartialRewriting.of(newView, newTopViewProject, newViewNode);
   }
 
-  @Override protected RelNode rewriteQuery(
+  @Override protected @Nullable RelNode rewriteQuery(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RexSimplify simplify,
       RelMetadataQuery mq,
       RexNode compensationColumnsEquiPred,
       RexNode otherCompensationPred,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses viewEC, EquivalenceClasses queryEC) {
@@ -243,9 +256,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // depending on the planner strategy.
     RelNode newAggregateInput = aggregate.getInput(0);
     RelNode target = aggregate.getInput(0);
-    if (config.unionRewritingPullProgram() != null) {
-      final HepPlanner tmpPlanner =
-          new HepPlanner(config.unionRewritingPullProgram());
+    HepProgram unionRewritingPullProgram = config.unionRewritingPullProgram();
+    if (unionRewritingPullProgram != null) {
+      final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
       tmpPlanner.setRoot(newAggregateInput);
       newAggregateInput = tmpPlanner.findBestExp();
       target = newAggregateInput.getInput(0);
@@ -255,23 +268,25 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // are contained in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
+      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, queryEC, false,
           compensationColumnsEquiPred);
-      if (compensationColumnsEquiPred == null) {
+      if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
       }
+      compensationColumnsEquiPred = newCompensationColumnsEquiPred;
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      otherCompensationPred = rewriteExpression(rexBuilder, mq,
+      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, viewEC, true,
           otherCompensationPred);
-      if (otherCompensationPred == null) {
+      if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
+      otherCompensationPred = newOtherCompensationPred;
     }
     final RexNode queryCompensationPred = RexUtil.not(
         RexUtil.composeConjunction(rexBuilder,
@@ -292,8 +307,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return aggregate.copy(aggregate.getTraitSet(), ImmutableList.of(rewrittenPlan));
   }
 
-  @Override protected RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
+  @Override protected @Nullable RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+      @Nullable RelNode topProject, RelNode unionInputQuery, RelNode unionInputView) {
     // Union
     relBuilder.push(unionInputQuery);
     relBuilder.push(unionInputView);
@@ -355,7 +370,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     return result;
   }
 
-  @Override protected RelNode rewriteView(
+  @Override protected @Nullable RelNode rewriteView(
       RelBuilder relBuilder,
       RexBuilder rexBuilder,
       RexSimplify simplify,
@@ -363,9 +378,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
       MatchModality matchModality,
       boolean unionRewriting,
       RelNode input,
-      Project topProject,
+      @Nullable Project topProject,
       RelNode node,
-      Project topViewProject,
+      @Nullable Project topViewProject,
       RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses queryEC) {
@@ -549,8 +564,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           additionalViewExprs.add(
               new RexInputRef(targetIdx, targetNode.getType()));
           // We need to create the rollup expression
-          inputViewExprs.add(
-              shuttleReferences(rexBuilder, targetNode, exprsLineage));
+          RexNode rollupExpression = requireNonNull(
+              shuttleReferences(rexBuilder, targetNode, exprsLineage),
+              () -> "shuttleReferences produced null for targetNode=" + targetNode
+                  + ", exprsLineage=" + exprsLineage);
+          inputViewExprs.add(rollupExpression);
           added = true;
         } else {
           // This expression should be referenced directly
@@ -713,7 +731,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
    *
    * <p>If any of the expressions cannot be mapped, we return null.
    */
-  protected Multimap<Integer, Integer> generateMapping(
+  protected @Nullable Multimap<Integer, Integer> generateMapping(
       RexBuilder rexBuilder,
       RexSimplify simplify,
       RelMetadataQuery mq,
@@ -847,7 +865,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
   /**
    * Get rollup aggregation function.
    */
-  protected SqlAggFunction getRollup(SqlAggFunction aggregation) {
+  protected @Nullable SqlAggFunction getRollup(SqlAggFunction aggregation) {
     if (aggregation == SqlStdOperatorTable.SUM
         || aggregation == SqlStdOperatorTable.SUM0
         || aggregation instanceof SqlMinMaxAggFunction
@@ -860,8 +878,8 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     }
   }
 
-  @Override public Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
-      RelNode topViewProject, RelNode viewNode, RexNode cond) {
+  @Override public Pair<@Nullable RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+      @Nullable RelNode topViewProject, RelNode viewNode, RexNode cond) {
     // We add (and push) the filter to the view plan before triggering the rewriting.
     // This is useful in case some of the columns can be folded to same value after
     // filter is added.
@@ -898,7 +916,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         topNode = topNode.getInput(0);
       }
     }
-    return Pair.of(resultTopViewProject, resultViewNode);
+    return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
   }
 
   /** Rule configuration. */

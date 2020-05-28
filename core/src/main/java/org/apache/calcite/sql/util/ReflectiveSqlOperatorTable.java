@@ -31,6 +31,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.List;
@@ -75,7 +77,9 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         } else if (
             SqlOperator.class.isAssignableFrom(field.getType())) {
           SqlOperator op = (SqlOperator) field.get(this);
-          register(op);
+          if (op != null) {
+            register(op);
+          }
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
         throw Util.throwAsRuntime(Util.causeOrSelf(e));
@@ -85,7 +89,7 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
 
   // implement SqlOperatorTable
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category, SqlSyntax syntax,
+      @Nullable SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     // NOTE jvs 3-Mar-2005:  ignore category until someone cares
 

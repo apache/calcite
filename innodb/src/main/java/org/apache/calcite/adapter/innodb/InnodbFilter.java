@@ -29,8 +29,9 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -63,7 +64,7 @@ public class InnodbFilter extends Filter implements InnodbRel {
         tableDef, forceIndexName);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+  @Override public @Nullable RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }

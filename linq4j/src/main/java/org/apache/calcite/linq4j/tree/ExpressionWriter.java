@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j.tree;
 
 import org.apache.calcite.avatica.util.Spacer;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
@@ -130,13 +132,13 @@ class ExpressionWriter {
     return this;
   }
 
-  public ExpressionWriter append(Object o) {
+  public ExpressionWriter append(@Nullable Object o) {
     checkIndent();
     buf.append(o);
     return this;
   }
 
-  public ExpressionWriter append(String s) {
+  public ExpressionWriter append(@Nullable String s) {
     checkIndent();
     buf.append(s);
     return this;

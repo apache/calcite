@@ -23,6 +23,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,10 +54,10 @@ class MaterializationActor {
   static class Materialization {
     final MaterializationKey key;
     final CalciteSchema rootSchema;
-    CalciteSchema.TableEntry materializedTable;
+    CalciteSchema.@Nullable TableEntry materializedTable;
     final String sql;
     final RelDataType rowType;
-    final List<String> viewSchemaPath;
+    final @Nullable List<String> viewSchemaPath;
 
     /** Creates a materialization.
      *
@@ -70,10 +72,10 @@ class MaterializationActor {
      */
     Materialization(MaterializationKey key,
         CalciteSchema rootSchema,
-        CalciteSchema.TableEntry materializedTable,
+        CalciteSchema.@Nullable TableEntry materializedTable,
         String sql,
         RelDataType rowType,
-        List<String> viewSchemaPath) {
+        @Nullable List<String> viewSchemaPath) {
       this.key = key;
       this.rootSchema = Objects.requireNonNull(rootSchema);
       Preconditions.checkArgument(rootSchema.isRoot(), "must be root schema");
@@ -89,20 +91,20 @@ class MaterializationActor {
   static class QueryKey {
     final String sql;
     final CalciteSchema schema;
-    final List<String> path;
+    final @Nullable List<String> path;
 
-    QueryKey(String sql, CalciteSchema schema, List<String> path) {
+    QueryKey(String sql, CalciteSchema schema, @Nullable List<String> path) {
       this.sql = sql;
       this.schema = schema;
       this.path = path;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof QueryKey
           && sql.equals(((QueryKey) obj).sql)
           && schema.equals(((QueryKey) obj).schema)
-          && path.equals(((QueryKey) obj).path);
+          && Objects.equals(path, ((QueryKey) obj).path);
     }
 
     @Override public int hashCode() {

@@ -28,6 +28,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Minus} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableMinus extends Minus implements EnumerableRel {
@@ -51,6 +53,7 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
           builder.append(
               "child" + ord.i,
               result.block);
+      assert childExp != null : "childExp must not be null";
 
       if (minusExp == null) {
         minusExp = childExp;
@@ -68,7 +71,8 @@ public class EnumerableMinus extends Minus implements EnumerableRel {
       pref = pref.of(result.format);
     }
 
-    builder.add(minusExp);
+    builder.add(
+        requireNonNull(minusExp, () -> "minusExp is null, inputs=" + inputs + ", rel=" + this));
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

@@ -41,6 +41,7 @@ import org.apache.calcite.util.TestUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -377,7 +378,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -390,7 +391,7 @@ public class StreamTest {
     }
 
     public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, RelDataType rowType) {
+        Map<String, Object> operand, @Nullable RelDataType rowType) {
       return new OrdersTable(getRowList());
     }
 
@@ -419,7 +420,7 @@ public class StreamTest {
       this.rows = rows;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(rows);
     }
 
@@ -432,7 +433,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -447,7 +448,7 @@ public class StreamTest {
     }
 
     public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, RelDataType rowType) {
+        Map<String, Object> operand, @Nullable RelDataType rowType) {
       return new InfiniteOrdersTable();
     }
   }
@@ -457,7 +458,7 @@ public class StreamTest {
    */
   public static class InfiniteOrdersTable extends BaseOrderStreamTable
       implements StreamableTable {
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(() -> new Iterator<Object[]>() {
         private final String[] items = {"paint", "paper", "brush"};
         private int counter = 0;
@@ -491,7 +492,7 @@ public class StreamTest {
       this.rows = rows;
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(rows);
     }
   }
@@ -501,7 +502,7 @@ public class StreamTest {
    */
   public static class ProductsTableFactory implements TableFactory<Table> {
     public Table create(SchemaPlus schema, String name,
-        Map<String, Object> operand, RelDataType rowType) {
+        Map<String, Object> operand, @Nullable RelDataType rowType) {
       final Object[][] rows = {
           {"paint", 1},
           {"paper", 0},
@@ -526,7 +527,7 @@ public class StreamTest {
         .add("SUPPLIER", SqlTypeName.INTEGER)
         .build();
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return Linq4j.asEnumerable(rows);
     }
 
@@ -547,7 +548,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }
@@ -589,7 +590,7 @@ public class StreamTest {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }

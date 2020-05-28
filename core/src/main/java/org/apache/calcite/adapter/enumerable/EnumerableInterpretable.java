@@ -48,6 +48,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IClassBodyEvaluator;
@@ -84,7 +85,7 @@ public class EnumerableInterpretable extends ConverterImpl
             implementor.spark, (EnumerableRel) getInput(),
         EnumerableRel.Prefer.ARRAY);
     final ArrayBindable arrayBindable = box(bindable);
-    final Enumerable<Object[]> enumerable =
+    final Enumerable<@Nullable Object[]> enumerable =
         arrayBindable.bind(implementor.dataContext);
     return new EnumerableNode(enumerable, implementor.compiler, this);
   }
@@ -103,7 +104,7 @@ public class EnumerableInterpretable extends ConverterImpl
           .build();
 
   public static Bindable toBindable(Map<String, Object> parameters,
-      CalcitePrepare.SparkHandler spark, EnumerableRel rel,
+      CalcitePrepare.@Nullable SparkHandler spark, EnumerableRel rel,
       EnumerableRel.Prefer prefer) {
     EnumerableRelImplementor relImplementor =
         new EnumerableRelImplementor(rel.getCluster().getRexBuilder(),
@@ -185,13 +186,13 @@ public class EnumerableInterpretable extends ConverterImpl
         return Object[].class;
       }
 
-      @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+      @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
         final Enumerable<?> enumerable = bindable.bind(dataContext);
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             final Enumerator<?> enumerator = enumerable.enumerator();
-            return new Enumerator<Object[]>() {
-              @Override public Object[] current() {
+            return new Enumerator<@Nullable Object[]>() {
+              @Override public @Nullable Object[] current() {
                 return new Object[] {enumerator.current()};
               }
 
@@ -217,19 +218,19 @@ public class EnumerableInterpretable extends ConverterImpl
    *
    * <p>From the interpreter's perspective, it is a leaf node. */
   private static class EnumerableNode implements Node {
-    private final Enumerable<Object[]> enumerable;
+    private final Enumerable<@Nullable Object[]> enumerable;
     private final Sink sink;
 
-    EnumerableNode(Enumerable<Object[]> enumerable, Compiler compiler,
+    EnumerableNode(Enumerable<@Nullable Object[]> enumerable, Compiler compiler,
         EnumerableInterpretable rel) {
       this.enumerable = enumerable;
       this.sink = compiler.sink(rel);
     }
 
     @Override public void run() throws InterruptedException {
-      final Enumerator<Object[]> enumerator = enumerable.enumerator();
+      final Enumerator<@Nullable Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {
-        Object[] values = enumerator.current();
+        @Nullable Object[] values = enumerator.current();
         sink.send(Row.of(values));
       }
     }

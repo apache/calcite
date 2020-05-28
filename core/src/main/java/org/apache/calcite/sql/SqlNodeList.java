@@ -24,6 +24,8 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,7 +34,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.RandomAccess;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
@@ -63,7 +66,9 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
 
   //~ Instance fields --------------------------------------------------------
 
-  private final List<SqlNode> list;
+  // Sometimes null values are present in the list, however, it is assumed that callers would
+  // perform all the required null-checks.
+  private final List<@Nullable SqlNode> list;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -71,7 +76,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
    *
    * <p>Because SqlNodeList implements {@link RandomAccess}, the backing list
    * should allow O(1) access to elements. */
-  private SqlNodeList(SqlParserPos pos, List<SqlNode> list) {
+  private SqlNodeList(SqlParserPos pos, List<@Nullable SqlNode> list) {
     super(pos);
     this.list = Objects.requireNonNull(list);
   }
@@ -88,16 +93,16 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
    * list</code>. The list is copied, but the nodes in it are not.
    */
   public SqlNodeList(
-      Collection<? extends SqlNode> collection,
+      Collection<? extends @Nullable SqlNode> collection,
       SqlParserPos pos) {
-    this(pos, new ArrayList<>(collection));
+    this(pos, new ArrayList<@Nullable SqlNode>(collection));
   }
 
   /**
    * Creates a SqlNodeList with a given backing list.
    * Does not copy the list.
    */
-  public static SqlNodeList of(SqlParserPos pos, List<SqlNode> list) {
+  public static SqlNodeList of(SqlParserPos pos, List<@Nullable SqlNode> list) {
     return new SqlNodeList(pos, list);
   }
 
@@ -110,7 +115,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return list.hashCode();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof SqlNodeList && list.equals(((SqlNodeList) o).list)
         || o instanceof List && list.equals(o);
@@ -124,31 +129,36 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return list.size();
   }
 
-  @Override public @Nonnull Iterator<SqlNode> iterator() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Iterator</*Nullable*/ SqlNode> iterator() {
     return list.iterator();
   }
 
-  @Override public ListIterator<SqlNode> listIterator() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public ListIterator</*Nullable*/ SqlNode> listIterator() {
     return list.listIterator();
   }
 
-  @Override public ListIterator<SqlNode> listIterator(int index) {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public ListIterator</*Nullable*/ SqlNode> listIterator(int index) {
     return list.listIterator(index);
   }
 
-  @Override public List<SqlNode> subList(int fromIndex, int toIndex) {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public List</*Nullable*/ SqlNode> subList(int fromIndex, int toIndex) {
     return list.subList(fromIndex, toIndex);
   }
 
-  @Override public SqlNode get(int n) {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public /*Nullable*/ SqlNode get(int n) {
     return list.get(n);
   }
 
-  @Override public SqlNode set(int n, SqlNode node) {
-    return list.set(n, node);
+  @Override public SqlNode set(int n, @Nullable SqlNode node) {
+    return castNonNull(list.set(n, node));
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return list.contains(o);
   }
 
@@ -156,37 +166,39 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return list.containsAll(c);
   }
 
-  @Override public int indexOf(Object o) {
+  @Override public int indexOf(@Nullable Object o) {
     return list.indexOf(o);
   }
 
-  @Override public int lastIndexOf(Object o) {
+  @Override public int lastIndexOf(@Nullable Object o) {
     return list.lastIndexOf(o);
   }
 
-  @Override public @Nonnull Object[] toArray() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Object[] toArray() {
     // Per JDK specification, must return an Object[] not SqlNode[]; see e.g.
     // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6260652
     return list.toArray();
   }
 
-  @Override public @Nonnull <T> T[] toArray(T[] a) {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
     return list.toArray(a);
   }
 
-  @Override public boolean add(SqlNode node) {
+  @Override public boolean add(@Nullable SqlNode node) {
     return list.add(node);
   }
 
-  @Override public void add(int index, SqlNode element) {
+  @Override public void add(int index, @Nullable SqlNode element) {
     list.add(index, element);
   }
 
-  @Override public boolean addAll(Collection<? extends SqlNode> c) {
+  @Override public boolean addAll(Collection<? extends @Nullable SqlNode> c) {
     return list.addAll(c);
   }
 
-  @Override public boolean addAll(int index, Collection<? extends SqlNode> c) {
+  @Override public boolean addAll(int index, Collection<? extends @Nullable SqlNode> c) {
     return list.addAll(index, c);
   }
 
@@ -194,12 +206,12 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     list.clear();
   }
 
-  @Override public boolean remove(Object o) {
+  @Override public boolean remove(@Nullable Object o) {
     return list.remove(o);
   }
 
   @Override public SqlNode remove(int index) {
-    return list.remove(index);
+    return castNonNull(list.remove(index));
   }
 
   @Override public boolean removeAll(Collection<?> c) {
@@ -212,7 +224,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
 
   // SqlNodeList-specific methods
 
-  public List<SqlNode> getList() {
+  public List<@Nullable SqlNode> getList() {
     return list;
   }
 
@@ -243,6 +255,9 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     for (SqlNode child : list) {
+      if (child == null) {
+        continue;
+      }
       child.validate(validator, scope);
     }
   }
@@ -251,7 +266,7 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlNodeList)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -262,6 +277,13 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     for (int i = 0; i < list.size(); i++) {
       SqlNode thisChild = list.get(i);
       final SqlNode thatChild = that.list.get(i);
+      if (thisChild == null) {
+        if (thatChild == null) {
+          continue;
+        } else {
+          return litmus.fail(null);
+        }
+      }
       if (!thisChild.equalsDeep(thatChild, litmus)) {
         return litmus.fail(null);
       }
@@ -275,20 +297,20 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
   }
 
   public static SqlNodeList of(SqlNode node1) {
-    final List<SqlNode> list = new ArrayList<>(1);
+    final List<@Nullable SqlNode> list = new ArrayList<>(1);
     list.add(node1);
     return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
   public static SqlNodeList of(SqlNode node1, SqlNode node2) {
-    final List<SqlNode> list = new ArrayList<>(2);
+    final List<@Nullable SqlNode> list = new ArrayList<>(2);
     list.add(node1);
     list.add(node2);
     return new SqlNodeList(SqlParserPos.ZERO, list);
   }
 
-  public static SqlNodeList of(SqlNode node1, SqlNode node2, SqlNode... nodes) {
-    final List<SqlNode> list = new ArrayList<>(nodes.length + 2);
+  public static SqlNodeList of(SqlNode node1, SqlNode node2, @Nullable SqlNode... nodes) {
+    final List<@Nullable SqlNode> list = new ArrayList<>(nodes.length + 2);
     list.add(node1);
     list.add(node2);
     Collections.addAll(list, nodes);
@@ -310,6 +332,9 @@ public class SqlNodeList extends SqlNode implements List<SqlNode>, RandomAccess 
     //       SqlNodeList(SqlLiteral(10), SqlLiteral(20))  }
 
     for (SqlNode node : list) {
+      if (node == null) {
+        continue;
+      }
       node.validateExpr(validator, scope);
     }
   }

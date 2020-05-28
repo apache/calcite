@@ -37,6 +37,11 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import java.util.Arrays;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * The item operator {@code [ ... ]}, used to access a given element of an
  * array, map or struct. For example, {@code myArray[3]}, {@code "myMap['foo']"},
@@ -62,8 +67,8 @@ class SqlItemOperator extends SqlSpecialOperator {
         ordinal + 2,
         createCall(
             SqlParserPos.sum(
-                Arrays.asList(left.getParserPosition(),
-                    right.getParserPosition(),
+                Arrays.asList(requireNonNull(left, "left").getParserPosition(),
+                    requireNonNull(right, "right").getParserPosition(),
                     list.pos(ordinal))),
             left,
             right));
@@ -101,8 +106,12 @@ class SqlItemOperator extends SqlSpecialOperator {
     case ARRAY:
       return OperandTypes.family(SqlTypeFamily.INTEGER);
     case MAP:
+      RelDataType keyType = requireNonNull(operandType.getKeyType(),
+          "operandType.getKeyType()");
+      SqlTypeName sqlTypeName = keyType.getSqlTypeName();
       return OperandTypes.family(
-          operandType.getKeyType().getSqlTypeName().getFamily());
+          requireNonNull(sqlTypeName.getFamily(),
+              () -> "keyType.getSqlTypeName().getFamily() null, type is " + sqlTypeName));
     case ROW:
     case ANY:
     case DYNAMIC_STAR:
@@ -126,16 +135,18 @@ class SqlItemOperator extends SqlSpecialOperator {
     switch (operandType.getSqlTypeName()) {
     case ARRAY:
       return typeFactory.createTypeWithNullability(
-          operandType.getComponentType(), true);
+          getComponentTypeOrThrow(operandType), true);
     case MAP:
-      return typeFactory.createTypeWithNullability(operandType.getValueType(),
+      return typeFactory.createTypeWithNullability(
+          requireNonNull(operandType.getValueType(),
+              () -> "operandType.getValueType() is null for " + operandType),
           true);
     case ROW:
       RelDataType fieldType;
       RelDataType indexType = opBinding.getOperandType(1);
 
       if (SqlTypeUtil.isString(indexType)) {
-        String fieldName = opBinding.getOperandLiteralValue(1, String.class);
+        final String fieldName = getOperandLiteralValueOrThrow(opBinding, 1, String.class);
         RelDataTypeField field = operandType.getField(fieldName, false, false);
         if (field == null) {
           throw new AssertionError("Cannot infer type of field '"

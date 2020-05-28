@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -29,10 +31,10 @@ public class ClassDeclaration extends MemberDeclaration {
   public final String classClass = "class";
   public final String name;
   public final List<MemberDeclaration> memberDeclarations;
-  public final Type extended;
+  public final @Nullable Type extended;
   public final List<Type> implemented;
 
-  public ClassDeclaration(int modifier, String name, Type extended,
+  public ClassDeclaration(int modifier, String name, @Nullable Type extended,
       List<Type> implemented, List<MemberDeclaration> memberDeclarations) {
     assert name != null : "name should not be null";
     this.modifier = modifier;
@@ -70,7 +72,7 @@ public class ClassDeclaration extends MemberDeclaration {
     return visitor.visit(this);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -50,6 +50,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -245,7 +247,7 @@ public class Smalls {
         return typeFactory.builder().add("N", SqlTypeName.BIGINT).build();
       }
 
-      public Enumerable<Object[]> scan(DataContext root) {
+      public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return new AbstractEnumerable<Object[]>() {
           public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
@@ -291,7 +293,7 @@ public class Smalls {
       }
 
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };
@@ -925,7 +927,7 @@ public class Smalls {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       Object[][] rows = {{"abcde"}, {"xyz"}, {content}};
       return Linq4j.asEnumerable(rows);
     }

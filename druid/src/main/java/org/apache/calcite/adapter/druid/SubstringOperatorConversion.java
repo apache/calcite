@@ -24,7 +24,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Converts Calcite SUBSTRING call to Druid Expression when possible.
@@ -34,8 +34,7 @@ public class SubstringOperatorConversion implements DruidSqlOperatorConverter {
     return SqlStdOperatorTable.SUBSTRING;
   }
 
-  @Nullable
-  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
+  @Override public @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery query) {
     final RexCall call = (RexCall) rexNode;
     final String arg = DruidExpressions.toDruidExpression(

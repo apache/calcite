@@ -22,6 +22,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -53,7 +55,8 @@ public class SqlWith extends SqlCall {
     return ImmutableList.of(withList, body);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       withList = (SqlNodeList) operand;
@@ -107,8 +110,9 @@ public class SqlWith extends SqlCall {
     }
 
 
-    @Override public SqlCall createCall(SqlLiteral functionQualifier,
-        SqlParserPos pos, SqlNode... operands) {
+    @SuppressWarnings("argument.type.incompatible")
+    @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+        SqlParserPos pos, @Nullable SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);
     }
 

@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlNameMatcher;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,7 +63,7 @@ public class ChainedSqlOperatorTable implements SqlOperatorTable {
   }
 
   @Override public void lookupOperatorOverloads(SqlIdentifier opName,
-      SqlFunctionCategory category, SqlSyntax syntax,
+      @Nullable SqlFunctionCategory category, SqlSyntax syntax,
       List<SqlOperator> operatorList, SqlNameMatcher nameMatcher) {
     for (SqlOperatorTable table : tableList) {
       table.lookupOperatorOverloads(opName, category, syntax, operatorList,

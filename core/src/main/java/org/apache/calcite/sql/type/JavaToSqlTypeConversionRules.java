@@ -21,6 +21,8 @@ import org.apache.calcite.runtime.Geometries;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -98,7 +100,7 @@ public class JavaToSqlTypeConversionRules {
    * @param javaClass the Java class to lookup
    * @return a corresponding SqlTypeName if found, otherwise null is returned
    */
-  public SqlTypeName lookup(Class javaClass) {
+  public @Nullable SqlTypeName lookup(Class javaClass) {
     return rules.get(javaClass);
   }
 

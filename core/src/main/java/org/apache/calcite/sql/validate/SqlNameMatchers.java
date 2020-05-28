@@ -23,11 +23,15 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helpers for {@link SqlNameMatcher}.
@@ -82,7 +86,7 @@ public class SqlNameMatchers {
       return true;
     }
 
-    @Override public <K extends List<String>, V> V get(Map<K, V> map,
+    @Override public <K extends List<String>, V> @Nullable V get(Map<K, V> map,
         List<String> prefixNames, List<String> names) {
       final List<String> key = concat(prefixNames, names);
       if (caseSensitive) {
@@ -118,7 +122,7 @@ public class SqlNameMatchers {
       return SqlIdentifier.getString(bestMatch());
     }
 
-    @Override public RelDataTypeField field(RelDataType rowType, String fieldName) {
+    @Override public @Nullable RelDataTypeField field(RelDataType rowType, String fieldName) {
       return rowType.getField(fieldName, caseSensitive, false);
     }
 
@@ -141,7 +145,7 @@ public class SqlNameMatchers {
 
   /** Matcher that remembers the requests that were made of it. */
   private static class LiberalNameMatcher extends BaseMatcher {
-    List<String> matchedNames;
+    @Nullable List<String> matchedNames;
 
     LiberalNameMatcher() {
       super(false);
@@ -165,7 +169,7 @@ public class SqlNameMatchers {
     }
 
     @Override public List<String> bestMatch() {
-      return matchedNames;
+      return requireNonNull(matchedNames, "matchedNames");
     }
   }
 }

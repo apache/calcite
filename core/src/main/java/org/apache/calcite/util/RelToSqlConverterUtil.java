@@ -28,6 +28,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.REGEXP_REPLACE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities used by multiple dialect for RelToSql conversion.
  */
@@ -43,7 +45,9 @@ public abstract class RelToSqlConverterUtil {
       int leftPrec,
       int rightPrec) {
     final SqlLiteral valueToTrim = call.operand(1);
-    if (valueToTrim.toValue().matches("\\s+")) {
+    String value = requireNonNull(valueToTrim.toValue(),
+        () -> "call.operand(1).toValue() for call " + call);
+    if (value.matches("\\s+")) {
       unparseTrimWithSpace(writer, call, leftPrec, rightPrec);
     } else {
       // SELECT TRIM(both 'A' from "ABC") -> SELECT REGEXP_REPLACE("ABC", '^(A)*', '')
@@ -98,7 +102,8 @@ public abstract class RelToSqlConverterUtil {
    * @return the regex pattern of the character to be trimmed
    */
   public static SqlCharStringLiteral createRegexPatternLiteral(SqlNode call, SqlLiteral trimFlag) {
-    final String regexPattern = ((SqlCharStringLiteral) call).toValue();
+    final String regexPattern = requireNonNull(((SqlCharStringLiteral) call).toValue(),
+        () -> "null value for SqlNode " + call);
     String escaped = escapeSpecialChar(regexPattern);
     final StringBuilder builder = new StringBuilder();
     switch (trimFlag.getValueAs(SqlTrimFunction.Flag.class)) {

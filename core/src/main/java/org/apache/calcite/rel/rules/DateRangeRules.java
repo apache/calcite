@@ -51,7 +51,8 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
-import java.math.BigDecimal;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -60,10 +61,10 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Collection of planner rules that convert
@@ -119,6 +120,12 @@ public abstract class DateRangeRules {
           .put(TimeUnitRange.MICROSECOND, TimeUnitRange.SECOND)
           .build();
 
+  private static int calendarUnitFor(TimeUnitRange timeUnitRange) {
+    return requireNonNull(TIME_UNIT_CODES.get(timeUnitRange),
+        () -> "unexpected timeUnitRange: " + timeUnitRange
+            + ", the following are supported: " + TIME_UNIT_CODES);
+  }
+
   /** Tests whether an expression contains one or more calls to the
    * {@code EXTRACT} function, and if so, returns the time units used.
    *
@@ -129,7 +136,7 @@ public abstract class DateRangeRules {
    * generate hundreds of ranges we'll later throw away. */
   static ImmutableSortedSet<TimeUnitRange> extractTimeUnits(RexNode e) {
     try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-      assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
+      assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
           : "previous user did not clean up";
       e.accept(finder);
       return ImmutableSortedSet.copyOf(finder.timeUnits);
@@ -181,7 +188,7 @@ public abstract class DateRangeRules {
      * If none of these, we cannot apply the rule. */
     private static boolean containsRoundingExpression(Filter filter) {
       try (ExtractFinder finder = ExtractFinder.THREAD_INSTANCES.get()) {
-        assert finder.timeUnits.isEmpty() && finder.opKinds.isEmpty()
+        assert requireNonNull(finder, "finder").timeUnits.isEmpty() && finder.opKinds.isEmpty()
             : "previous user did not clean up";
         filter.getCondition().accept(finder);
         return finder.timeUnits.contains(TimeUnitRange.YEAR)
@@ -194,7 +201,7 @@ public abstract class DateRangeRules {
       final Filter filter = call.rel(0);
       final RexBuilder rexBuilder = filter.getCluster().getRexBuilder();
       final String timeZone = filter.getCluster().getPlanner().getContext()
-          .unwrap(CalciteConnectionConfig.class).timeZone();
+          .unwrapOrThrow(CalciteConnectionConfig.class).timeZone();
       final RexNode condition =
           replaceTimeUnits(rexBuilder, filter.getCondition(), timeZone);
       if (condition.equals(filter.getCondition())) {
@@ -230,7 +237,7 @@ public abstract class DateRangeRules {
         EnumSet.noneOf(TimeUnitRange.class);
     private final Set<SqlKind> opKinds = EnumSet.noneOf(SqlKind.class);
 
-    private static final ThreadLocal<ExtractFinder> THREAD_INSTANCES =
+    private static final ThreadLocal<@Nullable ExtractFinder> THREAD_INSTANCES =
         ThreadLocal.withInitial(ExtractFinder::new);
 
     private ExtractFinder() {
@@ -241,7 +248,9 @@ public abstract class DateRangeRules {
       switch (call.getKind()) {
       case EXTRACT:
         final RexLiteral operand = (RexLiteral) call.getOperands().get(0);
-        timeUnits.add((TimeUnitRange) operand.getValue());
+        timeUnits.add(
+            (TimeUnitRange) requireNonNull(operand.getValue(),
+                () -> "timeUnitRange is null for " + call));
         break;
       case FLOOR:
       case CEIL:
@@ -278,10 +287,10 @@ public abstract class DateRangeRules {
     ExtractShuttle(RexBuilder rexBuilder, TimeUnitRange timeUnit,
         Map<RexNode, RangeSet<Calendar>> operandRanges,
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
-      this.rexBuilder = Objects.requireNonNull(rexBuilder);
-      this.timeUnit = Objects.requireNonNull(timeUnit);
-      this.operandRanges = Objects.requireNonNull(operandRanges);
-      this.timeUnitRanges = Objects.requireNonNull(timeUnitRanges);
+      this.rexBuilder = requireNonNull(rexBuilder);
+      this.timeUnit = requireNonNull(timeUnit);
+      this.operandRanges = requireNonNull(operandRanges);
+      this.timeUnitRanges = requireNonNull(timeUnitRanges);
       this.timeZone = timeZone;
     }
 
@@ -310,7 +319,8 @@ public abstract class DateRangeRules {
             assert op1 instanceof RexCall;
             final RexCall subCall = (RexCall) op1;
             final RexLiteral flag = (RexLiteral) subCall.operands.get(1);
-            final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+            final TimeUnitRange timeUnit = (TimeUnitRange) requireNonNull(flag.getValue(),
+                () -> "timeUnit is null for " + subCall);
             return compareFloorCeil(call.getKind().reverse(),
                 subCall.getOperands().get(0), (RexLiteral) op0,
                 timeUnit, op1.getKind() == SqlKind.FLOOR);
@@ -334,7 +344,8 @@ public abstract class DateRangeRules {
           if (isFloorCeilCall(op0)) {
             final RexCall subCall = (RexCall) op0;
             final RexLiteral flag = (RexLiteral) subCall.operands.get(1);
-            final TimeUnitRange timeUnit = (TimeUnitRange) flag.getValue();
+            final TimeUnitRange timeUnit = (TimeUnitRange) requireNonNull(flag.getValue(),
+                () -> "timeUnit is null for " + subCall);
             return compareFloorCeil(call.getKind(),
                 subCall.getOperands().get(0), (RexLiteral) op1,
                 timeUnit, op0.getKind() == SqlKind.FLOOR);
@@ -381,11 +392,11 @@ public abstract class DateRangeRules {
     }
 
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
-        boolean[] update) {
+        boolean @Nullable [] update) {
       if (exprs.isEmpty()) {
         return ImmutableList.of(); // a bit more efficient
       }
-      switch (calls.peek().getKind()) {
+      switch (requireNonNull(calls.peek(), "calls.peek()").getKind()) {
       case AND:
         return super.visitList(exprs, update);
       default:
@@ -440,7 +451,7 @@ public abstract class DateRangeRules {
       }
       final RangeSet<Calendar> s2 = TreeRangeSet.create();
       // Calendar.MONTH is 0-based
-      final int v = ((BigDecimal) literal.getValue()).intValue()
+      final int v = RexLiteral.intValue(literal)
           - (timeUnit == TimeUnitRange.MONTH ? 1 : 0);
 
       if (!isValid(v, timeUnit)) {
@@ -488,7 +499,7 @@ public abstract class DateRangeRules {
     private boolean next(Calendar c, TimeUnitRange timeUnit, int v,
         Range<Calendar> r, boolean strict) {
       final Calendar original = (Calendar) c.clone();
-      final int code = TIME_UNIT_CODES.get(timeUnit);
+      final int code = calendarUnitFor(timeUnit);
       for (;;) {
         c.set(code, v);
         int v2 = c.get(code);
@@ -498,7 +509,10 @@ public abstract class DateRangeRules {
           continue;
         }
         if (strict && original.compareTo(c) == 0) {
-          c.add(TIME_UNIT_CODES.get(TIME_UNIT_PARENTS.get(timeUnit)), 1);
+          c.add(
+              calendarUnitFor(
+              requireNonNull(TIME_UNIT_PARENTS.get(timeUnit),
+                  () -> "TIME_UNIT_PARENTS.get(timeUnit) is null for " + timeUnit)), 1);
           continue;
         }
         if (!r.contains(c)) {
@@ -526,7 +540,7 @@ public abstract class DateRangeRules {
       }
     }
 
-    private @Nonnull RexNode toRex(RexNode operand, Range<Calendar> r) {
+    private RexNode toRex(RexNode operand, Range<Calendar> r) {
       final List<RexNode> nodes = new ArrayList<>();
       if (r.hasLowerBound()) {
         final SqlBinaryOperator op = r.lowerBoundType() == BoundType.CLOSED
@@ -597,7 +611,7 @@ public abstract class DateRangeRules {
     private Calendar round(Calendar c, TimeUnitRange timeUnit, boolean down) {
       c = (Calendar) c.clone();
       if (!down) {
-        final Integer code = TIME_UNIT_CODES.get(timeUnit);
+        final Integer code = calendarUnitFor(timeUnit);
         final int v = c.get(code);
         c.set(code, v + 1);
       }
@@ -631,12 +645,16 @@ public abstract class DateRangeRules {
         final TimeZone tz = TimeZone.getTimeZone(this.timeZone);
         return Util.calendar(
             SqlFunctions.timestampWithLocalTimeZoneToTimestamp(
-                timeLiteral.getValueAs(Long.class), tz));
+                requireNonNull(timeLiteral.getValueAs(Long.class),
+                    "timeLiteral.getValueAs(Long.class)"), tz));
       case TIMESTAMP:
-        return Util.calendar(timeLiteral.getValueAs(Long.class));
+        return Util.calendar(
+            requireNonNull(timeLiteral.getValueAs(Long.class),
+                "timeLiteral.getValueAs(Long.class)"));
       case DATE:
         // Cast date to timestamp with local time zone
-        final DateString d = timeLiteral.getValueAs(DateString.class);
+        final DateString d = requireNonNull(timeLiteral.getValueAs(DateString.class),
+            "timeLiteral.getValueAs(DateString.class)");
         return Util.calendar(d.getMillisSinceEpoch());
       default:
         throw Util.unexpected(timeLiteral.getTypeName());
@@ -696,13 +714,13 @@ public abstract class DateRangeRules {
 
     private Calendar increment(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
-      c.add(TIME_UNIT_CODES.get(timeUnit), 1);
+      c.add(calendarUnitFor(timeUnit), 1);
       return c;
     }
 
     private Calendar decrement(Calendar c, TimeUnitRange timeUnit) {
       c = (Calendar) c.clone();
-      c.add(TIME_UNIT_CODES.get(timeUnit), -1);
+      c.add(calendarUnitFor(timeUnit), -1);
       return c;
     }
 
@@ -720,22 +738,22 @@ public abstract class DateRangeRules {
       c = (Calendar) c.clone();
       switch (timeUnit) {
       case YEAR:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.MONTH), Calendar.JANUARY);
+        c.set(calendarUnitFor(TimeUnitRange.MONTH), Calendar.JANUARY);
         // fall through; need to zero out lower time units
       case MONTH:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.DAY), 1);
+        c.set(calendarUnitFor(TimeUnitRange.DAY), 1);
         // fall through; need to zero out lower time units
       case DAY:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.HOUR), 0);
+        c.set(calendarUnitFor(TimeUnitRange.HOUR), 0);
         // fall through; need to zero out lower time units
       case HOUR:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.MINUTE), 0);
+        c.set(calendarUnitFor(TimeUnitRange.MINUTE), 0);
         // fall through; need to zero out lower time units
       case MINUTE:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.SECOND), 0);
+        c.set(calendarUnitFor(TimeUnitRange.SECOND), 0);
         // fall through; need to zero out lower time units
       case SECOND:
-        c.set(TIME_UNIT_CODES.get(TimeUnitRange.MILLISECOND), 0);
+        c.set(calendarUnitFor(TimeUnitRange.MILLISECOND), 0);
         break;
       default:
         break;

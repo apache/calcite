@@ -27,6 +27,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -35,21 +37,22 @@ import java.util.Objects;
  */
 public class SqlCreateTable extends SqlCreate {
   public final SqlIdentifier name;
-  public final SqlNodeList columnList;
-  public final SqlNode query;
+  public final @Nullable SqlNodeList columnList;
+  public final @Nullable SqlNode query;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE TABLE", SqlKind.CREATE_TABLE);
 
   /** Creates a SqlCreateTable. */
   protected SqlCreateTable(SqlParserPos pos, boolean replace, boolean ifNotExists,
-      SqlIdentifier name, SqlNodeList columnList, SqlNode query) {
+      SqlIdentifier name, @Nullable SqlNodeList columnList, @Nullable SqlNode query) {
     super(OPERATOR, pos, replace, ifNotExists);
     this.name = Objects.requireNonNull(name);
     this.columnList = columnList; // may be null
     this.query = query; // for "CREATE TABLE ... AS query"; may be null
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
   }

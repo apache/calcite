@@ -41,6 +41,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -102,7 +103,7 @@ public class ProjectAggregateMergeRule
             final RexInputRef ref1 = (RexInputRef) cast.operands.get(0);
             final RexLiteral literal = (RexLiteral) operands.get(2);
             if (ref0.getIndex() == ref1.getIndex()
-                && literal.getValueAs(BigDecimal.class).equals(BigDecimal.ZERO)) {
+                && Objects.equals(literal.getValueAs(BigDecimal.class), BigDecimal.ZERO)) {
               final int aggCallIndex =
                   ref1.getIndex() - aggregate.getGroupCount();
               if (aggCallIndex >= 0) {

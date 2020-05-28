@@ -27,8 +27,12 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
@@ -91,16 +95,16 @@ public class SelectScope extends ListScope {
   private final SqlSelect select;
   protected final List<String> windowNames = new ArrayList<>();
 
-  private List<SqlNode> expandedSelectList = null;
+  private @Nullable List<SqlNode> expandedSelectList = null;
 
   /**
    * List of column names which sort this scope. Empty if this scope is not
    * sorted. Null if has not been computed yet.
    */
-  private SqlNodeList orderList;
+  private @MonotonicNonNull SqlNodeList orderList;
 
   /** Scope to use to resolve windows. */
-  private final SqlValidatorScope windowParent;
+  private final @Nullable SqlValidatorScope windowParent;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -113,7 +117,7 @@ public class SelectScope extends ListScope {
    */
   SelectScope(
       SqlValidatorScope parent,
-      SqlValidatorScope winParent,
+      @Nullable SqlValidatorScope winParent,
       SqlSelect select) {
     super(parent);
     this.select = select;
@@ -122,7 +126,7 @@ public class SelectScope extends ListScope {
 
   //~ Methods ----------------------------------------------------------------
 
-  public SqlValidatorTable getTable() {
+  public @Nullable SqlValidatorTable getTable() {
     return null;
   }
 
@@ -130,11 +134,13 @@ public class SelectScope extends ListScope {
     return select;
   }
 
-  @Override public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     final SqlNodeList windowList = select.getWindowList();
     for (int i = 0; i < windowList.size(); i++) {
       SqlWindow window = (SqlWindow) windowList.get(i);
-      final SqlIdentifier declId = window.getDeclName();
+      final SqlIdentifier declId = Objects.requireNonNull(
+          window.getDeclName(),
+          () -> "declName of window " + window);
       assert declId.isSimple();
       if (declId.names.get(0).equals(name)) {
         return window;
@@ -214,11 +220,11 @@ public class SelectScope extends ListScope {
     return false;
   }
 
-  public List<SqlNode> getExpandedSelectList() {
+  public @Nullable List<SqlNode> getExpandedSelectList() {
     return expandedSelectList;
   }
 
-  public void setExpandedSelectList(List<SqlNode> selectList) {
+  public void setExpandedSelectList(@Nullable List<SqlNode> selectList) {
     expandedSelectList = selectList;
   }
 }

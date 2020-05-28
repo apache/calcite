@@ -37,6 +37,9 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +65,7 @@ public class RelMdColumnOrigins
     return BuiltInMetadata.ColumnOrigin.DEF;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Aggregate rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Aggregate rel,
       RelMetadataQuery mq, int iOutputColumn) {
     if (iOutputColumn < rel.getGroupCount()) {
       // get actual index of Group columns.
@@ -86,7 +89,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Join rel, RelMetadataQuery mq,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Join rel, RelMetadataQuery mq,
       int iOutputColumn) {
     int nLeftColumns = rel.getLeft().getRowType().getFieldList().size();
     Set<RelColumnOrigin> set;
@@ -110,7 +113,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(SetOp rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(SetOp rel,
       RelMetadataQuery mq, int iOutputColumn) {
     final Set<RelColumnOrigin> set = new HashSet<>();
     for (RelNode input : rel.getInputs()) {
@@ -123,7 +126,7 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Project rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Project rel,
       final RelMetadataQuery mq, int iOutputColumn) {
     final RelNode input = rel.getInput();
     RexNode rexNode = rel.getProjects().get(iOutputColumn);
@@ -138,7 +141,7 @@ public class RelMdColumnOrigins
     return createDerivedColumnOrigins(set);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Calc rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Calc rel,
       final RelMetadataQuery mq, int iOutputColumn) {
     final RelNode input = rel.getInput();
     final RexShuttle rexShuttle = new RexShuttle() {
@@ -161,27 +164,27 @@ public class RelMdColumnOrigins
     return createDerivedColumnOrigins(set);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Filter rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Filter rel,
       RelMetadataQuery mq, int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Sort rel, RelMetadataQuery mq,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Sort rel, RelMetadataQuery mq,
       int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(TableModify rel, RelMetadataQuery mq,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableModify rel, RelMetadataQuery mq,
       int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(Exchange rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(Exchange rel,
       RelMetadataQuery mq, int iOutputColumn) {
     return mq.getColumnOrigins(rel.getInput(), iOutputColumn);
   }
 
-  public Set<RelColumnOrigin> getColumnOrigins(TableFunctionScan rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(TableFunctionScan rel,
       RelMetadataQuery mq, int iOutputColumn) {
     final Set<RelColumnOrigin> set = new HashSet<>();
     Set<RelColumnMapping> mappings = rel.getColumnMappings();
@@ -216,7 +219,7 @@ public class RelMdColumnOrigins
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<RelColumnOrigin> getColumnOrigins(RelNode rel,
+  public @Nullable Set<RelColumnOrigin> getColumnOrigins(RelNode rel,
       RelMetadataQuery mq, int iOutputColumn) {
     // NOTE jvs 28-Mar-2006: We may get this wrong for a physical table
     // expression which supports projections.  In that case,
@@ -250,8 +253,8 @@ public class RelMdColumnOrigins
     return set;
   }
 
-  private Set<RelColumnOrigin> createDerivedColumnOrigins(
-      Set<RelColumnOrigin> inputSet) {
+  private @PolyNull Set<RelColumnOrigin> createDerivedColumnOrigins(
+      @PolyNull Set<RelColumnOrigin> inputSet) {
     if (inputSet == null) {
       return null;
     }

@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelCollation}
  * and {@link org.apache.calcite.rel.RelFieldCollation}.
@@ -277,7 +279,9 @@ public class RelCollations {
       Map<Integer, Integer> mapping) {
     return of(
         Util.transform(collation.getFieldCollations(),
-            fc -> fc.withFieldIndex(mapping.get(fc.getFieldIndex()))));
+            fc -> fc.withFieldIndex(
+                requireNonNull(mapping.get(fc.getFieldIndex()),
+                    () -> "no entry for " + fc.getFieldIndex() + " in " + mapping))));
   }
 
   /** Creates a copy of this collation that changes the ordinals of input

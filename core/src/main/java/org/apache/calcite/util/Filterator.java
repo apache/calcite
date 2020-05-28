@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Filtered iterator class: an iterator that includes only elements that are
@@ -30,12 +34,12 @@ import java.util.NoSuchElementException;
  *
  * @param <E> Element type
  */
-public class Filterator<E> implements Iterator<E> {
+public class Filterator<E extends Object> implements Iterator<E> {
   //~ Instance fields --------------------------------------------------------
 
   Class<E> includeFilter;
-  Iterator<? extends Object> iterator;
-  E lookAhead;
+  Iterator<?> iterator;
+  @Nullable E lookAhead;
   boolean ready;
 
   //~ Constructors -----------------------------------------------------------
@@ -68,7 +72,7 @@ public class Filterator<E> implements Iterator<E> {
     if (ready) {
       E o = lookAhead;
       ready = false;
-      return o;
+      return castNonNull(o);
     }
 
     while (iterator.hasNext()) {

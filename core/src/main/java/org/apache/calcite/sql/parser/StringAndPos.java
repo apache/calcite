@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.sql.parser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Contains a string, the offset of a token within the string, and a parser
  * position containing the beginning and end line number.
@@ -23,9 +25,9 @@ package org.apache.calcite.sql.parser;
 public class StringAndPos {
   public final String sql;
   public final int cursor;
-  public final SqlParserPos pos;
+  public final @Nullable SqlParserPos pos;
 
-  private StringAndPos(String sql, int cursor, SqlParserPos pos) {
+  private StringAndPos(String sql, int cursor, @Nullable SqlParserPos pos) {
     this.sql = sql;
     this.cursor = cursor;
     this.pos = pos;

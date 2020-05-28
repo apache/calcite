@@ -23,6 +23,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Rule to convert a {@link org.apache.calcite.rel.logical.LogicalAggregate}
  * to an {@link EnumerableAggregate}.
@@ -41,7 +43,7 @@ class EnumerableAggregateRule extends ConverterRule {
     super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  @Override public @Nullable RelNode convert(RelNode rel) {
     final LogicalAggregate agg = (LogicalAggregate) rel;
     final RelTraitSet traitSet = rel.getCluster()
         .traitSet().replace(EnumerableConvention.INSTANCE);

@@ -21,6 +21,8 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rel.core.RelFactories;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** A partially-created RelBuilder.
  *
  * <p>Add a cluster, and optionally a schema,
@@ -35,5 +37,5 @@ import org.apache.calcite.rel.core.RelFactories;
  */
 public interface RelBuilderFactory {
   /** Creates a RelBuilder. */
-  RelBuilder create(RelOptCluster cluster, RelOptSchema schema);
+  RelBuilder create(RelOptCluster cluster, @Nullable RelOptSchema schema);
 }

@@ -75,6 +75,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
@@ -493,8 +494,8 @@ public class FrameworksTest {
           ImmutableList.of());
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        int[] projects) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+        int @Nullable [] projects) {
       throw new UnsupportedOperationException();
     }
 

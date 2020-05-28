@@ -28,6 +28,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -65,7 +66,7 @@ public class SqlAbstractTimeFunction extends SqlFunction {
     if (opBinding.getOperandCount() == 1) {
       RelDataType type = opBinding.getOperandType(0);
       if (SqlTypeUtil.isNumeric(type)) {
-        precision = opBinding.getOperandLiteralValue(0, Integer.class);
+        precision = getOperandLiteralValueOrThrow(opBinding, 0, Integer.class);
       }
     }
     assert precision >= 0;

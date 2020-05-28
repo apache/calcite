@@ -27,6 +27,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,12 +39,12 @@ import java.util.Map;
 /**
  * Enumerator that reads from a Object List.
  */
-public class JsonEnumerator implements Enumerator<Object[]> {
+public class JsonEnumerator implements Enumerator<@Nullable Object[]> {
 
-  private Enumerator<Object[]> enumerator;
+  private final Enumerator<@Nullable Object[]> enumerator;
 
-  public JsonEnumerator(List<Object> list) {
-    List<Object[]> objs = new ArrayList<Object[]>();
+  public JsonEnumerator(List<? extends @Nullable Object> list) {
+    List<@Nullable Object[]> objs = new ArrayList<>();
     for (Object obj : list) {
       if (obj instanceof Collection) {
         //noinspection unchecked

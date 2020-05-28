@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Strategy to infer the type of an operator call from the type of the operands
  * by using a series of {@link SqlReturnTypeInference} rules in a given order.
@@ -48,7 +50,7 @@ public class SqlReturnTypeInferenceChain implements SqlReturnTypeInference {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+  @Override public @Nullable RelDataType inferReturnType(SqlOperatorBinding opBinding) {
     for (SqlReturnTypeInference rule : rules) {
       RelDataType ret = rule.inferReturnType(opBinding);
       if (ret != null) {

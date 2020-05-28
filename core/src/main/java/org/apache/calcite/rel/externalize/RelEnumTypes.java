@@ -33,6 +33,10 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /** Registry of {@link Enum} classes that can be serialized to JSON.
  *
  * <p>Suppose you want to serialize the value
@@ -76,14 +80,14 @@ public abstract class RelEnumTypes {
 
   private static void register(ImmutableMap.Builder<String, Enum<?>> builder,
       Class<? extends Enum> aClass) {
-    for (Enum enumConstant : aClass.getEnumConstants()) {
+    for (Enum enumConstant : castNonNull(aClass.getEnumConstants())) {
       builder.put(enumConstant.name(), enumConstant);
     }
   }
 
   /** Converts a literal into a value that can be serialized to JSON.
    * In particular, if is an enum, converts it to its name. */
-  public static Object fromEnum(Object value) {
+  public static @Nullable Object fromEnum(@Nullable Object value) {
     return value instanceof Enum ? fromEnum((Enum) value) : value;
   }
 

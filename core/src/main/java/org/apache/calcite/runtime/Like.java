@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Utilities for converting SQL {@code LIKE} and {@code SIMILAR} operators
  * to regular expressions.
@@ -49,7 +51,7 @@ public class Like {
    */
   static String sqlToRegexLike(
       String sqlPattern,
-      CharSequence escapeStr) {
+      @Nullable CharSequence escapeStr) {
     final char escapeChar;
     if (escapeStr != null) {
       if (escapeStr.length() != 1) {
@@ -209,7 +211,7 @@ public class Like {
    */
   static String sqlToRegexSimilar(
       String sqlPattern,
-      CharSequence escapeStr) {
+      @Nullable CharSequence escapeStr) {
     final char escapeChar;
     if (escapeStr != null) {
       if (escapeStr.length() != 1) {

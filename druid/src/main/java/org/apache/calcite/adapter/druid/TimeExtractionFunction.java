@@ -28,10 +28,11 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Locale;
 import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;
 import static org.apache.calcite.util.DateTimeStringUtils.ISO_DATETIME_FRACTIONAL_SECOND_FORMAT;
@@ -195,8 +196,7 @@ public class TimeExtractionFunction implements ExtractionFunction {
    * @param rexNode CAST RexNode
    * @param timeZone Timezone
    */
-  @Nullable
-  public static TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,
+  public static @Nullable TimeExtractionFunction translateCastToTimeExtract(RexNode rexNode,
       TimeZone timeZone) {
     assert rexNode.getKind() == SqlKind.CAST;
     final RexCall rexCall = (RexCall) rexNode;

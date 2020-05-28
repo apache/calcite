@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -42,16 +44,21 @@ class SimpleCalciteSchema extends CalciteSchema {
    *
    * <p>Use {@link CalciteSchema#createRootSchema(boolean)}
    * or {@link #add(String, Schema)}. */
-  SimpleCalciteSchema(CalciteSchema parent, Schema schema, String name) {
+  SimpleCalciteSchema(@Nullable CalciteSchema parent, Schema schema, String name) {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
-  private SimpleCalciteSchema(CalciteSchema parent, Schema schema,
-      String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
-      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
-      NameMap<FunctionEntry> nullaryFunctionMap,
-      List<? extends List<String>> path) {
+  private SimpleCalciteSchema(@Nullable CalciteSchema parent,
+      Schema schema,
+      String name,
+      @Nullable NameMap<CalciteSchema> subSchemaMap,
+      @Nullable NameMap<TableEntry> tableMap,
+      @Nullable NameMap<LatticeEntry> latticeMap,
+      @Nullable NameMap<TypeEntry> typeMap,
+      @Nullable NameMultimap<FunctionEntry> functionMap,
+      @Nullable NameSet functionNames,
+      @Nullable NameMap<FunctionEntry> nullaryFunctionMap,
+      @Nullable List<? extends List<String>> path) {
     super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, path);
   }
@@ -67,7 +74,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return calciteSchema;
   }
 
-  @Override protected CalciteSchema getImplicitSubSchema(String schemaName,
+  @Override protected @Nullable CalciteSchema getImplicitSubSchema(String schemaName,
       boolean caseSensitive) {
     // Check implicit schemas.
     Schema s = schema.getSubSchema(schemaName);
@@ -77,7 +84,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected TableEntry getImplicitTable(String tableName,
+  @Override protected @Nullable TableEntry getImplicitTable(String tableName,
       boolean caseSensitive) {
     // Check implicit tables.
     Table table = schema.getTable(tableName);
@@ -87,7 +94,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected TypeEntry getImplicitType(String name, boolean caseSensitive) {
+  @Override protected @Nullable TypeEntry getImplicitType(String name, boolean caseSensitive) {
     // Check implicit types.
     RelProtoDataType type = schema.getType(name);
     if (type != null) {
@@ -154,7 +161,7 @@ class SimpleCalciteSchema extends CalciteSchema {
     }
   }
 
-  @Override protected TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
+  @Override protected @Nullable TableEntry getImplicitTableBasedOnNullaryFunction(String tableName,
       boolean caseSensitive) {
     Collection<Function> functions = schema.getFunctions(tableName);
     if (functions != null) {
@@ -169,7 +176,8 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
+  @Override protected CalciteSchema snapshot(@Nullable CalciteSchema parent,
+      SchemaVersion version) {
     CalciteSchema snapshot = new SimpleCalciteSchema(parent,
         schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());

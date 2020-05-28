@@ -47,8 +47,13 @@ import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that matches an {@link org.apache.calcite.rel.core.Aggregate} on
@@ -86,12 +91,12 @@ public class AggregateStarTableRule
     apply(call, null, aggregate, scan);
   }
 
-  protected void apply(RelOptRuleCall call, Project postProject,
+  protected void apply(RelOptRuleCall call, @Nullable Project postProject,
       final Aggregate aggregate, StarTable.StarTableScan scan) {
     final RelOptPlanner planner = call.getPlanner();
-    final CalciteConnectionConfig config =
-        planner.getContext().unwrap(CalciteConnectionConfig.class);
-    if (config == null || !config.createMaterializations()) {
+    final Optional<CalciteConnectionConfig> config =
+        planner.getContext().maybeUnwrap(CalciteConnectionConfig.class);
+    if (!(config.isPresent() && config.get().createMaterializations())) {
       // Disable this rule if we if materializations are disabled - in
       // particular, if we are in a recursive statement that is being used to
       // populate a materialization
@@ -99,7 +104,8 @@ public class AggregateStarTableRule
     }
     final RelOptCluster cluster = scan.getCluster();
     final RelOptTable table = scan.getTable();
-    final RelOptLattice lattice = planner.getLattice(table);
+    final RelOptLattice lattice = requireNonNull(planner.getLattice(table),
+        () -> "planner.getLattice(table) is null for " + table);
     final List<Lattice.Measure> measures =
         lattice.lattice.toMeasures(aggregate.getAggCallList());
     final Pair<CalciteSchema.TableEntry, TileKey> pair =
@@ -186,7 +192,7 @@ public class AggregateStarTableRule
     call.transformTo(relBuilder.build());
   }
 
-  private static AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
+  private static @Nullable AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
       AggregateCall aggregateCall, TileKey tileKey) {
     if (aggregateCall.isDistinct()) {
       return null;

@@ -23,6 +23,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * An immutable set that may contain null values.
@@ -56,19 +61,19 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
   }
 
   @Override public Iterator<E> iterator() {
-    return Iterators.transform(elements.iterator(), e ->
-        e == NullSentinel.INSTANCE ? null : (E) e);
+    return Util.transform(elements.iterator(), e ->
+        e == NullSentinel.INSTANCE ? castNonNull(null) : (E) e);
   }
 
   @Override public int size() {
     return elements.size();
   }
 
-  @Override public boolean contains(Object o) {
+  @Override public boolean contains(@Nullable Object o) {
     return elements.contains(o == null ? NullSentinel.INSTANCE : o);
   }
 
-  @Override public boolean remove(Object o) {
+  @Override public boolean remove(@Nullable Object o) {
     throw new UnsupportedOperationException();
   }
 
@@ -135,7 +140,7 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
       return ImmutableSet.copyOf(elements);
     }
 
-    final Object[] objects =
+    final @Nullable Object[] objects =
         needCopy ? Arrays.copyOf(elements, elements.length, Object[].class)
             : elements;
     for (int i = 0; i < objects.length; i++) {
@@ -143,7 +148,9 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
         objects[i] = NullSentinel.INSTANCE;
       }
     }
-    return new ImmutableNullableSet<E>(ImmutableSet.copyOf(objects));
+    @SuppressWarnings({"nullness", "NullableProblems"})
+    @NonNull Object[] nonNullObjects = objects;
+    return new ImmutableNullableSet<E>(ImmutableSet.copyOf(nonNullObjects));
   }
 
   private static <E> boolean containsNull(E[] elements) {
@@ -182,14 +189,14 @@ public class ImmutableNullableSet<E> extends AbstractSet<E> {
   /** Creates an immutable set of 5 or more elements. */
   @SuppressWarnings("unchecked")
   public static <E> Set<E> of(E e1, E e2, E e3, E e4, E e5, E... others) {
-    Object[] elements = new Object[5 + others.length];
+    E[] elements = (E[]) new Object[5 + others.length];
     elements[0] = e1;
     elements[1] = e2;
     elements[2] = e3;
     elements[3] = e4;
     elements[4] = e5;
     System.arraycopy(others, 0, elements, 5, others.length);
-    return copyOf((E []) elements, false);
+    return copyOf(elements, false);
   }
 
   /**

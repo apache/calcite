@@ -17,11 +17,16 @@
 package org.apache.calcite.adapter.file;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.util.Source;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a JSON file.
@@ -42,10 +47,11 @@ public class JsonScannableTable extends JsonTable
     return "JsonScannableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
-        return new JsonEnumerator(getDataList(root.getTypeFactory()));
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        return new JsonEnumerator(getDataList(typeFactory));
       }
     };
   }

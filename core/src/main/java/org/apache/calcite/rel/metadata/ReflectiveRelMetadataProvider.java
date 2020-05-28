@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -228,7 +230,7 @@ public class ReflectiveRelMetadataProvider
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass) {
     if (metadataClass == metadataClass0) {
       return apply(relClass);
@@ -238,7 +240,7 @@ public class ReflectiveRelMetadataProvider
   }
 
   @SuppressWarnings({ "unchecked", "SuspiciousMethodCalls" })
-  public <M extends Metadata> UnboundMetadata<M> apply(
+  public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass) {
     List<Class<? extends RelNode>> newSources = new ArrayList<>();
     for (;;) {
@@ -262,8 +264,9 @@ public class ReflectiveRelMetadataProvider
           }
         }
       }
-      if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
-        relClass = (Class<RelNode>) relClass.getSuperclass();
+      Class<?> superclass = relClass.getSuperclass();
+      if (superclass != null && RelNode.class.isAssignableFrom(superclass)) {
+        relClass = (Class<RelNode>) superclass;
       } else {
         return null;
       }

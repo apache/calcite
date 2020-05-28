@@ -24,8 +24,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 /**
  * DruidSqlOperatorConverter implementation that handles Floor operations
@@ -36,8 +37,7 @@ public class FloorOperatorConversion implements DruidSqlOperatorConverter {
     return SqlStdOperatorTable.FLOOR;
   }
 
-  @Nullable
-  @Override public String toDruidExpression(RexNode rexNode, RelDataType rowType,
+  @Override public @Nullable String toDruidExpression(RexNode rexNode, RelDataType rowType,
       DruidQuery druidQuery) {
     final RexCall call = (RexCall) rexNode;
     final RexNode arg = call.getOperands().get(0);

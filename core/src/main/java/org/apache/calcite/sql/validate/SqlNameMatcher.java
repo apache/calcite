@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +45,7 @@ public interface SqlNameMatcher {
   boolean matches(String string, String name);
 
   /** Looks up an item in a map. */
-  <K extends List<String>, V> V get(Map<K, V> map, List<String> prefixNames,
+  <K extends List<String>, V> @Nullable V get(Map<K, V> map, List<String> prefixNames,
       List<String> names);
 
   /** Returns the most recent match.
@@ -59,7 +61,7 @@ public interface SqlNameMatcher {
    * @param fieldName Field name
    * @return Field, or null if not found
    */
-  RelDataTypeField field(RelDataType rowType, String fieldName);
+  @Nullable RelDataTypeField field(RelDataType rowType, String fieldName);
 
   /** Returns how many times a string occurs in a collection.
    *

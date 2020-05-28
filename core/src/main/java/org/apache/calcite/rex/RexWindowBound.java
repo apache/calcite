@@ -18,6 +18,10 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 /**
  * Abstracts "XX PRECEDING/FOLLOWING" and "CURRENT ROW" bounds for windowed
  * aggregates.
@@ -36,6 +40,9 @@ public abstract class RexWindowBound {
    * Returns if the bound is unbounded.
    * @return if the bound is unbounded
    */
+  @Pure
+  @EnsuresNonNullIf(expression = "getOffset()", result = false)
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   public boolean isUnbounded() {
     return false;
   }
@@ -60,6 +67,9 @@ public abstract class RexWindowBound {
    * Returns if the bound is CURRENT ROW.
    * @return if the bound is CURRENT ROW
    */
+  @Pure
+  @EnsuresNonNullIf(expression = "getOffset()", result = false)
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   public boolean isCurrentRow() {
     return false;
   }
@@ -69,7 +79,8 @@ public abstract class RexWindowBound {
    *
    * @return offset from XX PRECEDING/FOLLOWING
    */
-  public RexNode getOffset() {
+  @Pure
+  public @Nullable RexNode getOffset() {
     return null;
   }
 

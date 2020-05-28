@@ -26,6 +26,11 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+
 /**
  * A unary operator.
  */
@@ -36,9 +41,9 @@ public class SqlPrefixOperator extends SqlOperator {
       String name,
       SqlKind kind,
       int prec,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -55,7 +60,7 @@ public class SqlPrefixOperator extends SqlOperator {
     return SqlSyntax.PREFIX;
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
     return "{0}{1}";
   }
@@ -73,14 +78,12 @@ public class SqlPrefixOperator extends SqlOperator {
         throw new AssertionError("operand's type should have been derived");
       }
       if (SqlTypeUtil.inCharFamily(operandType)) {
-        SqlCollation collation = operandType.getCollation();
-        assert null != collation
-            : "An implicit or explicit collation should have been set";
+        SqlCollation collation = getCollation(operandType);
         type =
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
                     type,
-                    type.getCharset(),
+                    getCharset(type),
                     collation);
       }
     }
@@ -89,8 +92,7 @@ public class SqlPrefixOperator extends SqlOperator {
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("-")) {
-      SqlMonotonicity monotonicity = call.getOperandMonotonicity(0);
-      return monotonicity == null ? null : monotonicity.reverse();
+      return call.getOperandMonotonicity(0).reverse();
     }
 
     return super.getMonotonicity(call);

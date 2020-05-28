@@ -30,9 +30,13 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the SQL:2003 standard MULTISET constructor, <code>MULTISET
@@ -67,16 +71,14 @@ public class SqlMultisetValueConstructor extends SqlSpecialOperator {
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
+    requireNonNull(type, "inferred multiset value");
     return SqlTypeUtil.createMultisetType(
         opBinding.getTypeFactory(),
         type,
         false);
   }
 
-  protected RelDataType getComponentType(
+  protected @Nullable RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);

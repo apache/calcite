@@ -23,9 +23,9 @@ package org.apache.calcite.linq4j;
  * @param <E> Element type
  */
 public abstract class TransformedEnumerator<F, E> implements Enumerator<E> {
-  protected final Enumerator<F> enumerator;
+  protected final Enumerator<? extends F> enumerator;
 
-  protected TransformedEnumerator(Enumerator<F> enumerator) {
+  protected TransformedEnumerator(Enumerator<? extends F> enumerator) {
     this.enumerator = enumerator;
   }
 

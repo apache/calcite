@@ -31,6 +31,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -78,15 +80,15 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   // Override to define collations.
-  @Override public List<RelCollation> getCollationList() {
+  @Override public @Nullable List<RelCollation> getCollationList() {
     return Collections.emptyList();
   }
 
-  @Override public RelDistribution getDistribution() {
+  @Override public @Nullable RelDistribution getDistribution() {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this)
         ? clazz.cast(this)
         : null;
@@ -98,12 +100,12 @@ public abstract class RelOptAbstractTable implements RelOptTable {
   }
 
   // Override to get unique keys
-  @Override public List<ImmutableBitSet> getKeys() {
+  @Override public @Nullable List<ImmutableBitSet> getKeys() {
     return Collections.emptyList();
   }
 
   // Override to define foreign keys
-  @Override public List<RelReferentialConstraint> getReferentialConstraints() {
+  @Override public @Nullable List<RelReferentialConstraint> getReferentialConstraints() {
     return Collections.emptyList();
   }
 
@@ -112,7 +114,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
         context.getTableHints());
   }
 
-  @Override public Expression getExpression(Class clazz) {
+  @Override public @Nullable Expression getExpression(Class clazz) {
     return null;
   }
 

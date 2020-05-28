@@ -18,6 +18,8 @@ package org.apache.calcite.plan;
 
 import org.apache.calcite.rel.RelNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.EventListener;
 import java.util.EventObject;
 
@@ -86,21 +88,21 @@ public interface RelOptListener extends EventListener {
    * source of an event is typically the RelOptPlanner which initiated it.
    */
   abstract class RelEvent extends EventObject {
-    private final RelNode rel;
+    private final @Nullable RelNode rel;
 
-    protected RelEvent(Object eventSource, RelNode rel) {
+    protected RelEvent(Object eventSource, @Nullable RelNode rel) {
       super(eventSource);
       this.rel = rel;
     }
 
-    public RelNode getRel() {
+    public @Nullable RelNode getRel() {
       return rel;
     }
   }
 
   /** Event indicating that a relational expression has been chosen. */
   class RelChosenEvent extends RelEvent {
-    public RelChosenEvent(Object eventSource, RelNode rel) {
+    public RelChosenEvent(Object eventSource, @Nullable RelNode rel) {
       super(eventSource, rel);
     }
   }

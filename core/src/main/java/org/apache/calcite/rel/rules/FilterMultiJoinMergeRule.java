@@ -24,6 +24,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -66,7 +68,7 @@ public class FilterMultiJoinMergeRule
 
     // Create a new post-join filter condition
     // Conditions are nullable, so ImmutableList can't be used here
-    List<RexNode> filters = Arrays.asList(
+    List<@Nullable RexNode> filters = Arrays.asList(
         filter.getCondition(),
         multiJoin.getPostJoinFilter());
 

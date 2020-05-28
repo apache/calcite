@@ -2036,10 +2036,10 @@ class UtilTest {
   /** Tests {@link ReflectUtil#mightBeAssignableFrom(Class, Class)}. */
   @Test void testMightBeAssignableFrom() {
     final Object myMap = new HashMap<String, Integer>() {
-      @NotNull @Override public Set<Entry<String, Integer>> entrySet() {
+      @Override public @NotNull Set<Entry<String, Integer>> entrySet() {
         throw new UnsupportedOperationException();
       }
-      @Nullable @Override public Integer put(String key, Integer value) {
+      @Override public @Nullable Integer put(String key, Integer value) {
         throw new UnsupportedOperationException();
       }
       @Override public int size() {

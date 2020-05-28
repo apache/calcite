@@ -23,6 +23,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -196,7 +198,7 @@ public interface RelDataTypeFactory {
    * @param types input types to be combined using union (not null, not empty)
    * @return canonical union type descriptor
    */
-  RelDataType leastRestrictive(List<RelDataType> types);
+  @Nullable RelDataType leastRestrictive(List<RelDataType> types);
 
   /**
    * Creates a SQL type with no precision or scale.
@@ -272,7 +274,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalProduct(
+  @Nullable RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2);
 
@@ -304,7 +306,7 @@ public interface RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
    */
   @Deprecated // to be removed before 2.0
-  RelDataType createDecimalQuotient(
+  @Nullable RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2);
 

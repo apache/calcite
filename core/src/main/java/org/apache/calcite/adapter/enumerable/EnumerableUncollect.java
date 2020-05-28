@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Uncollect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableUncollect extends Uncollect implements EnumerableRel {
@@ -102,7 +104,7 @@ public class EnumerableUncollect extends Uncollect implements EnumerableRel {
         fieldCounts.add(2);
         inputTypes.add(FlatProductInputType.MAP);
       } else {
-        final RelDataType elementType = type.getComponentType();
+        final RelDataType elementType = getComponentTypeOrThrow(type);
         if (elementType.isStruct()) {
           if (elementType.getFieldCount() == 1 && child.getRowType().getFieldList().size() == 1
               && !withOrdinality) {

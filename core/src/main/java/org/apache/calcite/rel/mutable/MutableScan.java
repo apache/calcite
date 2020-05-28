@@ -16,7 +16,13 @@
  */
 package org.apache.calcite.rel.mutable;
 
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.core.TableScan;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.List;
+import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.TableScan}. */
 public class MutableScan extends MutableLeafRel {
@@ -33,20 +39,27 @@ public class MutableScan extends MutableLeafRel {
     return new MutableScan(scan);
   }
 
-  @Override public boolean equals(Object obj) {
+  private @Nullable List<String> tableQualifiedName() {
+    RelOptTable table = rel.getTable();
+    return table == null ? null : table.getQualifiedName();
+  }
+
+  @Override public boolean equals(@Nullable Object obj) {
+    if (!(obj instanceof MutableScan)) {
+      return false;
+    }
+    MutableScan other = (MutableScan) obj;
     return obj == this
-        || obj instanceof MutableScan
-        && rel.getTable().getQualifiedName().equals(((MutableScan) obj).rel
-            .getTable().getQualifiedName());
+        || Objects.equals(tableQualifiedName(), other.tableQualifiedName());
   }
 
   @Override public int hashCode() {
-    return rel.getTable().getQualifiedName().hashCode();
+    return Objects.hashCode(tableQualifiedName());
   }
 
   @Override public StringBuilder digest(StringBuilder buf) {
     return buf.append("Scan(table: ")
-        .append(rel.getTable().getQualifiedName()).append(")");
+        .append(tableQualifiedName()).append(")");
   }
 
   @Override public MutableRel clone() {

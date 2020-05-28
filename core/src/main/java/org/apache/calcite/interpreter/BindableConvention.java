@@ -24,6 +24,8 @@ import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Calling convention that returns results as an
  * {@link org.apache.calcite.linq4j.Enumerable} of object arrays.
@@ -52,7 +54,7 @@ public enum BindableConvention implements Convention {
     return "BINDABLE";
   }
 
-  @Override public RelNode enforce(RelNode input, RelTraitSet required) {
+  @Override public @Nullable RelNode enforce(RelNode input, RelTraitSet required) {
     return null;
   }
 

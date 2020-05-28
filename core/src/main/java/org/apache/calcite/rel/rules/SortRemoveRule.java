@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.rules;
 
+import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.plan.RelTraitSet;
@@ -65,7 +66,7 @@ public class SortRemoveRule
     assert collation == sort.getTraitSet()
         .getTrait(RelCollationTraitDef.INSTANCE);
     final RelTraitSet traits = sort.getInput().getTraitSet()
-        .replace(collation).replace(sort.getConvention());
+        .replace(collation).replaceIf(ConventionTraitDef.INSTANCE, sort::getConvention);
     call.transformTo(convert(sort.getInput(), traits));
   }
 

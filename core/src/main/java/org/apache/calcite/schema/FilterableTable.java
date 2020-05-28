@@ -20,6 +20,8 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -38,5 +40,5 @@ public interface FilterableTable extends Table {
    * If it cannot implement a filter, it should leave it in the list.
    * Any filters remaining will be implemented by the consuming Calcite
    * operator. */
-  Enumerable<Object[]> scan(DataContext root, List<RexNode> filters);
+  Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters);
 }
