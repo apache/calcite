@@ -24,6 +24,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -124,11 +126,11 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
     return RangeSets.hashCode(rangeSet) * 31 + (containsNull ? 2 : 3);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof Sarg
-        && rangeSet.equals(((Sarg) o).rangeSet)
-        && containsNull == ((Sarg) o).containsNull;
+        && containsNull == ((Sarg) o).containsNull
+        && rangeSet.equals(((Sarg) o).rangeSet);
   }
 
   /** Returns whether this Sarg is a collection of 1 or more points (and perhaps

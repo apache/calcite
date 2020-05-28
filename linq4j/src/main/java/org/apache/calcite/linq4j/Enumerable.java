@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.framework.qual.Covariant;
+
 /**
  * Exposes the enumerator, which supports a simple iteration over a collection.
  *
@@ -26,6 +28,7 @@ package org.apache.calcite.linq4j;
  *
  * @param <T> Element type
  */
+@Covariant(0)
 public interface Enumerable<T>
     extends RawEnumerable<T>, Iterable<T>, ExtendedEnumerable<T> {
   /**

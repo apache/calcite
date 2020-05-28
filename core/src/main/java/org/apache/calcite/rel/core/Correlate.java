@@ -34,9 +34,12 @@ import org.apache.calcite.util.Litmus;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A relational operator that performs nested-loop joins.
@@ -94,9 +97,9 @@ public abstract class Correlate extends BiRel {
       JoinRelType joinType) {
     super(cluster, traitSet, left, right);
     assert !joinType.generatesNullsOnLeft() : "Correlate has invalid join type " + joinType;
-    this.joinType = Objects.requireNonNull(joinType);
-    this.correlationId = Objects.requireNonNull(correlationId);
-    this.requiredColumns = Objects.requireNonNull(requiredColumns);
+    this.joinType = requireNonNull(joinType);
+    this.correlationId = requireNonNull(correlationId);
+    this.requiredColumns = requireNonNull(requiredColumns);
   }
 
   /**
@@ -108,14 +111,15 @@ public abstract class Correlate extends BiRel {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs().get(0),
         input.getInputs().get(1),
-        new CorrelationId((Integer) input.get("correlation")),
+        new CorrelationId(
+            requireNonNull((Integer) input.get("correlation"), "correlation")),
         input.getBitSet("requiredColumns"),
-        input.getEnum("joinType", JoinRelType.class));
+        requireNonNull(input.getEnum("joinType", JoinRelType.class), "joinType"));
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return super.isValid(litmus, context)
         && RelOptUtil.notContainsCorrelation(left, correlationId, litmus);
   }
@@ -210,9 +214,15 @@ public abstract class Correlate extends BiRel {
     }
 
     Double restartCount = mq.getRowCount(getLeft());
+    if (restartCount == null) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     // RelMetadataQuery.getCumulativeCost(getRight()); does not work for
     // RelSubset, so we ask planner to cost-estimate right relation
     RelOptCost rightCost = planner.getCost(getRight(), mq);
+    if (rightCost == null) {
+      return planner.getCostFactory().makeInfiniteCost();
+    }
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 

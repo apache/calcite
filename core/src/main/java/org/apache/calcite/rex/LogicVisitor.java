@@ -20,16 +20,20 @@ import org.apache.calcite.plan.RelOptUtil.Logic;
 
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  */
-public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
+public class LogicVisitor extends RexUnaryBiVisitor<@Nullable Logic> {
   private final RexNode seek;
   private final Collection<Logic> logicCollection;
 
@@ -78,7 +82,7 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
     Collections.replaceAll(logicList, Logic.FALSE, Logic.UNKNOWN_AS_TRUE);
   }
 
-  @Override public Logic visitCall(RexCall call, Logic logic) {
+  @Override public @Nullable Logic visitCall(RexCall call, @Nullable Logic logic) {
     final Logic arg0 = logic;
     switch (call.getKind()) {
     case IS_NOT_NULL:
@@ -94,7 +98,7 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
       logic = Logic.UNKNOWN_AS_TRUE;
       break;
     case NOT:
-      logic = logic.negate2();
+      logic = requireNonNull(logic, "logic").negate2();
       break;
     case CASE:
       logic = Logic.TRUE_FALSE_UNKNOWN;
@@ -120,22 +124,23 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
     return end(call, arg0);
   }
 
-  @Override protected Logic end(RexNode node, Logic arg) {
+  @Override protected @Nullable Logic end(RexNode node, @Nullable Logic arg) {
     if (node.equals(seek)) {
       logicCollection.add(arg);
     }
     return arg;
   }
 
-  @Override public Logic visitOver(RexOver over, Logic arg) {
+  @Override public @Nullable Logic visitOver(RexOver over, @Nullable Logic arg) {
     return end(over, arg);
   }
 
-  @Override public Logic visitFieldAccess(RexFieldAccess fieldAccess, Logic arg) {
+  @Override public @Nullable Logic visitFieldAccess(RexFieldAccess fieldAccess,
+      @Nullable Logic arg) {
     return end(fieldAccess, arg);
   }
 
-  @Override public Logic visitSubQuery(RexSubQuery subQuery, Logic arg) {
+  @Override public @Nullable Logic visitSubQuery(RexSubQuery subQuery, @Nullable Logic arg) {
     if (!subQuery.getType().isNullable()) {
       if (arg == Logic.TRUE_FALSE_UNKNOWN) {
         arg = Logic.TRUE_FALSE;

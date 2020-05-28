@@ -48,6 +48,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlString;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.ResultSet;
@@ -58,6 +60,8 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
@@ -212,7 +216,7 @@ public class JdbcToEnumerableConverter
 
   private void generateGet(EnumerableRelImplementor implementor,
       PhysType physType, BlockBuilder builder, ParameterExpression resultSet_,
-      int i, Expression target, Expression calendar_,
+      int i, Expression target, @Nullable Expression calendar_,
       SqlDialect.CalendarPolicy calendarPolicy) {
     final Primitive primitive = Primitive.ofBoxOr(physType.fieldClass(i));
     final RelDataType fieldType =
@@ -223,6 +227,7 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
+      assert calendar_ != null : "calendar must not be null";
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
@@ -324,10 +329,10 @@ public class JdbcToEnumerableConverter
   }
 
   /** E,g, {@code jdbcGetMethod(int)} returns "getInt". */
-  private String jdbcGetMethod(Primitive primitive) {
+  private String jdbcGetMethod(@Nullable Primitive primitive) {
     return primitive == null
         ? "getObject"
-        : "get" + SqlFunctions.initcap(primitive.primitiveName);
+        : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));
   }
 
   private SqlString generateSql(SqlDialect dialect) {

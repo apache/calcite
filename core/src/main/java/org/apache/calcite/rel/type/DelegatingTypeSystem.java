@@ -18,6 +18,8 @@ package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Implementation of {@link org.apache.calcite.rel.type.RelDataTypeSystem}
  * that sends all methods to an underlying object. */
 public class DelegatingTypeSystem implements RelDataTypeSystem {
@@ -48,7 +50,7 @@ public class DelegatingTypeSystem implements RelDataTypeSystem {
     return typeSystem.getMaxNumericPrecision();
   }
 
-  @Override public String getLiteral(SqlTypeName typeName, boolean isPrefix) {
+  @Override public @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix) {
     return typeSystem.getLiteral(typeName, isPrefix);
   }
 

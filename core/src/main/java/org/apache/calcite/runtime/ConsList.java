@@ -16,14 +16,19 @@
  */
 package org.apache.calcite.runtime;
 
+
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * List that consists of a head element and an immutable non-empty list.
@@ -78,7 +83,7 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     return toList().hashCode();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return o == this
         || o instanceof List
         && toList().equals(o);
@@ -99,28 +104,28 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator() {
+  @Override public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
-  @Override @Nonnull public Iterator<E> iterator() {
+  @Override public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator(int index) {
+  @Override public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Override @Nonnull public Object[] toArray() {
+  @Override public @PolyNull Object[] toArray(ConsList<@PolyNull E> this) {
     return toList().toArray();
   }
 
-  @Override @Nonnull public <T> T[] toArray(@Nonnull T[] a) {
+  @Override public <T> @Nullable T[] toArray(T @Nullable [] a) {
     final int s = size();
-    if (s > a.length) {
-      a = Arrays.copyOf(a, s);
+    if (s > castNonNull(a).length) {
+      a = (T[]) Arrays.copyOf(a, s, a.getClass());
     } else if (s < a.length) {
-      a[s] = null;
+      a[s] = castNonNull(null);
     }
     int i = 0;
     for (ConsList c = this;; c = (ConsList) c.rest) {
@@ -135,11 +140,11 @@ public class ConsList<E> extends AbstractImmutableList<E> {
     }
   }
 
-  @Override public int indexOf(Object o) {
+  @Override public int indexOf(@Nullable Object o) {
     return toList().indexOf(o);
   }
 
-  @Override public int lastIndexOf(Object o) {
+  @Override public int lastIndexOf(@Nullable Object o) {
     return toList().lastIndexOf(o);
   }
 }

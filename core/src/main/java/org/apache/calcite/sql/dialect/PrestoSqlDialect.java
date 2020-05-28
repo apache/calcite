@@ -31,6 +31,8 @@ import org.apache.calcite.util.RelToSqlConverterUtil;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Presto database.
  */
@@ -58,8 +60,8 @@ public class PrestoSqlDialect extends SqlDialect {
     return true;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseUsingLimit(writer, offset, fetch);
   }
 
@@ -71,7 +73,7 @@ public class PrestoSqlDialect extends SqlDialect {
     unparseLimit(writer, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
   }
@@ -108,7 +110,7 @@ public class PrestoSqlDialect extends SqlDialect {
     return CalendarPolicy.SHIFT;
   }
 
-  @Override public SqlNode getCastSpec(RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(RelDataType type) {
     return super.getCastSpec(type);
   }
 

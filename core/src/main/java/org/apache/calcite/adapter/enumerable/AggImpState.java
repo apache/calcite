@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.core.AggregateCall;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.List;
 
 /**
@@ -28,21 +30,21 @@ public class AggImpState {
   public final int aggIdx;
   public final AggregateCall call;
   public final AggImplementor implementor;
-  public AggContext context;
-  public Expression result;
-  public List<Expression> state;
-  public Expression accumulatorAdder;
+  public @MonotonicNonNull AggContext context;
+  public @MonotonicNonNull Expression result;
+  public @MonotonicNonNull List<Expression> state;
+  public @MonotonicNonNull Expression accumulatorAdder;
 
   public AggImpState(int aggIdx, AggregateCall call, boolean windowContext) {
     this.aggIdx = aggIdx;
     this.call = call;
-    this.implementor =
-        RexImpTable.INSTANCE.get(call.getAggregation(), windowContext);
+    AggImplementor implementor = RexImpTable.INSTANCE.get(call.getAggregation(), windowContext);
     if (implementor == null) {
       throw new IllegalArgumentException(
           "Unable to get aggregate implementation for aggregate "
           + call.getAggregation()
           + (windowContext ? " in window context" : ""));
     }
+    this.implementor = implementor;
   }
 }

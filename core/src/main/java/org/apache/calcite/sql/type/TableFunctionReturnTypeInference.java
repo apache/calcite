@@ -23,6 +23,9 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.sql.SqlCallBinding;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +43,7 @@ public class TableFunctionReturnTypeInference
 
   private final List<String> paramNames;
 
-  private Set<RelColumnMapping> columnMappings; // not re-entrant!
+  private @MonotonicNonNull Set<RelColumnMapping> columnMappings; // not re-entrant!
 
   private final boolean isPassthrough;
 
@@ -57,7 +60,7 @@ public class TableFunctionReturnTypeInference
 
   //~ Methods ----------------------------------------------------------------
 
-  public Set<RelColumnMapping> getColumnMappings() {
+  public @Nullable Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
   }
 

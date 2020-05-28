@@ -19,6 +19,7 @@ package org.apache.calcite.rel.rel2sql;
 import org.apache.calcite.adapter.jdbc.JdbcTable;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
@@ -92,6 +93,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -119,6 +122,7 @@ public class RelToSqlConverter extends SqlImplementor
   private final Deque<Frame> stack = new ArrayDeque<>();
 
   /** Creates a RelToSqlConverter. */
+  @SuppressWarnings("argument.type.incompatible")
   public RelToSqlConverter(SqlDialect dialect) {
     super(dialect);
     dispatcher = ReflectUtil.createMethodDispatcher(Result.class, this, "visit",
@@ -147,7 +151,7 @@ public class RelToSqlConverter extends SqlImplementor
   }
 
   @Override protected Result result(SqlNode node, Collection<Clause> clauses,
-      String neededAlias, RelDataType neededType,
+      @Nullable String neededAlias, @Nullable RelDataType neededType,
       Map<String, RelDataType> aliases) {
     final Frame frame = Objects.requireNonNull(stack.peek());
     return super.result(node, clauses, neededAlias, neededType, aliases)
@@ -675,7 +679,7 @@ public class RelToSqlConverter extends SqlImplementor
     return result(query, clauses, e, null);
   }
 
-  private SqlIdentifier getDual() {
+  private @Nullable SqlIdentifier getDual() {
     final List<String> names = dialect.getSingleRowTableName();
     if (names == null) {
       return null;
@@ -784,13 +788,15 @@ public class RelToSqlConverter extends SqlImplementor
 
   private SqlIdentifier getSqlTargetTable(RelNode e) {
     final SqlIdentifier sqlTargetTable;
-    final JdbcTable jdbcTable = e.getTable().unwrap(JdbcTable.class);
+    RelOptTable table = e.getTable();
+    assert table != null : "e.getTable() must not be null for " + e;
+    final JdbcTable jdbcTable = table.unwrap(JdbcTable.class);
     if (jdbcTable != null) {
       // Use the foreign catalog, schema and table names, if they exist,
       // rather than the qualified name of the shadow table in Calcite.
       sqlTargetTable = jdbcTable.tableName();
     } else {
-      final List<String> qualifiedName = e.getTable().getQualifiedName();
+      final List<String> qualifiedName = table.getQualifiedName();
       sqlTargetTable = new SqlIdentifier(qualifiedName, SqlParserPos.ZERO);
     }
 

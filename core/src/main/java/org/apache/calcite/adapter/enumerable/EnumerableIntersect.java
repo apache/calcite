@@ -28,6 +28,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Intersect} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableIntersect extends Intersect implements EnumerableRel {
@@ -68,7 +70,7 @@ public class EnumerableIntersect extends Intersect implements EnumerableRel {
       pref = pref.of(result.format);
     }
 
-    builder.add(intersectExp);
+    builder.add(requireNonNull(intersectExp, "intersectExp"));
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

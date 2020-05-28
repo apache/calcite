@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -57,7 +59,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof ChainedRelMetadataProvider
         && providers.equals(((ChainedRelMetadataProvider) obj).providers);
@@ -67,7 +69,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
     return providers.hashCode();
   }
 
-  @Override public <M extends Metadata> UnboundMetadata<M> apply(
+  @Override public <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass,
       final Class<? extends M> metadataClass) {
     final List<UnboundMetadata<M>> functions = new ArrayList<>();
@@ -125,7 +127,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
       this.metadataList = ImmutableList.copyOf(metadataList);
     }
 
-    @Override public Object invoke(Object proxy, Method method, Object[] args)
+    @Override public @Nullable Object invoke(Object proxy, Method method, Object[] args)
         throws Throwable {
       for (Metadata metadata : metadataList) {
         try {

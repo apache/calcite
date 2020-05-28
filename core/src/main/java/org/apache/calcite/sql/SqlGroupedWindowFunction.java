@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlMonotonicity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ import java.util.List;
  */
 public class SqlGroupedWindowFunction extends SqlFunction {
   /** The grouped function, if this an auxiliary function; null otherwise. */
-  public final SqlGroupedWindowFunction groupFunction;
+  public final @Nullable SqlGroupedWindowFunction groupFunction;
 
   /** Creates a SqlGroupedWindowFunction.
    *
@@ -61,10 +63,10 @@ public class SqlGroupedWindowFunction extends SqlFunction {
    * @param category             Categorization for function
    */
   public SqlGroupedWindowFunction(String name, SqlKind kind,
-      SqlGroupedWindowFunction groupFunction,
+      @Nullable SqlGroupedWindowFunction groupFunction,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory category) {
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker, SqlFunctionCategory category) {
     super(name, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, category);
     this.groupFunction = groupFunction;
@@ -74,16 +76,16 @@ public class SqlGroupedWindowFunction extends SqlFunction {
 
   @Deprecated // to be removed before 2.0
   public SqlGroupedWindowFunction(String name, SqlKind kind,
-      SqlGroupedWindowFunction groupFunction,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlGroupedWindowFunction groupFunction,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     this(name, kind, groupFunction, ReturnTypes.ARG0, null, operandTypeChecker,
         SqlFunctionCategory.SYSTEM);
   }
 
   @Deprecated // to be removed before 2.0
   public SqlGroupedWindowFunction(SqlKind kind,
-      SqlGroupedWindowFunction groupFunction,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlGroupedWindowFunction groupFunction,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     this(kind.name(), kind, groupFunction, ReturnTypes.ARG0, null,
         operandTypeChecker, SqlFunctionCategory.SYSTEM);
   }

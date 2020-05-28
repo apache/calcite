@@ -39,6 +39,8 @@ import org.apache.calcite.util.Optionality;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,7 +88,7 @@ public abstract class SqlLibraryOperators {
         }
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         RelDataType type = typeFactory.leastRestrictive(list);
-        if (opBinding.getOperandCount() % 2 == 1) {
+        if (type != null && opBinding.getOperandCount() % 2 == 1) {
           type = typeFactory.createTypeWithNullability(type, true);
         }
         return type;
@@ -123,7 +125,7 @@ public abstract class SqlLibraryOperators {
   /** Infers the return type of {@code IF(b, x, y)},
    * namely the least restrictive of the types of x and y.
    * Similar to {@link ReturnTypes#LEAST_RESTRICTIVE}. */
-  private static RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
+  private static @Nullable RelDataType inferIfReturnType(SqlOperatorBinding opBinding) {
     return opBinding.getTypeFactory()
         .leastRestrictive(opBinding.collectOperandTypes().subList(1, 3));
   }

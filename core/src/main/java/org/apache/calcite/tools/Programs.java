@@ -52,6 +52,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Utilities for creating {@link Program}s.
  */
@@ -238,9 +240,10 @@ public class Programs {
     return of(builder.build(), true, metadataProvider);
   }
 
+  @Deprecated
   public static Program getProgram() {
     return (planner, rel, requiredOutputTraits, materializations, lattices) ->
-        null;
+        castNonNull(null);
   }
 
   /** Returns the standard program used by Prepare. */

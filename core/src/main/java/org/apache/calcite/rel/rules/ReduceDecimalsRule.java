@@ -42,6 +42,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -84,7 +86,7 @@ public class ReduceDecimalsRule
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Convention getOutConvention() {
+  @Override public @Nullable Convention getOutConvention() {
     return Convention.NONE;
   }
 
@@ -177,7 +179,7 @@ public class ReduceDecimalsRule
     /**
      * Looks up a registered node.
      */
-    private RexNode lookup(RexNode node) {
+    private @Nullable RexNode lookup(RexNode node) {
       Pair<RexNode, String> key = RexUtil.makeKey(node);
       if (irreducible.get(key) != null) {
         return node;
@@ -218,10 +220,12 @@ public class ReduceDecimalsRule
 
     private ExpanderMap(RexBuilder rexBuilder) {
       map = new HashMap<>();
-      registerExpanders(rexBuilder);
+      defaultExpander = new CastArgAsDoubleExpander(rexBuilder);
+      registerExpanders(map, rexBuilder);
     }
 
-    private void registerExpanders(RexBuilder rexBuilder) {
+    private static void registerExpanders(Map<SqlOperator, RexExpander> map,
+        RexBuilder rexBuilder) {
       RexExpander cast = new CastExpander(rexBuilder);
       map.put(SqlStdOperatorTable.CAST, cast);
 
@@ -257,8 +261,6 @@ public class ReduceDecimalsRule
 
       RexExpander caseExpander = new CaseExpander(rexBuilder);
       map.put(SqlStdOperatorTable.CASE, caseExpander);
-
-      defaultExpander = new CastArgAsDoubleExpander(rexBuilder);
     }
 
     RexExpander getExpander(RexCall call) {
@@ -814,8 +816,8 @@ public class ReduceDecimalsRule
    * Expands a decimal arithmetic expression.
    */
   private static class BinaryArithmeticExpander extends RexExpander {
-    RelDataType typeA;
-    RelDataType typeB;
+    @Nullable RelDataType typeA;
+    @Nullable RelDataType typeB;
     int scaleA;
     int scaleB;
 

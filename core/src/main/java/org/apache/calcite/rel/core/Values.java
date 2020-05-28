@@ -76,6 +76,7 @@ public abstract class Values extends AbstractRelNode {
    *                list contains tuples; each inner list is one tuple; all
    *                tuples must be of same length, conforming to rowType
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Values(
       RelOptCluster cluster,
       RelDataType rowType,
@@ -132,6 +133,7 @@ public abstract class Values extends AbstractRelNode {
   /** Returns true if all tuples match rowType; otherwise, assert on
    * mismatch. */
   private boolean assertRowType() {
+    RelDataType rowType = getRowType();
     for (List<RexLiteral> tuple : tuples) {
       assert tuple.size() == rowType.getFieldCount();
       for (Pair<RexLiteral, RelDataTypeField> pair
@@ -152,6 +154,7 @@ public abstract class Values extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
+    assert rowType != null : "rowType must not be null for " + this;
     return rowType;
   }
 
@@ -175,6 +178,7 @@ public abstract class Values extends AbstractRelNode {
     // A little adapter just to get the tuples to come out
     // with curly brackets instead of square brackets.  Plus
     // more whitespace for readability.
+    RelDataType rowType = getRowType();
     RelWriter relWriter = super.explainTerms(pw)
         // For rel digest, include the row type since a rendered
         // literal may leave the type ambiguous (e.g. "null").

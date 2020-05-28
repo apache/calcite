@@ -37,10 +37,11 @@ public class ValuesNode implements Node {
   public ValuesNode(Compiler compiler, Values rel) {
     this.sink = compiler.sink(rel);
     this.fieldCount = rel.getRowType().getFieldCount();
-    this.rows = createRows(compiler, rel.getTuples());
+    this.rows = createRows(compiler, fieldCount, rel.getTuples());
   }
 
-  private ImmutableList<Row> createRows(Compiler compiler,
+  private static ImmutableList<Row> createRows(Compiler compiler,
+      int fieldCount,
       ImmutableList<ImmutableList<RexLiteral>> tuples) {
     final List<RexNode> nodes = new ArrayList<>();
     for (ImmutableList<RexLiteral> tuple : tuples) {

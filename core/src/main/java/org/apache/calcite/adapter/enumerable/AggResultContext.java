@@ -19,6 +19,8 @@ package org.apache.calcite.adapter.enumerable;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.core.AggregateCall;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Information for a call to
  * {@link AggImplementor#implementResult(AggContext, AggResultContext)}
@@ -32,7 +34,7 @@ public interface AggResultContext extends NestedBlockBuilder, AggResetContext {
    * accumulator were aggregated. Most aggregate functions depend on only the
    * accumulator, but quasi-aggregate functions such as GROUPING access at the
    * key. */
-  Expression key();
+  @Nullable Expression key();
 
   /** Returns an expression that references the {@code i}th field of the key,
    * cast to the appropriate type. */

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessControlException;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -126,7 +127,7 @@ public interface SaffronProperties {
       Properties properties = new Properties();
 
       // read properties from the file "saffron.properties", if it exists in classpath
-      try (InputStream stream = Helper.class.getClassLoader()
+      try (InputStream stream = Objects.requireNonNull(Helper.class.getClassLoader(), "classLoader")
           .getResourceAsStream("saffron.properties")) {
         if (stream != null) {
           properties.load(stream);
@@ -141,7 +142,9 @@ public interface SaffronProperties {
       Properties source = System.getProperties();
       for (Object objectKey : Collections.list(source.keys())) {
         String key = (String) objectKey;
-        String value = source.getProperty(key);
+        String value = Objects.requireNonNull(
+            source.getProperty(key),
+            () -> "value for " + key);
         if (key.startsWith("saffron.") || key.startsWith("net.sf.saffron.")) {
           properties.setProperty(key, value);
         }

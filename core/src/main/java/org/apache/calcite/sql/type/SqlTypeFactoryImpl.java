@@ -25,8 +25,12 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlTypeFactoryImpl provides a default implementation of
@@ -127,8 +131,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       Charset charset,
       SqlCollation collation) {
     assert SqlTypeUtil.inCharFamily(type) : type;
-    assert charset != null;
-    assert collation != null;
+    requireNonNull(charset, "charset");
+    requireNonNull(collation, "collation");
     RelDataType newType;
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
@@ -147,7 +151,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return canonize(newType);
   }
 
-  @Override public RelDataType leastRestrictive(List<RelDataType> types) {
+  @Override public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     assert types != null;
     assert types.size() >= 1;
 
@@ -163,7 +167,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
     return super.leastRestrictive(types);
   }
 
-  private RelDataType leastRestrictiveByCast(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveByCast(List<RelDataType> types) {
     RelDataType resultType = types.get(0);
     boolean anyNullable = resultType.isNullable();
     for (int i = 1; i < types.size(); i++) {
@@ -228,7 +232,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
         : "use createSqlIntervalType() instead";
   }
 
-  private RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
+  private @Nullable RelDataType leastRestrictiveSqlType(List<RelDataType> types) {
     RelDataType resultType = null;
     int nullCount = 0;
     int nullableCount = 0;
@@ -365,7 +369,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               createTypeWithCharsetAndCollation(
                   resultType,
                   charset,
-                  collation0 != null ? collation0 : collation);
+                  collation0 != null ? collation0 : requireNonNull(collation, "collation"));
         }
       } else if (SqlTypeUtil.isExactNumeric(type)) {
         if (SqlTypeUtil.isExactNumeric(resultType)) {
@@ -511,7 +515,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   private RelDataType copyIntervalType(RelDataType type, boolean nullable) {
     return new IntervalSqlType(typeSystem,
-        type.getIntervalQualifier(),
+        requireNonNull(type.getIntervalQualifier(),
+            () -> "type.getIntervalQualifier() for " + type),
         nullable);
   }
 

@@ -30,6 +30,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +102,7 @@ public class RedisTable extends AbstractTable
     return create(schema, tableName, redisConfig, protoRowType);
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
         return new RedisEnumerator(redisConfig, schema, tableName);

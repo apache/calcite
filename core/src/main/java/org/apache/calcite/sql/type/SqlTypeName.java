@@ -29,6 +29,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.sql.Types;
 import java.util.Arrays;
@@ -263,10 +265,10 @@ public enum SqlTypeName {
    */
   private final boolean special;
   private final int jdbcOrdinal;
-  private final SqlTypeFamily family;
+  private final @Nullable SqlTypeFamily family;
 
   SqlTypeName(int signatures, boolean special, int jdbcType,
-      SqlTypeFamily family) {
+      @Nullable SqlTypeFamily family) {
     this.signatures = signatures;
     this.special = special;
     this.jdbcOrdinal = jdbcType;
@@ -278,7 +280,7 @@ public enum SqlTypeName {
    *
    * @return Type name, or null if not found
    */
-  public static SqlTypeName get(String name) {
+  public static @Nullable SqlTypeName get(String name) {
     if (false) {
       // The following code works OK, but the spurious exceptions are
       // annoying.
@@ -384,9 +386,9 @@ public enum SqlTypeName {
   /**
    * Gets the SqlTypeFamily containing this SqlTypeName.
    *
-   * @return containing family, or null for none
+   * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
    */
-  public SqlTypeFamily getFamily() {
+  public @Nullable SqlTypeFamily getFamily() {
     return family;
   }
 
@@ -396,7 +398,7 @@ public enum SqlTypeName {
    * @param jdbcType the JDBC type of interest
    * @return corresponding SqlTypeName, or null if the type is not known
    */
-  public static SqlTypeName getNameForJdbcType(int jdbcType) {
+  public static @Nullable SqlTypeName getNameForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_NAME.get(jdbcType);
   }
 
@@ -470,7 +472,7 @@ public enum SqlTypeName {
    * @param scale     Scale, or -1 if not applicable
    * @return Limit value
    */
-  public Object getLimit(
+  public @Nullable Object getLimit(
       boolean sign,
       Limit limit,
       boolean beyond,
@@ -527,7 +529,7 @@ public enum SqlTypeName {
       case OVERFLOW:
         final BigDecimal other =
             (BigDecimal) BIGINT.getLimit(sign, limit, beyond, -1, -1);
-        if (decimal.compareTo(other) == (sign ? 1 : -1)) {
+        if (other != null && decimal.compareTo(other) == (sign ? 1 : -1)) {
           decimal = other;
         }
         break;
@@ -877,7 +879,7 @@ public enum SqlTypeName {
     ZERO, UNDERFLOW, OVERFLOW
   }
 
-  private BigDecimal getNumericLimit(
+  private @Nullable BigDecimal getNumericLimit(
       int radix,
       int exponent,
       boolean sign,

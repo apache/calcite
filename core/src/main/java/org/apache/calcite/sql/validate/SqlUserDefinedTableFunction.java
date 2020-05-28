@@ -29,6 +29,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -44,7 +46,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
   public SqlUserDefinedTableFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       List<RelDataType> paramTypes, // no longer used
       TableFunction function) {
     this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
@@ -58,7 +60,7 @@ public class SqlUserDefinedTableFunction extends SqlUserDefinedFunction
   public SqlUserDefinedTableFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata,
+      @Nullable SqlOperandMetadata operandMetadata,
       TableFunction function) {
     super(opName, kind, returnTypeInference, operandTypeInference,
         operandMetadata, function,

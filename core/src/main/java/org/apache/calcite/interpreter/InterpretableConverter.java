@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.runtime.ArrayBindable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -47,7 +49,7 @@ public class InterpretableConverter extends ConverterImpl
     return Object[].class;
   }
 
-  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     return new Interpreter(dataContext, getInput());
   }
 }

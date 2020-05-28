@@ -42,9 +42,13 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /** Sort based physical implementation of {@link Aggregate} in
  * {@link EnumerableConvention enumerable calling convention}. */
@@ -54,7 +58,7 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls) {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
     assert getConvention() instanceof EnumerableConvention;
@@ -62,19 +66,20 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
 
   @Override public EnumerableSortedAggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     return new EnumerableSortedAggregate(getCluster(), traitSet, input,
         groupSet, groupSets, aggCalls);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     if (!isSimple(this)) {
       return null;
     }
 
     RelTraitSet inputTraits = getInput().getTraitSet();
-    RelCollation collation = required.getCollation();
+    RelCollation collation = requireNonNull(required.getCollation(),
+        () -> "collation trait is null, required traits are " + required);
     ImmutableBitSet requiredKeys = ImmutableBitSet.of(RelCollations.ordinals(collation));
     ImmutableBitSet groupKeys = ImmutableBitSet.range(groupSet.cardinality());
 
@@ -206,7 +211,9 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     // Generate the appropriate key Comparator. In the case of NULL values
     // in group keys, the comparator must be able to support NULL values by giving a
     // consistent sort ordering.
-    final Expression comparator = keyPhysType.generateComparator(getTraitSet().getCollation());
+    final Expression comparator = keyPhysType.generateComparator(
+        requireNonNull(getTraitSet().getCollation(),
+            () -> "getTraitSet().getCollation() is null, current traits are " + getTraitSet()));
 
     final Expression resultSelector_ =
         builder.append("resultSelector",

@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.tree.Expression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Iterator;
 
@@ -34,10 +36,10 @@ public abstract class BaseQueryable<TSource>
     extends AbstractQueryable<TSource> {
   protected final QueryProvider provider;
   protected final Type elementType;
-  protected final Expression expression;
+  protected final @Nullable Expression expression;
 
   protected BaseQueryable(QueryProvider provider, Type elementType,
-      Expression expression) {
+      @Nullable Expression expression) {
     this.provider = provider;
     this.elementType = elementType;
     this.expression = expression;
@@ -51,7 +53,7 @@ public abstract class BaseQueryable<TSource>
     return elementType;
   }
 
-  @Override public Expression getExpression() {
+  @Override public @Nullable Expression getExpression() {
     return expression;
   }
 

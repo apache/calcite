@@ -22,6 +22,7 @@ import org.apache.calcite.util.BitString;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A binary (or hexadecimal) string literal.
@@ -47,19 +48,22 @@ public class SqlBinaryStringLiteral extends SqlAbstractStringLiteral {
    */
   @Deprecated // to be removed before 2.0
   public BitString getBitString() {
-    return (BitString) value;
+    return getValueNonNull();
+  }
+
+  private BitString getValueNonNull() {
+    return (BitString) Objects.requireNonNull(value, "value");
   }
 
   @Override public SqlBinaryStringLiteral clone(SqlParserPos pos) {
-    return new SqlBinaryStringLiteral((BitString) value, pos);
+    return new SqlBinaryStringLiteral(getValueNonNull(), pos);
   }
 
   @Override public void unparse(
       SqlWriter writer,
       int leftPrec,
       int rightPrec) {
-    assert value instanceof BitString;
-    writer.literal("X'" + ((BitString) value).toHexString() + "'");
+    writer.literal("X'" + getValueNonNull().toHexString() + "'");
   }
 
   @Override protected SqlAbstractStringLiteral concat1(List<SqlLiteral> literals) {

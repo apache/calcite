@@ -36,6 +36,8 @@ import org.apache.calcite.util.ImmutableBeans;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -63,7 +65,7 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
 
   //~ Methods ----------------------------------------------------------------
 
-  protected void perform(RelOptRuleCall call, Filter filter,
+  protected void perform(RelOptRuleCall call, @Nullable Filter filter,
       Join join) {
     final List<RexNode> joinFilters =
         RelOptUtil.conjunctions(join.getCondition());

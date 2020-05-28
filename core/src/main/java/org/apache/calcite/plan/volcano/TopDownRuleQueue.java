@@ -19,6 +19,8 @@ package org.apache.calcite.plan.volcano;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -60,7 +62,7 @@ class TopDownRuleQueue extends RuleQueue {
     }
   }
 
-  public VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
+  public @Nullable VolcanoRuleMatch popMatch(Pair<RelNode, Predicate<VolcanoRuleMatch>> category) {
     Deque<VolcanoRuleMatch> queue = matches.get(category.left);
     if (queue == null) {
       return null;

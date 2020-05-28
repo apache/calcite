@@ -44,6 +44,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -415,7 +416,7 @@ public class ScannableTableTest {
                       return super.scan(root);
                     }
 
-                    @Override public Enumerable<Object[]>
+                    @Override public Enumerable<@Nullable Object[]>
                     scan(final DataContext root) {
                       scanCount.incrementAndGet();
                       return new AbstractEnumerable<Object[]>() {
@@ -506,7 +507,7 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return tens();
@@ -526,7 +527,7 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
           return beatles(new StringBuilder(), null, null);
@@ -555,7 +556,7 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters) {
       final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {
@@ -586,8 +587,8 @@ public class ScannableTableTest {
           .build();
     }
 
-    public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        final int[] projects) {
+    public Enumerable<@Nullable Object[]> scan(DataContext root, List<RexNode> filters,
+        final int @Nullable [] projects) {
       final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {

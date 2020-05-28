@@ -29,8 +29,9 @@ import org.apache.calcite.rex.RexNode;
 
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}

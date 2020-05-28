@@ -22,7 +22,10 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
 
 /**
  * A <code>SqlDelete</code> is a node of a parse tree which represents a DELETE
@@ -33,18 +36,18 @@ public class SqlDelete extends SqlCall {
       new SqlSpecialOperator("DELETE", SqlKind.DELETE);
 
   SqlNode targetTable;
-  SqlNode condition;
-  SqlSelect sourceSelect;
-  SqlIdentifier alias;
+  @Nullable SqlNode condition;
+  @Nullable SqlSelect sourceSelect;
+  @Nullable SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
   public SqlDelete(
       SqlParserPos pos,
       SqlNode targetTable,
-      SqlNode condition,
-      SqlSelect sourceSelect,
-      SqlIdentifier alias) {
+      @Nullable SqlNode condition,
+      @Nullable SqlSelect sourceSelect,
+      @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.condition = condition;
@@ -62,11 +65,13 @@ public class SqlDelete extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, alias);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       targetTable = operand;
@@ -95,7 +100,7 @@ public class SqlDelete extends SqlCall {
   /**
    * Returns the alias for the target table of the deletion.
    */
-  public SqlIdentifier getAlias() {
+  public @Nullable SqlIdentifier getAlias() {
     return alias;
   }
 
@@ -105,7 +110,7 @@ public class SqlDelete extends SqlCall {
    * @return the condition expression for the data to be deleted, or null for
    * all rows in the table
    */
-  public SqlNode getCondition() {
+  public @Nullable SqlNode getCondition() {
     return condition;
   }
 
@@ -116,7 +121,7 @@ public class SqlDelete extends SqlCall {
    *
    * @return the source SELECT for the data to be inserted
    */
-  public SqlSelect getSourceSelect() {
+  public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;
   }
 
@@ -126,10 +131,12 @@ public class SqlDelete extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
     }
+    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);

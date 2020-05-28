@@ -16,8 +16,15 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Root schema element.
@@ -50,7 +57,7 @@ import java.util.List;
  */
 public class JsonRoot {
   /** Schema model version number. Required, must have value "1.0". */
-  public String version;
+  public final String version;
 
   /** Name of the schema that will become the default schema for connections
    * to Calcite that use this model.
@@ -58,11 +65,19 @@ public class JsonRoot {
    * <p>Optional, case-sensitive. If specified, there must be a schema in this
    * model with this name.
    */
-  public String defaultSchema;
+  public final @Nullable String defaultSchema;
 
   /** List of schema elements.
    *
    * <p>The list may be empty.
    */
   public final List<JsonSchema> schemas = new ArrayList<>();
+
+  @JsonCreator
+  public JsonRoot(
+      @JsonProperty(value = "version", required = true) String version,
+      @JsonProperty("defaultSchema") @Nullable String defaultSchema) {
+    this.version = requireNonNull(version, "version");
+    this.defaultSchema = defaultSchema;
+  }
 }

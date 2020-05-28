@@ -26,10 +26,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Abstract base class for a rule which converts from one calling convention to
@@ -57,7 +61,7 @@ public abstract class ConverterRule
     // Most sub-classes are concerned with converting one convention to
     // another, and for them, the "out" field is a convenient short-cut.
     this.out = outTrait instanceof Convention ? (Convention) outTrait
-        : null;
+        : castNonNull(null);
   }
 
   /**
@@ -145,7 +149,7 @@ public abstract class ConverterRule
   /** Converts a relational expression to the target trait(s) of this rule.
    *
    * <p>Returns null if conversion is not possible. */
-  public abstract RelNode convert(RelNode rel);
+  public abstract @Nullable RelNode convert(RelNode rel);
 
   /**
    * Returns true if this rule can convert <em>any</em> relational expression

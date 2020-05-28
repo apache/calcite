@@ -80,7 +80,7 @@ public class ExchangeRemoveConstantKeysRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = exchange.getInput();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
 
@@ -115,7 +115,7 @@ public class ExchangeRemoveConstantKeysRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = sortExchange.getInput();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
 

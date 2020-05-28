@@ -42,6 +42,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -331,7 +333,7 @@ public class JoinProjectTransposeRule
    * @param projects           Projection expressions &amp; names to be created
    */
   protected void createProjectExprs(
-      Project project,
+      @Nullable Project project,
       RelNode joinChild,
       int adjustmentAmount,
       RexBuilder rexBuilder,

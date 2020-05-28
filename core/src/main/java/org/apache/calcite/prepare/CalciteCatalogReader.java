@@ -65,6 +65,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -113,7 +115,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
         ImmutableList.of(schemaPath, ImmutableList.of()), typeFactory, config);
   }
 
-  @Override public Prepare.PreparingTable getTable(final List<String> names) {
+  @Override public Prepare.@Nullable PreparingTable getTable(final List<String> names) {
     // First look in the default schema, if any.
     // If not found, look in the root schema.
     CalciteSchema.TableEntry entry = SqlValidatorUtil.getTableEntry(this, names);
@@ -171,7 +173,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return functions2;
   }
 
-  @Override public RelDataType getNamedType(SqlIdentifier typeName) {
+  @Override public @Nullable RelDataType getNamedType(SqlIdentifier typeName) {
     CalciteSchema.TypeEntry typeEntry = SqlValidatorUtil.getTypeEntry(getRootSchema(), typeName);
     if (typeEntry != null) {
       return typeEntry.getType().apply(typeFactory);
@@ -210,7 +212,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return result.build();
   }
 
-  private SqlMonikerImpl moniker(CalciteSchema schema, String name,
+  private SqlMonikerImpl moniker(CalciteSchema schema, @Nullable String name,
       SqlMonikerType type) {
     final List<String> path = schema.path(name);
     if (path.size() == 1
@@ -225,12 +227,12 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return schemaPaths;
   }
 
-  @Override public Prepare.PreparingTable getTableForMember(List<String> names) {
+  @Override public Prepare.@Nullable PreparingTable getTableForMember(List<String> names) {
     return getTable(names);
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public RelDataTypeField field(RelDataType rowType, String alias) {
+  @SuppressWarnings("deprecation")
+  @Override public @Nullable RelDataTypeField field(RelDataType rowType, String alias) {
     return nameMatcher.field(rowType, alias);
   }
 
@@ -246,7 +248,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
   }
 
   @Override public void lookupOperatorOverloads(final SqlIdentifier opName,
-      SqlFunctionCategory category,
+      @Nullable SqlFunctionCategory category,
       SqlSyntax syntax,
       List<SqlOperator> operatorList,
       SqlNameMatcher nameMatcher) {
@@ -444,7 +446,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return nameMatcher;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> @Nullable C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }

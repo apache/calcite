@@ -115,6 +115,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Disabled;
@@ -136,7 +137,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.test.Matchers.within;
 
@@ -1338,7 +1338,7 @@ public class RelMetadataTest extends SqlToRelTestBase {
         convertProjectAsCalc());
   }
 
-  @Nonnull
+  @NonNull
   private Function<String, RelNode> convertProjectAsCalc() {
     return s -> {
       Project project = (Project) convertSql(s);

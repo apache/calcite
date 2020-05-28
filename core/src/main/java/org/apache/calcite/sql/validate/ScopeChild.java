@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.sql.validate;
 
-
 /** One of the inputs of a {@link SqlValidatorScope}.
  *
  * <p>Most commonly, it is an item in a FROM clause, and consists of a namespace

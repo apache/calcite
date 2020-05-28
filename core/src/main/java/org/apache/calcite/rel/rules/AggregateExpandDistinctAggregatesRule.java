@@ -48,6 +48,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -212,7 +214,7 @@ public final class AggregateExpandDistinctAggregatesRule
     // Initially, the expressions point to the input field.
     final List<RelDataTypeField> aggFields =
         aggregate.getRowType().getFieldList();
-    final List<RexInputRef> refs = new ArrayList<>();
+    final List<@Nullable RexInputRef> refs = new ArrayList<>();
     final List<String> fieldNames = aggregate.getRowType().getFieldNames();
     final ImmutableBitSet groupSet = aggregate.getGroupSet();
     final int groupCount = aggregate.getGroupCount();
@@ -629,7 +631,7 @@ public final class AggregateExpandDistinctAggregatesRule
    *                  be modified  @return Relational expression
    */
   private void doRewrite(RelBuilder relBuilder, Aggregate aggregate, int n,
-      List<Integer> argList, int filterArg, List<RexInputRef> refs) {
+      List<Integer> argList, int filterArg, List<@Nullable RexInputRef> refs) {
     final RexBuilder rexBuilder = aggregate.getCluster().getRexBuilder();
     final List<RelDataTypeField> leftFields;
     if (n == 0) {

@@ -28,6 +28,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * The <code>JSON_DEPTH</code> function.
  */
@@ -46,7 +48,7 @@ public class SqlJsonDepthFunction extends SqlFunction {
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
+      @Nullable SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() == 1;
   }
 }

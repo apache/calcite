@@ -24,6 +24,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Table;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Set;
 
@@ -55,11 +57,11 @@ public class DelegatingSchema implements Schema {
     return schema.snapshot(version);
   }
 
-  @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+  @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
     return schema.getExpression(parentSchema, name);
   }
 
-  @Override public Table getTable(String name) {
+  @Override public @Nullable Table getTable(String name) {
     return schema.getTable(name);
   }
 
@@ -67,7 +69,7 @@ public class DelegatingSchema implements Schema {
     return schema.getTableNames();
   }
 
-  @Override public RelProtoDataType getType(String name) {
+  @Override public @Nullable RelProtoDataType getType(String name) {
     return schema.getType(name);
   }
 
@@ -83,7 +85,7 @@ public class DelegatingSchema implements Schema {
     return schema.getFunctionNames();
   }
 
-  @Override public Schema getSubSchema(String name) {
+  @Override public @Nullable Schema getSubSchema(String name) {
     return schema.getSubSchema(name);
   }
 

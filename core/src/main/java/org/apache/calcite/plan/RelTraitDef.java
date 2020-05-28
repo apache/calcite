@@ -22,6 +22,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelTraitDef represents a class of {@link RelTrait}s. Implementations of
  * RelTraitDef may be singletons under the following conditions:
@@ -117,7 +119,7 @@ public abstract class RelTraitDef<T extends RelTrait> {
    *                                    converters are allowed
    * @return a converted RelNode or null if conversion is not possible
    */
-  public abstract RelNode convert(
+  public abstract @Nullable RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       T toTrait,

@@ -25,7 +25,12 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+import java.util.Objects;
+
+import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -46,12 +51,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    * Type of the output row, which comprises the name and type of each output
    * column. Set on validate.
    */
-  protected RelDataType rowType;
+  protected @Nullable RelDataType rowType;
 
   /** As {@link #rowType}, but not necessarily a struct. */
-  protected RelDataType type;
+  protected @Nullable RelDataType type;
 
-  protected final SqlNode enclosingNode;
+  protected final @Nullable SqlNode enclosingNode;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -63,7 +68,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
    */
   AbstractNamespace(
       SqlValidatorImpl validator,
-      SqlNode enclosingNode) {
+      @Nullable SqlNode enclosingNode) {
     this.validator = validator;
     this.enclosingNode = enclosingNode;
   }
@@ -113,7 +118,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
-      Preconditions.checkArgument(rowType != null, "validate must set rowType");
+      Objects.requireNonNull(rowType, "validate must set rowType");
     }
     return rowType;
   }
@@ -124,7 +129,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   @Override public RelDataType getType() {
     Util.discard(getRowType());
-    return type;
+    return Objects.requireNonNull(type, "type");
   }
 
   @Override public void setType(RelDataType type) {
@@ -132,15 +137,15 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     this.rowType = convertToStruct(type);
   }
 
-  @Override public SqlNode getEnclosingNode() {
+  @Override public @Nullable SqlNode getEnclosingNode() {
     return enclosingNode;
   }
 
-  @Override public SqlValidatorTable getTable() {
+  @Override public @Nullable SqlValidatorTable getTable() {
     return null;
   }
 
-  @Override public SqlValidatorNamespace lookupChild(String name) {
+  @Override public @Nullable SqlValidatorNamespace lookupChild(String name) {
     return validator.lookupFieldNamespace(
         getRowType(),
         name);
@@ -175,7 +180,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return true;
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }
 
@@ -210,12 +215,17 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   }
 
   /** Converts a type to a struct if it is not already. */
-  protected RelDataType toStruct(RelDataType type, SqlNode unnest) {
+  protected RelDataType toStruct(RelDataType type, @Nullable SqlNode unnest) {
     if (type.isStruct()) {
       return type;
     }
     return validator.getTypeFactory().builder()
-        .add(validator.deriveAlias(unnest, 0), type)
+        .add(
+            castNonNull(
+                validator.deriveAlias(
+                    Objects.requireNonNull(unnest, "unnest"),
+                    0)),
+            type)
         .build();
   }
 }

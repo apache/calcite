@@ -76,6 +76,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -437,7 +439,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.getRexBuilder().makeInputRef(
             msType,
             rr.getOffset());
-    assert msType.getComponentType().isStruct();
+    assert msType.getComponentType() != null && msType.getComponentType().isStruct()
+        : "componentType of " + msType + " must be struct";
+    assert originalType.getComponentType() != null
+        : "componentType of " + originalType + " must be struct";
     if (!originalType.getComponentType().isStruct()) {
       // If the type is not a struct, the multiset operator will have
       // wrapped the type as a record. Add a call to the $SLICE operator
@@ -479,7 +484,10 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         cx.getRexBuilder().makeInputRef(
             msType,
             rr.getOffset());
-    assert msType.getComponentType().isStruct();
+    assert msType.getComponentType() != null && msType.getComponentType().isStruct()
+        : "componentType of " + msType + " must be struct";
+    assert originalType.getComponentType() != null
+        : "componentType of " + originalType + " must be struct";
     if (!originalType.getComponentType().isStruct()) {
       // If the type is not a struct, the multiset operator will have
       // wrapped the type as a record. Add a call to the $SLICE operator
@@ -553,8 +561,14 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
     if (null != dataType.getCollectionsTypeName()) {
       final RelDataType argComponentType =
-          arg.getType().getComponentType();
-      final RelDataType componentType = type.getComponentType();
+          Objects.requireNonNull(
+              arg.getType().getComponentType(),
+              () -> "componentType of " + arg);
+
+      RelDataType typeFinal = type;
+      final RelDataType componentType = Objects.requireNonNull(
+          type.getComponentType(),
+          () -> "componentType of " + typeFinal);
       if (argComponentType.isStruct()
           && !componentType.isStruct()) {
         RelDataType tt =
@@ -720,6 +734,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
         SqlOperandTypeChecker.Consistency.NONE);
     RelDataType returnType =
         cx.getValidator().getValidatedNodeTypeIfKnown(call);
+    Objects.requireNonNull(returnType, () -> "Unable to get type of " + call);
     return cx.getRexBuilder().makeCall(returnType, fun, exprs);
   }
 
@@ -870,7 +885,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     return exprs;
   }
 
-  private static RelDataType consistentType(SqlRexContext cx,
+  private static @Nullable RelDataType consistentType(SqlRexContext cx,
       SqlOperandTypeChecker.Consistency consistency, List<RelDataType> types) {
     switch (consistency) {
     case COMPARE:
@@ -1211,7 +1226,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     private SqlNode expandCovariance(
         final SqlNode arg0Input,
         final SqlNode arg1Input,
-        final SqlNode dependent,
+        final @Nullable SqlNode dependent,
         final RelDataType varType,
         final SqlRexContext cx,
         boolean biased) {
@@ -1272,7 +1287,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
 
     private SqlNode getCastedSqlNode(SqlNode argInput, RelDataType varType,
-        SqlParserPos pos, RexNode argRex) {
+        SqlParserPos pos, @Nullable RexNode argRex) {
       SqlNode arg;
       if (argRex != null && !argRex.getType().equals(varType)) {
         arg = SqlStdOperatorTable.CAST.createCall(
@@ -1413,7 +1428,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
     }
 
     private SqlNode getCastedSqlNode(SqlNode argInput, RelDataType varType,
-        SqlParserPos pos, RexNode argRex) {
+        SqlParserPos pos, @Nullable RexNode argRex) {
       SqlNode arg;
       if (argRex != null && !argRex.getType().equals(varType)) {
         arg = SqlStdOperatorTable.CAST.createCall(
@@ -1512,7 +1527,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //  => timestamp + count * INTERVAL '1' UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlLiteral unitLiteral = call.operand(0);
-      final TimeUnit unit = unitLiteral.symbolValue(TimeUnit.class);
+      final TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
       RexNode interval2Add;
       SqlIntervalQualifier qualifier =
           new SqlIntervalQualifier(unit, null, unitLiteral.getParserPosition());
@@ -1544,7 +1559,7 @@ public class StandardConvertletTable extends ReflectiveConvertletTable {
       //    => (t2 - t1) UNIT
       final RexBuilder rexBuilder = cx.getRexBuilder();
       final SqlLiteral unitLiteral = call.operand(0);
-      TimeUnit unit = unitLiteral.symbolValue(TimeUnit.class);
+      TimeUnit unit = unitLiteral.getValueAs(TimeUnit.class);
       BigDecimal multiplier = BigDecimal.ONE;
       BigDecimal divider = BigDecimal.ONE;
       SqlTypeName sqlTypeName = unit == TimeUnit.NANOSECOND

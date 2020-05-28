@@ -47,11 +47,15 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that computes a set of
@@ -78,6 +82,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param projects List of expressions for the input columns
    * @param rowType  Output row type
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -114,7 +119,7 @@ public abstract class Project extends SingleRel implements Hintable {
         input.getTraitSet(),
         ImmutableList.of(),
         input.getInput(),
-        input.getExpressionList("exprs"),
+        requireNonNull(input.getExpressionList("exprs"), "exprs"),
         input.getRowType("exprs", "fields"));
   }
 
@@ -122,7 +127,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, rowType);
+    return copy(traitSet, sole(inputs), exps, getRowType());
   }
 
   /**
@@ -162,7 +167,7 @@ public abstract class Project extends SingleRel implements Hintable {
         RexUtil.createStructType(
             getInput().getCluster().getTypeFactory(),
             exps,
-            this.rowType.getFieldNames(),
+            getRowType().getFieldNames(),
             null);
     return copy(traitSet, getInput(), exps, rowType);
   }
@@ -200,7 +205,7 @@ public abstract class Project extends SingleRel implements Hintable {
     return RexOver.containsOver(getProjects(), null);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!super.isValid(litmus, context)) {
       return litmus.fail(null);
     }
@@ -217,7 +222,7 @@ public abstract class Project extends SingleRel implements Hintable {
             checker.getFailureCount(), exp);
       }
     }
-    if (!Util.isDistinct(rowType.getFieldNames())) {
+    if (!Util.isDistinct(getRowType().getFieldNames())) {
       return litmus.fail("field names not distinct: {}", rowType);
     }
     //CHECKSTYLE: IGNORE 1
@@ -277,10 +282,10 @@ public abstract class Project extends SingleRel implements Hintable {
     }
 
     if (pw.nest()) {
-      pw.item("fields", rowType.getFieldNames());
+      pw.item("fields", getRowType().getFieldNames());
       pw.item("exprs", exps);
     } else {
-      for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+      for (Ord<RelDataTypeField> field : Ord.zip(getRowType().getFieldList())) {
         String fieldName = field.e.getName();
         if (fieldName == null) {
           fieldName = "field#" + field.i;
@@ -293,7 +298,8 @@ public abstract class Project extends SingleRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
-  protected boolean deepEquals0(Object obj) {
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  protected boolean deepEquals0(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -318,7 +324,7 @@ public abstract class Project extends SingleRel implements Hintable {
    *
    * @return Mapping, or null if this projection is not a mapping
    */
-  public Mappings.TargetMapping getMapping() {
+  public Mappings.@Nullable TargetMapping getMapping() {
     return getMapping(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -336,7 +342,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Mapping of a set of project expressions, or null if projection is
    * not a mapping
    */
-  public static Mappings.TargetMapping getMapping(int inputFieldCount,
+  public static Mappings.@Nullable TargetMapping getMapping(int inputFieldCount,
       List<? extends RexNode> projects) {
     if (inputFieldCount < projects.size()) {
       return null; // surjection is not possible
@@ -391,7 +397,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @return Permutation, if this projection is merely a permutation of its
    *   input fields; otherwise null
    */
-  public Permutation getPermutation() {
+  public @Nullable Permutation getPermutation() {
     return getPermutation(getInput().getRowType().getFieldCount(), exps);
   }
 
@@ -399,7 +405,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * Returns a permutation, if this projection is merely a permutation of its
    * input fields; otherwise null.
    */
-  public static Permutation getPermutation(int inputFieldCount,
+  public static @Nullable Permutation getPermutation(int inputFieldCount,
       List<? extends RexNode> projects) {
     final int fieldCount = projects.size();
     if (fieldCount != inputFieldCount) {

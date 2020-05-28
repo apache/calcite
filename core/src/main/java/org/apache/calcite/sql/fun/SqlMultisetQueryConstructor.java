@@ -32,9 +32,13 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorNamespace;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the SQL:2003 standard MULTISET query constructor, <code>
@@ -67,16 +71,14 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
+    requireNonNull(type, "inferred multiset query element type");
     return SqlTypeUtil.createMultisetType(
         opBinding.getTypeFactory(),
         type,
         false);
   }
 
-  private RelDataType getComponentType(
+  private @Nullable RelDataType getComponentType(
       RelDataTypeFactory typeFactory,
       List<RelDataType> argTypes) {
     return typeFactory.leastRestrictive(argTypes);
@@ -106,6 +108,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
     SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
     SqlValidatorNamespace ns = validator.getNamespace(subSelect);
+    assert  ns != null : "namespace is missing for " + subSelect;
     assert null != ns.getRowType();
     return SqlTypeUtil.createMultisetType(
         validator.getTypeFactory(),

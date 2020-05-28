@@ -25,6 +25,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Abstract implementation of {@link Converter}.
  */
@@ -33,7 +35,7 @@ public abstract class ConverterImpl extends SingleRel
   //~ Instance fields --------------------------------------------------------
 
   protected RelTraitSet inTraits;
-  protected final RelTraitDef traitDef;
+  protected final @Nullable RelTraitDef traitDef;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -47,7 +49,7 @@ public abstract class ConverterImpl extends SingleRel
    */
   protected ConverterImpl(
       RelOptCluster cluster,
-      RelTraitDef traitDef,
+      @Nullable RelTraitDef traitDef,
       RelTraitSet traits,
       RelNode child) {
     super(cluster, traits, child);
@@ -75,7 +77,7 @@ public abstract class ConverterImpl extends SingleRel
     return inTraits;
   }
 
-  @Override public RelTraitDef getTraitDef() {
+  @Override public @Nullable RelTraitDef getTraitDef() {
     return traitDef;
   }
 

@@ -24,6 +24,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,10 +49,10 @@ public class RexProgramBuilder {
       new HashMap<>();
   private final List<RexLocalRef> localRefList = new ArrayList<>();
   private final List<RexLocalRef> projectRefList = new ArrayList<>();
-  private final List<String> projectNameList = new ArrayList<>();
+  private final List<@Nullable String> projectNameList = new ArrayList<>();
   @SuppressWarnings("unused")
-  private final RexSimplify simplify;
-  private RexLocalRef conditionRef = null;
+  private final @Nullable RexSimplify simplify;
+  private @Nullable RexLocalRef conditionRef = null;
   private boolean validating;
 
   //~ Constructors -----------------------------------------------------------
@@ -65,8 +67,9 @@ public class RexProgramBuilder {
   /**
    * Creates a program-builder.
    */
+  @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
-      RexSimplify simplify) {
+      @Nullable RexSimplify simplify) {
     this.inputRowType = Objects.requireNonNull(inputRowType);
     this.rexBuilder = Objects.requireNonNull(rexBuilder);
     this.simplify = simplify; // may be null
@@ -93,15 +96,16 @@ public class RexProgramBuilder {
    * @param normalize      Whether to normalize
    * @param simplify       Simplifier, or null to not simplify
    */
+  @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,
       final List<RexNode> exprList,
       final Iterable<? extends RexNode> projectList,
-      RexNode condition,
+      @Nullable RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
-      RexSimplify simplify) {
+      @Nullable RexSimplify simplify) {
     this(inputRowType, rexBuilder, simplify);
 
     // Create a shuttle for registering input expressions.
@@ -203,7 +207,7 @@ public class RexProgramBuilder {
    *             be generated when the program is created
    * @return the ref created
    */
-  public RexLocalRef addProject(RexNode expr, String name) {
+  public RexLocalRef addProject(RexNode expr, @Nullable String name) {
     final RexLocalRef ref = registerInput(expr);
     return addProject(ref.getIndex(), name);
   }
@@ -216,7 +220,7 @@ public class RexProgramBuilder {
    *                will be generated when the program is created
    * @return the ref created
    */
-  public RexLocalRef addProject(int ordinal, final String name) {
+  public RexLocalRef addProject(int ordinal, final @Nullable String name) {
     final RexLocalRef ref = localRefList.get(ordinal);
     projectRefList.add(ref);
     projectNameList.add(name);
@@ -267,14 +271,15 @@ public class RexProgramBuilder {
    */
   public void addCondition(RexNode expr) {
     assert expr != null;
+    RexLocalRef conditionRef = this.conditionRef;
     if (conditionRef == null) {
-      conditionRef = registerInput(expr);
+      this.conditionRef = conditionRef = registerInput(expr);
     } else {
       // AND the new condition with the existing condition.
       // If the new condition is identical to the existing condition, skip it.
       RexLocalRef ref = registerInput(expr);
       if (!ref.equals(conditionRef)) {
-        conditionRef =
+        this.conditionRef =
             registerInput(
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.AND,
@@ -528,10 +533,10 @@ public class RexProgramBuilder {
       final RelDataType inputRowType,
       final List<RexNode> exprList,
       final List<? extends RexNode> projectList,
-      final RexNode condition,
+      final @Nullable RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
-      RexSimplify simplify) {
+      @Nullable RexSimplify simplify) {
     return new RexProgramBuilder(rexBuilder, inputRowType, exprList,
         projectList, condition, outputRowType, normalize, simplify);
   }
@@ -542,7 +547,7 @@ public class RexProgramBuilder {
       final RelDataType inputRowType,
       final List<RexNode> exprList,
       final List<? extends RexNode> projectList,
-      final RexNode condition,
+      final @Nullable RexNode condition,
       final RelDataType outputRowType,
       boolean normalize,
       boolean simplify_) {
@@ -561,7 +566,7 @@ public class RexProgramBuilder {
       final RelDataType inputRowType,
       final List<RexNode> exprList,
       final List<? extends RexNode> projectList,
-      final RexNode condition,
+      final @Nullable RexNode condition,
       final RelDataType outputRowType,
       boolean normalize) {
     return create(rexBuilder, inputRowType, exprList, projectList, condition,
@@ -630,7 +635,7 @@ public class RexProgramBuilder {
   private void add(
       List<RexNode> exprList,
       List<RexLocalRef> projectRefList,
-      RexLocalRef conditionRef,
+      @Nullable RexLocalRef conditionRef,
       final RelDataType outputRowType,
       RexShuttle shuttle,
       boolean updateRefs) {

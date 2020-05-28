@@ -24,9 +24,10 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * A sql type name specification of basic sql type.
@@ -76,7 +77,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
   private int precision;
   private int scale;
 
-  private String charSetName;
+  private @Nullable String charSetName;
 
   /**
    * Create a basic sql type name specification.
@@ -127,7 +128,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
     return precision;
   }
 
-  public String getCharSetName() {
+  public @Nullable String getCharSetName() {
     return charSetName;
   }
 
@@ -187,9 +188,6 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   @Override public RelDataType deriveType(SqlValidator validator) {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    if (sqlTypeName == null) {
-      return null;
-    }
     RelDataType type;
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them

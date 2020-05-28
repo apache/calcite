@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A collection of terms.
  *
@@ -320,21 +322,21 @@ public interface Glossary {
    * </table>
    */
   // CHECKSTYLE: ON
-  Glossary PATTERN = null;
+  @Nullable Glossary PATTERN = null;
 
   /**
    * Provide an interface for creating families of related or dependent
    * objects without specifying their concrete classes. (See <a
    * href="http://c2.com/cgi/wiki?AbstractFactoryPattern">GoF</a>.)
    */
-  Glossary ABSTRACT_FACTORY_PATTERN = null;
+  @Nullable Glossary ABSTRACT_FACTORY_PATTERN = null;
 
   /**
    * Separate the construction of a complex object from its representation so
    * that the same construction process can create different representations.
    * (See <a href="http://c2.com/cgi/wiki?BuilderPattern">GoF</a>.)
    */
-  Glossary BUILDER_PATTERN = null;
+  @Nullable Glossary BUILDER_PATTERN = null;
 
   /**
    * Define an interface for creating an object, but let subclasses decide
@@ -342,14 +344,14 @@ public interface Glossary {
    * subclasses. (See <a href="http://c2.com/cgi/wiki?FactoryMethodPattern">
    * GoF</a>.)
    */
-  Glossary FACTORY_METHOD_PATTERN = null;
+  @Nullable Glossary FACTORY_METHOD_PATTERN = null;
 
   /**
    * Specify the kinds of objects to create using a prototypical instance, and
    * create new objects by copying this prototype. (See <a
    * href="http://c2.com/cgi/wiki?PrototypePattern">GoF</a>.)
    */
-  Glossary PROTOTYPE_PATTERN = null;
+  @Nullable Glossary PROTOTYPE_PATTERN = null;
 
   /**
    * Ensure a class only has one instance, and provide a global point of
@@ -361,7 +363,7 @@ public interface Glossary {
    * double-checked locking pattern</a>, is fatally flawed in Java. Don't use
    * it!</p>
    */
-  Glossary SINGLETON_PATTERN = null;
+  @Nullable Glossary SINGLETON_PATTERN = null;
 
   /**
    * Convert the interface of a class into another interface clients expect.
@@ -369,14 +371,14 @@ public interface Glossary {
    * incompatible interfaces. (See <a
    * href="http://c2.com/cgi/wiki?AdapterPattern">GoF</a>.)
    */
-  Glossary ADAPTER_PATTERN = null;
+  @Nullable Glossary ADAPTER_PATTERN = null;
 
   /**
    * Decouple an abstraction from its implementation so that the two can very
    * independently. (See <a href="http://c2.com/cgi/wiki?BridgePattern">
    * GoF</a>.)
    */
-  Glossary BRIDGE_PATTERN = null;
+  @Nullable Glossary BRIDGE_PATTERN = null;
 
   /**
    * Compose objects into tree structures to represent part-whole hierarchies.
@@ -384,33 +386,33 @@ public interface Glossary {
    * uniformly. (See <a href="http://c2.com/cgi/wiki?CompositePattern">
    * GoF</a>.)
    */
-  Glossary COMPOSITE_PATTERN = null;
+  @Nullable Glossary COMPOSITE_PATTERN = null;
 
   /**
    * Attach additional responsibilities to an object dynamically. Provides a
    * flexible alternative to subclassing for extending functionality. (See <a
    * href="http://c2.com/cgi/wiki?DecoratorPattern">GoF</a>.)
    */
-  Glossary DECORATOR_PATTERN = null;
+  @Nullable Glossary DECORATOR_PATTERN = null;
 
   /**
    * Provide a unified interface to a set of interfaces in a subsystem.
    * Defines a higher-level interface that makes the subsystem easier to use.
    * (See <a href="http://c2.com/cgi/wiki?FacadePattern">GoF</a>.)
    */
-  Glossary FACADE_PATTERN = null;
+  @Nullable Glossary FACADE_PATTERN = null;
 
   /**
    * Use sharing to support large numbers of fine-grained objects efficiently.
    * (See <a href="http://c2.com/cgi/wiki?FlyweightPattern">GoF</a>.)
    */
-  Glossary FLYWEIGHT_PATTERN = null;
+  @Nullable Glossary FLYWEIGHT_PATTERN = null;
 
   /**
    * Provide a surrogate or placeholder for another object to control access
    * to it. (See <a href="http://c2.com/cgi/wiki?ProxyPattern">GoF</a>.)
    */
-  Glossary PROXY_PATTERN = null;
+  @Nullable Glossary PROXY_PATTERN = null;
 
   /**
    * Avoid coupling the sender of a request to its receiver by giving more
@@ -419,7 +421,7 @@ public interface Glossary {
    * (See <a href="http://c2.com/cgi/wiki?ChainOfResponsibilityPattern">
    * GoF</a>.)
    */
-  Glossary CHAIN_OF_RESPONSIBILITY_PATTERN = null;
+  @Nullable Glossary CHAIN_OF_RESPONSIBILITY_PATTERN = null;
 
   /**
    * Encapsulate a request as an object, thereby letting you parameterize
@@ -427,7 +429,7 @@ public interface Glossary {
    * undoable operations. (See <a
    * href="http://c2.com/cgi/wiki?CommandPattern">GoF</a>.)
    */
-  Glossary COMMAND_PATTERN = null;
+  @Nullable Glossary COMMAND_PATTERN = null;
 
   /**
    * Given a language, define a representation for its grammar along with an
@@ -435,14 +437,14 @@ public interface Glossary {
    * language. (See <a href="http://c2.com/cgi/wiki?InterpreterPattern">
    * GoF</a>.)
    */
-  Glossary INTERPRETER_PATTERN = null;
+  @Nullable Glossary INTERPRETER_PATTERN = null;
 
   /**
    * Provide a way to access the elements of an aggregate object sequentially
    * without exposing its underlying representation. (See <a
    * href="http://c2.com/cgi/wiki?IteratorPattern">GoF</a>.)
    */
-  Glossary ITERATOR_PATTERN = null;
+  @Nullable Glossary ITERATOR_PATTERN = null;
 
   /**
    * Define an object that encapsulates how a set of objects interact.
@@ -450,35 +452,35 @@ public interface Glossary {
    * explicitly, and it lets you vary their interaction independently. (See <a
    * href="http://c2.com/cgi/wiki?MediatorPattern">GoF</a>.)
    */
-  Glossary MEDIATOR_PATTERN = null;
+  @Nullable Glossary MEDIATOR_PATTERN = null;
 
   /**
    * Without violating encapsulation, capture and externalize an objects's
    * internal state so that the object can be restored to this state later.
    * (See <a href="http://c2.com/cgi/wiki?MementoPattern">GoF</a>.)
    */
-  Glossary MEMENTO_PATTERN = null;
+  @Nullable Glossary MEMENTO_PATTERN = null;
 
   /**
    * Define a one-to-many dependency between objects so that when one object
    * changes state, all its dependents are notified and updated automatically.
    * (See <a href="http://c2.com/cgi/wiki?ObserverPattern">GoF</a>.)
    */
-  Glossary OBSERVER_PATTERN = null;
+  @Nullable Glossary OBSERVER_PATTERN = null;
 
   /**
    * Allow an object to alter its behavior when its internal state changes.
    * The object will appear to change its class. (See <a
    * href="http://c2.com/cgi/wiki?StatePattern">GoF</a>.)
    */
-  Glossary STATE_PATTERN = null;
+  @Nullable Glossary STATE_PATTERN = null;
 
   /**
    * Define a family of algorithms, encapsulate each one, and make them
    * interchangeable. Lets the algorithm vary independently from clients that
    * use it. (See <a href="http://c2.com/cgi/wiki?StrategyPattern">GoF</a>.)
    */
-  Glossary STRATEGY_PATTERN = null;
+  @Nullable Glossary STRATEGY_PATTERN = null;
 
   /**
    * Define the skeleton of an algorithm in an operation, deferring some steps
@@ -486,7 +488,7 @@ public interface Glossary {
    * without changing the algorithm's structure. (See <a
    * href="http://c2.com/cgi/wiki?TemplateMethodPattern">GoF</a>.)
    */
-  Glossary TEMPLATE_METHOD_PATTERN = null;
+  @Nullable Glossary TEMPLATE_METHOD_PATTERN = null;
 
   /**
    * Represent an operation to be performed on the elements of an object
@@ -494,7 +496,7 @@ public interface Glossary {
    * of the elements on which it operates. (See <a
    * href="http://c2.com/cgi/wiki?VisitorPattern">GoF</a>.)
    */
-  Glossary VISITOR_PATTERN = null;
+  @Nullable Glossary VISITOR_PATTERN = null;
 
   /**
    * The official SQL-92 standard (ISO/IEC 9075:1992). To reference this
@@ -521,7 +523,7 @@ public interface Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  Glossary SQL92 = null;
+  @Nullable Glossary SQL92 = null;
 
   /**
    * The official SQL:1999 standard (ISO/IEC 9075:1999), which is broken up
@@ -550,7 +552,7 @@ public interface Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  Glossary SQL99 = null;
+  @Nullable Glossary SQL99 = null;
 
   /**
    * The official SQL:2003 standard (ISO/IEC 9075:2003), which is broken up
@@ -579,5 +581,5 @@ public interface Glossary {
    * <p>Note that this tag is a block tag (like &#64;see) and cannot be used
    * inline.
    */
-  Glossary SQL2003 = null;
+  @Nullable Glossary SQL2003 = null;
 }

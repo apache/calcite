@@ -32,6 +32,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,7 +68,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   }
 
   // implement RelOptPlanner
-  public RelNode getRoot() {
+  public @Nullable RelNode getRoot() {
     return root;
   }
 
@@ -188,7 +190,7 @@ public class MockRelOptPlanner extends AbstractRelOptPlanner {
   // implement RelOptPlanner
   public RelNode register(
       RelNode rel,
-      RelNode equivRel) {
+      @Nullable RelNode equivRel) {
     return rel;
   }
 

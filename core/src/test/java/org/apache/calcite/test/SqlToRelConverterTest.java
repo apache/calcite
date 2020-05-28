@@ -56,6 +56,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -4158,7 +4159,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       return builder.build();
     }
 
-    public void visit(RelNode node, int ordinal, RelNode parent) {
+    public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
       try {
         stack.push(node);
         if (!node.isValid(Litmus.THROW, this)) {

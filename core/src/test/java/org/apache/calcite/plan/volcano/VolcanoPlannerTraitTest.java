@@ -44,6 +44,7 @@ import org.apache.calcite.util.Pair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -322,7 +323,7 @@ class VolcanoPlannerTraitTest {
       return ALT_TRAIT;
     }
 
-    public RelNode convert(
+    public @Nullable RelNode convert(
         RelOptPlanner planner,
         RelNode rel,
         AltTrait toTrait,

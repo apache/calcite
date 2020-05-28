@@ -92,6 +92,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
@@ -107,12 +110,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.IntFunction;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * State for generating a SQL statement.
@@ -146,7 +150,7 @@ public abstract class SqlImplementor {
           .build();
 
   protected SqlImplementor(SqlDialect dialect) {
-    this.dialect = Objects.requireNonNull(dialect);
+    this.dialect = requireNonNull(dialect);
   }
 
   /** Visits a relational expression that has no parent. */
@@ -264,6 +268,8 @@ public abstract class SqlImplementor {
         node = operator.createCall(POS, node, result.asSelect());
       }
     }
+    assert node != null : "set op must have at least one input, operator = " + operator
+        + ", rel = " + rel;
     final List<Clause> clauses =
         Expressions.list(Clause.SET_OP);
     return result(node, clauses, rel, null);
@@ -458,7 +464,7 @@ public abstract class SqlImplementor {
 
   /** Creates a result based on a single relational expression. */
   public Result result(SqlNode node, Collection<Clause> clauses,
-      RelNode rel, Map<String, RelDataType> aliases) {
+      RelNode rel, @Nullable Map<String, RelDataType> aliases) {
     assert aliases == null
         || aliases.size() < 2
         || aliases instanceof LinkedHashMap
@@ -493,7 +499,7 @@ public abstract class SqlImplementor {
    * <p>Call this method rather than creating a {@code Result} directly,
    * because sub-classes may override. */
   protected Result result(SqlNode node, Collection<Clause> clauses,
-      String neededAlias, RelDataType neededType,
+      @Nullable String neededAlias, @Nullable RelDataType neededType,
       Map<String, RelDataType> aliases) {
     return new Result(node, clauses, neededAlias, neededType, aliases);
   }
@@ -679,14 +685,14 @@ public abstract class SqlImplementor {
      * @param program Required only if {@code rex} contains {@link RexLocalRef}
      * @param rex Expression to convert
      */
-    public SqlNode toSql(RexProgram program, RexNode rex) {
+    public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
       final RexSubQuery subQuery;
       final SqlNode sqlSubQuery;
       final RexLiteral literal;
       switch (rex.getKind()) {
       case LOCAL_REF:
         final int index = ((RexLocalRef) rex).getIndex();
-        return toSql(program, program.getExprList().get(index));
+        return toSql(program, requireNonNull(program, "program").getExprList().get(index));
 
       case INPUT_REF:
         return field(((RexInputRef) rex).getIndex());
@@ -785,7 +791,7 @@ public abstract class SqlImplementor {
       case SEARCH:
         final RexCall search = (RexCall) rex;
         literal = (RexLiteral) search.operands.get(1);
-        final Sarg sarg = literal.getValueAs(Sarg.class);
+        final Sarg sarg = castNonNull(literal.getValueAs(Sarg.class));
         //noinspection unchecked
         return toSql(program, search.operands.get(0), literal.getType(), sarg);
 
@@ -846,7 +852,7 @@ public abstract class SqlImplementor {
             assert nodeList.size() == 1;
             return nodeList.get(0);
           } else {
-            nodeList.add(dialect.getCastSpec(call.getType()));
+            nodeList.add(castNonNull(dialect.getCastSpec(call.getType())));
           }
           break;
         default:
@@ -859,7 +865,7 @@ public abstract class SqlImplementor {
     /** Converts a Sarg to SQL, generating "operand IN (c1, c2, ...)" if the
      * ranges are all points. */
     @SuppressWarnings({"BetaApi", "UnstableApiUsage"})
-    private <C extends Comparable<C>> SqlNode toSql(RexProgram program,
+    private <C extends Comparable<C>> SqlNode toSql(@Nullable RexProgram program,
         RexNode operand, RelDataType type, Sarg<C> sarg) {
       final List<SqlNode> orList = new ArrayList<>();
       final SqlNode operandSql = toSql(program, operand);
@@ -969,7 +975,7 @@ public abstract class SqlImplementor {
       throw new UnsupportedOperationException();
     }
 
-    private SqlCall toSql(RexProgram program, RexOver rexOver) {
+    private SqlCall toSql(@Nullable RexProgram program, RexOver rexOver) {
       final RexWindow rexWindow = rexOver.getWindow();
       final SqlNodeList partitionList = new SqlNodeList(
           toSql(program, rexWindow.partitionKeys), POS);
@@ -1024,7 +1030,7 @@ public abstract class SqlImplementor {
           window);
     }
 
-    private SqlNode toSql(RexProgram program, RexFieldCollation rfc) {
+    private SqlNode toSql(@Nullable RexProgram program, RexFieldCollation rfc) {
       SqlNode node = toSql(program, rfc.left);
       switch (rfc.getDirection()) {
       case DESCENDING:
@@ -1075,7 +1081,7 @@ public abstract class SqlImplementor {
           + rexWindowBound);
     }
 
-    private List<SqlNode> toSql(RexProgram program, List<RexNode> operandList) {
+    private List<SqlNode> toSql(@Nullable RexProgram program, List<RexNode> operandList) {
       final List<SqlNode> list = new ArrayList<>();
       for (RexNode rex : operandList) {
         list.add(toSql(program, rex));
@@ -1114,7 +1120,7 @@ public abstract class SqlImplementor {
 
     /** Converts a RexFieldCollation to an ORDER BY item. */
     private void addOrderItem(List<SqlNode> orderByList,
-                              RexProgram program, RexFieldCollation field) {
+        @Nullable RexProgram program, RexFieldCollation field) {
       SqlNode node = toSql(program, field.left);
       SqlNode nullDirectionNode = null;
       if (field.getNullDirection() != RelFieldCollation.NullDirection.UNSPECIFIED) {
@@ -1320,7 +1326,7 @@ public abstract class SqlImplementor {
 
   /** Converts a {@link RexLiteral} in the context of a {@link RexProgram}
    * to a {@link SqlNode}. */
-  public static SqlNode toSql(RexProgram program, RexLiteral literal) {
+  public static SqlNode toSql(@Nullable RexProgram program, RexLiteral literal) {
     switch (literal.getTypeName()) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();
@@ -1328,7 +1334,7 @@ public abstract class SqlImplementor {
 
     case ROW:
       //noinspection unchecked
-      final List<RexLiteral> list = literal.getValueAs(List.class);
+      final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(program, e))
               .collect(Util.toImmutableList()));
@@ -1345,14 +1351,15 @@ public abstract class SqlImplementor {
 
   /** Converts a {@link RexLiteral} to a {@link SqlLiteral}. */
   public static SqlNode toSql(RexLiteral literal) {
-    switch (literal.getTypeName()) {
+    SqlTypeName typeName = literal.getTypeName();
+    switch (typeName) {
     case SYMBOL:
       final Enum symbol = (Enum) literal.getValue();
       return SqlLiteral.createSymbol(symbol, POS);
 
     case ROW:
       //noinspection unchecked
-      final List<RexLiteral> list = literal.getValueAs(List.class);
+      final List<RexLiteral> list = castNonNull(literal.getValueAs(List.class));
       return SqlStdOperatorTable.ROW.createCall(POS,
           list.stream().map(e -> toSql(e))
               .collect(Util.toImmutableList()));
@@ -1364,38 +1371,40 @@ public abstract class SqlImplementor {
     default:
       break;
     }
-    switch (literal.getTypeName().getFamily()) {
+    SqlTypeFamily family = requireNonNull(typeName.getFamily(),
+        () -> "literal " + literal + " has null SqlTypeFamily, and is SqlTypeName is " + typeName);
+    switch (family) {
     case CHARACTER:
-      return SqlLiteral.createCharString((String) literal.getValue2(), POS);
+      return SqlLiteral.createCharString((String) castNonNull(literal.getValue2()), POS);
     case NUMERIC:
     case EXACT_NUMERIC:
       return SqlLiteral.createExactNumeric(
-          literal.getValueAs(BigDecimal.class).toPlainString(), POS);
+          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
     case APPROXIMATE_NUMERIC:
       return SqlLiteral.createApproxNumeric(
-          literal.getValueAs(BigDecimal.class).toPlainString(), POS);
+          castNonNull(literal.getValueAs(BigDecimal.class)).toPlainString(), POS);
     case BOOLEAN:
-      return SqlLiteral.createBoolean(literal.getValueAs(Boolean.class),
+      return SqlLiteral.createBoolean(castNonNull(literal.getValueAs(Boolean.class)),
           POS);
     case INTERVAL_YEAR_MONTH:
     case INTERVAL_DAY_TIME:
-      final boolean negative = literal.getValueAs(Boolean.class);
+      final boolean negative = castNonNull(literal.getValueAs(Boolean.class));
       return SqlLiteral.createInterval(negative ? -1 : 1,
-          literal.getValueAs(String.class),
-          literal.getType().getIntervalQualifier(), POS);
+          castNonNull(literal.getValueAs(String.class)),
+          castNonNull(literal.getType().getIntervalQualifier()), POS);
     case DATE:
-      return SqlLiteral.createDate(literal.getValueAs(DateString.class),
+      return SqlLiteral.createDate(castNonNull(literal.getValueAs(DateString.class)),
           POS);
     case TIME:
-      return SqlLiteral.createTime(literal.getValueAs(TimeString.class),
+      return SqlLiteral.createTime(castNonNull(literal.getValueAs(TimeString.class)),
           literal.getType().getPrecision(), POS);
     case TIMESTAMP:
       return SqlLiteral.createTimestamp(
-          literal.getValueAs(TimestampString.class),
+          castNonNull(literal.getValueAs(TimestampString.class)),
           literal.getType().getPrecision(), POS);
     case ANY:
     case NULL:
-      switch (literal.getTypeName()) {
+      switch (typeName) {
       case NULL:
         return SqlLiteral.createNull(POS);
       default:
@@ -1403,7 +1412,7 @@ public abstract class SqlImplementor {
       }
       // fall through
     default:
-      throw new AssertionError(literal + ": " + literal.getTypeName());
+      throw new AssertionError(literal + ": " + typeName);
     }
   }
 
@@ -1412,7 +1421,7 @@ public abstract class SqlImplementor {
    * {@link SqlImplementor} or {@link org.apache.calcite.tools.RelBuilder}
    * to use it. It is a good way to convert a {@link RexNode} to SQL text. */
   public static class SimpleContext extends Context {
-    @Nonnull private final IntFunction<SqlNode> field;
+    private final IntFunction<SqlNode> field;
 
     public SimpleContext(SqlDialect dialect, IntFunction<SqlNode> field) {
       super(dialect, 0, false);
@@ -1436,7 +1445,9 @@ public abstract class SqlImplementor {
     }
 
     @Override protected Context getAliasContext(RexCorrelVariable variable) {
-      return correlTableMap.get(variable.id);
+      return requireNonNull(
+          correlTableMap.get(variable.id),
+          () -> "variable " + variable.id + " is not found");
     }
 
     @Override public SqlImplementor implementor() {
@@ -1477,11 +1488,11 @@ public abstract class SqlImplementor {
       super(dialect, aliases, false);
     }
 
-    @Override public SqlNode toSql(RexProgram program, RexNode rex) {
+    @Override public SqlNode toSql(@Nullable RexProgram program, RexNode rex) {
       if (rex.getKind() == SqlKind.LITERAL) {
         final RexLiteral literal = (RexLiteral) rex;
         if (literal.getTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
-          return new SqlIdentifier(RexLiteral.stringValue(literal), POS);
+          return new SqlIdentifier(castNonNull(RexLiteral.stringValue(literal)), POS);
         }
       }
       return super.toSql(program, rex);
@@ -1559,8 +1570,8 @@ public abstract class SqlImplementor {
   /** Result of implementing a node. */
   public class Result {
     final SqlNode node;
-    final String neededAlias;
-    private final RelDataType neededType;
+    final @Nullable String neededAlias;
+    private final @Nullable RelDataType neededType;
     private final Map<String, RelDataType> aliases;
     final List<Clause> clauses;
     private final boolean anon;
@@ -1570,19 +1581,19 @@ public abstract class SqlImplementor {
     /** Clauses that will be generated to implement current relational
      * expression. */
     private final ImmutableSet<Clause> expectedClauses;
-    private final RelNode expectedRel;
+    private final @Nullable RelNode expectedRel;
     private final boolean needNew;
 
-    public Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        RelDataType neededType, Map<String, RelDataType> aliases) {
+    public Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
+        @Nullable RelDataType neededType, Map<String, RelDataType> aliases) {
       this(node, clauses, neededAlias, neededType, aliases, false, false,
           ImmutableSet.of(), null);
     }
 
-    private Result(SqlNode node, Collection<Clause> clauses, String neededAlias,
-        RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
+    private Result(SqlNode node, Collection<Clause> clauses, @Nullable String neededAlias,
+        @Nullable RelDataType neededType, Map<String, RelDataType> aliases, boolean anon,
         boolean ignoreClauses, Set<Clause> expectedClauses,
-        RelNode expectedRel) {
+        @Nullable RelNode expectedRel) {
       this.node = node;
       this.neededAlias = neededAlias;
       this.neededType = neededType;
@@ -1727,7 +1738,9 @@ public abstract class SqlImplementor {
     }
 
     /** Returns whether a new sub-query is required. */
-    private boolean needNewSubQuery(RelNode rel, List<Clause> clauses,
+    private boolean needNewSubQuery(
+        @UnknownInitialization Result this,
+        RelNode rel, List<Clause> clauses,
         Set<Clause> expectedClauses) {
       if (clauses.isEmpty()) {
         return false;
@@ -1775,7 +1788,9 @@ public abstract class SqlImplementor {
       return false;
     }
 
-    private boolean hasNestedAggregations(Aggregate rel) {
+    private boolean hasNestedAggregations(
+        @UnknownInitialization Result this,
+        Aggregate rel) {
       if (node instanceof SqlSelect) {
         final SqlNodeList selectList = ((SqlSelect) node).getSelectList();
         if (selectList != null) {
@@ -1816,7 +1831,9 @@ public abstract class SqlImplementor {
           // If we already have an AS node, we need to replace the alias
           // This is especially relevant for the VALUES clause rendering
           SqlCall sqlCall = (SqlCall) node;
-          SqlNode[] operands = sqlCall.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+          @SuppressWarnings({"assignment.type.incompatible",
+              "toArray.nullable.elements.not.newarray"})
+          SqlNode[] operands = sqlCall.getOperandList().toArray(new SqlNode[0]);
           operands[1] = new SqlIdentifier(neededAlias, POS);
           return SqlStdOperatorTable.AS.createCall(POS, operands);
         } else {
@@ -1938,7 +1955,7 @@ public abstract class SqlImplementor {
         return this;
       } else {
         return new Result(node, clauses, neededAlias, neededType,
-            ImmutableMap.of(neededAlias, neededType), anon, ignoreClauses,
+            ImmutableMap.of(neededAlias, castNonNull(neededType)), anon, ignoreClauses,
             expectedClauses, expectedRel);
       }
     }
@@ -1982,15 +1999,15 @@ public abstract class SqlImplementor {
     final SqlSelect select;
     public final Context context;
     final boolean anon;
-    private final Map<String, RelDataType> aliases;
+    private final @Nullable Map<String, RelDataType> aliases;
 
     public Builder(RelNode rel, List<Clause> clauses, SqlSelect select,
         Context context, boolean anon,
         @Nullable Map<String, RelDataType> aliases) {
-      this.rel = Objects.requireNonNull(rel);
+      this.rel = requireNonNull(rel);
       this.clauses = ImmutableList.copyOf(clauses);
-      this.select = Objects.requireNonNull(select);
-      this.context = Objects.requireNonNull(context);
+      this.select = requireNonNull(select);
+      this.context = requireNonNull(context);
       this.anon = anon;
       this.aliases = aliases;
     }

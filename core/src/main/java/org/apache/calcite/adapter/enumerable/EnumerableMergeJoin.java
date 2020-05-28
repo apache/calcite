@@ -50,6 +50,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,6 +60,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.calcite.rel.RelCollations.containsOrderless;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Join} in
  * {@link EnumerableConvention enumerable calling convention} using
@@ -73,10 +77,8 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       JoinRelType joinType) {
     super(cluster, traits, ImmutableList.of(), left, right, condition, variablesSet, joinType);
     assert getConvention() instanceof EnumerableConvention;
-    final List<RelCollation> leftCollations =
-        left.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
-    final List<RelCollation> rightCollations =
-        right.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+    final List<RelCollation> leftCollations = getCollations(left.getTraitSet());
+    final List<RelCollation> rightCollations = getCollations(right.getTraitSet());
 
     // If the join keys are not distinct, the sanity check doesn't apply.
     // e.g. t1.a=t2.b and t1.a=t2.c
@@ -116,6 +118,16 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
 
   public static boolean isMergeJoinSupported(JoinRelType joinType) {
     return EnumerableDefaults.isMergeJoinSupported(EnumUtils.toLinq4jJoinType(joinType));
+  }
+
+  private static RelCollation getCollation(RelTraitSet traits) {
+    return requireNonNull(traits.getCollation(),
+        () -> "no collation trait in " + traits);
+  }
+
+  private static List<RelCollation> getCollations(RelTraitSet traits) {
+    return requireNonNull(traits.getTraits(RelCollationTraitDef.INSTANCE),
+        () -> "no collation trait in " + traits);
   }
 
   @Deprecated // to be removed before 2.0
@@ -174,10 +186,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
    *        join
    *        (select * from bar order by bar.b desc, bar.d desc)
    */
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // Required collation keys can be subset or superset of merge join keys.
-    RelCollation collation = required.getCollation();
+    RelCollation collation = getCollation(required);
     int leftInputFieldCount = left.getRowType().getFieldCount();
 
     List<Integer> reqKeys = RelCollations.ordinals(collation);
@@ -257,10 +269,10 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     return null;
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     final int keyCount = joinInfo.leftKeys.size();
-    RelCollation collation = childTraits.getCollation();
+    RelCollation collation = getCollation(childTraits);
     final int colCount = collation.getFieldCollations().size();
     if (colCount < keyCount || keyCount == 0) {
       return null;
@@ -327,7 +339,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     ImmutableBitSet keysBitset = ImmutableBitSet.of(keys);
     ImmutableBitSet colKeysBitset = ImmutableBitSet.of(collation.getKeys());
     ImmutableBitSet exceptBitset = keysBitset.except(colKeysBitset);
-    for (Integer i : exceptBitset.toList()) {
+    for (Integer i : exceptBitset) {
       fieldsForNewCollation.add(new RelFieldCollation(i));
     }
     return RelCollations.of(fieldsForNewCollation);
@@ -368,7 +380,7 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
       final RelMetadataQuery mq = cluster.getMetadataQuery();
       final List<RelCollation> collations =
           RelMdCollation.mergeJoin(mq, left, right, leftKeys, rightKeys, joinType);
-      traitSet = traitSet.replace(collations);
+      traitSet = traitSet.replaceIfs(RelCollationTraitDef.INSTANCE, () -> collations);
     }
     return new EnumerableMergeJoin(cluster, traitSet, left, right, condition,
         ImmutableSet.of(), joinType);
@@ -413,11 +425,11 @@ public class EnumerableMergeJoin extends Join implements EnumerableRel {
     final List<Expression> leftExpressions = new ArrayList<>();
     final List<Expression> rightExpressions = new ArrayList<>();
     for (Pair<Integer, Integer> pair : Pair.zip(joinInfo.leftKeys, joinInfo.rightKeys)) {
-      final RelDataType keyType =
-          typeFactory.leastRestrictive(
-              ImmutableList.of(
-                  left.getRowType().getFieldList().get(pair.left).getType(),
-                  right.getRowType().getFieldList().get(pair.right).getType()));
+      RelDataType leftType = left.getRowType().getFieldList().get(pair.left).getType();
+      RelDataType rightType = right.getRowType().getFieldList().get(pair.right).getType();
+      final RelDataType keyType = requireNonNull(
+          typeFactory.leastRestrictive(ImmutableList.of(leftType, rightType)),
+          () -> "leastRestrictive returns null for " + leftType + " and " + rightType);
       final Type keyClass = typeFactory.getJavaClass(keyType);
       leftExpressions.add(
           EnumUtils.convert(

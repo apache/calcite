@@ -18,8 +18,9 @@ package org.apache.calcite.rel;
 
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose
@@ -30,7 +31,7 @@ import javax.annotation.Nonnull;
 public class RelFieldCollation {
   /** Utility method that compares values taking into account null
    * direction. */
-  public static int compare(Comparable c1, Comparable c2, int nullComparison) {
+  public static int compare(@Nullable Comparable c1, @Nullable Comparable c2, int nullComparison) {
     if (c1 == c2) {
       return 0;
     } else if (c1 == null) {
@@ -126,7 +127,7 @@ public class RelFieldCollation {
 
     /** Returns the null direction if not specified. Consistent with Oracle,
      * NULLS are sorted as if they were positive infinity. */
-    public @Nonnull NullDirection defaultNullDirection() {
+    public NullDirection defaultNullDirection() {
       switch (this) {
       case ASCENDING:
       case STRICTLY_ASCENDING:
@@ -156,7 +157,7 @@ public class RelFieldCollation {
      *
      * @return reverse of the input direction
      */
-    @Nonnull public Direction reverse() {
+    public Direction reverse() {
       switch (this) {
       case ASCENDING:
       case STRICTLY_ASCENDING:
@@ -170,7 +171,7 @@ public class RelFieldCollation {
     }
 
     /** Removes strictness. */
-    @Nonnull public Direction lax() {
+    public Direction lax() {
       switch (this) {
       case STRICTLY_ASCENDING:
         return ASCENDING;
@@ -278,7 +279,7 @@ public class RelFieldCollation {
     return withFieldIndex(fieldIndex + offset);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     return this == o
         || o instanceof RelFieldCollation
         && fieldIndex == ((RelFieldCollation) o).fieldIndex

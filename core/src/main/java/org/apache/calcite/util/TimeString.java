@@ -21,9 +21,10 @@ import org.apache.calcite.avatica.util.DateTimeUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Calendar;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
 
 /**
  * Time literal.
@@ -43,6 +44,7 @@ public class TimeString implements Comparable<TimeString> {
   }
 
   /** Creates a TimeString. */
+  @SuppressWarnings("method.invocation.invalid")
   public TimeString(String v) {
     this(v, false);
     Preconditions.checkArgument(PATTERN.matcher(v).matches(),
@@ -118,7 +120,7 @@ public class TimeString implements Comparable<TimeString> {
     return v;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     // The value is in canonical form (no trailing zeros).
     return o == this
         || o instanceof TimeString
@@ -129,7 +131,7 @@ public class TimeString implements Comparable<TimeString> {
     return v.hashCode();
   }
 
-  @Override public int compareTo(@Nonnull TimeString o) {
+  @Override public int compareTo(TimeString o) {
     return v.compareTo(o.v);
   }
 

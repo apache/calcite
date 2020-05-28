@@ -31,6 +31,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -80,8 +82,8 @@ public class SqlWindowTableFunction extends SqlFunction
         operandMetadata, SqlFunctionCategory.SYSTEM);
   }
 
-  @Override public SqlOperandMetadata getOperandTypeChecker() {
-    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
+    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   @Override public SqlReturnTypeInference getRowTypeInference() {

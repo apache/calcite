@@ -17,10 +17,13 @@
 package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 
@@ -36,6 +39,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   private final RelDataTypeHolder holder;
 
   /** Creates a DynamicRecordTypeImpl. */
+  @SuppressWarnings("method.invocation.invalid")
   public DynamicRecordTypeImpl(RelDataTypeFactory typeFactory) {
     this.holder = new RelDataTypeHolder(typeFactory);
     computeDigest();
@@ -49,7 +53,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
     return holder.getFieldCount();
   }
 
-  @Override public RelDataTypeField getField(String fieldName,
+  @Override public @Nullable RelDataTypeField getField(String fieldName,
       boolean caseSensitive, boolean elideRecord) {
     final Pair<RelDataTypeField, Boolean> pair =
         holder.getFieldOrInsert(fieldName, caseSensitive);
@@ -82,7 +86,8 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   }
 
   @Override public RelDataTypeFamily getFamily() {
-    return getSqlTypeName().getFamily();
+    SqlTypeFamily family = getSqlTypeName().getFamily();
+    return family != null ? family : this;
   }
 
 }

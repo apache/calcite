@@ -49,6 +49,8 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.slf4j.Logger;
 
 import java.math.BigDecimal;
@@ -83,7 +85,7 @@ public final class SqlParserUtil {
 
   /** Returns the character-set prefix of a SQL string literal; returns null if
    * there is none. */
-  public static String getCharacterSet(String s) {
+  public static @Nullable String getCharacterSet(String s) {
     if (s.charAt(0) == '\'') {
       return null;
     }
@@ -340,8 +342,8 @@ public final class SqlParserUtil {
   /**
    * Unquotes a quoted string, using different quotes for beginning and end.
    */
-  public static String strip(String s, String startQuote, String endQuote,
-      String escape, Casing casing) {
+  public static String strip(String s, @PolyNull String startQuote, @PolyNull String endQuote,
+      @PolyNull String escape, Casing casing) {
     if (startQuote != null) {
       assert endQuote != null;
       assert startQuote.length() == 1;
@@ -481,7 +483,7 @@ public final class SqlParserUtil {
     return sqlWithCarets;
   }
 
-  public static String getTokenVal(String token) {
+  public static @Nullable String getTokenVal(String token) {
     // We don't care about the token which are not string
     if (!token.startsWith("\"")) {
       return null;
@@ -925,7 +927,7 @@ public final class SqlParserUtil {
   /** Pre-initialized {@link DateFormat} objects, to be used within the current
    * thread, because {@code DateFormat} is not thread-safe. */
   private static class Format {
-    private static final ThreadLocal<Format> PER_THREAD =
+    private static final ThreadLocal<@Nullable Format> PER_THREAD =
         ThreadLocal.withInitial(Format::new);
     final DateFormat timestamp =
         new SimpleDateFormat(DateTimeUtils.TIMESTAMP_FORMAT_STRING,

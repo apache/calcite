@@ -25,6 +25,8 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Standard implementation of {@link RexToSqlNodeConverter}.
  */
@@ -41,8 +43,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement RexToSqlNodeConverter
-  @Override public SqlNode convertNode(RexNode node) {
+  @Override public @Nullable SqlNode convertNode(RexNode node) {
     if (node instanceof RexLiteral) {
       return convertLiteral((RexLiteral) node);
     } else if (node instanceof RexInputRef) {
@@ -54,7 +55,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
   }
 
   // implement RexToSqlNodeConverter
-  @Override public SqlNode convertCall(RexCall call) {
+  @Override public @Nullable SqlNode convertCall(RexCall call) {
     final RexSqlConvertlet convertlet = convertletTable.get(call);
     if (convertlet != null) {
       return convertlet.convertCall(this, call);
@@ -63,8 +64,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     return null;
   }
 
-  // implement RexToSqlNodeConverter
-  @Override public SqlNode convertLiteral(RexLiteral literal) {
+  @Override public @Nullable SqlNode convertLiteral(RexLiteral literal) {
     // Numeric
     if (SqlTypeFamily.EXACT_NUMERIC.getTypeNames().contains(
         literal.getTypeName())) {
@@ -130,8 +130,7 @@ public class RexToSqlNodeConverterImpl implements RexToSqlNodeConverter {
     return null;
   }
 
-  // implement RexToSqlNodeConverter
-  @Override public SqlNode convertInputRef(RexInputRef ref) {
+  @Override public @Nullable SqlNode convertInputRef(RexInputRef ref) {
     return null;
   }
 }

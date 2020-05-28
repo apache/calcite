@@ -24,9 +24,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Call to an aggregate function over a window.
@@ -96,7 +97,7 @@ public class RexOver extends RexCall {
     return ignoreNulls;
   }
 
-  @Override protected @Nonnull String computeDigest(boolean withType) {
+  @Override protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     if (distinct) {
@@ -159,7 +160,7 @@ public class RexOver extends RexCall {
    * Returns whether an expression list contains an OVER clause.
    */
   public static boolean containsOver(List<? extends RexNode> exprs,
-      RexNode condition) {
+      @Nullable RexNode condition) {
     try {
       RexUtil.apply(FINDER, exprs, condition);
       return false;
@@ -197,7 +198,7 @@ public class RexOver extends RexCall {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

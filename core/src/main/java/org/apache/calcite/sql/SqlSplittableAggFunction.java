@@ -32,6 +32,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +51,7 @@ public interface SqlSplittableAggFunction {
   /** Called to generate an aggregate for the other side of the join
    * than the side aggregate call's arguments come from. Returns null if
    * no aggregate is required. */
-  AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e);
+  @Nullable AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e);
 
   /** Generates an aggregate call to merge sub-totals.
    *
@@ -107,7 +109,7 @@ public interface SqlSplittableAggFunction {
    * @param bottom bottom aggregate call
    * @return Merged aggregate call, null if fails to merge aggregate calls
    */
-  AggregateCall merge(AggregateCall top, AggregateCall bottom);
+  @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom);
 
   /** Collection in which one can register an element. Registering may return
    * a reference to an existing element.
@@ -131,7 +133,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           false, ImmutableIntList.of(), -1, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
@@ -196,7 +199,7 @@ public interface SqlSplittableAggFunction {
       }
     }
 
-    @Override public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (bottom.getAggregation().getKind() == SqlKind.COUNT
           && (top.getAggregation().getKind() == SqlKind.SUM
               || top.getAggregation().getKind() == SqlKind.SUM0)) {
@@ -228,7 +231,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return null; // no aggregate function required on other side
     }
 
@@ -242,7 +246,7 @@ public interface SqlSplittableAggFunction {
           RelCollations.EMPTY);
     }
 
-    @Override public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       if (top.getAggregation().getKind() == bottom.getAggregation().getKind()) {
         return AggregateCall.create(bottom.getAggregation(),
             bottom.isDistinct(), bottom.isApproximate(), false,
@@ -272,7 +276,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public @Nullable AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           false,
           ImmutableIntList.of(), -1,
@@ -311,7 +316,7 @@ public interface SqlSplittableAggFunction {
           aggregateCall.type, aggregateCall.name);
     }
 
-    @Override public AggregateCall merge(AggregateCall top, AggregateCall bottom) {
+    @Override public @Nullable AggregateCall merge(AggregateCall top, AggregateCall bottom) {
       SqlKind topKind = top.getAggregation().getKind();
       if (topKind == bottom.getAggregation().getKind()
           && (topKind == SqlKind.SUM

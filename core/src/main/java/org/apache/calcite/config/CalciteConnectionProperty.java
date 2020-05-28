@@ -22,6 +22,8 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -166,9 +168,9 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   private final String camelName;
   private final Type type;
   @SuppressWarnings("ImmutableEnumChecker")
-  private final Object defaultValue;
+  private final @Nullable Object defaultValue;
   private final boolean required;
-  private final Class valueClass;
+  private final @Nullable Class valueClass;
 
   private static final Map<String, CalciteConnectionProperty> NAME_TO_PROPS;
 
@@ -184,13 +186,13 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     }
   }
 
-  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
+  CalciteConnectionProperty(String camelName, Type type, @Nullable Object defaultValue,
       boolean required) {
     this(camelName, type, defaultValue, required, null);
   }
 
-  CalciteConnectionProperty(String camelName, Type type, Object defaultValue,
-      boolean required, Class valueClass) {
+  CalciteConnectionProperty(String camelName, Type type, @Nullable Object defaultValue,
+      boolean required, @Nullable Class valueClass) {
     this.camelName = camelName;
     this.type = type;
     this.defaultValue = defaultValue;
@@ -205,7 +207,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     return camelName;
   }
 
-  @Override public Object defaultValue() {
+  @Override public @Nullable Object defaultValue() {
     return defaultValue;
   }
 
@@ -213,7 +215,7 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
     return type;
   }
 
-  @Override public Class valueClass() {
+  @Override public @Nullable Class valueClass() {
     return valueClass;
   }
 

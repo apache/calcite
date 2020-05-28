@@ -32,6 +32,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Table function that executes the OS "du" ("disk usage") command
  * to compute file sizes.
@@ -41,7 +43,7 @@ public class DuTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Processes.processLines("du", "-ak")
             .select(a0 -> {
               final String[] fields = a0.split("\t");
@@ -69,7 +71,7 @@ public class DuTableFunction {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };

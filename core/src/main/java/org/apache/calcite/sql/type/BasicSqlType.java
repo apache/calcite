@@ -22,6 +22,8 @@ import org.apache.calcite.util.SerializableCharset;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.Charset;
 import java.util.Objects;
 
@@ -39,8 +41,8 @@ public class BasicSqlType extends AbstractSqlType {
   private final int precision;
   private final int scale;
   private final RelDataTypeSystem typeSystem;
-  private final SqlCollation collation;
-  private final SerializableCharset wrappedCharset;
+  private final @Nullable SqlCollation collation;
+  private final @Nullable SerializableCharset wrappedCharset;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -102,8 +104,8 @@ public class BasicSqlType extends AbstractSqlType {
       boolean nullable,
       int precision,
       int scale,
-      SqlCollation collation,
-      SerializableCharset wrappedCharset) {
+      @Nullable SqlCollation collation,
+      @Nullable SerializableCharset wrappedCharset) {
     super(typeName, nullable, null);
     this.typeSystem = Objects.requireNonNull(typeSystem);
     this.precision = precision;
@@ -162,11 +164,11 @@ public class BasicSqlType extends AbstractSqlType {
     return scale;
   }
 
-  @Override public Charset getCharset() {
+  @Override public @Nullable Charset getCharset() {
     return wrappedCharset == null ? null : wrappedCharset.getCharset();
   }
 
-  @Override public SqlCollation getCollation() {
+  @Override public @Nullable SqlCollation getCollation() {
     return collation;
   }
 
@@ -275,7 +277,7 @@ public class BasicSqlType extends AbstractSqlType {
    *               the value at the limit
    * @return Limit value
    */
-  public Object getLimit(
+  public @Nullable Object getLimit(
       boolean sign,
       SqlTypeName.Limit limit,
       boolean beyond) {

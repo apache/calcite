@@ -20,6 +20,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Glossary;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Type system.
  *
@@ -59,7 +61,7 @@ public interface RelDataTypeSystem {
   int getMaxNumericPrecision();
 
   /** Returns the LITERAL string for the type, either PREFIX/SUFFIX. */
-  String getLiteral(SqlTypeName typeName, boolean isPrefix);
+  @Nullable String getLiteral(SqlTypeName typeName, boolean isPrefix);
 
   /** Returns whether the type is case sensitive. */
   boolean isCaseSensitive(SqlTypeName typeName);
@@ -145,7 +147,7 @@ public interface RelDataTypeSystem {
    * @param type2       Type of the second operand
    * @return Result type for a decimal addition
    */
-  default RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
+  default @Nullable RelDataType deriveDecimalPlusType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
@@ -214,7 +216,7 @@ public interface RelDataTypeSystem {
    * @return Result type for a decimal multiplication, or null if decimal
    * multiplication should not be applied to the operands
    */
-  default RelDataType deriveDecimalMultiplyType(RelDataTypeFactory typeFactory,
+  default @Nullable RelDataType deriveDecimalMultiplyType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
@@ -286,7 +288,7 @@ public interface RelDataTypeSystem {
    * @return Result type for a decimal division, or null if decimal
    * division should not be applied to the operands
    */
-  default RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
+  default @Nullable RelDataType deriveDecimalDivideType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
 
     if (SqlTypeUtil.isExactNumeric(type1)
@@ -368,7 +370,7 @@ public interface RelDataTypeSystem {
    * @return Result type for a decimal modulus, or null if decimal
    * modulus should not be applied to the operands
    */
-  default RelDataType deriveDecimalModType(RelDataTypeFactory typeFactory,
+  default @Nullable RelDataType deriveDecimalModType(RelDataTypeFactory typeFactory,
       RelDataType type1, RelDataType type2) {
     if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {

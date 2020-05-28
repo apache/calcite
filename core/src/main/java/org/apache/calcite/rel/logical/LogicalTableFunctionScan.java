@@ -29,6 +29,8 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Set;
@@ -57,8 +59,8 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
     super(cluster, traitSet, inputs, rexCall, elementType, rowType,
         columnMappings);
   }
@@ -68,8 +70,8 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
     this(cluster, cluster.traitSetOf(Convention.NONE), inputs, rexCall,
         elementType, rowType, columnMappings);
   }
@@ -86,8 +88,8 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelOptCluster cluster,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType, RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Type elementType, RelDataType rowType,
+      @Nullable Set<RelColumnMapping> columnMappings) {
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableFunctionScan(cluster, traitSet, inputs, rexCall,
         elementType, rowType, columnMappings);
@@ -99,9 +101,9 @@ public class LogicalTableFunctionScan extends TableFunctionScan {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     return new LogicalTableFunctionScan(
         getCluster(),

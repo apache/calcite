@@ -24,10 +24,14 @@ import org.apache.calcite.sql.SqlUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parameter type-checking strategy where all operand types except last one must be the same.
@@ -50,7 +54,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
   @Override protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      SqlCallBinding callBinding) {
+      @Nullable SqlCallBinding callBinding) {
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
@@ -61,7 +65,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
         getOperandList(operatorBinding.getOperandCount());
     for (int i : operandList) {
       if (operatorBinding.isOperandNull(i, false)) {
-        if (callBinding.isTypeCoercionEnabled()) {
+        if (requireNonNull(callBinding, "callBinding").isTypeCoercionEnabled()) {
           types[i] = operatorBinding.getTypeFactory()
               .createSqlType(SqlTypeName.NULL);
         } else if (throwOnFailure) {

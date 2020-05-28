@@ -23,6 +23,8 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalTableModify;
 import org.apache.calcite.schema.ModifiableTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Planner rule that converts a
  * {@link org.apache.calcite.rel.logical.LogicalTableModify} to
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}.
@@ -40,7 +42,7 @@ public class EnumerableTableModifyRule extends ConverterRule {
     super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  @Override public @Nullable RelNode convert(RelNode rel) {
     final LogicalTableModify modify =
         (LogicalTableModify) rel;
     final ModifiableTable modifiableTable =

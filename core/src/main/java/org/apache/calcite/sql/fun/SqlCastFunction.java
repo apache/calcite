@@ -25,7 +25,6 @@ import org.apache.calcite.sql.SqlFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperandCountRange;
 import org.apache.calcite.sql.SqlOperatorBinding;
@@ -109,8 +108,7 @@ public class SqlCastFunction extends SqlFunction {
 
       // dynamic parameters and null constants need their types assigned
       // to them using the type they are casted to.
-      if (((operand0 instanceof SqlLiteral)
-          && (((SqlLiteral) operand0).getValue() == null))
+      if (SqlUtil.isNullLiteral(operand0, false)
           || (operand0 instanceof SqlDynamicParam)) {
         final SqlValidatorImpl validator =
             (SqlValidatorImpl) callBinding.getValidator();

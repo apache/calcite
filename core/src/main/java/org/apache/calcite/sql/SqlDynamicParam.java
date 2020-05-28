@@ -23,6 +23,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDynamicParam</code> represents a dynamic parameter marker in an
  * SQL statement. The textual order in which dynamic parameters appear within an
@@ -68,7 +70,7 @@ public class SqlDynamicParam extends SqlNode {
     validator.validateDynamicParam(this);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
@@ -76,7 +78,7 @@ public class SqlDynamicParam extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDynamicParam)) {
       return litmus.fail("{} != {}", this, node);
     }

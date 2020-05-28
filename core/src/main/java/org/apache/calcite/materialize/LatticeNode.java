@@ -22,8 +22,12 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.Initialized;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /** Source relation of a lattice.
  *
@@ -34,7 +38,7 @@ public abstract class LatticeNode {
   public final LatticeTable table;
   final int startCol;
   final int endCol;
-  public final String alias;
+  public final @Nullable String alias;
   private final ImmutableList<LatticeChildNode> children;
   public final String digest;
 
@@ -42,8 +46,8 @@ public abstract class LatticeNode {
    *
    * <p>The {@code parent} and {@code mutableNode} arguments are used only
    * during construction. */
-  LatticeNode(LatticeSpace space, LatticeNode parent, MutableNode mutableNode) {
-    this.table = Objects.requireNonNull(mutableNode.table);
+  LatticeNode(LatticeSpace space, @Nullable LatticeNode parent, MutableNode mutableNode) {
+    this.table = requireNonNull(mutableNode.table);
     this.startCol = mutableNode.startCol;
     this.endCol = mutableNode.endCol;
     this.alias = mutableNode.alias;
@@ -55,7 +59,7 @@ public abstract class LatticeNode {
     if (parent != null) {
       sb.append(':');
       int i = 0;
-      for (IntPair p : mutableNode.step.keys) {
+      for (IntPair p : requireNonNull(mutableNode.step, "mutableNode.step").keys) {
         if (i++ > 0) {
           sb.append(",");
         }
@@ -72,7 +76,8 @@ public abstract class LatticeNode {
         if (i++ > 0) {
           sb.append(' ');
         }
-        final LatticeChildNode node =
+        @SuppressWarnings({"argument.type.incompatible", "assignment.type.incompatible"})
+        final @Initialized LatticeChildNode node =
             new LatticeChildNode(space, this, mutableChild);
         sb.append(node.digest);
         b.add(node);

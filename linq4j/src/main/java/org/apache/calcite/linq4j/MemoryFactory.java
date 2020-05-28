@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 
 /**
@@ -30,7 +32,7 @@ public class MemoryFactory<E> {
   // Index:      0   1   2   3   4
   // Idea       -2  -1   0  +1  +2
   ModularInteger offset;
-  private Object[] values;
+  private final @Nullable Object[] values;
 
   public MemoryFactory(int history, int future) {
     this.history = history;
@@ -62,10 +64,10 @@ public class MemoryFactory<E> {
     private final int history;
     private final int future;
     private final ModularInteger offset;
-    private final Object[] values;
+    private final @Nullable Object[] values;
 
     public Memory(int history, int future,
-        ModularInteger offset, Object[] values) {
+        ModularInteger offset, @Nullable Object[] values) {
       this.history = history;
       this.future = future;
       this.offset = offset;

@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWithItem;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /** Scope providing the objects that are available after evaluating an item
@@ -47,7 +49,7 @@ class WithScope extends ListScope {
     return withItem;
   }
 
-  @Override public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     if (names.size() == 1 && names.get(0).equals(withItem.name.getSimple())) {
       return validator.getNamespace(withItem);
     }

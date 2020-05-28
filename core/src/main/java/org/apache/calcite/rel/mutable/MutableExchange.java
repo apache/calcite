@@ -18,6 +18,8 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rel.RelDistribution;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Exchange}. */
@@ -39,7 +41,7 @@ public class MutableExchange extends MutableSingleRel {
     return new MutableExchange(input, distribution);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableExchange
         && distribution.equals(((MutableExchange) obj).distribution)

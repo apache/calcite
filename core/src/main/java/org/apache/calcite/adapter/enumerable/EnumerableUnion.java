@@ -28,6 +28,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Union} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableUnion extends Union implements EnumerableRel {
@@ -64,7 +66,7 @@ public class EnumerableUnion extends Union implements EnumerableRel {
       }
     }
 
-    builder.add(unionExp);
+    builder.add(requireNonNull(unionExp, "unionExp"));
     final PhysType physType =
         PhysTypeImpl.of(
             implementor.getTypeFactory(),

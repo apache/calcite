@@ -16,10 +16,12 @@
  */
 package org.apache.calcite.interpreter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Compiled scalar expression.
  */
 public interface Scalar {
-  Object execute(Context context);
-  void execute(Context context, Object[] results);
+  @Nullable Object execute(Context context);
+  void execute(Context context, @Nullable Object[] results);
 }

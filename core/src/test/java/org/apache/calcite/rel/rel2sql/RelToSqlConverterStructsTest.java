@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
@@ -81,7 +82,7 @@ class RelToSqlConverterStructsTest {
       return ImmutableSet.of();
     }
 
-    @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
       return null;
     }
 
@@ -145,8 +146,8 @@ class RelToSqlConverterStructsTest {
     @Override public boolean rolledUpColumnValidInsideAgg(
         String column,
         SqlCall call,
-        SqlNode parent,
-        CalciteConnectionConfig config) {
+        @Nullable SqlNode parent,
+        @Nullable CalciteConnectionConfig config) {
       return false;
     }
   };

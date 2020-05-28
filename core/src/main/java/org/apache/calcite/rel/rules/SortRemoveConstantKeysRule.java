@@ -51,7 +51,7 @@ public class SortRemoveConstantKeysRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelNode input = sort.getInput();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(input);
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
 

@@ -32,6 +32,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Filter} in
@@ -76,7 +78,7 @@ public class EnumerableFilter
     throw new UnsupportedOperationException();
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
     RelCollation collation = required.getCollation();
     if (collation == null || collation == RelCollations.EMPTY) {
@@ -86,7 +88,7 @@ public class EnumerableFilter
     return Pair.of(traits, ImmutableList.of(traits));
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     RelCollation collation = childTraits.getCollation();
     if (collation == null || collation == RelCollations.EMPTY) {

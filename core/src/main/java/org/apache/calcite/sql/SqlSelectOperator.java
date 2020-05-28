@@ -22,6 +22,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,9 +60,9 @@ public class SqlSelectOperator extends SqlOperator {
   }
 
   @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     assert functionQualifier == null;
     return new SqlSelect(pos,
         (SqlNodeList) operands[0],

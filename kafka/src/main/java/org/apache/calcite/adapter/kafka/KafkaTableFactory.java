@@ -23,6 +23,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Map;
@@ -38,7 +40,7 @@ public class KafkaTableFactory implements TableFactory<KafkaStreamTable> {
   @Override public KafkaStreamTable create(SchemaPlus schema,
       String name,
       Map<String, Object> operand,
-      RelDataType rowType) {
+      @Nullable RelDataType rowType) {
     final KafkaTableOptions tableOptionBuilder = new KafkaTableOptions();
 
     tableOptionBuilder.setBootstrapServers(

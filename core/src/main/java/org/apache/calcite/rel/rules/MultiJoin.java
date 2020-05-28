@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,11 +54,11 @@ public final class MultiJoin extends AbstractRelNode {
   @SuppressWarnings("HidingField")
   private final RelDataType rowType;
   private final boolean isFullOuterJoin;
-  private final List<RexNode> outerJoinConditions;
+  private final List<@Nullable RexNode> outerJoinConditions;
   private final ImmutableList<JoinRelType> joinTypes;
-  private final List<ImmutableBitSet> projFields;
+  private final List<@Nullable ImmutableBitSet> projFields;
   public final ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap;
-  private final RexNode postJoinFilter;
+  private final @Nullable RexNode postJoinFilter;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -91,11 +93,11 @@ public final class MultiJoin extends AbstractRelNode {
       RexNode joinFilter,
       RelDataType rowType,
       boolean isFullOuterJoin,
-      List<RexNode> outerJoinConditions,
+      List<? extends @Nullable RexNode> outerJoinConditions,
       List<JoinRelType> joinTypes,
-      List<ImmutableBitSet> projFields,
+      List<? extends @Nullable ImmutableBitSet> projFields,
       ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
-      RexNode postJoinFilter) {
+      @Nullable RexNode postJoinFilter) {
     super(cluster, cluster.traitSetOf(Convention.NONE));
     this.inputs = Lists.newArrayList(inputs);
     this.joinFilter = joinFilter;
@@ -149,15 +151,17 @@ public final class MultiJoin extends AbstractRelNode {
     List<String> projFieldObjects = new ArrayList<>();
     for (int i = 0; i < inputs.size(); i++) {
       joinTypeNames.add(joinTypes.get(i).name());
-      if (outerJoinConditions.get(i) == null) {
+      RexNode outerJoinCondition = outerJoinConditions.get(i);
+      if (outerJoinCondition == null) {
         outerJoinConds.add("NULL");
       } else {
-        outerJoinConds.add(outerJoinConditions.get(i).toString());
+        outerJoinConds.add(outerJoinCondition.toString());
       }
-      if (projFields.get(i) == null) {
+      ImmutableBitSet projField = projFields.get(i);
+      if (projField == null) {
         projFieldObjects.add("ALL");
       } else {
-        projFieldObjects.add(projFields.get(i).toString());
+        projFieldObjects.add(projField.toString());
       }
     }
 
@@ -183,7 +187,7 @@ public final class MultiJoin extends AbstractRelNode {
 
   @Override public RelNode accept(RexShuttle shuttle) {
     RexNode joinFilter = shuttle.apply(this.joinFilter);
-    List<RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
+    List<@Nullable RexNode> outerJoinConditions = shuttle.apply(this.outerJoinConditions);
     RexNode postJoinFilter = shuttle.apply(this.postJoinFilter);
 
     if (joinFilter == this.joinFilter
@@ -222,7 +226,7 @@ public final class MultiJoin extends AbstractRelNode {
   /**
    * Returns outer join conditions for null-generating inputs.
    */
-  public List<RexNode> getOuterJoinConditions() {
+  public List<@Nullable RexNode> getOuterJoinConditions() {
     return outerJoinConditions;
   }
 
@@ -237,7 +241,7 @@ public final class MultiJoin extends AbstractRelNode {
    * Returns bitmaps representing the fields projected from each input; if an
    * entry is null, all fields are projected.
    */
-  public List<ImmutableBitSet> getProjFields() {
+  public List<@Nullable ImmutableBitSet> getProjFields() {
     return projFields;
   }
 
@@ -260,7 +264,7 @@ public final class MultiJoin extends AbstractRelNode {
   /**
    * Returns post-join filter associated with this MultiJoin.
    */
-  public RexNode getPostJoinFilter() {
+  public @Nullable RexNode getPostJoinFilter() {
     return postJoinFilter;
   }
 

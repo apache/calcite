@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -34,14 +36,16 @@ public class DefaultEdge {
     return source.hashCode() * 31 + target.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof DefaultEdge
         && ((DefaultEdge) obj).source.equals(source)
         && ((DefaultEdge) obj).target.equals(target);
   }
 
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return DefaultEdge::new;
+  public static <V extends Object> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
+    // see https://github.com/typetools/checker-framework/issues/3637
+    //noinspection Convert2MethodRef
+    return (source1, target1) -> new DefaultEdge(source1, target1);
   }
 }

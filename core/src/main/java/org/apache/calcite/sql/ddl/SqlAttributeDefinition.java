@@ -29,6 +29,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -41,12 +43,12 @@ public class SqlAttributeDefinition extends SqlCall {
 
   public final SqlIdentifier name;
   public final SqlDataTypeSpec dataType;
-  final SqlNode expression;
-  final SqlCollation collation;
+  final @Nullable SqlNode expression;
+  final @Nullable SqlCollation collation;
 
   /** Creates a SqlAttributeDefinition; use {@link SqlDdlNodes#attribute}. */
   SqlAttributeDefinition(SqlParserPos pos, SqlIdentifier name,
-      SqlDataTypeSpec dataType, SqlNode expression, SqlCollation collation) {
+      SqlDataTypeSpec dataType, @Nullable SqlNode expression, @Nullable SqlCollation collation) {
     super(pos);
     this.name = name;
     this.dataType = dataType;
@@ -69,23 +71,13 @@ public class SqlAttributeDefinition extends SqlCall {
       writer.keyword("COLLATE");
       collation.unparse(writer);
     }
-    if (dataType.getNullable() != null && !dataType.getNullable()) {
+    if (Boolean.FALSE.equals(dataType.getNullable())) {
       writer.keyword("NOT NULL");
     }
+    SqlNode expression = this.expression;
     if (expression != null) {
       writer.keyword("DEFAULT");
-      exp(writer);
-    }
-  }
-
-  // TODO: refactor this to a util class to share with SqlColumnDeclaration
-  private void exp(SqlWriter writer) {
-    if (writer.isAlwaysUseParentheses()) {
-      expression.unparse(writer, 0, 0);
-    } else {
-      writer.sep("(");
-      expression.unparse(writer, 0, 0);
-      writer.sep(")");
+      SqlColumnDeclaration.exp(writer, expression);
     }
   }
 }

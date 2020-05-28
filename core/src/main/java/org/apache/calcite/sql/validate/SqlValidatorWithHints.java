@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParserPos;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -60,7 +62,7 @@ public interface SqlValidatorWithHints extends SqlValidator {
    *                name for
    * @return a string of the fully qualified name of the {@link SqlIdentifier}
    * if the Parser position represents a valid {@link SqlIdentifier}. Else
-   * return an empty string
+   * return null
    */
-  SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
+  @Nullable SqlMoniker lookupQualifiedName(SqlNode topNode, SqlParserPos pos);
 }

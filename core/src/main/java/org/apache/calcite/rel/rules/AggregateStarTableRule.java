@@ -47,6 +47,8 @@ import org.apache.calcite.util.mapping.AbstractSourceMapping;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,7 +88,7 @@ public class AggregateStarTableRule
     apply(call, null, aggregate, scan);
   }
 
-  protected void apply(RelOptRuleCall call, Project postProject,
+  protected void apply(RelOptRuleCall call, @Nullable Project postProject,
       final Aggregate aggregate, StarTable.StarTableScan scan) {
     final RelOptPlanner planner = call.getPlanner();
     final CalciteConnectionConfig config =
@@ -186,7 +188,7 @@ public class AggregateStarTableRule
     call.transformTo(relBuilder.build());
   }
 
-  private static AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
+  private static @Nullable AggregateCall rollUp(int groupCount, RelBuilder relBuilder,
       AggregateCall aggregateCall, TileKey tileKey) {
     if (aggregateCall.isDistinct()) {
       return null;

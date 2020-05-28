@@ -24,6 +24,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -54,14 +56,16 @@ public interface TypeCoercion {
    *
    * @return common type
    */
-  RelDataType getTightestCommonType(RelDataType type1, RelDataType type2);
+  @Nullable RelDataType getTightestCommonType(
+      @Nullable RelDataType type1, @Nullable RelDataType type2);
 
   /**
    * Case2: type widening. The main difference with
    * {@link #getTightestCommonType} is that we allow
    * some precision loss when widening decimal to fractional, or promote to string type.
    */
-  RelDataType getWiderTypeForTwo(RelDataType type1, RelDataType type2, boolean stringPromotion);
+  @Nullable RelDataType getWiderTypeForTwo(@Nullable RelDataType type1, @Nullable RelDataType type2,
+      boolean stringPromotion);
 
   /**
    * Similar to {@link #getWiderTypeForTwo}, but can handle
@@ -71,7 +75,7 @@ public interface TypeCoercion {
    * {@link #getWiderTypeForTwo} satisfies the associative law. For instance,
    * (DATE, INTEGER, VARCHAR) should have VARCHAR as the wider common type.
    */
-  RelDataType getWiderTypeFor(List<RelDataType> typeList, boolean stringPromotion);
+  @Nullable RelDataType getWiderTypeFor(List<RelDataType> typeList, boolean stringPromotion);
 
   /**
    * Finds a wider type when one or both types are DECIMAL type.
@@ -85,13 +89,15 @@ public interface TypeCoercion {
    * you can override it based on the specific system requirement in
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem}.
    */
-  RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2);
+  @Nullable RelDataType getWiderTypeForDecimal(
+      @Nullable RelDataType type1, @Nullable RelDataType type2);
 
   /**
    * Determines common type for a comparison operator whose operands are STRING
    * type and the other (non STRING) type.
    */
-  RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2);
+  @Nullable RelDataType commonTypeForBinaryComparison(
+      @Nullable RelDataType type1, @Nullable RelDataType type2);
 
   /**
    * Widen a SqlNode ith column type to target type, mainly used for set
@@ -103,7 +109,7 @@ public interface TypeCoercion {
    * @param targetType  Target type to cast to
    */
   boolean rowTypeCoercion(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlNode query,
       int columnIndex,
       RelDataType targetType);
@@ -183,6 +189,6 @@ public interface TypeCoercion {
    * @param targetRowType Target row type
    * @param query         The query, either an INSERT or UPDATE
    */
-  boolean querySourceCoercion(SqlValidatorScope scope,
+  boolean querySourceCoercion(@Nullable SqlValidatorScope scope,
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query);
 }

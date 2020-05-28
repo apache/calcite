@@ -19,6 +19,10 @@ package org.apache.calcite.sql.validate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link SqlValidatorNamespace} for a field of a record.
  *
@@ -50,15 +54,15 @@ class FieldNamespace extends AbstractNamespace {
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
-    return rowType;
+    return requireNonNull(rowType, "rowType");
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return null;
   }
 
-  @Override public SqlValidatorNamespace lookupChild(String name) {
-    if (rowType.isStruct()) {
+  @Override public @Nullable SqlValidatorNamespace lookupChild(String name) {
+    if (requireNonNull(rowType, "rowType").isStruct()) {
       return validator.lookupFieldNamespace(
           rowType,
           name);

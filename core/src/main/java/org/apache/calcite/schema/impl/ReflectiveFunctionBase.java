@@ -24,6 +24,8 @@ import org.apache.calcite.util.ReflectUtil;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -81,7 +83,7 @@ public abstract class ReflectiveFunctionBase implements Function {
    * @param name name of the method to find
    * @return the first method with matching name or null when no method found
    */
-  static Method findMethod(Class<?> clazz, String name) {
+  static @Nullable Method findMethod(Class<?> clazz, String name) {
     for (Method method : clazz.getMethods()) {
       if (method.getName().equals(name) && !method.isBridge()) {
         return method;

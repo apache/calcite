@@ -21,8 +21,11 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.util.Pair;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Very similar to {@link AliasNamespace}. */
 class WithItemNamespace extends AbstractNamespace {
@@ -36,22 +39,23 @@ class WithItemNamespace extends AbstractNamespace {
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final SqlValidatorNamespace childNs =
-        validator.getNamespace(withItem.query);
+        validator.getNamespaceOrThrow(withItem.query);
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    if (withItem.columnList == null) {
+    SqlNodeList columnList = withItem.columnList;
+    if (columnList == null) {
       return rowType;
     }
     final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
     for (Pair<SqlNode, RelDataTypeField> pair
-        : Pair.zip(withItem.columnList, rowType.getFieldList())) {
+        : Pair.zip(columnList, rowType.getFieldList())) {
       builder.add(((SqlIdentifier) pair.left).getSimple(),
           pair.right.getType());
     }
     return builder.build();
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return withItem;
   }
 
@@ -62,7 +66,7 @@ class WithItemNamespace extends AbstractNamespace {
     final RelDataType underlyingRowType =
           validator.getValidatedNodeType(withItem.query);
     int i = 0;
-    for (RelDataTypeField field : rowType.getFieldList()) {
+    for (RelDataTypeField field : getRowType().getFieldList()) {
       if (field.getName().equals(name)) {
         return underlyingRowType.getFieldList().get(i).getName();
       }

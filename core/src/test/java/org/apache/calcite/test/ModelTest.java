@@ -77,6 +77,7 @@ class ModelTest {
         + "       tables: [\n"
         + "         {\n"
         + "           name: 'time_by_day',\n"
+        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -85,6 +86,7 @@ class ModelTest {
         + "         },\n"
         + "         {\n"
         + "           name: 'sales_fact_1997',\n"
+        + "           factory: 'com.test',\n"
         + "           columns: [\n"
         + "             {\n"
         + "               name: 'time_id'\n"
@@ -151,13 +153,14 @@ class ModelTest {
             + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       operand: {a: 'foo', b: [1, 3.5] },\n"
             + "       tables: [\n"
-            + "         { type: 'custom', name: 'T1' },\n"
-            + "         { type: 'custom', name: 'T2', operand: {} },\n"
-            + "         { type: 'custom', name: 'T3', operand: {a: 'foo'} }\n"
+            + "         { type: 'custom', name: 'T1', factory: 'com.test' },\n"
+            + "         { type: 'custom', name: 'T2', factory: 'com.test', operand: {} },\n"
+            + "         { type: 'custom', name: 'T3', factory: 'com.test', operand: {a: 'foo'} }\n"
             + "       ]\n"
             + "     },\n"
             + "     {\n"
             + "       type: 'custom',\n"
+            + "       factory: 'com.acme.MySchemaFactory',\n"
             + "       name: 'has-no-operand'\n"
             + "     }\n"
             + "   ]\n"
@@ -230,7 +233,7 @@ class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Field 'name' is required in JsonMapSchema");
+        .connectThrows("Missing required creator property 'name'");
   }
 
   @Test void testCustomSchemaWithoutFactory() throws Exception {
@@ -243,7 +246,7 @@ class ModelTest {
         + "  } ]\n"
         + "}";
     CalciteAssert.model(model)
-        .connectThrows("Field 'factory' is required in JsonCustomSchema");
+        .connectThrows("Missing required creator property 'factory'");
   }
 
   /** Tests a model containing a lattice and some views. */
@@ -257,6 +260,7 @@ class ModelTest {
             + "       tables: [\n"
             + "         {\n"
             + "           name: 'time_by_day',\n"
+            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"
@@ -265,6 +269,7 @@ class ModelTest {
             + "         },\n"
             + "         {\n"
             + "           name: 'sales_fact_1997',\n"
+            + "           factory: 'com.test',\n"
             + "           columns: [\n"
             + "             {\n"
             + "               name: 'time_id'\n"

@@ -25,6 +25,10 @@ import org.apache.calcite.sql.SqlTableFunction;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace whose contents are defined by the result of a call to a
  * user-defined procedure.
@@ -67,10 +71,12 @@ public class ProcedureNamespace extends AbstractNamespace {
     }
     final SqlReturnTypeInference rowTypeInference =
         tableFunction.getRowTypeInference();
-    return rowTypeInference.inferReturnType(callBinding);
+    return requireNonNull(
+        rowTypeInference.inferReturnType(callBinding),
+        () -> "got null from inferReturnType for call " + callBinding.getCall());
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 }

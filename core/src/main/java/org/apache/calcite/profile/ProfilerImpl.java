@@ -34,6 +34,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.yahoo.sketches.hll.HllSketch;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
@@ -55,6 +57,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
 
 /**
@@ -290,7 +293,7 @@ public class ProfilerImpl implements Profiler {
       for (final List<Comparable> row : rows) {
         ++rowCount;
         for (Space space : spaces) {
-          space.collector.add(row);
+          castNonNull(space.collector).add(row);
         }
       }
 
@@ -447,14 +450,14 @@ public class ProfilerImpl implements Profiler {
     final BitSet dependencies = new BitSet();
     final Set<ImmutableBitSet> dependents = new HashSet<>();
     double expectedCardinality;
-    Collector collector;
+    @Nullable Collector collector;
     /** Assigned by {@link Collector#finish()}. */
     int nullCount;
     /** Number of distinct values. Null is counted as a value, if present.
      * Assigned by {@link Collector#finish()}. */
     int cardinality;
     /** Assigned by {@link Collector#finish()}. */
-    SortedSet<Comparable> valueSet;
+    @Nullable SortedSet<Comparable> valueSet;
 
     Space(Run run, ImmutableBitSet columnOrdinals, Iterable<Column> columns) {
       this.run = run;
@@ -466,7 +469,7 @@ public class ProfilerImpl implements Profiler {
       return columnOrdinals.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Space
           && columnOrdinals.equals(((Space) o).columnOrdinals);
@@ -474,7 +477,7 @@ public class ProfilerImpl implements Profiler {
 
     /** Returns the distribution created from this space, or null if no
      * distribution has been registered yet. */
-    public Distribution distribution() {
+    public @Nullable Distribution distribution() {
       return run.distributions.get(columnOrdinals);
     }
 
@@ -771,7 +774,7 @@ public class ProfilerImpl implements Profiler {
 
     boolean offer(double d) {
       boolean b;
-      if (count++ < warmUpCount || d > priorityQueue.peek()) {
+      if (count++ < warmUpCount || d > castNonNull(priorityQueue.peek())) {
         if (priorityQueue.size() >= size) {
           priorityQueue.remove(deque.pop());
         }

@@ -24,6 +24,8 @@ import org.apache.calcite.schema.Statistics;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -31,8 +33,8 @@ import java.util.List;
  */
 public class JsonTable extends AbstractTable {
   private final Source source;
-  private RelDataType rowType;
-  protected List<Object> dataList;
+  private @Nullable RelDataType rowType;
+  protected @Nullable List<Object> dataList;
 
   public JsonTable(Source source) {
     this.source = source;

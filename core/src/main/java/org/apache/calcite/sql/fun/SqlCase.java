@@ -25,7 +25,10 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.UnmodifiableArrayList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
 
 /**
  * A <code>SqlCase</code> is a node of a parse tree which represents a case
@@ -33,10 +36,10 @@ import java.util.List;
  * methods to put somewhere.
  */
 public class SqlCase extends SqlCall {
-  SqlNode value;
+  @Nullable SqlNode value;
   SqlNodeList whenList;
   SqlNodeList thenList;
-  SqlNode elseExpr;
+  @Nullable SqlNode elseExpr;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,8 +52,8 @@ public class SqlCase extends SqlCall {
    * @param thenList List of all THEN expressions
    * @param elseExpr The implicit or explicit ELSE expression
    */
-  public SqlCase(SqlParserPos pos, SqlNode value, SqlNodeList whenList,
-      SqlNodeList thenList, SqlNode elseExpr) {
+  public SqlCase(SqlParserPos pos, @Nullable SqlNode value, SqlNodeList whenList,
+      SqlNodeList thenList, @Nullable SqlNode elseExpr) {
     super(pos);
     this.value = value;
     this.whenList = whenList;
@@ -68,8 +71,8 @@ public class SqlCase extends SqlCall {
    * ELSE elseClause<br>
    * END</code></blockquote>
    */
-  public static SqlCase createSwitched(SqlParserPos pos, SqlNode value,
-      SqlNodeList whenList, SqlNodeList thenList, SqlNode elseClause) {
+  public static SqlCase createSwitched(SqlParserPos pos, @Nullable SqlNode value,
+      SqlNodeList whenList, SqlNodeList thenList, @Nullable SqlNode elseClause) {
     if (null != value) {
       List<SqlNode> list = whenList.getList();
       for (int i = 0; i < list.size(); i++) {
@@ -101,11 +104,13 @@ public class SqlCase extends SqlCall {
     return SqlStdOperatorTable.CASE;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       value = operand;
@@ -124,7 +129,7 @@ public class SqlCase extends SqlCall {
     }
   }
 
-  public SqlNode getValueOperand() {
+  public @Nullable SqlNode getValueOperand() {
     return value;
   }
 
@@ -136,7 +141,7 @@ public class SqlCase extends SqlCall {
     return thenList;
   }
 
-  public SqlNode getElseOperand() {
+  public @Nullable SqlNode getElseOperand() {
     return elseExpr;
   }
 }

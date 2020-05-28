@@ -28,8 +28,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -59,12 +63,12 @@ public class SqlIdentifier extends SqlNode {
   /**
    * This identifier's collation (if any).
    */
-  final SqlCollation collation;
+  final @Nullable SqlCollation collation;
 
   /**
    * A list of the positions of the components of compound identifiers.
    */
-  protected ImmutableList<SqlParserPos> componentPositions;
+  protected @Nullable ImmutableList<SqlParserPos> componentPositions;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -75,9 +79,9 @@ public class SqlIdentifier extends SqlNode {
    */
   public SqlIdentifier(
       List<String> names,
-      SqlCollation collation,
+      @Nullable SqlCollation collation,
       SqlParserPos pos,
-      List<SqlParserPos> componentPositions) {
+      @Nullable List<SqlParserPos> componentPositions) {
     super(pos);
     this.names = ImmutableList.copyOf(names);
     this.collation = collation;
@@ -98,7 +102,7 @@ public class SqlIdentifier extends SqlNode {
    */
   public SqlIdentifier(
       String name,
-      SqlCollation collation,
+      @Nullable SqlCollation collation,
       SqlParserPos pos) {
     this(ImmutableList.of(name), collation, pos, null);
   }
@@ -156,7 +160,7 @@ public class SqlIdentifier extends SqlNode {
    * @param names Names of components
    * @param poses Positions of components
    */
-  public void setNames(List<String> names, List<SqlParserPos> poses) {
+  public void setNames(List<String> names, @Nullable List<SqlParserPos> poses) {
     this.names = ImmutableList.copyOf(names);
     this.componentPositions = poses == null ? null
         : ImmutableList.copyOf(poses);
@@ -246,11 +250,12 @@ public class SqlIdentifier extends SqlNode {
         ImmutableList.<String>builder().addAll(this.names).add(name).build();
     final ImmutableList<SqlParserPos> componentPositions;
     final SqlParserPos pos2;
-    if (this.componentPositions != null) {
+    ImmutableList<SqlParserPos> thisComponentPositions = this.componentPositions;
+    if (thisComponentPositions != null) {
       final ImmutableList.Builder<SqlParserPos> builder =
           ImmutableList.builder();
       componentPositions =
-          builder.addAll(this.componentPositions).add(pos).build();
+          builder.addAll(thisComponentPositions).add(pos).build();
       pos2 = SqlParserPos.sum(builder.add(this.pos).build());
     } else {
       componentPositions = null;
@@ -300,7 +305,7 @@ public class SqlIdentifier extends SqlNode {
     validator.validateIdentifier(this, scope);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlIdentifier)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -320,7 +325,8 @@ public class SqlIdentifier extends SqlNode {
     return visitor.visit(this);
   }
 
-  public SqlCollation getCollation() {
+  @Pure
+  public @Nullable SqlCollation getCollation() {
     return collation;
   }
 
@@ -356,12 +362,13 @@ public class SqlIdentifier extends SqlNode {
         && componentPositions.get(i).isQuoted();
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     // for "star" column, whether it's static or dynamic return not_monotonic directly.
     if (Util.last(names).equals("") || DynamicRecordType.isDynamicStarColName(Util.last(names))) {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
 
+    Objects.requireNonNull(scope, "scope");
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();
@@ -370,6 +377,7 @@ public class SqlIdentifier extends SqlNode {
       return call.getMonotonicity(scope);
     }
     final SqlQualified qualified = scope.fullyQualify(this);
+    assert qualified.namespace != null : "namespace must not be null in " + qualified;
     final SqlIdentifier fqId = qualified.identifier;
     return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
   }

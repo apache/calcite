@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -29,11 +31,11 @@ import java.util.List;
 public class ObjectSqlType extends AbstractSqlType {
   //~ Instance fields --------------------------------------------------------
 
-  private final SqlIdentifier sqlIdentifier;
+  private final @Nullable SqlIdentifier sqlIdentifier;
 
   private final RelDataTypeComparability comparability;
 
-  private RelDataTypeFamily family;
+  private @Nullable RelDataTypeFamily family;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +51,7 @@ public class ObjectSqlType extends AbstractSqlType {
    */
   public ObjectSqlType(
       SqlTypeName typeName,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       boolean nullable,
       List<? extends RelDataTypeField> fields,
       RelDataTypeComparability comparability) {
@@ -69,7 +71,7 @@ public class ObjectSqlType extends AbstractSqlType {
     return comparability;
   }
 
-  @Override public SqlIdentifier getSqlIdentifier() {
+  @Override public @Nullable SqlIdentifier getSqlIdentifier() {
     return sqlIdentifier;
   }
 
@@ -84,7 +86,7 @@ public class ObjectSqlType extends AbstractSqlType {
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
     sb.append("ObjectSqlType(");
-    sb.append(sqlIdentifier.toString());
+    sb.append(sqlIdentifier);
     sb.append(")");
   }
 }

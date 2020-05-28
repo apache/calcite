@@ -66,6 +66,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,6 +78,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Planner rule that converts a {@link org.apache.calcite.rel.core.Project}
@@ -138,7 +142,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * them is the possibility of creating rewritings using Union operators, e.g., if
    * the result of a query is partially contained in the materialized view.
    */
-  protected void perform(RelOptRuleCall call, Project topProject, RelNode node) {
+  protected void perform(RelOptRuleCall call, @Nullable Project topProject, RelNode node) {
     final RexBuilder rexBuilder = node.getCluster().getRexBuilder();
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPlanner planner = call.getPlanner();
@@ -479,7 +483,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     }
   }
 
-  protected abstract boolean isValidPlan(Project topProject, RelNode node,
+  protected abstract boolean isValidPlan(@Nullable Project topProject, RelNode node,
       RelMetadataQuery mq);
 
   /**
@@ -489,10 +493,11 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>Rules implementing the method should follow different approaches depending on the
    * operators they rewrite.
    */
-  protected abstract ViewPartialRewriting compensateViewPartial(
+  protected abstract @Nullable ViewPartialRewriting compensateViewPartial(
       RelBuilder relBuilder, RexBuilder rexBuilder, RelMetadataQuery mq, RelNode input,
-      Project topProject, RelNode node, Set<RelTableRef> queryTableRefs, EquivalenceClasses queryEC,
-      Project topViewProject, RelNode viewNode, Set<RelTableRef> viewTableRefs);
+      @Nullable Project topProject, RelNode node, Set<RelTableRef> queryTableRefs,
+      EquivalenceClasses queryEC,
+      @Nullable Project topViewProject, RelNode viewNode, Set<RelTableRef> viewTableRefs);
 
   /**
    * If the view will be used in a union rewriting, this method is responsible for
@@ -501,7 +506,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>If a rewriting can be produced, we return that rewriting. If it cannot
    * be produced, we will return null.
    */
-  protected abstract RelNode rewriteQuery(
+  protected abstract @Nullable RelNode rewriteQuery(
       RelBuilder relBuilder, RexBuilder rexBuilder, RexSimplify simplify, RelMetadataQuery mq,
       RexNode compensationColumnsEquiPred, RexNode otherCompensationPred,
       Project topProject, RelNode node,
@@ -513,8 +518,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * generating the union and any other operator needed on top of it, e.g., a Project
    * operator.
    */
-  protected abstract RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
-      RelNode topProject, RelNode unionInputQuery, RelNode unionInputView);
+  protected abstract @Nullable RelNode createUnion(RelBuilder relBuilder, RexBuilder rexBuilder,
+      @Nullable RelNode topProject, RelNode unionInputQuery, RelNode unionInputView);
 
   /**
    * Rewrites the query using the given view query.
@@ -523,11 +528,11 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * on top. If a rewriting can be produced, we return that rewriting. If it cannot
    * be produced, we will return null.
    */
-  protected abstract RelNode rewriteView(RelBuilder relBuilder, RexBuilder rexBuilder,
+  protected abstract @Nullable RelNode rewriteView(RelBuilder relBuilder, RexBuilder rexBuilder,
       RexSimplify simplify, RelMetadataQuery mq, MatchModality matchModality,
       boolean unionRewriting, RelNode input,
-      Project topProject, RelNode node,
-      Project topViewProject, RelNode viewNode,
+      @Nullable Project topProject, RelNode node,
+      @Nullable Project topViewProject, RelNode viewNode,
       BiMap<RelTableRef, RelTableRef> queryToViewTableMapping,
       EquivalenceClasses queryEC);
 
@@ -540,8 +545,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>The method will return a pair of nodes: the new top project on the left and
    * the new node on the right.
    */
-  protected abstract Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
-      RelNode topViewProject, RelNode viewNode, RexNode cond);
+  protected abstract Pair<@Nullable RelNode, RelNode> pushFilterToOriginalViewPlan(
+      RelBuilder builder,
+      @Nullable RelNode topViewProject, RelNode viewNode, RexNode cond);
 
 
   //~ Methods ----------------------------------------------------------------
@@ -695,7 +701,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
       Set<RelTableRef> sourceTableRefs,
       EquivalenceClasses sourceEC,
       Set<RelTableRef> targetTableRefs,
-      Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns) {
+      @Nullable Multimap<RexTableInputRef, RexTableInputRef> compensationEquiColumns) {
     // Create UK-FK graph with view tables
     final DirectedGraph<RelTableRef, Edge> graph =
         DefaultDirectedGraph.create(Edge::new);
@@ -754,7 +760,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             if (edge == null) {
               edge = graph.addEdge(tRef, parentTRef);
             }
-            edge.equiColumns.putAll(equiColumns);
+            castNonNull(edge).equiColumns.putAll(equiColumns);
           }
         }
       }
@@ -803,7 +809,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    *
    * <p>In turn, if containment cannot be confirmed, the method returns null.
    */
-  protected Pair<RexNode, RexNode> computeCompensationPredicates(
+  protected @Nullable Pair<RexNode, RexNode> computeCompensationPredicates(
       RexBuilder rexBuilder,
       RexSimplify simplify,
       EquivalenceClasses sourceEC,
@@ -852,7 +858,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * the target to make the equivalences classes match, it returns that
    * compensation predicate.
    */
-  protected RexNode generateEquivalenceClasses(RexBuilder rexBuilder,
+  protected @Nullable RexNode generateEquivalenceClasses(RexBuilder rexBuilder,
       EquivalenceClasses sourceEC, EquivalenceClasses targetEC) {
     if (sourceEC.getEquivalenceClasses().isEmpty() && targetEC.getEquivalenceClasses().isEmpty()) {
       // No column equality predicates in query and view
@@ -912,7 +918,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>If any of the source equivalence classes cannot be mapped to a target equivalence
    * class, it returns null.
    */
-  protected Multimap<Integer, Integer> extractPossibleMapping(
+  protected @Nullable Multimap<Integer, Integer> extractPossibleMapping(
       List<Set<RexTableInputRef>> sourceEquivalenceClasses,
       List<Set<RexTableInputRef>> targetEquivalenceClasses) {
     Multimap<Integer, Integer> mapping = ArrayListMultimap.create();
@@ -949,7 +955,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>The method will return the rewritten expression. If any of the expressions in the input
    * expression cannot be mapped, it will return null.
    */
-  protected RexNode rewriteExpression(
+  protected @Nullable RexNode rewriteExpression(
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
       RelNode targetNode,
@@ -980,7 +986,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>The method will return the rewritten expressions. If any of the subexpressions in the input
    * expressions cannot be mapped, it will return null.
    */
-  protected List<RexNode> rewriteExpressions(
+  protected @Nullable List<RexNode> rewriteExpressions(
       RexBuilder rexBuilder,
       RelMetadataQuery mq,
       RelNode targetNode,
@@ -1086,7 +1092,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * digest of the expression and the index that the replacement input ref should
    * point to.
    */
-  protected RexNode replaceWithOriginalReferences(final RexBuilder rexBuilder,
+  protected @Nullable RexNode replaceWithOriginalReferences(final RexBuilder rexBuilder,
       final RelNode node, final NodeLineage nodeLineage, final RexNode exprToRewrite) {
     // Currently we allow the following:
     // 1) compensation pred can be directly map to expression
@@ -1104,7 +1110,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             return rw != null ? rw : super.visitTableInputRef(inputRef);
           }
 
-          private RexNode replace(RexNode e) {
+          private @Nullable RexNode replace(RexNode e) {
             Integer pos = nodeLineage.exprsLineage.get(e);
             if (pos != null) {
               // Found it
@@ -1127,7 +1133,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * input column set. If a reference index cannot be found in
    * the input set, then we return null.
    */
-  protected RexNode shuttleReferences(final RexBuilder rexBuilder,
+  protected @Nullable RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode node, final Mapping mapping) {
     try {
       RexShuttle visitor =
@@ -1152,7 +1158,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * Replaces all the possible sub-expressions by input references
    * to the input node.
    */
-  protected RexNode shuttleReferences(final RexBuilder rexBuilder,
+  protected @Nullable RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode expr, final Multimap<RexNode, Integer> exprsLineage) {
     return shuttleReferences(rexBuilder, expr,
         exprsLineage, null, null);
@@ -1164,9 +1170,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * to change the position to reference. Takes the reference type
    * from the input node.
    */
-  protected RexNode shuttleReferences(final RexBuilder rexBuilder,
+  protected @Nullable RexNode shuttleReferences(final RexBuilder rexBuilder,
       final RexNode expr, final Multimap<RexNode, Integer> exprsLineage,
-      final RelNode node, final Multimap<Integer, Integer> rewritingMapping) {
+      final @Nullable RelNode node, final @Nullable Multimap<Integer, Integer> rewritingMapping) {
     try {
       RexShuttle visitor =
           new RexShuttle() {
@@ -1243,8 +1249,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
   protected static class EquivalenceClasses {
 
     private final Map<RexTableInputRef, Set<RexTableInputRef>> nodeToEquivalenceClass;
-    private Map<RexTableInputRef, Set<RexTableInputRef>> cacheEquivalenceClassesMap;
-    private List<Set<RexTableInputRef>> cacheEquivalenceClasses;
+    private @Nullable Map<RexTableInputRef, Set<RexTableInputRef>> cacheEquivalenceClassesMap;
+    private @Nullable List<Set<RexTableInputRef>> cacheEquivalenceClasses;
 
     protected EquivalenceClasses() {
       nodeToEquivalenceClass = new HashMap<>();
@@ -1390,10 +1396,10 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     /** If we generate union rewriting, we might want to pull up projections
      * from the query itself to maximize rewriting opportunities. */
     @ImmutableBeans.Property
-    HepProgram unionRewritingPullProgram();
+    @Nullable HepProgram unionRewritingPullProgram();
 
     /** Sets {@link #unionRewritingPullProgram()}. */
-    Config withUnionRewritingPullProgram(HepProgram program);
+    Config withUnionRewritingPullProgram(@Nullable HepProgram program);
 
     /** Whether we should create the rewriting in the minimal subtree of plan
      * operators. */

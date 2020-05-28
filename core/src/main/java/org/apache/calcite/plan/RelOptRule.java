@@ -26,11 +26,13 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import javax.annotation.Nonnull;
 
 /**
  * A <code>RelOptRule</code> transforms an expression into another. It has a
@@ -96,7 +98,7 @@ public abstract class RelOptRule {
    * @param relBuilderFactory Builder for relational expressions
    */
   protected RelOptRule(RelOptRuleOperand operand,
-      RelBuilderFactory relBuilderFactory, String description) {
+      RelBuilderFactory relBuilderFactory, @Nullable String description) {
     this.operand = Objects.requireNonNull(operand);
     this.relBuilderFactory = Objects.requireNonNull(relBuilderFactory);
     if (description == null) {
@@ -108,7 +110,7 @@ public abstract class RelOptRule {
     }
     this.description = description;
     this.operands = flattenOperands(operand);
-    assignSolveOrder();
+    assignSolveOrder(operands);
   }
 
   //~ Methods for creating operands ------------------------------------------
@@ -375,6 +377,7 @@ public abstract class RelOptRule {
    * @return Flattened list of operands
    */
   private List<RelOptRuleOperand> flattenOperands(
+      @UnderInitialization RelOptRule this,
       RelOptRuleOperand rootOperand) {
     final List<RelOptRuleOperand> operandList = new ArrayList<>();
 
@@ -395,6 +398,7 @@ public abstract class RelOptRule {
    * @param parentOperand Parent of this operand
    */
   private void flattenRecurse(
+      @UnderInitialization RelOptRule this,
       List<RelOptRuleOperand> operandList,
       RelOptRuleOperand parentOperand) {
     int k = 0;
@@ -412,7 +416,7 @@ public abstract class RelOptRule {
    * Builds each operand's solve-order. Start with itself, then its parent, up
    * to the root, then the remaining operands in prefix order.
    */
-  private void assignSolveOrder() {
+  private static void assignSolveOrder(List<RelOptRuleOperand> operands) {
     for (RelOptRuleOperand operand : operands) {
       operand.solveOrder = new int[operands.size()];
       int m = 0;
@@ -463,7 +467,7 @@ public abstract class RelOptRule {
     return description.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return (obj instanceof RelOptRule)
         && equals((RelOptRule) obj);
   }
@@ -478,7 +482,7 @@ public abstract class RelOptRule {
    * @return Whether this rule is equal to another rule
    */
   @SuppressWarnings("NonOverridingEquals")
-  protected boolean equals(@Nonnull RelOptRule that) {
+  protected boolean equals(RelOptRule that) {
     // Include operands and class in the equality criteria just in case
     // they have chosen a poor description.
     return this == that
@@ -550,7 +554,7 @@ public abstract class RelOptRule {
    * @return Convention of the result of firing this rule, null if
    *   not known
    */
-  public Convention getOutConvention() {
+  public @Nullable Convention getOutConvention() {
     return null;
   }
 
@@ -561,7 +565,7 @@ public abstract class RelOptRule {
    * @return Trait which will be modified as a result of firing this rule,
    *   or null if the rule is not a converter rule
    */
-  public RelTrait getOutTrait() {
+  public @Nullable RelTrait getOutTrait() {
     return null;
   }
 
@@ -609,7 +613,7 @@ public abstract class RelOptRule {
    * @param toTrait  Desired trait
    * @return a relational expression with the desired trait; never null
    */
-  public static RelNode convert(RelNode rel, RelTrait toTrait) {
+  public static RelNode convert(RelNode rel, @Nullable RelTrait toTrait) {
     RelOptPlanner planner = rel.getCluster().getPlanner();
     RelTraitSet outTraits = rel.getTraitSet();
     if (toTrait != null) {

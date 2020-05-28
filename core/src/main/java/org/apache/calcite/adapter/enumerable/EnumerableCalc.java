@@ -51,6 +51,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -266,7 +268,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     final List<RexNode> exps = Util.transform(program.getProjectList(),
         program::expandLocalRef);
@@ -275,7 +277,7 @@ public class EnumerableCalc extends Calc implements EnumerableRel {
         input.getRowType(), input.getCluster().getTypeFactory(), traitSet);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     final List<RexNode> exps = Util.transform(program.getProjectList(),
         program::expandLocalRef);

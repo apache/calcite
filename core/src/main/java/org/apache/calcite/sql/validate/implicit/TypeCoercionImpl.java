@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlUpdate;
+import org.apache.calcite.sql.SqlUtil;
 import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.fun.SqlCase;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -41,12 +42,19 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getScope;
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of Calcite implicit type cast.
@@ -80,7 +88,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param targetType  Target type to cast to
    */
   @Override public boolean rowTypeCoercion(
-      SqlValidatorScope scope,
+      @Nullable SqlValidatorScope scope,
       SqlNode query,
       int columnIndex,
       RelDataType targetType) {
@@ -89,7 +97,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     case SELECT:
       SqlSelect selectNode = (SqlSelect) query;
       SqlValidatorScope scope1 = validator.getSelectScope(selectNode);
-      if (!coerceColumnType(scope1, selectNode.getSelectList(), columnIndex, targetType)) {
+      if (!coerceColumnType(scope1, getSelectList(selectNode), columnIndex, targetType)) {
         return false;
       }
       updateInferredColumnType(scope1, query, columnIndex, targetType);
@@ -100,7 +108,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           return false;
         }
       }
-      updateInferredColumnType(scope, query, columnIndex, targetType);
+      updateInferredColumnType(
+          requireNonNull(scope, "scope"), query, columnIndex, targetType);
       return true;
     case WITH:
       SqlNode body = ((SqlWith) query).body;
@@ -115,7 +124,8 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
           && rowTypeCoercion(scope, operand1, columnIndex, targetType);
       // Update the nested SET operator node type.
       if (coerced) {
-        updateInferredColumnType(scope, query, columnIndex, targetType);
+        updateInferredColumnType(
+            requireNonNull(scope, "scope"), query, columnIndex, targetType);
       }
       return coerced;
     default:
@@ -259,7 +269,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * For operand data types (type1, type2, type3), deduce the common type type4
    * from type1 and type2, then common type type5 from type4 and type3.
    */
-  protected RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
+  protected @Nullable RelDataType commonTypeForComparison(List<RelDataType> dataTypes) {
     assert dataTypes.size() > 2;
     final RelDataType type1 = dataTypes.get(0);
     final RelDataType type2 = dataTypes.get(1);
@@ -332,10 +342,11 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     SqlNode lNode = binding.operand(0);
     SqlNode rNode = binding.operand(1);
     if (SqlTypeUtil.isNumeric(left)
+        && !SqlUtil.isNullLiteral(lNode, false)
         && SqlTypeUtil.isBoolean(right)) {
       // Case1: numeric literal and boolean
       if (lNode.getKind() == SqlKind.LITERAL) {
-        BigDecimal val = ((SqlLiteral) lNode).bigDecimalValue();
+        BigDecimal val = ((SqlLiteral) lNode).getValueAs(BigDecimal.class);
         if (val.compareTo(BigDecimal.ONE) == 0) {
           SqlNode lNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(0, lNode1);
@@ -351,10 +362,11 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     }
 
     if (SqlTypeUtil.isNumeric(right)
+        && !SqlUtil.isNullLiteral(rNode, false)
         && SqlTypeUtil.isBoolean(left)) {
       // Case1: literal numeric + boolean
       if (rNode.getKind() == SqlKind.LITERAL) {
-        BigDecimal val = ((SqlLiteral) rNode).bigDecimalValue();
+        BigDecimal val = ((SqlLiteral) rNode).getValueAs(BigDecimal.class);
         if (val.compareTo(BigDecimal.ONE) == 0) {
           SqlNode rNode1 = SqlLiteral.createBoolean(true, SqlParserPos.ZERO);
           binding.getCall().setOperand(1, rNode1);
@@ -383,14 +395,15 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     SqlCase caseCall = (SqlCase) callBinding.getCall();
     SqlNodeList thenList = caseCall.getThenOperands();
     List<RelDataType> argTypes = new ArrayList<RelDataType>();
+    SqlValidatorScope scope = getScope(callBinding);
     for (SqlNode node : thenList) {
       argTypes.add(
           validator.deriveType(
-              callBinding.getScope(), node));
+              scope, node));
     }
-    SqlNode elseOp = caseCall.getElseOperand();
-    RelDataType elseOpType = validator.deriveType(
-        callBinding.getScope(), caseCall.getElseOperand());
+    SqlNode elseOp = requireNonNull(caseCall.getElseOperand(),
+        () -> "getElseOperand() is null for " + caseCall);
+    RelDataType elseOpType = validator.deriveType(scope, elseOp);
     argTypes.add(elseOpType);
     // Entering this method means we have already got a wider type, recompute it here
     // just to make the interface more clear.
@@ -398,10 +411,10 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     if (null != widerType) {
       boolean coerced = false;
       for (int i = 0; i < thenList.size(); i++) {
-        coerced = coerceColumnType(callBinding.getScope(), thenList, i, widerType) || coerced;
+        coerced = coerceColumnType(scope, thenList, i, widerType) || coerced;
       }
-      if (needToCast(callBinding.getScope(), elseOp, widerType)) {
-        coerced = coerceOperandType(callBinding.getScope(), caseCall, 3, widerType)
+      if (needToCast(scope, elseOp, widerType)) {
+        coerced = coerceOperandType(scope, caseCall, 3, widerType)
             || coerced;
       }
       return coerced;
@@ -502,7 +515,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
         if (node1.getKind() == SqlKind.ROW) {
           assert node1 instanceof SqlCall;
           if (coerceOperandType(scope, (SqlCall) node1, i, desired)) {
-            updateInferredColumnType(scope, node1, i, widenTypes.get(i));
+            updateInferredColumnType(
+                requireNonNull(scope, "scope"),
+                node1, i, widenTypes.get(i));
             coerced = true;
           }
         } else {
@@ -519,7 +534,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
               listCoerced = coerceOperandType(scope, (SqlCall) node, i, desired) || listCoerced;
             }
             if (listCoerced) {
-              updateInferredColumnType(scope, node2, i, desired);
+              updateInferredColumnType(
+                  requireNonNull(scope, "scope"),
+                  node2, i, desired);
             }
           } else {
             for (int j = 0; j < ((SqlNodeList) node2).size(); j++) {
@@ -566,8 +583,9 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    */
   @Override public boolean userDefinedFunctionCoercion(SqlValidatorScope scope,
       SqlCall call, SqlFunction function) {
-    final SqlOperandMetadata operandMetadata =
-        (SqlOperandMetadata) function.getOperandTypeChecker();
+    final SqlOperandMetadata operandMetadata = requireNonNull(
+        (SqlOperandMetadata) function.getOperandTypeChecker(),
+        () -> "getOperandTypeChecker is not defined for " + function);
     final List<RelDataType> paramTypes =
         operandMetadata.paramTypes(scope.getValidator().getTypeFactory());
     boolean coerced = false;
@@ -591,7 +609,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
     return coerced;
   }
 
-  @Override public boolean querySourceCoercion(SqlValidatorScope scope,
+  @Override public boolean querySourceCoercion(@Nullable SqlValidatorScope scope,
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query) {
     final List<RelDataTypeField> sourceFields = sourceRowType.getFieldList();
     final List<RelDataTypeField> targetFields = targetRowType.getFieldList();
@@ -623,7 +641,7 @@ public class TypeCoercionImpl extends AbstractTypeCoercion {
    * @param targetType   Target type
    */
   private boolean coerceSourceRowType(
-      SqlValidatorScope sourceScope,
+      @Nullable SqlValidatorScope sourceScope,
       SqlNode query,
       int columnIndex,
       RelDataType targetType) {

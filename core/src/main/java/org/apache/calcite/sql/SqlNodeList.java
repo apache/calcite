@@ -24,10 +24,14 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A <code>SqlNodeList</code> is a list of {@link SqlNode}s. It is also a
@@ -43,7 +47,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    */
   public static final SqlNodeList EMPTY =
       new SqlNodeList(SqlParserPos.ZERO) {
-        @Override public void add(SqlNode node) {
+        @Override public void add(@Nullable SqlNode node) {
           throw new UnsupportedOperationException();
         }
       };
@@ -62,7 +66,9 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   //~ Instance fields --------------------------------------------------------
 
-  private final List<SqlNode> list;
+  // Sometimes null values are present in the list, however, it is assumed that callers would
+  // perform all the required null-checks.
+  private final List<@Nullable SqlNode> list;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -79,7 +85,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
    * list</code>. The list is copied, but the nodes in it are not.
    */
   public SqlNodeList(
-      Collection<? extends SqlNode> collection,
+      Collection<? extends @Nullable SqlNode> collection,
       SqlParserPos pos) {
     super(pos);
     list = new ArrayList<>(collection);
@@ -87,29 +93,31 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   //~ Methods ----------------------------------------------------------------
 
-  // implement Iterable<SqlNode>
-  @Override public Iterator<SqlNode> iterator() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Iterator</*Nullable*/ SqlNode> iterator() {
     return list.iterator();
   }
 
-  public List<SqlNode> getList() {
+  @SuppressWarnings("return.type.incompatible")
+  public List</*Nullable*/ SqlNode> getList() {
     return list;
   }
 
-  public void add(SqlNode node) {
+  public void add(@Nullable SqlNode node) {
     list.add(node);
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   @Override public SqlNodeList clone(SqlParserPos pos) {
     return new SqlNodeList(list, pos);
   }
 
-  public SqlNode get(int n) {
-    return list.get(n);
+  public /*Nullable*/ SqlNode get(int n) {
+    return castNonNull(list.get(n));
   }
 
-  public SqlNode set(int n, SqlNode node) {
-    return list.set(n, node);
+  public SqlNode set(int n, @Nullable SqlNode node) {
+    return castNonNull(list.set(n, node));
   }
 
   public int size() {
@@ -139,6 +147,9 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
 
   @Override public void validate(SqlValidator validator, SqlValidatorScope scope) {
     for (SqlNode child : list) {
+      if (child == null) {
+        continue;
+      }
       child.validate(validator, scope);
     }
   }
@@ -147,7 +158,7 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlNodeList)) {
       return litmus.fail("{} != {}", this, node);
     }
@@ -158,6 +169,13 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     for (int i = 0; i < list.size(); i++) {
       SqlNode thisChild = list.get(i);
       final SqlNode thatChild = that.list.get(i);
+      if (thisChild == null) {
+        if (thatChild == null) {
+          continue;
+        } else {
+          return litmus.fail(null);
+        }
+      }
       if (!thisChild.equalsDeep(thatChild, litmus)) {
         return litmus.fail(null);
       }
@@ -165,7 +183,8 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     return litmus.succeed();
   }
 
-  public SqlNode[] toArray() {
+  @SuppressWarnings("return.type.incompatible")
+  public /*Nullable*/ SqlNode[] toArray() {
     return list.toArray(new SqlNode[0]);
   }
 
@@ -216,6 +235,9 @@ public class SqlNodeList extends SqlNode implements Iterable<SqlNode> {
     //       SqlNodeList(SqlLiteral(10), SqlLiteral(20))  }
 
     for (SqlNode node : list) {
+      if (node == null) {
+        continue;
+      }
       node.validateExpr(validator, scope);
     }
   }

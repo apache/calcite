@@ -33,6 +33,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** A table function that returns states and their boundaries; also national
  * parks.
  *
@@ -88,7 +90,7 @@ public class StatesTableFunction {
 
   private static ScannableTable eval(final Object[][] rows) {
     return new ScannableTable() {
-      public Enumerable<Object[]> scan(DataContext root) {
+      public Enumerable<@Nullable Object[]> scan(DataContext root) {
         return Linq4j.asEnumerable(rows);
       }
 
@@ -113,7 +115,7 @@ public class StatesTableFunction {
       }
 
       public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return false;
       }
     };

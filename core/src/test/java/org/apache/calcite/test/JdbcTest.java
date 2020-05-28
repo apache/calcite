@@ -99,6 +99,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.hamcrest.comparator.ComparatorMatcherBuilder;
 import org.hsqldb.jdbcDriver;
@@ -8073,7 +8074,7 @@ public class JdbcTest {
         SchemaPlus schema,
         String name,
         Map<String, Object> operand,
-        RelDataType rowType) {
+        @Nullable RelDataType rowType) {
       final Class clazz;
       final Object[] array;
       switch (name) {

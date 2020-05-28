@@ -75,9 +75,7 @@ public class SqlOverlayFunction extends SqlFunction {
     case 4:
       return "{0}({1} PLACING {2} FROM {3} FOR {4})";
     default:
-      break;
+      throw new IllegalArgumentException("operandsCount shuld be 3 or 4, got " + operandsCount);
     }
-    assert false;
-    return null;
   }
 }

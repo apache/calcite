@@ -94,7 +94,7 @@ public class AggregateProjectPullUpConstantsRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPredicateList predicates =
         mq.getPulledUpPredicates(aggregate.getInput());
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
     final NavigableMap<Integer, RexNode> map = new TreeMap<>();

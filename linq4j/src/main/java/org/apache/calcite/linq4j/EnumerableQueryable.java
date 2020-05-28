@@ -34,6 +34,8 @@ import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -49,10 +51,10 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
   private final QueryProvider provider;
   private final Class<T> elementType;
   private final Enumerable<T> enumerable;
-  private final Expression expression;
+  private final @Nullable Expression expression;
 
   EnumerableQueryable(QueryProvider provider, Class<T> elementType,
-      Expression expression, Enumerable<T> enumerable) {
+      @Nullable Expression expression, Enumerable<T> enumerable) {
     this.enumerable = enumerable;
     this.elementType = elementType;
     this.provider = provider;
@@ -153,7 +155,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.ofType(getThis(), clazz).asQueryable();
   }
 
-  @Override public Queryable<T> defaultIfEmpty() {
+  @Override public Queryable<@Nullable T> defaultIfEmpty() {
     return EnumerableDefaults.defaultIfEmpty(getThis()).asQueryable();
   }
 
@@ -167,7 +169,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return elementType;
   }
 
-  @Override public Expression getExpression() {
+  @Override public @Nullable Expression getExpression() {
     return expression;
   }
 
@@ -177,7 +179,8 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
 
   // .............
 
-  @Override public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
+  @Override public @Nullable T aggregate(
+      FunctionExpression<Function2<@Nullable T, T, T>> selector) {
     return EnumerableDefaults.aggregate(getThis(), selector.getFunction());
   }
 
@@ -260,7 +263,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.first(getThis(), predicate.getFunction());
   }
 
-  @Override public T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  @Override public @Nullable T firstOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.firstOrDefault(getThis(),
         predicate.getFunction());
   }
@@ -373,7 +376,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.last(getThis(), predicate.getFunction());
   }
 
-  @Override public T lastOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  @Override public @Nullable T lastOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.lastOrDefault(getThis(), predicate.getFunction());
   }
 
@@ -381,12 +384,12 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.longCount(getThis(), predicate.getFunction());
   }
 
-  @Override public <TResult extends Comparable<TResult>> TResult max(
+  @Override public <TResult extends Comparable<TResult>> @Nullable TResult max(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.max(getThis(), selector.getFunction());
   }
 
-  @Override public <TResult extends Comparable<TResult>> TResult min(
+  @Override public <TResult extends Comparable<TResult>> @Nullable TResult min(
       FunctionExpression<Function1<T, TResult>> selector) {
     return EnumerableDefaults.min(getThis(), selector.getFunction());
   }
@@ -466,7 +469,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
     return EnumerableDefaults.single(getThis(), predicate.getFunction());
   }
 
-  @Override public T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
+  @Override public @Nullable T singleOrDefault(FunctionExpression<Predicate1<T>> predicate) {
     return EnumerableDefaults.singleOrDefault(getThis(),
         predicate.getFunction());
   }
@@ -557,7 +560,7 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
         resultSelector.getFunction()).asQueryable();
   }
 
-  @Override public T aggregate(Function2<T, T, T> func) {
+  @Override public @Nullable T aggregate(Function2<@Nullable T, T, T> func) {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 

@@ -74,6 +74,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -348,7 +349,7 @@ class TraitPropagationTest {
 
     public Aggregate copy(RelTraitSet traitSet, RelNode input,
         ImmutableBitSet groupSet,
-        List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+        @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       return new PhysAgg(getCluster(), traitSet, input, groupSet,
           groupSets, aggCalls);
     }

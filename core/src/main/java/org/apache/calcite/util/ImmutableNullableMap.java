@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSortedMap;
 
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
@@ -60,7 +61,12 @@ public abstract class ImmutableNullableMap<K, V> extends AbstractMap<K, V> {
     if (map instanceof SortedMap) {
       final SortedMap<K, V> sortedMap = (SortedMap) map;
       try {
-        return ImmutableSortedMap.copyOf(sortedMap, sortedMap.comparator());
+        Comparator<? super K> comparator = sortedMap.comparator();
+        if (comparator == null) {
+          return ImmutableSortedMap.copyOf(sortedMap);
+        } else {
+          return ImmutableSortedMap.copyOf(sortedMap, comparator);
+        }
       } catch (NullPointerException e) {
         // Make an effectively immutable map by creating a mutable copy
         // and wrapping it to prevent modification. Unfortunately, if we see
@@ -98,7 +104,12 @@ public abstract class ImmutableNullableMap<K, V> extends AbstractMap<K, V> {
     }
     final SortedMap<K, V> sortedMap = (SortedMap) map;
     try {
-      return ImmutableSortedMap.copyOf(sortedMap, sortedMap.comparator());
+      Comparator<? super K> comparator = sortedMap.comparator();
+      if (comparator == null) {
+        return ImmutableSortedMap.copyOf(sortedMap);
+      } else {
+        return ImmutableSortedMap.copyOf(sortedMap, comparator);
+      }
     } catch (NullPointerException e) {
       // Make an effectively immutable map by creating a mutable copy
       // and wrapping it to prevent modification. Unfortunately, if we see

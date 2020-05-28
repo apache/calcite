@@ -26,6 +26,8 @@ import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility functions for {@link BitSet}.
  */
@@ -325,7 +327,7 @@ public final class BitSets {
     private SortedMap<Integer, BitSet> equivalence;
     private final NavigableMap<Integer, BitSet> closure = new TreeMap<>();
 
-    @SuppressWarnings("JdkObsolete")
+    @SuppressWarnings({"JdkObsolete", "method.invocation.invalid"})
     Closure(SortedMap<Integer, BitSet> equivalence) {
       this.equivalence = equivalence;
       final ImmutableIntList keys =
@@ -341,7 +343,8 @@ public final class BitSets {
       if (o != null) {
         return o;
       }
-      BitSet b = equivalence.get(pos);
+      BitSet b = requireNonNull(equivalence.get(pos),
+          () -> "equivalence.get(pos) for " + pos);
       o = (BitSet) b.clone();
       int i = b.nextSetBit(pos + 1);
       for (; i >= 0; i = b.nextSetBit(i + 1)) {

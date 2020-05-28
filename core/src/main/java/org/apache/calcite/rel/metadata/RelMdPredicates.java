@@ -64,6 +64,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -73,12 +75,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
@@ -543,13 +545,13 @@ public class RelMdPredicates
     final Map<RexNode, ImmutableBitSet> exprFields;
     final Set<RexNode> allExprs;
     final Set<RexNode> equalityPredicates;
-    final RexNode leftChildPredicates;
-    final RexNode rightChildPredicates;
+    final @Nullable RexNode leftChildPredicates;
+    final @Nullable RexNode rightChildPredicates;
     final RexSimplify simplify;
 
     @SuppressWarnings("JdkObsolete")
-    JoinConditionBasedPredicateInference(Join joinRel, RexNode leftPredicates,
-        RexNode rightPredicates, RexSimplify simplify) {
+    JoinConditionBasedPredicateInference(Join joinRel, @Nullable RexNode leftPredicates,
+        @Nullable RexNode rightPredicates, RexSimplify simplify) {
       super();
       this.joinRel = joinRel;
       this.simplify = simplify;
@@ -712,11 +714,11 @@ public class RelMdPredicates
       }
     }
 
-    public RexNode left() {
+    public @Nullable RexNode left() {
       return leftChildPredicates;
     }
 
-    public RexNode right() {
+    public @Nullable RexNode right() {
       return rightChildPredicates;
     }
 
@@ -770,7 +772,7 @@ public class RelMdPredicates
       b.set(p1);
     }
 
-    @Nonnull RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
+    RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
       exprs = Linq4j.asEnumerable(exprs).where(Objects::nonNull);
       return RexUtil.composeConjunction(rexBuilder, exprs);
     }
@@ -834,7 +836,7 @@ public class RelMdPredicates
       final int[] columns;
       final BitSet[] columnSets;
       final int[] iterationIdx;
-      Mapping nextMapping;
+      @Nullable Mapping nextMapping;
       boolean firstCall;
 
       @SuppressWarnings("JdkObsolete")
@@ -863,6 +865,9 @@ public class RelMdPredicates
       }
 
       @Override public Mapping next() {
+        if (nextMapping == null) {
+          throw new NoSuchElementException();
+        }
         return nextMapping;
       }
 

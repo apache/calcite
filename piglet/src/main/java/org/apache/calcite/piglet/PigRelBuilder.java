@@ -58,6 +58,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 /**
@@ -231,6 +232,7 @@ public class PigRelBuilder extends RelBuilder {
   public RelBuilder scan(RelOptTable userSchema, String... tableNames) {
     // First, look up the database schema to find the table schema with the given names
     final List<String> names = ImmutableList.copyOf(tableNames);
+    Objects.requireNonNull(relOptSchema, "relOptSchema");
     final RelOptTable systemSchema = relOptSchema.getTableForMember(names);
 
     // Now we may end up with two different schemas.

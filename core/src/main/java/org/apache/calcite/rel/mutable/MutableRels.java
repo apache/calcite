@@ -60,10 +60,13 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /** Utilities for dealing with {@link MutableRel}s. */
@@ -77,8 +80,8 @@ public abstract class MutableRels {
     }
     try {
       new MutableRelVisitor() {
-        @Override public void visit(MutableRel node) {
-          if (node.equals(target)) {
+        @Override public void visit(@Nullable MutableRel node) {
+          if (Objects.equals(node, target)) {
             throw Util.FoundOne.NULL;
           }
           super.visit(node);
@@ -91,7 +94,7 @@ public abstract class MutableRels {
     }
   }
 
-  public static MutableRel preOrderTraverseNext(MutableRel node) {
+  public static @Nullable MutableRel preOrderTraverseNext(MutableRel node) {
     MutableRel parent = node.getParent();
     int ordinal = node.ordinalInParent + 1;
     while (parent != null) {

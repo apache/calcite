@@ -39,6 +39,7 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +83,7 @@ class EnumerableTraitsUtils {
     return true;
   }
 
-  static Pair<RelTraitSet, List<RelTraitSet>> passThroughTraitsForProject(
+  static @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraitsForProject(
       RelTraitSet required,
       List<RexNode> exps,
       RelDataType inputRowType,
@@ -108,7 +109,7 @@ class EnumerableTraitsUtils {
         ImmutableList.of(currentTraits.replace(newCollation)));
   }
 
-  static Pair<RelTraitSet, List<RelTraitSet>> deriveTraitsForProject(
+  static @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraitsForProject(
       RelTraitSet childTraits, int childId, List<RexNode> exps,
       RelDataType inputRowType, RelDataTypeFactory typeFactory, RelTraitSet currentTraits) {
     final RelCollation collation = childTraits.getCollation();
@@ -159,7 +160,7 @@ class EnumerableTraitsUtils {
    * @param leftInputFieldCount number of field count of left join input
    * @param joinTraitSet trait set of the join
    */
-  static Pair<RelTraitSet, List<RelTraitSet>> passThroughTraitsForJoin(
+  static @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraitsForJoin(
       RelTraitSet required, JoinRelType joinType,
       int leftInputFieldCount, RelTraitSet joinTraitSet) {
     RelCollation collation = required.getCollation();
@@ -194,7 +195,7 @@ class EnumerableTraitsUtils {
    * @param joinTraitSet trait set of the join
    * @param rightTraitSet trait set of the right join input
    */
-  static Pair<RelTraitSet, List<RelTraitSet>> deriveTraitsForJoin(
+  static @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraitsForJoin(
       RelTraitSet childTraits, int childId, JoinRelType joinType,
       RelTraitSet joinTraitSet, RelTraitSet rightTraitSet) {
     // should only derive traits (limited to collation for now) from left join input.

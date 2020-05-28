@@ -28,6 +28,8 @@ import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
@@ -37,11 +39,11 @@ import java.util.List;
 public class ViewTableMacro implements TableMacro {
   protected final String viewSql;
   protected final CalciteSchema schema;
-  private final Boolean modifiable;
+  private final @Nullable Boolean modifiable;
   /** Typically null. If specified, overrides the path of the schema as the
    * context for validating {@code viewSql}. */
-  protected final List<String> schemaPath;
-  protected final List<String> viewPath;
+  protected final @Nullable List<String> schemaPath;
+  protected final @Nullable List<String> viewPath;
 
   /**
    * Creates a ViewTableMacro.
@@ -54,7 +56,8 @@ public class ViewTableMacro implements TableMacro {
    *                   of {@code viewSql})
    */
   public ViewTableMacro(CalciteSchema schema, String viewSql,
-      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+      @Nullable List<String> schemaPath, @Nullable List<String> viewPath,
+      @Nullable Boolean modifiable) {
     this.viewSql = viewSql;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
@@ -87,7 +90,7 @@ public class ViewTableMacro implements TableMacro {
   /** Allows a sub-class to return an extension of {@link ModifiableViewTable}
    * by overriding this method. */
   protected ModifiableViewTable modifiableViewTable(CalcitePrepare.AnalyzeViewResult parsed,
-      String viewSql, List<String> schemaPath, List<String> viewPath,
+      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath,
       CalciteSchema schema) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
@@ -100,7 +103,7 @@ public class ViewTableMacro implements TableMacro {
   /** Allows a sub-class to return an extension of {@link ViewTable} by
    * overriding this method. */
   protected ViewTable viewTable(CalcitePrepare.AnalyzeViewResult parsed,
-      String viewSql, List<String> schemaPath, List<String> viewPath) {
+      String viewSql, List<String> schemaPath, @Nullable List<String> viewPath) {
     final JavaTypeFactory typeFactory = (JavaTypeFactory) parsed.typeFactory;
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ViewTable(elementType,

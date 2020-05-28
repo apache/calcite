@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.NoSuchElementException;
 
 /**
@@ -53,17 +55,17 @@ public class GitCommitsTableFunction {
 
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
-      @Override public Enumerable<Object[]> scan(DataContext root) {
+      @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
         final Enumerable<String> enumerable =
             Processes.processLines("git", "log", "--pretty=raw");
-        return new AbstractEnumerable<Object[]>() {
-          @Override public Enumerator<Object[]> enumerator() {
+        return new AbstractEnumerable<@Nullable Object[]>() {
+          @Override public Enumerator<@Nullable Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
-            return new Enumerator<Object[]>() {
-              private Object[] objects;
+            return new Enumerator<@Nullable Object[]>() {
+              private @Nullable Object @Nullable [] objects;
               private final StringBuilder b = new StringBuilder();
 
-              @Override public Object[] current() {
+              @Override public @Nullable Object[] current() {
                 if (objects == null) {
                   throw new NoSuchElementException();
                 }
@@ -166,7 +168,7 @@ public class GitCommitsTableFunction {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };

@@ -21,6 +21,7 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.pentaho.aggdes.algorithm.Algorithm;
 import org.pentaho.aggdes.algorithm.Progress;
 import org.pentaho.aggdes.algorithm.Result;
@@ -139,7 +140,7 @@ public class TileSuggester {
       return "TABLE";
     }
 
-    @Override public Table getParent() {
+    @Override public @Nullable Table getParent() {
       return null;
     }
   }
@@ -170,11 +171,11 @@ public class TileSuggester {
       return 0;
     }
 
-    @Override public String getCandidateColumnName() {
+    @Override public @Nullable String getCandidateColumnName() {
       return null;
     }
 
-    @Override public String getDatatype(Dialect dialect) {
+    @Override public @Nullable String getDatatype(Dialect dialect) {
       return null;
     }
 

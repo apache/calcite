@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an expression that has a binary operator.
@@ -25,7 +29,7 @@ import java.util.Objects;
 public class BinaryExpression extends Expression {
   public final Expression expression0;
   public final Expression expression1;
-  private final Primitive primitive;
+  private final @Nullable Primitive primitive;
 
   BinaryExpression(ExpressionType nodeType, Type type, Expression expression0,
       Expression expression1) {
@@ -51,9 +55,12 @@ public class BinaryExpression extends Expression {
   @Override public Object evaluate(Evaluator evaluator) {
     switch (nodeType) {
     case AndAlso:
-      return (Boolean) expression0.evaluate(evaluator)
-             && (Boolean) expression1.evaluate(evaluator);
+      return evaluateBoolean(evaluator, expression0)
+             && evaluateBoolean(evaluator, expression1);
     case Add:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) + evaluateInt(expression1, evaluator);
@@ -71,6 +78,9 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case Divide:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) / evaluateInt(expression1, evaluator);
@@ -88,9 +98,11 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case Equal:
-      return expression0.evaluate(evaluator)
-          .equals(expression1.evaluate(evaluator));
+      return Objects.equals(expression0.evaluate(evaluator), expression1.evaluate(evaluator));
     case GreaterThan:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) > evaluateInt(expression1, evaluator);
@@ -108,6 +120,9 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case GreaterThanOrEqual:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) >= evaluateInt(expression1, evaluator);
@@ -125,6 +140,9 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case LessThan:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) < evaluateInt(expression1, evaluator);
@@ -142,6 +160,9 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case LessThanOrEqual:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) <= evaluateInt(expression1, evaluator);
@@ -159,6 +180,9 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case Multiply:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) * evaluateInt(expression1, evaluator);
@@ -176,12 +200,14 @@ public class BinaryExpression extends Expression {
         throw cannotEvaluate();
       }
     case NotEqual:
-      return !expression0.evaluate(evaluator)
-          .equals(expression1.evaluate(evaluator));
+      return !Objects.equals(expression0.evaluate(evaluator), expression1.evaluate(evaluator));
     case OrElse:
-      return (Boolean) expression0.evaluate(evaluator)
-             || (Boolean) expression1.evaluate(evaluator);
+      return evaluateBoolean(evaluator, expression0)
+             || evaluateBoolean(evaluator, expression1);
     case Subtract:
+      if (primitive == null) {
+        throw cannotEvaluate();
+      }
       switch (primitive) {
       case INT:
         return evaluateInt(expression0, evaluator) - evaluateInt(expression1, evaluator);
@@ -217,31 +243,43 @@ public class BinaryExpression extends Expression {
       + nodeType + ", primitive=" + primitive);
   }
 
+  private boolean evaluateBoolean(Evaluator evaluator, Expression expression) {
+    return (Boolean) requireNonNull(
+        expression.evaluate(evaluator),
+        () -> "boolean expected, got null while evaluating " + expression);
+  }
+
+  private Number evaluateNumber(Expression expression, Evaluator evaluator) {
+    return (Number) requireNonNull(
+        expression.evaluate(evaluator),
+        () -> "number expected, got null while evaluating " + expression);
+  }
+
   private int evaluateInt(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).intValue();
+    return evaluateNumber(expression, evaluator).intValue();
   }
 
   private short evaluateShort(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).shortValue();
+    return evaluateNumber(expression, evaluator).shortValue();
   }
 
   private long evaluateLong(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).longValue();
+    return evaluateNumber(expression, evaluator).longValue();
   }
 
   private byte evaluateByte(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).byteValue();
+    return evaluateNumber(expression, evaluator).byteValue();
   }
 
   private float evaluateFloat(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).floatValue();
+    return evaluateNumber(expression, evaluator).floatValue();
   }
 
   private double evaluateDouble(Expression expression, Evaluator evaluator) {
-    return ((Number) expression.evaluate(evaluator)).doubleValue();
+    return evaluateNumber(expression, evaluator).doubleValue();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

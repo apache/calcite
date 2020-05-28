@@ -32,7 +32,6 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Concrete implementation of {@link SqlAggFunction}.
@@ -95,12 +94,12 @@ public final class SqlBasicAggFunction extends SqlAggFunction {
     return super.deriveType(validator, scope, call);
   }
 
-  @Override @Nonnull public Optionality getDistinctOptionality() {
+  @Override public Optionality getDistinctOptionality() {
     return distinctOptionality;
   }
 
   /** Sets {@link #getDistinctOptionality()}. */
-  SqlBasicAggFunction withDistinct(@Nonnull Optionality distinctOptionality) {
+  SqlBasicAggFunction withDistinct(Optionality distinctOptionality) {
     return new SqlBasicAggFunction(getName(), getSqlIdentifier(), kind,
         getReturnTypeInference(), getOperandTypeInference(),
         getOperandTypeChecker(), getFunctionType(), requiresOrder(),

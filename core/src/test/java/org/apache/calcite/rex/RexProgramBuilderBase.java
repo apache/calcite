@@ -31,6 +31,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.math.BigDecimal;
@@ -103,15 +104,15 @@ public abstract class RexProgramBuilderBase {
       return null;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    public @Nullable JavaTypeFactory getTypeFactory() {
       return null;
     }
 
-    public QueryProvider getQueryProvider() {
+    public @Nullable QueryProvider getQueryProvider() {
       return null;
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       return map.get(name);
     }
   }

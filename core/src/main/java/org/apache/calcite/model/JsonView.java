@@ -16,7 +16,13 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+import java.util.Objects;
 
 /**
  * View schema element.
@@ -60,13 +66,13 @@ public class JsonView extends JsonTable {
    * <p>Must be a string or a list of strings (which are concatenated into a
    * multi-line SQL string, separated by newlines).
    */
-  public Object sql;
+  public final Object sql;
 
   /** Schema name(s) to use when resolving query.
    *
    * <p>If not specified, defaults to current schema.
    */
-  public List<String> path;
+  public final @Nullable List<String> path;
 
   /** Whether this view should allow INSERT requests.
    *
@@ -80,7 +86,20 @@ public class JsonView extends JsonTable {
    *
    * <p>The default value is {@code null}.
    */
-  public Boolean modifiable;
+  public final @Nullable Boolean modifiable;
+
+  @JsonCreator
+  public JsonView(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("steram") JsonStream stream,
+      @JsonProperty(value = "sql", required = true) Object sql,
+      @JsonProperty("path") @Nullable List<String> path,
+      @JsonProperty("modifiable") @Nullable Boolean modifiable) {
+    super(name, stream);
+    this.sql = Objects.requireNonNull(sql, "sql");
+    this.path = path;
+    this.modifiable = modifiable;
+  }
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

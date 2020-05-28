@@ -20,6 +20,8 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 
 /**
@@ -62,7 +64,7 @@ public interface RelMetadataProvider {
    * @return Function that will field a metadata instance; or null if this
    *     provider cannot supply metadata of this type
    */
-  <M extends Metadata> UnboundMetadata<M> apply(
+  <@Nullable M extends @Nullable Metadata> @Nullable UnboundMetadata<M> apply(
       Class<? extends RelNode> relClass, Class<? extends M> metadataClass);
 
   <M extends Metadata> Multimap<Method, MetadataHandler<M>> handlers(

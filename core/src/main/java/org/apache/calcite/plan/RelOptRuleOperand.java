@@ -20,6 +20,11 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -38,16 +43,16 @@ import java.util.function.Predicate;
 public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
 
-  private RelOptRuleOperand parent;
-  private RelOptRule rule;
+  private @Nullable RelOptRuleOperand parent;
+  private @NotOnlyInitialized RelOptRule rule;
   private final Predicate<RelNode> predicate;
 
   // REVIEW jvs 29-Aug-2004: some of these are Volcano-specific and should be
   // factored out
-  public int[] solveOrder;
+  public int @MonotonicNonNull [] solveOrder;
   public int ordinalInParent;
   public int ordinalInRule;
-  public final RelTrait trait;
+  public final @Nullable RelTrait trait;
   private final Class<? extends RelNode> clazz;
   private final ImmutableList<RelOptRuleOperand> children;
 
@@ -97,9 +102,11 @@ public class RelOptRuleOperand {
    * and add constructor parameters for them. See
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1166">[CALCITE-1166]
    * Disallow sub-classes of RelOptRuleOperand</a>. */
+  @SuppressWarnings({"initialization.fields.uninitialized",
+      "initialization.invalid.field.write.initialized"})
   <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
-      RelTrait trait,
+      @Nullable RelTrait trait,
       Predicate<? super R> predicate,
       RelOptRuleOperandChildPolicy childPolicy,
       ImmutableList<RelOptRuleOperand> children) {
@@ -135,7 +142,7 @@ public class RelOptRuleOperand {
    *
    * @return parent operand
    */
-  public RelOptRuleOperand getParent() {
+  public @Nullable RelOptRuleOperand getParent() {
     return parent;
   }
 
@@ -144,7 +151,7 @@ public class RelOptRuleOperand {
    *
    * @param parent Parent operand
    */
-  public void setParent(RelOptRuleOperand parent) {
+  public void setParent(@Nullable RelOptRuleOperand parent) {
     this.parent = parent;
   }
 
@@ -162,7 +169,8 @@ public class RelOptRuleOperand {
    *
    * @param rule containing rule
    */
-  public void setRule(RelOptRule rule) {
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
+  public void setRule(@UnknownInitialization RelOptRule rule) {
     this.rule = rule;
   }
 
@@ -170,7 +178,7 @@ public class RelOptRuleOperand {
     return Objects.hash(clazz, trait, children);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

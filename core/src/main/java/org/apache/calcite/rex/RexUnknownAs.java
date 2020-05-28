@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rex;
 
-import javax.annotation.Nonnull;
 
 /** Policy for whether a simplified expression may instead return another
  * value.
@@ -80,7 +79,7 @@ public enum RexUnknownAs {
 
   /** Returns {@link #FALSE} if {@code unknownAsFalse} is true,
    * {@link #UNKNOWN} otherwise. */
-  public static @Nonnull RexUnknownAs falseIf(boolean unknownAsFalse) {
+  public static RexUnknownAs falseIf(boolean unknownAsFalse) {
     return unknownAsFalse ? FALSE : UNKNOWN;
   }
 

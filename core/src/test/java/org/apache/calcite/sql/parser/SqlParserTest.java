@@ -70,7 +70,6 @@ import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -668,7 +667,7 @@ public class SqlParserTest {
   /** Returns a {@link Matcher} that succeeds if the given {@link SqlNode} is a
    * VALUES that contains a ROW that contains an identifier whose {@code i}th
    * element is quoted. */
-  @Nonnull private static Matcher<SqlNode> isQuoted(final int i,
+  private static Matcher<SqlNode> isQuoted(final int i,
       final boolean quoted) {
     return new CustomTypeSafeMatcher<SqlNode>("quoting") {
       protected boolean matchesSafely(SqlNode item) {
@@ -7278,7 +7277,7 @@ public class SqlParserTest {
         .ok("INTERVAL '1:1' MINUTE TO SECOND");
   }
 
-  @Nonnull private Consumer<List<? extends Throwable>> checkWarnings(
+  private Consumer<List<? extends Throwable>> checkWarnings(
       String... tokens) {
     final List<String> messages = new ArrayList<>();
     for (String token : tokens) {

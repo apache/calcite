@@ -103,7 +103,7 @@ public class SqlAdvisorGetHintsFunction2
    */
   public static Enumerable<SqlAdvisorHint2> getCompletionHints(
       final SqlAdvisor advisor, final String sql, final int pos) {
-    final String[] replaced = {null};
+    final String[] replaced = new String[1];
     final List<SqlMoniker> hints = advisor.getCompletionHints(sql,
         pos, replaced);
     final List<SqlAdvisorHint2> res = new ArrayList<>(hints.size() + 1);

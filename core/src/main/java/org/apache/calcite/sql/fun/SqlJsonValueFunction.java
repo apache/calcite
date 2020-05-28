@@ -37,6 +37,8 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -70,7 +72,7 @@ public class SqlJsonValueFunction extends SqlFunction {
    * Returns new operand list with type specification removed.
    */
   public static List<SqlNode> removeTypeSpecOperands(SqlCall call) {
-    SqlNode[] operands = call.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+    @Nullable SqlNode[] operands = call.getOperandList().toArray(new SqlNode[0]);
     if (hasExplicitTypeSpec(operands)) {
       operands[2] = null;
       operands[3] = null;

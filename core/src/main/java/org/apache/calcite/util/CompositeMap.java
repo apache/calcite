@@ -19,6 +19,9 @@ package org.apache.calcite.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -68,7 +71,8 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return true;
   }
 
-  @Override public boolean containsKey(Object key) {
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @Override public boolean containsKey(@Nullable Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
         return true;
@@ -77,7 +81,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public boolean containsValue(Object value) {
+  @Override public boolean containsValue(@Nullable Object value) {
     for (Map<K, V> map : maps) {
       if (map.containsValue(value)) {
         return true;
@@ -86,7 +90,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return false;
   }
 
-  @Override public V get(Object key) {
+  @Override public @Nullable V get(@Nullable Object key) {
     for (Map<K, V> map : maps) {
       //noinspection SuspiciousMethodCalls
       if (map.containsKey(key)) {
@@ -101,7 +105,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public V remove(Object key) {
+  @Override public V remove(@Nullable Object key) {
     // we are an unmodifiable view on the maps
     throw new UnsupportedOperationException();
   }
@@ -116,7 +120,8 @@ public class CompositeMap<K, V> implements Map<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Set<K> keySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<@KeyFor("this") K> keySet() {
     final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       keys.addAll(map.keySet());
@@ -141,7 +146,8 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return combinedMap().values();
   }
 
-  @Override public Set<Entry<K, V>> entrySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
     return combinedMap().entrySet();
   }
 }

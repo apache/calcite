@@ -29,6 +29,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,7 +38,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Utility to dump a rel node plan in dot format.
@@ -74,9 +75,9 @@ public class RelDotWriter extends RelWriterImpl {
   //~ Methods ----------------------------------------------------------------
 
   @Override protected void explain_(RelNode rel,
-                          List<Pair<String, Object>> values) {
+      List<Pair<String, @Nullable Object>> values) {
     // get inputs
-    List<RelNode> inputs = getInputs(rel);
+    List<@Nullable RelNode> inputs = getInputs(rel);
     outArcTable.put(rel, inputs);
 
     // generate node label
@@ -92,7 +93,7 @@ public class RelDotWriter extends RelWriterImpl {
 
   protected String getRelNodeLabel(
       RelNode rel,
-      List<Pair<String, Object>> values) {
+      List<Pair<String, @Nullable Object>> values) {
     List<String> labels = new ArrayList<>();
     StringBuilder sb = new StringBuilder();
 
@@ -105,7 +106,7 @@ public class RelDotWriter extends RelWriterImpl {
     sb.setLength(0);
 
     if (detailLevel != SqlExplainLevel.NO_ATTRIBUTES) {
-      for (Pair<String, Object> value : values) {
+      for (Pair<String, @Nullable Object> value : values) {
         if (value.right instanceof RelNode) {
           continue;
         }
@@ -162,8 +163,8 @@ public class RelDotWriter extends RelWriterImpl {
     return "\"" + String.join("\\n", newlabels) + "\"";
   }
 
-  private List<RelNode> getInputs(RelNode parent) {
-    return parent.getInputs().stream().map(child -> {
+  private List<@Nullable RelNode> getInputs(RelNode parent) {
+    return Util.transform(parent.getInputs(), child -> {
       if (child instanceof HepRelVertex) {
         return ((HepRelVertex) child).getCurrentRel();
       } else if (child instanceof RelSubset) {
@@ -172,10 +173,10 @@ public class RelDotWriter extends RelWriterImpl {
       } else {
         return child;
       }
-    }).collect(Collectors.toList());
+    });
   }
 
-  private void explainInputs(List<RelNode> inputs) {
+  private void explainInputs(List<? extends @Nullable RelNode> inputs) {
     for (RelNode input : inputs) {
       if (input == null || nodeLabels.containsKey(input)) {
         continue;

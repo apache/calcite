@@ -23,6 +23,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.BuiltInMetadata.LowerBoundCost;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Default implementations of the
  * {@link BuiltInMetadata.LowerBoundCost}
@@ -44,7 +46,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
     return BuiltInMetadata.LowerBoundCost.DEF;
   }
 
-  public RelOptCost getLowerBoundCost(RelSubset subset,
+  public @Nullable RelOptCost getLowerBoundCost(RelSubset subset,
       RelMetadataQuery mq, VolcanoPlanner planner) {
 
     if (planner.isLogical(subset)) {
@@ -55,7 +57,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
     return subset.getWinnerCost();
   }
 
-  public RelOptCost getLowerBoundCost(RelNode node,
+  public @Nullable RelOptCost getLowerBoundCost(RelNode node,
       RelMetadataQuery mq, VolcanoPlanner planner) {
     if (planner.isLogical(node)) {
       // currently only support physical, will improve in the future
@@ -63,7 +65,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
     }
 
     RelOptCost selfCost = mq.getNonCumulativeCost(node);
-    if (selfCost.isInfinite()) {
+    if (selfCost != null && selfCost.isInfinite()) {
       selfCost = null;
     }
     for (RelNode input : node.getInputs()) {

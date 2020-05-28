@@ -19,6 +19,8 @@ package org.apache.calcite.model;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +46,7 @@ public abstract class JsonSchema {
    *
    * @see JsonRoot#defaultSchema
    */
-  public String name;
+  public final String name;
 
   /** SQL path that is used to resolve functions used in this schema.
    *
@@ -59,7 +61,7 @@ public abstract class JsonSchema {
    * '/lib'. Most schemas are at the top level, and for these you can use a
    * string.
    */
-  public List<Object> path;
+  public final @Nullable List<Object> path;
 
   /**
    * List of tables in this schema that are materializations of queries.
@@ -86,11 +88,19 @@ public abstract class JsonSchema {
    * not affected by this caching mechanism. They always appear in the schema
    * immediately, and are never flushed.</p>
    */
-  public Boolean cache;
+  public final @Nullable Boolean cache;
 
   /** Whether to create lattices in this schema based on queries occurring in
    * other schemas. Default value is {@code false}. */
-  public Boolean autoLattice;
+  public final @Nullable Boolean autoLattice;
+
+  protected JsonSchema(String name, @Nullable List<Object> path, @Nullable Boolean cache,
+      @Nullable Boolean autoLattice) {
+    this.name = name;
+    this.path = path;
+    this.cache = cache;
+    this.autoLattice = autoLattice;
+  }
 
   public abstract void accept(ModelHandler handler);
 

@@ -18,6 +18,8 @@ package org.apache.calcite.sql.validate;
 
 import org.apache.calcite.sql.SqlPivot;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Scope for expressions in a {@code PIVOT} clause.
  */
@@ -36,7 +38,9 @@ public class PivotScope extends ListScope {
    * {@link org.apache.calcite.sql.validate.ListScope#getChildren()}, but this
    * scope only has one namespace, and it is anonymous. */
   public SqlValidatorNamespace getChild() {
-    return validator.getNamespace(pivot.query);
+    return requireNonNull(
+        validator.getNamespace(pivot.query),
+        () -> "namespace for pivot.query " + pivot.query);
   }
 
   @Override public SqlPivot getNode() {

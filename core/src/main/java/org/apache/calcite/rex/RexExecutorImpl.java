@@ -39,6 +39,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -151,7 +153,7 @@ public class RexExecutorImpl implements RexExecutor {
       this.typeFactory = typeFactory;
     }
 
-    @Override public Expression field(BlockBuilder list, int index, Type storageType) {
+    @Override public Expression field(BlockBuilder list, int index, @Nullable Type storageType) {
       MethodCallExpression recFromCtx = Expressions.call(
           DataContext.ROOT,
           BuiltInMethod.DATA_CONTEXT_GET.method,

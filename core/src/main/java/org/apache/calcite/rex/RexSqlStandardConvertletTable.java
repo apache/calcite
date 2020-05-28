@@ -28,6 +28,8 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +41,7 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
+  @SuppressWarnings("method.invocation.invalid")
   public RexSqlStandardConvertletTable() {
     super();
 
@@ -140,7 +143,7 @@ public class RexSqlStandardConvertletTable
    * @param call      Call
    * @return Sql call
    */
-  public SqlNode convertCall(
+  public @Nullable SqlNode convertCall(
       RexToSqlNodeConverter converter,
       RexCall call) {
     if (get(call) == null) {
@@ -160,16 +163,17 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private SqlNode[] convertExpressionList(
+  private SqlNode @Nullable [] convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
     final SqlNode[] exprs = new SqlNode[nodes.size()];
     for (int i = 0; i < nodes.size(); i++) {
       RexNode node = nodes.get(i);
-      exprs[i] = converter.convertNode(node);
-      if (exprs[i] == null) {
+      SqlNode converted = converter.convertNode(node);
+      if (converted == null) {
         return null;
       }
+      exprs[i] = converted;
     }
     return exprs;
   }
@@ -249,7 +253,7 @@ public class RexSqlStandardConvertletTable
       this.op = op;
     }
 
-    @Override public SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
+    @Override public @Nullable SqlNode convertCall(RexToSqlNodeConverter converter, RexCall call) {
       SqlNode[] operands = convertExpressionList(converter, call.operands);
       if (operands == null) {
         return null;

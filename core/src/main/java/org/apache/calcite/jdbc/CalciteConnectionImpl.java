@@ -69,6 +69,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.ResultSet;
@@ -83,6 +85,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Implementation of JDBC connection
@@ -115,8 +119,8 @@ abstract class CalciteConnectionImpl
    * @param typeFactory Type factory, or null
    */
   protected CalciteConnectionImpl(Driver driver, AvaticaFactory factory,
-      String url, Properties info, CalciteSchema rootSchema,
-      JavaTypeFactory typeFactory) {
+      String url, Properties info, @Nullable CalciteSchema rootSchema,
+      @Nullable JavaTypeFactory typeFactory) {
     super(driver, factory, url, info);
     CalciteConnectionConfig cfg = new CalciteConnectionConfigImpl(info);
     this.prepareFactory = driver.prepareFactory;
@@ -267,11 +271,11 @@ abstract class CalciteConnectionImpl
   }
 
   @Override public <T> T execute(Expression expression, Type type) {
-    return null; // TODO:
+    return castNonNull(null); // TODO:
   }
 
   @Override public <T> T execute(Expression expression, Class<T> type) {
-    return null; // TODO:
+    return castNonNull(null); // TODO:
   }
 
   @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
@@ -381,7 +385,7 @@ abstract class CalciteConnectionImpl
       super();
     }
 
-    @Override public Expression getExpression(SchemaPlus parentSchema,
+    @Override public Expression getExpression(@Nullable SchemaPlus parentSchema,
         String name) {
       return Expressions.call(
           DataContext.ROOT,
@@ -445,7 +449,7 @@ abstract class CalciteConnectionImpl
       map = builder.build();
     }
 
-    @Override public synchronized Object get(String name) {
+    @Override public synchronized @Nullable Object get(String name) {
       Object o = map.get(name);
       if (o == AvaticaSite.DUMMY_VALUE) {
         return null;
@@ -484,7 +488,7 @@ abstract class CalciteConnectionImpl
       return new SqlAdvisor(validator, parserConfig);
     }
 
-    @Override public SchemaPlus getRootSchema() {
+    @Override public @Nullable SchemaPlus getRootSchema() {
       return rootSchema == null ? null : rootSchema.plus();
     }
 
@@ -535,7 +539,7 @@ abstract class CalciteConnectionImpl
           : ImmutableList.of(schemaName);
     }
 
-    @Override public List<String> getObjectPath() {
+    @Override public @Nullable List<String> getObjectPath() {
       return null;
     }
 
@@ -570,19 +574,19 @@ abstract class CalciteConnectionImpl
   /** Implementation of {@link DataContext} that has few variables and is
    * {@link Serializable}. For Spark. */
   private static class SlimDataContext implements DataContext, Serializable {
-    @Override public SchemaPlus getRootSchema() {
+    @Override public @Nullable SchemaPlus getRootSchema() {
       return null;
     }
 
-    @Override public JavaTypeFactory getTypeFactory() {
+    @Override public @Nullable JavaTypeFactory getTypeFactory() {
       return null;
     }
 
-    @Override public QueryProvider getQueryProvider() {
+    @Override public @Nullable QueryProvider getQueryProvider() {
       return null;
     }
 
-    @Override public Object get(String name) {
+    @Override public @Nullable Object get(String name) {
       return null;
     }
   }
@@ -591,8 +595,8 @@ abstract class CalciteConnectionImpl
   static class CalciteServerStatementImpl
       implements CalciteServerStatement {
     private final CalciteConnectionImpl connection;
-    private Iterator<Object> iterator;
-    private Meta.Signature signature;
+    private @Nullable Iterator<Object> iterator;
+    private Meta.@Nullable Signature signature;
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
@@ -611,11 +615,11 @@ abstract class CalciteConnectionImpl
       this.signature = signature;
     }
 
-    @Override public Meta.Signature getSignature() {
+    @Override public Meta.@Nullable Signature getSignature() {
       return signature;
     }
 
-    @Override public Iterator<Object> getResultSet() {
+    @Override public @Nullable Iterator<Object> getResultSet() {
       return iterator;
     }
 

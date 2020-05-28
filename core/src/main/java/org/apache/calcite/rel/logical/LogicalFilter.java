@@ -35,6 +35,8 @@ import org.apache.calcite.util.Litmus;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.Set;
 
@@ -136,7 +138,7 @@ public final class LogicalFilter extends Filter {
         .itemIf("variablesSet", variablesSet, !variablesSet.isEmpty());
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return deepEquals0(obj)
         && variablesSet.equals(((LogicalFilter) obj).variablesSet);
   }

@@ -21,7 +21,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelRecordType represents a structured type having named fields.
@@ -43,7 +44,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
   public RelRecordType(StructKind kind, List<RelDataTypeField> fields, boolean nullable) {
     super(fields);
     this.nullable = nullable;
-    this.kind = Objects.requireNonNull(kind);
+    this.kind = requireNonNull(kind);
     computeDigest();
   }
 
@@ -100,7 +101,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
       break;
     }
     sb.append("(");
-    for (Ord<RelDataTypeField> ord : Ord.zip(fieldList)) {
+    for (Ord<RelDataTypeField> ord : Ord.zip(requireNonNull(fieldList, "fieldList"))) {
       if (ord.i > 0) {
         sb.append(", ");
       }
@@ -125,7 +126,7 @@ public class RelRecordType extends RelDataTypeImpl implements Serializable {
    * it back to a RelRecordType during deserialization.
    */
   private Object writeReplace() {
-    return new SerializableRelRecordType(fieldList);
+    return new SerializableRelRecordType(requireNonNull(fieldList, "fieldList"));
   }
 
   //~ Inner Classes ----------------------------------------------------------

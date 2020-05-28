@@ -16,12 +16,18 @@
  */
 package org.apache.calcite.util.graph;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
+
 
 /**
  * Iterates over the edges of a graph in topological order.
@@ -45,7 +51,10 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     return () -> new TopologicalOrderIterator<>(graph);
   }
 
-  private void populate(Map<V, int[]> countMap, List<V> empties) {
+  @RequiresNonNull("graph")
+  private void populate(
+      @UnderInitialization TopologicalOrderIterator<V, E> this,
+      Map<V, int[]> countMap, List<V> empties) {
     for (V v : graph.vertexMap.keySet()) {
       countMap.put(v, new int[] {0});
     }
@@ -53,7 +62,9 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
         : graph.vertexMap.values()) {
       for (E edge : info.outEdges) {
         //noinspection SuspiciousMethodCalls
-        final int[] ints = countMap.get(edge.target);
+        final int[] ints = requireNonNull(
+            countMap.get(edge.target),
+            () -> "no value for " + edge.target);
         ++ints[0];
       }
     }
@@ -71,10 +82,16 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
 
   @Override public V next() {
     V v = empties.remove(0);
-    for (E o : graph.vertexMap.get(v).outEdges) {
+    DefaultDirectedGraph.VertexInfo<V, E> vertexInfo = requireNonNull(
+        graph.vertexMap.get(v),
+        () -> "no vertex " + v);
+    for (E o : vertexInfo.outEdges) {
       //noinspection unchecked
       final V target = (V) o.target;
-      if (--countMap.get(target)[0] == 0) {
+      int[] ints = requireNonNull(
+          countMap.get(target),
+          () -> "no counts found for target " + target);
+      if (--ints[0] == 0) {
         countMap.remove(target);
         empties.add(target);
       }
@@ -90,6 +107,7 @@ public class TopologicalOrderIterator<V, E extends DefaultEdge>
     while (hasNext()) {
       next();
     }
-    return countMap.keySet();
+    //noinspection RedundantCast
+    return (Set<V>) countMap.keySet();
   }
 }

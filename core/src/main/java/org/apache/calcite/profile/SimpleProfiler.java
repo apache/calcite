@@ -27,6 +27,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -39,7 +41,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
 
 /**
  * Basic implementation of {@link Profiler}.
@@ -304,13 +305,13 @@ public class SimpleProfiler implements Profiler {
       return columnOrdinals.hashCode();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof Space
           && columnOrdinals.equals(((Space) o).columnOrdinals);
     }
 
-    @Override public int compareTo(@Nonnull Space o) {
+    @Override public int compareTo(Space o) {
       return columnOrdinals.equals(o.columnOrdinals) ? 0
           : columnOrdinals.contains(o.columnOrdinals) ? 1
               : -1;

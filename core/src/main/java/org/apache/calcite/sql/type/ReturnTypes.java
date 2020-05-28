@@ -38,7 +38,11 @@ import java.util.AbstractList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of return-type inference strategies.
@@ -693,10 +697,10 @@ public abstract class ReturnTypes {
                     argType1.getFullTypeString()));
           }
 
-          pickedCollation =
+          pickedCollation = requireNonNull(
               SqlCollation.getCoercibilityDyadicOperator(
-                  argType0.getCollation(), argType1.getCollation());
-          assert null != pickedCollation;
+                  getCollation(argType0), getCollation(argType1)),
+              () -> "getCoercibilityDyadicOperator is null for " + argType0 + " and " + argType1);
         }
 
         // Determine whether result is variable-length
@@ -723,16 +727,17 @@ public abstract class ReturnTypes {
         ret = typeFactory.createSqlType(typeName, typePrecision);
         if (null != pickedCollation) {
           RelDataType pickedType;
-          if (argType0.getCollation().equals(pickedCollation)) {
+          if (getCollation(argType0).equals(pickedCollation)) {
             pickedType = argType0;
-          } else if (argType1.getCollation().equals(pickedCollation)) {
+          } else if (getCollation(argType1).equals(pickedCollation)) {
             pickedType = argType1;
           } else {
-            throw new AssertionError("should never come here");
+            throw new AssertionError("should never come here, "
+                + "argType0=" + argType0 + ", argType1=" + argType1);
           }
           ret =
               typeFactory.createTypeWithCharsetAndCollation(ret,
-                  pickedType.getCharset(), pickedType.getCollation());
+                  getCharset(pickedType), getCollation(pickedType));
         }
         if (ret.getSqlTypeName() == SqlTypeName.NULL) {
           ret = typeFactory.createTypeWithNullability(

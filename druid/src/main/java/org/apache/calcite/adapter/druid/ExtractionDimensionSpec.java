@@ -18,9 +18,10 @@ package org.apache.calcite.adapter.druid;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.adapter.druid.DruidQuery.writeField;
 import static org.apache.calcite.adapter.druid.DruidQuery.writeFieldIf;

@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Definition of the ordering trait.
  *
@@ -59,7 +61,7 @@ public class RelCollationTraitDef extends RelTraitDef<RelCollation> {
     return RelCollations.EMPTY;
   }
 
-  @Override public RelNode convert(
+  @Override public @Nullable RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       RelCollation toCollation,

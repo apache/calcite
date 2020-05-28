@@ -32,6 +32,8 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 
 import com.google.common.collect.ImmutableMultimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -111,7 +113,7 @@ public class ScalarFunctionImpl extends ReflectiveFunctionBase
    * @param methodName Method name (typically "eval")
    * @return created {@link ScalarFunction} or null
    */
-  public static ScalarFunction create(Class<?> clazz, String methodName) {
+  public static @Nullable ScalarFunction create(Class<?> clazz, String methodName) {
     final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;

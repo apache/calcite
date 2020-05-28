@@ -40,6 +40,8 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Point;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -93,7 +95,7 @@ public abstract class SpatialRules {
       FilterHilbertRule.Config.DEFAULT.toRule();
 
   /** Returns a geometry if an expression is constant, null otherwise. */
-  private static Geometries.Geom constantGeom(RexNode e) {
+  private static Geometries.@Nullable Geom constantGeom(RexNode e) {
     switch (e.getKind()) {
     case CAST:
       return constantGeom(((RexCall) e).getOperands().get(0));
@@ -183,7 +185,7 @@ public abstract class SpatialRules {
      *
      * @return List containing rewritten predicate and original, or null
      */
-    static List<RexNode> replaceSpatial(RexNode conjunction, RelBuilder builder,
+    static @Nullable List<RexNode> replaceSpatial(RexNode conjunction, RelBuilder builder,
         RexInputRef ref, RexCall hilbert) {
       final RexNode op0;
       final RexNode op1;

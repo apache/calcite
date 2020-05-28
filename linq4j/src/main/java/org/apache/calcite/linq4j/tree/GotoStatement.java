@@ -16,7 +16,11 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an unconditional jump. This includes return statements, break and
@@ -24,11 +28,11 @@ import java.util.Objects;
  */
 public class GotoStatement extends Statement {
   public final GotoExpressionKind kind;
-  public final LabelTarget labelTarget;
-  public final Expression expression;
+  public final @Nullable LabelTarget labelTarget;
+  public final @Nullable Expression expression;
 
-  GotoStatement(GotoExpressionKind kind, LabelTarget labelTarget,
-      Expression expression) {
+  GotoStatement(GotoExpressionKind kind, @Nullable LabelTarget labelTarget,
+      @Nullable Expression expression) {
     super(ExpressionType.Goto,
         expression == null ? Void.TYPE : expression.getType());
     assert kind != null : "kind should not be null";
@@ -88,19 +92,19 @@ public class GotoStatement extends Statement {
     writer.append(';').newlineAndIndent();
   }
 
-  @Override public Object evaluate(Evaluator evaluator) {
+  @Override public @Nullable Object evaluate(Evaluator evaluator) {
     switch (kind) {
     case Return:
     case Sequence:
       // NOTE: We ignore control flow. This is only correct if "return"
       // is the last statement in the block.
-      return expression.evaluate(evaluator);
+      return requireNonNull(expression).evaluate(evaluator);
     default:
       throw new AssertionError("evaluate not implemented");
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.materialize;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.UUID;
 
@@ -32,7 +34,7 @@ public class MaterializationKey implements Serializable {
     return uuid.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof MaterializationKey
         && uuid.equals(((MaterializationKey) obj).uuid);

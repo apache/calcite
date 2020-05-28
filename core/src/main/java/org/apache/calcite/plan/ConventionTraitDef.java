@@ -31,7 +31,12 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Definition of the convention trait.
@@ -122,7 +127,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
   }
 
   // implement RelTraitDef
-  @Override public RelNode convert(
+  @Override public @Nullable RelNode convert(
       RelOptPlanner planner,
       RelNode rel,
       Convention toConvention,
@@ -130,7 +135,8 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     final ConversionData conversionData = getConversionData(planner);
 
-    final Convention fromConvention = rel.getConvention();
+    final Convention fromConvention = requireNonNull(rel.getConvention(),
+        () -> "convention is null for rel " + rel);
 
     List<List<Convention>> conversionPaths =
         conversionData.getPaths(fromConvention, toConvention);
@@ -143,7 +149,8 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
       RelNode converted = rel;
       Convention previous = null;
       for (Convention arc : conversionPath) {
-        if (planner.getCost(converted, mq).isInfinite()
+        RelOptCost cost = planner.getCost(converted, mq);
+        if ((cost == null || cost.isInfinite())
             && !allowInfiniteCostConverters) {
           continue loop;
         }
@@ -169,7 +176,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
    * Tries to convert a relational expression to the target convention of an
    * arc.
    */
-  private RelNode changeConvention(
+  private @Nullable RelNode changeConvention(
       RelNode rel,
       Convention source,
       Convention target,
@@ -219,7 +226,7 @@ public class ConventionTraitDef extends RelTraitDef<Convention> {
     final Multimap<Pair<Convention, Convention>, ConverterRule> mapArcToConverterRule =
         HashMultimap.create();
 
-    private Graphs.FrozenGraph<Convention, DefaultEdge> pathMap;
+    private Graphs.@MonotonicNonNull FrozenGraph<Convention, DefaultEdge> pathMap;
 
     public List<List<Convention>> getPaths(
         Convention fromConvention,

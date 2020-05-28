@@ -22,7 +22,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
@@ -54,10 +58,10 @@ import java.util.List;
  *
  * @see RexNode
  */
-public class RexChecker extends RexVisitorImpl<Boolean> {
+public class RexChecker extends RexVisitorImpl<@Nullable Boolean> {
   //~ Instance fields --------------------------------------------------------
 
-  protected final RelNode.Context context;
+  protected final RelNode.@Nullable Context context;
   protected final Litmus litmus;
   protected final List<RelDataType> inputTypeList;
   protected int failCount;
@@ -77,7 +81,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an invalid node is detected
    */
-  public RexChecker(final RelDataType inputRowType, RelNode.Context context,
+  public RexChecker(final RelDataType inputRowType, RelNode.@Nullable Context context,
       Litmus litmus) {
     this(RelOptUtil.getFieldTypeList(inputRowType), context, litmus);
   }
@@ -95,7 +99,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * @param context Context of the enclosing {@link RelNode}, or null
    * @param litmus What to do if an error is detected
    */
-  public RexChecker(List<RelDataType> inputTypeList, RelNode.Context context,
+  public RexChecker(List<RelDataType> inputTypeList, RelNode.@Nullable Context context,
       Litmus litmus) {
     super(true);
     this.inputTypeList = inputTypeList;
@@ -181,6 +185,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * Returns whether an expression is valid.
    */
   public final boolean isValid(RexNode expr) {
-    return expr.accept(this);
+    return requireNonNull(expr.accept(this),
+        () -> "expr.accept(RexChecker) for expr=" + expr);
   }
 }

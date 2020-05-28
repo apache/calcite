@@ -40,6 +40,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,6 +52,10 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Manages the collection of materialized tables known to the system,
  * and the process by which they become valid and invalid.
@@ -59,7 +65,7 @@ public class MaterializationService {
       new MaterializationService();
 
   /** For testing. */
-  private static final ThreadLocal<MaterializationService> THREAD_INSTANCE =
+  private static final ThreadLocal<@Nullable MaterializationService> THREAD_INSTANCE =
       ThreadLocal.withInitial(MaterializationService::new);
 
   private static final Comparator<Pair<CalciteSchema.TableEntry, TileKey>> C =
@@ -67,10 +73,19 @@ public class MaterializationService {
         // We prefer rolling up from the table with the fewest rows.
         final Table t0 = o0.left.getTable();
         final Table t1 = o1.left.getTable();
-        int c = Double.compare(t0.getStatistic().getRowCount(),
-            t1.getStatistic().getRowCount());
-        if (c != 0) {
-          return c;
+        Double rowCount0 = t0.getStatistic().getRowCount();
+        Double rowCount1 = t1.getStatistic().getRowCount();
+        if (rowCount0 != null && rowCount1 != null) {
+          int c = Double.compare(rowCount0, rowCount1);
+          if (c != 0) {
+            return c;
+          }
+        } else if (rowCount0 == null) {
+          // Unknown is worse than known
+          return 1;
+        } else {
+          // rowCount1 == null => Unknown is worse than known
+          return -1;
         }
         // Tie-break based on table name.
         return o0.left.name.compareTo(o1.left.name);
@@ -83,17 +98,17 @@ public class MaterializationService {
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final CalciteSchema schema,
-      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      final String suggestedTableName, boolean create, boolean existing) {
+  public @Nullable MaterializationKey defineMaterialization(final CalciteSchema schema,
+      @Nullable TileKey tileKey, String viewSql, @Nullable List<String> viewSchemaPath,
+      final @Nullable String suggestedTableName, boolean create, boolean existing) {
     return defineMaterialization(schema, tileKey, viewSql, viewSchemaPath,
         suggestedTableName, tableFactory, create, existing);
   }
 
   /** Defines a new materialization. Returns its key. */
-  public MaterializationKey defineMaterialization(final CalciteSchema schema,
-      TileKey tileKey, String viewSql, List<String> viewSchemaPath,
-      String suggestedTableName, TableFactory tableFactory, boolean create,
+  public @Nullable MaterializationKey defineMaterialization(final CalciteSchema schema,
+      @Nullable TileKey tileKey, String viewSql, @Nullable List<String> viewSchemaPath,
+      @Nullable String suggestedTableName, TableFactory tableFactory, boolean create,
       boolean existing) {
     final MaterializationActor.QueryKey queryKey =
         new MaterializationActor.QueryKey(viewSql, schema, viewSchemaPath);
@@ -111,6 +126,7 @@ public class MaterializationService {
     // If the user says the materialization exists, first try to find a table
     // with the name and if none can be found, lookup a view in the schema
     if (existing) {
+      requireNonNull(suggestedTableName, "suggestedTableName");
       tableEntry = schema.getTable(suggestedTableName, true);
       if (tableEntry == null) {
         tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
@@ -152,7 +168,7 @@ public class MaterializationService {
 
   /** Checks whether a materialization is valid, and if so, returns the table
    * where the data are stored. */
-  public CalciteSchema.TableEntry checkValid(MaterializationKey key) {
+  public CalciteSchema.@Nullable TableEntry checkValid(MaterializationKey key) {
     final MaterializationActor.Materialization materialization =
         actor.keyMap.get(key);
     if (materialization != null) {
@@ -169,14 +185,14 @@ public class MaterializationService {
    * during the recursive SQL that populates a materialization. Otherwise a
    * materialization would try to create itself to populate itself!
    */
-  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+  public @Nullable Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact) {
     return defineTile(lattice, groupSet, measureList, schema, create, exact,
         "m" + groupSet, tableFactory);
   }
 
-  public Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
+  public @Nullable Pair<CalciteSchema.TableEntry, TileKey> defineTile(Lattice lattice,
       ImmutableBitSet groupSet, List<Lattice.Measure> measureList,
       CalciteSchema schema, boolean create, boolean exact,
       String suggestedTableName, TableFactory tableFactory) {
@@ -314,7 +330,10 @@ public class MaterializationService {
           && materialization.materializedTable != null) {
         list.add(
             new Prepare.Materialization(materialization.materializedTable,
-                materialization.sql, materialization.viewSchemaPath));
+                materialization.sql,
+                requireNonNull(materialization.viewSchemaPath,
+                    () -> "materialization.viewSchemaPath is null for "
+                        + materialization.materializedTable)));
       }
     }
     return list;
@@ -350,7 +369,7 @@ public class MaterializationService {
    */
   public interface TableFactory {
     Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath);
+        @Nullable List<String> viewSchemaPath);
   }
 
   /**
@@ -359,7 +378,7 @@ public class MaterializationService {
    */
   public static class DefaultTableFactory implements TableFactory {
     @Override public Table createTable(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath) {
+        @Nullable List<String> viewSchemaPath) {
       final CalciteConnection connection =
           CalciteMetaImpl.connect(schema.root(), null);
       final ImmutableMap<CalciteConnectionProperty, String> map =
@@ -368,14 +387,14 @@ public class MaterializationService {
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
       return CloneSchema.createCloneTable(connection.getTypeFactory(),
-          RelDataTypeImpl.proto(calciteSignature.rowType),
+          RelDataTypeImpl.proto(castNonNull(calciteSignature.rowType)),
           calciteSignature.getCollationList(),
           Util.transform(calciteSignature.columns, column -> column.type.rep),
           new AbstractQueryable<Object>() {
             @Override public Enumerator<Object> enumerator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
-                      calciteSignature.rootSchema.plus());
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
               return calciteSignature.enumerable(dataContext).enumerator();
             }
 
@@ -394,7 +413,7 @@ public class MaterializationService {
             @Override public Iterator<Object> iterator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
-                      calciteSignature.rootSchema.plus());
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
               return calciteSignature.enumerable(dataContext).iterator();
             }
           });

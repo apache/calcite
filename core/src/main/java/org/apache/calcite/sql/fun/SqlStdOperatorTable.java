@@ -71,7 +71,14 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -84,7 +91,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The standard operator table.
    */
-  private static SqlStdOperatorTable instance;
+  private static @MonotonicNonNull SqlStdOperatorTable instance;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -930,7 +937,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM</code> aggregate function.
    */
-  public static final SqlAggFunction SUM = new SqlSumAggFunction(null);
+  public static final SqlAggFunction SUM = new SqlSumAggFunction(castNonNull(null));
 
   /**
    * <code>COUNT</code> aggregate function.
@@ -1013,7 +1020,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>SINGLE_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction SINGLE_VALUE =
-      new SqlSingleValueAggFunction(null);
+      new SqlSingleValueAggFunction(castNonNull(null));
 
   /**
    * <code>AVG</code> aggregate function.
@@ -1113,7 +1120,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * aggregate versions of MIN/MAX
    */
   public static final SqlAggFunction HISTOGRAM_AGG =
-      new SqlHistogramAggFunction(null);
+      new SqlHistogramAggFunction(castNonNull(null));
 
   /**
    * <code>HISTOGRAM_MIN</code> window aggregate function.
@@ -2478,7 +2485,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
 
   /** Returns the group function for which a given kind is an auxiliary
    * function, or null if it is not an auxiliary function. */
-  public static SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
+  public static @Nullable SqlGroupedWindowFunction auxiliaryToGroup(SqlKind kind) {
     switch (kind) {
     case TUMBLE_START:
     case TUMBLE_END:
@@ -2499,11 +2506,12 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    *
    * <p>For example, converts {@code TUMBLE_START(rowtime, INTERVAL '1' HOUR))}
    * to {@code TUMBLE(rowtime, INTERVAL '1' HOUR))}. */
-  public static SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
+  public static @Nullable SqlCall convertAuxiliaryToGroupCall(SqlCall call) {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroupAuxiliary()) {
-      return copy(call, ((SqlGroupedWindowFunction) op).groupFunction);
+      SqlGroupedWindowFunction groupFunction = ((SqlGroupedWindowFunction) op).groupFunction;
+      return copy(call, requireNonNull(groupFunction, "groupFunction"));
     }
     return null;
   }

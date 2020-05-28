@@ -21,6 +21,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
@@ -74,7 +76,7 @@ public class MutableMatch extends MutableSingleRel {
         orderKeys, interval);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableMatch
         && pattern.equals(((MutableMatch) obj).pattern)

@@ -41,6 +41,9 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -56,6 +59,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 
 /**
  * Subset of an equivalence class where all relational expressions have the
@@ -83,7 +89,7 @@ public class RelSubset extends AbstractRelNode {
   //~ Instance fields --------------------------------------------------------
 
   /** Optimization task state. */
-  OptimizeState taskState;
+  @Nullable OptimizeState taskState;
 
   /** Cost of best known plan (it may have improved since). */
   RelOptCost bestCost;
@@ -92,7 +98,7 @@ public class RelSubset extends AbstractRelNode {
   final RelSet set;
 
   /** Best known plan. */
-  RelNode best;
+  @Nullable RelNode best;
 
   /** Timestamp for metadata validity. */
   long timestamp;
@@ -131,7 +137,7 @@ public class RelSubset extends AbstractRelNode {
    * A cache that recognize which RelNode has invoked the passThrough method
    * so as to avoid duplicate invocation.
    */
-  Set<RelNode> passThroughCache;
+  @Nullable Set<RelNode> passThroughCache;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -142,7 +148,7 @@ public class RelSubset extends AbstractRelNode {
     super(cluster, traits);
     this.set = set;
     assert traits.allSimple();
-    computeBestCost(cluster.getPlanner());
+    computeBestCost(cluster, cluster.getPlanner());
     upperBound = bestCost;
   }
 
@@ -161,11 +167,21 @@ public class RelSubset extends AbstractRelNode {
    *    {@link RelSet#mergeWith(VolcanoPlanner, RelSet)}.</li>
    * </ol>
    */
-  private void computeBestCost(RelOptPlanner planner) {
+  @EnsuresNonNull("bestCost")
+  private void computeBestCost(
+      @UnderInitialization RelSubset this,
+      RelOptCluster cluster,
+      RelOptPlanner planner
+  ) {
     bestCost = planner.getCostFactory().makeInfiniteCost();
-    final RelMetadataQuery mq = getCluster().getMetadataQuery();
-    for (RelNode rel : getRels()) {
+    final RelMetadataQuery mq = cluster.getMetadataQuery();
+    @SuppressWarnings("method.invocation.invalid")
+    Iterable<RelNode> rels = getRels();
+    for (RelNode rel : rels) {
       final RelOptCost cost = planner.getCost(rel, mq);
+      if (cost == null) {
+        continue;
+      }
       if (cost.isLt(bestCost)) {
         bestCost = cost;
         best = rel;
@@ -202,11 +218,11 @@ public class RelSubset extends AbstractRelNode {
     return enforceDisabled;
   }
 
-  public RelNode getBest() {
+  public @Nullable RelNode getBest() {
     return best;
   }
 
-  public RelNode getOriginal() {
+  public @Nullable RelNode getOriginal() {
     return set.rel;
   }
 
@@ -229,7 +245,7 @@ public class RelSubset extends AbstractRelNode {
     if (best != null) {
       return mq.getRowCount(best);
     } else {
-      return mq.getRowCount(set.rel);
+      return mq.getRowCount(castNonNull(set.rel));
     }
   }
 
@@ -238,7 +254,7 @@ public class RelSubset extends AbstractRelNode {
     // values to be printed later. We actually do the work.
     pw.item("subset", toString());
     final AbstractRelNode input =
-        (AbstractRelNode) Util.first(getBest(), getOriginal());
+        (@Nullable AbstractRelNode) Util.first(getBest(), getOriginal());
     if (input == null) {
       return;
     }
@@ -246,7 +262,7 @@ public class RelSubset extends AbstractRelNode {
     pw.done(input);
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     return this == obj;
   }
 
@@ -255,7 +271,7 @@ public class RelSubset extends AbstractRelNode {
   }
 
   @Override protected RelDataType deriveRowType() {
-    return set.rel.getRowType();
+    return castNonNull(set.rel).getRowType();
   }
 
   /**
@@ -284,7 +300,7 @@ public class RelSubset extends AbstractRelNode {
     for (RelNode parent : set.getParentRels()) {
       for (RelSubset rel : inputSubsets(parent)) {
         if (rel.set == set && rel.getTraitSet().equals(traitSet)) {
-          list.add(planner.getSubset(parent));
+          list.add(planner.getSubsetNonNull(parent));
         }
       }
     }
@@ -431,7 +447,7 @@ public class RelSubset extends AbstractRelNode {
    * or null if the subset is not fully optimized.
    */
   @API(since = "1.24", status = API.Status.INTERNAL)
-  public RelOptCost getWinnerCost() {
+  public @Nullable RelOptCost getWinnerCost() {
     if (taskState == OptimizeState.COMPLETED && bestCost.isLe(upperBound)) {
       return bestCost;
     }
@@ -461,7 +477,7 @@ public class RelSubset extends AbstractRelNode {
     return optimized;
   }
 
-  RelNode passThrough(RelNode rel) {
+  @Nullable RelNode passThrough(RelNode rel) {
     if (!(rel instanceof PhysicalNode)) {
       return null;
     }
@@ -588,7 +604,7 @@ public class RelSubset extends AbstractRelNode {
     public RelNode visit(
         RelNode p,
         int ordinal,
-        RelNode parent) {
+        @Nullable RelNode parent) {
       if (p instanceof RelSubset) {
         RelSubset subset = (RelSubset) p;
         RelNode cheapest = subset.best;
@@ -617,8 +633,11 @@ public class RelSubset extends AbstractRelNode {
             Map<String, Long> problemCounts =
                 finder.deadEnds.stream()
                     .filter(deadSubset -> deadSubset.getOriginal() != null)
-                    .map(x -> x.getOriginal().getClass().getSimpleName()
-                        + traitDiff(x.getOriginal().getTraitSet(), x.getTraitSet()))
+                    .map(x -> {
+                      RelNode original = castNonNull(x.getOriginal());
+                      return original.getClass().getSimpleName()
+                          + traitDiff(original.getTraitSet(), x.getTraitSet());
+                    })
                     .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
             // Sort problems from most often to less often ones
             String problems = problemCounts.entrySet().stream()
@@ -647,8 +666,10 @@ public class RelSubset extends AbstractRelNode {
               pw.print(deadEnd);
               pw.println(", the relevant part of the original plan is as follows");
               RelNode original = deadEnd.getOriginal();
-              original.explain(
-                  new RelWriterImpl(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true));
+              if (original != null) {
+                original.explain(
+                    new RelWriterImpl(pw, SqlExplainLevel.EXPPLAN_ATTRIBUTES, true));
+              }
               i++;
               rest--;
               if (rest > 0) {

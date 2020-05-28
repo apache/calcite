@@ -28,6 +28,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -398,10 +400,10 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   //~ Instance fields --------------------------------------------------------
 
   private final String jdbcName;
-  private final MakeCall lookupMakeCallObj;
-  private SqlCall lookupCall;
+  private final @Nullable MakeCall lookupMakeCallObj;
+  private @Nullable SqlCall lookupCall;
 
-  private SqlNode[] thisOperands;
+  private SqlNode @Nullable [] thisOperands;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -436,9 +438,9 @@ public class SqlJdbcFunctionCall extends SqlFunction {
   }
 
   @Override public SqlCall createCall(
-      SqlLiteral functionQualifier,
+      @Nullable SqlLiteral functionQualifier,
       SqlParserPos pos,
-      SqlNode... operands) {
+      @Nullable SqlNode... operands) {
     thisOperands = operands;
     return super.createCall(functionQualifier, pos, operands);
   }
@@ -570,7 +572,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     SqlOperator getOperator();
 
-    String isValidArgCount(SqlCallBinding binding);
+    @Nullable String isValidArgCount(SqlCallBinding binding);
   }
 
   /** Converter that calls a built-in function with the same arguments. */
@@ -589,7 +591,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       return operator.createCall(pos, operands);
     }
 
-    @Override public String isValidArgCount(SqlCallBinding binding) {
+    @Override public @Nullable String isValidArgCount(SqlCallBinding binding) {
       return null; // any number of arguments is valid
     }
   }
@@ -618,7 +620,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
       return super.createCall(pos, reorder(operands));
     }
 
-    @Override public String isValidArgCount(SqlCallBinding binding) {
+    @Override public @Nullable String isValidArgCount(SqlCallBinding binding) {
       if (order.length == binding.getOperandCount()) {
         return null; // operand count is valid
       } else {
@@ -669,6 +671,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
 
     private final Map<String, MakeCall> map;
 
+    @SuppressWarnings("method.invocation.invalid")
     private JdbcToInternalLookupTable() {
       // A table of all functions can be found at
       // http://java.sun.com/products/jdbc/driverdevs.html
@@ -762,7 +765,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
               assert typeOperand.getKind() == SqlKind.LITERAL;
 
               SqlJdbcDataTypeName jdbcType = ((SqlLiteral) typeOperand)
-                  .symbolValue(SqlJdbcDataTypeName.class);
+                  .getValueAs(SqlJdbcDataTypeName.class);
 
               return super.createCall(pos, operands[0], jdbcType.createDataType(typeOperand.pos));
             }
@@ -790,7 +793,7 @@ public class SqlJdbcFunctionCall extends SqlFunction {
      * Tries to lookup a given function name JDBC to an internal
      * representation. Returns null if no function defined.
      */
-    public MakeCall lookup(String name) {
+    public @Nullable MakeCall lookup(String name) {
       return map.get(name);
     }
   }

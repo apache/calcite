@@ -96,7 +96,7 @@ public abstract class RuleQueue {
    */
   private void checkDuplicateSubsets(Deque<RelSubset> subsets,
       RelOptRuleOperand operand, RelNode[] rels) {
-    final RelSubset subset = planner.getSubset(rels[operand.ordinalInRule]);
+    final RelSubset subset = planner.getSubsetNonNull(rels[operand.ordinalInRule]);
     if (subsets.contains(subset)) {
       throw Util.FoundOne.NULL;
     }

@@ -73,6 +73,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 
 import java.io.IOException;
@@ -86,8 +87,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of a Druid data set.
@@ -629,7 +628,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
     return Object[].class;
   }
 
-  @Override public Enumerable<Object[]> bind(DataContext dataContext) {
+  @Override public Enumerable<@Nullable Object[]> bind(DataContext dataContext) {
     return table.unwrap(ScannableTable.class).scan(dataContext);
   }
 
@@ -1135,7 +1134,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param numericCollationIndexes flag of to determine sort comparator
    * @param queryOutputFieldNames query output fields
    */
-  private @Nonnull JsonLimit computeSort(@Nullable Integer fetch,
+  private JsonLimit computeSort(@Nullable Integer fetch,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes,
       List<String> queryOutputFieldNames) {
@@ -1350,7 +1349,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.fetchLimit = fetchLimit;
     }
 
-    @Nonnull public String toQuery() {
+    public String toQuery() {
       final StringWriter sw = new StringWriter();
       try {
         final JsonFactory factory = new JsonFactory();

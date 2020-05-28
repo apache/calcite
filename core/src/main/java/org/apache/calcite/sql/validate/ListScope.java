@@ -25,6 +25,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -74,11 +76,11 @@ public abstract class ListScope extends DelegatingScope {
    *
    * @return list of child namespaces
    */
-  List<String> getChildNames() {
+  List<@Nullable String> getChildNames() {
     return Util.transform(children, scopeChild -> scopeChild.name);
   }
 
-  private ScopeChild findChild(List<String> names,
+  private @Nullable ScopeChild findChild(List<String> names,
       SqlNameMatcher nameMatcher) {
     for (ScopeChild child : children) {
       String lastName = Util.last(names);
@@ -100,16 +102,22 @@ public abstract class ListScope extends DelegatingScope {
       if (table != null) {
         final ResolvedImpl resolved = new ResolvedImpl();
         resolveTable(names, nameMatcher, Path.EMPTY, resolved);
-        if (resolved.count() == 1
-            && resolved.only().remainingNames.isEmpty()
-            && resolved.only().namespace instanceof TableNamespace
-            && resolved.only().namespace.getTable().getQualifiedName().equals(
-                table.getQualifiedName())) {
-          return child;
+        if (resolved.count() == 1) {
+          Resolve only = resolved.only();
+          List<String> qualifiedName = table.getQualifiedName();
+          if (only.remainingNames.isEmpty()
+              && only.namespace instanceof TableNamespace
+              && Objects.equals(qualifiedName, getQualifiedName(only.namespace.getTable()))) {
+            return child;
+          }
         }
       }
     }
     return null;
+  }
+
+  private @Nullable List<String> getQualifiedName(@Nullable SqlValidatorTable table) {
+    return table == null ? null : table.getQualifiedName();
   }
 
   @Override public void findAllColumnNames(List<SqlMoniker> result) {
@@ -200,7 +208,7 @@ public abstract class ListScope extends DelegatingScope {
     super.resolve(names, nameMatcher, deep, resolved);
   }
 
-  @Override public RelDataType resolveColumn(String columnName, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String columnName, SqlNode ctx) {
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     int found = 0;
     RelDataType type = null;

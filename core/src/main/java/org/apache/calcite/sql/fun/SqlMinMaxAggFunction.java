@@ -30,6 +30,8 @@ import org.apache.calcite.util.Optionality;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -143,7 +145,7 @@ public class SqlMinMaxAggFunction extends SqlAggFunction {
     }
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.SelfSplitter.INSTANCE);
     }

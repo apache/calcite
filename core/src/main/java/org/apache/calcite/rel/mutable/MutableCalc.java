@@ -18,6 +18,8 @@ package org.apache.calcite.rel.mutable;
 
 import org.apache.calcite.rex.RexProgram;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Calc}. */
@@ -39,7 +41,7 @@ public class MutableCalc extends MutableSingleRel {
     return new MutableCalc(input, program);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableCalc
         && MutableRel.STRING_EQUIVALENCE.equivalent(

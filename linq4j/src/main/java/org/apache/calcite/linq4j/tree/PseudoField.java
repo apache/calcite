@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 
 /**
@@ -29,7 +31,7 @@ public interface PseudoField {
 
   int getModifiers();
 
-  Object get(Object o) throws IllegalAccessException;
+  @Nullable Object get(@Nullable Object o) throws IllegalAccessException;
 
   Type getDeclaringClass();
 }

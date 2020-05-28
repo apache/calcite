@@ -26,6 +26,8 @@ import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * TraitMatchingRule adapts a converter rule, restricting it to fire only when
  * its input already matches the expected output trait. This can be used with
@@ -73,7 +75,7 @@ public class TraitMatchingRule extends RelRule<TraitMatchingRule.Config> {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public Convention getOutConvention() {
+  @Override public @Nullable Convention getOutConvention() {
     return config.converterRule().getOutConvention();
   }
 

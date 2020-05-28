@@ -18,15 +18,18 @@ package org.apache.calcite.sql.advise;
 
 import org.apache.calcite.sql.validate.SqlMoniker;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * This class is used to return values for
  * {@link SqlAdvisor#getCompletionHints (String, int, String[])}.
  */
 public class SqlAdvisorHint2 extends SqlAdvisorHint {
   /** Replacement string. */
-  public final String replacement;
+  public final @Nullable String replacement;
 
-  public SqlAdvisorHint2(String id, String[] names, String type, String replacement) {
+  public SqlAdvisorHint2(String id, String @Nullable [] names, String type,
+      @Nullable String replacement) {
     super(id, names, type);
     this.replacement = replacement;
   }

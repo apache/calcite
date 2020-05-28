@@ -19,16 +19,18 @@ package org.apache.calcite.rel.mutable;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /** Mutable equivalent of {@link org.apache.calcite.rel.core.Sort}. */
 public class MutableSort extends MutableSingleRel {
   public final RelCollation collation;
-  public final RexNode offset;
-  public final RexNode fetch;
+  public final @Nullable RexNode offset;
+  public final @Nullable RexNode fetch;
 
   private MutableSort(MutableRel input, RelCollation collation,
-      RexNode offset, RexNode fetch) {
+      @Nullable RexNode offset, @Nullable RexNode fetch) {
     super(MutableRelType.SORT, input.rowType, input);
     this.collation = collation;
     this.offset = offset;
@@ -45,11 +47,11 @@ public class MutableSort extends MutableSingleRel {
    * @param fetch     Expression for number of rows to fetch
    */
   public static MutableSort of(MutableRel input, RelCollation collation,
-      RexNode offset, RexNode fetch) {
+      @Nullable RexNode offset, @Nullable RexNode fetch) {
     return new MutableSort(input, collation, offset, fetch);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof MutableSort
         && collation.equals(((MutableSort) obj).collation)

@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlKind;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Access to a field of a row-expression.
  *
@@ -103,7 +105,7 @@ public class RexFieldAccess extends RexNode {
     return expr;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

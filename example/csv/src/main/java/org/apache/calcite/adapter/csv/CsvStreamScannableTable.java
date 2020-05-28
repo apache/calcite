@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.csv;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.CsvEnumerator;
 import org.apache.calcite.adapter.file.CsvFieldType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -29,8 +30,12 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.calcite.util.Source;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file.
@@ -53,12 +58,13 @@ public class CsvStreamScannableTable extends CsvScannableTable
     return "CsvStreamScannableTable";
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
-    final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
     final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
         return new CsvEnumerator<>(source, cancelFlag, true, null,
             CsvEnumerator.arrayConverter(fieldTypes, fields, true));
       }

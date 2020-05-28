@@ -21,6 +21,8 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import org.slf4j.Logger;
 
+import static java.util.Objects.requireNonNull;
+
 /***
  * <p>The algorithm executes repeatedly. The exact rules
  * that may be fired varies.
@@ -46,7 +48,8 @@ class IterativeRuleDriver implements RuleDriver {
 
   @Override public void drive() {
     while (true) {
-      LOGGER.debug("PLANNER = {}; COST = {}", this, planner.root.bestCost);
+      LOGGER.debug("PLANNER = {}; COST = {}", this,
+          requireNonNull(planner.root, "planner.root").bestCost);
 
       VolcanoRuleMatch match = ruleQueue.popMatch();
       if (match == null) {

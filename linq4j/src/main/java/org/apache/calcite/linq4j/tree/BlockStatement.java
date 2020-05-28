@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +41,10 @@ public class BlockStatement extends Statement {
     assert distinctVariables(true);
   }
 
-  private boolean distinctVariables(boolean fail) {
+  private boolean distinctVariables(
+      @UnderInitialization(BlockStatement.class) BlockStatement this,
+      boolean fail
+  ) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {
@@ -75,7 +81,7 @@ public class BlockStatement extends Statement {
     writer.end("}\n");
   }
 
-  @Override public Object evaluate(Evaluator evaluator) {
+  @Override public @Nullable Object evaluate(Evaluator evaluator) {
     Object o = null;
     for (Statement statement : statements) {
       o = statement.evaluate(evaluator);
@@ -83,7 +89,7 @@ public class BlockStatement extends Statement {
     return o;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

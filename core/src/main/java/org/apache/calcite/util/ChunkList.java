@@ -16,12 +16,18 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractSequentialList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of list similar to {@link LinkedList}, but stores elements
@@ -44,8 +50,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
   }
 
   private int size;
-  private Object[] first;
-  private Object[] last;
+  private E @Nullable [] first;
+  private E @Nullable [] last;
 
   /**
    * Creates an empty ChunkList.
@@ -57,7 +63,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
    * Creates a ChunkList whose contents are a given Collection.
    */
   public ChunkList(Collection<E> collection) {
-    addAll(collection);
+    @SuppressWarnings({"method.invocation.invalid", "unused"})
+    boolean ignore = addAll(collection);
   }
 
   /**
@@ -83,8 +90,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       assert !fail;
       return false;
     }
-    Object[] prev = null;
-    for (Object[] chunk = first; chunk != null; chunk = next(chunk)) {
+    E[] prev = null;
+    for (E[] chunk = first; chunk != null; chunk = next(chunk)) {
       if (prev(chunk) != prev) {
         assert !fail;
         return false;
@@ -113,16 +120,18 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
   }
 
   @Override public boolean add(E element) {
-    Object[] chunk = last;
+    E[] chunk = last;
     int occupied;
     if (chunk == null) {
-      chunk = first = last = new Object[CHUNK_SIZE + HEADER_SIZE];
+      //noinspection unchecked
+      chunk = first = last = (E[]) new Object[CHUNK_SIZE + HEADER_SIZE];
       occupied = 0;
     } else {
       occupied = occupied(chunk);
       if (occupied == CHUNK_SIZE) {
-        chunk = new Object[CHUNK_SIZE + HEADER_SIZE];
-        setNext(last, chunk);
+        //noinspection unchecked
+        chunk = (E[]) new Object[CHUNK_SIZE + HEADER_SIZE];
+        setNext(requireNonNull(last, "last"), chunk);
         setPrev(chunk, last);
         occupied = 0;
         last = chunk;
@@ -142,37 +151,42 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     }
   }
 
-  private static Object[] prev(Object[] chunk) {
-    return (Object[]) chunk[0];
+  private static <E> E @Nullable [] prev(E[] chunk) {
+    //noinspection unchecked
+    return (E @Nullable []) chunk[0];
   }
 
-  private static void setPrev(Object[] chunk, Object[] prev) {
-    chunk[0] = prev;
+  private static <E> void setPrev(E[] chunk, E @Nullable [] prev) {
+    //noinspection unchecked
+    chunk[0] = (E) prev;
   }
 
-  private static Object[] next(Object[] chunk) {
-    return (Object[]) chunk[1];
+  private static <E> E @Nullable [] next(E[] chunk) {
+    //noinspection unchecked
+    return (E @Nullable []) chunk[1];
   }
 
-  private static void setNext(Object[] chunk, Object[] next) {
+  private static <E> void setNext(E[] chunk, E @Nullable [] next) {
     assert chunk != next;
-    chunk[1] = next;
+    //noinspection unchecked
+    chunk[1] = (E) next;
   }
 
-  private static int occupied(Object[] chunk) {
-    return (Integer) chunk[2];
+  private static <E> int occupied(E[] chunk) {
+    return (Integer) requireNonNull(chunk[2], "chunk[2] (number of occupied entries)");
   }
 
-  private static void setOccupied(Object[] chunk, int size) {
-    chunk[2] = INTEGERS[size];
+  @SuppressWarnings("unchecked")
+  private static <E> void setOccupied(E[] chunk, int size) {
+    chunk[2] = (E) INTEGERS[size];
   }
 
-  private static Object element(Object[] chunk, int index) {
+  private static <E> E element(E[] chunk, int index) {
     return chunk[index];
   }
 
-  private static void setElement(Object[] chunk, int index, Object element) {
-    chunk[index] = element;
+  private static <E> void setElement(E[] chunk, int index, @Nullable E element) {
+    chunk[index] = castNonNull(element);
   }
 
   private ChunkListIterator locate(int index) {
@@ -184,10 +198,10 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       return new ChunkListIterator(null, 0, 0, -1, 0);
     }
     int n = 0;
-    for (Object[] chunk = first;;) {
+    for (E[] chunk = first;;) {
       final int occupied = occupied(chunk);
       final int nextN = n + occupied;
-      final Object[] next = next(chunk);
+      final E[] next = next(chunk);
       if (nextN >= index || next == null) {
         return new ChunkListIterator(chunk, n, index, -1, n + occupied);
       }
@@ -198,7 +212,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
 
   /** Iterator over a {@link ChunkList}. */
   private class ChunkListIterator implements ListIterator<E> {
-    private Object[] chunk;
+    private E @Nullable [] chunk;
     /** Offset in the list of the first element of this chunk. */
     private int start;
     /** Offset within current chunk of the next element to return. */
@@ -209,13 +223,17 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
     /** Offset of the first unoccupied location in the current chunk. */
     private int end;
 
-    ChunkListIterator(Object[] chunk, int start, int cursor, int lastRet,
+    ChunkListIterator(E @Nullable [] chunk, int start, int cursor, int lastRet,
         int end) {
       this.chunk = chunk;
       this.start = start;
       this.cursor = cursor;
       this.lastRet = lastRet;
       this.end = end;
+    }
+
+    private E[] currentChunk() {
+      return castNonNull(chunk);
     }
 
     @Override public boolean hasNext() {
@@ -240,7 +258,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
         }
       }
       @SuppressWarnings("unchecked")
-      final E element = (E) element(chunk,
+      final E element = (E) element(currentChunk(),
           HEADER_SIZE + (lastRet = cursor++) - start);
       return element;
     }
@@ -262,7 +280,7 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
         assert cursor == end - 1;
       }
       //noinspection unchecked
-      return (E) element(chunk, cursor - start);
+      return (E) element(currentChunk(), cursor - start);
     }
 
     @Override public int nextIndex() {
@@ -281,8 +299,8 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       --cursor;
       if (end == start + 1) {
         // Chunk is now empty.
-        final Object[] prev = prev(chunk);
-        final Object[] next = ChunkList.next(chunk);
+        final E[] prev = prev(currentChunk());
+        final E[] next = ChunkList.next(currentChunk());
         if (next == null) {
           last = prev;
           if (prev == null) {
@@ -296,13 +314,13 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
           if (prev == null) {
             chunk = first = next;
             setPrev(next, null);
-            end = occupied(chunk);
+            end = occupied(requireNonNull(chunk, "chunk"));
           } else {
             setNext(prev, next);
             setPrev(next, prev);
             chunk = prev;
             end = start;
-            start -= occupied(chunk);
+            start -= occupied(requireNonNull(chunk, "chunk"));
           }
         }
         lastRet = -1;
@@ -313,24 +331,24 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       if (r < start) {
         // Element we wish to eliminate is the last element in the previous
         // block.
-        Object[] c = chunk;
+        E[] c = chunk;
         if (c == null) {
           c = last;
         }
-        int o = occupied(c);
+        int o = occupied(castNonNull(c));
         if (o == 1) {
           // Block is now empty; remove it
-          final Object[] prev = prev(c);
+          final E[] prev = prev(c);
           if (prev == null) {
             if (chunk == null) {
               first = last = null;
             } else {
               first = chunk;
-              setPrev(chunk, null);
+              setPrev(requireNonNull(chunk, "chunk"), null);
             }
           } else {
-            setNext(prev, chunk);
-            setPrev(chunk, prev);
+            setNext(requireNonNull(prev, "prev"), chunk);
+            setPrev(requireNonNull(chunk, "chunk"), prev);
           }
         } else {
           --o;
@@ -339,12 +357,12 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
         }
       } else {
         // Move existing contents down one.
-        System.arraycopy(chunk, HEADER_SIZE + r - start + 1,
-            chunk, HEADER_SIZE + r - start, end - r - 1);
+        System.arraycopy(currentChunk(), HEADER_SIZE + r - start + 1,
+            currentChunk(), HEADER_SIZE + r - start, end - r - 1);
         --end;
         final int o = end - start;
-        setElement(chunk, HEADER_SIZE + o, null); // allow gc
-        setOccupied(chunk, o);
+        setElement(currentChunk(), HEADER_SIZE + o, null); // allow gc
+        setOccupied(currentChunk(), o);
       }
     }
 
@@ -352,23 +370,24 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       if (lastRet < 0) {
         throw new IllegalStateException();
       }
-      Object[] c = chunk;
+      E[] c = currentChunk();
       int p = lastRet;
       int s = start;
       if (p < start) {
         // The element is at the end of the previous chunk
         c = prev(c);
-        s -= occupied(c);
+        s -= occupied(castNonNull(c));
       }
       setElement(c, HEADER_SIZE + p - s, e);
     }
 
     @Override public void add(E e) {
       if (chunk == null) {
-        Object[] newChunk = new Object[CHUNK_SIZE + HEADER_SIZE];
+        //noinspection unchecked
+        E[] newChunk = (E[]) new Object[CHUNK_SIZE + HEADER_SIZE];
         if (first != null) {
           setNext(newChunk, first);
-          setPrev(first, newChunk);
+          setPrev(requireNonNull(first, "first"), newChunk);
         }
         first = newChunk;
         if (last == null) {
@@ -379,10 +398,11 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
       } else if (end == start + CHUNK_SIZE) {
         // FIXME We create a new chunk, but the next chunk might be
         // less than half full. We should consider using it.
-        Object[] newChunk = new Object[CHUNK_SIZE + HEADER_SIZE];
-        final Object[] next = ChunkList.next(chunk);
+        //noinspection unchecked
+        E[] newChunk = (E[]) new Object[CHUNK_SIZE + HEADER_SIZE];
+        final E[] next = ChunkList.next(chunk);
         setPrev(newChunk, chunk);
-        setNext(chunk, newChunk);
+        setNext(requireNonNull(chunk, "chunk"), newChunk);
 
         if (next == null) {
           last = newChunk;
@@ -391,9 +411,9 @@ public class ChunkList<E> extends AbstractSequentialList<E> {
           setNext(newChunk, next);
         }
 
-        setOccupied(chunk, CHUNK_SIZE / 2);
+        setOccupied(requireNonNull(chunk, "chunk"), CHUNK_SIZE / 2);
         setOccupied(newChunk, CHUNK_SIZE / 2);
-        System.arraycopy(chunk, HEADER_SIZE + CHUNK_SIZE / 2,
+        System.arraycopy(requireNonNull(chunk, "chunk"), HEADER_SIZE + CHUNK_SIZE / 2,
             newChunk, HEADER_SIZE, CHUNK_SIZE / 2);
         Arrays.fill(chunk, HEADER_SIZE + CHUNK_SIZE / 2,
             HEADER_SIZE + CHUNK_SIZE, null);

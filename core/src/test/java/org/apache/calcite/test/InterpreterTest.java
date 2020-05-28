@@ -37,6 +37,7 @@ import org.apache.calcite.tools.RelConversionException;
 import org.apache.calcite.tools.ValidationException;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,15 +71,15 @@ class InterpreterTest {
       return rootSchema;
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    public @Nullable JavaTypeFactory getTypeFactory() {
       return (JavaTypeFactory) planner.getTypeFactory();
     }
 
-    public QueryProvider getQueryProvider() {
+    public @Nullable QueryProvider getQueryProvider() {
       return null;
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       return null;
     }
   }

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
@@ -26,13 +28,13 @@ import java.util.Objects;
  */
 public class NewArrayExpression extends Expression {
   public final int dimension;
-  public final Expression bound;
-  public final List<Expression> expressions;
+  public final @Nullable Expression bound;
+  public final @Nullable List<Expression> expressions;
   /** Cached hash code for the expression. */
   private int hash;
 
-  public NewArrayExpression(Type type, int dimension, Expression bound,
-      List<Expression> expressions) {
+  public NewArrayExpression(Type type, int dimension, @Nullable Expression bound,
+      @Nullable List<Expression> expressions) {
     super(ExpressionType.NewArrayInit, Types.arrayType(type, dimension));
     this.dimension = dimension;
     this.bound = bound;
@@ -67,7 +69,7 @@ public class NewArrayExpression extends Expression {
     }
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

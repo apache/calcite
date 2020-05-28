@@ -34,6 +34,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
@@ -350,7 +354,7 @@ public abstract class SqlAbstractParserImpl {
 
   protected int nDynamicParams;
 
-  protected String originalSql;
+  protected @Nullable String originalSql;
 
   protected final List<CalciteContextException> warnings = new ArrayList<>();
 
@@ -421,7 +425,7 @@ public abstract class SqlAbstractParserImpl {
    * @param ex dirty excn
    * @return clean excn
    */
-  public abstract SqlParseException normalizeException(Throwable ex);
+  public abstract SqlParseException normalizeException(@PolyNull Throwable ex);
 
   protected abstract SqlParserPos getPos() throws Exception;
 
@@ -499,7 +503,7 @@ public abstract class SqlAbstractParserImpl {
   /**
    * Returns the SQL text.
    */
-  public String getOriginalSql() {
+  public @Nullable String getOriginalSql() {
     return originalSql;
   }
 
@@ -669,6 +673,7 @@ public abstract class SqlAbstractParserImpl {
      * Initializes lists of keywords.
      */
     private void initList(
+        @UnderInitialization MetadataImpl this,
         SqlAbstractParserImpl parserImpl,
         Set<String> keywords,
         String name) {
@@ -714,13 +719,14 @@ public abstract class SqlAbstractParserImpl {
      * @param name       Name of method. For example "ReservedFunctionName".
      * @return Result of calling method
      */
-    private Object virtualCall(
+    private @Nullable Object virtualCall(
+        @UnderInitialization MetadataImpl this,
         SqlAbstractParserImpl parserImpl,
         String name) throws Throwable {
       Class<?> clazz = parserImpl.getClass();
       try {
-        final Method method = clazz.getMethod(name, (Class[]) null);
-        return method.invoke(parserImpl, (Object[]) null);
+        final Method method = clazz.getMethod(name);
+        return method.invoke(parserImpl);
       } catch (InvocationTargetException e) {
         Throwable cause = e.getCause();
         throw parserImpl.normalizeException(cause);
@@ -730,7 +736,8 @@ public abstract class SqlAbstractParserImpl {
     /**
      * Builds a comma-separated list of JDBC reserved words.
      */
-    private String constructSql92ReservedWordList() {
+    private String constructSql92ReservedWordList(
+        @UnderInitialization MetadataImpl this) {
       StringBuilder sb = new StringBuilder();
       TreeSet<String> jdbcReservedSet = new TreeSet<>();
       jdbcReservedSet.addAll(tokenSet);

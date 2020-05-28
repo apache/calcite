@@ -62,6 +62,12 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -74,10 +80,15 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * VolcanoPlanner optimizes queries by transforming expressions selectively
@@ -87,7 +98,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   //~ Instance fields --------------------------------------------------------
 
-  protected RelSubset root;
+  protected @MonotonicNonNull RelSubset root;
 
   /**
    * Operands that apply to a given class of {@link RelNode}.
@@ -149,9 +160,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   private int nextSetId = 0;
 
-  private RelNode originalRoot;
+  private @MonotonicNonNull RelNode originalRoot;
 
-  private Convention rootConvention;
+  private @Nullable Convention rootConvention;
 
   /**
    * Whether the planner can accept new rules.
@@ -217,8 +228,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Creates a {@code VolcanoPlanner} with a given cost factory.
    */
-  public VolcanoPlanner(RelOptCostFactory costFactory,
-      Context externalContext) {
+  @SuppressWarnings("method.invocation.invalid")
+  public VolcanoPlanner(@Nullable RelOptCostFactory costFactory,
+      @Nullable Context externalContext) {
     super(costFactory == null ? VolcanoCost.FACTORY : costFactory,
         externalContext);
     this.zeroCost = this.costFactory.makeZeroCost();
@@ -229,6 +241,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     initRuleQueue();
   }
 
+  @EnsuresNonNull("ruleDriver")
   private void initRuleQueue() {
     if (topDownOpt) {
       ruleDriver = new TopDownRuleDriver(this);
@@ -273,7 +286,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     ensureRootConverters();
   }
 
-  @Override public RelNode getRoot() {
+  @Pure
+  @Override public @Nullable RelNode getRoot() {
     return root;
   }
 
@@ -290,7 +304,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     latticeByName.put(lattice.starRelOptTable.getQualifiedName(), lattice);
   }
 
-  @Override public RelOptLattice getLattice(RelOptTable table) {
+  @Override public @Nullable RelOptLattice getLattice(RelOptTable table) {
     return latticeByName.get(table.getQualifiedName());
   }
 
@@ -301,6 +315,9 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (config == null || !config.materializationsEnabled()) {
       return;
     }
+
+    assert root != null : "root";
+    assert originalRoot != null : "originalRoot";
 
     // Register rels using materialized views.
     final List<Pair<RelNode, List<RelOptMaterialization>>> materializationUses =
@@ -350,7 +367,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return Equivalence set that expression belongs to, or null if it is not
    * registered
    */
-  public RelSet getSet(RelNode rel) {
+  public @Nullable RelSet getSet(RelNode rel) {
     assert rel != null : "pre: rel != null";
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
@@ -506,6 +523,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * query
    */
   @Override public RelNode findBestExp() {
+    assert root != null : "root must not be null";
     ensureRootConverters();
     registerMaterializations();
 
@@ -552,6 +570,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * in the plan where explicit converters are required; elsewhere, a consumer
    * will be asking for the result in a particular convention, but the root has
    * no consumers. */
+  @RequiresNonNull("root")
   void ensureRootConverters() {
     final Set<RelSubset> subsets = new HashSet<>();
     for (RelNode rel : root.getRels()) {
@@ -573,7 +592,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
   @Override public RelSubset register(
       RelNode rel,
-      RelNode equivRel) {
+      @Nullable RelNode equivRel) {
     assert !isRegistered(rel) : "pre: isRegistered(rel)";
     final RelSet set;
     if (equivRel == null) {
@@ -593,12 +612,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return registerImpl(rel, set);
   }
 
-  @Override public RelSubset ensureRegistered(RelNode rel, RelNode equivRel) {
+  @Override public RelSubset ensureRegistered(RelNode rel, @Nullable RelNode equivRel) {
     RelSubset result;
     final RelSubset subset = getSubset(rel);
     if (subset != null) {
       if (equivRel != null) {
-        final RelSubset equivSubset = getSubset(equivRel);
+        final RelSubset equivSubset = getSubsetNonNull(equivRel);
         if (subset.set != equivSubset.set) {
           merge(equivSubset.set, subset.set);
         }
@@ -621,11 +640,12 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * Checks internal consistency.
    */
   protected boolean isValid(Litmus litmus) {
-    if (this.getRoot() == null) {
+    RelNode root = getRoot();
+    if (root == null) {
       return true;
     }
 
-    RelMetadataQuery metaQuery = this.getRoot().getCluster().getMetadataQuerySupplier().get();
+    RelMetadataQuery metaQuery = root.getCluster().getMetadataQuerySupplier().get();
     for (RelSet set : allSets) {
       if (set.equivalentSet != null) {
         return litmus.fail("set [{}] has been merged: it should not be in the list", set);
@@ -647,7 +667,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
           // Make sure bestCost is up-to-date
           try {
             RelOptCost bestCost = getCost(subset.best, metaQuery);
-            if (!subset.bestCost.equals(bestCost)) {
+            if (!Objects.equals(subset.bestCost, bestCost)) {
               return litmus.fail("RelSubset [" + subset
                       + "] has wrong best cost "
                       + subset.bestCost + ". Correct cost is " + bestCost);
@@ -660,7 +680,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         for (RelNode rel : subset.getRels()) {
           try {
             RelOptCost relCost = getCost(rel, metaQuery);
-            if (relCost.isLt(subset.bestCost)) {
+            if (relCost != null && relCost.isLt(subset.bestCost)) {
               return litmus.fail("rel [{}] has lower cost {} than "
                       + "best cost {} of subset [{}]",
                       rel, relCost, subset.bestCost, subset);
@@ -697,7 +717,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     this.noneConventionHasInfiniteCost = infinite;
   }
 
-  @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     assert rel != null : "pre-condition: rel != null";
     if (rel instanceof RelSubset) {
       return ((RelSubset) rel).bestCost;
@@ -707,12 +727,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       return costFactory.makeInfiniteCost();
     }
     RelOptCost cost = mq.getNonCumulativeCost(rel);
+    if (cost == null) {
+      return null;
+    }
     if (!zeroCost.isLt(cost)) {
       // cost must be positive, so nudge it
       cost = costFactory.makeTinyCost();
     }
     for (RelNode input : rel.getInputs()) {
-      cost = cost.plus(getCost(input, mq));
+      RelOptCost inputCost = getCost(input, mq);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
     }
     return cost;
   }
@@ -723,7 +750,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel Relational expression
    * @return Subset it belongs to, or null if it is not registered
    */
-  public RelSubset getSubset(RelNode rel) {
+  public @Nullable RelSubset getSubset(RelNode rel) {
     assert rel != null : "pre: rel != null";
     if (rel instanceof RelSubset) {
       return (RelSubset) rel;
@@ -732,7 +759,19 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     }
   }
 
-  public RelSubset getSubset(RelNode rel, RelTraitSet traits) {
+  /**
+   * Returns the subset that a relational expression belongs to.
+   *
+   * @param rel Relational expression
+   * @return Subset it belongs to, or null if it is not registered
+   * @throws AssertionError in case subset is not found
+   */
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  public RelSubset getSubsetNonNull(RelNode rel) {
+    return requireNonNull(getSubset(rel), () -> "Subset is not found for " + rel);
+  }
+
+  public @Nullable RelSubset getSubset(RelNode rel, RelTraitSet traits) {
     if ((rel instanceof RelSubset) && rel.getTraitSet().equals(traits)) {
       return (RelSubset) rel;
     }
@@ -743,7 +782,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return set.getSubset(traits);
   }
 
-  RelNode changeTraitsUsingConverters(
+  @Nullable RelNode changeTraitsUsingConverters(
       RelNode rel,
       RelTraitSet toTraits) {
     final RelTraitSet fromTraits = rel.getTraitSet();
@@ -776,18 +815,18 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         continue;
       }
 
-      rel =
+      RelNode convertedRel =
           traitDef.convert(
               this,
               converted,
               toTrait,
               allowInfiniteCostConverters);
-      if (rel != null) {
-        assert rel.getTraitSet().getTrait(traitDef).satisfies(toTrait);
-        register(rel, converted);
+      if (convertedRel != null) {
+        assert castNonNull(convertedRel.getTraitSet().getTrait(traitDef)).satisfies(toTrait);
+        register(convertedRel, converted);
       }
 
-      converted = rel;
+      converted = convertedRel;
     }
 
     // make sure final converted traitset subsumes what was required
@@ -852,7 +891,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param rel Relational expression
    */
   void rename(RelNode rel) {
-    String oldDigest = null;
+    String oldDigest = "";
     if (LOGGER.isTraceEnabled()) {
       oldDigest = rel.getDigest();
     }
@@ -871,7 +910,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         mapDigestToRel.put(newDigest, equivRel);
         checkPruned(equivRel, rel);
 
-        RelSubset equivRelSubset = getSubset(equivRel);
+        RelSubset equivRelSubset = getSubsetNonNull(equivRel);
 
         // Remove back-links from children.
         for (RelNode input : rel.getInputs()) {
@@ -885,7 +924,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
         assert subset != null;
         boolean existed = subset.set.rels.remove(rel);
         assert existed : "rel was not known to its set";
-        final RelSubset equivSubset = getSubset(equivRel);
+        final RelSubset equivSubset = getSubsetNonNull(equivRel);
         for (RelSubset s : subset.set.subsets) {
           if (s.best == rel) {
             s.best = equivRel;
@@ -1008,6 +1047,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   /**
    * Find the new root subset in case the root is merged with another subset.
    */
+  @RequiresNonNull("root")
   void canonize() {
     root = canonize(root);
   }
@@ -1021,10 +1061,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @return Leader of subset's equivalence class
    */
   private RelSubset canonize(final RelSubset subset) {
-    if (subset.set.equivalentSet == null) {
+    RelSet set = subset.set;
+    if (set.equivalentSet == null) {
       return subset;
     }
-    RelSet set = subset.set;
     do {
       set = set.equivalentSet;
     } while (set.equivalentSet != null);
@@ -1106,6 +1146,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     // Merge.
     set.mergeWith(this, set2);
 
+    if (root == null) {
+      throw new IllegalStateException("root must not be null");
+    }
+
     // Was the set we merged with the root? If so, the result is the new
     // root.
     if (set2 == getSet(root)) {
@@ -1130,14 +1174,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   /** Moves forward two links, checking for a cycle at each. */
-  private static RelSet forward2(RelSet s, RelSet p) {
+  private static @Nullable RelSet forward2(RelSet s, @Nullable RelSet p) {
     p = forward1(s, p);
     p = forward1(s, p);
     return p;
   }
 
   /** Moves forward one link, checking for a cycle. */
-  private static RelSet forward1(RelSet s, RelSet p) {
+  private static @Nullable RelSet forward1(RelSet s, @Nullable RelSet p) {
     if (p != null) {
       p = p.equivalentSet;
       if (p == s) {
@@ -1160,7 +1204,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    */
   private RelSubset registerImpl(
       RelNode rel,
-      RelSet set) {
+      @Nullable RelSet set) {
     if (rel instanceof RelSubset) {
       return registerSubset(set, (RelSubset) rel);
     }
@@ -1193,10 +1237,10 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     rel = rel.onRegister(this);
 
     // Record its provenance. (Rule call may be null.)
-    if (ruleCallStack.isEmpty()) {
+    final VolcanoRuleCall ruleCall = ruleCallStack.peek();
+    if (ruleCall == null) {
       provenanceMap.put(rel, Provenance.EMPTY);
     } else {
-      final VolcanoRuleCall ruleCall = ruleCallStack.peek();
       provenanceMap.put(
           rel,
           new RuleProvenance(
@@ -1212,7 +1256,8 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (equivExp == null) {
       // do nothing
     } else if (equivExp == rel) {
-      return getSubset(rel);
+      // The same rel is already registered, so return its subset
+      return getSubsetNonNull(equivExp);
     } else {
       if (!RelOptUtil.areRowTypesEqual(equivExp.getRowType(),
           rel.getRowType(), false)) {
@@ -1226,14 +1271,14 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
       if (equivSet != null) {
         LOGGER.trace(
             "Register: rel#{} is equivalent to {}", rel.getId(), equivExp);
-        return registerSubset(set, getSubset(equivExp));
+        return registerSubset(set, getSubsetNonNull(equivExp));
       }
     }
 
     // Converters are in the same set as their children.
     if (rel instanceof Converter) {
       final RelNode input = ((Converter) rel).getInput();
-      final RelSet childSet = getSet(input);
+      final RelSet childSet = castNonNull(getSet(input));
       if ((set != null)
           && (set != childSet)
           && (set.equivalentSet == null)) {
@@ -1258,7 +1303,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
 
             // There is already an equivalent expression. Use that
             // one, and forget about this one.
-            return getSubset(equivRel);
+            return getSubsetNonNull(equivRel);
           }
         }
       } else {
@@ -1340,7 +1385,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
   }
 
   private RelSubset registerSubset(
-      RelSet set,
+      @Nullable RelSet set,
       RelSubset subset) {
     if ((set != subset.set)
         && (set != null)
@@ -1403,7 +1448,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
    * @param plan Plan
    * @return Normalized plan
    */
-  public static String normalizePlan(String plan) {
+  public static @PolyNull String normalizePlan(@PolyNull String plan) {
     if (plan == null) {
       return null;
     }
@@ -1496,7 +1541,7 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     if (!upperBound.isInfinite()) {
       RelOptCost rootCost = mExpr.getCluster()
           .getMetadataQuery().getNonCumulativeCost(mExpr);
-      if (!rootCost.isInfinite()) {
+      if (rootCost != null && !rootCost.isInfinite()) {
         return upperBound.minus(rootCost);
       }
     }

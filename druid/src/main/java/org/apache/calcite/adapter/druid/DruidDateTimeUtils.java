@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
@@ -44,7 +45,6 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
 
 /**
  * Utilities for generating intervals from RexNode.
@@ -399,8 +399,7 @@ public class DruidDateTimeUtils {
    *
    * @return Druid Granularity or null
    */
-  @Nullable
-  public static Granularity.Type toDruidGranularity(TimeUnitRange timeUnit) {
+  public static Granularity.@Nullable Type toDruidGranularity(TimeUnitRange timeUnit) {
     if (timeUnit == null) {
       return null;
     }

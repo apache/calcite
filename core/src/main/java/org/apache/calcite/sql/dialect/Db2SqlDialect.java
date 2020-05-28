@@ -88,7 +88,7 @@ public class Db2SqlDialect extends SqlDialect {
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    writer.literal(literal.getValue().toString());
+    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
         RelDataTypeSystem.DEFAULT);
   }

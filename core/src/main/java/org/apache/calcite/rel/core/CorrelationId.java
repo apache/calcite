@@ -18,6 +18,8 @@ package org.apache.calcite.rel.core;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Set;
 
 /**
@@ -93,7 +95,7 @@ public class CorrelationId implements Cloneable, Comparable<CorrelationId> {
     return id;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof CorrelationId
         && this.id == ((CorrelationId) obj).id;

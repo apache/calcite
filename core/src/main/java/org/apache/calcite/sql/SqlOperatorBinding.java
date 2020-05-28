@@ -23,6 +23,8 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.List;
 
@@ -92,7 +94,7 @@ public abstract class SqlOperatorBinding {
    * @return string value
    */
   @Deprecated // to be removed before 2.0
-  public String getStringLiteralOperand(int ordinal) {
+  public @Nullable String getStringLiteralOperand(int ordinal) {
     throw new UnsupportedOperationException();
   }
 
@@ -131,7 +133,7 @@ public abstract class SqlOperatorBinding {
    *
    * @return value of operand
    */
-  public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  public <T extends Object> @Nullable T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     throw new UnsupportedOperationException();
   }
 
@@ -143,12 +145,12 @@ public abstract class SqlOperatorBinding {
    *
    * @return value of operand
    */
-  public Object getOperandLiteralValue(int ordinal, RelDataType type) {
+  public @Nullable Object getOperandLiteralValue(int ordinal, RelDataType type) {
     throw new UnsupportedOperationException();
   }
 
   @Deprecated // to be removed before 2.0
-  public Comparable getOperandLiteralValue(int ordinal) {
+  public @Nullable Comparable getOperandLiteralValue(int ordinal) {
     return getOperandLiteralValue(ordinal, Comparable.class);
   }
 
@@ -224,7 +226,7 @@ public abstract class SqlOperatorBinding {
    * @param ordinal Ordinal of the operand
    * @return Rowtype of the query underlying the cursor
    */
-  public RelDataType getCursorOperand(int ordinal) {
+  public @Nullable RelDataType getCursorOperand(int ordinal) {
     throw new UnsupportedOperationException();
   }
 
@@ -238,7 +240,7 @@ public abstract class SqlOperatorBinding {
    * @return the name of the parent cursor referenced by the column list
    * parameter if it is a column list parameter; otherwise, null is returned
    */
-  public String getColumnListParamInfo(
+  public @Nullable String getColumnListParamInfo(
       int ordinal,
       String paramName,
       List<String> columnList) {

@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.framework.qual.DefaultQualifier;
+import org.checkerframework.framework.qual.TypeUseLocation;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -72,10 +76,11 @@ public abstract class Functions {
   private static final EqualityComparer<Object> IDENTITY_COMPARER =
       new IdentityEqualityComparer();
 
-  private static final EqualityComparer<Object[]> ARRAY_COMPARER =
+  private static final EqualityComparer<@Nullable Object[]> ARRAY_COMPARER =
       new ArrayEqualityComparer();
 
-  private static final Function1 CONSTANT_NULL_FUNCTION1 = s -> null;
+  private static final Function1 CONSTANT_NULL_FUNCTION1 =
+      (Function1<Object, @Nullable Object>) s -> null;
 
   private static final Function1 TO_STRING_FUNCTION1 =
       (Function1<Object, String>) Object::toString;
@@ -483,12 +488,12 @@ public abstract class Functions {
 
   /** Array equality comparer. */
   private static class ArrayEqualityComparer
-      implements EqualityComparer<Object[]> {
-    @Override public boolean equal(Object[] v1, Object[] v2) {
+      implements EqualityComparer<@Nullable Object[]> {
+    @Override public boolean equal(@Nullable Object[] v1, @Nullable Object[] v2) {
       return Arrays.deepEquals(v1, v2);
     }
 
-    @Override public int hashCode(Object[] t) {
+    @Override public int hashCode(@Nullable Object[] t) {
       return Arrays.deepHashCode(t);
     }
   }
@@ -525,7 +530,7 @@ public abstract class Functions {
     }
 
     @Override public int hashCode(T t) {
-      return t == null ? 0x789d : selector.apply(t).hashCode();
+      return t == null ? 0x789d : Objects.hashCode(selector.apply(t));
     }
   }
 
@@ -606,7 +611,7 @@ public abstract class Functions {
    * @param <R> result type
    * @param <T0> first argument type
    * @param <T1> second argument type */
-  private static final class Ignore<R, T0, T1>
+  private static final class Ignore<@Nullable R, T0, T1>
       implements Function0<R>, Function1<T0, R>, Function2<T0, T1, R> {
     @Override public R apply() {
       return null;
@@ -620,7 +625,13 @@ public abstract class Functions {
       return null;
     }
 
-    static final Ignore INSTANCE = new Ignore();
+    @DefaultQualifier(
+        value = Nullable.class,
+        locations = {
+        TypeUseLocation.LOWER_BOUND,
+        TypeUseLocation.UPPER_BOUND,
+    })
+    static final Ignore INSTANCE = new Ignore<>();
   }
 
   /** List that generates each element using a function.

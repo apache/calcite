@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
@@ -34,14 +36,14 @@ public class SybaseSqlDialect extends SqlDialect {
     super(context);
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     // No-op; see unparseTopN.
     // Sybase uses "SELECT TOP (n)" rather than "FETCH NEXT n ROWS".
   }
 
-  @Override public void unparseTopN(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseTopN(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     // Parentheses are not required, but we use them to be consistent with
     // Microsoft SQL Server, which recommends them but does not require them.
     //

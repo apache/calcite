@@ -23,7 +23,6 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import javax.annotation.Nonnull;
 
 /**
  * Utility class to find the implementation method object for a given Pig UDF
@@ -61,7 +60,7 @@ class PigUdfFinder {
    *
    * @throws IllegalArgumentException if not found
    */
-  @Nonnull Method findPigUdfImplementationMethod(Class clazz) {
+  Method findPigUdfImplementationMethod(Class clazz) {
     // Find implementation method in the wrapper map
     Method returnedMethod =
         udfWrapper.get(clazz.getSimpleName().toLowerCase(Locale.US));

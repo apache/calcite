@@ -39,6 +39,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Set;
 
@@ -121,7 +123,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
     return cost;
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // EnumerableNestedLoopJoin traits passdown shall only pass through collation to
     // left input. It is because for EnumerableNestedLoopJoin always
@@ -133,7 +135,7 @@ public class EnumerableNestedLoopJoin extends Join implements EnumerableRel {
         required, joinType, getLeft().getRowType().getFieldCount(), traitSet);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     return EnumerableTraitsUtils.deriveTraitsForJoin(
         childTraits, childId, joinType, traitSet, right.getTraitSet()

@@ -25,6 +25,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Base class for unary operators such as FLOOR/CEIL which are monotonic for
  * monotonic inputs.
@@ -36,7 +38,7 @@ public class SqlMonotonicUnaryFunction extends SqlFunction {
       String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
       SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     super(

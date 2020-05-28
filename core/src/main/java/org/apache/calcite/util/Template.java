@@ -18,6 +18,8 @@ package org.apache.calcite.util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -218,7 +220,7 @@ public class Template extends MessageFormat {
    *                                  object
    */
   public String format(Map<Object, Object> argMap) {
-    Object[] args = new Object[parameterNames.size()];
+    @Nullable Object[] args = new Object[parameterNames.size()];
     for (int i = 0; i < parameterNames.size(); i++) {
       args[i] = getArg(argMap, i);
     }
@@ -232,7 +234,7 @@ public class Template extends MessageFormat {
    * @param ordinal Ordinal of argument
    * @return Value of argument
    */
-  private Object getArg(Map<Object, Object> argMap, int ordinal) {
+  private @Nullable Object getArg(Map<Object, Object> argMap, int ordinal) {
     // First get by name.
     String parameterName = parameterNames.get(ordinal);
     Object arg = argMap.get(parameterName);

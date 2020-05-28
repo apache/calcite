@@ -84,7 +84,7 @@ public class MatchRecognizeScope extends ListScope {
   @Override public void resolve(List<String> names, SqlNameMatcher nameMatcher,
      boolean deep, Resolved resolved) {
     if (patternVars.contains(names.get(0))) {
-      final Step path = new EmptyPath().plus(null, 0, null, StructKind.FULLY_QUALIFIED);
+      final Step path = new EmptyPath().plus(null, 0, "", StructKind.FULLY_QUALIFIED);
       final ScopeChild child = children.get(0);
       resolved.found(child.namespace, child.nullable, this, path, names);
       if (resolved.count() > 0) {

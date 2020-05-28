@@ -26,6 +26,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableModify;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -42,8 +44,8 @@ public final class LogicalTableModify extends TableModify {
    */
   public LogicalTableModify(RelOptCluster cluster, RelTraitSet traitSet,
       RelOptTable table, Prepare.CatalogReader schema, RelNode input,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traitSet, table, schema, input, operation, updateColumnList,
         sourceExpressionList, flattened);
   }
@@ -73,8 +75,8 @@ public final class LogicalTableModify extends TableModify {
   /** Creates a LogicalTableModify. */
   public static LogicalTableModify create(RelOptTable table,
       Prepare.CatalogReader schema, RelNode input,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(Convention.NONE);
     return new LogicalTableModify(cluster, traitSet, table, schema, input,

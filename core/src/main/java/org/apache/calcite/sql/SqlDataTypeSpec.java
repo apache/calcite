@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 import java.util.TimeZone;
 
@@ -63,14 +65,14 @@ public class SqlDataTypeSpec extends SqlNode {
   //~ Instance fields --------------------------------------------------------
 
   private final SqlTypeNameSpec typeNameSpec;
-  private final TimeZone timeZone;
+  private final @Nullable TimeZone timeZone;
 
   /** Whether data type allows nulls.
    *
    * <p>Nullable is nullable! Null means "not specified". E.g.
    * {@code CAST(x AS INTEGER)} preserves the same nullability as {@code x}.
    */
-  private final Boolean nullable;
+  private final @Nullable Boolean nullable;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -95,7 +97,7 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public SqlDataTypeSpec(
       final SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
+      @Nullable TimeZone timeZone,
       SqlParserPos pos) {
     this(typeNameSpec, timeZone, null, pos);
   }
@@ -111,8 +113,8 @@ public class SqlDataTypeSpec extends SqlNode {
    */
   public SqlDataTypeSpec(
       SqlTypeNameSpec typeNameSpec,
-      TimeZone timeZone,
-      Boolean nullable,
+      @Nullable TimeZone timeZone,
+      @Nullable Boolean nullable,
       SqlParserPos pos) {
     super(pos);
     this.typeNameSpec = typeNameSpec;
@@ -126,11 +128,11 @@ public class SqlDataTypeSpec extends SqlNode {
     return new SqlDataTypeSpec(typeNameSpec, timeZone, pos);
   }
 
-  @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+  @Override public SqlMonotonicity getMonotonicity(@Nullable SqlValidatorScope scope) {
     return SqlMonotonicity.CONSTANT;
   }
 
-  public SqlIdentifier getCollectionsTypeName() {
+  public @Nullable SqlIdentifier getCollectionsTypeName() {
     if (typeNameSpec instanceof SqlCollectionTypeNameSpec) {
       return typeNameSpec.getTypeName();
     }
@@ -145,11 +147,11 @@ public class SqlDataTypeSpec extends SqlNode {
     return typeNameSpec;
   }
 
-  public TimeZone getTimeZone() {
+  public @Nullable TimeZone getTimeZone() {
     return timeZone;
   }
 
-  public Boolean getNullable() {
+  public @Nullable Boolean getNullable() {
     return nullable;
   }
 
@@ -195,7 +197,7 @@ public class SqlDataTypeSpec extends SqlNode {
     return visitor.visit(this);
   }
 
-  @Override public boolean equalsDeep(SqlNode node, Litmus litmus) {
+  @Override public boolean equalsDeep(@Nullable SqlNode node, Litmus litmus) {
     if (!(node instanceof SqlDataTypeSpec)) {
       return litmus.fail("{} != {}", this, node);
     }

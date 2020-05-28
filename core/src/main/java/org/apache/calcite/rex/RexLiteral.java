@@ -46,6 +46,12 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -57,6 +63,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Constant value in a row-expression.
@@ -183,7 +193,7 @@ public class RexLiteral extends RexNode {
    * represented by a {@link BigDecimal}. But since this field is private, it
    * doesn't really matter how the values are stored.
    */
-  private final Comparable value;
+  private final @Nullable Comparable value;
 
   /**
    * The real type of this literal, as reported by {@link #getType}.
@@ -211,12 +221,12 @@ public class RexLiteral extends RexNode {
    * Creates a <code>RexLiteral</code>.
    */
   RexLiteral(
-      Comparable value,
+      @Nullable Comparable value,
       RelDataType type,
       SqlTypeName typeName) {
     this.value = value;
-    this.type = Objects.requireNonNull(type);
-    this.typeName = Objects.requireNonNull(typeName);
+    this.type = requireNonNull(type);
+    this.typeName = requireNonNull(typeName);
     Preconditions.checkArgument(valueMatchesType(value, typeName, true));
     Preconditions.checkArgument((value == null) == type.isNullable());
     Preconditions.checkArgument(typeName != SqlTypeName.ANY);
@@ -257,7 +267,10 @@ public class RexLiteral extends RexNode {
    * @param includeType whether the digest should include type or not
    * @return digest
    */
-  public final String computeDigest(RexDigestIncludeType includeType) {
+  @RequiresNonNull({"typeName", "type"})
+  public final String computeDigest(
+      @UnknownInitialization RexLiteral this,
+      RexDigestIncludeType includeType) {
     if (includeType == RexDigestIncludeType.OPTIONAL) {
       if (digest != null) {
         // digest is initialized with OPTIONAL, so cached value matches for
@@ -282,14 +295,17 @@ public class RexLiteral extends RexNode {
    * @see RexCall#computeDigest(boolean)
    * @return true if {@link RexDigestIncludeType#OPTIONAL} digest would include data type
    */
-  RexDigestIncludeType digestIncludesType() {
+  @RequiresNonNull("type")
+  RexDigestIncludeType digestIncludesType(
+      @UnknownInitialization RexLiteral this
+  ) {
     return shouldIncludeType(value, type);
   }
 
   /** Returns whether a value is appropriate for its type. (We have rules about
    * these things!) */
   public static boolean valueMatchesType(
-      Comparable value,
+      @Nullable Comparable value,
       SqlTypeName typeName,
       boolean strict) {
     if (value == null) {
@@ -395,7 +411,7 @@ public class RexLiteral extends RexNode {
   }
 
   private static String toJavaString(
-      Comparable value,
+      @Nullable Comparable value,
       SqlTypeName typeName, RelDataType type,
       RexDigestIncludeType includeType) {
     assert includeType != RexDigestIncludeType.OPTIONAL
@@ -433,7 +449,8 @@ public class RexLiteral extends RexNode {
    * @param type type of the literal
    * @return NO_TYPE when type can be omitted, ALWAYS otherwise
    */
-  private static RexDigestIncludeType shouldIncludeType(Comparable value, RelDataType type) {
+  private static RexDigestIncludeType shouldIncludeType(@Nullable Comparable value,
+      RelDataType type) {
     if (type.isNullable()) {
       // This means "null literal", so we require a type for it
       // There might be exceptions like AND(null, true) which are handled by RexCall#computeDigest
@@ -454,10 +471,11 @@ public class RexLiteral extends RexNode {
 
       // Ignore type information for 'Bar':CHAR(3)
       if ((
-          (nlsString.getCharset() != null && type.getCharset().equals(nlsString.getCharset()))
+          (nlsString.getCharset() != null
+              && Objects.equals(type.getCharset(), nlsString.getCharset()))
           || (nlsString.getCharset() == null
-          && SqlCollation.IMPLICIT.getCharset().equals(type.getCharset())))
-          && nlsString.getCollation().equals(type.getCollation())
+          && Objects.equals(SqlCollation.IMPLICIT.getCharset(), type.getCharset())))
+          && Objects.equals(nlsString.getCollation(), type.getCollation())
           && ((NlsString) value).getValue().length() == type.getPrecision()) {
         includeType = RexDigestIncludeType.NO_TYPE;
       } else {
@@ -478,7 +496,7 @@ public class RexLiteral extends RexNode {
 
   /** Returns whether a value is valid as a constant value, using the same
    * criteria as {@link #valueMatchesType}. */
-  public static boolean validConstant(Object o, Litmus litmus) {
+  public static boolean validConstant(@Nullable Object o, Litmus litmus) {
     if (o == null
         || o instanceof BigDecimal
         || o instanceof NlsString
@@ -598,12 +616,12 @@ public class RexLiteral extends RexNode {
    * @param type Type to be used for the transformation of the value to a Java string
    * @param includeType Whether to include the data type in the Java representation
    */
-  private static void appendAsJava(Comparable value, StringBuilder sb,
+  private static void appendAsJava(@Nullable Comparable value, StringBuilder sb,
       SqlTypeName typeName, RelDataType type, boolean java,
       RexDigestIncludeType includeType) {
     switch (typeName) {
     case CHAR:
-      NlsString nlsString = (NlsString) value;
+      NlsString nlsString = (NlsString) castNonNull(value);
       if (java) {
         Util.printJavaString(
             sb,
@@ -689,13 +707,15 @@ public class RexLiteral extends RexNode {
       break;
     case MULTISET:
     case ROW:
-      final List<RexLiteral> list = (List) value;
+      assert value instanceof List : "value must implement List: " + value;
+      @SuppressWarnings("unchecked") final List<RexLiteral> list =
+          (List<RexLiteral>) castNonNull(value);
       Util.asStringBuilder(sb, sb2 ->
           Util.printList(sb, list.size(), (sb3, i) ->
               sb3.append(list.get(i).computeDigest(includeType))));
       break;
     case GEOMETRY:
-      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) value);
+      final String wkt = GeoFunctions.ST_AsWKT((Geometries.Geom) castNonNull(value));
       sb.append(wkt);
       break;
     default:
@@ -717,6 +737,7 @@ public class RexLiteral extends RexNode {
     final SqlTypeName typeName = strictTypeName(type);
     switch (typeName) {
     case ROW:
+      assert value instanceof List : "value must implement List: " + value;
       final List<Comparable<?>> fieldValues = (List) value;
       final List<RelDataTypeField> fields = type.getFieldList();
       final List<RexLiteral> fieldLiterals =
@@ -726,11 +747,12 @@ public class RexLiteral extends RexNode {
       return new RexLiteral((Comparable) fieldLiterals, type, typeName);
 
     case MULTISET:
+      assert value instanceof List : "value must implement List: " + value;
       final List<Comparable<?>> elementValues = (List) value;
       final List<RexLiteral> elementLiterals =
           FlatLists.of(
               Functions.generate(elementValues.size(), i ->
-                  toLiteral(type.getComponentType(), elementValues.get(i))));
+                  toLiteral(castNonNull(type.getComponentType()), elementValues.get(i))));
       return new RexLiteral((Comparable) elementLiterals, type, typeName);
 
     default:
@@ -752,17 +774,17 @@ public class RexLiteral extends RexNode {
    *                 by the Jdbc call to return a column as a string
    * @return a typed RexLiteral, or null
    */
-  public static RexLiteral fromJdbcString(
+  public static @PolyNull RexLiteral fromJdbcString(
       RelDataType type,
       SqlTypeName typeName,
-      String literal) {
+      @PolyNull String literal) {
     if (literal == null) {
       return null;
     }
 
     switch (typeName) {
     case CHAR:
-      Charset charset = type.getCharset();
+      Charset charset = requireNonNull(type.getCharset(), () -> "charset for " + type);
       SqlCollation collation = type.getCollation();
       NlsString str =
           new NlsString(
@@ -771,7 +793,7 @@ public class RexLiteral extends RexNode {
               collation);
       return new RexLiteral(str, type, typeName);
     case BOOLEAN:
-      boolean b = ConversionUtil.toBoolean(literal);
+      Boolean b = ConversionUtil.toBoolean(literal);
       return new RexLiteral(b, type, typeName);
     case DECIMAL:
     case DOUBLE:
@@ -795,7 +817,7 @@ public class RexLiteral extends RexNode {
       long millis =
           SqlParserUtil.intervalToMillis(
               literal,
-              type.getIntervalQualifier());
+              castNonNull(type.getIntervalQualifier()));
       return new RexLiteral(BigDecimal.valueOf(millis), type, typeName);
     case INTERVAL_YEAR:
     case INTERVAL_YEAR_MONTH:
@@ -803,7 +825,7 @@ public class RexLiteral extends RexNode {
       long months =
           SqlParserUtil.intervalToMonths(
               literal,
-              type.getIntervalQualifier());
+              castNonNull(type.getIntervalQualifier()));
       return new RexLiteral(BigDecimal.valueOf(months), type, typeName);
     case DATE:
     case TIME:
@@ -892,7 +914,8 @@ public class RexLiteral extends RexNode {
    * <p>For backwards compatibility, returns DATE. TIME and TIMESTAMP as a
    * {@link Calendar} value in UTC time zone.
    */
-  public Comparable getValue() {
+  @Pure
+  public @Nullable Comparable getValue() {
     assert valueMatchesType(value, typeName, true) : value;
     if (value == null) {
       return null;
@@ -911,7 +934,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that the calculator
    * program builder wants it.
    */
-  public Object getValue2() {
+  public @Nullable Object getValue2() {
     if (value == null) {
       return null;
     }
@@ -935,7 +958,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that the rex-to-lix
    * translator wants it.
    */
-  public Object getValue3() {
+  public @Nullable Object getValue3() {
     if (value == null) {
       return null;
     }
@@ -952,7 +975,7 @@ public class RexLiteral extends RexNode {
    * Returns the value of this literal, in the form that {@link RexInterpreter}
    * wants it.
    */
-  public Comparable getValue4() {
+  public @Nullable Comparable getValue4() {
     if (value == null) {
       return null;
     }
@@ -994,7 +1017,7 @@ public class RexLiteral extends RexNode {
    * @param <T> Return type
    * @return Value of this literal in the desired type
    */
-  public <T> T getValueAs(Class<T> clazz) {
+  public <T> @Nullable T getValueAs(Class<T> clazz) {
     if (value == null || clazz.isInstance(value)) {
       return clazz.cast(value);
     }
@@ -1099,10 +1122,10 @@ public class RexLiteral extends RexNode {
       } else if (clazz == Long.class) {
         return clazz.cast(((BigDecimal) value).longValue());
       } else if (clazz == String.class) {
-        return clazz.cast(intervalString(getValueAs(BigDecimal.class).abs()));
+        return clazz.cast(intervalString(castNonNull(getValueAs(BigDecimal.class)).abs()));
       } else if (clazz == Boolean.class) {
         // return whether negative
-        return clazz.cast(getValueAs(BigDecimal.class).signum() < 0);
+        return clazz.cast(castNonNull(getValueAs(BigDecimal.class)).signum() < 0);
       }
       break;
     default:
@@ -1113,7 +1136,7 @@ public class RexLiteral extends RexNode {
   }
 
   public static boolean booleanValue(RexNode node) {
-    return (Boolean) ((RexLiteral) node).value;
+    return (Boolean) castNonNull(((RexLiteral) node).value);
   }
 
   @Override public boolean isAlwaysTrue() {
@@ -1130,34 +1153,34 @@ public class RexLiteral extends RexNode {
     return !booleanValue(this);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
     return (obj instanceof RexLiteral)
-        && equals(((RexLiteral) obj).value, value)
-        && equals(((RexLiteral) obj).type, type);
+        && Objects.equals(((RexLiteral) obj).value, value)
+        && Objects.equals(((RexLiteral) obj).type, type);
   }
 
   @Override public int hashCode() {
     return Objects.hash(value, type);
   }
 
-  public static Comparable value(RexNode node) {
+  public static @Nullable Comparable value(RexNode node) {
     return findValue(node);
   }
 
   public static int intValue(RexNode node) {
-    final Comparable value = findValue(node);
+    final Comparable value = castNonNull(findValue(node));
     return ((Number) value).intValue();
   }
 
-  public static String stringValue(RexNode node) {
+  public static @Nullable String stringValue(RexNode node) {
     final Comparable value = findValue(node);
     return (value == null) ? null : ((NlsString) value).getValue();
   }
 
-  private static Comparable findValue(RexNode node) {
+  private static @Nullable Comparable findValue(RexNode node) {
     if (node instanceof RexLiteral) {
       return ((RexLiteral) node).value;
     }
@@ -1170,7 +1193,7 @@ public class RexLiteral extends RexNode {
       if (operator == SqlStdOperatorTable.UNARY_MINUS) {
         final BigDecimal value =
             (BigDecimal) findValue(call.getOperands().get(0));
-        return value.negate();
+        return requireNonNull(value, () -> "can't negate null in " + node).negate();
       }
     }
     throw new AssertionError("not a literal: " + node);
@@ -1179,10 +1202,6 @@ public class RexLiteral extends RexNode {
   public static boolean isNullLiteral(RexNode node) {
     return (node instanceof RexLiteral)
         && (((RexLiteral) node).value == null);
-  }
-
-  private static boolean equals(Object o1, Object o2) {
-    return Objects.equals(o1, o2);
   }
 
   @Override public <R> R accept(RexVisitor<R> visitor) {

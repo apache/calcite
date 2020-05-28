@@ -35,6 +35,7 @@ import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.FlatLists;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.util.CompositeList;
@@ -53,6 +54,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,11 +65,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Algorithm that suggests a set of lattices.
@@ -111,7 +113,9 @@ public class LatticeSuggester {
     if (column < fieldList.size()) {
       return new RexInputRef(column, fieldList.get(column).getType());
     } else {
-      return space.tableExpressions.get(table).get(column - fieldList.size());
+      return requireNonNull(space.tableExpressions.get(table),
+          () -> "space.tableExpressions.get(table) is null for " + table)
+          .get(column - fieldList.size());
     }
   }
 
@@ -171,7 +175,7 @@ public class LatticeSuggester {
     }
 
     // Translate the query graph to mutable nodes
-    final Map<TableRef, MutableNode> nodes = new IdentityHashMap<>();
+    final Map<TableRef, @Nullable MutableNode> nodes = new IdentityHashMap<>();
     final Map<List, MutableNode> nodesByParent = new HashMap<>();
     final List<MutableNode> rootNodes = new ArrayList<>();
     for (TableRef tableRef : TopologicalOrderIterator.of(g)) {
@@ -186,7 +190,7 @@ public class LatticeSuggester {
         final StepRef edge = edges.get(0);
         final MutableNode parent = nodes.get(edge.source());
         final List key =
-            ImmutableList.of(parent, tableRef.table, edge.step.keys);
+            FlatLists.of(parent, tableRef.table, edge.step.keys);
         final MutableNode existingNode = nodesByParent.get(key);
         if (existingNode == null) {
           node = new MutableNode(tableRef.table, parent, edge.step);
@@ -198,6 +202,9 @@ public class LatticeSuggester {
       default:
         for (StepRef edge2 : edges) {
           final MutableNode parent2 = nodes.get(edge2.source());
+          requireNonNull(
+              parent2,
+              () -> "parent for " + edge2.source());
           final MutableNode node2 =
               new MutableNode(tableRef.table, parent2, edge2.step);
           parent2.children.add(node2);
@@ -279,7 +286,7 @@ public class LatticeSuggester {
       // User specified an alias. Use that.
       return derivedColRef.alias;
     }
-    String alias = measure.name;
+    String alias = requireNonNull(measure.name, "measure.name");
     if (alias.contains("$")) {
       // User did not specify an alias for the aggregate function, and it got a
       // system-generated name like 'EXPR$2'. Don't try to derive anything from
@@ -412,7 +419,7 @@ public class LatticeSuggester {
     }
   }
 
-  private Frame frame(final Query q, RelNode r) {
+  private @Nullable Frame frame(final Query q, RelNode r) {
     if (r instanceof Sort) {
       final Sort sort = (Sort) r;
       return frame(q, sort.getInput());
@@ -429,11 +436,12 @@ public class LatticeSuggester {
       for (AggregateCall call : aggregate.getAggCallList()) {
         measures.add(
             new MutableMeasure(call.getAggregation(), call.isDistinct(),
-                Util.transform(call.getArgList(), h::column), call.name));
+                Util.<Integer, @Nullable ColRef>transform(call.getArgList(), h::column),
+                call.name));
       }
       final int fieldCount = r.getRowType().getFieldCount();
       return new Frame(fieldCount, h.hops, measures, ImmutableList.of(h)) {
-        @Override ColRef column(int offset) {
+        @Override @Nullable ColRef column(int offset) {
           if (offset < aggregate.getGroupSet().cardinality()) {
             return h.column(aggregate.getGroupSet().nth(offset));
           }
@@ -448,25 +456,27 @@ public class LatticeSuggester {
       }
       final int fieldCount = r.getRowType().getFieldCount();
       return new Frame(fieldCount, h.hops, h.measures, ImmutableList.of(h)) {
-        final List<ColRef> columns;
+        final List<@Nullable ColRef> columns;
 
         {
-          final ImmutableNullableList.Builder<ColRef> columnBuilder =
+          final ImmutableNullableList.Builder<@Nullable ColRef> columnBuilder =
               ImmutableNullableList.builder();
           for (Pair<RexNode, String> p : project.getNamedProjects()) {
-            columnBuilder.add(toColRef(p.left, p.right));
+            @SuppressWarnings("method.invocation.invalid")
+            ColRef colRef = toColRef(p.left, p.right);
+            columnBuilder.add(colRef);
           }
           columns = columnBuilder.build();
         }
 
-        @Override ColRef column(int offset) {
+        @Override @Nullable ColRef column(int offset) {
           return columns.get(offset);
         }
 
         /** Converts an expression to a base or derived column reference.
          * The alias is optional, but if the derived column reference becomes
          * a dimension or measure, the alias will be used to choose a name. */
-        private ColRef toColRef(RexNode e, String alias) {
+        private @Nullable ColRef toColRef(RexNode e, String alias) {
           if (e instanceof RexInputRef) {
             return h.column(((RexInputRef) e).getIndex());
           }
@@ -515,7 +525,7 @@ public class LatticeSuggester {
       return new Frame(fieldCount, builder.build(),
           CompositeList.of(left.measures, right.measures),
           ImmutableList.of(left, right)) {
-        @Override ColRef column(int offset) {
+        @Override @Nullable ColRef column(int offset) {
           if (offset < leftCount) {
             return left.column(offset);
           } else {
@@ -598,7 +608,7 @@ public class LatticeSuggester {
       this(columnCount, hops, measures, collectTableRefs(inputs, hops));
     }
 
-    abstract ColRef column(int offset);
+    abstract @Nullable ColRef column(int offset);
 
     @Override public String toString() {
       return "Frame(" + hops + ")";
@@ -623,7 +633,7 @@ public class LatticeSuggester {
     private final int ordinalInQuery;
 
     private TableRef(LatticeTable table, int ordinalInQuery) {
-      this.table = Objects.requireNonNull(table);
+      this.table = requireNonNull(table);
       this.ordinalInQuery = ordinalInQuery;
     }
 
@@ -631,7 +641,7 @@ public class LatticeSuggester {
       return ordinalInQuery;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof TableRef
           && ordinalInQuery == ((TableRef) obj).ordinalInQuery;
@@ -649,7 +659,7 @@ public class LatticeSuggester {
 
     StepRef(TableRef source, TableRef target, Step step, int ordinalInQuery) {
       super(source, target);
-      this.step = Objects.requireNonNull(step);
+      this.step = requireNonNull(step);
       this.ordinalInQuery = ordinalInQuery;
     }
 
@@ -657,7 +667,7 @@ public class LatticeSuggester {
       return ordinalInQuery;
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof StepRef
           && ((StepRef) obj).ordinalInQuery == ordinalInQuery;
@@ -764,8 +774,8 @@ public class LatticeSuggester {
 
   /** Reference to a derived column (that is, an expression). */
   private static class DerivedColRef extends ColRef {
-    @Nonnull final List<TableRef> tableRefs;
-    @Nonnull final RexNode e;
+    final List<TableRef> tableRefs;
+    final RexNode e;
     final String alias;
 
     DerivedColRef(Iterable<TableRef> tableRefs, RexNode e, String alias) {
@@ -800,11 +810,11 @@ public class LatticeSuggester {
   private static class MutableMeasure {
     final SqlAggFunction aggregate;
     final boolean distinct;
-    final List<ColRef> arguments;
-    final String name;
+    final List<? extends @Nullable ColRef> arguments;
+    final @Nullable String name;
 
     private MutableMeasure(SqlAggFunction aggregate, boolean distinct,
-        List<ColRef> arguments, @Nullable String name) {
+        List<? extends @Nullable ColRef> arguments, @Nullable String name) {
       this.aggregate = aggregate;
       this.arguments = arguments;
       this.distinct = distinct;

@@ -20,6 +20,8 @@ import org.apache.calcite.avatica.util.ByteString;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -40,7 +42,7 @@ public class CompressionFunctions {
    * <a href="https://docs.oracle.com/javase/8/docs/api/java/util/zip/Deflater.html">Deflater</a>
    * is used to implement compression.
    */
-  public static ByteString compress(String data) {
+  public static @Nullable ByteString compress(@Nullable String data) {
     try {
       if (data == null) {
         return null;

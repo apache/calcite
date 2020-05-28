@@ -43,10 +43,14 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelMdUniqueKeys supplies a default implementation of
@@ -68,22 +72,22 @@ public class RelMdUniqueKeys
     return BuiltInMetadata.UniqueKeys.DEF;
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Filter rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Filter rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Sort rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Sort rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Correlate rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Correlate rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     return mq.getUniqueKeys(rel.getLeft(), ignoreNulls);
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(TableModify rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(TableModify rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     return mq.getUniqueKeys(rel.getInput(), ignoreNulls);
   }
@@ -93,7 +97,7 @@ public class RelMdUniqueKeys
     return getProjectUniqueKeys(rel, mq, ignoreNulls, rel.getProjects());
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Calc rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Calc rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     RexProgram program = rel.getProgram();
     return getProjectUniqueKeys(rel, mq, ignoreNulls,
@@ -155,14 +159,17 @@ public class RelMdUniqueKeys
 
       Iterable<List<ImmutableBitSet>> product = Linq4j.product(
           Util.transform(colMask,
-              in -> Util.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
+              in -> Util.filter(
+                  requireNonNull(mapInToOutPos.get(in),
+                      () -> "no entry for column " + in + " in mapInToOutPos: " + mapInToOutPos)
+                      .powerSet(), bs -> !bs.isEmpty())));
 
       resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
     }
     return resultBuilder.build();
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(Join rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     if (!rel.getJoinType().projectsRight()) {
       // only return the unique keys from the LHS since a semijoin only
@@ -301,9 +308,12 @@ public class RelMdUniqueKeys
     return ImmutableSet.of();
   }
 
-  public Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     final List<ImmutableBitSet> keys = rel.getTable().getKeys();
+    if (keys == null) {
+      return null;
+    }
     for (ImmutableBitSet key : keys) {
       assert rel.getTable().isKey(key);
     }
@@ -311,7 +321,7 @@ public class RelMdUniqueKeys
   }
 
   // Catch-all rule when none of the others apply.
-  public Set<ImmutableBitSet> getUniqueKeys(RelNode rel, RelMetadataQuery mq,
+  public @Nullable Set<ImmutableBitSet> getUniqueKeys(RelNode rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     // no information available
     return null;

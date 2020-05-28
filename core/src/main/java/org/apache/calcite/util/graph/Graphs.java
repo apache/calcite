@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Miscellaneous graph utilities.
  */
@@ -75,7 +77,8 @@ public class Graphs {
           if (edge.target.equals(edge2.left)) {
             final Pair<V, V> key = Pair.of(graph1.source(edge), edge2.right);
             int[] bestDistance = shortestDistances.get(key);
-            int[] arc2Distance = shortestDistances.get(edge2);
+            int[] arc2Distance = requireNonNull(shortestDistances.get(edge2),
+                () -> "shortestDistances.get(edge2) for " + edge2);
             if ((bestDistance == null)
                 || (bestDistance[0] > (arc2Distance[0] + 1))) {
               shortestDistances.put(key, new int[] {arc2Distance[0] + 1});
@@ -97,7 +100,7 @@ public class Graphs {
    * @param <V> Vertex type
    * @param <E> Edge type
    */
-  public static class FrozenGraph<V, E extends DefaultEdge> {
+  public static class FrozenGraph<V extends Object, E extends DefaultEdge> {
     private final DefaultDirectedGraph<V, E> graph;
     private final Map<Pair<V, V>, int[]> shortestDistances;
 

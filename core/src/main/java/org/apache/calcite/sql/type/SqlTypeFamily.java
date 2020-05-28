@@ -26,6 +26,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.Types;
 import java.util.Collection;
 import java.util.Map;
@@ -122,7 +124,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
    * @param jdbcType the JDBC type of interest
    * @return containing family
    */
-  public static SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
+  public static @Nullable SqlTypeFamily getFamilyForJdbcType(int jdbcType) {
     return JDBC_TYPE_TO_FAMILY.get(jdbcType);
   }
 
@@ -183,7 +185,7 @@ public enum SqlTypeFamily implements RelDataTypeFamily {
   }
 
   /** Return the default {@link RelDataType} that belongs to this family. */
-  public RelDataType getDefaultConcreteType(RelDataTypeFactory factory) {
+  public @Nullable RelDataType getDefaultConcreteType(RelDataTypeFactory factory) {
     switch (this) {
     case CHARACTER:
       return factory.createSqlType(SqlTypeName.VARCHAR);

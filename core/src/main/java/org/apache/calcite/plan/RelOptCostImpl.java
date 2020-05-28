@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
  * interface. It it defined in terms of a single scalar quantity; somewhat
@@ -77,7 +79,7 @@ public class RelOptCostImpl implements RelOptCost {
     return getRows() == other.getRows();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (obj instanceof RelOptCostImpl) {
       return equals((RelOptCost) obj);
     }

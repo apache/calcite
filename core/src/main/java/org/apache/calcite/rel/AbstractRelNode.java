@@ -41,12 +41,18 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -62,7 +68,7 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Cached type of this relational expression.
    */
-  protected RelDataType rowType;
+  protected @MonotonicNonNull RelDataType rowType;
 
   /**
    * The digest that uniquely identifies the node.
@@ -118,15 +124,18 @@ public abstract class AbstractRelNode implements RelNode {
     return cluster;
   }
 
-  @Override public final Convention getConvention() {
-    return traitSet.getTrait(ConventionTraitDef.INSTANCE);
+  @Pure
+  @Override public final @Nullable Convention getConvention(
+      @UnknownInitialization AbstractRelNode this
+  ) {
+    return traitSet == null ? null : traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
   @Override public RelTraitSet getTraitSet() {
     return traitSet;
   }
 
-  @Override public String getCorrelVariable() {
+  @Override public @Nullable String getCorrelVariable() {
     return null;
   }
 
@@ -155,7 +164,7 @@ public abstract class AbstractRelNode implements RelNode {
     return cn;
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     return litmus.succeed();
   }
 
@@ -247,7 +256,7 @@ public abstract class AbstractRelNode implements RelNode {
    * Each node should call {@code super.explainTerms}, then call the
    * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
    * and
-   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * {@link RelWriter#item(String, Object)}
    * methods for each input and attribute.
    *
    * @param pw Plan writer
@@ -306,7 +315,7 @@ public abstract class AbstractRelNode implements RelNode {
     return digest;
   }
 
-  @Override public RelOptTable getTable() {
+  @Override public @Nullable RelOptTable getTable() {
     return null;
   }
 
@@ -317,7 +326,7 @@ public abstract class AbstractRelNode implements RelNode {
    * sub-classes of {@link RelNode} to redefine identity. Various algorithms
    * (e.g. visitors, planner) can define the identity as meets their needs.
    */
-  @Override public final boolean equals(Object obj) {
+  @Override public final boolean equals(@Nullable Object obj) {
     return super.equals(obj);
   }
 
@@ -345,12 +354,12 @@ public abstract class AbstractRelNode implements RelNode {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
-  @Override @API(since = "1.25", status = API.Status.MAINTAINED)
-  public boolean deepEquals(Object obj) {
+  @API(since = "1.25", status = API.Status.MAINTAINED)
+  @Override public boolean deepEquals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
-    if (this.getClass() != obj.getClass()) {
+    if (obj == null || this.getClass() != obj.getClass()) {
       return false;
     }
     AbstractRelNode that = (AbstractRelNode) obj;
@@ -359,14 +368,14 @@ public abstract class AbstractRelNode implements RelNode {
     if (!result) {
       return false;
     }
-    List<Pair<String, Object>> items1 = this.getDigestItems();
-    List<Pair<String, Object>> items2 = that.getDigestItems();
+    List<Pair<String, @Nullable Object>> items1 = this.getDigestItems();
+    List<Pair<String, @Nullable Object>> items2 = that.getDigestItems();
     if (items1.size() != items2.size()) {
       return false;
     }
     for (int i = 0; result && i < items1.size(); i++) {
-      Pair<String, Object> attr1 = items1.get(i);
-      Pair<String, Object> attr2 = items2.get(i);
+      Pair<String, @Nullable Object> attr1 = items1.get(i);
+      Pair<String, @Nullable Object> attr2 = items2.get(i);
       if (attr1.right instanceof RelNode) {
         result = ((RelNode) attr1.right).deepEquals(attr2.right);
       } else {
@@ -379,13 +388,13 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Compute hash code for RelNode digest.
    *
-   * @see #deepEquals(Object)
+   * @see RelNode#deepEquals(Object)
    */
   @API(since = "1.25", status = API.Status.MAINTAINED)
   @Override public int deepHashCode() {
     int result = 31 + getTraitSet().hashCode();
-    List<Pair<String, Object>> items = this.getDigestItems();
-    for (Pair<String, Object> item : items) {
+    List<Pair<String, @Nullable Object>> items = this.getDigestItems();
+    for (Pair<String, @Nullable Object> item : items) {
       Object value = item.right;
       final int h;
       if (value == null) {
@@ -400,7 +409,7 @@ public abstract class AbstractRelNode implements RelNode {
     return result;
   }
 
-  private List<Pair<String, Object>> getDigestItems() {
+  private List<Pair<String, @Nullable Object>> getDigestItems() {
     RelDigestWriter rdw = new RelDigestWriter();
     explainTerms(rdw);
     if (this instanceof Hintable) {
@@ -423,7 +432,7 @@ public abstract class AbstractRelNode implements RelNode {
       hash = 0;
     }
 
-    @Override public boolean equals(final Object o) {
+    @Override public boolean equals(final @Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -444,7 +453,7 @@ public abstract class AbstractRelNode implements RelNode {
     @Override public String toString() {
       RelDigestWriter rdw = new RelDigestWriter();
       explain(rdw);
-      return rdw.digest;
+      return requireNonNull(rdw.digest, "digest");
     }
   }
 
@@ -458,11 +467,12 @@ public abstract class AbstractRelNode implements RelNode {
    */
   private static final class RelDigestWriter implements RelWriter {
 
-    private final List<Pair<String, Object>> attrs = new ArrayList<>();
+    private final List<Pair<String, @Nullable Object>> attrs = new ArrayList<>();
 
-    String digest = null;
+    @Nullable String digest = null;
 
-    @Override public void explain(final RelNode rel, final List<Pair<String, Object>> valueList) {
+    @Override public void explain(final RelNode rel,
+        final List<Pair<String, @Nullable Object>> valueList) {
       throw new IllegalStateException("Should not be called for computing digest");
     }
 
@@ -470,7 +480,7 @@ public abstract class AbstractRelNode implements RelNode {
       return SqlExplainLevel.DIGEST_ATTRIBUTES;
     }
 
-    @Override public RelWriter item(String term, Object value) {
+    @Override public RelWriter item(String term, @Nullable Object value) {
       if (value != null && value.getClass().isArray()) {
         // We can't call hashCode and equals on Array, so
         // convert it to String to keep the same behaviour.
@@ -487,7 +497,7 @@ public abstract class AbstractRelNode implements RelNode {
       sb.append(node.getTraitSet());
       sb.append('(');
       int j = 0;
-      for (Pair<String, Object> attr : attrs) {
+      for (Pair<String, @Nullable Object> attr : attrs) {
         if (j++ > 0) {
           sb.append(',');
         }

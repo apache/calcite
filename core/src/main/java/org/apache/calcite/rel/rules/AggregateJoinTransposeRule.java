@@ -48,6 +48,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -449,7 +451,7 @@ public class AggregateJoinTransposeRule
   /** Work space for an input to a join. */
   private static class Side {
     final Map<Integer, Integer> split = new HashMap<>();
-    RelNode newInput;
+    @Nullable RelNode newInput;
     boolean aggregate;
   }
 

@@ -62,6 +62,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -71,8 +73,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helper for implementing the {@code getXxx} methods such as
@@ -162,7 +165,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    Objects.requireNonNull(names);
+    requireNonNull(names);
     final List<ColumnMetaData> columns = new ArrayList<>(names.length);
     final List<Field> fields = new ArrayList<>(names.length);
     final List<String> fieldNames = new ArrayList<>(names.length);
@@ -381,8 +384,9 @@ public class CalciteMetaImpl extends MetaImpl {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
     return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
         .select((Function1<String, MetaTable>) name -> {
-          final Table table =
-              schema.calciteSchema.getTable(name, true).getTable();
+          final Table table = requireNonNull(
+              schema.calciteSchema.getTable(name, true),
+              () -> "table " + name + " is not found (case sensitive)").getTable();
           return new CalciteMetaTable(table,
               schema.tableCatalog,
               schema.tableSchem,
@@ -499,13 +503,13 @@ public class CalciteMetaImpl extends MetaImpl {
   }
 
   @Override public Iterable<Object> createIterable(StatementHandle handle, QueryState state,
-      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+      Signature signature, @Nullable List<TypedValue> parameterValues, @Nullable Frame firstFrame) {
     // Drop QueryState
     return _createIterable(handle, signature, parameterValues, firstFrame);
   }
 
   Iterable<Object> _createIterable(StatementHandle handle,
-      Signature signature, List<TypedValue> parameterValues, Frame firstFrame) {
+      Signature signature, @Nullable List<TypedValue> parameterValues, @Nullable Frame firstFrame) {
     try {
       //noinspection unchecked
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
@@ -676,7 +680,7 @@ public class CalciteMetaImpl extends MetaImpl {
     final Meta.PrepareCallback callback =
         new Meta.PrepareCallback() {
           long updateCount;
-          Signature signature;
+          @Nullable Signature signature;
 
           @Override public Object getMonitor() {
             return statement;
@@ -691,6 +695,7 @@ public class CalciteMetaImpl extends MetaImpl {
           }
 
           @Override public void execute() throws SQLException {
+            Signature signature = requireNonNull(this.signature, "signature");
             if (signature.statementType.canUpdate()) {
               final Iterable<Object> iterable =
                   _createIterable(h, signature, ImmutableList.of(),
@@ -718,7 +723,7 @@ public class CalciteMetaImpl extends MetaImpl {
   /** A trojan-horse method, subject to change without notice. */
   @VisibleForTesting
   public static CalciteConnection connect(CalciteSchema schema,
-      JavaTypeFactory typeFactory) {
+      @Nullable JavaTypeFactory typeFactory) {
     return DRIVER.connect(schema, typeFactory);
   }
 
@@ -744,7 +749,7 @@ public class CalciteMetaImpl extends MetaImpl {
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);
-      this.calciteTable = Objects.requireNonNull(calciteTable);
+      this.calciteTable = requireNonNull(calciteTable);
     }
   }
 

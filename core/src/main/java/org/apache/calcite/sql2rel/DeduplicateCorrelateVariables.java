@@ -27,11 +27,15 @@ import org.apache.calcite.rex.RexSubQuery;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+
 /**
  * Rewrites relations to ensure the same correlation is referenced by the same
  * correlation variable.
  */
 public class DeduplicateCorrelateVariables extends RelHomogeneousShuttle {
+  @NotOnlyInitialized
   private final RexShuttle dedupRex;
 
   /** Creates a DeduplicateCorrelateVariables. */
@@ -64,11 +68,12 @@ public class DeduplicateCorrelateVariables extends RelHomogeneousShuttle {
     private final RexBuilder builder;
     private final CorrelationId canonicalId;
     private final ImmutableSet<CorrelationId> alternateIds;
+    @NotOnlyInitialized
     private final DeduplicateCorrelateVariables shuttle;
 
     private DeduplicateCorrelateVariablesShuttle(RexBuilder builder,
         CorrelationId canonicalId, ImmutableSet<CorrelationId> alternateIds,
-        DeduplicateCorrelateVariables shuttle) {
+        @UnderInitialization DeduplicateCorrelateVariables shuttle) {
       this.builder = builder;
       this.canonicalId = canonicalId;
       this.alternateIds = alternateIds;

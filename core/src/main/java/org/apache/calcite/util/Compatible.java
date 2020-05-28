@@ -22,6 +22,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import static java.util.Objects.requireNonNull;
+
 /** Compatibility layer.
  *
  * <p>Allows to use advanced functionality if the latest JDK or Guava version
@@ -45,7 +47,7 @@ public interface Compatible {
               // Use MethodHandles.privateLookupIn if it is available (JDK 9
               // and above)
               @SuppressWarnings("rawtypes")
-              final Class<?> clazz = (Class) args[0];
+              final Class<?> clazz = (Class) requireNonNull(args[0], "args[0]");
               try {
                 final Method privateLookupMethod =
                     MethodHandles.class.getMethod("privateLookupIn",

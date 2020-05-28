@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * An aggregate function applied to a column (or columns) of a lattice.
  *
@@ -31,7 +38,7 @@ public class JsonMeasure {
    * <p>Required. Usually {@code count}, {@code sum},
    * {@code min}, {@code max}.
    */
-  public String agg;
+  public final String agg;
 
   /** Arguments to the measure.
    *
@@ -49,7 +56,15 @@ public class JsonMeasure {
    * that each column you intend to use as a measure has a unique name within
    * the lattice (using "{@code AS alias}" if necessary).
    */
-  public Object args;
+  public final @Nullable Object args;
+
+  @JsonCreator
+  public JsonMeasure(
+      @JsonProperty(value = "agg", required = true) String agg,
+      @JsonProperty("args") @Nullable Object args) {
+    this.agg = requireNonNull(agg, "agg");
+    this.args = args;
+  }
 
   public void accept(ModelHandler modelHandler) {
     modelHandler.visit(this);

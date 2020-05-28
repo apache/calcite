@@ -20,6 +20,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * SqlFunctionalOperator is a base class for special operators which use
  * functional syntax.
@@ -32,9 +34,9 @@ public class SqlFunctionalOperator extends SqlSpecialOperator {
       SqlKind kind,
       int pred,
       boolean isLeftAssoc,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,

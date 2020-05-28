@@ -28,10 +28,11 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -66,7 +67,7 @@ public class RexCall extends RexNode {
   /**
    * Cache of normalized variables used for #equals and #hashCode.
    */
-  private Pair<SqlOperator, List<RexNode>> normalized;
+  private @Nullable Pair<SqlOperator, List<RexNode>> normalized;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -141,7 +142,7 @@ public class RexCall extends RexNode {
     }
   }
 
-  protected @Nonnull String computeDigest(boolean withType) {
+  protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     if ((operands.size() == 0)
         && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
@@ -162,7 +163,7 @@ public class RexCall extends RexNode {
     return sb.toString();
   }
 
-  @Override public final @Nonnull String toString() {
+  @Override public final String toString() {
     return computeDigest(digestWithType());
   }
 
@@ -252,7 +253,7 @@ public class RexCall extends RexNode {
     return this.normalized;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

@@ -18,6 +18,9 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function2;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -81,27 +84,29 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     return map.isEmpty();
   }
 
-  @Override public boolean containsKey(Object key) {
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @Override public boolean containsKey(@Nullable Object key) {
     return map.containsKey(key);
   }
 
-  @Override public boolean containsValue(Object value) {
+  @Override public boolean containsValue(@Nullable Object value) {
     @SuppressWarnings("unchecked")
     List<V> list = (List<V>) value;
     return map.containsValue(list);
   }
 
-  @Override public Enumerable<V> get(Object key) {
+  @Override public @Nullable Enumerable<V> get(@Nullable Object key) {
     final List<V> list = map.get(key);
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @Override public Enumerable<V> put(K key, Enumerable<V> value) {
+  @SuppressWarnings("contracts.postcondition.not.satisfied")
+  @Override public @Nullable Enumerable<V> put(K key, Enumerable<V> value) {
     final List<V> list = map.put(key, value.toList());
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
-  @Override public Enumerable<V> remove(Object key) {
+  @Override public @Nullable Enumerable<V> remove(@Nullable Object key) {
     final List<V> list = map.remove(key);
     return list == null ? null : Linq4j.asEnumerable(list);
   }
@@ -116,7 +121,8 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     map.clear();
   }
 
-  @Override public Set<K> keySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<@KeyFor("this") K> keySet() {
     return map.keySet();
   }
 
@@ -147,8 +153,9 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     };
   }
 
-  @Override public Set<Entry<K, Enumerable<V>>> entrySet() {
-    final Set<Entry<K, List<V>>> entries = map.entrySet();
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<Entry<@KeyFor({"this"}) K, Enumerable<V>>> entrySet() {
+    final Set<Entry<@KeyFor("map") K, List<V>>> entries = map.entrySet();
     return new AbstractSet<Entry<K, Enumerable<V>>>() {
       @Override public Iterator<Entry<K, Enumerable<V>>> iterator() {
         final Iterator<Entry<K, List<V>>> iterator = entries.iterator();

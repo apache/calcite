@@ -33,6 +33,9 @@ import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Litmus;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 import java.util.Set;
@@ -87,7 +90,8 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return this RelNode's CallingConvention
    */
-  Convention getConvention();
+  @Pure
+  @Nullable Convention getConvention();
 
   /**
    * Returns the name of the variable which is to be implicitly set at runtime
@@ -96,7 +100,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    *
    * @return Name of correlating variable, or null
    */
-  String getCorrelVariable();
+  @Nullable String getCorrelVariable();
 
   /**
    * Returns the <code>i</code><sup>th</sup> input relational expression.
@@ -216,7 +220,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * Each node should call {@code super.explain}, then call the
    * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
    * and
-   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * {@link RelWriter#item(String, Object)}
    * methods for each input and attribute.
    *
    * @param pw Plan writer
@@ -293,7 +297,8 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
-  boolean deepEquals(Object obj);
+  @EnsuresNonNullIf(expression = "#1", result = true)
+  boolean deepEquals(@Nullable Object obj);
 
   /**
    * Compute deep hash code for RelNode digest.
@@ -320,7 +325,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @return If this relational expression represents an access to a table,
    *   returns that table, otherwise returns null
    */
-  RelOptTable getTable();
+  @Nullable RelOptTable getTable();
 
   /**
    * Returns the name of this relational expression's class, sans package
@@ -352,7 +357,7 @@ public interface RelNode extends RelOptNode, Cloneable {
    * @throws AssertionError if this relational expression is invalid and
    *                        litmus is THROW
    */
-  boolean isValid(Litmus litmus, Context context);
+  boolean isValid(Litmus litmus, @Nullable Context context);
 
   /**
    * Creates a copy of this relational expression, perhaps changing traits and

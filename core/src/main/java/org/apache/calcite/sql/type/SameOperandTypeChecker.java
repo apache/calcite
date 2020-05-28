@@ -27,6 +27,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -75,7 +77,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      SqlCallBinding callBinding) {
+      @Nullable SqlCallBinding callBinding) {
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();

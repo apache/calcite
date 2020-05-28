@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * This class defines some utilities to build type mapping matrix
  * which would then use to construct the {@link SqlTypeMappingRule} rules.
@@ -91,7 +93,7 @@ public abstract class SqlTypeMappingRules {
      * returns as a {@link ImmutableSet.Builder}. */
     ImmutableSet.Builder<SqlTypeName> copyValues(SqlTypeName typeName) {
       return ImmutableSet.<SqlTypeName>builder()
-          .addAll(map.get(typeName));
+          .addAll(castNonNull(map.get(typeName)));
     }
   }
 }

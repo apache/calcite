@@ -29,6 +29,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Optionality;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * User-defined aggregate function.
  *
@@ -42,7 +44,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public SqlUserDefinedAggFunction(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker, AggregateFunction function,
+      @Nullable SqlOperandTypeChecker operandTypeChecker, AggregateFunction function,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder, RelDataTypeFactory typeFactory) {
     this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
@@ -57,7 +59,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
   public SqlUserDefinedAggFunction(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata, AggregateFunction function,
+      @Nullable SqlOperandMetadata operandMetadata, AggregateFunction function,
       boolean requiresOrder, boolean requiresOver,
       Optionality requiresGroupOrder) {
     super(Util.last(opName.names), opName, kind,
@@ -67,7 +69,7 @@ public class SqlUserDefinedAggFunction extends SqlAggFunction {
     this.function = function;
   }
 
-  @Override public SqlOperandMetadata getOperandTypeChecker() {
-    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
+    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 }

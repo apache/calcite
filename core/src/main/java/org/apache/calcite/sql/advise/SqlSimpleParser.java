@@ -19,6 +19,8 @@ package org.apache.calcite.sql.advise;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.parser.SqlParser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A simple parser that takes an incomplete and turn it into a syntactically
@@ -307,7 +310,7 @@ public class SqlSimpleParser {
       return new Token(TokenType.DQID, match);
     }
 
-    public Token nextToken() {
+    public @Nullable Token nextToken() {
       while (pos < sql.length()) {
         char c = sql.charAt(pos);
         final String match;
@@ -443,13 +446,13 @@ public class SqlSimpleParser {
   /** Token. */
   public static class Token {
     private final TokenType type;
-    private final String s;
+    private final @Nullable String s;
 
     Token(TokenType tokenType) {
       this(tokenType, null);
     }
 
-    Token(TokenType type, String s) {
+    Token(TokenType type, @Nullable String s) {
       this.type = type;
       this.s = s;
     }
@@ -511,7 +514,7 @@ public class SqlSimpleParser {
       }
     }
 
-    public Query simplify(String hintToken) {
+    public Query simplify(@Nullable String hintToken) {
       TokenType clause = TokenType.SELECT;
       TokenType foundInClause = null;
       Query foundInSubQuery = null;
@@ -773,31 +776,37 @@ public class SqlSimpleParser {
     }
 
     private void purgeWhere() {
-      List<Token> sublist = findClause(TokenType.WHERE);
+      List<Token> sublist = findClauseOrNull(TokenType.WHERE);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private void purgeGroupByHaving() {
-      List<Token> sublist = findClause(TokenType.GROUP);
+      List<Token> sublist = findClauseOrNull(TokenType.GROUP);
       if (sublist != null) {
         sublist.clear();
       }
-      sublist = findClause(TokenType.HAVING);
+      sublist = findClauseOrNull(TokenType.HAVING);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private void purgeOrderBy() {
-      List<Token> sublist = findClause(TokenType.ORDER);
+      List<Token> sublist = findClauseOrNull(TokenType.ORDER);
       if (sublist != null) {
         sublist.clear();
       }
     }
 
     private List<Token> findClause(TokenType keyword) {
+      return Objects.requireNonNull(
+          findClauseOrNull(keyword),
+          () -> "clause does not exist: " + keyword);
+    }
+
+    private @Nullable List<Token> findClauseOrNull(TokenType keyword) {
       int start = -1;
       int k = -1;
       EnumSet<TokenType> clauses =

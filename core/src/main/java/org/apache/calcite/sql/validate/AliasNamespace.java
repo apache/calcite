@@ -28,6 +28,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
@@ -68,14 +70,14 @@ public class AliasNamespace extends AbstractNamespace {
   @Override public boolean supportsModality(SqlModality modality) {
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
-        validator.getNamespace(operands.get(0));
+        validator.getNamespaceOrThrow(operands.get(0));
     return childNs.supportsModality(modality);
   }
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final List<SqlNode> operands = call.getOperandList();
     final SqlValidatorNamespace childNs =
-        validator.getNamespace(operands.get(0));
+        validator.getNamespaceOrThrow(operands.get(0));
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
     final RelDataType aliasedType;
     if (operands.size() == 2) {
@@ -145,7 +147,7 @@ public class AliasNamespace extends AbstractNamespace {
     return buf.toString();
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return call;
   }
 
@@ -153,7 +155,7 @@ public class AliasNamespace extends AbstractNamespace {
     final RelDataType underlyingRowType =
         validator.getValidatedNodeType(call.operand(0));
     int i = 0;
-    for (RelDataTypeField field : rowType.getFieldList()) {
+    for (RelDataTypeField field : getRowType().getFieldList()) {
       if (field.getName().equals(name)) {
         return underlyingRowType.getFieldList().get(i).getName();
       }

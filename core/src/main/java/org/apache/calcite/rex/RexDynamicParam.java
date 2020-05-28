@@ -19,6 +19,8 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -62,7 +64,7 @@ public class RexDynamicParam extends RexVariable {
     return visitor.visitDynamicParam(this, arg);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexDynamicParam
         && type.equals(((RexDynamicParam) obj).type)

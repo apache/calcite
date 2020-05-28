@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.plan;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -37,8 +39,8 @@ public interface RelOptSchemaWithSampling extends RelOptSchema {
    *                    dataset is found; may be null
    * @return Table, or null if not found
    */
-  RelOptTable getTableForMember(
+  @Nullable RelOptTable getTableForMember(
       List<String> names,
-      String datasetName,
-      boolean[] usedDataset);
+      @Nullable String datasetName,
+      boolean @Nullable [] usedDataset);
 }

@@ -47,6 +47,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -58,6 +60,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -94,18 +98,12 @@ public abstract class SqlTypeUtil {
         return false;
       }
 
-      if (t0.getCharset() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) charset when calling deriveType");
-      } else if (!t0.getCharset().equals(t1.getCharset())) {
+      if (!getCharset(t0).equals(getCharset(t1))) {
         return false;
       }
 
-      if (t0.getCollation() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) collation when calling deriveType");
-      } else if (!t0.getCollation().getCharset().equals(
-          t1.getCollation().getCharset())) {
+      if (!getCollation(t0).getCharset().equals(
+          getCollation(t1).getCharset())) {
         return false;
       }
     }
@@ -205,7 +203,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType promoteToRowType(
       RelDataTypeFactory typeFactory,
       RelDataType type,
-      String fieldName) {
+      @Nullable String fieldName) {
     if (!type.isStruct()) {
       if (fieldName == null) {
         fieldName = "ROW_VALUE";
@@ -343,11 +341,14 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns whether a type is some kind of INTERVAL. */
+  @EnsuresNonNullIf(expression = "#1.getIntervalQualifier()", result = true)
   public static boolean isInterval(RelDataType type) {
     return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
   }
 
   /** Returns whether a type is in SqlTypeFamily.Character. */
+  @EnsuresNonNullIf(expression = "#1.getCharset()", result = true)
+  @EnsuresNonNullIf(expression = "#1.getCollation()", result = true)
   public static boolean inCharFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.CHARACTER;
   }
@@ -583,7 +584,7 @@ public abstract class SqlTypeUtil {
     case VARCHAR:
       return (int) Math.ceil(
           ((double) type.getPrecision())
-              * type.getCharset().newEncoder().maxBytesPerChar());
+              * getCharset(type).newEncoder().maxBytesPerChar());
 
     case BINARY:
     case VARBINARY:
@@ -671,7 +672,7 @@ public abstract class SqlTypeUtil {
 
   /** Returns the class name of the wrapper for the primitive data type. */
   @Deprecated // to be removed before 2.0
-  public static String getPrimitiveWrapperJavaClassName(RelDataType type) {
+  public static @Nullable String getPrimitiveWrapperJavaClassName(@Nullable RelDataType type) {
     if (type == null) {
       return null;
     }
@@ -691,7 +692,7 @@ public abstract class SqlTypeUtil {
 
   /** Returns the class name of a numeric data type. */
   @Deprecated // to be removed before 2.0
-  public static String getNumericJavaClassName(RelDataType type) {
+  public static @Nullable String getNumericJavaClassName(@Nullable RelDataType type) {
     if (type == null) {
       return null;
     }
@@ -915,7 +916,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType flattenRecordType(
       RelDataTypeFactory typeFactory,
       RelDataType recordType,
-      int[] flatteningMap) {
+      int @Nullable [] flatteningMap) {
     if (!recordType.isStruct()) {
       return recordType;
     }
@@ -962,7 +963,7 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory typeFactory,
       RelDataType type,
       List<RelDataTypeField> list,
-      int[] flatteningMap) {
+      int @Nullable [] flatteningMap) {
     boolean nested = false;
     for (RelDataTypeField field : type.getFieldList()) {
       if (flatteningMap != null) {
@@ -1018,7 +1019,7 @@ public abstract class SqlTypeUtil {
    * @return corresponding parse representation
    */
   public static SqlDataTypeSpec convertTypeToSpec(RelDataType type,
-      String charSetName, int maxPrecision) {
+      @Nullable String charSetName, int maxPrecision) {
     SqlTypeName typeName = type.getSqlTypeName();
 
     // TODO jvs 28-Dec-2004:  support row types, user-defined types,
@@ -1264,7 +1265,7 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory factory,
       RelDataType type1,
       RelDataType type2,
-      SqlNameMatcher nameMatcher) {
+      @Nullable SqlNameMatcher nameMatcher) {
     Preconditions.checkArgument(type1.isStruct(), "Input type must be struct type");
     Preconditions.checkArgument(type2.isStruct(), "Input type must be struct type");
 
@@ -1427,7 +1428,7 @@ public abstract class SqlTypeUtil {
   /** Returns the least restrictive type T, such that a value of type T can be
    * compared with values of type {@code type1} and {@code type2} using
    * {@code =}. */
-  public static RelDataType leastRestrictiveForComparison(
+  public static @Nullable RelDataType leastRestrictiveForComparison(
       RelDataTypeFactory typeFactory, RelDataType type1, RelDataType type2) {
     final RelDataType type =
         typeFactory.leastRestrictive(ImmutableList.of(type1, type2));
@@ -1731,7 +1732,7 @@ public abstract class SqlTypeUtil {
    * @param toType Type of the literal
    * @return whether the value is valid for the type
    */
-  public static boolean isValidDecimalValue(BigDecimal value, RelDataType toType) {
+  public static boolean isValidDecimalValue(@Nullable BigDecimal value, RelDataType toType) {
     if (value == null) {
       return true;
     }

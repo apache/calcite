@@ -20,6 +20,10 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlMatchRecognize;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace for a {@code MATCH_RECOGNIZE} clause.
  */
@@ -36,10 +40,10 @@ public class MatchRecognizeNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateMatchRecognize(matchRecognize);
-    return rowType;
+    return requireNonNull(rowType, "rowType");
   }
 
-  @Override public SqlMatchRecognize getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return matchRecognize;
   }
 }

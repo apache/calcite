@@ -81,6 +81,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,8 +91,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
+
+import static java.util.Objects.requireNonNull;
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -138,10 +143,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   private final boolean restructure;
 
   private final Map<RelNode, RelNode> oldToNewRelMap = new HashMap<>();
-  private RelNode currentRel;
+  private @Nullable RelNode currentRel;
   private int iRestructureInput;
   @SuppressWarnings("unused")
-  private RelDataType flattenedRootType;
+  private @Nullable RelDataType flattenedRootType;
   boolean restructured;
   private final RelOptTable.ToRelContext toRelContext;
 
@@ -168,6 +173,10 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   //~ Methods ----------------------------------------------------------------
+
+  private RelNode getCurrentRelOrThrow() {
+    return requireNonNull(currentRel, "currentRel");
+  }
 
   public void updateRelInMap(
       SortedSetMultimap<RelNode, CorrelationId> mapRefRelToCorVar) {
@@ -267,7 +276,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   protected RelNode getNewForOldRel(RelNode oldRel) {
-    return oldToNewRelMap.get(oldRel);
+    return requireNonNull(
+        oldToNewRelMap.get(oldRel),
+        () -> "newRel not found for " + oldRel);
   }
 
   /**
@@ -294,10 +305,9 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
    * @return flat type with new ordinal relative to new inputs
    */
   private Ord<RelDataType> getNewFieldForOldInput(int oldOrdinal, int innerOrdinal) {
-    assert currentRel != null;
     // sum of predecessors post flatten sizes points to new ordinal
     // of flat field or first field of flattened struct
-    final int postFlatteningOrdinal = currentRel.getInputs().stream()
+    final int postFlatteningOrdinal = getCurrentRelOrThrow().getInputs().stream()
         .flatMap(node -> node.getRowType().getFieldList().stream())
         .limit(oldOrdinal)
         .map(RelDataTypeField::getType)
@@ -312,7 +322,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
   }
 
   private RelDataTypeField getNewInputFieldByNewOrdinal(int newOrdinal) {
-    return currentRel.getInputs().stream()
+    return getCurrentRelOrThrow().getInputs().stream()
           .map(this::getNewForOldRel)
           .flatMap(node -> node.getRowType().getFieldList().stream())
           .skip(newOrdinal)
@@ -322,7 +332,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   /** Returns whether the old field at index {@code fieldIdx} was not flattened. */
   private boolean noFlatteningForInput(int fieldIdx) {
-    final List<RelNode> inputs = currentRel.getInputs();
+    final List<RelNode> inputs = getCurrentRelOrThrow().getInputs();
     int fieldCnt = 0;
     for (RelNode input : inputs) {
       fieldCnt += input.getRowType().getFieldCount();
@@ -593,7 +603,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
 
   private void flattenProjections(RewriteRexShuttle shuttle,
       List<? extends RexNode> exps,
-      List<String> fieldNames,
+      @Nullable List<String> fieldNames,
       String prefix,
       List<Pair<RexNode, String>> flattenedExps) {
     for (int i = 0; i < exps.size(); ++i) {
@@ -603,7 +613,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     }
   }
 
-  private String extractName(List<String> fieldNames, String prefix, int i) {
+  private String extractName(@Nullable List<String> fieldNames, String prefix, int i) {
     String fieldName = (fieldNames == null || fieldNames.get(i) == null)
         ? ("$" + i)
         : fieldNames.get(i);
@@ -663,7 +673,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             // why we're trying to get range from to. For primitive just one field will be in range.
             int from = 0;
             for (RelDataTypeField field : firstOp.getType().getFieldList()) {
-              if (literalString.equalsIgnoreCase(field.getName())) {
+              if (Objects.equals(literalString, field.getName())
+                  || String.CASE_INSENSITIVE_ORDER.compare(literalString, field.getName()) == 0) {
                 int oldOrdinal = ((RexInputRef) firstOp).getIndex();
                 int to = from + postFlattenSize(field.getType());
                 for (int newInnerOrdinal = from; newInnerOrdinal < to; newInnerOrdinal++) {
@@ -820,7 +831,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             RelStructuredTypeFlattener.class,
             RelNode.class);
 
-    @Override public void visit(RelNode p, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode p, int ordinal, @Nullable RelNode parent) {
       // rewrite children first
       super.visit(p, ordinal, parent);
 
@@ -850,7 +861,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
     @Override public RexNode visitInputRef(RexInputRef input) {
       final int oldIndex = input.getIndex();
       final Ord<RelDataType> field = getNewFieldForOldInput(oldIndex);
-      RelDataTypeField inputFieldByOldIndex = currentRel.getInputs().stream()
+      RelDataTypeField inputFieldByOldIndex = getCurrentRelOrThrow().getInputs().stream()
           .flatMap(relInput -> relInput.getRowType().getFieldList().stream())
           .skip(oldIndex)
           .findFirst()
@@ -990,7 +1001,7 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
       return subQuery.clone(rel);
     }
 
-    private RexNode flattenComparison(
+    private @Nullable RexNode flattenComparison(
         RexBuilder rexBuilder,
         SqlOperator op,
         List<RexNode> exprs) {

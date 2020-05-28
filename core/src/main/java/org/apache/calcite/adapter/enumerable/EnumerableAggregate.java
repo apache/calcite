@@ -36,9 +36,13 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Aggregate} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -48,7 +52,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
       RelTraitSet traitSet,
       RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets,
+      @Nullable List<ImmutableBitSet> groupSets,
       List<AggregateCall> aggCalls)
       throws InvalidRelException {
     super(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls);
@@ -79,7 +83,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
 
   @Override public EnumerableAggregate copy(RelTraitSet traitSet, RelNode input,
       ImmutableBitSet groupSet,
-      List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+      @Nullable List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
     try {
       return new EnumerableAggregate(getCluster(), traitSet, input,
           groupSet, groupSets, aggCalls);
@@ -253,8 +257,9 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
     }
     for (final AggImpState agg : aggs) {
       results.add(
-          agg.implementor.implementResult(agg.context,
-              new AggResultContextImpl(resultBlock, agg.call, agg.state, key_,
+          agg.implementor.implementResult(requireNonNull(agg.context, "agg.context"),
+              new AggResultContextImpl(resultBlock, agg.call,
+                  requireNonNull(agg.state, "agg.state"), key_,
                   keyPhysType)));
     }
     resultBlock.add(physType.record(results));
@@ -273,7 +278,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
           builder.append("resultSelector",
               Expressions.lambda(Function2.class,
                   resultBlock.toBlock(),
-                  key_,
+                  requireNonNull(key_, "key_"),
                   acc_));
       builder.add(
           Expressions.return_(null,
@@ -335,7 +340,7 @@ public class EnumerableAggregate extends EnumerableAggregateBase implements Enum
           builder.append("resultSelector",
               Expressions.lambda(Function2.class,
                   resultBlock.toBlock(),
-                  key_,
+                  requireNonNull(key_, "key_"),
                   acc_));
       builder.add(
           Expressions.return_(null,

@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -59,6 +58,11 @@ class SqlJsonFunctionsTest {
   @Test void testJsonValueExpression() {
     assertJsonValueExpression("{}",
         is(JsonFunctions.JsonValueContext.withJavaObj(Collections.emptyMap())));
+  }
+
+  @Test void testJsonNullExpression() {
+    assertJsonValueExpression("null",
+        is(JsonFunctions.JsonValueContext.withJavaObj(null)));
   }
 
   @Test void testJsonApiCommonSyntax() {
@@ -895,7 +899,7 @@ class SqlJsonFunctionsTest {
     };
   }
 
-  @Nonnull private BaseMatcher<JsonFunctions.JsonPathContext> contextMatches(
+  private BaseMatcher<JsonFunctions.JsonPathContext> contextMatches(
       JsonFunctions.JsonPathContext expected) {
     return new BaseMatcher<JsonFunctions.JsonPathContext>() {
       @Override public boolean matches(Object item) {

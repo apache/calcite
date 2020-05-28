@@ -18,6 +18,9 @@ package org.apache.calcite.util.graph;
 
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -30,7 +33,7 @@ import java.util.List;
 public class AttributedDirectedGraph<V, E extends DefaultEdge>
     extends DefaultDirectedGraph<V, E> {
   /** Creates an attributed graph. */
-  public AttributedDirectedGraph(AttributedEdgeFactory<V, E> edgeFactory) {
+  public AttributedDirectedGraph(@UnknownInitialization AttributedEdgeFactory<V, E> edgeFactory) {
     super(edgeFactory);
   }
 
@@ -40,8 +43,8 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
   }
 
   /** Returns the first edge between one vertex to another. */
-  @Override public E getEdge(V source, V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
+  @Override public @Nullable E getEdge(V source, V target) {
+    final VertexInfo<V, E> info = getVertex(source);
     for (E outEdge : info.outEdges) {
       if (outEdge.target.equals(target)) {
         return outEdge;
@@ -52,20 +55,14 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
 
   // CHECKSTYLE: IGNORE 1
   /** @deprecated Use {@link #addEdge(Object, Object, Object...)}. */
-  @Override @Deprecated
-  public E addEdge(V vertex, V targetVertex) {
+  @Deprecated
+  @Override public @Nullable E addEdge(V vertex, V targetVertex) {
     return super.addEdge(vertex, targetVertex);
   }
 
-  public E addEdge(V vertex, V targetVertex, Object... attributes) {
-    final VertexInfo<V, E> info = vertexMap.get(vertex);
-    if (info == null) {
-      throw new IllegalArgumentException("no vertex " + vertex);
-    }
-    final VertexInfo<V, E> targetInfo = vertexMap.get(targetVertex);
-    if (targetInfo == null) {
-      throw new IllegalArgumentException("no vertex " + targetVertex);
-    }
+  public @Nullable E addEdge(V vertex, V targetVertex, Object... attributes) {
+    final VertexInfo<V, E> info = getVertex(vertex);
+    final VertexInfo<V, E> targetInfo = getVertex(targetVertex);
     @SuppressWarnings("unchecked")
     final AttributedEdgeFactory<V, E> f =
         (AttributedEdgeFactory) this.edgeFactory;
@@ -81,7 +78,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
 
   /** Returns all edges between one vertex to another. */
   public Iterable<E> getEdges(V source, final V target) {
-    final VertexInfo<V, E> info = vertexMap.get(source);
+    final VertexInfo<V, E> info = getVertex(source);
     return Util.filter(info.outEdges, outEdge -> outEdge.target.equals(target));
   }
 
@@ -89,7 +86,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
    * Returns whether any were removed. */
   @Override public boolean removeEdge(V source, V target) {
     // remove out edges
-    final List<E> outEdges = vertexMap.get(source).outEdges;
+    final List<E> outEdges = getVertex(source).outEdges;
     int removeOutCount = 0;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
       E edge = outEdges.get(i);
@@ -101,7 +98,7 @@ public class AttributedDirectedGraph<V, E extends DefaultEdge>
     }
 
     // remove in edges
-    final List<E> inEdges = vertexMap.get(target).inEdges;
+    final List<E> inEdges = getVertex(target).inEdges;
     int removeInCount = 0;
     for (int i = 0, size = inEdges.size(); i < size; i++) {
       E edge = inEdges.get(i);

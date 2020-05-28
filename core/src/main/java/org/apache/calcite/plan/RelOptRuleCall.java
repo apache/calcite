@@ -26,6 +26,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.util.HashMap;
@@ -54,7 +55,7 @@ public abstract class RelOptRuleCall {
   public final RelOptRule rule;
   public final RelNode[] rels;
   private final RelOptPlanner planner;
-  private final List<RelNode> parents;
+  private final @Nullable List<RelNode> parents;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -77,7 +78,7 @@ public abstract class RelOptRuleCall {
       RelOptRuleOperand operand,
       RelNode[] rels,
       Map<RelNode, List<RelNode>> nodeInputs,
-      List<RelNode> parents) {
+      @Nullable List<RelNode> parents) {
     this.id = nextId++;
     this.planner = planner;
     this.operand0 = operand;
@@ -171,7 +172,7 @@ public abstract class RelOptRuleCall {
    * @param rel Relational expression
    * @return Children of relational expression
    */
-  public List<RelNode> getChildRels(RelNode rel) {
+  public @Nullable List<RelNode> getChildRels(RelNode rel) {
     return nodeInputs.get(rel);
   }
 
@@ -221,7 +222,7 @@ public abstract class RelOptRuleCall {
   /**
    * Returns a list of parents of the first relational expression.
    */
-  public List<RelNode> getParents() {
+  public @Nullable List<RelNode> getParents() {
     return parents;
   }
 

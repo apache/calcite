@@ -35,6 +35,8 @@ import org.apache.calcite.schema.TranslatableTable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.List;
 
@@ -49,10 +51,10 @@ public class ViewTable
   private final String viewSql;
   private final List<String> schemaPath;
   private final RelProtoDataType protoRowType;
-  private final List<String> viewPath;
+  private final @Nullable List<String> viewPath;
 
   public ViewTable(Type elementType, RelProtoDataType rowType, String viewSql,
-      List<String> schemaPath, List<String> viewPath) {
+      List<String> schemaPath, @Nullable List<String> viewPath) {
     super(elementType);
     this.viewSql = viewSql;
     this.schemaPath = ImmutableList.copyOf(schemaPath);
@@ -68,7 +70,7 @@ public class ViewTable
 
   @Deprecated // to be removed before 2.0
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, Boolean modifiable) {
+      List<String> schemaPath, @Nullable Boolean modifiable) {
     return viewMacro(schema, viewSql, schemaPath, null, modifiable);
   }
 
@@ -80,7 +82,8 @@ public class ViewTable
    * @param modifiable Whether view is modifiable, or null to deduce it
    */
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+      List<String> schemaPath, @Nullable List<String> viewPath,
+      @Nullable Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
         viewPath, modifiable);
   }
@@ -96,7 +99,7 @@ public class ViewTable
   }
 
   /** Returns the the path of the view. */
-  public List<String> getViewPath() {
+  public @Nullable List<String> getViewPath() {
     return viewPath;
   }
 

@@ -17,7 +17,9 @@
 package org.apache.calcite.materialize;
 
 import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.schema.impl.MaterializedViewTable;
 import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
@@ -60,7 +62,10 @@ class SqlLatticeStatisticProvider implements LatticeStatisticProvider {
         new MaterializationService.DefaultTableFactory()
             .createTable(lattice.rootSchema, sql, ImmutableList.of());
     final Object[] values =
-        Iterables.getOnlyElement(((ScannableTable) table).scan(null));
+        Iterables.getOnlyElement(
+            ((ScannableTable) table).scan(
+            Schemas.createDataContext(MaterializedViewTable.MATERIALIZATION_CONNECTION,
+                lattice.rootSchema.plus())));
     return ((Number) values[0]).doubleValue();
   }
 }

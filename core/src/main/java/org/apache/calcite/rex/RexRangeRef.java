@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import org.apache.calcite.rel.type.RelDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -77,7 +79,7 @@ public class RexRangeRef extends RexNode {
     return visitor.visitRangeRef(this, arg);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || obj instanceof RexRangeRef
         && type.equals(((RexRangeRef) obj).type)

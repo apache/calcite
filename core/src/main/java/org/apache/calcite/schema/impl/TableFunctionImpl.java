@@ -35,6 +35,8 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.TableFunction;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -44,6 +46,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.schema.TableFunction} based on a
@@ -61,13 +65,13 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
 
   /** Creates a {@link TableFunctionImpl} from a class, looking for an "eval"
    * method. Returns null if there is no such method. */
-  public static TableFunction create(Class<?> clazz) {
+  public static @Nullable TableFunction create(Class<?> clazz) {
     return create(clazz, "eval");
   }
 
   /** Creates a {@link TableFunctionImpl} from a class, looking for a method
    * with a given name. Returns null if there is no such method. */
-  public static TableFunction create(Class<?> clazz, String methodName) {
+  public static @Nullable TableFunction create(Class<?> clazz, String methodName) {
     final Method method = findMethod(clazz, methodName);
     if (method == null) {
       return null;
@@ -76,7 +80,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   /** Creates a {@link TableFunctionImpl} from a method. */
-  public static TableFunction create(final Method method) {
+  public static @Nullable TableFunction create(final Method method) {
     if (!Modifier.isStatic(method.getModifiers())) {
       Class clazz = method.getDeclaringClass();
       if (!classHasPublicZeroArgsConstructor(clazz)) {
@@ -148,9 +152,9 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
             method.getDeclaringClass().getConstructor();
         o = constructor.newInstance();
       }
-      //noinspection unchecked
-      final Object table = method.invoke(o, arguments.toArray());
-      return (Table) table;
+      return (Table) requireNonNull(
+          method.invoke(o, arguments.toArray()),
+          () -> "got null from " + method + " with arguments " + arguments);
     } catch (IllegalArgumentException e) {
       throw RESOURCE.illegalArgumentForTableFunctionCall(
           method.toString(),

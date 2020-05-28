@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Basic implementation of {@link SqlVisitor} which does nothing at each node.
  *
@@ -34,7 +36,7 @@ import org.apache.calcite.sql.SqlNodeList;
  *
  * @param <R> Return type
  */
-public class SqlBasicVisitor<R> implements SqlVisitor<R> {
+public class SqlBasicVisitor<@Nullable R> implements SqlVisitor<R> {
   //~ Methods ----------------------------------------------------------------
 
   @Override public R visit(SqlLiteral literal) {
@@ -89,7 +91,7 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
         SqlVisitor<R> visitor,
         SqlNode expr,
         int i,
-        SqlNode operand);
+        @Nullable SqlNode operand);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -100,12 +102,12 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
    *
    * @param <R> result type
    */
-  public static class ArgHandlerImpl<R> implements ArgHandler<R> {
-    private static final ArgHandler INSTANCE = new ArgHandlerImpl();
+  public static class ArgHandlerImpl<@Nullable R> implements ArgHandler<R> {
+    private static final ArgHandler<?> INSTANCE = new ArgHandlerImpl<>();
 
     @SuppressWarnings("unchecked")
     public static <R> ArgHandler<R> instance() {
-      return INSTANCE;
+      return (ArgHandler<R>) INSTANCE;
     }
 
     @Override public R result() {
@@ -116,7 +118,7 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
         SqlVisitor<R> visitor,
         SqlNode expr,
         int i,
-        SqlNode operand) {
+        @Nullable SqlNode operand) {
       if (operand == null) {
         return null;
       }

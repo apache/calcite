@@ -22,6 +22,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -31,7 +33,7 @@ import java.util.List;
 public interface Compiler {
 
   /** Compiles an expression to an executable form. */
-  Scalar compile(List<RexNode> nodes, RelDataType inputRowType);
+  Scalar compile(List<RexNode> nodes, @Nullable RelDataType inputRowType);
 
   RelDataType combinedRowType(List<RelNode> inputs);
 

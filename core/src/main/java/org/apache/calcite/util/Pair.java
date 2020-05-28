@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collections;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import javax.annotation.Nonnull;
 
 /**
  * Pair of objects.
@@ -87,7 +88,7 @@ public class Pair<T1, T2>
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || (obj instanceof Pair)
         && Objects.equals(this.left, ((Pair) obj).left)
@@ -104,7 +105,7 @@ public class Pair<T1, T2>
     return keyHash ^ valueHash;
   }
 
-  @Override public int compareTo(@Nonnull Pair<T1, T2> that) {
+  @Override public int compareTo(Pair<T1, T2> that) {
     //noinspection unchecked
     int c = NULLS_FIRST_COMPARATOR.compare(this.left, that.left);
     if (c == 0) {
@@ -269,7 +270,7 @@ public class Pair<T1, T2>
   public static <K, V> void forEach(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs,
-      BiConsumer<K, V> consumer) {
+      BiConsumer<? super K, ? super V> consumer) {
     final Iterator<? extends K> leftIterator = ks.iterator();
     final Iterator<? extends V> rightIterator = vs.iterator();
     while (leftIterator.hasNext() && rightIterator.hasNext()) {

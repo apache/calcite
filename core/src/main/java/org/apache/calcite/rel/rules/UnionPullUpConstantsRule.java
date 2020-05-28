@@ -67,7 +67,7 @@ public class UnionPullUpConstantsRule
     final RexBuilder rexBuilder = union.getCluster().getRexBuilder();
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(union);
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
 

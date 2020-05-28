@@ -32,6 +32,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * A <code>SqlDialect</code> implementation for the Apache Hive database.
  */
@@ -62,12 +64,12 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
-      SqlNode fetch) {
+  @Override public void unparseOffsetFetch(SqlWriter writer, @Nullable SqlNode offset,
+      @Nullable SqlNode fetch) {
     unparseFetchUsingLimit(writer, offset, fetch);
   }
 
-  @Override public SqlNode emulateNullDirection(SqlNode node,
+  @Override public @Nullable SqlNode emulateNullDirection(SqlNode node,
       boolean nullsFirst, boolean desc) {
     if (emulateNullDirection) {
       return emulateNullDirectionWithIsNull(node, nullsFirst, desc);
@@ -133,7 +135,7 @@ public class HiveSqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public SqlNode getCastSpec(final RelDataType type) {
+  @Override public @Nullable SqlNode getCastSpec(final RelDataType type) {
     if (type instanceof BasicSqlType) {
       switch (type.getSqlTypeName()) {
       case INTEGER:

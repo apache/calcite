@@ -16,8 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents indexing a property or array.
@@ -27,8 +31,10 @@ public class IndexExpression extends Expression {
   public final List<Expression> indexExpressions;
 
   public IndexExpression(Expression array, List<Expression> indexExpressions) {
-    super(ExpressionType.ArrayIndex, Types.getComponentType(array.getType()));
-    assert array != null : "array should not be null";
+    super(ExpressionType.ArrayIndex,
+        requireNonNull(
+            Types.getComponentType(array.getType()),
+            () -> "component type for " + array));
     assert indexExpressions != null : "indexExpressions should not be null";
     assert !indexExpressions.isEmpty() : "indexExpressions should not be empty";
     this.array = array;
@@ -52,7 +58,7 @@ public class IndexExpression extends Expression {
     writer.list("[", ", ", "]", indexExpressions);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }

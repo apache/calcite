@@ -43,6 +43,8 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,7 +80,7 @@ public final class LogicalWindow extends Window {
   @Override public LogicalWindow copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
     return new LogicalWindow(getCluster(), traitSet, sole(inputs), constants,
-      rowType, groups);
+      getRowType(), groups);
   }
 
   /**
@@ -324,7 +326,7 @@ public final class LogicalWindow extends Window {
       return Objects.hash(groupSet, orderKeys, isRows, lowerBound, upperBound);
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return obj == this
           || obj instanceof WindowKey
           && groupSet.equals(((WindowKey) obj).groupSet)

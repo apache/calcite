@@ -30,9 +30,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Simple implementation of {@link RelCollation}.
@@ -83,7 +84,7 @@ public class RelCollationImpl implements RelCollation {
     return fieldCollations.hashCode();
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -98,7 +99,7 @@ public class RelCollationImpl implements RelCollation {
     return fieldCollations.isEmpty();
   }
 
-  @Override public int compareTo(@Nonnull RelMultipleTrait o) {
+  @Override public int compareTo(RelMultipleTrait o) {
     final RelCollationImpl that = (RelCollationImpl) o;
     final UnmodifiableIterator<RelFieldCollation> iterator =
         that.fieldCollations.iterator();

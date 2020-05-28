@@ -39,6 +39,8 @@ import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktExportFlags;
 import com.esri.core.geometry.WktImportFlags;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 
 import static org.apache.calcite.runtime.Geometries.NO_SRID;
@@ -264,17 +266,17 @@ public class GeoFunctions {
   }
 
   /** Returns the x-value of the first coordinate of {@code geom}. */
-  public static Double ST_X(Geom geom) {
+  public static @Nullable Double ST_X(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getX() : null;
   }
 
   /** Returns the y-value of the first coordinate of {@code geom}. */
-  public static Double ST_Y(Geom geom) {
+  public static @Nullable Double ST_Y(Geom geom) {
     return geom.g() instanceof Point ? ((Point) geom.g()).getY() : null;
   }
 
   /** Returns the z-value of the first coordinate of {@code geom}. */
-  public static Double ST_Z(Geom geom) {
+  public static @Nullable Double ST_Z(Geom geom) {
     return geom.g().getDescription().hasZ() && geom.g() instanceof Point
         ? ((Point) geom.g()).getZ() : null;
   }
@@ -487,7 +489,7 @@ public class GeoFunctions {
   /** Returns the position of a point on the Hilbert curve,
    * or null if it is not a 2-dimensional point. */
   @Hints({"SqlKind:HILBERT"})
-  public static Long hilbert(Geom geom) {
+  public static @Nullable Long hilbert(Geom geom) {
     final Geometry g = geom.g();
     if (g instanceof Point) {
       final double x = ((Point) g).getX();

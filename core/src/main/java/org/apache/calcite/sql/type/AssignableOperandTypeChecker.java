@@ -26,6 +26,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -37,7 +39,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelDataType> paramTypes;
-  private final ImmutableList<String> paramNames;
+  private final @Nullable ImmutableList<String> paramNames;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -49,7 +51,7 @@ public class AssignableOperandTypeChecker implements SqlOperandTypeChecker {
    * @param paramNames parameter names, or null
    */
   public AssignableOperandTypeChecker(List<RelDataType> paramTypes,
-      List<String> paramNames) {
+      @Nullable List<String> paramNames) {
     this.paramTypes = ImmutableList.copyOf(paramTypes);
     this.paramNames =
         paramNames == null ? null : ImmutableList.copyOf(paramNames);

@@ -70,6 +70,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Subclass of {@link org.apache.calcite.plan.RelImplementor} for relational
  * operators of {@link EnumerableConvention} calling convention.
@@ -81,6 +83,7 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
   private final Map<Object, ParameterExpression> stashedParameters =
       new IdentityHashMap<>();
 
+  @SuppressWarnings("methodref.receiver.bound.invalid")
   protected final Function1<String, RexToLixTranslator.InputGetter> allCorrelateVariables =
       this::getCorrelVariableGetter;
 
@@ -120,7 +123,8 @@ public class EnumerableRelImplementor extends JavaRelImplementor {
         Expression e = null;
         for (Statement statement : result.block.statements) {
           if (statement instanceof GotoStatement) {
-            e = bb.append("v", ((GotoStatement) statement).expression);
+            e = bb.append("v",
+                requireNonNull(((GotoStatement) statement).expression, "expression"));
           } else {
             bb.add(statement);
           }

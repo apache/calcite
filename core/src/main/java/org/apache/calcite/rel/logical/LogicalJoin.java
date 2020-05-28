@@ -33,10 +33,14 @@ import org.apache.calcite.rex.RexNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Sub-class of {@link org.apache.calcite.rel.core.Join}
@@ -101,7 +105,7 @@ public final class LogicalJoin extends Join {
       ImmutableList<RelDataTypeField> systemFieldList) {
     super(cluster, traitSet, hints, left, right, condition, variablesSet, joinType);
     this.semiJoinDone = semiJoinDone;
-    this.systemFieldList = Objects.requireNonNull(systemFieldList);
+    this.systemFieldList = requireNonNull(systemFieldList);
   }
 
   @Deprecated // to be removed before 2.0
@@ -147,8 +151,10 @@ public final class LogicalJoin extends Join {
     this(input.getCluster(), input.getCluster().traitSetOf(Convention.NONE),
         new ArrayList<>(),
         input.getInputs().get(0), input.getInputs().get(1),
-        input.getExpression("condition"), ImmutableSet.of(),
-        input.getEnum("joinType", JoinRelType.class), false,
+        requireNonNull(input.getExpression("condition"), "condition"),
+        ImmutableSet.of(),
+        requireNonNull(input.getEnum("joinType", JoinRelType.class), "joinType"),
+        false,
         ImmutableList.of());
   }
 
@@ -191,7 +197,7 @@ public final class LogicalJoin extends Join {
         .itemIf("semiJoinDone", semiJoinDone, semiJoinDone);
   }
 
-  @Override public boolean deepEquals(Object obj) {
+  @Override public boolean deepEquals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

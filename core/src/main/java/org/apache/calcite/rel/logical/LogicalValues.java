@@ -94,7 +94,7 @@ public class LogicalValues extends Values {
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert traitSet.containsIfApplicable(Convention.NONE);
     assert inputs.isEmpty();
-    return new LogicalValues(getCluster(), traitSet, rowType, tuples);
+    return new LogicalValues(getCluster(), traitSet, getRowType(), tuples);
   }
 
   /** Creates a LogicalValues that outputs no rows of a given row type. */

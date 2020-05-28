@@ -19,6 +19,8 @@ package org.apache.calcite.schema;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rel.type.RelProtoDataType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collection;
 import java.util.Set;
 
@@ -60,7 +62,7 @@ public interface Schema {
    * @param name Table name
    * @return Table, or null
    */
-  Table getTable(String name);
+  @Nullable Table getTable(String name);
 
   /**
    * Returns the names of the tables in this schema.
@@ -75,7 +77,7 @@ public interface Schema {
    * @param name Table name
    * @return Table, or null
    */
-  RelProtoDataType getType(String name);
+  @Nullable RelProtoDataType getType(String name);
 
   /**
    * Returns the names of the types in this schema.
@@ -106,7 +108,7 @@ public interface Schema {
    * @param name Sub-schema name
    * @return Sub-schema with a given name, or null
    */
-  Schema getSubSchema(String name);
+  @Nullable Schema getSubSchema(String name);
 
   /**
    * Returns the names of this schema's child schemas.
@@ -123,7 +125,7 @@ public interface Schema {
    * @param name Name of this schema
    * @return Expression by which this schema can be referenced in generated code
    */
-  Expression getExpression(SchemaPlus parentSchema, String name);
+  Expression getExpression(@Nullable SchemaPlus parentSchema, String name);
 
   /** Returns whether the user is allowed to create new tables, functions
    * and sub-schemas in this schema, in addition to those returned automatically

@@ -51,6 +51,8 @@ import org.apache.calcite.sql.dialect.SybaseSqlDialect;
 import org.apache.calcite.sql.dialect.TeradataSqlDialect;
 import org.apache.calcite.sql.dialect.VerticaSqlDialect;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -237,7 +239,7 @@ public class SqlDialectFactoryImpl implements SqlDialectFactory {
   }
 
   /** Returns a basic dialect for a given product, or null if none is known. */
-  static SqlDialect simple(SqlDialect.DatabaseProduct databaseProduct) {
+  static @Nullable SqlDialect simple(SqlDialect.DatabaseProduct databaseProduct) {
     switch (databaseProduct) {
     case ACCESS:
       return AccessSqlDialect.DEFAULT;

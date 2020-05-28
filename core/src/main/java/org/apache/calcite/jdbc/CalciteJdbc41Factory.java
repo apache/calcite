@@ -27,6 +27,8 @@ import org.apache.calcite.avatica.Meta;
 import org.apache.calcite.avatica.QueryState;
 import org.apache.calcite.avatica.UnregisteredDriver;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.NClob;
@@ -55,7 +57,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
   @Override public CalciteJdbc41Connection newConnection(UnregisteredDriver driver,
       AvaticaFactory factory, String url, Properties info,
-      CalciteSchema rootSchema, JavaTypeFactory typeFactory) {
+      @Nullable CalciteSchema rootSchema, @Nullable JavaTypeFactory typeFactory) {
     return new CalciteJdbc41Connection(
         (Driver) driver, factory, url, info, rootSchema, typeFactory);
   }
@@ -110,8 +112,8 @@ public class CalciteJdbc41Factory extends CalciteFactory {
   /** Implementation of connection for JDBC 4.1. */
   private static class CalciteJdbc41Connection extends CalciteConnectionImpl {
     CalciteJdbc41Connection(Driver driver, AvaticaFactory factory, String url,
-        Properties info, CalciteSchema rootSchema,
-        JavaTypeFactory typeFactory) {
+        Properties info, @Nullable CalciteSchema rootSchema,
+        @Nullable JavaTypeFactory typeFactory) {
       super(driver, factory, url, info, rootSchema, typeFactory);
     }
   }
@@ -139,18 +141,18 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setRowId(
         int parameterIndex,
-        RowId x) throws SQLException {
+        @Nullable RowId x) throws SQLException {
       getSite(parameterIndex).setRowId(x);
     }
 
     @Override public void setNString(
-        int parameterIndex, String value) throws SQLException {
+        int parameterIndex, @Nullable String value) throws SQLException {
       getSite(parameterIndex).setNString(value);
     }
 
     @Override public void setNCharacterStream(
         int parameterIndex,
-        Reader value,
+        @Nullable Reader value,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setNCharacterStream(value, length);
@@ -158,13 +160,13 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setNClob(
         int parameterIndex,
-        NClob value) throws SQLException {
+        @Nullable NClob value) throws SQLException {
       getSite(parameterIndex).setNClob(value);
     }
 
     @Override public void setClob(
         int parameterIndex,
-        Reader reader,
+        @Nullable Reader reader,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setClob(reader, length);
@@ -172,7 +174,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setBlob(
         int parameterIndex,
-        InputStream inputStream,
+        @Nullable InputStream inputStream,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setBlob(inputStream, length);
@@ -180,19 +182,19 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setNClob(
         int parameterIndex,
-        Reader reader,
+        @Nullable Reader reader,
         long length) throws SQLException {
       getSite(parameterIndex).setNClob(reader, length);
     }
 
     @Override public void setSQLXML(
-        int parameterIndex, SQLXML xmlObject) throws SQLException {
+        int parameterIndex, @Nullable SQLXML xmlObject) throws SQLException {
       getSite(parameterIndex).setSQLXML(xmlObject);
     }
 
     @Override public void setAsciiStream(
         int parameterIndex,
-        InputStream x,
+        @Nullable InputStream x,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setAsciiStream(x, length);
@@ -200,7 +202,7 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setBinaryStream(
         int parameterIndex,
-        InputStream x,
+        @Nullable InputStream x,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setBinaryStream(x, length);
@@ -208,48 +210,48 @@ public class CalciteJdbc41Factory extends CalciteFactory {
 
     @Override public void setCharacterStream(
         int parameterIndex,
-        Reader reader,
+        @Nullable Reader reader,
         long length) throws SQLException {
       getSite(parameterIndex)
           .setCharacterStream(reader, length);
     }
 
     @Override public void setAsciiStream(
-        int parameterIndex, InputStream x) throws SQLException {
+        int parameterIndex, @Nullable InputStream x) throws SQLException {
       getSite(parameterIndex).setAsciiStream(x);
     }
 
     @Override public void setBinaryStream(
-        int parameterIndex, InputStream x) throws SQLException {
+        int parameterIndex, @Nullable InputStream x) throws SQLException {
       getSite(parameterIndex).setBinaryStream(x);
     }
 
     @Override public void setCharacterStream(
-        int parameterIndex, Reader reader) throws SQLException {
+        int parameterIndex, @Nullable Reader reader) throws SQLException {
       getSite(parameterIndex)
           .setCharacterStream(reader);
     }
 
     @Override public void setNCharacterStream(
-        int parameterIndex, Reader value) throws SQLException {
+        int parameterIndex, @Nullable Reader value) throws SQLException {
       getSite(parameterIndex)
           .setNCharacterStream(value);
     }
 
     @Override public void setClob(
         int parameterIndex,
-        Reader reader) throws SQLException {
+        @Nullable Reader reader) throws SQLException {
       getSite(parameterIndex).setClob(reader);
     }
 
     @Override public void setBlob(
-        int parameterIndex, InputStream inputStream) throws SQLException {
+        int parameterIndex, @Nullable InputStream inputStream) throws SQLException {
       getSite(parameterIndex)
           .setBlob(inputStream);
     }
 
     @Override public void setNClob(
-        int parameterIndex, Reader reader) throws SQLException {
+        int parameterIndex, @Nullable Reader reader) throws SQLException {
       getSite(parameterIndex)
           .setNClob(reader);
     }

@@ -94,6 +94,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.AbstractList;
@@ -436,7 +438,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column,
-          SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+          SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         // For testing
         return call.getKind() != SqlKind.MAX
             && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);
@@ -1101,7 +1103,7 @@ public abstract class MockCatalogReader extends CalciteCatalogReader {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column,
-        SqlCall call, SqlNode parent, CalciteConnectionConfig config) {
+        SqlCall call, @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       // For testing
       return call.getKind() != SqlKind.MAX
               && (parent.getKind() == SqlKind.SELECT || parent.getKind() == SqlKind.FILTER);

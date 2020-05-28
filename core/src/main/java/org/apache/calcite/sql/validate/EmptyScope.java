@@ -38,6 +38,8 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -81,8 +83,8 @@ class EmptyScope implements SqlValidatorScope {
       boolean deep, Resolved resolved) {
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @SuppressWarnings("deprecation")
+  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     SqlValidatorTable table = validator.catalogReader.getTable(names);
     return table != null
         ? new TableNamespace(validator, table)
@@ -185,7 +187,7 @@ class EmptyScope implements SqlValidatorScope {
   @Override public void findAliases(Collection<SqlMoniker> result) {
   }
 
-  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     return null;
   }
 
@@ -215,7 +217,7 @@ class EmptyScope implements SqlValidatorScope {
     throw new UnsupportedOperationException();
   }
 
-  @Override public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     // No windows defined in this scope.
     return null;
   }
@@ -228,7 +230,7 @@ class EmptyScope implements SqlValidatorScope {
             : SqlMonotonicity.NOT_MONOTONIC;
   }
 
-  @Override public SqlNodeList getOrderList() {
+  @Override public @Nullable SqlNodeList getOrderList() {
     // scope is not ordered
     return null;
   }

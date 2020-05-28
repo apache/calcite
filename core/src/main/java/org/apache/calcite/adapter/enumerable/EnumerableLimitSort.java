@@ -33,6 +33,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.adapter.enumerable.EnumerableLimit.getExpression;
 
 /**
@@ -52,8 +54,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode input,
       RelCollation collation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
     assert this.getConvention() instanceof EnumerableConvention;
     assert this.getConvention() == input.getConvention();
@@ -63,8 +65,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
   public static EnumerableLimitSort create(
       RelNode input,
       RelCollation collation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     final RelOptCluster cluster = input.getCluster();
     final RelTraitSet traitSet = cluster.traitSetOf(EnumerableConvention.INSTANCE).replace(
         collation);
@@ -75,8 +77,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode newInput,
       RelCollation newCollation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     return new EnumerableLimitSort(
         this.getCluster(),
         traitSet,
@@ -146,7 +148,7 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     return cost;
   }
 
-  private double getValue(RexNode r, double defaultValue) {
+  private double getValue(@Nullable RexNode r, double defaultValue) {
     if (r == null || r instanceof RexDynamicParam) {
       return defaultValue;
     }
