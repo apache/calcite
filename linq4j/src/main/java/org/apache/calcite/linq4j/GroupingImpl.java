@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,7 +27,8 @@ import java.util.Objects;
  * @param <K> Key type
  * @param <V> Value type
  */
-class GroupingImpl<K, V> extends AbstractEnumerable<V>
+@SuppressWarnings("type.argument.type.incompatible")
+class GroupingImpl<K extends Object, V> extends AbstractEnumerable<V>
     implements Grouping<K, V>, Map.Entry<K, Enumerable<V>> {
   private final K key;
   private final List<V> values;

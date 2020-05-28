@@ -16,9 +16,12 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Length field of a RecordType.
@@ -51,7 +54,7 @@ public class ArrayLengthRecordField implements Types.RecordField {
   }
 
   @Override public Object get(Object o) throws IllegalAccessException {
-    return Array.getLength(o);
+    return Array.getLength(requireNonNull(o));
   }
 
   @Override public Type getDeclaringClass() {

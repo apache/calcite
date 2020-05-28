@@ -101,7 +101,8 @@ public class MaterializedViewTable extends ViewTable {
     private final MaterializationKey key;
 
     private MaterializedViewTableMacro(CalciteSchema schema, String viewSql,
-        List<String> viewSchemaPath, List<String> viewPath, String suggestedTableName,
+        List<String> viewSchemaPath, List<String> viewPath,
+        String suggestedTableName,
         boolean existing) {
       super(schema, viewSql,
           viewSchemaPath != null ? viewSchemaPath : schema.path(null), viewPath,
@@ -112,7 +113,7 @@ public class MaterializedViewTable extends ViewTable {
               existing));
     }
 
-    @Override public TranslatableTable apply(List<Object> arguments) {
+    @Override public TranslatableTable apply(List<? extends Object> arguments) {
       assert arguments.isEmpty();
       CalcitePrepare.ParseResult parsed =
           Schemas.parse(MATERIALIZATION_CONNECTION, schema, schemaPath,

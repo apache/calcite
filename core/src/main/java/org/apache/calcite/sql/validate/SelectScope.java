@@ -27,8 +27,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The name-resolution scope of a SELECT clause. The objects visible are those
@@ -97,7 +100,7 @@ public class SelectScope extends ListScope {
    * List of column names which sort this scope. Empty if this scope is not
    * sorted. Null if has not been computed yet.
    */
-  private SqlNodeList orderList;
+  private @MonotonicNonNull SqlNodeList orderList;
 
   /** Scope to use to resolve windows. */
   private final SqlValidatorScope windowParent;
@@ -134,7 +137,9 @@ public class SelectScope extends ListScope {
     final SqlNodeList windowList = select.getWindowList();
     for (int i = 0; i < windowList.size(); i++) {
       SqlWindow window = (SqlWindow) windowList.get(i);
-      final SqlIdentifier declId = window.getDeclName();
+      final SqlIdentifier declId = Objects.requireNonNull(
+          window.getDeclName(),
+          () -> "declName of window " + window);
       assert declId.isSimple();
       if (declId.names.get(0).equals(name)) {
         return window;

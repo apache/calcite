@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rel.type.RelDataTypePrecedenceList;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
+
 /**
  * MultisetSqlType represents a standard SQL2003 multiset type.
  */
@@ -73,10 +75,12 @@ public class MultisetSqlType extends AbstractSqlType {
   @Override public RelDataTypePrecedenceList getPrecedenceList() {
     return new RelDataTypePrecedenceList() {
       @Override public boolean containsType(RelDataType type) {
-        return type.getSqlTypeName() == getSqlTypeName()
-            && type.getComponentType() != null
-            && getComponentType().getPrecedenceList().containsType(
-                type.getComponentType());
+        if (type.getSqlTypeName() != getSqlTypeName()) {
+          return false;
+        }
+        RelDataType otherComponentType = type.getComponentType();
+        return otherComponentType != null
+            && getComponentType().getPrecedenceList().containsType(otherComponentType);
       }
 
       @Override public int compareTypePrecedence(RelDataType type1, RelDataType type2) {
@@ -87,7 +91,9 @@ public class MultisetSqlType extends AbstractSqlType {
           throw new IllegalArgumentException("must contain type: " + type2);
         }
         return getComponentType().getPrecedenceList()
-            .compareTypePrecedence(type1.getComponentType(), type2.getComponentType());
+            .compareTypePrecedence(
+                getComponentTypeOrThrow(type1),
+                getComponentTypeOrThrow(type2));
       }
     };
   }

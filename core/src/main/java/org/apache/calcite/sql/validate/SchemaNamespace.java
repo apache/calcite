@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /** Namespace based on a schema.
  *
  * <p>The visible names are tables and sub-schemas.
@@ -46,7 +48,9 @@ class SchemaNamespace extends AbstractNamespace {
     for (SqlMoniker moniker
         : validator.catalogReader.getAllSchemaObjectNames(names)) {
       final List<String> names1 = moniker.getFullyQualifiedNames();
-      final SqlValidatorTable table = validator.catalogReader.getTable(names1);
+      final SqlValidatorTable table = requireNonNull(
+          validator.catalogReader.getTable(names1),
+          () -> "table " + names1 + " is not found in scope " + names);
       builder.add(Util.last(names1), table.getRowType());
     }
     return builder.build();

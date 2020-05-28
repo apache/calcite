@@ -58,9 +58,12 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -68,7 +71,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Factory for row expressions.
@@ -109,6 +113,7 @@ public class RexBuilder {
    *
    * @param typeFactory Type factory
    */
+  @SuppressWarnings("method.invocation.invalid")
   public RexBuilder(RelDataTypeFactory typeFactory) {
     this.typeFactory = typeFactory;
     this.booleanTrue =
@@ -135,7 +140,7 @@ public class RexBuilder {
 
   /** Creates a list of {@link org.apache.calcite.rex.RexInputRef} expressions,
    * projecting the fields of a given record type. */
-  public List<? extends RexNode> identityProjects(final RelDataType rowType) {
+  public List<RexNode> identityProjects(final RelDataType rowType) {
     return Util.transform(rowType.getFieldList(),
         input -> new RexInputRef(input.getIndex(), input.getType()));
   }
@@ -306,6 +311,7 @@ public class RexBuilder {
     if (aggCall.getAggregation() instanceof SqlCountAggFunction
         && !aggCall.isDistinct()) {
       final List<Integer> args = aggCall.getArgList();
+      Objects.requireNonNull(aggArgTypes, "aggArgTypes");
       final List<Integer> nullableArgs = nullableArgs(args, aggArgTypes);
       if (!nullableArgs.equals(args)) {
         aggCall = aggCall.copy(nullableArgs, aggCall.filterArg,
@@ -363,13 +369,13 @@ public class RexBuilder {
    * Creates a call to a windowed agg.
    */
   public RexNode makeOver(
-      @Nonnull RelDataType type,
-      @Nonnull SqlAggFunction operator,
-      @Nonnull List<RexNode> exprs,
-      @Nonnull List<RexNode> partitionKeys,
-      @Nonnull ImmutableList<RexFieldCollation> orderKeys,
-      @Nonnull RexWindowBound lowerBound,
-      @Nonnull RexWindowBound upperBound,
+      RelDataType type,
+      SqlAggFunction operator,
+      List<RexNode> exprs,
+      List<RexNode> partitionKeys,
+      ImmutableList<RexFieldCollation> orderKeys,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
       boolean rows,
       boolean allowPartial,
       boolean nullWhenCountZero,
@@ -941,15 +947,16 @@ public class RexBuilder {
       NlsString nlsString = (NlsString) o;
       if (nlsString.getCollation() == null
           || nlsString.getCharset() == null
-          || !nlsString.getCharset().equals(type.getCharset())
-          || !nlsString.getCollation().equals(type.getCollation())) {
+          || !Objects.equals(nlsString.getCharset(), type.getCharset())
+          || !Objects.equals(nlsString.getCollation(), type.getCollation())) {
         assert type.getSqlTypeName() == SqlTypeName.CHAR
             || type.getSqlTypeName() == SqlTypeName.VARCHAR;
-        assert type.getCharset().name() != null;
-        assert type.getCollation() != null;
+        Charset charset = type.getCharset();
+        assert charset != null : "type.getCharset() must not be null";
+        assert type.getCollation() != null : "type.getCollation() must not be null";
         o = new NlsString(
             nlsString.getValue(),
-            type.getCharset().name(),
+            charset.name(),
             type.getCollation());
       }
       break;
@@ -1594,7 +1601,7 @@ public class RexBuilder {
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
       return makeIntervalLiteral((BigDecimal) value,
-          type.getIntervalQualifier());
+          castNonNull(type.getIntervalQualifier()));
     case SYMBOL:
       return makeFlag((Enum) value);
     case MAP:
@@ -1658,10 +1665,12 @@ public class RexBuilder {
   }
 
   /** Converts the type of a value to comply with
-   * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}. */
-  private static Object clean(Object o, RelDataType type) {
+   * {@link org.apache.calcite.rex.RexLiteral#valueMatchesType}.
+   *
+   * <p>Returns null if and only if {@code o} is null. */
+  private static @PolyNull Object clean(@PolyNull Object o, RelDataType type) {
     if (o == null) {
-      return null;
+      return o;
     }
     switch (type.getSqlTypeName()) {
     case TINYINT:
@@ -1709,6 +1718,7 @@ public class RexBuilder {
       if (o instanceof NlsString) {
         return o;
       }
+      assert type.getCharset() != null : type + ".getCharset() must not be null";
       return new NlsString((String) o, type.getCharset().name(),
           type.getCollation());
     case TIME:

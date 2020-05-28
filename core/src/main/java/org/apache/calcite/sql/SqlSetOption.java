@@ -24,6 +24,8 @@ import org.apache.calcite.util.ImmutableNullableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SQL parse tree node to represent {@code SET} and {@code RESET} statements,
  * optionally preceded by {@code ALTER SYSTEM} or {@code ALTER SESSION}.
@@ -60,6 +62,7 @@ import java.util.List;
 public class SqlSetOption extends SqlAlter {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("SET_OPTION", SqlKind.SET_OPTION) {
+        @SuppressWarnings("argument.type.incompatible")
         @Override public SqlCall createCall(SqlLiteral functionQualifier,
             SqlParserPos pos, SqlNode... operands) {
           final SqlNode scopeNode = operands[0];
@@ -105,6 +108,7 @@ public class SqlSetOption extends SqlAlter {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     final List<SqlNode> operandList = new ArrayList<>();
     if (scope == null) {
@@ -127,7 +131,7 @@ public class SqlSetOption extends SqlAlter {
       }
       break;
     case 1:
-      name = (SqlIdentifier) operand;
+      name = (SqlIdentifier) requireNonNull(operand, "name");
       break;
     case 2:
       value = operand;
@@ -155,7 +159,9 @@ public class SqlSetOption extends SqlAlter {
 
   @Override public void validate(SqlValidator validator,
       SqlValidatorScope scope) {
-    validator.validate(value);
+    if (value != null) {
+      validator.validate(value);
+    }
   }
 
   public SqlIdentifier getName() {

@@ -51,7 +51,8 @@ public class ElasticsearchProject extends Project implements ElasticsearchRel {
     return new ElasticsearchProject(getCluster(), traitSet, input, projects, relDataType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 

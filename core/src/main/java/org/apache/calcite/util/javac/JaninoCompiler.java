@@ -30,6 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by
  * calling <a href="http://www.janino.net">Janino</a>.
@@ -57,9 +59,9 @@ public class JaninoCompiler implements JavaCompiler {
     // class and its callers to specify all code to compile in one
     // go, we could probably just use a single AccountingClassLoader.
 
-    assert args.destdir != null;
-    assert args.fullClassName != null;
-    assert args.source != null;
+    String destdir = requireNonNull(args.destdir, "args.destdir");
+    String fullClassName = requireNonNull(args.fullClassName, "args.fullClassName");
+    String source = requireNonNull(args.source, "args.source");
 
     ClassLoader parentClassLoader = args.getClassLoader();
     if (classLoader != null) {
@@ -68,24 +70,24 @@ public class JaninoCompiler implements JavaCompiler {
 
     Map<String, byte[]> sourceMap = new HashMap<>();
     sourceMap.put(
-        ClassFile.getSourceResourceName(args.fullClassName),
-        args.source.getBytes(StandardCharsets.UTF_8));
+        ClassFile.getSourceResourceName(fullClassName),
+        source.getBytes(StandardCharsets.UTF_8));
     MapResourceFinder sourceFinder = new MapResourceFinder(sourceMap);
 
-    classLoader =
+    AccountingClassLoader classLoader = this.classLoader =
         new AccountingClassLoader(
             parentClassLoader,
             sourceFinder,
             null,
-            args.destdir == null ? null : new File(args.destdir));
+            destdir == null ? null : new File(destdir));
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       classLoader.setDebuggingInfo(true, true, true);
     }
     try {
-      classLoader.loadClass(args.fullClassName);
+      classLoader.loadClass(fullClassName);
     } catch (ClassNotFoundException ex) {
-      throw new RuntimeException("while compiling " + args.fullClassName, ex);
+      throw new RuntimeException("while compiling " + fullClassName, ex);
     }
   }
 
@@ -96,12 +98,16 @@ public class JaninoCompiler implements JavaCompiler {
 
   // implement JavaCompiler
   @Override public ClassLoader getClassLoader() {
-    return classLoader;
+    return getAccountingClassLoader();
+  }
+
+  private AccountingClassLoader getAccountingClassLoader() {
+    return requireNonNull(classLoader, "classLoader is null. Need to call #compile()");
   }
 
   // implement JavaCompiler
   @Override public int getTotalByteCodeSize() {
-    return classLoader.getTotalByteCodeSize();
+    return getAccountingClassLoader().getTotalByteCodeSize();
   }
 
   //~ Inner Classes ----------------------------------------------------------

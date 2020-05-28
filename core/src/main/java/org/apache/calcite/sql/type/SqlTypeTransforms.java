@@ -23,7 +23,11 @@ import org.apache.calcite.sql.SqlOperatorBinding;
 import org.apache.calcite.util.Util;
 
 import java.util.List;
-import java.util.Objects;
+
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * SqlTypeTransforms defines a number of reusable instances of
@@ -46,7 +50,7 @@ public abstract class SqlTypeTransforms {
       (opBinding, typeToTransform) ->
           SqlTypeUtil.makeNullableIfOperandsAre(opBinding.getTypeFactory(),
               opBinding.collectOperandTypes(),
-              Objects.requireNonNull(typeToTransform));
+              requireNonNull(typeToTransform));
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -66,7 +70,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform TO_NOT_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              Objects.requireNonNull(typeToTransform), false);
+              requireNonNull(typeToTransform), false);
 
   /**
    * Parameter type-inference transform strategy where a derived type is
@@ -75,7 +79,7 @@ public abstract class SqlTypeTransforms {
   public static final SqlTypeTransform FORCE_NULLABLE =
       (opBinding, typeToTransform) ->
           opBinding.getTypeFactory().createTypeWithNullability(
-              Objects.requireNonNull(typeToTransform), true);
+              requireNonNull(typeToTransform), true);
 
   /**
    * Type-inference strategy whereby the result is NOT NULL if any of
@@ -122,8 +126,8 @@ public abstract class SqlTypeTransforms {
                 opBinding.getTypeFactory()
                     .createTypeWithCharsetAndCollation(
                         ret,
-                        typeToTransform.getCharset(),
-                        typeToTransform.getCollation());
+                        getCharset(typeToTransform),
+                        getCollation(typeToTransform));
           }
           return opBinding.getTypeFactory().createTypeWithNullability(
               ret,
@@ -154,7 +158,9 @@ public abstract class SqlTypeTransforms {
    * @see MultisetSqlType#getComponentType
    */
   public static final SqlTypeTransform TO_MULTISET_ELEMENT_TYPE =
-      (opBinding, typeToTransform) -> typeToTransform.getComponentType();
+      (opBinding, typeToTransform) -> requireNonNull(
+          typeToTransform.getComponentType(),
+          () -> "componentType for " + typeToTransform + " in opBinding " + opBinding);
 
   /**
    * Parameter type-inference transform strategy that wraps a given type

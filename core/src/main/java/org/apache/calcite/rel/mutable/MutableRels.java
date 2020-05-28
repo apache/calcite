@@ -64,7 +64,10 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /** Utilities for dealing with {@link MutableRel}s. */
 public abstract class MutableRels {
@@ -78,7 +81,7 @@ public abstract class MutableRels {
     try {
       new MutableRelVisitor() {
         @Override public void visit(MutableRel node) {
-          if (node.equals(target)) {
+          if (Objects.equals(node, target)) {
             throw Util.FoundOne.NULL;
           }
           super.visit(node);
@@ -326,8 +329,13 @@ public abstract class MutableRels {
       return toMutable(((HepRelVertex) rel).getCurrentRel());
     }
     if (rel instanceof RelSubset) {
-      return toMutable(
-          Util.first(((RelSubset) rel).getBest(), ((RelSubset) rel).getOriginal()));
+      RelSubset subset = (RelSubset) rel;
+      RelNode best = subset.getBest();
+      if (best == null) {
+        best = requireNonNull(subset.getOriginal(),
+            () -> "subset.getOriginal() is null for " + subset);
+      }
+      return toMutable(best);
     }
     if (rel instanceof TableScan) {
       return MutableScan.of((TableScan) rel);

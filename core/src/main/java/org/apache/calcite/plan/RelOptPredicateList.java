@@ -120,6 +120,21 @@ public class RelOptPredicateList {
     return of(rexBuilder, pulledUpPredicatesList, EMPTY_LIST, EMPTY_LIST);
   }
 
+  /**
+   * Returns true if given predicate list is empty.
+   * @param value input predicate list
+   * @return true if all the predicates are empty or if the argument is null
+   */
+  public static boolean isEmpty(RelOptPredicateList value) {
+    if (value == null || value == EMPTY) {
+      return true;
+    }
+    return value.constantMap.isEmpty()
+        && value.leftInferredPredicates.isEmpty()
+        && value.rightInferredPredicates.isEmpty()
+        && value.pulledUpPredicates.isEmpty();
+  }
+
   /** Creates a RelOptPredicateList for a join.
    *
    * @param rexBuilder Rex builder

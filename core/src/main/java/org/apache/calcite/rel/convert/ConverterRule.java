@@ -31,6 +31,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Abstract base class for a rule which converts from one calling convention to
  * another without changing semantics.
@@ -57,7 +59,7 @@ public abstract class ConverterRule
     // Most sub-classes are concerned with converting one convention to
     // another, and for them, the "out" field is a convenient short-cut.
     this.out = outTrait instanceof Convention ? (Convention) outTrait
-        : null;
+        : castNonNull(null);
   }
 
   /**

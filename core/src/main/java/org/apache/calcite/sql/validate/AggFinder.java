@@ -25,7 +25,6 @@ import org.apache.calcite.util.Util;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /** Visitor that looks for an aggregate function inside a tree of
  * {@link SqlNode} objects and throws {@link Util.FoundOne} when it finds
@@ -112,7 +111,7 @@ class AggFinder extends AggVisitor {
       return null;
     }
 
-    @Override @Nonnull public Iterator<SqlCall> iterator() {
+    @Override public Iterator<SqlCall> iterator() {
       return calls.iterator();
     }
   }

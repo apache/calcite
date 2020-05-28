@@ -41,6 +41,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule to flatten a tree of
  * {@link org.apache.calcite.rel.logical.LogicalJoin}s
@@ -511,7 +513,9 @@ public class JoinToMultiJoinRule
         nFields =
             multiJoinInputs.get(currInput).getRowType().getFieldCount();
       }
-      int[] refCounts = refCountsMap.get(currInput);
+      final int key = currInput;
+      int[] refCounts = requireNonNull(refCountsMap.get(key),
+          () -> "refCountsMap.get(currInput) for " + key);
       refCounts[i - startField] += joinCondRefCounts[i];
     }
 

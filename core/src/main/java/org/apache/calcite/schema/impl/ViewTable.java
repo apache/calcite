@@ -80,7 +80,8 @@ public class ViewTable
    * @param modifiable Whether view is modifiable, or null to deduce it
    */
   public static ViewTableMacro viewMacro(SchemaPlus schema, String viewSql,
-      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+      List<String> schemaPath, List<String> viewPath,
+      Boolean modifiable) {
     return new ViewTableMacro(CalciteSchema.from(schema), viewSql, schemaPath,
         viewPath, modifiable);
   }

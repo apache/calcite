@@ -16,7 +16,12 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Element that describes how a table is a materialization of a query.
@@ -26,17 +31,29 @@ import java.util.List;
  * @see JsonRoot Description of schema elements
  */
 public class JsonMaterialization {
-  public String view;
-  public String table;
+  public final String view;
+  public final String table;
 
   /** SQL query that defines the materialization.
    *
    * <p>Must be a string or a list of strings (which are concatenated into a
    * multi-line SQL string, separated by newlines).
    */
-  public Object sql;
+  public final Object sql;
 
-  public List<String> viewSchemaPath;
+  public final List<String> viewSchemaPath;
+
+  @JsonCreator
+  public JsonMaterialization(
+      @JsonProperty("view") String view,
+      @JsonProperty("table") String table,
+      @JsonProperty(value = "sql", required = true) Object sql,
+      @JsonProperty("viewSchemaPath") List<String> viewSchemaPath) {
+    this.view = view;
+    this.table = table;
+    this.sql = requireNonNull(sql, "sql");
+    this.viewSchemaPath = viewSchemaPath;
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

@@ -46,7 +46,7 @@ class MutableNode {
             @Override public int compare(MutableNode o1, MutableNode o2) {
               int c = Ordering.<String>natural().lexicographical().compare(
                   o1.table.t.getQualifiedName(), o2.table.t.getQualifiedName());
-              if (c == 0) {
+              if (c == 0 && o1.step != null && o2.step != null) {
                 // The nodes have the same table. Now compare them based on the
                 // columns they use as foreign key.
                 c = Ordering.<Integer>natural().lexicographical().compare(
@@ -62,6 +62,7 @@ class MutableNode {
   }
 
   /** Creates a non-root node. */
+  @SuppressWarnings("argument.type.incompatible")
   MutableNode(LatticeTable table, MutableNode parent, Step step) {
     this.table = Objects.requireNonNull(table);
     this.parent = parent;
@@ -115,8 +116,8 @@ class MutableNode {
 
   private MutableNode findChild(Step step) {
     for (MutableNode child : children) {
-      if (child.table.equals(step.target())
-          && child.step.equals(step)) {
+      if (Objects.equals(child.table, step.target())
+          && Objects.equals(child.step, step)) {
         return child;
       }
     }

@@ -35,7 +35,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
-import javax.annotation.Nonnull;
 
 /**
  * A <code>SqlNode</code> is a SQL parse tree.
@@ -94,7 +93,7 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@link SqlKind} value, never null
    * @see #isA
    */
-  public @Nonnull SqlKind getKind() {
+  public SqlKind getKind() {
     return SqlKind.OTHER;
   }
 
@@ -377,9 +376,11 @@ public abstract class SqlNode implements Cloneable {
    * @return a {@code Collector} that collects all the input elements into a
    * {@link SqlNodeList}, in encounter order
    */
-  public static <T extends SqlNode> Collector<T, ArrayList<SqlNode>, SqlNodeList>
-      toList(SqlParserPos pos) {
-    return Collector.of(ArrayList::new, ArrayList::add, Util::combine,
-        list -> SqlNodeList.of(pos, list));
+  public static <T extends SqlNode> Collector<T,
+      ArrayList<SqlNode>, SqlNodeList> toList(SqlParserPos pos) {
+    //noinspection RedundantTypeArguments
+    return Collector.<T, ArrayList<SqlNode>, SqlNodeList>of(
+        ArrayList::new, ArrayList::add, Util::combine,
+        (ArrayList<SqlNode> list) -> SqlNodeList.of(pos, list));
   }
 }

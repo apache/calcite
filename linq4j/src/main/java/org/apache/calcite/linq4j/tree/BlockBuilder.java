@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -25,6 +27,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Builder for {@link BlockStatement}.
@@ -153,7 +157,8 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name, ((GotoStatement) statement).expression,
+          result = append_(name,
+              requireNonNull(((GotoStatement) statement).expression, "expression"),
               optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
@@ -169,7 +174,7 @@ public class BlockBuilder {
         }
       }
     }
-    return result;
+    return requireNonNull(result, () -> "empty result when appending name=" + name + ", " + block);
   }
 
   /**
@@ -182,9 +187,10 @@ public class BlockBuilder {
   }
 
   /**
-   * Appends an expression to a list of statements, if it is not null.
+   * Appends an expression to a list of statements if it is not null,
+   * and returns the expression.
    */
-  public Expression appendIfNotNull(String name, Expression expression) {
+  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
     if (expression == null) {
       return null;
     }

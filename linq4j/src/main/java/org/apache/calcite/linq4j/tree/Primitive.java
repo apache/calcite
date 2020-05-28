@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apiguardian.api.API;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -27,6 +29,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Enumeration of Java's primitive types.
@@ -104,8 +108,8 @@ public enum Primitive {
   }
 
   Primitive(Class primitiveClass, Class boxClass, int family,
-      Object defaultValue, Object min, Object maxNegative, Object minPositive,
-      Object max, int size) {
+      Object defaultValue, Object min, Object maxNegative,
+      Object minPositive, Object max, int size) {
     this.primitiveClass = primitiveClass;
     this.family = family;
     this.primitiveName =
@@ -221,7 +225,7 @@ public enum Primitive {
    */
   public static Type box(Type type) {
     Primitive primitive = of(type);
-    return primitive == null ? type : primitive.boxClass;
+    return primitive == null ? type : requireNonNull(primitive.boxClass);
   }
 
   /**
@@ -230,7 +234,7 @@ public enum Primitive {
    */
   public static Class box(Class type) {
     Primitive primitive = of(type);
-    return primitive == null ? type : primitive.boxClass;
+    return primitive == null ? type : requireNonNull(primitive.boxClass);
   }
 
   /**
@@ -239,7 +243,7 @@ public enum Primitive {
    */
   public static Type unbox(Type type) {
     Primitive primitive = ofBox(type);
-    return primitive == null ? type : primitive.primitiveClass;
+    return primitive == null ? type : requireNonNull(primitive.primitiveClass);
   }
 
   /**
@@ -248,7 +252,28 @@ public enum Primitive {
    */
   public static Class unbox(Class type) {
     Primitive primitive = ofBox(type);
-    return primitive == null ? type : primitive.primitiveClass;
+    return primitive == null ? type : requireNonNull(primitive.primitiveClass);
+  }
+
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public Class<?> getPrimitiveClass() {
+    return requireNonNull(primitiveClass, () -> "no primitiveClass for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public Class<?> getBoxClass() {
+    return requireNonNull(boxClass, () -> "no boxClass for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public String getPrimitiveName() {
+    return requireNonNull(primitiveName, () -> "no primitiveName for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public String getBoxName() {
+    return requireNonNull(boxName, () -> "no boxName for " + this);
   }
 
   /**
@@ -732,6 +757,7 @@ public enum Primitive {
   /**
    * Reads value from a source into an array.
    */
+  @SuppressWarnings("argument.type.incompatible")
   public void arrayItem(Source source, Object dataSet, int ordinal) {
     switch (this) {
     case DOUBLE:

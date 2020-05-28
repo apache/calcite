@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Table schema element.
  *
@@ -41,7 +43,7 @@ public abstract class JsonTable {
    *
    * <p>Required. Must be unique within the schema.
    */
-  public String name;
+  public final String name;
 
   /** Definition of the columns of this table.
    *
@@ -52,7 +54,12 @@ public abstract class JsonTable {
 
   /** Information about whether the table can be streamed, and if so, whether
    * the history of the table is also available. */
-  public JsonStream stream;
+  public final JsonStream stream;
+
+  protected JsonTable(String name, JsonStream stream) {
+    this.name = requireNonNull(name, "name");
+    this.stream = stream;
+  }
 
   public abstract void accept(ModelHandler handler);
 }

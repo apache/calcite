@@ -51,11 +51,11 @@ public interface ProjectableFilterableTable extends Table {
    * @param filters Mutable list of filters. The method should keep in the
    *                list any filters that it cannot apply.
    * @param projects List of projects. Each is the 0-based ordinal of the column
-   *                 to project.
+   *                 to project. Null means "project all columns".
    * @return Enumerable over all rows that match the accepted filters, returning
    * for each row an array of column values, one value for each ordinal in
    * {@code projects}.
    */
   Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-      int[] projects);
+      int [] projects);
 }

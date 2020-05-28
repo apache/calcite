@@ -21,12 +21,11 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.util.Util;
 
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /** Table registered in the graph. */
 public class LatticeTable {
-  @Nonnull public final RelOptTable t;
-  @Nonnull public final String alias;
+  public final RelOptTable t;
+  public final String alias;
 
   LatticeTable(RelOptTable table) {
     t = Objects.requireNonNull(table);

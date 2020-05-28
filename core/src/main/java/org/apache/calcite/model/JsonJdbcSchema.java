@@ -16,6 +16,13 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * JSON object representing a schema that maps to a JDBC database.
  *
@@ -30,44 +37,65 @@ public class JsonJdbcSchema extends JsonSchema {
    * <p>Optional. If not specified, uses whichever class the JDBC
    * {@link java.sql.DriverManager} chooses.
    */
-  public String jdbcDriver;
+  public final String jdbcDriver;
 
   /** The FQN of the {@link org.apache.calcite.sql.SqlDialectFactory} implementation.
    *
    * <p>Optional. If not specified, uses whichever class the JDBC
    * {@link java.sql.DriverManager} chooses.
    */
-  public String sqlDialectFactory;
+  public final String sqlDialectFactory;
 
   /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
-   *
-   * <p>Optional.
    */
-  public String jdbcUrl;
+  public final String jdbcUrl;
 
   /** JDBC user name.
    *
    * <p>Optional.
    */
-  public String jdbcUser;
+  public final String jdbcUser;
 
   /** JDBC connect string, for example "jdbc:mysql://localhost/foodmart".
    *
    * <p>Optional.
    */
-  public String jdbcPassword;
+  public final String jdbcPassword;
 
   /** Name of the initial catalog in the JDBC data source.
    *
    * <p>Optional.
    */
-  public String jdbcCatalog;
+  public final String jdbcCatalog;
 
   /** Name of the initial schema in the JDBC data source.
    *
    * <p>Optional.
    */
-  public String jdbcSchema;
+  public final String jdbcSchema;
+
+  @JsonCreator
+  public JsonJdbcSchema(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("path") List<Object> path,
+      @JsonProperty("cache") Boolean cache,
+      @JsonProperty("autoLattice") Boolean autoLattice,
+      @JsonProperty("jdbcDriver") String jdbcDriver,
+      @JsonProperty("sqlDialectFactory") String sqlDialectFactory,
+      @JsonProperty(value = "jdbcUrl", required = true)  String jdbcUrl,
+      @JsonProperty("jdbcUser") String jdbcUser,
+      @JsonProperty("jdbcPassword") String jdbcPassword,
+      @JsonProperty("jdbcCatalog") String jdbcCatalog,
+      @JsonProperty("jdbcSchema") String jdbcSchema) {
+    super(name, path, cache, autoLattice);
+    this.jdbcDriver = jdbcDriver;
+    this.sqlDialectFactory = sqlDialectFactory;
+    this.jdbcUrl = requireNonNull(jdbcUrl, "jdbcUrl");
+    this.jdbcUser = jdbcUser;
+    this.jdbcPassword = jdbcPassword;
+    this.jdbcCatalog = jdbcCatalog;
+    this.jdbcSchema = jdbcSchema;
+  }
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

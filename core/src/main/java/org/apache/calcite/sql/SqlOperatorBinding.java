@@ -131,7 +131,7 @@ public abstract class SqlOperatorBinding {
    *
    * @return value of operand
    */
-  public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  public <T extends Object> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
     throw new UnsupportedOperationException();
   }
 

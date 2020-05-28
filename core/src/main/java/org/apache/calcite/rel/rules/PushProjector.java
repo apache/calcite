@@ -46,11 +46,12 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * PushProjector is a utility class used to perform operations used in push
@@ -213,7 +214,7 @@ public class PushProjector {
     this.origFilter = origFilter;
     this.childRel = childRel;
     this.preserveExprCondition = preserveExprCondition;
-    this.relBuilder = Objects.requireNonNull(relBuilder);
+    this.relBuilder = requireNonNull(relBuilder);
     if (origProj == null) {
       origProjExprs = ImmutableList.of();
     } else {
@@ -415,7 +416,7 @@ public class PushProjector {
             projRefs,
             childBitmap,
             rightBitmap,
-            strongBitmap,
+            requireNonNull(strongBitmap, "strongBitmap"),
             preserveExprCondition,
             childPreserveExprs,
             rightPreserveExprs),
@@ -721,7 +722,8 @@ public class PushProjector {
               preserveLeft.add(call);
             }
             return true;
-          } else if (rightFields.contains(exprArgs) && isStrong(exprArgs, call)) {
+          } else if (requireNonNull(rightFields, "rightFields").contains(exprArgs)
+              && isStrong(exprArgs, call)) {
             assert preserveRight != null;
             if (!preserveRight.contains(call)) {
               preserveRight.add(call);
@@ -783,7 +785,7 @@ public class PushProjector {
               firstRightRef);
       if (match >= 0) {
         return rexBuilder.makeInputRef(
-            destFields.get(match).getType(),
+            requireNonNull(destFields, "destFields").get(match).getType(),
             match);
       }
       return super.visitCall(call);

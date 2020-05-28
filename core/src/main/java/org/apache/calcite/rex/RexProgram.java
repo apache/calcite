@@ -40,6 +40,11 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import com.google.errorprone.annotations.CheckReturnValue;
+
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -50,6 +55,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of expressions which read inputs, compute output expressions,
@@ -91,7 +100,7 @@ public class RexProgram {
   /**
    * Reference counts for each expression, computed on demand.
    */
-  private int[] refCounts;
+  private int @MonotonicNonNull[] refCounts;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -169,6 +178,7 @@ public class RexProgram {
    * Returns the field reference of this program's filter condition, or null
    * if there is no condition.
    */
+  @Pure
   public RexLocalRef getCondition() {
     return condition;
   }
@@ -209,7 +219,7 @@ public class RexProgram {
       RelDataType inputRowType,
       List<? extends RexNode> projectExprs,
       RexNode conditionExpr,
-      List<String> fieldNames,
+      List<? extends String> fieldNames,
       RexBuilder rexBuilder) {
     if (fieldNames == null) {
       fieldNames = Collections.nCopies(projectExprs.size(), null);
@@ -234,8 +244,10 @@ public class RexProgram {
    * In this case, the input is mainly from the output json string of {@link RelJsonWriter}
    */
   public static RexProgram create(RelInput input) {
-    final List<RexNode> exprs = input.getExpressionList("exprs");
-    final List<RexNode> projectRexNodes = input.getExpressionList("projects");
+    final List<RexNode> exprs = requireNonNull(input.getExpressionList("exprs"), "exprs");
+    final List<RexNode> projectRexNodes = requireNonNull(
+        input.getExpressionList("projects"),
+        "projects");
     final List<RexLocalRef> projects = new ArrayList<>(projectRexNodes.size());
     for (RexNode rexNode: projectRexNodes) {
       projects.add((RexLocalRef) rexNode);
@@ -430,7 +442,9 @@ public class RexProgram {
    *                or null if not known
    * @return Whether the program is valid
    */
-  public boolean isValid(Litmus litmus, RelNode.Context context) {
+  public boolean isValid(
+      @UnknownInitialization RexProgram this,
+      Litmus litmus, RelNode.Context context) {
     if (inputRowType == null) {
       return litmus.fail(null);
     }
@@ -671,7 +685,7 @@ public class RexProgram {
       return refCounts;
     }
     refCounts = new int[exprs.size()];
-    ReferenceCounter refCounter = new ReferenceCounter();
+    ReferenceCounter refCounter = new ReferenceCounter(refCounts);
     RexUtil.apply(refCounter, exprs, null);
     if (condition != null) {
       refCounter.visitLocalRef(condition);
@@ -737,6 +751,7 @@ public class RexProgram {
   /**
    * Returns a permutation, if this program is a permutation, otherwise null.
    */
+  @CheckReturnValue
   public Permutation getPermutation() {
     Permutation permutation = new Permutation(projects.size());
     if (projects.size() != inputRowType.getFieldList().size()) {
@@ -951,7 +966,7 @@ public class RexProgram {
     @Override public RexNode visitCall(RexCall call) {
       final List<RexNode> newOperands = new ArrayList<>();
       for (RexNode operand : call.getOperands()) {
-        newOperands.add(operand.accept(this));
+        newOperands.add(castNonNull(operand.accept(this)));
       }
       return call.clone(call.getType(), newOperands);
     }
@@ -976,7 +991,7 @@ public class RexProgram {
       final RexNode referenceExpr =
           fieldAccess.getReferenceExpr().accept(this);
       return new RexFieldAccess(
-          referenceExpr,
+          requireNonNull(referenceExpr, "referenceExpr must not be null"),
           fieldAccess.getField());
     }
   }
@@ -984,9 +999,12 @@ public class RexProgram {
   /**
    * Visitor which marks which expressions are used.
    */
-  private class ReferenceCounter extends RexVisitorImpl<Void> {
-    ReferenceCounter() {
+  private static class ReferenceCounter extends RexVisitorImpl<Void> {
+    private final int[] refCounts;
+
+    ReferenceCounter(int[] refCounts) {
       super(true);
+      this.refCounts = refCounts;
     }
 
     @Override public Void visitLocalRef(RexLocalRef localRef) {

@@ -16,7 +16,10 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an unconditional jump. This includes return statements, break and
@@ -94,7 +97,7 @@ public class GotoStatement extends Statement {
     case Sequence:
       // NOTE: We ignore control flow. This is only correct if "return"
       // is the last statement in the block.
-      return expression.evaluate(evaluator);
+      return requireNonNull(expression).evaluate(evaluator);
     default:
       throw new AssertionError("evaluate not implemented");
     }

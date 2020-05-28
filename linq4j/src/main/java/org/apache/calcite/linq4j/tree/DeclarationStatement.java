@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 

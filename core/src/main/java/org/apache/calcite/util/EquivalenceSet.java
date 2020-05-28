@@ -71,14 +71,14 @@ public class EquivalenceSet<E extends Comparable<E>> {
   public E equiv(E e, E f) {
     final E eParent = add(e);
     if (!eParent.equals(e)) {
-      assert parents.get(eParent).equals(eParent);
+      assert Objects.equals(parents.get(eParent), eParent);
       final E root = equiv(eParent, f);
       parents.put(e, root);
       return root;
     }
     final E fParent = add(f);
     if (!fParent.equals(f)) {
-      assert parents.get(fParent).equals(fParent);
+      assert Objects.equals(parents.get(fParent), fParent);
       final E root = equiv(e, fParent);
       parents.put(f, root);
       return root;

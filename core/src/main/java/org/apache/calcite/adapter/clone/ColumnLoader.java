@@ -27,6 +27,8 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+
 import java.lang.reflect.Type;
 import java.sql.Date;
 import java.sql.Time;
@@ -38,6 +40,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Column loader.
@@ -62,6 +66,7 @@ class ColumnLoader<T> {
    * @param sourceTable Source data
    * @param protoRowType Logical row type
    * @param repList Physical row types, or null if not known */
+  @SuppressWarnings("method.invocation.invalid")
   ColumnLoader(JavaTypeFactory typeFactory,
       Enumerable<T> sourceTable,
       RelProtoDataType protoRowType,
@@ -170,7 +175,8 @@ class ColumnLoader<T> {
                 final int slice = pair.i;
 
                 @Override public Object get(int index) {
-                  return ((Object[]) list.get(index))[slice];
+                  T row = requireNonNull(list.get(index), () -> "null value at index " + index);
+                  return ((Object[]) row)[slice];
                 }
 
                 @Override public int size() {
@@ -194,8 +200,10 @@ class ColumnLoader<T> {
           && valueSet.map.keySet().size() == list.size()) {
         // We have discovered a the first unique key in the table.
         sort[0] = pair.i;
+        // map.keySet().size() == list.size() above implies list contains only non-null elements
+        @SuppressWarnings("assignment.type.incompatible")
         final Comparable[] values =
-            valueSet.values.toArray(new Comparable[list.size()]);
+            valueSet.values.toArray(new Comparable[0]);
         final Kev[] kevs = new Kev[list.size()];
         for (int i = 0; i < kevs.length; i++) {
           kevs[i] = new Kev(i, values[i]);
@@ -230,15 +238,16 @@ class ColumnLoader<T> {
    * value needs to be converted to a {@link Long}. Similarly
    * {@link java.sql.Date} and {@link java.sql.Time} values to
    * {@link Integer}. */
-  private static List wrap(ColumnMetaData.Rep rep, List list,
+  private static List<? extends Object> wrap(ColumnMetaData.Rep rep, List<?> list,
       RelDataType type) {
     switch (type.getSqlTypeName()) {
     case TIMESTAMP:
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIMESTAMP:
-        return Util.transform(list,
+        final List<Long> longs = Util.transform((List<Timestamp>) list,
             (Timestamp t) -> t == null ? null : t.getTime());
+        return longs;
       default:
         break;
       }
@@ -247,9 +256,10 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_TIME:
-        return Util.transform(list, (Time t) -> t == null
-            ? null
-            : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
+        return Util.<Time, Integer>transform(
+            (List<Time>) list, (Time t) -> t == null
+                ? null
+                : (int) (t.getTime() % DateTimeUtils.MILLIS_PER_DAY));
       default:
         break;
       }
@@ -258,9 +268,10 @@ class ColumnLoader<T> {
       switch (rep) {
       case OBJECT:
       case JAVA_SQL_DATE:
-        return Util.transform(list, (Date d) -> d == null
-            ? null
-            : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
+        return Util.<Date, Integer>transform(
+            (List<Date>) list, (Date d) -> d == null
+                ? null
+                : (int) (d.getTime() / DateTimeUtils.MILLIS_PER_DAY));
       default:
         break;
       }
@@ -311,7 +322,7 @@ class ColumnLoader<T> {
 
     /** Freezes the contents of this value set into a column, optionally
      * re-ordering if {@code sources} is specified. */
-    ArrayTable.Column freeze(int ordinal, int[] sources) {
+    ArrayTable.Column freeze(int ordinal, int [] sources) {
       ArrayTable.Representation representation = chooseRep(ordinal);
       final int cardinality = map.size() + (containsNull ? 1 : 0);
       final Object data = representation.freeze(this, sources);
@@ -333,6 +344,8 @@ class ColumnLoader<T> {
         default:
           break;
         }
+        Comparable min = this.min;
+        Comparable max = this.max;
         if (canBeLong(min) && canBeLong(max)) {
           return chooseFixedRep(
               ordinal, p, toLong(min), toLong(max));
@@ -367,6 +380,7 @@ class ColumnLoader<T> {
       }
     }
 
+    @EnsuresNonNullIf(result = true, expression = "#1")
     private boolean canBeLong(Object o) {
       return o instanceof Boolean
           || o instanceof Character

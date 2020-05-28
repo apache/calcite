@@ -29,7 +29,6 @@ import org.apache.calcite.util.Optionality;
 
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
@@ -114,7 +113,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
   }
 
@@ -162,7 +161,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * and {@code AGG(x)} is valid.
    * </ul>
    */
-  public @Nonnull Optionality requiresGroupOrder() {
+  public Optionality requiresGroupOrder() {
     return requiresGroupOrder;
   }
 
@@ -182,7 +181,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * {@link Optionality#IGNORED} to indicate this. For such functions,
    * Calcite will probably remove {@code DISTINCT} while optimizing the query.
    */
-  public @Nonnull Optionality getDistinctOptionality() {
+  public Optionality getDistinctOptionality() {
     return Optionality.OPTIONAL;
   }
 

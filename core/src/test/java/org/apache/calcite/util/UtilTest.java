@@ -51,7 +51,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.hamcrest.TypeSafeMatcher;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.io.PrintWriter;
@@ -2039,7 +2038,7 @@ class UtilTest {
       @NotNull @Override public Set<Entry<String, Integer>> entrySet() {
         throw new UnsupportedOperationException();
       }
-      @Nullable @Override public Integer put(String key, Integer value) {
+      @Override public Integer put(String key, Integer value) {
         throw new UnsupportedOperationException();
       }
       @Override public int size() {

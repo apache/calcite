@@ -63,12 +63,14 @@ public class OracleSqlOperatorTable extends ReflectiveSqlOperatorTable {
    * Returns the Oracle operator table, creating it if necessary.
    */
   public static synchronized OracleSqlOperatorTable instance() {
+    OracleSqlOperatorTable instance = OracleSqlOperatorTable.instance;
     if (instance == null) {
       // Creates and initializes the standard operator table.
       // Uses two-phase construction, because we can't initialize the
       // table until the constructor of the sub-class has completed.
       instance = new OracleSqlOperatorTable();
       instance.init();
+      OracleSqlOperatorTable.instance = instance;
     }
     return instance;
   }

@@ -41,6 +41,8 @@ import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Iterator;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Default implementations for methods in the {@link Queryable} interface.
  */
@@ -741,13 +743,13 @@ public abstract class QueryableDefaults {
   public static <T, TResult> Queryable<TResult> select(Queryable<T> source,
       FunctionExpression<Function1<T, TResult>> selector) {
     return source.getProvider().createQuery(
-        Expressions.call(source.getExpression(), "select", selector),
+        Expressions.call(requireNonNull(source.getExpression()), "select", selector),
         functionResultType(selector));
   }
 
   private static <P0, R> Type functionResultType(
       FunctionExpression<Function1<P0, R>> selector) {
-    return selector.body.getType();
+    return requireNonNull(selector.body, "selector.body").getType();
   }
 
   /**

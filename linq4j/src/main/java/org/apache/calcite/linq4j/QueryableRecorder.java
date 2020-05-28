@@ -33,11 +33,16 @@ import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.calcite.linq4j.tree.FunctionExpression;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Comparator;
 
 import static org.apache.calcite.linq4j.QueryableDefaults.NonLeafReplayableQueryable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link QueryableFactory} that records each event
@@ -47,6 +52,7 @@ import static org.apache.calcite.linq4j.QueryableDefaults.NonLeafReplayableQuery
  *
  * @param <T> Element type
  */
+@Covariant(0)
 public class QueryableRecorder<T> implements QueryableFactory<T> {
   private static final QueryableRecorder INSTANCE = new QueryableRecorder();
 
@@ -261,7 +267,9 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
     };
   }
 
-  @Override public Queryable<T> defaultIfEmpty(final Queryable<T> source, final T value) {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Queryable<@PolyNull T> defaultIfEmpty(final Queryable<T> source,
+      final @PolyNull T value) {
     return new NonLeafReplayableQueryable<T>(source) {
       @Override public void replay(QueryableFactory<T> factory) {
         factory.defaultIfEmpty(source, value);
@@ -688,7 +696,7 @@ public class QueryableRecorder<T> implements QueryableFactory<T> {
       }
 
       @Override public Type getElementType() {
-        return selector.body.type;
+        return requireNonNull(selector.body, "selector.body").type;
       }
     }.castQueryable(); // CHECKSTYLE: IGNORE 0
   }

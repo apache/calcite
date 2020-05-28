@@ -28,6 +28,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.schema.TableMacro} based on a
  * method.
@@ -71,7 +73,7 @@ public class TableMacroImpl extends ReflectiveFunctionBase
    * @param arguments Arguments
    * @return Table
    */
-  @Override public TranslatableTable apply(List<Object> arguments) {
+  @Override public TranslatableTable apply(List<? extends Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
@@ -79,8 +81,9 @@ public class TableMacroImpl extends ReflectiveFunctionBase
             method.getDeclaringClass().getConstructor();
         o = constructor.newInstance();
       }
-      //noinspection unchecked
-      return (TranslatableTable) method.invoke(o, arguments.toArray());
+      return (TranslatableTable) requireNonNull(
+          method.invoke(o, arguments.toArray()),
+          () -> "got null from " + method + " with arguments " + arguments);
     } catch (IllegalArgumentException e) {
       throw new RuntimeException("Expected "
           + Arrays.toString(method.getParameterTypes()) + " actual "

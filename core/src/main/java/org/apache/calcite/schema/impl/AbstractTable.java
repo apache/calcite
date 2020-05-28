@@ -46,7 +46,7 @@ public abstract class AbstractTable implements Table, Wrapper {
     return Schema.TableType.TABLE;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }

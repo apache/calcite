@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -58,6 +59,9 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getComponentTypeOrThrow;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 import static java.util.Objects.requireNonNull;
@@ -94,18 +98,12 @@ public abstract class SqlTypeUtil {
         return false;
       }
 
-      if (t0.getCharset() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) charset when calling deriveType");
-      } else if (!t0.getCharset().equals(t1.getCharset())) {
+      if (!getCharset(t0).equals(getCharset(t1))) {
         return false;
       }
 
-      if (t0.getCollation() == null) {
-        throw new AssertionError("RelDataType object should have been assigned "
-            + "a (default) collation when calling deriveType");
-      } else if (!t0.getCollation().getCharset().equals(
-          t1.getCollation().getCharset())) {
+      if (!getCollation(t0).getCharset().equals(
+          getCollation(t1).getCharset())) {
         return false;
       }
     }
@@ -343,11 +341,16 @@ public abstract class SqlTypeUtil {
   }
 
   /** Returns whether a type is some kind of INTERVAL. */
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @EnsuresNonNullIf(expression = "#1.getIntervalQualifier()", result = true)
   public static boolean isInterval(RelDataType type) {
     return SqlTypeFamily.DATETIME_INTERVAL.contains(type);
   }
 
   /** Returns whether a type is in SqlTypeFamily.Character. */
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
+  @EnsuresNonNullIf(expression = "#1.getCharset()", result = true)
+  @EnsuresNonNullIf(expression = "#1.getCollation()", result = true)
   public static boolean inCharFamily(RelDataType type) {
     return type.getFamily() == SqlTypeFamily.CHARACTER;
   }
@@ -583,7 +586,7 @@ public abstract class SqlTypeUtil {
     case VARCHAR:
       return (int) Math.ceil(
           ((double) type.getPrecision())
-              * type.getCharset().newEncoder().maxBytesPerChar());
+              * getCharset(type).newEncoder().maxBytesPerChar());
 
     case BINARY:
     case VARBINARY:
@@ -754,7 +757,7 @@ public abstract class SqlTypeUtil {
       if (toType.getSqlTypeName() != SqlTypeName.ARRAY) {
         return false;
       }
-      return canAssignFrom(toType.getComponentType(), fromType.getComponentType());
+      return canAssignFrom(getComponentTypeOrThrow(toType), getComponentTypeOrThrow(fromType));
     }
 
     if (areCharacterSetsMismatched(toType, fromType)) {
@@ -857,8 +860,8 @@ public abstract class SqlTypeUtil {
           return false;
         }
         return canCastFrom(
-            toType.getComponentType(),
-            fromType.getComponentType(),
+            getComponentTypeOrThrow(toType),
+            getComponentTypeOrThrow(fromType),
             coerce);
       } else if (fromTypeName == SqlTypeName.MULTISET) {
         return false;
@@ -915,7 +918,7 @@ public abstract class SqlTypeUtil {
   public static RelDataType flattenRecordType(
       RelDataTypeFactory typeFactory,
       RelDataType recordType,
-      int[] flatteningMap) {
+      int [] flatteningMap) {
     if (!recordType.isStruct()) {
       return recordType;
     }
@@ -942,7 +945,8 @@ public abstract class SqlTypeUtil {
       // Patch up the field name with index if there are duplicates.
       // There is still possibility that the patched name conflicts with existing ones,
       // but that should be rare case.
-      String fieldName = fieldCnt.get(oriFieldName) > 1
+      Long fieldCount = fieldCnt.get(oriFieldName);
+      String fieldName = fieldCount != null && fieldCount > 1
           ? oriFieldName + "_" + i
           : oriFieldName;
       fieldNames.add(fieldName);
@@ -962,7 +966,7 @@ public abstract class SqlTypeUtil {
       RelDataTypeFactory typeFactory,
       RelDataType type,
       List<RelDataTypeField> list,
-      int[] flatteningMap) {
+      int [] flatteningMap) {
     boolean nested = false;
     for (RelDataTypeField field : type.getFieldList()) {
       if (flatteningMap != null) {
@@ -984,7 +988,7 @@ public abstract class SqlTypeUtil {
             typeFactory.createMultisetType(
                 flattenRecordType(
                     typeFactory,
-                    field.getType().getComponentType(),
+                    getComponentTypeOrThrow(field.getType()),
                     null),
                 -1);
         if (field.getType() instanceof ArraySqlType) {
@@ -992,7 +996,7 @@ public abstract class SqlTypeUtil {
               typeFactory.createArrayType(
                   flattenRecordType(
                       typeFactory,
-                      field.getType().getComponentType(),
+                      getComponentTypeOrThrow(field.getType()),
                       null),
                   -1);
         }
@@ -1042,7 +1046,7 @@ public abstract class SqlTypeUtil {
           SqlParserPos.ZERO);
     } else if (isCollection(type)) {
       typeNameSpec = new SqlCollectionTypeNameSpec(
-          convertTypeToSpec(type.getComponentType()).getTypeNameSpec(),
+          convertTypeToSpec(getComponentTypeOrThrow(type)).getTypeNameSpec(),
           typeName,
           SqlParserPos.ZERO);
     } else if (isRow(type)) {
@@ -1214,7 +1218,8 @@ public abstract class SqlTypeUtil {
 
     return (type1 == type2)
         || (type1.getSqlTypeName() == type2.getSqlTypeName()
-          && equalSansNullability(factory, type1.getComponentType(), type2.getComponentType()));
+          && equalSansNullability(
+              factory, getComponentTypeOrThrow(type1), getComponentTypeOrThrow(type2)));
   }
 
   /**
@@ -1651,7 +1656,7 @@ public abstract class SqlTypeUtil {
       return true;
     }
     if (isArray(type)) {
-      return hasCharacter(type.getComponentType());
+      return hasCharacter(getComponentTypeOrThrow(type));
     }
     return false;
   }

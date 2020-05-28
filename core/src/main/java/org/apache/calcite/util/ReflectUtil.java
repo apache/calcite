@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Static utilities for Java reflection.
  */
@@ -100,7 +102,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferReadMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return primitiveToByteBufferReadMethod.get(clazz);
+    return castNonNull(primitiveToByteBufferReadMethod.get(clazz));
   }
 
   /**
@@ -112,7 +114,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferWriteMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return primitiveToByteBufferWriteMethod.get(clazz);
+    return castNonNull(primitiveToByteBufferWriteMethod.get(clazz));
   }
 
   /**
@@ -124,7 +126,7 @@ public abstract class ReflectUtil {
    */
   public static Class getBoxingClass(Class primitiveClass) {
     assert primitiveClass.isPrimitive();
-    return primitiveToBoxingMap.get(primitiveClass);
+    return castNonNull(primitiveToBoxingMap.get(primitiveClass));
   }
 
   /**
@@ -311,8 +313,7 @@ public abstract class ReflectUtil {
     // Prepare an array to re-use in recursive calls.  The first argument
     // will have the visitee class substituted into it.
     Class<?>[] paramTypes = new Class[1 + additionalParameterTypes.size()];
-    int iParam = 0;
-    paramTypes[iParam++] = null;
+    int iParam = 1;
     for (Class<?> paramType : additionalParameterTypes) {
       paramTypes[iParam++] = paramType;
     }
@@ -411,7 +412,8 @@ public abstract class ReflectUtil {
    * @param visiteeBaseClazz Visitee base class
    * @return cache of methods
    */
-  public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
+  public static <R extends ReflectiveVisitor,
+      E extends Object> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
@@ -505,7 +507,7 @@ public abstract class ReflectUtil {
    * @param arg0Clazz       Base type of argument zero
    * @param otherArgClasses Types of remaining arguments
    */
-  public static <E, T> MethodDispatcher<T> createMethodDispatcher(
+  public static <E extends Object, T> MethodDispatcher<T> createMethodDispatcher(
       final Class<T> returnClazz,
       final ReflectiveVisitor visitor,
       final String methodName,
@@ -520,9 +522,11 @@ public abstract class ReflectUtil {
             (Class<ReflectiveVisitor>) visitor.getClass(), arg0Clazz);
     return new MethodDispatcher<T>() {
       @Override public T invoke(Object... args) {
-        Method method = lookupMethod(args[0]);
+        Method method = lookupMethod(castNonNull(args[0]));
         try {
-          final Object o = method.invoke(visitor, args);
+          // castNonNull is here because method.invoke can return null, and we don't know if
+          // T is nullable
+          final Object o = castNonNull(method.invoke(visitor, args));
           return returnClazz.cast(o);
         } catch (IllegalAccessException e) {
           throw new RuntimeException("While invoking method '" + method + "'",

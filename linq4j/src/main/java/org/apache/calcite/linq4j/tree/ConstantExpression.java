@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -27,6 +28,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents an expression that has a constant value.
@@ -40,10 +43,7 @@ public class ConstantExpression extends Expression {
     if (value != null) {
       if (type instanceof Class) {
         Class clazz = (Class) type;
-        Primitive primitive = Primitive.of(clazz);
-        if (primitive != null) {
-          clazz = primitive.boxClass;
-        }
+        clazz = Primitive.box(clazz);
         if (!clazz.isInstance(value)
             && !((clazz == Float.class || clazz == Double.class)
                 && value instanceof BigDecimal)) {
@@ -83,9 +83,7 @@ public class ConstantExpression extends Expression {
     }
     if (type == null) {
       type = value.getClass();
-      if (Primitive.isBox(type)) {
-        type = Primitive.ofBox(type).primitiveClass;
-      }
+      type = Primitive.unbox(type);
     }
     if (value instanceof String) {
       escapeString(writer.getBuf(), (String) value);
@@ -171,7 +169,7 @@ public class ConstantExpression extends Expression {
       return writer.append(recordType.getName()).append(".class");
     }
     if (value.getClass().isArray()) {
-      writer.append("new ").append(value.getClass().getComponentType());
+      writer.append("new ").append(requireNonNull(value.getClass().getComponentType()));
       list(writer, Primitive.asList(value), "[] {\n", ",\n", "}");
       return writer;
     }
@@ -195,7 +193,8 @@ public class ConstantExpression extends Expression {
       writer.append("new ").append(value.getClass());
       list(writer,
           Arrays.stream(value.getClass().getFields())
-              .map(field -> {
+              // <Object> is needed for CheckerFramework
+              .<Object>map(field -> {
                 try {
                   return field.get(value);
                 } catch (IllegalAccessException e) {

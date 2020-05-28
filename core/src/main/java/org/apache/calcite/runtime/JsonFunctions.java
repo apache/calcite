@@ -36,6 +36,8 @@ import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.spi.mapper.MappingProvider;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,7 +54,10 @@ import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of functions used in JSON processing.
@@ -121,8 +126,8 @@ public class JsonFunctions {
         mode = PathMode.STRICT;
         pathStr = pathSpec;
       } else {
-        mode = PathMode.valueOf(matcher.group(1).toUpperCase(Locale.ROOT));
-        pathStr = matcher.group(2);
+        mode = PathMode.valueOf(castNonNull(matcher.group(1)).toUpperCase(Locale.ROOT));
+        pathStr = castNonNull(matcher.group(2));
       }
       DocumentContext ctx;
       switch (mode) {
@@ -130,7 +135,7 @@ public class JsonFunctions {
         if (input.hasException()) {
           return JsonPathContext.withStrictException(pathSpec, input.exc);
         }
-        ctx = JsonPath.parse(input.obj,
+        ctx = JsonPath.parse(input.obj(),
             Configuration
                 .builder()
                 .jsonProvider(JSON_PATH_JSON_PROVIDER)
@@ -141,7 +146,7 @@ public class JsonFunctions {
         if (input.hasException()) {
           return JsonPathContext.withJavaObj(PathMode.LAX, null);
         }
-        ctx = JsonPath.parse(input.obj,
+        ctx = JsonPath.parse(input.obj(),
             Configuration
                 .builder()
                 .options(Option.SUPPRESS_EXCEPTIONS)
@@ -620,7 +625,7 @@ public class JsonFunctions {
 
   public static String jsonRemove(JsonValueContext input, String... pathSpecs) {
     try {
-      DocumentContext ctx = JsonPath.parse(input.obj,
+      DocumentContext ctx = JsonPath.parse(input.obj(),
           Configuration
               .builder()
               .options(Option.SUPPRESS_EXCEPTIONS)
@@ -711,6 +716,7 @@ public class JsonFunctions {
       this.exc = exc;
     }
 
+    @EnsuresNonNullIf(expression = "exc", result = true)
     public boolean hasException() {
       return exc != null;
     }
@@ -771,6 +777,11 @@ public class JsonFunctions {
       return new JsonValueContext(null, exc);
     }
 
+    Object obj() {
+      return requireNonNull(obj, "json object must not be null");
+    }
+
+    @EnsuresNonNullIf(expression = "exc", result = true)
     public boolean hasException() {
       return exc != null;
     }

@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that calls a table-valued function.
  *
@@ -94,7 +96,8 @@ public abstract class TableFunctionScan extends AbstractRelNode {
   protected TableFunctionScan(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs(),
-        input.getExpression("invocation"), (Type) input.get("elementType"),
+        requireNonNull(input.getExpression("invocation"), "invocation"),
+        (Type) input.get("elementType"),
         input.getRowType("rowType"),
         ImmutableSet.of());
   }
@@ -103,7 +106,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   @Override public final TableFunctionScan copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, inputs, rexCall, elementType, rowType,
+    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
         columnMappings);
   }
 
@@ -138,7 +141,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     if (rexCall == this.rexCall) {
       return this;
     }
-    return copy(traitSet, inputs, rexCall, elementType, rowType,
+    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
         columnMappings);
   }
 

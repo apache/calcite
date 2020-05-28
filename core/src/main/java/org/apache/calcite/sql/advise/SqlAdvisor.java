@@ -38,6 +38,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * An assistant which offers hints and corrections to a partially-formed SQL
@@ -225,7 +228,7 @@ public class SqlAdvisor {
    */
   private Casing getPreferredCasing(String word) {
     if (word == prevWord) {
-      return prevPreferredCasing;
+      return castNonNull(prevPreferredCasing);
     }
     boolean hasLower = false;
     boolean hasUpper = false;
@@ -303,7 +306,7 @@ public class SqlAdvisor {
   }
 
   private String applyCasing(String value, Casing casing) {
-    return SqlParserUtil.strip(value, null, null, null, casing);
+    return SqlParserUtil.toCase(value, casing);
   }
 
   /**
@@ -479,6 +482,9 @@ public class SqlAdvisor {
     sqlNode = collectParserError(sql, errorList);
     if (!errorList.isEmpty()) {
       return errorList;
+    } else if (sqlNode == null) {
+      throw new IllegalStateException("collectParserError returned null (sql is not valid)"
+          + ", however, the resulting errorList is empty. sql=" + sql);
     }
     try {
       validator.validate(sqlNode);
@@ -524,18 +530,21 @@ public class SqlAdvisor {
    *
    * @return an of SQL reserved and keywords
    */
+  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   public List<String> getReservedAndKeyWords() {
     ensureReservedAndKeyWords();
     return reservedWordsList;
   }
 
+  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   private Set<String> getReservedAndKeyWordsSet() {
     ensureReservedAndKeyWords();
     return reservedWordsSet;
   }
 
+  @EnsuresNonNull({"reservedWordsSet", "reservedWordsList"})
   private void ensureReservedAndKeyWords() {
-    if (reservedWordsSet != null) {
+    if (reservedWordsSet != null && reservedWordsList != null) {
       return;
     }
     Collection<String> c = SqlAbstractParserImpl.getSql92ReservedWords();
@@ -648,7 +657,8 @@ public class SqlAdvisor {
       this.startColumnNum = e.getPosColumn();
       this.endLineNum = e.getEndPosLine();
       this.endColumnNum = e.getEndPosColumn();
-      this.errorMsg = e.getCause().getMessage();
+      Throwable cause = e.getCause();
+      this.errorMsg = (cause == null ? e : cause).getMessage();
     }
 
     /**

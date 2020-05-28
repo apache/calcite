@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.adapter.druid;
 
-import javax.annotation.Nullable;
 
 /**
  * Interface for Druid DimensionSpec.
@@ -26,6 +25,6 @@ import javax.annotation.Nullable;
 public interface DimensionSpec extends DruidJson {
   String getOutputName();
   DruidType getOutputType();
-  @Nullable ExtractionFunction getExtractionFn();
+  ExtractionFunction getExtractionFn();
   String getDimension();
 }

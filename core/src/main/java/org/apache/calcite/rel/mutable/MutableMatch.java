@@ -40,11 +40,11 @@ public class MutableMatch extends MutableSingleRel {
   public final RexNode interval;
 
   private MutableMatch(RelDataType rowType, MutableRel input,
-       RexNode pattern, boolean strictStart, boolean strictEnd,
-       Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
-       RexNode after, Map<String, ? extends SortedSet<String>> subsets,
-       boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
-       RexNode interval) {
+      RexNode pattern, boolean strictStart, boolean strictEnd,
+      Map<String, RexNode> patternDefinitions, Map<String, RexNode> measures,
+      RexNode after, Map<String, ? extends SortedSet<String>> subsets,
+      boolean allRows, ImmutableBitSet partitionKeys, RelCollation orderKeys,
+      RexNode interval) {
     super(MutableRelType.MATCH, rowType, input);
     this.pattern = pattern;
     this.strictStart = strictStart;
@@ -87,7 +87,7 @@ public class MutableMatch extends MutableSingleRel {
         && subsets.equals(((MutableMatch) obj).subsets)
         && partitionKeys.equals(((MutableMatch) obj).partitionKeys)
         && orderKeys.equals(((MutableMatch) obj).orderKeys)
-        && interval.equals(((MutableMatch) obj).interval)
+        && Objects.equals(interval, ((MutableMatch) obj).interval)
         && input.equals(((MutableMatch) obj).input);
   }
 

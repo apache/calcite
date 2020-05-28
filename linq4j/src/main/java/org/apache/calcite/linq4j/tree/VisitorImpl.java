@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.util.List;
 
 /**
@@ -85,8 +86,8 @@ public class VisitorImpl<R> implements Visitor<R> {
 
   @Override public R visit(ForStatement forStatement) {
     R r0 = Expressions.acceptNodes(forStatement.declarations, this);
-    R r1 = forStatement.condition.accept(this);
-    R r2 = forStatement.post.accept(this);
+    R r1 = forStatement.condition == null ? null : forStatement.condition.accept(this);
+    R r2 = forStatement.post == null ? null : forStatement.post.accept(this);
     return forStatement.body.accept(this);
   }
 
@@ -100,7 +101,7 @@ public class VisitorImpl<R> implements Visitor<R> {
     @SuppressWarnings("unchecked") final List<Node> parameterList =
         functionExpression.parameterList;
     R r0 = Expressions.acceptNodes(parameterList, this);
-    return functionExpression.body.accept(this);
+    return functionExpression.body == null ? null : functionExpression.body.accept(this);
   }
 
   @Override public R visit(GotoStatement gotoStatement) {

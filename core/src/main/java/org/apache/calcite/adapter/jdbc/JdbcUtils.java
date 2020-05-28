@@ -32,6 +32,8 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -42,7 +44,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 import java.util.TimeZone;
-import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 /**
@@ -61,8 +62,8 @@ final class JdbcUtils {
         CacheBuilder.newBuilder().softValues()
             .build(CacheLoader.from(DialectPool::dialect));
 
-    private static @Nonnull SqlDialect dialect(
-        @Nonnull Pair<SqlDialectFactory, DataSource> key) {
+    private static SqlDialect dialect(
+        Pair<SqlDialectFactory, DataSource> key) {
       SqlDialectFactory dialectFactory = key.left;
       DataSource dataSource = key.right;
       Connection connection = null;
@@ -117,7 +118,7 @@ final class JdbcUtils {
         try {
           return new ObjectArrayRowBuilder(
               resultSet,
-              Pair.left(list).toArray(new ColumnMetaData.Rep[list.size()]),
+              Pair.left(list).toArray(new ColumnMetaData.Rep[0]),
               Ints.toArray(Pair.right(list)));
         } catch (SQLException e) {
           throw new RuntimeException(e);
@@ -159,7 +160,9 @@ final class JdbcUtils {
       return reps[i].jdbcGet(resultSet, i + 1);
     }
 
-    private static Timestamp shift(Timestamp v) {
+    /** Returns a timestamp shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Timestamp shift(@PolyNull Timestamp v) {
       if (v == null) {
         return null;
       }
@@ -168,7 +171,9 @@ final class JdbcUtils {
       return new Timestamp(time + offset);
     }
 
-    private static Time shift(Time v) {
+    /** Returns a time shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Time shift(@PolyNull Time v) {
       if (v == null) {
         return null;
       }
@@ -177,7 +182,9 @@ final class JdbcUtils {
       return new Time((time + offset) % DateTimeUtils.MILLIS_PER_DAY);
     }
 
-    private static Date shift(Date v) {
+    /** Returns a date shifted by the default time-zone's offset;
+     * null if and only if {@code v} is null. */
+    private static @PolyNull Date shift(@PolyNull Date v) {
       if (v == null) {
         return null;
       }
@@ -201,8 +208,8 @@ final class JdbcUtils {
         CacheBuilder.newBuilder().softValues()
             .build(CacheLoader.from(DataSourcePool::dataSource));
 
-    private static @Nonnull BasicDataSource dataSource(
-          @Nonnull List<String> key) {
+    private static BasicDataSource dataSource(
+          List<? extends String> key) {
       BasicDataSource dataSource = new BasicDataSource();
       dataSource.setUrl(key.get(0));
       dataSource.setUsername(key.get(1));

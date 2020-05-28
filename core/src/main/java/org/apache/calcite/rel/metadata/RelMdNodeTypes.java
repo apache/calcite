@@ -76,7 +76,11 @@ public class RelMdNodeTypes
 
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(RelSubset rel,
       RelMetadataQuery mq) {
-    return mq.getNodeTypes(Util.first(rel.getBest(), rel.getOriginal()));
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getNodeTypes(bestOrOriginal);
   }
 
   public Multimap<Class<? extends RelNode>, RelNode> getNodeTypes(Union rel,

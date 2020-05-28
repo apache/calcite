@@ -42,7 +42,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
 
 /**
  * Rule that converts CASE-style filtered aggregates into true filtered
@@ -149,7 +148,7 @@ public class AggregateCaseToFilterRule
     call.getPlanner().prune(aggregate);
   }
 
-  private @Nullable AggregateCall transform(AggregateCall aggregateCall,
+  private AggregateCall transform(AggregateCall aggregateCall,
       Project project, List<RexNode> newProjects) {
     final int singleArg = soleArgument(aggregateCall);
     if (singleArg < 0) {

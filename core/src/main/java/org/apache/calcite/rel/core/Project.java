@@ -47,11 +47,14 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.collect.ImmutableList;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that computes a set of
@@ -78,6 +81,7 @@ public abstract class Project extends SingleRel implements Hintable {
    * @param projects List of expressions for the input columns
    * @param rowType  Output row type
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Project(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -114,7 +118,7 @@ public abstract class Project extends SingleRel implements Hintable {
         input.getTraitSet(),
         ImmutableList.of(),
         input.getInput(),
-        input.getExpressionList("exprs"),
+        requireNonNull(input.getExpressionList("exprs"), "exprs"),
         input.getRowType("exprs", "fields"));
   }
 
@@ -122,7 +126,7 @@ public abstract class Project extends SingleRel implements Hintable {
 
   @Override public final RelNode copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, sole(inputs), exps, rowType);
+    return copy(traitSet, sole(inputs), exps, getRowType());
   }
 
   /**
@@ -162,7 +166,7 @@ public abstract class Project extends SingleRel implements Hintable {
         RexUtil.createStructType(
             getInput().getCluster().getTypeFactory(),
             exps,
-            this.rowType.getFieldNames(),
+            getRowType().getFieldNames(),
             null);
     return copy(traitSet, getInput(), exps, rowType);
   }
@@ -217,7 +221,7 @@ public abstract class Project extends SingleRel implements Hintable {
             checker.getFailureCount(), exp);
       }
     }
-    if (!Util.isDistinct(rowType.getFieldNames())) {
+    if (!Util.isDistinct(getRowType().getFieldNames())) {
       return litmus.fail("field names not distinct: {}", rowType);
     }
     //CHECKSTYLE: IGNORE 1
@@ -277,10 +281,10 @@ public abstract class Project extends SingleRel implements Hintable {
     }
 
     if (pw.nest()) {
-      pw.item("fields", rowType.getFieldNames());
+      pw.item("fields", getRowType().getFieldNames());
       pw.item("exprs", exps);
     } else {
-      for (Ord<RelDataTypeField> field : Ord.zip(rowType.getFieldList())) {
+      for (Ord<RelDataTypeField> field : Ord.zip(getRowType().getFieldList())) {
         String fieldName = field.e.getName();
         if (fieldName == null) {
           fieldName = "field#" + field.i;
@@ -293,6 +297,7 @@ public abstract class Project extends SingleRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
   protected boolean deepEquals0(Object obj) {
     if (this == obj) {
       return true;

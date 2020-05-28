@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * VolcanoRelMetadataProvider implements the {@link RelMetadataProvider}
@@ -53,8 +54,9 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
 
     return (rel, mq) -> {
       final RelSubset subset = (RelSubset) rel;
-      final RelMetadataProvider provider =
-          rel.getCluster().getMetadataProvider();
+      final RelMetadataProvider provider = Objects.requireNonNull(
+          rel.getCluster().getMetadataProvider(),
+          "metadataProvider");
 
       // REVIEW jvs 29-Mar-2006: I'm not sure what the correct precedence
       // should be here.  Letting the current best plan take the first shot is
@@ -65,10 +67,11 @@ public class VolcanoRelMetadataProvider implements RelMetadataProvider {
       // First, try current best implementation.  If it knows how to answer
       // this query, treat it as the most reliable.
       if (subset.best != null) {
+        RelNode best = subset.best;
         final UnboundMetadata<M> function =
-            provider.apply(subset.best.getClass(), metadataClass);
+            provider.apply(best.getClass(), metadataClass);
         if (function != null) {
-          final M metadata = function.bind(subset.best, mq);
+          final M metadata = function.bind(best, mq);
           if (metadata != null) {
             return metadata;
           }

@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
@@ -39,6 +40,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Table function that executes the OS "ps" command
  * to list processes.
@@ -54,7 +57,8 @@ public class PsTableFunction {
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
       @Override public Enumerable<Object[]> scan(DataContext root) {
-        final RelDataType rowType = getRowType(root.getTypeFactory());
+        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
         final String[] args;

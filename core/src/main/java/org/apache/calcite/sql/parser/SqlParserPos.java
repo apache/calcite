@@ -21,6 +21,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Arrays;
@@ -28,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -167,7 +170,7 @@ public class SqlParserPos implements Serializable {
   /**
    * Combines this parser position with a list of positions.
    */
-  public SqlParserPos plusAll(Collection<SqlNode> nodeList) {
+  public SqlParserPos plusAll(Collection<? extends SqlNode> nodeList) {
     int line = getLineNum();
     int column = getColumnNum();
     int endLine = getEndLineNum();
@@ -194,8 +197,10 @@ public class SqlParserPos implements Serializable {
     };
   }
 
-  private static Iterable<SqlParserPos> toPos(Iterable<? extends SqlNode> nodes) {
-    return Util.transform(nodes, node -> node == null ? null : node.getParserPosition());
+  private static Iterable<@PolyNull SqlParserPos> toPos(
+      Iterable<? extends @PolyNull SqlNode> nodes) {
+    return Util.transform(nodes,
+        node -> node == null ? castNonNull(null) : node.getParserPosition());
   }
 
   /**
@@ -256,7 +261,7 @@ public class SqlParserPos implements Serializable {
    * @return Sum of parser positions
    */
   private static SqlParserPos sum(
-      Iterable<SqlParserPos> poses,
+      Iterable<? extends SqlParserPos> poses,
       int line,
       int column,
       int endLine,

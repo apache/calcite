@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+
 /**
  * A collection of terms.
  *

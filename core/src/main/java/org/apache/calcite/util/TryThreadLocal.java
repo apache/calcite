@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+
 /**
  * Thread-local variable that returns a handle that can be closed.
  *

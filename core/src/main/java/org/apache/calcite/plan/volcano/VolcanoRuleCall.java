@@ -39,6 +39,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * <code>VolcanoRuleCall</code> implements the {@link RelOptRuleCall} interface
  * for VolcanoPlanner.
@@ -235,7 +239,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         volcanoPlanner.ruleCallStack.pop();
       }
 
-      if (LOGGER.isDebugEnabled()) {
+      if (generatedRelList != null) {
         if (generatedRelList.isEmpty()) {
           LOGGER.debug("call#{} generated 0 successors.", id);
         } else {
@@ -267,7 +271,7 @@ public class VolcanoRuleCall extends RelOptRuleCall {
   void match(RelNode rel) {
     assert getOperand0().matches(rel) : "precondition";
     final int solve = 0;
-    int operandOrdinal = getOperand0().solveOrder[solve];
+    int operandOrdinal = castNonNull(getOperand0().solveOrder)[solve];
     this.rels[operandOrdinal] = rel;
     matchRecurse(solve + 1);
   }
@@ -289,8 +293,9 @@ public class VolcanoRuleCall extends RelOptRuleCall {
         onMatch();
       }
     } else {
-      final int operandOrdinal = operand0.solveOrder[solve];
-      final int previousOperandOrdinal = operand0.solveOrder[solve - 1];
+      final int[] solveOrder = castNonNull(operand0.solveOrder);
+      final int operandOrdinal = solveOrder[solve];
+      final int previousOperandOrdinal = solveOrder[solve - 1];
       boolean ascending = operandOrdinal < previousOperandOrdinal;
       final RelOptRuleOperand previousOperand =
           operands.get(previousOperandOrdinal);
@@ -308,10 +313,12 @@ public class VolcanoRuleCall extends RelOptRuleCall {
               + previousOperand.getMatchedClass().getSimpleName());
         }
         parentOperand = operand;
-        final RelSubset subset = volcanoPlanner.getSubset(previous);
+        final RelSubset subset = volcanoPlanner.getSubsetNonNull(previous);
         successors = subset.getParentRels();
       } else {
-        parentOperand = operand.getParent();
+        parentOperand = requireNonNull(
+            operand.getParent(),
+            () -> "operand.getParent() for " + operand);
         final RelNode parentRel = rels[parentOperand.ordinalInRule];
         final List<RelNode> inputs = parentRel.getInputs();
         // if the child is unordered, then add all rels in all input subsets to the successors list

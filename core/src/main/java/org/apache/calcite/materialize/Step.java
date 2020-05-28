@@ -24,6 +24,9 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -139,9 +142,10 @@ class Step extends DefaultEdge {
   /** Creates {@link Step} instances. */
   static class Factory implements AttributedDirectedGraph.AttributedEdgeFactory<
       LatticeTable, Step> {
-    private final LatticeSpace space;
+    private final @NotOnlyInitialized LatticeSpace space;
 
-    Factory(LatticeSpace space) {
+    @SuppressWarnings("type.argument.type.incompatible")
+    Factory(@UnderInitialization LatticeSpace space) {
       this.space = Objects.requireNonNull(space);
     }
 

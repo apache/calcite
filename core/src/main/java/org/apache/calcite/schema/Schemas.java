@@ -55,9 +55,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.jdbc.CalciteSchema.LatticeEntry;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility functions for schemas.
@@ -198,8 +199,13 @@ public final class Schemas {
     SchemaPlus schema = root.getRootSchema();
     for (Iterator<? extends String> iterator = names.iterator();;) {
       String name = iterator.next();
+      requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        schema = schema.getSubSchema(name);
+        SchemaPlus next = schema.getSubSchema(name);
+        if (next == null) {
+          throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+        }
+        schema = next;
       } else {
         return queryable(root, schema, clazz, name);
       }
@@ -209,8 +215,12 @@ public final class Schemas {
   /** Returns a {@link Queryable}, given a schema and table name. */
   public static <E> Queryable<E> queryable(DataContext root, SchemaPlus schema,
       Class<E> clazz, String tableName) {
-    QueryableTable table = (QueryableTable) schema.getTable(tableName);
-    return table.asQueryable(root.getQueryProvider(), schema, tableName);
+    QueryableTable table = (QueryableTable) requireNonNull(
+        schema.getTable(tableName),
+        () -> "table " + tableName + " is not found in " + schema);
+    QueryProvider queryProvider = requireNonNull(root.getQueryProvider(),
+        "root.getQueryProvider()");
+    return table.asQueryable(queryProvider, schema, tableName);
   }
 
   /** Returns an {@link org.apache.calcite.linq4j.Enumerable} over the rows of
@@ -233,8 +243,9 @@ public final class Schemas {
    * representing each row as an object array. */
   public static Enumerable<Object[]> enumerable(
       final ProjectableFilterableTable table, final DataContext root) {
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
     return table.scan(root, new ArrayList<>(),
-        identity(table.getRowType(root.getTypeFactory()).getFieldCount()));
+        identity(table.getRowType(typeFactory).getFieldCount()));
   }
 
   private static int[] identity(int count) {
@@ -253,8 +264,13 @@ public final class Schemas {
     final List<String> nameList = Arrays.asList(names);
     for (Iterator<? extends String> iterator = nameList.iterator();;) {
       String name = iterator.next();
+      requireNonNull(schema, "schema");
       if (iterator.hasNext()) {
-        schema = schema.getSubSchema(name);
+        SchemaPlus next = schema.getSubSchema(name);
+        if (next == null) {
+          throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+        }
+        schema = next;
       } else {
         return schema.getTable(name);
       }
@@ -446,7 +462,7 @@ public final class Schemas {
     final List<CalciteSchema.LatticeEntry> list = getLatticeEntries(schema);
     return Util.transform(list, entry -> {
       final CalciteSchema.TableEntry starTable =
-          Objects.requireNonNull(entry).getStarTable();
+          requireNonNull(entry).getStarTable();
       assert starTable.getTable().getJdbcTableType()
           == Schema.TableType.STAR;
       return entry.getStarTable();
@@ -487,18 +503,19 @@ public final class Schemas {
    */
   public static CalciteSchema subSchema(CalciteSchema schema,
       Iterable<String> names) {
+    CalciteSchema current = schema;
     for (String string : names) {
-      if (schema == null) {
+      if (current == null) {
         return null;
       }
-      schema = schema.getSubSchema(string, false);
+      current = current.getSubSchema(string, false);
     }
-    return schema;
+    return current;
   }
 
   /** Generates a table name that is unique within the given schema. */
   public static String uniqueTableName(CalciteSchema schema, String base) {
-    String t = Objects.requireNonNull(base);
+    String t = requireNonNull(base);
     for (int x = 0; schema.getTable(t, true) != null; x++) {
       t = base + x;
     }
@@ -526,7 +543,11 @@ public final class Schemas {
       if (!iterator.hasNext()) {
         return path(builder.build());
       }
-      schema = schema.getSubSchema(name);
+      Schema next = schema.getSubSchema(name);
+      if (next == null) {
+        throw new IllegalArgumentException("schema " + name + " is not found in " + schema);
+      }
+      schema = next;
     }
   }
 

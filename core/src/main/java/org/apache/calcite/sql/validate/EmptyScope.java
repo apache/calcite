@@ -81,8 +81,8 @@ class EmptyScope implements SqlValidatorScope {
       boolean deep, Resolved resolved) {
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @SuppressWarnings("deprecation")
+  @Override public SqlValidatorNamespace getTableNamespace(List<String> names) {
     SqlValidatorTable table = validator.catalogReader.getTable(names);
     return table != null
         ? new TableNamespace(validator, table)

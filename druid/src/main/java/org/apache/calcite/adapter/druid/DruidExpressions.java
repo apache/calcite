@@ -31,13 +31,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Chars;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 /**
  * Expression utility class to transform Calcite expressions to Druid expressions when possible.

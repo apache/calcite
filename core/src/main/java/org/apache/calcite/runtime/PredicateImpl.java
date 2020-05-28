@@ -18,8 +18,6 @@ package org.apache.calcite.runtime;
 
 import com.google.common.base.Predicate;
 
-import javax.annotation.Nullable;
-
 /**
  * Abstract implementation of {@link com.google.common.base.Predicate}.
  *
@@ -35,10 +33,10 @@ import javax.annotation.Nullable;
  * implement {@link java.util.function.Predicate} directly.
  */
 public abstract class PredicateImpl<T> implements Predicate<T> {
-  @Override public final boolean apply(@Nullable T input) {
+  @Override public final boolean apply(T input) {
     return test(input);
   }
 
   /** Overrides {@code java.util.function.Predicate#test} in JDK8 and higher. */
-  @Override public abstract boolean test(@Nullable T t);
+  @Override public abstract boolean test(T t);
 }

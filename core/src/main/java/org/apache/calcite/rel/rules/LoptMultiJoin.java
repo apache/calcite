@@ -35,6 +35,11 @@ import org.apache.calcite.util.ImmutableIntList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -43,6 +48,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility class that keeps track of the join factors that
@@ -109,13 +116,13 @@ public class LoptMultiJoin {
    * For each join filter, associates a bitmap indicating all factors
    * referenced by the filter.
    */
-  private Map<RexNode, ImmutableBitSet> factorsRefByJoinFilter;
+  private final Map<RexNode, ImmutableBitSet> factorsRefByJoinFilter = new HashMap<>();
 
   /**
    * For each join filter, associates a bitmap indicating all fields
    * referenced by the filter.
    */
-  private Map<RexNode, ImmutableBitSet> fieldsRefByJoinFilter;
+  private final Map<RexNode, ImmutableBitSet> fieldsRefByJoinFilter = new HashMap<>();
 
   /**
    * Starting RexInputRef index corresponding to each join factor.
@@ -131,12 +138,12 @@ public class LoptMultiJoin {
    * Bitmap indicating which factors each factor references in join filters
    * that correspond to comparisons.
    */
-  ImmutableBitSet [] factorsRefByFactor;
+  ImmutableBitSet @MonotonicNonNull [] factorsRefByFactor;
 
   /**
    * Weights of each factor combination.
    */
-  int [][] factorWeights;
+  int @MonotonicNonNull [][] factorWeights;
 
   /**
    * Type factory.
@@ -207,12 +214,13 @@ public class LoptMultiJoin {
     List<RexNode> outerJoinConds = this.multiJoin.getOuterJoinConditions();
     outerJoinFactors = new ImmutableBitSet[nJoinFactors];
     for (int i = 0; i < nJoinFactors; i++) {
-      if (outerJoinConds.get(i) != null) {
+      RexNode outerJoinCond = outerJoinConds.get(i);
+      if (outerJoinCond != null) {
         // set a bitmap containing the factors referenced in the
         // ON condition of the outer join; mask off the factor
         // corresponding to the factor itself
         ImmutableBitSet dependentFactors =
-            getJoinFilterFactorBitmap(outerJoinConds.get(i), false);
+            getJoinFilterFactorBitmap(outerJoinCond, false);
         dependentFactors = dependentFactors.clear(i);
         outerJoinFactors[i] = dependentFactors;
       }
@@ -285,7 +293,9 @@ public class LoptMultiJoin {
    * @param joinFilter Filter for which information will be returned
    */
   public ImmutableBitSet getFactorsRefByJoinFilter(RexNode joinFilter) {
-    return factorsRefByJoinFilter.get(joinFilter);
+    return requireNonNull(
+        factorsRefByJoinFilter.get(joinFilter),
+        () -> "joinFilter is not found in factorsRefByJoinFilter: " + joinFilter);
   }
 
   /**
@@ -301,7 +311,9 @@ public class LoptMultiJoin {
    * @param joinFilter the filter for which information will be returned
    */
   public ImmutableBitSet getFieldsRefByJoinFilter(RexNode joinFilter) {
-    return fieldsRefByJoinFilter.get(joinFilter);
+    return requireNonNull(
+        fieldsRefByJoinFilter.get(joinFilter),
+        () -> "joinFilter is not found in fieldsRefByJoinFilter: " + joinFilter);
   }
 
   /**
@@ -318,7 +330,7 @@ public class LoptMultiJoin {
    * @param factIdx Factor for which information will be returned
    */
   public ImmutableBitSet getFactorsRefByFactor(int factIdx) {
-    return factorsRefByFactor[factIdx];
+    return requireNonNull(factorsRefByFactor, "factorsRefByFactor")[factIdx];
   }
 
   /**
@@ -376,7 +388,9 @@ public class LoptMultiJoin {
    * @param factIdx Factor for which information will be returned
    */
   public int [] getJoinFieldRefCounts(int factIdx) {
-    return joinFieldRefCountsMap.get(factIdx);
+    return requireNonNull(
+        joinFieldRefCountsMap.get(factIdx),
+        () -> "no entry in joinFieldRefCountsMap found for " + factIdx);
   }
 
   /**
@@ -431,7 +445,9 @@ public class LoptMultiJoin {
    *
    * @return the bitmap containing the factor references
    */
+  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
   ImmutableBitSet getJoinFilterFactorBitmap(
+      @UnderInitialization LoptMultiJoin this,
       RexNode joinFilter,
       boolean setFields) {
     ImmutableBitSet fieldRefBitmap = fieldBitmap(joinFilter);
@@ -442,7 +458,7 @@ public class LoptMultiJoin {
     return factorBitmap(fieldRefBitmap);
   }
 
-  private ImmutableBitSet fieldBitmap(RexNode joinFilter) {
+  private static ImmutableBitSet fieldBitmap(RexNode joinFilter) {
     final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder();
     joinFilter.accept(inputFinder);
     return inputFinder.build();
@@ -452,9 +468,9 @@ public class LoptMultiJoin {
    * Sets bitmaps indicating which factors and fields each join filter
    * references.
    */
-  private void setJoinFilterRefs() {
-    fieldsRefByJoinFilter = new HashMap<>();
-    factorsRefByJoinFilter = new HashMap<>();
+  @RequiresNonNull({"allJoinFilters", "joinStart", "nFieldsInJoinFactor"})
+  private void setJoinFilterRefs(
+      @UnderInitialization LoptMultiJoin this) {
     ListIterator<RexNode> filterIter = allJoinFilters.listIterator();
     while (filterIter.hasNext()) {
       RexNode joinFilter = filterIter.next();
@@ -478,7 +494,10 @@ public class LoptMultiJoin {
    * @return bitmap representing factors referenced that will
    * be set by this method
    */
-  private ImmutableBitSet factorBitmap(ImmutableBitSet fieldRefBitmap) {
+  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
+  private ImmutableBitSet factorBitmap(
+      @UnknownInitialization LoptMultiJoin this,
+      ImmutableBitSet fieldRefBitmap) {
     ImmutableBitSet.Builder factorRefBitmap = ImmutableBitSet.builder();
     for (int field : fieldRefBitmap) {
       int factor = findRef(field);
@@ -494,7 +513,10 @@ public class LoptMultiJoin {
    *
    * @return index corresponding to join factor
    */
-  public int findRef(int rexInputRef) {
+  @RequiresNonNull({"joinStart", "nFieldsInJoinFactor"})
+  public int findRef(
+      @UnknownInitialization LoptMultiJoin this,
+      int rexInputRef) {
     for (int i = 0; i < nJoinFactors; i++) {
       if ((rexInputRef >= joinStart[i])
           && (rexInputRef < (joinStart[i] + nFieldsInJoinFactor[i]))) {
@@ -531,7 +553,7 @@ public class LoptMultiJoin {
       // OR the factors referenced in this join filter into the
       // bitmaps corresponding to each of the factors; however,
       // exclude the bit corresponding to the factor itself
-      for (int factor : factorRefs) {
+      for (int factor : requireNonNull(factorRefs, "factorRefs")) {
         factorsRefByFactor[factor] =
             factorsRefByFactor[factor]
                 .rebuild()
@@ -588,6 +610,7 @@ public class LoptMultiJoin {
    * @param leftFactor index of left factor
    * @param rightFactor index of right factor
    */
+  @RequiresNonNull("factorWeights")
   private void setFactorWeight(int weight, int leftFactor, int rightFactor) {
     if (factorWeights[leftFactor][rightFactor] < weight) {
       factorWeights[leftFactor][rightFactor] = weight;
@@ -783,7 +806,9 @@ public class LoptMultiJoin {
    * such a column mapping exists; otherwise, null is returned
    */
   public Integer getRightColumnMapping(int rightFactor, int rightOffset) {
-    RemovableSelfJoin selfJoin = removableSelfJoinPairs.get(rightFactor);
+    RemovableSelfJoin selfJoin = requireNonNull(removableSelfJoinPairs.get(rightFactor),
+        () -> "removableSelfJoinPairs.get(rightFactor) is null for " + rightFactor
+            + ", map=" + removableSelfJoinPairs);
     assert selfJoin.rightFactor == rightFactor;
     return selfJoin.columnMapping.get(rightOffset);
   }

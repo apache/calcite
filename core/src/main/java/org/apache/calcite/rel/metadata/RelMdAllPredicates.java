@@ -99,7 +99,11 @@ public class RelMdAllPredicates
 
   public RelOptPredicateList getAllPredicates(RelSubset rel,
       RelMetadataQuery mq) {
-    return mq.getAllPredicates(Util.first(rel.getBest(), rel.getOriginal()));
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getAllPredicates(bestOrOriginal);
   }
 
   /**
@@ -203,6 +207,9 @@ public class RelMdAllPredicates
       }
       // Gather table references
       final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
+      if (tableRefs == null) {
+        return null;
+      }
       if (input == join.getLeft()) {
         // Left input references remain unchanged
         for (RelTableRef leftRef : tableRefs) {
@@ -276,7 +283,8 @@ public class RelMdAllPredicates
   /**
    * Extracts predicates for an TableModify.
    */
-  public RelOptPredicateList getAllPredicates(TableModify tableModify, RelMetadataQuery mq) {
+  public RelOptPredicateList getAllPredicates(TableModify tableModify,
+      RelMetadataQuery mq) {
     return mq.getAllPredicates(tableModify.getInput());
   }
 
@@ -297,6 +305,9 @@ public class RelMdAllPredicates
       }
       // Gather table references
       final Set<RelTableRef> tableRefs = mq.getTableReferences(input);
+      if (tableRefs == null) {
+        return null;
+      }
       if (i == 0) {
         // Left input references remain unchanged
         for (RelTableRef leftRef : tableRefs) {

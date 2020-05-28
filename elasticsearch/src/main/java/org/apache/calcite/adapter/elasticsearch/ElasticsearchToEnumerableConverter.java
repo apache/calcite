@@ -54,7 +54,8 @@ public class ElasticsearchToEnumerableConverter extends ConverterImpl implements
     return new ElasticsearchToEnumerableConverter(getCluster(), traitSet, sole(inputs));
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(.1);
   }
 

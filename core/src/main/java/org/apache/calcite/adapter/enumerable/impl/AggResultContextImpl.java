@@ -25,6 +25,8 @@ import org.apache.calcite.rel.core.AggregateCall;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of
  * {@link org.apache.calcite.adapter.enumerable.AggResultContext}.
@@ -48,9 +50,9 @@ public class AggResultContextImpl extends AggResetContextImpl
       List<Expression> accumulator, ParameterExpression key,
       PhysType keyPhysType) {
     super(block, accumulator);
-    this.call = call;
+    this.call = call; // null for AggAddContextImpl
     this.key = key;
-    this.keyPhysType = keyPhysType;
+    this.keyPhysType = keyPhysType; // null for AggAddContextImpl
   }
 
   @Override public Expression key() {
@@ -58,10 +60,11 @@ public class AggResultContextImpl extends AggResetContextImpl
   }
 
   @Override public Expression keyField(int i) {
-    return keyPhysType.fieldReference(key, i);
+    return requireNonNull(keyPhysType, "keyPhysType")
+        .fieldReference(requireNonNull(key, "key"), i);
   }
 
   @Override public AggregateCall call() {
-    return call;
+    return requireNonNull(call, "call");
   }
 }

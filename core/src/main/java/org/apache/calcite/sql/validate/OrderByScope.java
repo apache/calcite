@@ -25,6 +25,7 @@ import org.apache.calcite.sql.SqlSelect;
 
 import java.util.List;
 
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getSelectList;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -63,7 +64,7 @@ public class OrderByScope extends DelegatingScope {
   }
 
   @Override public void findAllColumnNames(List<SqlMoniker> result) {
-    final SqlValidatorNamespace ns = validator.getNamespace(select);
+    final SqlValidatorNamespace ns = validator.getNamespaceOrThrow(select);
     addColumnNames(ns, result);
   }
 
@@ -73,7 +74,7 @@ public class OrderByScope extends DelegatingScope {
         && validator.config().sqlConformance().isSortByAlias()) {
       final String name = identifier.names.get(0);
       final SqlValidatorNamespace selectNs =
-          validator.getNamespace(select);
+          validator.getNamespaceOrThrow(select);
       final RelDataType rowType = selectNs.getRowType();
 
       final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
@@ -97,7 +98,7 @@ public class OrderByScope extends DelegatingScope {
    * {@code t.c as name}) alias. */
   private int aliasCount(SqlNameMatcher nameMatcher, String name) {
     int n = 0;
-    for (SqlNode s : select.getSelectList()) {
+    for (SqlNode s : getSelectList(select)) {
       final String alias = SqlValidatorUtil.getAlias(s, -1);
       if (alias != null && nameMatcher.matches(alias, name)) {
         n++;
@@ -107,7 +108,7 @@ public class OrderByScope extends DelegatingScope {
   }
 
   @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
-    final SqlValidatorNamespace selectNs = validator.getNamespace(select);
+    final SqlValidatorNamespace selectNs = validator.getNamespaceOrThrow(select);
     final RelDataType rowType = selectNs.getRowType();
     final SqlNameMatcher nameMatcher = validator.catalogReader.nameMatcher();
     final RelDataTypeField field = nameMatcher.field(rowType, name);

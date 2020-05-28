@@ -49,6 +49,7 @@ public class ChainedRelMetadataProvider implements RelMetadataProvider {
   /**
    * Creates a chain.
    */
+  @SuppressWarnings("argument.type.incompatible")
   protected ChainedRelMetadataProvider(
       ImmutableList<RelMetadataProvider> providers) {
     this.providers = providers;

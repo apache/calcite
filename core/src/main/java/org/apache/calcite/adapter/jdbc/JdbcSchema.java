@@ -58,10 +58,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import javax.sql.DataSource;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link Schema} that is backed by a JDBC data source.
@@ -102,8 +103,8 @@ public class JdbcSchema implements Schema {
   private JdbcSchema(DataSource dataSource, SqlDialect dialect,
       JdbcConvention convention, String catalog, String schema,
       ImmutableMap<String, JdbcTable> tableMap) {
-    this.dataSource = Objects.requireNonNull(dataSource);
-    this.dialect = Objects.requireNonNull(dialect);
+    this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.dialect = requireNonNull(dialect, "dialect");
     this.convention = convention;
     this.catalog = catalog;
     this.schema = schema;
@@ -155,7 +156,7 @@ public class JdbcSchema implements Schema {
         dataSource =
             AvaticaUtils.instantiatePlugin(DataSource.class, dataSourceName);
       } else {
-        final String jdbcUrl = (String) operand.get("jdbcUrl");
+        final String jdbcUrl = (String) requireNonNull(operand.get("jdbcUrl"), "jdbcUrl");
         final String jdbcDriver = (String) operand.get("jdbcDriver");
         final String jdbcUser = (String) operand.get("jdbcUser");
         final String jdbcPassword = (String) operand.get("jdbcPassword");
@@ -223,6 +224,7 @@ public class JdbcSchema implements Schema {
   }
 
   @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+    requireNonNull(parentSchema, "parentSchema must not be null for JdbcSchema");
     return Schemas.subSchemaExpression(parentSchema, name, JdbcSchema.class);
   }
 
@@ -248,8 +250,9 @@ public class JdbcSchema implements Schema {
       final String catalog = catalogSchema.left;
       final String schema = catalogSchema.right;
       final Iterable<MetaImpl.MetaTable> tableDefs;
-      if (THREAD_METADATA.get() != null) {
-        tableDefs = THREAD_METADATA.get().apply(catalog, schema);
+      Foo threadMetadata = THREAD_METADATA.get();
+      if (threadMetadata != null) {
+        tableDefs = threadMetadata.apply(catalog, schema);
       } else {
         final List<MetaImpl.MetaTable> tableDefList = new ArrayList<>();
         final DatabaseMetaData metaData = connection.getMetaData();
@@ -377,7 +380,7 @@ public class JdbcSchema implements Schema {
         new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
     final RelDataTypeFactory.Builder fieldInfo = typeFactory.builder();
     while (resultSet.next()) {
-      final String columnName = resultSet.getString(4);
+      final String columnName = requireNonNull(resultSet.getString(4), "columnName");
       final int dataType = resultSet.getInt(5);
       final String typeString = resultSet.getString(6);
       final int precision;
@@ -488,7 +491,8 @@ public class JdbcSchema implements Schema {
   }
 
   @Override public Set<String> getTypeNames() {
-    return getTypes().keySet();
+    //noinspection RedundantCast
+    return (Set<String>) getTypes().keySet();
   }
 
   @Override public Schema getSubSchema(String name) {
@@ -501,7 +505,9 @@ public class JdbcSchema implements Schema {
   }
 
   private static void close(
-      Connection connection, Statement statement, ResultSet resultSet) {
+      Connection connection,
+      Statement statement,
+      ResultSet resultSet) {
     if (resultSet != null) {
       try {
         resultSet.close();

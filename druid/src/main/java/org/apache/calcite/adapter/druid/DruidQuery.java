@@ -73,6 +73,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.joda.time.Interval;
 
 import java.io.IOException;
@@ -86,8 +87,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of a Druid data set.
@@ -630,7 +629,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   @Override public Enumerable<Object[]> bind(DataContext dataContext) {
-    return table.unwrap(ScannableTable.class).scan(dataContext);
+    return table.unwrapOrThrow(ScannableTable.class).scan(dataContext);
   }
 
   @Override public Node implement(InterpreterImplementor implementor) {
@@ -717,7 +716,8 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
   }
 
   protected CalciteConnectionConfig getConnectionConfig() {
-    return getCluster().getPlanner().getContext().unwrap(CalciteConnectionConfig.class);
+    return getCluster().getPlanner().getContext()
+        .unwrapOrThrow(CalciteConnectionConfig.class);
   }
 
   /**
@@ -729,7 +729,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @return DruidJson Filter or null if cannot translate one of filters
    */
   @Nullable
-  private DruidJsonFilter computeFilter(@Nullable Filter filterRel) {
+  private DruidJsonFilter computeFilter(Filter filterRel) {
     if (filterRel == null) {
       return null;
     }
@@ -758,7 +758,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static Pair<List<String>, List<VirtualColumn>> computeProjectAsScan(
-      @Nullable Project projectRel, RelDataType inputRowType, DruidQuery druidQuery) {
+      Project projectRel, RelDataType inputRowType, DruidQuery druidQuery) {
     if (projectRel == null) {
       return null;
     }
@@ -824,7 +824,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static Pair<List<DimensionSpec>, List<VirtualColumn>> computeProjectGroupSet(
-      @Nullable Project projectNode, ImmutableBitSet groupSet,
+      Project projectNode, ImmutableBitSet groupSet,
       RelDataType inputRowType, DruidQuery druidQuery) {
     final List<DimensionSpec> dimensionSpecList = new ArrayList<>();
     final List<VirtualColumn> virtualColumnList = new ArrayList<>();
@@ -910,7 +910,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    */
   @Nullable
   protected static List<JsonAggregation> computeDruidJsonAgg(List<AggregateCall> aggCalls,
-      List<String> aggNames, @Nullable Project project, DruidQuery druidQuery) {
+      List<String> aggNames, Project project, DruidQuery druidQuery) {
     final List<JsonAggregation> aggregations = new ArrayList<>();
     for (Pair<AggregateCall, String> agg : Pair.zip(aggCalls, aggNames)) {
       final String fieldName;
@@ -1135,7 +1135,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
    * @param numericCollationIndexes flag of to determine sort comparator
    * @param queryOutputFieldNames query output fields
    */
-  private @Nonnull JsonLimit computeSort(@Nullable Integer fetch,
+  private JsonLimit computeSort(Integer fetch,
       List<Integer> collationIndexes, List<Direction> collationDirections,
       ImmutableBitSet numericCollationIndexes,
       List<String> queryOutputFieldNames) {
@@ -1350,7 +1350,7 @@ public class DruidQuery extends AbstractRelNode implements BindableRel {
       this.fetchLimit = fetchLimit;
     }
 
-    @Nonnull public String toQuery() {
+    public String toQuery() {
       final StringWriter sw = new StringWriter();
       try {
         final JsonFactory factory = new JsonFactory();

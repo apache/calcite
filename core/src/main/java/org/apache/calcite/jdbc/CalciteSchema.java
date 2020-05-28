@@ -73,9 +73,13 @@ public abstract class CalciteSchema {
   private List<? extends List<String>> path;
 
   protected CalciteSchema(CalciteSchema parent, Schema schema,
-      String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
-      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
+      String name,
+      NameMap<CalciteSchema> subSchemaMap,
+      NameMap<TableEntry> tableMap,
+      NameMap<LatticeEntry> latticeMap,
+      NameMap<TypeEntry> typeMap,
+      NameMultimap<FunctionEntry> functionMap,
+      NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
     this.parent = parent;
@@ -686,7 +690,8 @@ public abstract class CalciteSchema {
     }
 
     @Override public Set<String> getSubSchemaNames() {
-      return CalciteSchema.this.getSubSchemaMap().keySet();
+      //noinspection RedundantCast
+      return (Set<String>) CalciteSchema.this.getSubSchemaMap().keySet();
     }
 
     @Override public SchemaPlus add(String name, Schema schema) {
@@ -694,7 +699,7 @@ public abstract class CalciteSchema {
       return calciteSchema.plus();
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> T unwrap(Class<T> clazz) {
       if (clazz.isInstance(this)) {
         return clazz.cast(this);
       }

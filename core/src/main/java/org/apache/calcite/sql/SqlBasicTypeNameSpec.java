@@ -26,7 +26,6 @@ import org.apache.calcite.util.Litmus;
 
 import java.nio.charset.Charset;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * A sql type name specification of basic sql type.
@@ -92,7 +91,7 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
       SqlTypeName typeName,
       int precision,
       int scale,
-      @Nullable String charSetName,
+      String charSetName,
       SqlParserPos pos) {
     super(new SqlIdentifier(typeName.name(), pos), pos);
     this.sqlTypeName = typeName;
@@ -187,9 +186,6 @@ public class SqlBasicTypeNameSpec extends SqlTypeNameSpec {
 
   @Override public RelDataType deriveType(SqlValidator validator) {
     final RelDataTypeFactory typeFactory = validator.getTypeFactory();
-    if (sqlTypeName == null) {
-      return null;
-    }
     RelDataType type;
     // NOTE jvs 15-Jan-2009:  earlier validation is supposed to
     // have caught these, which is why it's OK for them

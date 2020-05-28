@@ -83,6 +83,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Rules and relational operators for
  * {@link JdbcConvention}
@@ -115,7 +117,8 @@ public class JdbcRules {
   static final RelFactories.JoinFactory JOIN_FACTORY =
       (left, right, hints, condition, variablesSet, joinType, semiJoinDone) -> {
         final RelOptCluster cluster = left.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(left.getConvention());
+        final RelTraitSet traitSet = cluster.traitSetOf(
+            requireNonNull(left.getConvention(), "left.getConvention()"));
         try {
           return new JdbcJoin(cluster, traitSet, left, right, condition,
               variablesSet, joinType);
@@ -147,7 +150,8 @@ public class JdbcRules {
   public static final RelFactories.AggregateFactory AGGREGATE_FACTORY =
       (input, hints, groupSet, groupSets, aggCalls) -> {
         final RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
+        final RelTraitSet traitSet = cluster.traitSetOf(
+            requireNonNull(input.getConvention(), "input.getConvention()"));
         try {
           return new JdbcAggregate(cluster, traitSet, input, groupSet,
               groupSets, aggCalls);
@@ -167,7 +171,8 @@ public class JdbcRules {
       (kind, inputs, all) -> {
         RelNode input = inputs.get(0);
         RelOptCluster cluster = input.getCluster();
-        final RelTraitSet traitSet = cluster.traitSetOf(input.getConvention());
+        final RelTraitSet traitSet = cluster.traitSetOf(
+            requireNonNull(input.getConvention(), "input.getConvention()"));
         switch (kind) {
         case UNION:
           return new JdbcUnion(cluster, traitSet, inputs, all);
@@ -572,8 +577,11 @@ public class JdbcRules {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq)
-          .multiplyBy(JdbcConvention.COST_MULTIPLIER);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (cost == null) {
+        return null;
+      }
+      return cost.multiplyBy(JdbcConvention.COST_MULTIPLIER);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -808,7 +816,11 @@ public class JdbcRules {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq).multiplyBy(0.9);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (cost == null) {
+        return null;
+      }
+      return cost.multiplyBy(0.9);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -860,7 +872,11 @@ public class JdbcRules {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq).multiplyBy(.1);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (cost == null) {
+        return null;
+      }
+      return cost.multiplyBy(.1);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {
@@ -1010,8 +1026,6 @@ public class JdbcRules {
 
   /** Table-modification operator implemented in JDBC convention. */
   public static class JdbcTableModify extends TableModify implements JdbcRel {
-    private final Expression expression;
-
     public JdbcTableModify(RelOptCluster cluster,
         RelTraitSet traitSet,
         RelOptTable table,
@@ -1030,7 +1044,7 @@ public class JdbcRules {
       if (modifiableTable == null) {
         throw new AssertionError(); // TODO: user error in validator
       }
-      this.expression = table.getExpression(Queryable.class);
+      Expression expression = table.getExpression(Queryable.class);
       if (expression == null) {
         throw new AssertionError(); // TODO: user error in validator
       }
@@ -1038,7 +1052,11 @@ public class JdbcRules {
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq).multiplyBy(.1);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (cost == null) {
+        return null;
+      }
+      return cost.multiplyBy(.1);
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
@@ -1084,7 +1102,7 @@ public class JdbcRules {
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
-      return new JdbcValues(getCluster(), rowType, tuples, traitSet);
+      return new JdbcValues(getCluster(), getRowType(), tuples, traitSet);
     }
 
     @Override public JdbcImplementor.Result implement(JdbcImplementor implementor) {

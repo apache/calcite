@@ -131,7 +131,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           false, ImmutableIntList.of(), -1, RelCollations.EMPTY,
           typeFactory.createSqlType(SqlTypeName.BIGINT), null);
@@ -228,7 +229,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return null; // no aggregate function required on other side
     }
 
@@ -272,7 +274,8 @@ public interface SqlSplittableAggFunction {
       return aggregateCall.transform(mapping);
     }
 
-    @Override public AggregateCall other(RelDataTypeFactory typeFactory, AggregateCall e) {
+    @Override public AggregateCall other(RelDataTypeFactory typeFactory,
+        AggregateCall e) {
       return AggregateCall.create(SqlStdOperatorTable.COUNT, false, false,
           false,
           ImmutableIntList.of(), -1,

@@ -31,8 +31,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * An expression formed by a call to an operator with zero or more expressions
@@ -75,8 +75,8 @@ public class RexCall extends RexNode {
       RelDataType type,
       SqlOperator op,
       List<? extends RexNode> operands) {
-    this.type = Objects.requireNonNull(type, "type");
-    this.op = Objects.requireNonNull(op, "operator");
+    this.type = requireNonNull(type, "type");
+    this.op = requireNonNull(op, "operator");
     this.operands = ImmutableList.copyOf(operands);
     this.nodeCount = RexUtil.nodeCount(1, this.operands);
     assert op.getKind() != null : op;
@@ -121,12 +121,12 @@ public class RexCall extends RexNode {
       if (SqlKind.SIMPLE_BINARY_OPS.contains(getKind())) {
         RexNode otherArg = operands.get(1 - i);
         if ((!(otherArg instanceof RexLiteral)
-            || ((RexLiteral) otherArg).digestIncludesType() == RexDigestIncludeType.NO_TYPE)
+            || digestSkipsType((RexLiteral) otherArg))
             && SqlTypeUtil.equalSansNullability(operand.getType(), otherArg.getType())) {
           includeType = RexDigestIncludeType.NO_TYPE;
         }
       }
-      operandDigests.add(((RexLiteral) operand).computeDigest(includeType));
+      operandDigests.add(computeDigest((RexLiteral) operand, includeType));
     }
     int totalLength = (operandDigests.size() - 1) * 2; // commas
     for (String s : operandDigests) {
@@ -142,7 +142,19 @@ public class RexCall extends RexNode {
     }
   }
 
-  protected @Nonnull String computeDigest(boolean withType) {
+  private static boolean digestSkipsType(RexLiteral literal) {
+    // This seems trivial, however, this method
+    // workarounds https://github.com/typetools/checker-framework/issues/3631
+    return literal.digestIncludesType() == RexDigestIncludeType.NO_TYPE;
+  }
+
+  private static String computeDigest(RexLiteral literal, RexDigestIncludeType includeType) {
+    // This seems trivial, however, this method
+    // workarounds https://github.com/typetools/checker-framework/issues/3631
+    return literal.computeDigest(includeType);
+  }
+
+  protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     if ((operands.size() == 0)
         && (op.getSyntax() == SqlSyntax.FUNCTION_ID)) {
@@ -163,7 +175,7 @@ public class RexCall extends RexNode {
     return sb.toString();
   }
 
-  @Override public final @Nonnull String toString() {
+  @Override public final String toString() {
     return computeDigest(digestWithType());
   }
 
@@ -199,7 +211,7 @@ public class RexCall extends RexNode {
       return operands.get(0).isAlwaysTrue();
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
-      return sarg.isAll()
+      return requireNonNull(sarg, "sarg").isAll()
           && (sarg.containsNull || !operands.get(0).getType().isNullable());
     default:
       return false;
@@ -220,7 +232,7 @@ public class RexCall extends RexNode {
       return operands.get(0).isAlwaysFalse();
     case SEARCH:
       final Sarg sarg = ((RexLiteral) operands.get(1)).getValueAs(Sarg.class);
-      return sarg.isNone()
+      return requireNonNull(sarg, "sarg").isNone()
           && (!sarg.containsNull || !operands.get(0).getType().isNullable());
     default:
       return false;

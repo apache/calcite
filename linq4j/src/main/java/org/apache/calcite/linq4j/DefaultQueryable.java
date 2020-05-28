@@ -162,7 +162,8 @@ abstract class DefaultQueryable<T> extends DefaultEnumerable<T>
 
   // End disambiguate
 
-  @Override public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
+  @Override public T aggregate(
+      FunctionExpression<Function2<T, T, T>> selector) {
     return factory.aggregate(getThis(), selector);
   }
 

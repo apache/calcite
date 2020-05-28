@@ -85,8 +85,7 @@ public class JsonBuilder {
       //noinspection unchecked
       appendMap(buf, indent, (Map) o);
     } else if (o instanceof List) {
-      //noinspection unchecked
-      appendList(buf, indent, (List) o);
+      appendList(buf, indent, (List<?>) o);
     } else if (o instanceof String) {
       buf.append('"')
           .append(
@@ -126,7 +125,7 @@ public class JsonBuilder {
   }
 
   private void appendList(
-      StringBuilder buf, int indent, List<Object> list) {
+      StringBuilder buf, int indent, List<?> list) {
     if (list.isEmpty()) {
       buf.append("[]");
       return;

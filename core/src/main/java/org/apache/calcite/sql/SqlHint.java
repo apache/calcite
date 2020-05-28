@@ -17,7 +17,6 @@
 package org.apache.calcite.sql;
 
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlHint</code> is a node of a parse tree which represents
@@ -72,8 +73,11 @@ public class SqlHint extends SqlCall {
             SqlLiteral functionQualifier,
             SqlParserPos pos,
             SqlNode... operands) {
-          return new SqlHint(pos, (SqlIdentifier) operands[0], (SqlNodeList) operands[1],
-              ((SqlLiteral) operands[2]).symbolValue(HintOptionFormat.class));
+          return new SqlHint(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "name"),
+              (SqlNodeList) requireNonNull(operands[1], "options"),
+              ((SqlLiteral) requireNonNull(operands[2], "optionFormat"))
+                  .getValueAs(HintOptionFormat.class));
         }
       };
 
@@ -124,10 +128,8 @@ public class SqlHint extends SqlCall {
       return options.stream()
           .map(node -> {
             SqlLiteral literal = (SqlLiteral) node;
-            Comparable<?> comparable = SqlLiteral.value(literal);
-            return comparable instanceof NlsString
-                ? ((NlsString) comparable).getValue()
-                : comparable.toString();
+            return requireNonNull(literal.toValue(),
+                () -> "null hint literal in " + options);
           })
           .collect(Util.toImmutableList());
     } else {

@@ -62,7 +62,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
   @Override public SqlNode visit(final SqlCall call) {
     // Handler creates a new copy of 'call' only if one or more operands
     // change.
-    ArgHandler<SqlNode> argHandler = new CallCopyingArgHandler(call, false);
+    CallCopyingArgHandler argHandler = new CallCopyingArgHandler(call, false);
     call.getOperator().acceptCall(this, call, false, argHandler);
     return argHandler.result();
   }
@@ -105,7 +105,7 @@ public class SqlShuttle extends SqlBasicVisitor<SqlNode> {
     public CallCopyingArgHandler(SqlCall call, boolean alwaysCopy) {
       this.call = call;
       this.update = false;
-      final List<SqlNode> operands = call.getOperandList();
+      final List<SqlNode> operands = (List<SqlNode>) call.getOperandList();
       this.clonedOperands = operands.toArray(new SqlNode[0]);
       this.alwaysCopy = alwaysCopy;
     }

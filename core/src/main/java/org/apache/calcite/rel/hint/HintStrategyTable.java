@@ -30,9 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A collection of {@link HintStrategy}s.
@@ -87,7 +88,7 @@ public class HintStrategyTable {
 
   private boolean canApply(RelHint hint, RelNode rel) {
     final Key key = Key.of(hint.hintName);
-    assert this.strategies.containsKey(key);
+    assert this.strategies.containsKey(key) : "hint " + hint.hintName + " must be present";
     return this.strategies.get(key).predicate.apply(hint, rel);
   }
 
@@ -107,7 +108,7 @@ public class HintStrategyTable {
       return false;
     }
     final HintStrategy strategy = strategies.get(key);
-    if (strategy.hintOptionChecker != null) {
+    if (strategy != null && strategy.hintOptionChecker != null) {
       return strategy.hintOptionChecker.checkOptions(hint, this.errorHandler);
     }
     return true;
@@ -123,7 +124,7 @@ public class HintStrategyTable {
 
     for (RelHint hint : hints) {
       final Key key = Key.of(hint.hintName);
-      assert this.strategies.containsKey(key);
+      assert this.strategies.containsKey(key) : "hint " + hint.hintName + " must be present";
       final HintStrategy strategy = strategies.get(key);
       if (strategy.excludedRules.contains(rule)) {
         return isDesiredConversionPossible(strategy.converterRules, hintable);
@@ -192,12 +193,12 @@ public class HintStrategyTable {
 
     public Builder hintStrategy(String hintName, HintPredicate strategy) {
       this.strategies.put(Key.of(hintName),
-          HintStrategy.builder(Objects.requireNonNull(strategy)).build());
+          HintStrategy.builder(requireNonNull(strategy, "HintPredicate")).build());
       return this;
     }
 
     public Builder hintStrategy(String hintName, HintStrategy entry) {
-      this.strategies.put(Key.of(hintName), Objects.requireNonNull(entry));
+      this.strategies.put(Key.of(hintName), requireNonNull(entry, "HintStrategy"));
       return this;
     }
 
@@ -228,7 +229,7 @@ public class HintStrategyTable {
     public static final HintErrorLogger INSTANCE = new HintErrorLogger();
 
     @Override public boolean fail(String message, Object... args) {
-      LOGGER.warn(message, args);
+      LOGGER.warn(requireNonNull(message, "message"), args);
       return false;
     }
 
@@ -236,7 +237,8 @@ public class HintStrategyTable {
       return true;
     }
 
-    @Override public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message,
+        Object... args) {
       if (condition) {
         return succeed();
       } else {

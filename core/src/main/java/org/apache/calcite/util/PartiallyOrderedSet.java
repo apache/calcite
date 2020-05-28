@@ -31,9 +31,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Partially-ordered set.
@@ -124,6 +127,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
    * @param ordering Ordering relation
    * @param collection Initial contents of partially-ordered set
    */
+  @SuppressWarnings("method.invocation.invalid")
   public PartiallyOrderedSet(Ordering<E> ordering, Collection<E> collection) {
     this(ordering, new HashMap<>(collection.size() * 3 / 2), null, null);
     addAll(collection);
@@ -185,7 +189,6 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
   }
 
   @Override public boolean remove(Object o) {
-    @SuppressWarnings("SuspiciousMethodCalls")
     final Node<E> node = map.remove(o);
     if (node == null) {
       return false;
@@ -478,14 +481,14 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
           }
         }
         if (lt12 && !lt21) {
-          if (!nodeAncestors.get(node1).contains(node2.e)) {
+          if (!get(nodeAncestors, node1, "nodeAncestors").contains(node2.e)) {
             assert !fail
                 : node1.e + " is less than " + node2.e + " but "
                 + node2.e + " is not in the ancestor set of "
                 + node1.e;
             return false;
           }
-          if (!nodeDescendants.get(node2).contains(node1.e)) {
+          if (!get(nodeDescendants, node2, "nodeDescendants").contains(node1.e)) {
             assert !fail
                 : node1.e + " is less than " + node2.e + " but "
                 + node1.e + " is not in the descendant set of "
@@ -494,14 +497,14 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
           }
         }
         if (lt21 && !lt12) {
-          if (!nodeAncestors.get(node2).contains(node1.e)) {
+          if (!get(nodeAncestors, node2, "nodeAncestors").contains(node1.e)) {
             assert !fail
                 : node2.e + " is less than " + node1.e + " but "
                 + node1.e + " is not in the ancestor set of "
                 + node2.e;
             return false;
           }
-          if (!nodeDescendants.get(node1).contains(node2.e)) {
+          if (!get(nodeDescendants, node1, "nodeDescendants").contains(node2.e)) {
             assert !fail
                 : node2.e + " is less than " + node1.e + " but "
                 + node2.e + " is not in the descendant set of "
@@ -512,6 +515,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       }
     }
     return true;
+  }
+
+  private static <E> Set<E> get(Map<Node<E>, Set<E>> map, Node<E> node, String label) {
+    return requireNonNull(map.get(node),
+        () -> label + " for node " + node);
   }
 
   private void distanceRecurse(
@@ -554,9 +562,11 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
       buf.append(children);
       buf.append("\n");
 
-      for (E child : children) {
-        if (seen.add(child)) {
-          unseen.add(child);
+      if (children != null) {
+        for (E child : children) {
+          if (seen.add(child)) {
+            unseen.add(child);
+          }
         }
       }
     }
@@ -657,7 +667,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
 
   private void closure(Function<E, Iterable<E>> generator, E e, ImmutableList.Builder<E> list,
       Set<E> set) {
-    for (E p : Objects.requireNonNull(generator.apply(e))) {
+    for (E p : requireNonNull(generator.apply(e))) {
       if (set.add(e)) {
         if (map.containsKey(p)) {
           list.add(p);
@@ -807,7 +817,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     }
 
     @Override public String toString() {
-      return e.toString();
+      return String.valueOf(e);
     }
   }
 
@@ -821,7 +831,7 @@ public class PartiallyOrderedSet<E> extends AbstractSet<E> {
     private final String description;
 
     TopBottomNode(boolean top) {
-      super(null);
+      super(castNonNull(null));
       this.description = top ? "top" : "bottom";
     }
 

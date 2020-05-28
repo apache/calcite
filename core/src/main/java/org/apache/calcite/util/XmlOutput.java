@@ -24,6 +24,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Streaming XML output.
@@ -541,7 +544,7 @@ public class XmlOutput {
    * use one of the global mappings pre-defined here.</p>
    */
   static class StringEscaper implements Cloneable {
-    private ArrayList<String> translationVector;
+    private List<String> translationVector;
     private String [] translationTable;
 
     public static final StringEscaper XML_ESCAPER;
@@ -560,6 +563,8 @@ public class XmlOutput {
      */
     public void defineEscape(char from, String to) {
       int i = (int) from;
+      List<String> translationVector = requireNonNull(this.translationVector,
+          "translationVector");
       if (i >= translationVector.size()) {
         // Extend list by adding the requisite number of nulls.
         final int count = i + 1 - translationVector.size();
@@ -572,9 +577,10 @@ public class XmlOutput {
      * Call this before attempting to escape strings; after this,
      * defineEscape may not be called again.
      */
+    @SuppressWarnings("assignment.type.incompatible")
     public void makeImmutable() {
       translationTable =
-          translationVector.toArray(new String[0]);
+          requireNonNull(translationVector, "translationVector").toArray(new String[0]);
       translationVector = null;
     }
 
@@ -590,7 +596,7 @@ public class XmlOutput {
         // codes >= 128 (e.g. Euro sign) are always escaped
         if (c > 127) {
           escape = "&#" + Integer.toString(c) + ";";
-        } else if (c >= translationTable.length) {
+        } else if (c >= requireNonNull(translationTable, "translationTable").length) {
           escape = null;
         } else {
           escape = translationTable[c];
@@ -633,7 +639,8 @@ public class XmlOutput {
     public StringEscaper getMutableClone() {
       StringEscaper clone = clone();
       if (clone.translationVector == null) {
-        clone.translationVector = Lists.newArrayList(clone.translationTable);
+        clone.translationVector = Lists.newArrayList(
+            requireNonNull(clone.translationTable, "clone.translationTable"));
         clone.translationTable = null;
       }
       return clone;

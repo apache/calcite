@@ -36,7 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Utility to dump a rel node plan in dot format.
@@ -74,7 +73,7 @@ public class RelDotWriter extends RelWriterImpl {
   //~ Methods ----------------------------------------------------------------
 
   @Override protected void explain_(RelNode rel,
-                          List<Pair<String, Object>> values) {
+      List<Pair<String, Object>> values) {
     // get inputs
     List<RelNode> inputs = getInputs(rel);
     outArcTable.put(rel, inputs);
@@ -163,19 +162,19 @@ public class RelDotWriter extends RelWriterImpl {
   }
 
   private List<RelNode> getInputs(RelNode parent) {
-    return parent.getInputs().stream().map(child -> {
+    return Util.transform(parent.getInputs(), child -> {
       if (child instanceof HepRelVertex) {
         return ((HepRelVertex) child).getCurrentRel();
       } else if (child instanceof RelSubset) {
         RelSubset subset = (RelSubset) child;
-        return Util.first(subset.getBest(), subset.getOriginal());
+        return subset.getBestOrOriginal();
       } else {
         return child;
       }
-    }).collect(Collectors.toList());
+    });
   }
 
-  private void explainInputs(List<RelNode> inputs) {
+  private void explainInputs(List<? extends RelNode> inputs) {
     for (RelNode input : inputs) {
       if (input == null || nodeLabels.containsKey(input)) {
         continue;
@@ -254,7 +253,8 @@ public class RelDotWriter extends RelWriterImpl {
   }
 
   boolean highlightNode(RelNode node) {
-    return option.nodePredicate() != null && option.nodePredicate().test(node);
+    Predicate<RelNode> predicate = option.nodePredicate();
+    return predicate != null && predicate.test(node);
   }
 
   /**

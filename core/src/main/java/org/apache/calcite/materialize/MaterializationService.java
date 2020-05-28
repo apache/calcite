@@ -50,6 +50,10 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Manages the collection of materialized tables known to the system,
  * and the process by which they become valid and invalid.
@@ -67,10 +71,19 @@ public class MaterializationService {
         // We prefer rolling up from the table with the fewest rows.
         final Table t0 = o0.left.getTable();
         final Table t1 = o1.left.getTable();
-        int c = Double.compare(t0.getStatistic().getRowCount(),
-            t1.getStatistic().getRowCount());
-        if (c != 0) {
-          return c;
+        Double rowCount0 = t0.getStatistic().getRowCount();
+        Double rowCount1 = t1.getStatistic().getRowCount();
+        if (rowCount0 != null && rowCount1 != null) {
+          int c = Double.compare(rowCount0, rowCount1);
+          if (c != 0) {
+            return c;
+          }
+        } else if (rowCount0 == null) {
+          // Unknown is worse than known
+          return 1;
+        } else {
+          // rowCount1 == null => Unknown is worse than known
+          return -1;
         }
         // Tie-break based on table name.
         return o0.left.name.compareTo(o1.left.name);
@@ -111,6 +124,7 @@ public class MaterializationService {
     // If the user says the materialization exists, first try to find a table
     // with the name and if none can be found, lookup a view in the schema
     if (existing) {
+      requireNonNull(suggestedTableName, "suggestedTableName");
       tableEntry = schema.getTable(suggestedTableName, true);
       if (tableEntry == null) {
         tableEntry = schema.getTableBasedOnNullaryFunction(suggestedTableName, true);
@@ -314,7 +328,10 @@ public class MaterializationService {
           && materialization.materializedTable != null) {
         list.add(
             new Prepare.Materialization(materialization.materializedTable,
-                materialization.sql, materialization.viewSchemaPath));
+                materialization.sql,
+                requireNonNull(materialization.viewSchemaPath,
+                    () -> "materialization.viewSchemaPath is null for "
+                        + materialization.materializedTable)));
       }
     }
     return list;
@@ -368,14 +385,14 @@ public class MaterializationService {
       final CalcitePrepare.CalciteSignature<Object> calciteSignature =
           Schemas.prepare(connection, schema, viewSchemaPath, viewSql, map);
       return CloneSchema.createCloneTable(connection.getTypeFactory(),
-          RelDataTypeImpl.proto(calciteSignature.rowType),
+          RelDataTypeImpl.proto(castNonNull(calciteSignature.rowType)),
           calciteSignature.getCollationList(),
           Util.transform(calciteSignature.columns, column -> column.type.rep),
           new AbstractQueryable<Object>() {
             @Override public Enumerator<Object> enumerator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
-                      calciteSignature.rootSchema.plus());
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
               return calciteSignature.enumerable(dataContext).enumerator();
             }
 
@@ -394,7 +411,7 @@ public class MaterializationService {
             @Override public Iterator<Object> iterator() {
               final DataContext dataContext =
                   Schemas.createDataContext(connection,
-                      calciteSignature.rootSchema.plus());
+                      requireNonNull(calciteSignature.rootSchema, "rootSchema").plus());
               return calciteSignature.enumerable(dataContext).iterator();
             }
           });

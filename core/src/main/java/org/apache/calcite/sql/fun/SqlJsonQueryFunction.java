@@ -31,6 +31,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The <code>JSON_QUERY</code> function.
  */
@@ -111,7 +113,8 @@ public class SqlJsonQueryFunction extends SqlFunction {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }

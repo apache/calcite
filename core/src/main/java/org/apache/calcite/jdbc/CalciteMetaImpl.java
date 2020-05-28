@@ -71,8 +71,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Pattern;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helper for implementing the {@code getXxx} methods such as
@@ -162,7 +163,7 @@ public class CalciteMetaImpl extends MetaImpl {
 
   private <E> MetaResultSet createResultSet(Enumerable<E> enumerable,
       Class clazz, String... names) {
-    Objects.requireNonNull(names);
+    requireNonNull(names);
     final List<ColumnMetaData> columns = new ArrayList<>(names.length);
     final List<Field> fields = new ArrayList<>(names.length);
     final List<String> fieldNames = new ArrayList<>(names.length);
@@ -381,8 +382,9 @@ public class CalciteMetaImpl extends MetaImpl {
     final CalciteMetaSchema schema = (CalciteMetaSchema) schema_;
     return Linq4j.asEnumerable(schema.calciteSchema.getTableNames())
         .select((Function1<String, MetaTable>) name -> {
-          final Table table =
-              schema.calciteSchema.getTable(name, true).getTable();
+          final Table table = requireNonNull(
+              schema.calciteSchema.getTable(name, true),
+              () -> "table " + name + " is not found (case sensitive)").getTable();
           return new CalciteMetaTable(table,
               schema.tableCatalog,
               schema.tableSchem,
@@ -599,15 +601,17 @@ public class CalciteMetaImpl extends MetaImpl {
       int fetchMaxRowCount) throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
-    final Signature signature = stmt.getSignature();
+    final Signature signature = requireNonNull(stmt.getSignature(),
+        () -> "stmt.getSignature() is null for " + stmt);
     final Iterator<Object> iterator;
-    if (stmt.getResultSet() == null) {
+    Iterator<Object> stmtResultSet = stmt.getResultSet();
+    if (stmtResultSet == null) {
       final Iterable<Object> iterable =
           _createIterable(h, signature, null, null);
       iterator = iterable.iterator();
       stmt.setResultSet(iterator);
     } else {
-      iterator = stmt.getResultSet();
+      iterator = stmtResultSet;
     }
     final List rows =
         MetaImpl.collect(signature.cursorFactory,
@@ -630,7 +634,8 @@ public class CalciteMetaImpl extends MetaImpl {
       throws NoSuchStatementException {
     final CalciteConnectionImpl calciteConnection = getConnection();
     CalciteServerStatement stmt = calciteConnection.server.getStatement(h);
-    final Signature signature = stmt.getSignature();
+    final Signature signature = requireNonNull(stmt.getSignature(),
+        () -> "stmt.getSignature() is null for " + stmt);
 
     MetaResultSet metaResultSet;
     if (signature.statementType.canUpdate()) {
@@ -691,6 +696,7 @@ public class CalciteMetaImpl extends MetaImpl {
           }
 
           @Override public void execute() throws SQLException {
+            Signature signature = requireNonNull(this.signature, "signature");
             if (signature.statementType.canUpdate()) {
               final Iterable<Object> iterable =
                   _createIterable(h, signature, ImmutableList.of(),
@@ -744,7 +750,7 @@ public class CalciteMetaImpl extends MetaImpl {
         String tableSchem, String tableName) {
       super(tableCat, tableSchem, tableName,
           calciteTable.getJdbcTableType().jdbcName);
-      this.calciteTable = Objects.requireNonNull(calciteTable);
+      this.calciteTable = requireNonNull(calciteTable);
     }
   }
 

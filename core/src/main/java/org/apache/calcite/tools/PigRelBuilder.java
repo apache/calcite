@@ -33,6 +33,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Extension to {@link RelBuilder} for Pig relational operators.
  */
@@ -140,7 +142,7 @@ public class PigRelBuilder extends RelBuilder {
       aggregate(groupKey.e,
           aggregateCall(SqlStdOperatorTable.COLLECT, row).as(getAlias()));
       if (groupKey.i < n - 1) {
-        push(r);
+        push(requireNonNull(r, "r"));
         List<RexNode> predicates = new ArrayList<>();
         for (int key : Util.range(groupCount)) {
           predicates.add(equals(field(2, 0, key), field(2, 1, key)));
@@ -169,7 +171,8 @@ public class PigRelBuilder extends RelBuilder {
     } else {
       RelNode top = peek();
       if (top instanceof TableScan) {
-        return Util.last(top.getTable().getQualifiedName());
+        TableScan scan = (TableScan) top;
+        return Util.last(scan.getTable().getQualifiedName());
       } else {
         return null;
       }

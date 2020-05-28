@@ -87,7 +87,7 @@ public abstract class SqlLibraryOperators {
         }
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         RelDataType type = typeFactory.leastRestrictive(list);
-        if (opBinding.getOperandCount() % 2 == 1) {
+        if (type != null && opBinding.getOperandCount() % 2 == 1) {
           type = typeFactory.createTypeWithNullability(type, true);
         }
         return type;

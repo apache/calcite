@@ -28,6 +28,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Enumerator to read data from {@link Consumer},
  * and converted into SQL rows with {@link KafkaRowConverter}.
@@ -58,7 +60,7 @@ public class KafkaMessageEnumerator<K, V> implements Enumerator<Object[]> {
    * It returns an Array of Object, with each element represents a field of row.
    */
   @Override public Object[] current() {
-    return rowConverter.toRow(curRecord);
+    return rowConverter.toRow(requireNonNull(curRecord, "curRecord"));
   }
 
   @Override public boolean moveNext() {

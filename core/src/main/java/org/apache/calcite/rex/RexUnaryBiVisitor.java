@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+
 /**
  * Default implementation of a {@link RexBiVisitor} whose payload and return
  * type are the same.

@@ -79,10 +79,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of JDBC connection
@@ -137,7 +140,7 @@ abstract class CalciteConnectionImpl
       this.typeFactory = new JavaTypeFactoryImpl(typeSystem);
     }
     this.rootSchema =
-        Objects.requireNonNull(rootSchema != null
+        requireNonNull(rootSchema != null
             ? rootSchema
             : CalciteSchema.createRootSchema(true));
     Preconditions.checkArgument(this.rootSchema.isRoot(), "must be root schema");
@@ -267,11 +270,11 @@ abstract class CalciteConnectionImpl
   }
 
   @Override public <T> T execute(Expression expression, Type type) {
-    return null; // TODO:
+    return castNonNull(null); // TODO:
   }
 
   @Override public <T> T execute(Expression expression, Class<T> type) {
-    return null; // TODO:
+    return castNonNull(null); // TODO:
   }
 
   @Override public <T> Enumerator<T> executeQuery(Queryable<T> queryable) {
@@ -470,7 +473,7 @@ abstract class CalciteConnectionImpl
               : ImmutableList.of(schemaName);
       final SqlValidatorWithHints validator =
           new SqlAdvisorValidator(SqlStdOperatorTable.instance(),
-              new CalciteCatalogReader(rootSchema,
+              new CalciteCatalogReader(requireNonNull(rootSchema, "rootSchema"),
                   schemaPath, typeFactory, con.config()),
               typeFactory, SqlValidator.Config.DEFAULT);
       final CalciteConnectionConfig config = con.config();
@@ -504,7 +507,7 @@ abstract class CalciteConnectionImpl
     private final CalciteSchema rootSchema;
 
     ContextImpl(CalciteConnectionImpl connection) {
-      this.connection = Objects.requireNonNull(connection);
+      this.connection = requireNonNull(connection);
       long now = System.currentTimeMillis();
       SchemaVersion schemaVersion = new LongSchemaVersion(now);
       this.mutableRootSchema = connection.rootSchema;
@@ -596,7 +599,7 @@ abstract class CalciteConnectionImpl
     private final AtomicBoolean cancelFlag = new AtomicBoolean();
 
     CalciteServerStatementImpl(CalciteConnectionImpl connection) {
-      this.connection = Objects.requireNonNull(connection);
+      this.connection = requireNonNull(connection);
     }
 
     @Override public Context createPrepareContext() {

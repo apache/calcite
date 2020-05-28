@@ -56,6 +56,7 @@ public class Driver extends UnregisteredDriver {
     new Driver().register();
   }
 
+  @SuppressWarnings("method.invocation.invalid")
   public Driver() {
     super();
     this.prepareFactory = createPrepareFactory();

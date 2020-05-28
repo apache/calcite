@@ -28,6 +28,7 @@ import java.util.List;
 abstract class MutableMultiRel extends MutableRel {
   protected final List<MutableRel> inputs;
 
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
   protected MutableMultiRel(RelOptCluster cluster,
       RelDataType rowType, MutableRelType type, List<MutableRel> inputs) {
     super(cluster, rowType, type);

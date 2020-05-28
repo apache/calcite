@@ -35,7 +35,8 @@ public interface Litmus {
       return true;
     }
 
-    @Override public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message,
+        Object... args) {
       if (condition) {
         return succeed();
       } else {
@@ -55,7 +56,8 @@ public interface Litmus {
       return true;
     }
 
-    @Override public boolean check(boolean condition, String message, Object... args) {
+    @Override public boolean check(boolean condition, String message,
+        Object... args) {
       return condition;
     }
   };

@@ -89,7 +89,7 @@ public class SqlCountAggFunction extends SqlAggFunction {
     return super.deriveType(validator, scope, call);
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     if (clazz == SqlSplittableAggFunction.class) {
       return clazz.cast(SqlSplittableAggFunction.CountSplitter.INSTANCE);
     }

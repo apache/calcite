@@ -46,6 +46,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that matches a
  * {@link org.apache.calcite.rel.core.Join} one of whose inputs is a
@@ -243,7 +245,8 @@ public class JoinProjectTransposeRule
     // ProjectRels
     final RexNode newCondition =
         mergedProgram.expandLocalRef(
-            mergedProgram.getCondition());
+            requireNonNull(mergedProgram.getCondition(),
+                () -> "mergedProgram.getCondition() for " + mergedProgram));
     final Join newJoin =
         join.copy(join.getTraitSet(), newCondition,
             leftJoinChild, rightJoinChild, join.getJoinType(),

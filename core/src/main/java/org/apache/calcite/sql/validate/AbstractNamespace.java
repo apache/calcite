@@ -26,6 +26,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Objects;
+
+import static org.checkerframework.checker.nullness.NullnessUtil.castNonNull;
 
 /**
  * Abstract implementation of {@link SqlValidatorNamespace}.
@@ -113,7 +116,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
   @Override public RelDataType getRowType() {
     if (rowType == null) {
       validator.validateNamespace(this, validator.unknownType);
-      Preconditions.checkArgument(rowType != null, "validate must set rowType");
+      Objects.requireNonNull(rowType, "validate must set rowType");
     }
     return rowType;
   }
@@ -124,7 +127,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
 
   @Override public RelDataType getType() {
     Util.discard(getRowType());
-    return type;
+    return Objects.requireNonNull(type, "type");
   }
 
   @Override public void setType(RelDataType type) {
@@ -175,7 +178,7 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
     return true;
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     return clazz.cast(this);
   }
 
@@ -215,7 +218,12 @@ abstract class AbstractNamespace implements SqlValidatorNamespace {
       return type;
     }
     return validator.getTypeFactory().builder()
-        .add(validator.deriveAlias(unnest, 0), type)
+        .add(
+            castNonNull(
+                validator.deriveAlias(
+                    Objects.requireNonNull(unnest, "unnest"),
+                    0)),
+            type)
         .build();
   }
 }

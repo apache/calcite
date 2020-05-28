@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
 
 /**
  * Planner rule that reduces aggregate functions in
@@ -880,7 +879,7 @@ public class AggregateReduceFunctionsRule
 
     /** Returns the validated set of functions to reduce, or the default set
      * if not specified. */
-    @Nonnull default Set<SqlKind> actualFunctionsToReduce() {
+    default Set<SqlKind> actualFunctionsToReduce() {
       final Set<SqlKind> set =
           Util.first(functionsToReduce(), DEFAULT_FUNCTIONS_TO_REDUCE);
       set.forEach(AggregateReduceFunctionsRule::validateFunction);

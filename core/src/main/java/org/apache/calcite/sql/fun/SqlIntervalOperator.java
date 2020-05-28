@@ -31,6 +31,8 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+
 /** Interval expression.
  *
  * <p>Syntax:
@@ -54,7 +56,7 @@ public class SqlIntervalOperator extends SqlInternalOperator {
 
   private static RelDataType returnType(SqlOperatorBinding opBinding) {
     final SqlIntervalQualifier intervalQualifier =
-        opBinding.getOperandLiteralValue(1, SqlIntervalQualifier.class);
+        getOperandLiteralValueOrThrow(opBinding, 1, SqlIntervalQualifier.class);
     return opBinding.getTypeFactory().createSqlIntervalType(intervalQualifier);
   }
 

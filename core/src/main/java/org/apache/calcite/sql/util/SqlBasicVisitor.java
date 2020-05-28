@@ -101,11 +101,11 @@ public class SqlBasicVisitor<R> implements SqlVisitor<R> {
    * @param <R> result type
    */
   public static class ArgHandlerImpl<R> implements ArgHandler<R> {
-    private static final ArgHandler INSTANCE = new ArgHandlerImpl();
+    private static final ArgHandler<?> INSTANCE = new ArgHandlerImpl<>();
 
     @SuppressWarnings("unchecked")
     public static <R> ArgHandler<R> instance() {
-      return INSTANCE;
+      return (ArgHandler<R>) INSTANCE;
     }
 
     @Override public R result() {

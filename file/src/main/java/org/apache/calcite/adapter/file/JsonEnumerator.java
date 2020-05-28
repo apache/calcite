@@ -39,10 +39,10 @@ import java.util.Map;
  */
 public class JsonEnumerator implements Enumerator<Object[]> {
 
-  private Enumerator<Object[]> enumerator;
+  private final Enumerator<Object[]> enumerator;
 
-  public JsonEnumerator(List<Object> list) {
-    List<Object[]> objs = new ArrayList<Object[]>();
+  public JsonEnumerator(List<? extends Object> list) {
+    List<Object[]> objs = new ArrayList<>();
     for (Object obj : list) {
       if (obj instanceof Collection) {
         //noinspection unchecked

@@ -29,10 +29,13 @@ import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Parse tree for {@code CREATE FOREIGN SCHEMA} statement.
@@ -60,6 +63,7 @@ public class SqlCreateForeignSchema extends SqlCreate {
     this.optionList = optionList; // may be null
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, type, library, optionList);
   }
@@ -105,10 +109,13 @@ public class SqlCreateForeignSchema extends SqlCreate {
 
   private static List<Pair<SqlIdentifier, SqlNode>> options(
       final SqlNodeList optionList) {
+    if (optionList == null) {
+      return ImmutableList.of();
+    }
     return new AbstractList<Pair<SqlIdentifier, SqlNode>>() {
       @Override public Pair<SqlIdentifier, SqlNode> get(int index) {
-        return Pair.of((SqlIdentifier) optionList.get(index * 2),
-            optionList.get(index * 2 + 1));
+        return Pair.of((SqlIdentifier) castNonNull(optionList.get(index * 2)),
+            castNonNull(optionList.get(index * 2 + 1)));
       }
 
       @Override public int size() {

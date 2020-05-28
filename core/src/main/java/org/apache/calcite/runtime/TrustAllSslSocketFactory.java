@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.runtime;
 
+
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -25,6 +27,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Socket factory that trusts all SSL connections.
@@ -46,7 +52,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    this.sslSocketFactory = factory;
+    this.sslSocketFactory = requireNonNull(factory, "sslSocketFactory");
   }
 
   @Override public Socket createSocket() throws IOException {
@@ -114,7 +120,7 @@ public class TrustAllSslSocketFactory extends SocketFactoryImpl {
    * certificates. */
   private static class DummyTrustManager implements X509TrustManager {
     @Override public X509Certificate[] getAcceptedIssuers() {
-      return null;
+      return castNonNull(null);
     }
 
     @Override public void checkClientTrusted(

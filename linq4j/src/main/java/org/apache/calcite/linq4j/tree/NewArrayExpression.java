@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
@@ -45,7 +46,10 @@ public class NewArrayExpression extends Expression {
         this.expressions == null
             ? null
             : Expressions.acceptExpressions(this.expressions, shuttle);
-    Expression bound = Expressions.accept(this.bound, shuttle);
+    Expression bound =
+        this.bound == null
+            ? null
+            : this.bound.accept(shuttle);
     return shuttle.visit(this, dimension, bound, expressions);
   }
 

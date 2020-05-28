@@ -92,7 +92,7 @@ class MutableArrayTable extends AbstractModifiableTable
     return protoRowType.apply(typeFactory);
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> C unwrap(Class<C> aClass) {
     if (aClass.isInstance(initializerExpressionFactory)) {
       return aClass.cast(initializerExpressionFactory);
     }

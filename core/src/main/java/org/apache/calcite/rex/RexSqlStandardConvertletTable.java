@@ -39,6 +39,7 @@ public class RexSqlStandardConvertletTable
     extends RexSqlReflectiveConvertletTable {
   //~ Constructors -----------------------------------------------------------
 
+  @SuppressWarnings("method.invocation.invalid")
   public RexSqlStandardConvertletTable() {
     super();
 
@@ -160,16 +161,17 @@ public class RexSqlStandardConvertletTable
         SqlParserPos.ZERO);
   }
 
-  private SqlNode[] convertExpressionList(
+  private SqlNode [] convertExpressionList(
       RexToSqlNodeConverter converter,
       List<RexNode> nodes) {
     final SqlNode[] exprs = new SqlNode[nodes.size()];
     for (int i = 0; i < nodes.size(); i++) {
       RexNode node = nodes.get(i);
-      exprs[i] = converter.convertNode(node);
-      if (exprs[i] == null) {
+      SqlNode converted = converter.convertNode(node);
+      if (converted == null) {
         return null;
       }
+      exprs[i] = converted;
     }
     return exprs;
   }

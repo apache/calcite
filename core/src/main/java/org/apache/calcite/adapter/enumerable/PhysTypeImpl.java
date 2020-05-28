@@ -50,6 +50,8 @@ import java.util.List;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.generateCollatorExpression;
 import static org.apache.calcite.adapter.enumerable.EnumUtils.overridingMethodDecl;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link PhysType}. */
 public class PhysTypeImpl implements PhysType {
   private final JavaTypeFactory typeFactory;
@@ -518,8 +520,10 @@ public class PhysTypeImpl implements PhysType {
 
   @Override public PhysType component(int fieldOrdinal) {
     final RelDataTypeField field = rowType.getFieldList().get(fieldOrdinal);
+    RelDataType componentType = requireNonNull(field.getType().getComponentType(),
+        () -> "field.getType().getComponentType() for " + field);
     return PhysTypeImpl.of(typeFactory,
-        toStruct(field.getType().getComponentType()), format, false);
+        toStruct(componentType), format, false);
   }
 
   @Override public PhysType field(int ordinal) {

@@ -28,12 +28,17 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelDataTypeImpl is an abstract base for implementations of
@@ -189,15 +194,15 @@ public abstract class RelDataTypeImpl
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RelDataTypeImpl
-          && this.digest.equals(((RelDataTypeImpl) obj).digest);
+          && Objects.equals(this.digest, ((RelDataTypeImpl) obj).digest);
   }
 
   @Override public int hashCode() {
-    return digest.hashCode();
+    return Objects.hashCode(digest);
   }
 
   @Override public String getFullTypeString() {
-    return digest;
+    return requireNonNull(digest, "digest");
   }
 
   @Override public boolean isNullable() {
@@ -266,7 +271,10 @@ public abstract class RelDataTypeImpl
    * Computes the digest field. This should be called in every non-abstract
    * subclass constructor once the type is fully defined.
    */
-  protected void computeDigest() {
+  @SuppressWarnings("method.invocation.invalid")
+  protected void computeDigest(
+      @UnknownInitialization RelDataTypeImpl this
+  ) {
     StringBuilder sb = new StringBuilder();
     generateTypeString(sb, true);
     if (!isNullable()) {

@@ -60,6 +60,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.text.Collator;
 import java.util.AbstractList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -69,7 +70,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utilities for generating programs in the Enumerable (functional)
@@ -131,7 +133,8 @@ public class EnumUtils {
         final int arg = argList.get(index);
         return arg < inputFields.size()
             ? inputFields.get(arg).getType()
-            : extraInputs.get(arg - inputFields.size()).getType();
+            : requireNonNull(extraInputs, "extraInputs")
+                .get(arg - inputFields.size()).getType();
       }
       @Override public int size() {
         return argList.size();
@@ -256,7 +259,7 @@ public class EnumUtils {
         && Primitive.isBox(targetType)) {
       // E.g. operand is "int", target is "Long", generate "(long) operand".
       return Expressions.convert_(operand,
-          Primitive.ofBox(targetType).primitiveClass);
+          Primitive.unbox(targetType));
     }
     return operand;
   }
@@ -361,13 +364,13 @@ public class EnumUtils {
           // Generate "SqlFunctions.toShort(x)".
           return Expressions.call(
               SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
+              "to" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
               operand);
         default:
           // Generate "Short.parseShort(x)".
           return Expressions.call(
-              toPrimitive.boxClass,
-              "parse" + SqlFunctions.initcap(toPrimitive.primitiveName),
+              toPrimitive.getBoxClass(),
+              "parse" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
               operand);
         }
       }
@@ -377,12 +380,12 @@ public class EnumUtils {
           // Generate "SqlFunctions.toCharBoxed(x)".
           return Expressions.call(
               SqlFunctions.class,
-              "to" + SqlFunctions.initcap(toBox.primitiveName) + "Boxed",
+              "to" + SqlFunctions.initcap(toBox.getPrimitiveName()) + "Boxed",
               operand);
         default:
           // Generate "Short.valueOf(x)".
           return Expressions.call(
-              toBox.boxClass,
+              toBox.getBoxClass(),
               "valueOf",
               operand);
         }
@@ -392,7 +395,7 @@ public class EnumUtils {
       if (fromPrimitive != null) {
         // E.g. from "float" to "double"
         return Expressions.convert_(
-            operand, toPrimitive.primitiveClass);
+            operand, toPrimitive.getPrimitiveClass());
       }
       if (fromNumber || fromBox == Primitive.CHAR) {
         // Generate "x.shortValue()".
@@ -402,7 +405,7 @@ public class EnumUtils {
         // Generate "SqlFunctions.toShort(x)"
         return Expressions.call(
             SqlFunctions.class,
-            "to" + SqlFunctions.initcap(toPrimitive.primitiveName),
+            "to" + SqlFunctions.initcap(toPrimitive.getPrimitiveName()),
             operand);
       }
     } else if (fromNumber && toBox != null) {
@@ -435,7 +438,7 @@ public class EnumUtils {
       // Convert it first and generate "Byte.valueOf((byte)x)"
       // Because there is no method "Byte.valueOf(int)" in Byte
       return Expressions.box(
-          Expressions.convert_(operand, toBox.primitiveClass),
+          Expressions.convert_(operand, toBox.getPrimitiveClass()),
           toBox);
     }
     // Convert datetime types to internal storage type:
@@ -500,7 +503,7 @@ public class EnumUtils {
           // E.g. from "int" to "String"
           // Generate "Integer.toString(x)"
           return Expressions.call(
-              fromPrimitive.boxClass,
+              fromPrimitive.getBoxClass(),
               "toString",
               operand);
         }
@@ -556,7 +559,7 @@ public class EnumUtils {
     final Expression expr =
         convert(Expressions.constant(o), clazz);
     bb.add(Expressions.return_(null, expr));
-    final FunctionExpression convert =
+    final FunctionExpression<?> convert =
         Expressions.lambda(bb.toBlock(), ImmutableList.of());
     return clazz.cast(convert.compile().dynamicInvoke());
   }
@@ -637,7 +640,7 @@ public class EnumUtils {
    * @return MethodCallExpression that call the given name method
    * @throws RuntimeException if no suitable method found
    */
-  public static MethodCallExpression call(@Nullable Expression targetExpression,
+  public static MethodCallExpression call(Expression targetExpression,
       Class clazz, String methodName, List<? extends Expression> arguments) {
     Class[] argumentTypes = Types.toClassArray(arguments);
     try {
@@ -647,7 +650,7 @@ public class EnumUtils {
       for (Method method : clazz.getMethods()) {
         if (method.getName().equals(methodName)) {
           final boolean varArgs = method.isVarArgs();
-          final Class[] parameterTypes = method.getParameterTypes();
+          final Class<?>[] parameterTypes = method.getParameterTypes();
           if (Types.allAssignable(varArgs, parameterTypes, argumentTypes)) {
             return Expressions.call(targetExpression, method, arguments);
           }
@@ -665,14 +668,14 @@ public class EnumUtils {
   }
 
   private static List<? extends Expression> matchMethodParameterTypes(boolean varArgs,
-      Class[] parameterTypes, List<? extends Expression> arguments) {
+      Class<?>[] parameterTypes, List<? extends Expression> arguments) {
     if ((varArgs  && arguments.size() < parameterTypes.length - 1)
         || (!varArgs && arguments.size() != parameterTypes.length)) {
       return null;
     }
     final List<Expression> typeMatchedArguments = new ArrayList<>();
     for (int i = 0; i < arguments.size(); i++) {
-      Class parameterType =
+      Class<?> parameterType =
           !varArgs || i < parameterTypes.length - 1
               ? parameterTypes[i]
               : Object.class;
@@ -695,7 +698,7 @@ public class EnumUtils {
    *         Returns null if it is impossible to match.
    */
   private static Expression matchMethodParameterType(
-      Expression argument, Class parameter) {
+      Expression argument, Class<?> parameter) {
     Type argumentType = argument.getType();
     if (Types.isAssignableFrom(parameter, argumentType)) {
       return argument;
@@ -840,7 +843,8 @@ public class EnumUtils {
    * enumerator based on a specified key. Elements are windowed into sessions separated by
    * periods with no input for at least the duration specified by gap parameter.
    */
-  public static Enumerable<Object[]> sessionize(Enumerator<Object[]> inputEnumerator,
+  public static Enumerable<Object[]> sessionize(
+      Enumerator<Object[]> inputEnumerator,
       int indexOfWatermarkedColumn, int indexOfKeyColumn, long gap) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
@@ -883,7 +887,7 @@ public class EnumUtils {
         initialize();
         initialized = true;
       }
-      return list.pollFirst();
+      return list.removeFirst();
     }
 
     @Override public boolean moveNext() {
@@ -912,17 +916,21 @@ public class EnumUtils {
         elements.add(inputEnumerator.current());
       }
 
-      Map<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> sessionKeyMap = new HashMap<>();
+      Map<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> sessionKeyMap =
+          new HashMap<>();
       for (Object[] element : elements) {
-        sessionKeyMap.putIfAbsent(element[indexOfKeyColumn], new SortedMultiMap<>());
-        Pair initWindow = computeInitWindow(
-            SqlFunctions.toLong(element[indexOfWatermarkedColumn]), gap);
-        sessionKeyMap.get(element[indexOfKeyColumn]).putMulti(initWindow, element);
+        SortedMultiMap<Pair<Long, Long>, Object[]> session =
+            sessionKeyMap.computeIfAbsent(element[indexOfKeyColumn], k -> new SortedMultiMap<>());
+        Object watermark = requireNonNull(element[indexOfWatermarkedColumn],
+            "element[indexOfWatermarkedColumn]");
+        Pair<Long, Long> initWindow = computeInitWindow(
+            SqlFunctions.toLong(watermark), gap);
+        session.putMulti(initWindow, element);
       }
 
       // merge per key session windows if there is any overlap between windows.
-      for (Map.Entry<Object, SortedMultiMap<Pair<Long, Long>, Object[]>> perKeyEntry
-          : sessionKeyMap.entrySet()) {
+      for (Map.Entry<Object, SortedMultiMap<Pair<Long, Long>, Object[]>>
+          perKeyEntry : sessionKeyMap.entrySet()) {
         Map<Pair<Long, Long>, List<Object[]>> finalWindowElementsMap = new HashMap<>();
         Pair<Long, Long> currentWindow = null;
         List<Object[]> tempElementList = new ArrayList<>();
@@ -947,6 +955,7 @@ public class EnumUtils {
         }
 
         if (!tempElementList.isEmpty()) {
+          requireNonNull(currentWindow, "currentWindow is null");
           finalWindowElementsMap.put(currentWindow, new ArrayList<>(tempElementList));
         }
 
@@ -981,7 +990,8 @@ public class EnumUtils {
    * Create enumerable implementation that applies hopping on each element from the input
    * enumerator and produces at least one element for each input element.
    */
-  public static Enumerable<Object[]> hopping(Enumerator<Object[]> inputEnumerator,
+  public static Enumerable<Object[]> hopping(
+      Enumerator<Object[]> inputEnumerator,
       int indexOfWatermarkedColumn, long emitFrequency, long windowSize, long offset) {
     return new AbstractEnumerable<Object[]>() {
       @Override public Enumerator<Object[]> enumerator() {
@@ -1024,9 +1034,11 @@ public class EnumUtils {
         return takeOne();
       } else {
         Object[] current = inputEnumerator.current();
-        List<Pair> windows = hopWindows(SqlFunctions.toLong(current[indexOfWatermarkedColumn]),
+        Object watermark = requireNonNull(current[indexOfWatermarkedColumn],
+            "element[indexOfWatermarkedColumn]");
+        List<Pair<Long, Long>> windows = hopWindows(SqlFunctions.toLong(watermark),
             emitFrequency, windowSize, offset);
-        for (Pair window : windows) {
+        for (Pair<Long, Long> window : windows) {
           Object[] curWithWindow = new Object[current.length + 2];
           System.arraycopy(current, 0, curWithWindow, 0, current.length);
           curWithWindow[current.length] = window.left;
@@ -1050,18 +1062,18 @@ public class EnumUtils {
     }
 
     private Object[] takeOne() {
-      return list.pollFirst();
+      return requireNonNull(list.pollFirst(), "list.pollFirst()");
     }
   }
 
-  private static List<Pair> hopWindows(
+  private static List<Pair<Long, Long>> hopWindows(
       long tsMillis, long periodMillis, long sizeMillis, long offsetMillis) {
-    ArrayList<Pair> ret = new ArrayList<>(Math.toIntExact(sizeMillis / periodMillis));
+    ArrayList<Pair<Long, Long>> ret = new ArrayList<>(Math.toIntExact(sizeMillis / periodMillis));
     long lastStart = tsMillis - ((tsMillis + periodMillis - offsetMillis) % periodMillis);
     for (long start = lastStart;
          start > tsMillis - sizeMillis;
          start -= periodMillis) {
-      ret.add(new Pair(start, start + sizeMillis));
+      ret.add(new Pair<>(start, start + sizeMillis));
     }
     return ret;
   }
@@ -1077,7 +1089,7 @@ public class EnumUtils {
       // exactly one element for each input element.
       @Override public Enumerator<TResult> enumerator() {
         return new Enumerator<TResult>() {
-          Enumerator<TSource> inputs = inputEnumerable.enumerator();
+          final Enumerator<TSource> inputs = inputEnumerable.enumerator();
 
           @Override public TResult current() {
             return outSelector.apply(inputs.current());
@@ -1092,6 +1104,7 @@ public class EnumUtils {
           }
 
           @Override public void close() {
+            inputs.close();
           }
         };
       }
@@ -1099,7 +1112,11 @@ public class EnumUtils {
   }
 
   public static Expression generateCollatorExpression(SqlCollation collation) {
-    if (collation == null || collation.getCollator() == null) {
+    if (collation == null) {
+      return null;
+    }
+    Collator collator = collation.getCollator();
+    if (collator == null) {
       return null;
     }
 
@@ -1110,7 +1127,7 @@ public class EnumUtils {
     //          collation.getLocale().getVariant()),
     //      collation.getCollator().getStrength());
     final Locale locale = collation.getLocale();
-    final int strength = collation.getCollator().getStrength();
+    final int strength = collator.getStrength();
     return Expressions.call(
         Utilities.class,
         "generateCollator",

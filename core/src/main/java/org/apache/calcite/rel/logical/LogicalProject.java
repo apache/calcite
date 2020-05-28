@@ -84,7 +84,7 @@ public final class LogicalProject extends Project {
 
   @Deprecated // to be removed before 2.0
   public LogicalProject(RelOptCluster cluster, RelNode input,
-      List<RexNode> projects, List<String> fieldNames, int flags) {
+      List<RexNode> projects, List<? extends String> fieldNames, int flags) {
     this(cluster, cluster.traitSetOf(RelCollations.EMPTY),
         ImmutableList.of(), input, projects,
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -103,7 +103,8 @@ public final class LogicalProject extends Project {
 
   /** Creates a LogicalProject. */
   public static LogicalProject create(final RelNode input, List<RelHint> hints,
-      final List<? extends RexNode> projects, List<String> fieldNames) {
+      final List<? extends RexNode> projects,
+      List<? extends String> fieldNames) {
     final RelOptCluster cluster = input.getCluster();
     final RelDataType rowType =
         RexUtil.createStructType(cluster.getTypeFactory(), projects,
@@ -134,7 +135,7 @@ public final class LogicalProject extends Project {
 
   @Override public RelNode withHints(List<RelHint> hintList) {
     return new LogicalProject(getCluster(), traitSet, hintList,
-        input, getProjects(), rowType);
+        input, getProjects(), getRowType());
   }
 
   @Override public boolean deepEquals(Object obj) {

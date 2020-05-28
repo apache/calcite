@@ -462,11 +462,18 @@ public class RelMdCollation
     if (!joinType.projectsRight()) {
       return leftCollations;
     }
+    if (leftCollations == null) {
+      return null;
+    }
+
+    final ImmutableList<RelCollation> rightCollations = mq.collations(right);
+    if (rightCollations == null) {
+      return leftCollations;
+    }
 
     final ImmutableList.Builder<RelCollation> builder = ImmutableList.builder();
     builder.addAll(leftCollations);
 
-    final ImmutableList<RelCollation> rightCollations = mq.collations(right);
     final int leftFieldCount = left.getRowType().getFieldCount();
     for (RelCollation collation : rightCollations) {
       builder.add(RelCollations.shift(collation, leftFieldCount));

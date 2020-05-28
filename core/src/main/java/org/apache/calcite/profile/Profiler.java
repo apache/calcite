@@ -34,7 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.SortedSet;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Analyzes data sets.
@@ -87,7 +88,7 @@ public interface Profiler {
           && ordinal == ((Column) o).ordinal;
     }
 
-    @Override public int compareTo(@Nonnull Column column) {
+    @Override public int compareTo(Column column) {
       return Integer.compare(ordinal, column.ordinal);
     }
 
@@ -261,7 +262,10 @@ public interface Profiler {
 
       final ImmutableList.Builder<Distribution> b = ImmutableList.builder();
       for (int i = 0; i < columns.size(); i++) {
-        b.add(distributionMap.get(ImmutableBitSet.of(i)));
+        int key = i;
+        b.add(
+            requireNonNull(distributionMap.get(ImmutableBitSet.of(i)),
+                () -> "distributionMap.get(ImmutableBitSet.of(i)) for " + key));
       }
       singletonDistributionList = b.build();
     }

@@ -56,7 +56,7 @@ public abstract class DelegatingSqlValidatorCatalogReader
     return catalogReader.getSchemaPaths();
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> C unwrap(Class<C> aClass) {
     return catalogReader.unwrap(aClass);
   }
 }

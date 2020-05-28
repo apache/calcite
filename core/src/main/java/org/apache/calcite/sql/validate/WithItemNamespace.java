@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.util.Pair;
 
@@ -36,14 +37,15 @@ class WithItemNamespace extends AbstractNamespace {
 
   @Override protected RelDataType validateImpl(RelDataType targetRowType) {
     final SqlValidatorNamespace childNs =
-        validator.getNamespace(withItem.query);
+        validator.getNamespaceOrThrow(withItem.query);
     final RelDataType rowType = childNs.getRowTypeSansSystemColumns();
-    if (withItem.columnList == null) {
+    SqlNodeList columnList = withItem.columnList;
+    if (columnList == null) {
       return rowType;
     }
     final RelDataTypeFactory.Builder builder =
         validator.getTypeFactory().builder();
-    Pair.forEach(SqlIdentifier.simpleNames(withItem.columnList),
+    Pair.forEach(SqlIdentifier.simpleNames(columnList),
         rowType.getFieldList(),
         (name, field) -> builder.add(name, field.getType()));
     return builder.build();
@@ -60,7 +62,7 @@ class WithItemNamespace extends AbstractNamespace {
     final RelDataType underlyingRowType =
           validator.getValidatedNodeType(withItem.query);
     int i = 0;
-    for (RelDataTypeField field : rowType.getFieldList()) {
+    for (RelDataTypeField field : getRowType().getFieldList()) {
       if (field.getName().equals(name)) {
         return underlyingRowType.getFieldList().get(i).getName();
       }

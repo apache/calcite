@@ -58,6 +58,7 @@ public abstract class Snapshot extends SingleRel  {
    * @param period    Timestamp expression which as the table was at the given
    *                  time in the past
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Snapshot(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       RexNode period) {
     super(cluster, traitSet, input);

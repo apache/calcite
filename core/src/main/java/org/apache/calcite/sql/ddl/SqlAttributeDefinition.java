@@ -69,23 +69,13 @@ public class SqlAttributeDefinition extends SqlCall {
       writer.keyword("COLLATE");
       collation.unparse(writer);
     }
-    if (dataType.getNullable() != null && !dataType.getNullable()) {
+    if (Boolean.FALSE.equals(dataType.getNullable())) {
       writer.keyword("NOT NULL");
     }
+    SqlNode expression = this.expression;
     if (expression != null) {
       writer.keyword("DEFAULT");
-      exp(writer);
-    }
-  }
-
-  // TODO: refactor this to a util class to share with SqlColumnDeclaration
-  private void exp(SqlWriter writer) {
-    if (writer.isAlwaysUseParentheses()) {
-      expression.unparse(writer, 0, 0);
-    } else {
-      writer.sep("(");
-      expression.unparse(writer, 0, 0);
-      writer.sep(")");
+      SqlColumnDeclaration.exp(writer, expression);
     }
   }
 }

@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import javax.annotation.Nonnull;
 
 /**
  * Rule that is parameterized via a configuration.
@@ -129,7 +128,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
     RelOptRule toRule();
 
     /** Casts this configuration to another type, usually a sub-class. */
-    default <T> T as(Class<T> class_) {
+    default <T extends Object> T as(Class<T> class_) {
       return ImmutableBeans.copy(class_, this);
     }
 
@@ -187,7 +186,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
    * @param <R> Type of relational expression */
   public interface OperandDetailBuilder<R extends RelNode> {
     /** Sets a trait of this operand. */
-    OperandDetailBuilder<R> trait(@Nonnull RelTrait trait);
+    OperandDetailBuilder<R> trait(RelTrait trait);
 
     /** Sets the predicate of this operand. */
     OperandDetailBuilder<R> predicate(Predicate<? super R> predicate);
@@ -253,7 +252,7 @@ public abstract class RelRule<C extends RelRule.Config> extends RelOptRule {
       this.relClass = Objects.requireNonNull(relClass);
     }
 
-    @Override public OperandDetailBuilderImpl<R> trait(@Nonnull RelTrait trait) {
+    @Override public OperandDetailBuilderImpl<R> trait(RelTrait trait) {
       this.trait = Objects.requireNonNull(trait);
       return this;
     }

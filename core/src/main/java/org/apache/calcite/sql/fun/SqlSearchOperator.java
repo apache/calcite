@@ -25,6 +25,8 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.util.Sarg;
 
+import static org.apache.calcite.sql.validate.SqlNonNullableAccessors.getOperandLiteralValueOrThrow;
+
 /** Operator that tests whether its left operand is included in the range of
  * values covered by search arguments. */
 class SqlSearchOperator extends SqlInternalOperator {
@@ -51,7 +53,7 @@ class SqlSearchOperator extends SqlInternalOperator {
   private static RelDataType makeNullable(SqlOperatorBinding binding,
       RelDataType type) {
     final boolean nullable = binding.getOperandType(0).isNullable()
-        && !binding.getOperandLiteralValue(1, Sarg.class).containsNull;
+        && !getOperandLiteralValueOrThrow(binding, 1, Sarg.class).containsNull;
     return binding.getTypeFactory().createTypeWithNullability(type, nullable);
   }
 }

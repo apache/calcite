@@ -52,6 +52,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Base class for EnumerableAggregate and EnumerableSortedAggregate. */
 public abstract class EnumerableAggregateBase extends Aggregate {
   protected EnumerableAggregateBase(
@@ -139,7 +141,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
                   Expressions.call(pe,
                       BuiltInMethod.COLLECTION_ADD.method,
                       Expressions.new_(BuiltInMethod.BASIC_LAZY_ACCUMULATOR.constructor,
-                          agg.accumulatorAdder))));
+                          requireNonNull(agg.accumulatorAdder, "agg.accumulatorAdder")))));
           continue;
         }
         final Pair<Expression, Expression> pair =
@@ -150,7 +152,8 @@ public abstract class EnumerableAggregateBase extends Aggregate {
                 Expressions.call(pe,
                     BuiltInMethod.COLLECTION_ADD.method,
                     Expressions.new_(BuiltInMethod.SOURCE_SORTER.constructor,
-                        agg.accumulatorAdder, pair.left, pair.right))));
+                        requireNonNull(agg.accumulatorAdder, "agg.accumulatorAdder"),
+                        pair.left, pair.right))));
       }
       builder.add(
           Expressions.declare(0, lambdaFactory,
@@ -168,7 +171,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
         builder.add(
             Expressions.statement(
                 Expressions.call(pe, BuiltInMethod.COLLECTION_ADD.method,
-                    agg.accumulatorAdder)));
+                    requireNonNull(agg.accumulatorAdder, "agg.accumulatorAdder"))));
       }
       builder.add(
           Expressions.declare(0, lambdaFactory,
@@ -242,7 +245,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
       final BlockBuilder builder2 = new BlockBuilder();
       final AggImpState agg = aggs.get(i);
 
-      final int stateSize = agg.state.size();
+      final int stateSize = requireNonNull(agg.state, "agg.state").size();
       final List<Expression> accumulator = new ArrayList<>(stateSize);
       for (int j = 0; j < stateSize; j++) {
         accumulator.add(accPhysType.fieldReference(accExpr, j + stateOffset));
@@ -280,7 +283,7 @@ public abstract class EnumerableAggregateBase extends Aggregate {
             }
           };
 
-      agg.implementor.implementAdd(agg.context, addContext);
+      agg.implementor.implementAdd(requireNonNull(agg.context, "agg.context"), addContext);
       builder2.add(accExpr);
       agg.accumulatorAdder = builder.append("accumulatorAdder",
           Expressions.lambda(Function2.class, builder2.toBlock(), accExpr,

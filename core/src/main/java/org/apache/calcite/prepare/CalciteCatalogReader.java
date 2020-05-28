@@ -229,8 +229,8 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return getTable(names);
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public RelDataTypeField field(RelDataType rowType, String alias) {
+  @SuppressWarnings("deprecation")
+  @Override public RelDataTypeField field(RelDataType rowType, String alias) {
     return nameMatcher.field(rowType, alias);
   }
 
@@ -444,7 +444,7 @@ public class CalciteCatalogReader implements Prepare.CatalogReader {
     return nameMatcher;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> C unwrap(Class<C> aClass) {
     if (aClass.isInstance(this)) {
       return aClass.cast(this);
     }

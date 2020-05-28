@@ -21,6 +21,9 @@ import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.Arrays;
 import java.util.Iterator;
 
@@ -42,6 +45,7 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    *
    * @param size Number of elements in the permutation
    */
+  @SuppressWarnings("method.invocation.invalid")
   public Permutation(int size) {
     targets = new int[size];
     sources = new int[size];
@@ -433,7 +437,8 @@ public class Permutation implements Mapping, Mappings.TargetMapping {
    * @param fail Whether to assert if invalid
    * @return Whether valid
    */
-  private boolean isValid(boolean fail) {
+  @RequiresNonNull({"sources", "targets"})
+  private boolean isValid(@UnknownInitialization Permutation this, boolean fail) {
     final int size = targets.length;
     if (sources.length != size) {
       assert !fail : "different lengths";

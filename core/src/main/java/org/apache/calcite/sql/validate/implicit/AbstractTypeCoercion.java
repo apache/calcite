@@ -46,7 +46,10 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for all the type coercion rules. If you want to have a custom type coercion rules,
@@ -71,8 +74,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   //~ Constructors -----------------------------------------------------------
 
   AbstractTypeCoercion(RelDataTypeFactory typeFactory, SqlValidator validator) {
-    this.factory = Objects.requireNonNull(typeFactory);
-    this.validator = Objects.requireNonNull(validator);
+    this.factory = requireNonNull(typeFactory);
+    this.validator = requireNonNull(validator);
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -97,6 +100,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       // Do not support implicit type coercion for dynamic param.
       return false;
     }
+    requireNonNull(scope, "scope");
     // Check it early.
     if (!needToCast(scope, operand, targetType)) {
       return false;
@@ -175,6 +179,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       }
     }
 
+    requireNonNull(scope, "scope is needed for needToCast(scope, operand, targetType)");
     if (node instanceof SqlCall) {
       SqlCall node2 = (SqlCall) node;
       if (node2.getOperator().kind == SqlKind.AS) {
@@ -212,8 +217,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       if (SqlTypeUtil.inCharOrBinaryFamilies(fromType)
           && SqlTypeUtil.inCharOrBinaryFamilies(toType)) {
         Charset charset = fromType.getCharset();
-        SqlCollation collation = fromType.getCollation();
         if (charset != null && SqlTypeUtil.inCharFamily(syncedType)) {
+          SqlCollation collation = getCollation(fromType);
           syncedType = factory.createTypeWithCharsetAndCollation(syncedType,
               charset,
               collation);
@@ -324,7 +329,8 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    *
    * @return tightest common type, i.e. INTEGER + DECIMAL(10, 2) returns DECIMAL(10, 2)
    */
-  @Override public RelDataType getTightestCommonType(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType getTightestCommonType(
+      RelDataType type1, RelDataType type2) {
     if (type1 == null || type2 == null) {
       return null;
     }
@@ -376,7 +382,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
             : Pair.zip(type1.getFieldList(), type2.getFieldList())) {
           RelDataType leftType = pair.left.getType();
           RelDataType rightType = pair.right.getType();
-          RelDataType dataType = getTightestCommonType(leftType, rightType);
+          RelDataType dataType = getTightestCommonTypeOrThrow(leftType, rightType);
           boolean isNullable = leftType.isNullable() || rightType.isNullable();
           fields.add(factory.createTypeWithNullability(dataType, isNullable));
         }
@@ -393,8 +399,10 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
 
     if (SqlTypeUtil.isMap(type1) && SqlTypeUtil.isMap(type2)) {
       if (SqlTypeUtil.equalSansNullability(factory, type1, type2)) {
-        RelDataType keyType = getTightestCommonType(type1.getKeyType(), type2.getKeyType());
-        RelDataType valType = getTightestCommonType(type1.getValueType(), type2.getValueType());
+        RelDataType keyType =
+            getTightestCommonTypeOrThrow(type1.getKeyType(), type2.getKeyType());
+        RelDataType valType =
+            getTightestCommonTypeOrThrow(type1.getValueType(), type2.getValueType());
         resultType = factory.createMapType(keyType, valType);
       }
     }
@@ -402,11 +410,21 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     return resultType;
   }
 
+  private RelDataType getTightestCommonTypeOrThrow(
+      RelDataType type1, RelDataType type2) {
+    return requireNonNull(getTightestCommonType(type1, type2),
+        () -> "expected non-null getTightestCommonType for " + type1 + " and " + type2);
+  }
+
   /**
    * Promote all the way to VARCHAR.
    */
-  private RelDataType promoteToVarChar(RelDataType type1, RelDataType type2) {
+  private RelDataType promoteToVarChar(
+      RelDataType type1, RelDataType type2) {
     RelDataType resultType = null;
+    if (type1 == null || type2 == null) {
+      return null;
+    }
     // No promotion for char and varchar.
     if (SqlTypeUtil.isCharacter(type1) && SqlTypeUtil.isCharacter(type2)) {
       return null;
@@ -430,7 +448,12 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * other is not. For date + timestamp operands, use timestamp as common type,
    * i.e. Timestamp(2017-01-01 00:00 ...) &gt; Date(2018) evaluates to be false.
    */
-  @Override public RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType commonTypeForBinaryComparison(
+      RelDataType type1, RelDataType type2) {
+    if (type1 == null || type2 == null) {
+      return null;
+    }
+
     SqlTypeName typeName1 = type1.getSqlTypeName();
     SqlTypeName typeName2 = type2.getSqlTypeName();
 
@@ -512,6 +535,9 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       RelDataType type1,
       RelDataType type2,
       boolean stringPromotion) {
+    if (type1 == null || type2 == null) {
+      return null;
+    }
     RelDataType resultType = getTightestCommonType(type1, type2);
     if (null == resultType) {
       resultType = getWiderTypeForDecimal(type1, type2);
@@ -542,7 +568,11 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
    * you can override it based on the specific system requirement in
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem}.
    */
-  @Override public RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2) {
+  @Override public RelDataType getWiderTypeForDecimal(
+      RelDataType type1, RelDataType type2) {
+    if (type1 == null || type2 == null) {
+      return null;
+    }
     if (!SqlTypeUtil.isDecimal(type1) && !SqlTypeUtil.isDecimal(type2)) {
       return null;
     }

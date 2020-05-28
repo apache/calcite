@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Abstract base for implementations of {@link RelDataTypeFactory}.
@@ -65,7 +64,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
   private static final Interner<RelDataType> DATATYPE_CACHE =
       Interners.newWeakInterner();
 
-  private static RelDataType keyToType(@Nonnull Key key) {
+  private static RelDataType keyToType(Key key) {
     final ImmutableList.Builder<RelDataTypeField> list =
         ImmutableList.builder();
     for (int i = 0; i < key.names.size(); i++) {
@@ -242,18 +241,16 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       // REVIEW jvs 22-Jan-2004:  Always use the field name from the
       // first type?
       final int k = j;
+
+      RelDataType type = leastRestrictive(
+          Util.transform(types, t -> t.getFieldList().get(k).getType())
+      );
+      if (type == null) {
+        return null;
+      }
       builder.add(
           type0.getFieldList().get(j).getName(),
-          leastRestrictive(
-              new AbstractList<RelDataType>() {
-                @Override public RelDataType get(int index) {
-                  return types.get(index).getFieldList().get(k).getType();
-                }
-
-                @Override public int size() {
-                  return types.size();
-                }
-              }));
+          type);
     }
     return createTypeWithNullability(builder.build(), isNullable);
   }
@@ -462,8 +459,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalMultiplyType(RelDataTypeFactory, RelDataType, RelDataType)}
    * to get the return type for the operation.
    */
-  @Override @Deprecated
-  public RelDataType createDecimalProduct(
+  @Deprecated
+  @Override public RelDataType createDecimalProduct(
       RelDataType type1,
       RelDataType type2) {
     return typeSystem.deriveDecimalMultiplyType(this, type1, type2);
@@ -486,8 +483,8 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
    * {@link RelDataTypeSystem#deriveDecimalDivideType(RelDataTypeFactory, RelDataType, RelDataType)}
    * to get the return type for the operation.
    */
-  @Override @Deprecated
-  public RelDataType createDecimalQuotient(
+  @Deprecated
+  @Override public RelDataType createDecimalQuotient(
       RelDataType type1,
       RelDataType type2) {
     return typeSystem.deriveDecimalDivideType(this, type1, type2);
@@ -564,6 +561,7 @@ public abstract class RelDataTypeFactoryImpl implements RelDataTypeFactory {
       this(clazz, nullable, null, null);
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     public JavaType(
         Class clazz,
         boolean nullable,

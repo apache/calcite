@@ -33,6 +33,9 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Comparator;
@@ -44,6 +47,7 @@ import java.util.Map;
  *
  * @param <TSource> Element type
  */
+@Covariant(0)
 public interface ExtendedEnumerable<TSource> {
 
   /**
@@ -67,9 +71,11 @@ public interface ExtendedEnumerable<TSource> {
    * Applies an accumulator function over a
    * sequence. The specified seed value is used as the initial
    * accumulator value.
+   *
+   * <p>If {@code seed} is not null, the result is never null.
    */
-  <TAccumulate> TAccumulate aggregate(TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func);
+  <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
+      Function2<@PolyNull TAccumulate, TSource, @PolyNull TAccumulate> func);
 
   /**
    * Applies an accumulator function over a
@@ -269,8 +275,10 @@ public interface ExtendedEnumerable<TSource> {
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
+   *
+   * <p>If {@code value} is not null, the result is never null.
    */
-  Enumerable<TSource> defaultIfEmpty(TSource value);
+  Enumerable<@PolyNull TSource> defaultIfEmpty(@PolyNull TSource value);
 
   /**
    * Returns distinct elements from a sequence by using

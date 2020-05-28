@@ -60,6 +60,7 @@ public final class RexWindowBounds {
     if (SqlWindow.isCurrentRow(node)) {
       return CURRENT_ROW;
     }
+    assert rexNode != null : "offset value cannot be null for bounded window";
     return new RexBoundedWindowBound((RexCall) rexNode);
   }
 

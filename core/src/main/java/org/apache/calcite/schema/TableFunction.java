@@ -40,7 +40,7 @@ public interface TableFunction extends Function {
    * @return row type of the table
    */
   RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments);
+      List<? extends Object> arguments);
 
   /**
    * Returns the row type of the table yielded by this function when
@@ -51,5 +51,5 @@ public interface TableFunction extends Function {
    *                  are passed, nulls for non-literal ones)
    * @return element type of the table (e.g. {@code Object[].class})
    */
-  Type getElementType(List<Object> arguments);
+  Type getElementType(List<? extends Object> arguments);
 }

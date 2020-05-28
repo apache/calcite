@@ -24,6 +24,8 @@ import org.apache.calcite.util.Litmus;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visitor which checks the validity of a {@link RexNode} expression.
  *
@@ -181,6 +183,7 @@ public class RexChecker extends RexVisitorImpl<Boolean> {
    * Returns whether an expression is valid.
    */
   public final boolean isValid(RexNode expr) {
-    return expr.accept(this);
+    return requireNonNull(expr.accept(this),
+        () -> "expr.accept(RexChecker) for expr=" + expr);
   }
 }

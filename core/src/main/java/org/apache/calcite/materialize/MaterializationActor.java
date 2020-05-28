@@ -102,7 +102,7 @@ class MaterializationActor {
           || obj instanceof QueryKey
           && sql.equals(((QueryKey) obj).sql)
           && schema.equals(((QueryKey) obj).schema)
-          && path.equals(((QueryKey) obj).path);
+          && Objects.equals(path, ((QueryKey) obj).path);
     }
 
     @Override public int hashCode() {

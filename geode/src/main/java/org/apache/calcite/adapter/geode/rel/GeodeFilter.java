@@ -69,7 +69,8 @@ public class GeodeFilter extends Filter implements GeodeRel {
     assert getConvention() == input.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 

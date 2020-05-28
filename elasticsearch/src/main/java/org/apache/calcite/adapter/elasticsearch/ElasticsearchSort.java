@@ -43,7 +43,8 @@ public class ElasticsearchSort extends Sort implements ElasticsearchRel {
     assert getConvention() == child.getConvention();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.05);
   }
 

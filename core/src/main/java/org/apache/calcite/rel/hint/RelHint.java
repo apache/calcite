@@ -26,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Hint attached to a relation expression.
@@ -100,8 +99,8 @@ public class RelHint {
   private RelHint(
       Iterable<Integer> inheritPath,
       String hintName,
-      @Nullable List<String> listOption,
-      @Nullable Map<String, String> kvOptions) {
+      List<String> listOption,
+      Map<String, String> kvOptions) {
     Objects.requireNonNull(inheritPath);
     Objects.requireNonNull(hintName);
     this.inheritPath = ImmutableList.copyOf(inheritPath);

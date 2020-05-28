@@ -83,7 +83,10 @@ public class RelMdSelectivity
                   null,
                   input.getRowType().getFieldList(),
                   adjustments));
-      double sel = mq.getSelectivity(input, modifiedPred);
+      Double sel = mq.getSelectivity(input, modifiedPred);
+      if (sel == null) {
+        return null;
+      }
 
       sumRows += nRows;
       sumSelectedRows += nRows * sel;
@@ -122,7 +125,8 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(Calc rel, RelMetadataQuery mq, RexNode predicate) {
+  public Double getSelectivity(Calc rel, RelMetadataQuery mq,
+      RexNode predicate) {
     if (predicate != null) {
       predicate = RelOptUtil.pushPastCalc(predicate, rel);
     }
@@ -139,7 +143,8 @@ public class RelMdSelectivity
     }
   }
 
-  public Double getSelectivity(Join rel, RelMetadataQuery mq, RexNode predicate) {
+  public Double getSelectivity(Join rel, RelMetadataQuery mq,
+      RexNode predicate) {
     if (!rel.isSemiJoin()) {
       return getSelectivity((RelNode) rel, mq, predicate);
     }

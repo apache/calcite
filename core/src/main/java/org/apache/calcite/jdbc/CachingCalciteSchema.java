@@ -37,6 +37,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Concrete implementation of {@link CalciteSchema} that caches tables,
  * functions and sub-schemas.
@@ -54,10 +56,15 @@ class CachingCalciteSchema extends CalciteSchema {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
+  @SuppressWarnings({"argument.type.incompatible", "return.type.incompatible"})
   private CachingCalciteSchema(CalciteSchema parent, Schema schema,
-      String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
-      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
+      String name,
+      NameMap<CalciteSchema> subSchemaMap,
+      NameMap<TableEntry> tableMap,
+      NameMap<LatticeEntry> latticeMap,
+      NameMap<TypeEntry> typeMap,
+      NameMultimap<FunctionEntry> functionMap,
+      NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
     super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
@@ -245,7 +252,8 @@ class CachingCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
+  @Override protected CalciteSchema snapshot(CalciteSchema parent,
+      SchemaVersion version) {
     CalciteSchema snapshot = new CachingCalciteSchema(parent,
         schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());
@@ -306,7 +314,7 @@ class CachingCalciteSchema extends CalciteSchema {
         t = build();
       }
       built = true;
-      return t;
+      return castNonNull(t);
     }
 
     @Override public void enable(long now, boolean enabled) {

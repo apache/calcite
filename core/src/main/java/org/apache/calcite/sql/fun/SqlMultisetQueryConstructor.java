@@ -36,6 +36,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Definition of the SQL:2003 standard MULTISET query constructor, <code>
  * MULTISET (&lt;query&gt;)</code>.
@@ -67,9 +69,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
         getComponentType(
             opBinding.getTypeFactory(),
             opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
+    requireNonNull(type, "inferred multiset query element type");
     return SqlTypeUtil.createMultisetType(
         opBinding.getTypeFactory(),
         type,
@@ -106,6 +106,7 @@ public class SqlMultisetQueryConstructor extends SqlSpecialOperator {
     SqlSelect subSelect = call.operand(0);
     subSelect.validateExpr(validator, scope);
     SqlValidatorNamespace ns = validator.getNamespace(subSelect);
+    assert  ns != null : "namespace is missing for " + subSelect;
     assert null != ns.getRowType();
     return SqlTypeUtil.createMultisetType(
         validator.getTypeFactory(),

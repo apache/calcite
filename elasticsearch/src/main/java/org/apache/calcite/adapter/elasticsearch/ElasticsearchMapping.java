@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * Stores Elasticsearch
@@ -132,7 +131,7 @@ class ElasticsearchMapping {
      *
      * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-terms-aggregation.html#_missing_value_13">Missing Value</a>
      */
-    private static @Nullable JsonNode missingValueForType(String name) {
+    private static JsonNode missingValueForType(String name) {
       switch (name) {
       case "string": // for ES2
       case "text":

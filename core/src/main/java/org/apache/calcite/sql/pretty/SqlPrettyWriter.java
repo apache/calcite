@@ -48,7 +48,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Consumer;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Pretty printer for SQL statements.
@@ -278,20 +279,21 @@ public class SqlPrettyWriter implements SqlWriter {
 
   //~ Constructors -----------------------------------------------------------
 
+  @SuppressWarnings("method.invocation.invalid")
   private SqlPrettyWriter(SqlWriterConfig config,
       StringBuilder buf, @SuppressWarnings("unused") boolean ignore) {
-    this.buf = Objects.requireNonNull(buf);
-    this.dialect = Objects.requireNonNull(config.dialect());
-    this.config = Objects.requireNonNull(config);
+    this.buf = requireNonNull(buf);
+    this.dialect = requireNonNull(config.dialect());
+    this.config = requireNonNull(config);
     lineStart = 0;
     reset();
   }
 
   /** Creates a writer with the given configuration
    * and a given buffer to write to. */
-  public SqlPrettyWriter(@Nonnull SqlWriterConfig config,
-      @Nonnull StringBuilder buf) {
-    this(config, Objects.requireNonNull(buf), false);
+  public SqlPrettyWriter(SqlWriterConfig config,
+      StringBuilder buf) {
+    this(config, requireNonNull(buf), false);
   }
 
   /** Creates a writer with the given configuration and dialect,
@@ -300,14 +302,14 @@ public class SqlPrettyWriter implements SqlWriter {
       SqlDialect dialect,
       SqlWriterConfig config,
       StringBuilder buf) {
-    this(config.withDialect(Objects.requireNonNull(dialect)), buf);
+    this(config.withDialect(requireNonNull(dialect)), buf);
   }
 
   /** Creates a writer with the given configuration
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect, SqlWriterConfig config) {
-    this(config.withDialect(Objects.requireNonNull(dialect)));
+    this(config.withDialect(requireNonNull(dialect)));
   }
 
   @Deprecated
@@ -316,7 +318,7 @@ public class SqlPrettyWriter implements SqlWriter {
       boolean alwaysUseParentheses,
       PrintWriter pw) {
     // NOTE that 'pw' is ignored; there is no place for it in the new API
-    this(config().withDialect(Objects.requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -324,7 +326,7 @@ public class SqlPrettyWriter implements SqlWriter {
   public SqlPrettyWriter(
       SqlDialect dialect,
       boolean alwaysUseParentheses) {
-    this(config().withDialect(Objects.requireNonNull(dialect))
+    this(config().withDialect(requireNonNull(dialect))
         .withAlwaysUseParentheses(alwaysUseParentheses));
   }
 
@@ -332,12 +334,12 @@ public class SqlPrettyWriter implements SqlWriter {
    * and a private print writer. */
   @Deprecated
   public SqlPrettyWriter(SqlDialect dialect) {
-    this(config().withDialect(Objects.requireNonNull(dialect)));
+    this(config().withDialect(requireNonNull(dialect)));
   }
 
   /** Creates a writer with the given configuration,
    * and a private builder. */
-  public SqlPrettyWriter(@Nonnull SqlWriterConfig config) {
+  public SqlPrettyWriter(SqlWriterConfig config) {
     this(config, new StringBuilder(), true);
   }
 
@@ -468,7 +470,7 @@ public class SqlPrettyWriter implements SqlWriter {
     final String[] propertyNames = properties.getPropertyNames();
     int count = 0;
     for (String key : propertyNames) {
-      final Object value = bean.get(key);
+      final Object value = properties.get(key);
       final Object defaultValue = DEFAULT_BEAN.get(key);
       if (Objects.equals(value, defaultValue)) {
         continue;
@@ -660,12 +662,11 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     final int chopColumn;
-    final SqlWriterConfig.LineFolding lineFolding;
-    if (config.lineFolding() == null) {
+    SqlWriterConfig.LineFolding lineFolding = config.lineFolding();
+    if (lineFolding == null) {
       lineFolding = SqlWriterConfig.LineFolding.WIDE;
       chopColumn = -1;
     } else {
-      lineFolding = config.lineFolding();
       if (config.foldLength() > 0
           && (lineFolding == SqlWriterConfig.LineFolding.CHOP
               || lineFolding == SqlWriterConfig.LineFolding.FOLD
@@ -847,6 +848,7 @@ public class SqlPrettyWriter implements SqlWriter {
       String open,
       String close) {
     assert frameType != null;
+    FrameImpl frame = this.frame;
     if (frame != null) {
       if (frame.itemCount++ == 0 && frame.newlineAfterOpen) {
         newlineAndIndent();
@@ -865,6 +867,7 @@ public class SqlPrettyWriter implements SqlWriter {
       listStack.push(frame);
     }
     frame = createListFrame(frameType, keyword, open, close);
+    this.frame = frame;
     frame.before();
     return frame;
   }
@@ -873,19 +876,19 @@ public class SqlPrettyWriter implements SqlWriter {
     FrameImpl endedFrame = (FrameImpl) frame;
     Preconditions.checkArgument(frame == this.frame,
         "Frame does not match current frame");
-    if (this.frame == null) {
+    if (endedFrame == null) {
       throw new RuntimeException("No list started");
     }
-    if (this.frame.open.equals("(")) {
-      if (!this.frame.close.equals(")")) {
+    if (endedFrame.open.equals("(")) {
+      if (!endedFrame.close.equals(")")) {
         throw new RuntimeException("Expected ')'");
       }
     }
-    if (this.frame.newlineBeforeClose) {
+    if (endedFrame.newlineBeforeClose) {
       newlineAndIndent();
     }
-    keyword(this.frame.close);
-    if (this.frame.newlineAfterClose) {
+    keyword(endedFrame.close);
+    if (endedFrame.newlineAfterClose) {
       newlineAndIndent();
     }
 
@@ -959,7 +962,7 @@ public class SqlPrettyWriter implements SqlWriter {
 
   protected void whiteSpace() {
     if (needWhitespace) {
-      if (nextWhitespace.equals(NL)) {
+      if (NL.equals(nextWhitespace)) {
         newlineAndIndent();
       } else {
         buf.append(nextWhitespace);
@@ -1406,13 +1409,16 @@ public class SqlPrettyWriter implements SqlWriter {
       }
     }
 
-    private String stripPrefix(String name, int offset) {
+    private static String stripPrefix(String name, int offset) {
       return name.substring(offset, offset + 1).toLowerCase(Locale.ROOT)
           + name.substring(offset + 1);
     }
 
     public void set(String name, String value) {
-      final Method method = setterMethods.get(name);
+      final Method method = requireNonNull(
+          setterMethods.get(name),
+          () -> "setter method " + name + " not found"
+      );
       try {
         method.invoke(o, value);
       } catch (IllegalAccessException | InvocationTargetException e) {
@@ -1421,7 +1427,10 @@ public class SqlPrettyWriter implements SqlWriter {
     }
 
     public Object get(String name) {
-      final Method method = getterMethods.get(name);
+      final Method method = requireNonNull(
+          getterMethods.get(name),
+          () -> "getter method " + name + " not found"
+      );
       try {
         return method.invoke(o);
       } catch (IllegalAccessException | InvocationTargetException e) {

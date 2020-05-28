@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef.RelTableRef;
@@ -34,8 +35,11 @@ import com.google.common.collect.Multimap;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * RelMetadataQuery provides a strongly-typed facade on top of
@@ -105,7 +109,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * from {@link #THREAD_PROVIDERS} and {@link #EMPTY} as a prototype.
    */
   protected RelMetadataQuery() {
-    this(THREAD_PROVIDERS.get(), EMPTY);
+    this(castNonNull(THREAD_PROVIDERS.get()), EMPTY);
   }
 
   /** Creates and initializes the instance that will serve as a prototype for
@@ -141,7 +145,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
 
   private RelMetadataQuery(JaninoRelMetadataProvider metadataProvider,
       RelMetadataQuery prototype) {
-    super(Objects.requireNonNull(metadataProvider));
+    super(requireNonNull(metadataProvider));
     this.collationHandler = prototype.collationHandler;
     this.columnOriginHandler = prototype.columnOriginHandler;
     this.expressionLineageHandler = prototype.expressionLineageHandler;
@@ -206,11 +210,11 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return estimated row count, or null if no reliable estimate can be
    * determined
    */
-  public Double getRowCount(RelNode rel) {
+  public /* @Nullable: CALCITE-4263 */ Double getRowCount(RelNode rel) {
     for (;;) {
       try {
         Double result = rowCountHandler.getRowCount(rel, this);
-        return RelMdUtil.validateResult(result);
+        return RelMdUtil.validateResult(castNonNull(result));
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         rowCountHandler = revise(e.relClass, BuiltInMetadata.RowCount.DEF);
       }
@@ -557,7 +561,12 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   public RelDistribution distribution(RelNode rel) {
     for (;;) {
       try {
-        return distributionHandler.distribution(rel, this);
+        RelDistribution distribution = distributionHandler.distribution(rel, this);
+        //noinspection ConstantConditions
+        if (distribution == null) {
+          return RelDistributions.ANY;
+        }
+        return distribution;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         distributionHandler =
             revise(e.relClass, BuiltInMetadata.Distribution.DEF);
@@ -777,7 +786,8 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
   public RelOptPredicateList getPulledUpPredicates(RelNode rel) {
     for (;;) {
       try {
-        return predicatesHandler.getPredicates(rel, this);
+        RelOptPredicateList result = predicatesHandler.getPredicates(rel, this);
+        return result != null ? result : RelOptPredicateList.EMPTY;
       } catch (JaninoRelMetadataProvider.NoHandler e) {
         predicatesHandler = revise(e.relClass, BuiltInMetadata.Predicates.DEF);
       }
@@ -812,7 +822,7 @@ public class RelMetadataQuery extends RelMetadataQueryBase {
    * @return true for visible, false for invisible; if no metadata is available,
    * defaults to true
    */
-  public boolean isVisibleInExplain(RelNode rel,
+  public Boolean isVisibleInExplain(RelNode rel,
       SqlExplainLevel explainLevel) {
     for (;;) {
       try {

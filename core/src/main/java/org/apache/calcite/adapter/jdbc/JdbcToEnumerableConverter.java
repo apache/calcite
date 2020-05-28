@@ -59,6 +59,10 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression representing a scan of a table in a JDBC data source.
  */
@@ -79,7 +83,11 @@ public class JdbcToEnumerableConverter
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(.1);
+    RelOptCost cost = super.computeSelfCost(planner, mq);
+    if (cost == null) {
+      return null;
+    }
+    return cost.multiplyBy(.1);
   }
 
   @Override public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
@@ -92,7 +100,8 @@ public class JdbcToEnumerableConverter
             implementor.getTypeFactory(), getRowType(),
             pref.prefer(JavaRowFormat.CUSTOM));
     final JdbcConvention jdbcConvention =
-        (JdbcConvention) child.getConvention();
+        (JdbcConvention) requireNonNull(child.getConvention(),
+            () -> "child.getConvention() is null for " + child);
     SqlString sqlString = generateSql(jdbcConvention.dialect);
     String sql = sqlString.getSql();
     if (CalciteSystemProperty.DEBUG.value()) {
@@ -195,7 +204,8 @@ public class JdbcToEnumerableConverter
   }
 
   private List<ConstantExpression> toIndexesTableExpression(SqlString sqlString) {
-    return sqlString.getDynamicParameters().stream()
+    return requireNonNull(sqlString.getDynamicParameters(),
+        () -> "sqlString.getDynamicParameters() is null for " + sqlString).stream()
         .map(Expressions::constant)
         .collect(Collectors.toList());
   }
@@ -223,6 +233,7 @@ public class JdbcToEnumerableConverter
     boolean offset = false;
     switch (calendarPolicy) {
     case LOCAL:
+      assert calendar_ != null : "calendar must not be null";
       dateTimeArgs.add(calendar_);
       break;
     case NULL:
@@ -327,7 +338,7 @@ public class JdbcToEnumerableConverter
   private String jdbcGetMethod(Primitive primitive) {
     return primitive == null
         ? "getObject"
-        : "get" + SqlFunctions.initcap(primitive.primitiveName);
+        : "get" + SqlFunctions.initcap(castNonNull(primitive.primitiveName));
   }
 
   private SqlString generateSql(SqlDialect dialect) {

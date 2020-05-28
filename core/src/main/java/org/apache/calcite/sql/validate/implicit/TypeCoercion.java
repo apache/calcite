@@ -54,14 +54,16 @@ public interface TypeCoercion {
    *
    * @return common type
    */
-  RelDataType getTightestCommonType(RelDataType type1, RelDataType type2);
+  RelDataType getTightestCommonType(
+      RelDataType type1, RelDataType type2);
 
   /**
    * Case2: type widening. The main difference with
    * {@link #getTightestCommonType} is that we allow
    * some precision loss when widening decimal to fractional, or promote to string type.
    */
-  RelDataType getWiderTypeForTwo(RelDataType type1, RelDataType type2, boolean stringPromotion);
+  RelDataType getWiderTypeForTwo(RelDataType type1, RelDataType type2,
+      boolean stringPromotion);
 
   /**
    * Similar to {@link #getWiderTypeForTwo}, but can handle
@@ -85,13 +87,15 @@ public interface TypeCoercion {
    * you can override it based on the specific system requirement in
    * {@link org.apache.calcite.rel.type.RelDataTypeSystem}.
    */
-  RelDataType getWiderTypeForDecimal(RelDataType type1, RelDataType type2);
+  RelDataType getWiderTypeForDecimal(
+      RelDataType type1, RelDataType type2);
 
   /**
    * Determines common type for a comparison operator whose operands are STRING
    * type and the other (non STRING) type.
    */
-  RelDataType commonTypeForBinaryComparison(RelDataType type1, RelDataType type2);
+  RelDataType commonTypeForBinaryComparison(
+      RelDataType type1, RelDataType type2);
 
   /**
    * Widen a SqlNode ith column type to target type, mainly used for set

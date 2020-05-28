@@ -45,6 +45,10 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
+import static org.apache.calcite.rex.RexLiteral.value;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Collection of planner rules that convert
  * calls to spatial functions into more efficient expressions.
@@ -130,6 +134,9 @@ public abstract class SpatialRules {
       //   (r.longitude - d, r.latitude - d, r.longitude + d, r.latitude + d)
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getAllPredicates(filter.getInput());
+      if (predicates == null) {
+        return;
+      }
       int changeCount = 0;
       for (RexNode predicate : predicates.pulledUpPredicates) {
         final RelBuilder builder = call.builder();
@@ -196,8 +203,9 @@ public abstract class SpatialRules {
         op1 = within.operands.get(1);
         final Geometries.Geom g1 = constantGeom(op1);
         if (RexUtil.isLiteral(within.operands.get(2), true)) {
-          final Number distance =
-              (Number) RexLiteral.value(within.operands.get(2));
+          final Number distance = requireNonNull(
+              (Number) value(within.operands.get(2)),
+              () -> "distance for " + within);
           switch (Double.compare(distance.doubleValue(), 0D)) {
           case -1: // negative distance
             return ImmutableList.of(builder.getRexBuilder().makeLiteral(false));

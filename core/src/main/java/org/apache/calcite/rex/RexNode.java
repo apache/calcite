@@ -19,7 +19,11 @@ package org.apache.calcite.rex;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.Collection;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Row expression.
@@ -40,7 +44,7 @@ public abstract class RexNode {
   //~ Instance fields --------------------------------------------------------
 
   // Effectively final. Set in each sub-class constructor, and never re-set.
-  protected String digest;
+  protected @MonotonicNonNull String digest;
 
   //~ Methods ----------------------------------------------------------------
 
@@ -80,7 +84,7 @@ public abstract class RexNode {
   }
 
   @Override public String toString() {
-    return digest;
+    return requireNonNull(digest, "digest");
   }
 
   /** Returns the number of nodes in this expression.

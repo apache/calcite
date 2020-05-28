@@ -18,6 +18,8 @@ package org.apache.calcite.plan.hep;
 
 import org.apache.calcite.plan.RelOptRule;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -83,7 +85,7 @@ abstract class HepInstruction {
      * Actual rule set instantiated during planning by filtering all of the
      * planner's rules, looking for the desired converters.
      */
-    Set<RelOptRule> ruleSet;
+    @MonotonicNonNull Set<RelOptRule> ruleSet;
 
     @Override void execute(HepPlanner planner) {
       planner.executeInstruction(this);
@@ -151,7 +153,9 @@ abstract class HepInstruction {
     HepProgram subprogram;
 
     @Override void initialize(boolean clearCache) {
-      subprogram.initialize(clearCache);
+      if (subprogram != null) {
+        subprogram.initialize(clearCache);
+      }
     }
 
     @Override void execute(HepPlanner planner) {

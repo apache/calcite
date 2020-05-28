@@ -51,6 +51,7 @@ public class SqlCreateType extends SqlCreate {
     this.dataType = dataType; // may be null
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, attributeDefs);
   }

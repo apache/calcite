@@ -384,7 +384,7 @@ public enum SqlTypeName {
   /**
    * Gets the SqlTypeFamily containing this SqlTypeName.
    *
-   * @return containing family, or null for none
+   * @return containing family, or null for none (SYMBOL, DISTINCT, STRUCTURED, ROW, OTHER)
    */
   public SqlTypeFamily getFamily() {
     return family;
@@ -527,7 +527,7 @@ public enum SqlTypeName {
       case OVERFLOW:
         final BigDecimal other =
             (BigDecimal) BIGINT.getLimit(sign, limit, beyond, -1, -1);
-        if (decimal.compareTo(other) == (sign ? 1 : -1)) {
+        if (other != null && decimal.compareTo(other) == (sign ? 1 : -1)) {
           decimal = other;
         }
         break;

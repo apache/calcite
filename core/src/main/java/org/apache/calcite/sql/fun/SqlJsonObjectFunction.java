@@ -40,6 +40,8 @@ import java.util.Locale;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The <code>JSON_OBJECT</code> function.
  */
@@ -133,6 +135,6 @@ public class SqlJsonObjectFunction extends SqlFunction {
 
   @SuppressWarnings("unchecked")
   private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }

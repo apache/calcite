@@ -58,6 +58,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Context for populating a {@link Prepare.Materialization}.
  */
@@ -99,8 +101,10 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
     // take the best (whatever that means), or all of them?
     useStar(schema, materialization);
 
-    RelOptTable table =
-        this.catalogReader.getTable(materialization.materializedTable.path());
+    List<String> tableName = materialization.materializedTable.path();
+    RelOptTable table = requireNonNull(
+        this.catalogReader.getTable(tableName),
+        () -> "table " + tableName + " is not found");
     materialization.tableRel = sqlToRelConverter2.toRel(table, ImmutableList.of());
   }
 
@@ -108,14 +112,15 @@ class CalciteMaterializer extends CalcitePrepareImpl.CalcitePreparingStmt {
    * {@link StarTable} defined in {@code schema}.
    * Uses the first star table that fits. */
   private void useStar(CalciteSchema schema, Materialization materialization) {
-    for (Callback x : useStar(schema, materialization.queryRel)) {
+    RelNode queryRel = requireNonNull(materialization.queryRel, "materialization.queryRel");
+    for (Callback x : useStar(schema, queryRel)) {
       // Success -- we found a star table that matches.
       materialization.materialize(x.rel, x.starRelOptTable);
       if (CalciteSystemProperty.DEBUG.value()) {
         System.out.println("Materialization "
             + materialization.materializedTable + " matched star table "
             + x.starTable + "; query after re-write: "
-            + RelOptUtil.toString(materialization.queryRel));
+            + RelOptUtil.toString(queryRel));
       }
     }
   }

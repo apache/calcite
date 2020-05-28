@@ -32,6 +32,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parameter type-checking strategy for a set operator (UNION, INTERSECT,
  * EXCEPT).
@@ -79,7 +81,7 @@ public class SetopOperandTypeChecker implements SqlOperandTypeChecker {
           if (node instanceof SqlSelect) {
             node = ((SqlSelect) node).getSelectList();
           }
-          throw validator.newValidationError(node,
+          throw validator.newValidationError(requireNonNull(node, "node"),
               RESOURCE.columnCountMismatchInSetop(
                   callBinding.getOperator().getName()));
         } else {

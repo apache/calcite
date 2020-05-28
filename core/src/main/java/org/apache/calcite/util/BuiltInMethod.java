@@ -135,6 +135,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Built-in methods.
  */
@@ -639,9 +641,10 @@ public enum BuiltInMethod {
   }
 
   BuiltInMethod(Method method, Constructor constructor, Field field) {
-    this.method = method;
-    this.constructor = constructor;
-    this.field = field;
+    // TODO: split enum in three different ones
+    this.method = castNonNull(method);
+    this.constructor = castNonNull(constructor);
+    this.field = castNonNull(field);
   }
 
   /** Defines a method. */
@@ -661,6 +664,6 @@ public enum BuiltInMethod {
   }
 
   public String getMethodName() {
-    return method.getName();
+    return castNonNull(method).getName();
   }
 }

@@ -26,6 +26,9 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCharset;
+import static org.apache.calcite.sql.type.NonNullableAccessors.getCollation;
+
 /**
  * A unary operator.
  */
@@ -73,14 +76,12 @@ public class SqlPrefixOperator extends SqlOperator {
         throw new AssertionError("operand's type should have been derived");
       }
       if (SqlTypeUtil.inCharFamily(operandType)) {
-        SqlCollation collation = operandType.getCollation();
-        assert null != collation
-            : "An implicit or explicit collation should have been set";
+        SqlCollation collation = getCollation(operandType);
         type =
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
                     type,
-                    type.getCharset(),
+                    getCharset(type),
                     collation);
       }
     }
@@ -89,8 +90,7 @@ public class SqlPrefixOperator extends SqlOperator {
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     if (getName().equals("-")) {
-      SqlMonotonicity monotonicity = call.getOperandMonotonicity(0);
-      return monotonicity == null ? null : monotonicity.reverse();
+      return call.getOperandMonotonicity(0).reverse();
     }
 
     return super.getMonotonicity(call);

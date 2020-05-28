@@ -61,7 +61,7 @@ import java.util.function.BiConsumer;
  *
  * @see SqlStdOperatorTable#SEARCH
  */
-@SuppressWarnings("BetaApi")
+@SuppressWarnings({"BetaApi", "type.argument.type.incompatible"})
 public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   public final RangeSet<C> rangeSet;
   public final boolean containsNull;
@@ -133,8 +133,8 @@ public class Sarg<C extends Comparable<C>> implements Comparable<Sarg<C>> {
   @Override public boolean equals(Object o) {
     return o == this
         || o instanceof Sarg
-        && rangeSet.equals(((Sarg) o).rangeSet)
-        && containsNull == ((Sarg) o).containsNull;
+        && containsNull == ((Sarg) o).containsNull
+        && rangeSet.equals(((Sarg) o).rangeSet);
   }
 
   /** Returns whether this Sarg includes all values (including or not including

@@ -103,7 +103,7 @@ public class LogicalMatch extends Match {
   //~ Methods ------------------------------------------------------
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), rowType,
+    return new LogicalMatch(getCluster(), traitSet, inputs.get(0), getRowType(),
         pattern, strictStart, strictEnd, patternDefinitions, measures, after,
         subsets, allRows, partitionKeys, orderKeys, interval);
   }

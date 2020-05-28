@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
+
 import java.util.Objects;
 
 /**
@@ -41,7 +42,9 @@ public class DefaultEdge {
         && ((DefaultEdge) obj).target.equals(target);
   }
 
-  public static <V> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
-    return DefaultEdge::new;
+  public static <V extends Object> DirectedGraph.EdgeFactory<V, DefaultEdge> factory() {
+    // see https://github.com/typetools/checker-framework/issues/3637
+    //noinspection Convert2MethodRef
+    return (source1, target1) -> new DefaultEdge(source1, target1);
   }
 }

@@ -46,6 +46,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Sort based physical implementation of {@link Aggregate} in
  * {@link EnumerableConvention enumerable calling convention}. */
 public class EnumerableSortedAggregate extends EnumerableAggregateBase implements EnumerableRel {
@@ -74,7 +76,8 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     }
 
     RelTraitSet inputTraits = getInput().getTraitSet();
-    RelCollation collation = required.getCollation();
+    RelCollation collation = requireNonNull(required.getCollation(),
+        () -> "collation trait is null, required traits are " + required);
     ImmutableBitSet requiredKeys = ImmutableBitSet.of(RelCollations.ordinals(collation));
     ImmutableBitSet groupKeys = ImmutableBitSet.range(groupSet.cardinality());
 
@@ -192,8 +195,11 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
 
     for (final AggImpState agg : aggs) {
       results.add(
-          agg.implementor.implementResult(agg.context,
-              new AggResultContextImpl(resultBlock, agg.call, agg.state, key_,
+          agg.implementor.implementResult(
+              requireNonNull(agg.context, () -> "agg.context is null for " + agg),
+              new AggResultContextImpl(resultBlock, agg.call,
+                  requireNonNull(agg.state, () -> "agg.state is null for " + agg),
+                  key_,
                   keyPhysType)));
     }
     resultBlock.add(physType.record(results));
@@ -206,7 +212,9 @@ public class EnumerableSortedAggregate extends EnumerableAggregateBase implement
     // Generate the appropriate key Comparator. In the case of NULL values
     // in group keys, the comparator must be able to support NULL values by giving a
     // consistent sort ordering.
-    final Expression comparator = keyPhysType.generateComparator(getTraitSet().getCollation());
+    final Expression comparator = keyPhysType.generateComparator(
+        requireNonNull(getTraitSet().getCollation(),
+            () -> "getTraitSet().getCollation() is null, current traits are " + getTraitSet()));
 
     final Expression resultSelector_ =
         builder.append("resultSelector",

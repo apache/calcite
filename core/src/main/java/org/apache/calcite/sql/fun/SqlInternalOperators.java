@@ -25,6 +25,8 @@ import org.apache.calcite.sql.SqlOperatorTable;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.util.Litmus;
 
+import java.util.List;
+
 /**
  * Contains internal operators.
  *
@@ -44,8 +46,10 @@ public abstract class SqlInternalOperators {
       new SqlRowOperator("$ANONYMOUS_ROW") {
         @Override public void unparse(SqlWriter writer, SqlCall call,
             int leftPrec, int rightPrec) {
+          @SuppressWarnings("assignment.type.incompatible")
+          List<SqlNode> operandList = call.getOperandList();
           writer.list(SqlWriter.FrameTypeEnum.PARENTHESES, SqlWriter.COMMA,
-              SqlNodeList.of(call.getParserPosition(), call.getOperandList()));
+              SqlNodeList.of(call.getParserPosition(), operandList));
         }
       };
 

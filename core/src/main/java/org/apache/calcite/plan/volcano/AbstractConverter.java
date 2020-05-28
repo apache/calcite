@@ -68,7 +68,8 @@ public class AbstractConverter extends ConverterImpl {
         traitSet);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return planner.getCostFactory().makeInfiniteCost();
   }
 

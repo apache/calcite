@@ -53,6 +53,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -62,6 +64,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.schema.Schema} that exposes the
  * public fields and methods in a Java object.
@@ -69,9 +73,9 @@ import java.util.Map;
 public class ReflectiveSchema
     extends AbstractSchema {
   private final Class clazz;
-  private Object target;
-  private Map<String, Table> tableMap;
-  private Multimap<String, Function> functionMap;
+  private final Object target;
+  private @MonotonicNonNull Map<String, Table> tableMap;
+  private @MonotonicNonNull Multimap<String, Function> functionMap;
 
   /**
    * Creates a ReflectiveSchema.
@@ -126,6 +130,7 @@ public class ReflectiveSchema
           throw new RuntimeException(
               "Error while accessing field " + field, e);
         }
+        requireNonNull(rc, () -> "field must not be null: " + field);
         FieldTable table =
             (FieldTable) tableMap.get(Util.last(rc.getSourceQualifiedName()));
         assert table != null;
@@ -196,6 +201,7 @@ public class ReflectiveSchema
       throw new RuntimeException(
           "Error while accessing field " + field, e);
     }
+    requireNonNull(o, () -> "field " + field + " is null for " + target);
     @SuppressWarnings("unchecked")
     final Enumerable<T> enumerable = toEnumerable(o);
     return new FieldTable<>(field, elementType, enumerable);
@@ -319,6 +325,7 @@ public class ReflectiveSchema
           //noinspection unchecked
           Method method = clazz.getMethod((String) methodName);
           target = method.invoke(null);
+          requireNonNull(target, () -> "method " + method + " returns null");
         } catch (Exception e) {
           throw new RuntimeException("Error invoking method " + methodName, e);
         }
@@ -352,9 +359,11 @@ public class ReflectiveSchema
       return "Member {method=" + method + "}";
     }
 
-    @Override public TranslatableTable apply(final List<Object> arguments) {
+    @Override public TranslatableTable apply(final List<? extends Object> arguments) {
       try {
-        final Object o = method.invoke(schema.getTarget(), arguments.toArray());
+        final Object o = requireNonNull(
+            method.invoke(schema.getTarget(), arguments.toArray()),
+            () -> "method " + method + " returned null for arguments " + arguments);
         return (TranslatableTable) o;
       } catch (IllegalAccessException | InvocationTargetException e) {
         throw new RuntimeException(e);
@@ -390,8 +399,11 @@ public class ReflectiveSchema
 
     @Override public Expression getExpression(SchemaPlus schema,
         String tableName, Class clazz) {
+      ReflectiveSchema reflectiveSchema = requireNonNull(
+          schema.unwrap(ReflectiveSchema.class),
+          () -> "schema.unwrap(ReflectiveSchema.class) for " + schema);
       return Expressions.field(
-          schema.unwrap(ReflectiveSchema.class).getTargetExpression(
+          reflectiveSchema.getTargetExpression(
               schema.getParentSchema(), schema.getName()), field);
     }
   }

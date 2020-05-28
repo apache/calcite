@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+
 import java.util.List;
 
 /**
@@ -40,5 +41,5 @@ public interface RelOptSchemaWithSampling extends RelOptSchema {
   RelOptTable getTableForMember(
       List<String> names,
       String datasetName,
-      boolean[] usedDataset);
+      boolean [] usedDataset);
 }

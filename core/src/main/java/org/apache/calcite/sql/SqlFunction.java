@@ -30,10 +30,12 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -164,7 +166,7 @@ public class SqlFunction extends SqlOperator {
    * {@link #getOperandTypeChecker()}. */
   @Deprecated // to be removed before 2.0
   public List<String> getParamNames() {
-    return Functions.generate(getParamTypes().size(), i -> "arg" + i);
+    return Functions.generate(castNonNull(getParamTypes()).size(), i -> "arg" + i);
   }
 
   @Override public void unparse(
@@ -178,7 +180,7 @@ public class SqlFunction extends SqlOperator {
   /**
    * Return function category.
    */
-  @Nonnull public SqlFunctionCategory getFunctionType() {
+  public SqlFunctionCategory getFunctionType() {
     return this.category;
   }
 
@@ -187,6 +189,7 @@ public class SqlFunction extends SqlOperator {
    * ALL</code> quantifier. The default is <code>false</code>; some aggregate
    * functions return <code>true</code>.
    */
+  @Pure
   public boolean isQuantifierAllowed() {
     return false;
   }
@@ -213,8 +216,9 @@ public class SqlFunction extends SqlOperator {
    * not allowed.
    */
   protected void validateQuantifier(SqlValidator validator, SqlCall call) {
-    if ((null != call.getFunctionQuantifier()) && !isQuantifierAllowed()) {
-      throw validator.newValidationError(call.getFunctionQuantifier(),
+    SqlLiteral functionQuantifier = call.getFunctionQuantifier();
+    if ((null != functionQuantifier) && !isQuantifierAllowed()) {
+      throw validator.newValidationError(functionQuantifier,
           RESOURCE.functionQuantifierNotAllowed(call.getOperator().getName()));
     }
   }

@@ -68,13 +68,17 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Abstract base for classes that implement
@@ -90,8 +94,8 @@ public abstract class Prepare {
    */
   protected final Convention resultConvention;
   protected CalciteTimingTracer timingTracer;
-  protected List<List<String>> fieldOrigins;
-  protected RelDataType parameterRowType;
+  protected @MonotonicNonNull List<List<String>> fieldOrigins;
+  protected @MonotonicNonNull RelDataType parameterRowType;
 
   // temporary. for testing.
   public static final TryThreadLocal<Boolean> THREAD_TRIM =
@@ -143,8 +147,9 @@ public abstract class Prepare {
     for (Materialization materialization : materializations) {
       List<String> qualifiedTableName = materialization.materializedTable.path();
       materializationList.add(
-          new RelOptMaterialization(materialization.tableRel,
-              materialization.queryRel,
+          new RelOptMaterialization(
+              castNonNull(materialization.tableRel),
+              castNonNull(materialization.queryRel),
               materialization.starRelOptTable,
               qualifiedTableName));
     }
@@ -177,8 +182,9 @@ public abstract class Prepare {
     // Allow a test to override the default program.
     final Holder<Program> holder = Holder.of(null);
     Hook.PROGRAM.run(holder);
-    if (holder.get() != null) {
-      return holder.get();
+    Program holderValue = holder.get();
+    if (holderValue != null) {
+      return holderValue;
     }
 
     return Programs.standard();
@@ -224,7 +230,7 @@ public abstract class Prepare {
     final SqlToRelConverter.Config config =
         SqlToRelConverter.config()
             .withTrimUnusedFields(true)
-            .withExpand(THREAD_EXPAND.get())
+            .withExpand(castNonNull(THREAD_EXPAND.get()))
             .withExplain(sqlQuery.getKind() == SqlKind.EXPLAIN);
     final Holder<SqlToRelConverter.Config> configHolder = Holder.of(config);
     Hook.SQL2REL_CONVERTER_CONFIG_BUILDER.run(configHolder);
@@ -362,7 +368,7 @@ public abstract class Prepare {
   protected RelRoot trimUnusedFields(RelRoot root) {
     final SqlToRelConverter.Config config = SqlToRelConverter.config()
         .withTrimUnusedFields(shouldTrim(root.rel))
-        .withExpand(THREAD_EXPAND.get());
+        .withExpand(castNonNull(THREAD_EXPAND.get()));
     final SqlToRelConverter converter =
         getSqlToRelConverter(getSqlValidator(), catalogReader, config);
     final boolean ordered = !root.collation.getFieldCollations().isEmpty();
@@ -374,7 +380,7 @@ public abstract class Prepare {
     // For now, don't trim if there are more than 3 joins. The projects
     // near the leaves created by trim migrate past joins and seem to
     // prevent join-reordering.
-    return THREAD_TRIM.get() || RelOptUtil.countJoins(rootRel) < 2;
+    return castNonNull(THREAD_TRIM.get()) || RelOptUtil.countJoins(rootRel) < 2;
   }
 
   protected abstract void init(Class runtimeContextClass);
@@ -409,7 +415,7 @@ public abstract class Prepare {
         InitializerContext initializerContext) {
       // This method is no longer used
       final Table table = this.unwrap(Table.class);
-      if (table != null && table instanceof Wrapper) {
+      if (table instanceof Wrapper) {
         final InitializerExpressionFactory initializerExpressionFactory =
             ((Wrapper) table).unwrap(InitializerExpressionFactory.class);
         if (initializerExpressionFactory != null) {
@@ -444,7 +450,9 @@ public abstract class Prepare {
                 (ModifiableViewTable) table;
         final ModifiableViewTable extendedView =
             modifiableViewTable.extend(dedupedExtendedFields,
-                getRelOptSchema().getTypeFactory());
+                requireNonNull(
+                    getRelOptSchema(),
+                    () -> "relOptSchema for table " + getQualifiedName()).getTypeFactory());
         return extend(extendedView);
       }
       throw new RuntimeException("Cannot extend " + table);
@@ -486,7 +494,7 @@ public abstract class Prepare {
 
     @Override public String getCode() {
       if (root == null) {
-        return RelOptUtil.dumpType(rowType);
+        return rowType == null ? "rowType is null" : RelOptUtil.dumpType(rowType);
       } else {
         return RelOptUtil.dumpPlan("", root.rel, format, detailLevel);
       }
@@ -536,7 +544,7 @@ public abstract class Prepare {
      * Returns a list describing, for each result field, the origin of the
      * field as a 4-element list of (database, schema, table, column).
      */
-    List<List<String>> getFieldOrigins();
+    List<? extends List<String>> getFieldOrigins();
 
     /**
      * Returns a record type whose fields are the parameters of this statement.
@@ -562,22 +570,22 @@ public abstract class Prepare {
     protected final RelDataType rowType;
     protected final boolean isDml;
     protected final TableModify.Operation tableModOp;
-    protected final List<List<String>> fieldOrigins;
+    protected final List<? extends List<String>> fieldOrigins;
     protected final List<RelCollation> collations;
 
     protected PreparedResultImpl(
         RelDataType rowType,
         RelDataType parameterRowType,
-        List<List<String>> fieldOrigins,
+        List<? extends List<String>> fieldOrigins,
         List<RelCollation> collations,
         RelNode rootRel,
         TableModify.Operation tableModOp,
         boolean isDml) {
-      this.rowType = Objects.requireNonNull(rowType);
-      this.parameterRowType = Objects.requireNonNull(parameterRowType);
-      this.fieldOrigins = Objects.requireNonNull(fieldOrigins);
+      this.rowType = requireNonNull(rowType);
+      this.parameterRowType = requireNonNull(parameterRowType);
+      this.fieldOrigins = requireNonNull(fieldOrigins);
       this.collations = ImmutableList.copyOf(collations);
-      this.rootRel = Objects.requireNonNull(rootRel);
+      this.rootRel = requireNonNull(rootRel);
       this.tableModOp = tableModOp;
       this.isDml = isDml;
     }
@@ -590,7 +598,7 @@ public abstract class Prepare {
       return tableModOp;
     }
 
-    @Override public List<List<String>> getFieldOrigins() {
+    @Override public List<? extends List<String>> getFieldOrigins() {
       return fieldOrigins;
     }
 
@@ -645,7 +653,7 @@ public abstract class Prepare {
         RelOptTable starRelOptTable) {
       this.queryRel = queryRel;
       this.starRelOptTable = starRelOptTable;
-      assert starRelOptTable.unwrap(StarTable.class) != null;
+      assert starRelOptTable.maybeUnwrap(StarTable.class).isPresent();
     }
   }
 }

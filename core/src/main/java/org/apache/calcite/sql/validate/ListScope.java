@@ -100,16 +100,22 @@ public abstract class ListScope extends DelegatingScope {
       if (table != null) {
         final ResolvedImpl resolved = new ResolvedImpl();
         resolveTable(names, nameMatcher, Path.EMPTY, resolved);
-        if (resolved.count() == 1
-            && resolved.only().remainingNames.isEmpty()
-            && resolved.only().namespace instanceof TableNamespace
-            && resolved.only().namespace.getTable().getQualifiedName().equals(
-                table.getQualifiedName())) {
-          return child;
+        if (resolved.count() == 1) {
+          Resolve only = resolved.only();
+          List<String> qualifiedName = table.getQualifiedName();
+          if (only.remainingNames.isEmpty()
+              && only.namespace instanceof TableNamespace
+              && Objects.equals(qualifiedName, getQualifiedName(only.namespace.getTable()))) {
+            return child;
+          }
         }
       }
     }
     return null;
+  }
+
+  private List<String> getQualifiedName(SqlValidatorTable table) {
+    return table == null ? null : table.getQualifiedName();
   }
 
   @Override public void findAllColumnNames(List<SqlMoniker> result) {

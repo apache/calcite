@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Call to an aggregate function over a window.
@@ -96,7 +95,7 @@ public class RexOver extends RexCall {
     return ignoreNulls;
   }
 
-  @Override protected @Nonnull String computeDigest(boolean withType) {
+  @Override protected String computeDigest(boolean withType) {
     final StringBuilder sb = new StringBuilder(op.getName());
     sb.append("(");
     if (distinct) {

@@ -24,6 +24,7 @@ import org.apache.calcite.util.XmlOutput;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Callback for a relational expression to dump in XML format.
@@ -147,7 +148,7 @@ public class RelXmlWriter extends RelWriterImpl {
       }
       xmlOutput.attribute(
           value.left,
-          value.right.toString());
+          Objects.toString(value.right));
     }
     xmlOutput.endBeginTag(tagName);
     spacer.add(2);

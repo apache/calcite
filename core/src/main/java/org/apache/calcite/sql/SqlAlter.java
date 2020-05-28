@@ -38,6 +38,7 @@ public abstract class SqlAlter extends SqlCall {
   }
 
   @Override public final void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
+    String scope = this.scope;
     if (scope != null) {
       writer.keyword("ALTER");
       writer.keyword(scope);

@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 /**
  * Utility that extracts constants from a SQL query.
@@ -120,7 +119,6 @@ public class Hoist {
   public interface Config {
     /** Returns the configuration for the SQL parser. */
     @ImmutableBeans.Property
-    @Nonnull
     SqlParser.Config parserConfig();
 
     /** Sets {@link #parserConfig()}. */

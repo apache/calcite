@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.type;
 
 import org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Pair;
 
@@ -36,6 +37,7 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   private final RelDataTypeHolder holder;
 
   /** Creates a DynamicRecordTypeImpl. */
+  @SuppressWarnings("method.invocation.invalid")
   public DynamicRecordTypeImpl(RelDataTypeFactory typeFactory) {
     this.holder = new RelDataTypeHolder(typeFactory);
     computeDigest();
@@ -82,7 +84,8 @@ public class DynamicRecordTypeImpl extends DynamicRecordType {
   }
 
   @Override public RelDataTypeFamily getFamily() {
-    return getSqlTypeName().getFamily();
+    SqlTypeFamily family = getSqlTypeName().getFamily();
+    return family != null ? family : this;
   }
 
 }

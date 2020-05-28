@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+
 /**
  * Default implementation of {@link RexBiVisitor}, which visits each node but
  * does nothing while it's there.

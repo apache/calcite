@@ -49,11 +49,11 @@ import org.apache.calcite.sql.validate.implicit.TypeCoercions;
 import org.apache.calcite.util.ImmutableBeans;
 
 import org.apiguardian.api.API;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import javax.annotation.Nullable;
 
 /**
  * Validates the parse tree of a SQL statement, and provides semantic
@@ -118,6 +118,7 @@ public interface SqlValidator {
    *
    * @return catalog reader
    */
+  @Pure
   SqlValidatorCatalogReader getCatalogReader();
 
   /**
@@ -125,6 +126,7 @@ public interface SqlValidator {
    *
    * @return operator table
    */
+  @Pure
   SqlOperatorTable getOperatorTable();
 
   /**
@@ -203,7 +205,7 @@ public interface SqlValidator {
    * @param call Call
    * @return List of operands' types, or null if not known or 'obvious'
    */
-  @Nullable List<RelDataType> getValidatedOperandTypes(SqlCall call);
+  List<RelDataType> getValidatedOperandTypes(SqlCall call);
 
   /**
    * Resolves an identifier to a fully-qualified name.
@@ -332,7 +334,7 @@ public interface SqlValidator {
    * arguments and requires no parentheses (for example "CURRENT_USER"),
    * returns a call to that function, otherwise returns null.
    */
-  @Nullable SqlCall makeNullaryCall(SqlIdentifier id);
+  SqlCall makeNullaryCall(SqlIdentifier id);
 
   /**
    * Derives the type of a node in a given scope. If the type has already been
@@ -474,6 +476,7 @@ public interface SqlValidator {
    *
    * @return type factory
    */
+  @Pure
   RelDataTypeFactory getTypeFactory();
 
   /**

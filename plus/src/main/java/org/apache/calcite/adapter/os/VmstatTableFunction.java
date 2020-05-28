@@ -17,6 +17,7 @@
 package org.apache.calcite.adapter.os;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.function.Function1;
@@ -36,6 +37,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Table function that executes the OS "vmstat" command
  * to share memory statistics.
@@ -47,7 +50,8 @@ public class VmstatTableFunction {
   public static ScannableTable eval(boolean b) {
     return new ScannableTable() {
       @Override public Enumerable<Object[]> scan(DataContext root) {
-        final RelDataType rowType = getRowType(root.getTypeFactory());
+        JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "root.getTypeFactory");
+        final RelDataType rowType = getRowType(typeFactory);
         final List<String> fieldNames =
             ImmutableList.copyOf(rowType.getFieldNames());
         final String[] args;

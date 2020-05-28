@@ -22,6 +22,8 @@ import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformance;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.Properties;
 
 /** Interface for reading connection properties within Calcite code. There is
@@ -55,8 +57,11 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of
    * {@link CalciteConnectionProperty#DEFAULT_NULL_COLLATION}. */
   NullCollation defaultNullCollation();
-  /** Returns the value of {@link CalciteConnectionProperty#FUN}. */
-  <T> T fun(Class<T> operatorTableClass, T defaultOperatorTable);
+  /** Returns the value of {@link CalciteConnectionProperty#FUN},
+   * or a default operator table if not set. If {@code defaultOperatorTable}
+   * is not null, the result is never null. */
+  <T> @PolyNull T fun(Class<T> operatorTableClass,
+      @PolyNull T defaultOperatorTable);
   /** Returns the value of {@link CalciteConnectionProperty#MODEL}. */
   String model();
   /** Returns the value of {@link CalciteConnectionProperty#LEX}. */
@@ -69,10 +74,16 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   Casing quotedCasing();
   /** Returns the value of {@link CalciteConnectionProperty#CASE_SENSITIVE}. */
   boolean caseSensitive();
-  /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY}. */
-  <T> T parserFactory(Class<T> parserFactoryClass, T defaultParserFactory);
-  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_FACTORY}. */
-  <T> T schemaFactory(Class<T> schemaFactoryClass, T defaultSchemaFactory);
+  /** Returns the value of {@link CalciteConnectionProperty#PARSER_FACTORY},
+   * or a default parser if not set. If {@code defaultParserFactory}
+   * is not null, the result is never null. */
+  <T> @PolyNull T parserFactory(Class<T> parserFactoryClass,
+      @PolyNull T defaultParserFactory);
+  /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_FACTORY},
+   * or a default schema factory if not set. If {@code defaultSchemaFactory}
+   * is not null, the result is never null. */
+  <T> @PolyNull T schemaFactory(Class<T> schemaFactoryClass,
+      @PolyNull T defaultSchemaFactory);
   /** Returns the value of {@link CalciteConnectionProperty#SCHEMA_TYPE}. */
   JsonSchema.Type schemaType();
   /** Returns the value of {@link CalciteConnectionProperty#SPARK}. */
@@ -80,8 +91,11 @@ public interface CalciteConnectionConfig extends ConnectionConfig {
   /** Returns the value of
    * {@link CalciteConnectionProperty#FORCE_DECORRELATE}. */
   boolean forceDecorrelate();
-  /** Returns the value of {@link CalciteConnectionProperty#TYPE_SYSTEM}. */
-  <T> T typeSystem(Class<T> typeSystemClass, T defaultTypeSystem);
+  /** Returns the value of {@link CalciteConnectionProperty#TYPE_SYSTEM},
+   * or a default type system if not set. If {@code defaultTypeSystem}
+   * is not null, the result is never null. */
+  <T> @PolyNull T typeSystem(Class<T> typeSystemClass,
+      @PolyNull T defaultTypeSystem);
   /** Returns the value of {@link CalciteConnectionProperty#CONFORMANCE}. */
   SqlConformance conformance();
   /** Returns the value of {@link CalciteConnectionProperty#TIME_ZONE}. */

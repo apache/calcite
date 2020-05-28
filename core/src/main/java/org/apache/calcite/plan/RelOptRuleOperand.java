@@ -20,6 +20,10 @@ import org.apache.calcite.rel.RelNode;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -39,12 +43,12 @@ public class RelOptRuleOperand {
   //~ Instance fields --------------------------------------------------------
 
   private RelOptRuleOperand parent;
-  private RelOptRule rule;
+  private @NotOnlyInitialized RelOptRule rule;
   private final Predicate<RelNode> predicate;
 
   // REVIEW jvs 29-Aug-2004: some of these are Volcano-specific and should be
   // factored out
-  public int[] solveOrder;
+  public int @MonotonicNonNull [] solveOrder;
   public int ordinalInParent;
   public int ordinalInRule;
   public final RelTrait trait;
@@ -97,6 +101,8 @@ public class RelOptRuleOperand {
    * and add constructor parameters for them. See
    * <a href="https://issues.apache.org/jira/browse/CALCITE-1166">[CALCITE-1166]
    * Disallow sub-classes of RelOptRuleOperand</a>. */
+  @SuppressWarnings({"initialization.fields.uninitialized",
+      "initialization.invalid.field.write.initialized"})
   <R extends RelNode> RelOptRuleOperand(
       Class<R> clazz,
       RelTrait trait,
@@ -162,7 +168,8 @@ public class RelOptRuleOperand {
    *
    * @param rule containing rule
    */
-  public void setRule(RelOptRule rule) {
+  @SuppressWarnings("initialization.invalid.field.write.initialized")
+  public void setRule(@UnknownInitialization RelOptRule rule) {
     this.rule = rule;
   }
 

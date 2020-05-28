@@ -36,9 +36,12 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.util.Litmus;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that iterates over its input
@@ -66,15 +69,15 @@ public abstract class Filter extends SingleRel {
    * @param condition boolean expression which determines whether a row is
    *                  allowed to pass
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Filter(
       RelOptCluster cluster,
       RelTraitSet traits,
       RelNode child,
       RexNode condition) {
     super(cluster, traits, child);
-    assert condition != null;
-    assert RexUtil.isFlat(condition) : condition;
-    this.condition = condition;
+    this.condition = requireNonNull(condition, "condition");
+    assert RexUtil.isFlat(condition) : "RexUtil.isFlat should be true for condition " + condition;
     // Too expensive for everyday use:
     assert !CalciteSystemProperty.DEBUG.value() || isValid(Litmus.THROW, null);
   }
@@ -84,7 +87,7 @@ public abstract class Filter extends SingleRel {
    */
   protected Filter(RelInput input) {
     this(input.getCluster(), input.getTraitSet(), input.getInput(),
-        input.getExpression("condition"));
+        requireNonNull(input.getExpression("condition"), "condition"));
   }
 
   //~ Methods ----------------------------------------------------------------
@@ -157,6 +160,7 @@ public abstract class Filter extends SingleRel {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
   protected boolean deepEquals0(Object obj) {
     if (this == obj) {
       return true;

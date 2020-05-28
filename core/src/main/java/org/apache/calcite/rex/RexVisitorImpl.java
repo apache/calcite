@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rex;
 
+
 import java.util.List;
 
 /**

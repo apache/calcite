@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 /**
  * Represents a constant null of unknown type
  * Java allows type inference for such nulls, thus "null" cannot always be

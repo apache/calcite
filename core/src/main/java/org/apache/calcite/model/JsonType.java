@@ -16,8 +16,13 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Type schema element.
@@ -31,15 +36,23 @@ public class JsonType {
    *
    * <p>Required.
    */
-  public String name;
+  public final String name;
 
   /** Type if this is not a struct.
    */
-  public String type;
+  public final String type;
 
   /** Definition of the attributes of this type.
    */
   public final List<JsonTypeAttribute> attributes = new ArrayList<>();
+
+  @JsonCreator
+  public JsonType(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("type") String type) {
+    this.name = requireNonNull(name, "name");
+    this.type = type;
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

@@ -134,7 +134,7 @@ public class JethroDataSqlDialect extends SqlDialect {
       this.operandTypes = b.build();
     }
 
-    private SqlTypeName parse(String strType) {
+    private static SqlTypeName parse(String strType) {
       switch (strType.toLowerCase(Locale.ROOT)) {
       case "bigint":
       case "long":
@@ -203,8 +203,12 @@ public class JethroDataSqlDialect extends SqlDialect {
         final Multimap<String, JethroSupportedFunction> supportedFunctions =
             LinkedHashMultimap.create();
         while (functionsTupleSet.next()) {
-          String functionName = functionsTupleSet.getString(1);
-          String operandsType = functionsTupleSet.getString(3);
+          String functionName = Objects.requireNonNull(
+              functionsTupleSet.getString(1),
+              "functionName");
+          String operandsType = Objects.requireNonNull(
+              functionsTupleSet.getString(3),
+              () -> "operands for " + functionName);
           supportedFunctions.put(functionName,
               new JethroSupportedFunction(functionName, operandsType));
         }

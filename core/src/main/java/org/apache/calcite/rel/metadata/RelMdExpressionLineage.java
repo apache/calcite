@@ -51,6 +51,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -61,7 +63,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of
@@ -106,7 +109,11 @@ public class RelMdExpressionLineage
 
   public Set<RexNode> getExpressionLineage(RelSubset rel,
       RelMetadataQuery mq, RexNode outputExpression) {
-    return mq.getExpressionLineage(Util.first(rel.getBest(), rel.getOriginal()),
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getExpressionLineage(bestOrOriginal,
         outputExpression);
   }
 
@@ -447,7 +454,7 @@ public class RelMdExpressionLineage
    * @param mapping mapping
    * @return set of resulting expressions equivalent to the input expression
    */
-  @Nullable protected static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
+  protected static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
       RexNode expr, Map<RexInputRef, Set<RexNode>> mapping) {
     // Extract input fields referenced by expression
     final ImmutableBitSet predFieldsUsed = extractInputRefs(expr);
@@ -469,8 +476,9 @@ public class RelMdExpressionLineage
   private static Set<RexNode> createAllPossibleExpressions(RexBuilder rexBuilder,
       RexNode expr, ImmutableBitSet predFieldsUsed, Map<RexInputRef, Set<RexNode>> mapping,
       Map<RexInputRef, RexNode> singleMapping) {
-    final RexInputRef inputRef = mapping.keySet().iterator().next();
-    final Set<RexNode> replacements = mapping.remove(inputRef);
+    final @KeyFor("mapping") RexInputRef inputRef = mapping.keySet().iterator().next();
+    final Set<RexNode> replacements = requireNonNull(mapping.remove(inputRef),
+        () -> "mapping.remove(inputRef) is null for " + inputRef);
     Set<RexNode> result = new HashSet<>();
     assert !replacements.isEmpty();
     if (predFieldsUsed.indexOf(inputRef.getIndex()) != -1) {
@@ -515,7 +523,9 @@ public class RelMdExpressionLineage
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
-      return replacementValues.get(inputRef);
+      return requireNonNull(
+          replacementValues.get(inputRef),
+          () -> "no replacement found for inputRef " + inputRef);
     }
   }
 

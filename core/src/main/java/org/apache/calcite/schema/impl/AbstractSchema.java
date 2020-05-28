@@ -34,6 +34,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Abstract implementation of {@link Schema}.
  *
@@ -64,6 +66,7 @@ public class AbstractSchema implements Schema {
   }
 
   @Override public Expression getExpression(SchemaPlus parentSchema, String name) {
+    requireNonNull(parentSchema, "parentSchema");
     return Schemas.subSchemaExpression(parentSchema, name, getClass());
   }
 
@@ -82,7 +85,8 @@ public class AbstractSchema implements Schema {
   }
 
   @Override public final Set<String> getTableNames() {
-    return getTableMap().keySet();
+    //noinspection RedundantCast
+    return (Set<String>) getTableMap().keySet();
   }
 
   @Override public final Table getTable(String name) {
@@ -108,7 +112,8 @@ public class AbstractSchema implements Schema {
   }
 
   @Override public Set<String> getTypeNames() {
-    return getTypeMap().keySet();
+    //noinspection RedundantCast
+    return (Set<String>) getTypeMap().keySet();
   }
 
   /**
@@ -151,7 +156,8 @@ public class AbstractSchema implements Schema {
   }
 
   @Override public final Set<String> getSubSchemaNames() {
-    return getSubSchemaMap().keySet();
+    //noinspection RedundantCast
+    return (Set<String>) getSubSchemaMap().keySet();
   }
 
   @Override public final Schema getSubSchema(String name) {

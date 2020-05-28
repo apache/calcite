@@ -206,10 +206,11 @@ public abstract class FilterJoinRule<C extends FilterJoinRule.Config>
             joinType,
             join.isSemiJoinDone());
     call.getPlanner().onCopy(join, newJoinRel);
-    if (!leftFilters.isEmpty()) {
+    // TODO: review if filter can be nullable here or not
+    if (!leftFilters.isEmpty() && filter != null) {
       call.getPlanner().onCopy(filter, leftRel);
     }
-    if (!rightFilters.isEmpty()) {
+    if (!rightFilters.isEmpty() && filter != null) {
       call.getPlanner().onCopy(filter, rightRel);
     }
 

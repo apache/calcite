@@ -66,6 +66,7 @@ public abstract class Calc extends SingleRel implements Hintable {
    * @param child Input relation
    * @param program Calc program
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -204,7 +205,7 @@ public abstract class Calc extends SingleRel implements Hintable {
         RexUtil.createStructType(
             rexBuilder.getTypeFactory(),
             projects,
-            this.rowType.getFieldNames(),
+            getRowType().getFieldNames(),
             null);
     final RexProgram newProgram =
         RexProgramBuilder.create(

@@ -17,6 +17,7 @@
 package org.apache.calcite.rel.rules.materialize;
 
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
@@ -33,6 +34,7 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,7 +82,8 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     // (((A JOIN B) JOIN D) JOIN C) JOIN E
     if (config.fastBailOut()) {
       for (RelNode joinInput : node.getInputs()) {
-        if (mq.getTableReferences(joinInput).containsAll(viewTableRefs)) {
+        Set<RelTableRef> tableReferences = mq.getTableReferences(joinInput);
+        if (tableReferences == null || tableReferences.containsAll(viewTableRefs)) {
           return null;
         }
       }
@@ -100,12 +103,17 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     // Then the rest of the rewriting algorithm can be executed in the same
     // fashion, and if there are predicates between the existing and missing
     // tables, the rewriting algorithm will enforce them.
-    Collection<RelNode> tableScanNodes = mq.getNodeTypes(node).get(TableScan.class);
+    Multimap<Class<? extends RelNode>, RelNode> nodeTypes = mq.getNodeTypes(node);
+    if (nodeTypes == null) {
+      return null;
+    }
+    Collection<RelNode> tableScanNodes = nodeTypes.get(TableScan.class);
     List<RelNode> newRels = new ArrayList<>();
     for (RelTableRef tRef : extraTableRefs) {
       int i = 0;
       for (RelNode relNode : tableScanNodes) {
-        if (tRef.getQualifiedName().equals(relNode.getTable().getQualifiedName())) {
+        TableScan scan = (TableScan) relNode;
+        if (tRef.getQualifiedName().equals(scan.getTable().getQualifiedName())) {
           if (tRef.getEntityNumber() == i++) {
             newRels.add(relNode);
             break;
@@ -155,9 +163,10 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     // the planner strategy.
     RelNode newNode = node;
     RelNode target = node;
-    if (config.unionRewritingPullProgram() != null) {
+    HepProgram unionRewritingPullProgram = config.unionRewritingPullProgram();
+    if (unionRewritingPullProgram != null) {
       final HepPlanner tmpPlanner =
-          new HepPlanner(config.unionRewritingPullProgram());
+          new HepPlanner(unionRewritingPullProgram);
       tmpPlanner.setRoot(newNode);
       newNode = tmpPlanner.findBestExp();
       target = newNode.getInput(0);
@@ -167,24 +176,27 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
     // in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
 
+
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
+      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, viewToQueryTableMapping.inverse(), queryEC, false,
           compensationColumnsEquiPred);
-      if (compensationColumnsEquiPred == null) {
+      if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
       }
+      compensationColumnsEquiPred = newCompensationColumnsEquiPred;
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      otherCompensationPred = rewriteExpression(rexBuilder, mq,
+      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, viewToQueryTableMapping.inverse(), viewEC, true,
           otherCompensationPred);
-      if (otherCompensationPred == null) {
+      if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
+      otherCompensationPred = newOtherCompensationPred;
     }
     final RexNode queryCompensationPred = RexUtil.not(
         RexUtil.composeConjunction(rexBuilder,
@@ -196,7 +208,7 @@ public abstract class MaterializedViewJoinRule<C extends MaterializedViewRule.Co
         .push(target)
         .filter(simplify.simplifyUnknownAsFalse(queryCompensationPred))
         .build();
-    if (config.unionRewritingPullProgram() != null) {
+    if (unionRewritingPullProgram != null) {
       rewrittenPlan = newNode.copy(
           newNode.getTraitSet(), ImmutableList.of(rewrittenPlan));
     }

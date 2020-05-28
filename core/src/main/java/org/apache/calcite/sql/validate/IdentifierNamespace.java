@@ -28,11 +28,12 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -51,7 +52,7 @@ public class IdentifierNamespace extends AbstractNamespace {
    * The underlying namespace. Often a {@link TableNamespace}.
    * Set on validate.
    */
-  private SqlValidatorNamespace resolvedNamespace;
+  private @MonotonicNonNull SqlValidatorNamespace resolvedNamespace;
 
   /**
    * List of monotonic expressions. Set on validate.
@@ -70,7 +71,7 @@ public class IdentifierNamespace extends AbstractNamespace {
    * @param parentScope   Parent scope which this namespace turns to in order to
    */
   IdentifierNamespace(SqlValidatorImpl validator, SqlIdentifier id,
-      @Nullable SqlNodeList extendList, SqlNode enclosingNode,
+      SqlNodeList extendList, SqlNode enclosingNode,
       SqlValidatorScope parentScope) {
     super(validator, enclosingNode);
     this.id = id;
@@ -97,8 +98,10 @@ public class IdentifierNamespace extends AbstractNamespace {
       return Pair.of(identifier, call.operand(1));
     case TABLE_REF:
       final SqlCall tableRef = (SqlCall) node;
+      //noinspection ConstantConditions
       return Pair.of(tableRef.operand(0), null);
     default:
+      //noinspection ConstantConditions
       return Pair.of((SqlIdentifier) node, null);
     }
   }
@@ -181,9 +184,9 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
-    resolvedNamespace = Objects.requireNonNull(resolveImpl(id));
+    resolvedNamespace = resolveImpl(id);
     if (resolvedNamespace instanceof TableNamespace) {
-      SqlValidatorTable table = resolvedNamespace.getTable();
+      SqlValidatorTable table = ((TableNamespace) resolvedNamespace).getTable();
       if (validator.config().identifierExpansion()) {
         // TODO:  expand qualifiers for column references also
         List<String> qualifiedNames = table.getQualifiedName();
@@ -258,11 +261,15 @@ public class IdentifierNamespace extends AbstractNamespace {
   }
 
   @Override public List<Pair<SqlNode, SqlMonotonicity>> getMonotonicExprs() {
-    return monotonicExprs;
+    List<Pair<SqlNode, SqlMonotonicity>> monotonicExprs = this.monotonicExprs;
+    return monotonicExprs == null ? ImmutableList.of() : monotonicExprs;
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final SqlValidatorTable table = getTable();
+    if (table == null) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
     return table.getMonotonicity(columnName);
   }
 

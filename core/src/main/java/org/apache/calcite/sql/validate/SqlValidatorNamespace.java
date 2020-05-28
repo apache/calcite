@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
 /**
@@ -123,6 +125,7 @@ public interface SqlValidatorNamespace {
    * includes all decorations. If there are no decorations, returns the same
    * as {@link #getNode()}.
    */
+  @Pure
   SqlNode getEnclosingNode();
 
   /**
@@ -169,7 +172,7 @@ public interface SqlValidatorNamespace {
    * @return This namespace cast to desired type
    * @throws ClassCastException if no such interface is available
    */
-  <T> T unwrap(Class<T> clazz);
+  <T extends Object> T unwrap(Class<T> clazz);
 
   /**
    * Returns whether this namespace implements a given interface, or wraps a

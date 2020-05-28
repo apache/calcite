@@ -36,9 +36,13 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Virtual table that is composed of two or more tables joined together.
@@ -59,7 +63,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
   public final ImmutableList<Table> tables;
 
   /** Number of fields in each table's row type. */
-  public ImmutableIntList fieldCounts;
+  public @MonotonicNonNull ImmutableIntList fieldCounts;
 
   /** Creates a StarTable. */
   private StarTable(Lattice lattice, ImmutableList<Table> tables) {
@@ -111,7 +115,7 @@ public class StarTable extends AbstractTable implements TranslatableTable {
    */
   public int columnOffset(Table table) {
     int n = 0;
-    for (Pair<Table, Integer> pair : Pair.zip(tables, fieldCounts)) {
+    for (Pair<Table, Integer> pair : Pair.zip(tables, castNonNull(fieldCounts))) {
       if (pair.left == table) {
         return n;
       }

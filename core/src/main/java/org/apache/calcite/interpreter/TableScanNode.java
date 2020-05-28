@@ -49,9 +49,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Objects;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Interpreter node that implements a
@@ -126,6 +127,8 @@ public class TableScanNode implements Node {
     final Type elementType = queryableTable.getElementType();
     SchemaPlus schema = root.getRootSchema();
     for (String name : Util.skipLast(relOptTable.getQualifiedName())) {
+      requireNonNull(schema, () -> "schema is null while resolving " + name + " for table"
+          + relOptTable.getQualifiedName());
       schema = schema.getSubSchema(name);
     }
     final Enumerable<Row> rowEnumerable;
@@ -223,7 +226,7 @@ public class TableScanNode implements Node {
       }
       final Enumerable<Row> rowEnumerable = Enumerables.toRow(enumerable1);
       final ImmutableIntList rejectedProjects;
-      if (Objects.equals(projects, originalProjects)) {
+      if (originalProjects == null || originalProjects.equals(projects)) {
         rejectedProjects = null;
       } else {
         // We projected extra columns because they were needed in filters. Now

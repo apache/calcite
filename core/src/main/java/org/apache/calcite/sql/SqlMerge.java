@@ -23,6 +23,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
 /**
@@ -71,11 +73,13 @@ public class SqlMerge extends SqlCall {
     return SqlKind.MERGE;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, source, updateCall,
         insertCall, sourceSelect, alias);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -111,6 +115,7 @@ public class SqlMerge extends SqlCall {
   }
 
   /** Returns the alias for the target table of this MERGE. */
+  @Pure
   public SqlIdentifier getAlias() {
     return alias;
   }
@@ -161,6 +166,7 @@ public class SqlMerge extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
@@ -174,6 +180,7 @@ public class SqlMerge extends SqlCall {
     writer.keyword("ON");
     condition.unparse(writer, opLeft, opRight);
 
+    SqlUpdate updateCall = this.updateCall;
     if (updateCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN MATCHED THEN UPDATE");
@@ -195,11 +202,13 @@ public class SqlMerge extends SqlCall {
       writer.endList(setFrame);
     }
 
+    SqlInsert insertCall = this.insertCall;
     if (insertCall != null) {
       writer.newlineAndIndent();
       writer.keyword("WHEN NOT MATCHED THEN INSERT");
-      if (insertCall.getTargetColumnList() != null) {
-        insertCall.getTargetColumnList().unparse(writer, opLeft, opRight);
+      SqlNodeList targetColumnList = insertCall.getTargetColumnList();
+      if (targetColumnList != null) {
+        targetColumnList.unparse(writer, opLeft, opRight);
       }
       insertCall.getSource().unparse(writer, opLeft, opRight);
 

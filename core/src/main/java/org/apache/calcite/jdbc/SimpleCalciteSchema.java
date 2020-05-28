@@ -46,10 +46,15 @@ class SimpleCalciteSchema extends CalciteSchema {
     this(parent, schema, name, null, null, null, null, null, null, null, null);
   }
 
-  private SimpleCalciteSchema(CalciteSchema parent, Schema schema,
-      String name, NameMap<CalciteSchema> subSchemaMap,
-      NameMap<TableEntry> tableMap, NameMap<LatticeEntry> latticeMap, NameMap<TypeEntry> typeMap,
-      NameMultimap<FunctionEntry> functionMap, NameSet functionNames,
+  private SimpleCalciteSchema(CalciteSchema parent,
+      Schema schema,
+      String name,
+      NameMap<CalciteSchema> subSchemaMap,
+      NameMap<TableEntry> tableMap,
+      NameMap<LatticeEntry> latticeMap,
+      NameMap<TypeEntry> typeMap,
+      NameMultimap<FunctionEntry> functionMap,
+      NameSet functionNames,
       NameMap<FunctionEntry> nullaryFunctionMap,
       List<? extends List<String>> path) {
     super(parent, schema, name, subSchemaMap, tableMap, latticeMap, typeMap,
@@ -169,7 +174,8 @@ class SimpleCalciteSchema extends CalciteSchema {
     return null;
   }
 
-  @Override protected CalciteSchema snapshot(CalciteSchema parent, SchemaVersion version) {
+  @Override protected CalciteSchema snapshot(CalciteSchema parent,
+      SchemaVersion version) {
     CalciteSchema snapshot = new SimpleCalciteSchema(parent,
         schema.snapshot(version), name, null, tableMap, latticeMap, typeMap,
         functionMap, functionNames, nullaryFunctionMap, getPath());

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Callback for a relational expression to dump itself as JSON.
@@ -67,7 +68,7 @@ public class RelJsonWriter implements RelWriter {
     }
     // omit 'inputs: ["3"]' if "3" is the preceding rel
     final List<Object> list = explainInputs(rel.getInputs());
-    if (list.size() != 1 || !list.get(0).equals(previousId)) {
+    if (list.size() != 1 || !Objects.equals(list.get(0), previousId)) {
       map.put("inputs", list);
     }
 

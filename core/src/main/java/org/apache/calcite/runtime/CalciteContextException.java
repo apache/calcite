@@ -20,6 +20,8 @@ package org.apache.calcite.runtime;
 // resource generation can use reflection.  That means it must have no
 // dependencies on other Calcite code.
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+
 /**
  * Exception which contains information about the textual context of the causing
  * exception.
@@ -121,6 +123,7 @@ public class CalciteContextException extends CalciteException {
    * @param endPosColumn 1-based end column number
    */
   public void setPosition(
+      @UnknownInitialization CalciteContextException this,
       int posLine,
       int posColumn,
       int endPosLine,
@@ -178,6 +181,11 @@ public class CalciteContextException extends CalciteException {
   @Override public String getMessage() {
     // The superclass' message is the textual context information
     // for this exception, so we add in the underlying cause to the message
-    return super.getMessage() + ": " + getCause().getMessage();
+    Throwable cause = getCause();
+    if (cause == null) {
+      // It would be sad to get NPE from getMessage
+      return super.getMessage();
+    }
+    return super.getMessage() + ": " + cause.getMessage();
   }
 }

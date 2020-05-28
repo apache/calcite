@@ -52,6 +52,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * An operator describing a <code>CASE</code>, <code>NULLIF</code> or <code>
  * COALESCE</code> expression. All of these forms are normalized at parse time
@@ -248,7 +250,8 @@ public class SqlCaseOperator extends SqlOperator {
       }
     }
 
-    SqlNode elseOp = caseCall.getElseOperand();
+    SqlNode elseOp = requireNonNull(caseCall.getElseOperand(),
+        () -> "elseOperand for " + caseCall);
     argTypes.add(
         SqlTypeUtil.deriveType(callBinding, elseOp));
     if (SqlUtil.isNullLiteral(elseOp, false)) {
@@ -278,6 +281,7 @@ public class SqlCaseOperator extends SqlOperator {
     }
     final SqlValidatorImpl validator =
         (SqlValidatorImpl) callBinding.getValidator();
+    requireNonNull(ret, () -> "return type for " + callBinding);
     for (SqlNode node : nullList) {
       validator.setValidatedNodeType(node, ret);
     }
@@ -310,7 +314,9 @@ public class SqlCaseOperator extends SqlOperator {
     }
 
     thenTypes.add(Iterables.getLast(argTypes));
-    return typeFactory.leastRestrictive(thenTypes);
+    return requireNonNull(
+        typeFactory.leastRestrictive(thenTypes),
+        () -> "Can't find leastRestrictive type for " + thenTypes);
   }
 
   @Override public SqlOperandCountRange getOperandCountRange() {
@@ -321,6 +327,7 @@ public class SqlCaseOperator extends SqlOperator {
     return SqlSyntax.SPECIAL;
   }
 
+  @SuppressWarnings("argument.type.incompatible")
   @Override public SqlCall createCall(
       SqlLiteral functionQualifier,
       SqlParserPos pos,
@@ -347,8 +354,11 @@ public class SqlCaseOperator extends SqlOperator {
       pair.right.unparse(writer, 0, 0);
     }
 
-    writer.sep("ELSE");
-    kase.elseExpr.unparse(writer, 0, 0);
+    SqlNode elseExpr = kase.elseExpr;
+    if (elseExpr != null) {
+      writer.sep("ELSE");
+      elseExpr.unparse(writer, 0, 0);
+    }
     writer.endList(frame);
   }
 }

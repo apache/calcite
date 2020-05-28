@@ -54,6 +54,9 @@ class UnnestNamespace extends AbstractNamespace {
       // for UnnestNamespace
       final SqlIdentifier id = (SqlIdentifier) toUnnest;
       final SqlQualified qualified = this.scope.fullyQualify(id);
+      if (qualified.namespace == null) {
+        return null;
+      }
       return qualified.namespace.getTable();
     }
     return null;

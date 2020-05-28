@@ -70,7 +70,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a WARN message with three Object parameters.
    */
-  public void warn(String format, Object arg1, Object arg2, Object arg3) {
+  public void warn(String format, Object arg1, Object arg2,
+      Object arg3) {
     if (logger.isWarnEnabled()) {
       logger.warn(format, arg1, arg2, arg3);
     }
@@ -79,7 +80,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a WARN message with four Object parameters.
    */
-  public void warn(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void warn(String format, Object arg1, Object arg2,
+      Object arg3, Object arg4) {
     if (logger.isWarnEnabled()) {
       logger.warn(format, arg1, arg2, arg3, arg4);
     }
@@ -104,7 +106,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs an INFO message with three Object parameters.
    */
-  public void info(String format, Object arg1, Object arg2, Object arg3) {
+  public void info(String format, Object arg1, Object arg2,
+      Object arg3) {
     if (logger.isInfoEnabled()) {
       logger.info(format, arg1, arg2, arg3);
     }
@@ -113,7 +116,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs an INFO message with four Object parameters.
    */
-  public void info(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void info(String format, Object arg1, Object arg2,
+      Object arg3, Object arg4) {
     if (logger.isInfoEnabled()) {
       logger.info(format, arg1, arg2, arg3, arg4);
     }
@@ -138,7 +142,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a DEBUG message with three Object parameters.
    */
-  public void debug(String format, Object arg1, Object arg2, Object arg3) {
+  public void debug(String format, Object arg1, Object arg2,
+      Object arg3) {
     if (logger.isDebugEnabled()) {
       logger.debug(format, arg1, arg2, arg3);
     }
@@ -147,7 +152,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a DEBUG message with four Object parameters.
    */
-  public void debug(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void debug(String format, Object arg1, Object arg2,
+      Object arg3, Object arg4) {
     if (logger.isDebugEnabled()) {
       logger.debug(format, arg1, arg2, arg3, arg4);
     }
@@ -172,7 +178,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a TRACE message with three Object parameters.
    */
-  public void trace(String format, Object arg1, Object arg2, Object arg3) {
+  public void trace(String format, Object arg1, Object arg2,
+      Object arg3) {
     if (logger.isTraceEnabled()) {
       logger.trace(format, arg1, arg2, arg3);
     }
@@ -181,7 +188,8 @@ public class CalciteLogger {
   /**
    * Conditionally logs a TRACE message with four Object parameters.
    */
-  public void trace(String format, Object arg1, Object arg2, Object arg3, Object arg4) {
+  public void trace(String format, Object arg1, Object arg2,
+      Object arg3, Object arg4) {
     if (logger.isTraceEnabled()) {
       logger.trace(format, arg1, arg2, arg3, arg4);
     }

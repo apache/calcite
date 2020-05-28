@@ -31,6 +31,7 @@ import java.util.List;
  */
 public class SqlOrderBy extends SqlCall {
   public static final SqlSpecialOperator OPERATOR = new Operator() {
+    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(SqlLiteral functionQualifier,
         SqlParserPos pos, SqlNode... operands) {
       return new SqlOrderBy(pos, operands[0], (SqlNodeList) operands[1],
@@ -64,6 +65,7 @@ public class SqlOrderBy extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(query, orderList, offset, fetch);
   }

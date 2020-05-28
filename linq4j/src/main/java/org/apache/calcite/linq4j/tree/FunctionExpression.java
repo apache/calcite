@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Represents a strongly typed lambda expression as a data structure in the form
  * of an expression tree. This class cannot be inherited.
@@ -68,7 +70,7 @@ public final class FunctionExpression<F extends Function<?>>
 
   @Override public Expression accept(Shuttle shuttle) {
     shuttle = shuttle.preVisit(this);
-    BlockStatement body = this.body.accept(shuttle);
+    BlockStatement body = this.body == null ? null : this.body.accept(shuttle);
     return shuttle.visit(this, body);
   }
 
@@ -82,7 +84,7 @@ public final class FunctionExpression<F extends Function<?>>
       for (int i = 0; i < args.length; i++) {
         evaluator.push(parameterList.get(i), args[i]);
       }
-      return evaluator.evaluate(body);
+      return evaluator.evaluate(requireNonNull(body));
     };
   }
 
@@ -93,8 +95,9 @@ public final class FunctionExpression<F extends Function<?>>
     if (dynamicFunction == null) {
       final Invokable x = compile();
 
+      ClassLoader classLoader = requireNonNull(requireNonNull(getClass().getClassLoader()));
       //noinspection unchecked
-      dynamicFunction = (F) Proxy.newProxyInstance(getClass().getClassLoader(),
+      dynamicFunction = (F) Proxy.newProxyInstance(classLoader,
           new Class[]{Types.toClass(type)}, (proxy, method, args) -> x.dynamicInvoke(args));
     }
     return dynamicFunction;
@@ -142,9 +145,10 @@ public final class FunctionExpression<F extends Function<?>>
       boxBridgeParams.add(parameterExpression.declString(parameterBoxType));
       boxBridgeArgs.add(parameterExpression.name
           + (Primitive.is(parameterType)
-          ? "." + Primitive.of(parameterType).primitiveName + "Value()"
+          ? "." + requireNonNull(Primitive.of(parameterType)).primitiveName + "Value()"
           : ""));
     }
+    requireNonNull(body);
     Type bridgeResultType = Functions.FUNCTION_RESULT_TYPES.get(this.type);
     if (bridgeResultType == null) {
       bridgeResultType = body.getType();
@@ -202,13 +206,11 @@ public final class FunctionExpression<F extends Function<?>>
 
   private boolean isAbstractMethodPrimitive() {
     Method method = getAbstractMethod();
-    assert method != null;
     return Primitive.is(method.getReturnType());
   }
 
   private String getAbstractMethodName() {
     final Method abstractMethod = getAbstractMethod();
-    assert abstractMethod != null;
     return abstractMethod.getName();
   }
 
@@ -222,7 +224,7 @@ public final class FunctionExpression<F extends Function<?>>
         return declaredMethods.get(0);
       }
     }
-    return null;
+    throw new IllegalStateException("Method not found, type = " + type);
   }
 
   @Override public boolean equals(Object o) {

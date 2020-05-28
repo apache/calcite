@@ -21,6 +21,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlKind;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Variable which references a column of a table occurrence in a relational plan.
@@ -59,7 +60,7 @@ public class RexTableInputRef extends RexInputRef {
   }
 
   @Override public int hashCode() {
-    return digest.hashCode();
+    return Objects.hashCode(digest);
   }
 
   public RelTableRef getTableRef() {

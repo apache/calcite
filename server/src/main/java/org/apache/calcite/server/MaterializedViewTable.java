@@ -37,7 +37,7 @@ class MaterializedViewTable
     return Schema.TableType.MATERIALIZED_VIEW;
   }
 
-  @Override public <C> C unwrap(Class<C> aClass) {
+  @Override public <C extends Object> C unwrap(Class<C> aClass) {
     if (MaterializationKey.class.isAssignableFrom(aClass)
         && aClass.isInstance(key)) {
       return aClass.cast(key);

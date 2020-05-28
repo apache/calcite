@@ -29,7 +29,6 @@ import com.google.common.collect.Ordering;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities concerning {@link org.apache.calcite.rel.RelDistribution}.
@@ -125,11 +124,11 @@ public class RelDistributions {
       }
     }
 
-    @Override @Nonnull public Type getType() {
+    @Override public Type getType() {
       return type;
     }
 
-    @Override @Nonnull public List<Integer> getKeys() {
+    @Override public List<Integer> getKeys() {
       return keys;
     }
 
@@ -188,7 +187,7 @@ public class RelDistributions {
       return type == Type.ANY;
     }
 
-    @Override public int compareTo(@Nonnull RelMultipleTrait o) {
+    @Override public int compareTo(RelMultipleTrait o) {
       final RelDistribution distribution = (RelDistribution) o;
       if (type == distribution.getType()
           && (type == Type.HASH_DISTRIBUTED

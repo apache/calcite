@@ -32,6 +32,8 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Table function that implements a view. It returns the operator
  * tree of the view's SQL query. */
 public class ViewTableMacro implements TableMacro {
@@ -54,7 +56,8 @@ public class ViewTableMacro implements TableMacro {
    *                   of {@code viewSql})
    */
   public ViewTableMacro(CalciteSchema schema, String viewSql,
-      List<String> schemaPath, List<String> viewPath, Boolean modifiable) {
+      List<String> schemaPath, List<String> viewPath,
+      Boolean modifiable) {
     this.viewSql = viewSql;
     this.schema = schema;
     this.viewPath = viewPath == null ? null : ImmutableList.copyOf(viewPath);
@@ -67,7 +70,7 @@ public class ViewTableMacro implements TableMacro {
     return Collections.emptyList();
   }
 
-  @Override public TranslatableTable apply(List<Object> arguments) {
+  @Override public TranslatableTable apply(List<? extends Object> arguments) {
     final CalciteConnection connection =
         MaterializedViewTable.MATERIALIZATION_CONNECTION;
     CalcitePrepare.AnalyzeViewResult parsed =
@@ -93,8 +96,10 @@ public class ViewTableMacro implements TableMacro {
     final Type elementType = typeFactory.getJavaClass(parsed.rowType);
     return new ModifiableViewTable(elementType,
         RelDataTypeImpl.proto(parsed.rowType), viewSql, schemaPath, viewPath,
-        parsed.table, Schemas.path(schema.root(), parsed.tablePath),
-        parsed.constraint, parsed.columnMapping);
+        requireNonNull(parsed.table, "parsed.table"),
+        Schemas.path(schema.root(), requireNonNull(parsed.tablePath, "parsed.tablePath")),
+        requireNonNull(parsed.constraint, "parsed.constraint"),
+        requireNonNull(parsed.columnMapping, "parsed.columnMapping"));
   }
 
   /** Allows a sub-class to return an extension of {@link ViewTable} by

@@ -42,6 +42,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -49,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Rule that reduces decimal operations (such as casts
@@ -218,10 +222,12 @@ public class ReduceDecimalsRule
 
     private ExpanderMap(RexBuilder rexBuilder) {
       map = new HashMap<>();
-      registerExpanders(rexBuilder);
+      defaultExpander = new CastArgAsDoubleExpander(rexBuilder);
+      registerExpanders(map, rexBuilder);
     }
 
-    private void registerExpanders(RexBuilder rexBuilder) {
+    private static void registerExpanders(Map<SqlOperator, RexExpander> map,
+        RexBuilder rexBuilder) {
       RexExpander cast = new CastExpander(rexBuilder);
       map.put(SqlStdOperatorTable.CAST, cast);
 
@@ -257,8 +263,6 @@ public class ReduceDecimalsRule
 
       RexExpander caseExpander = new CaseExpander(rexBuilder);
       map.put(SqlStdOperatorTable.CASE, caseExpander);
-
-      defaultExpander = new CastArgAsDoubleExpander(rexBuilder);
     }
 
     RexExpander getExpander(RexCall call) {
@@ -814,8 +818,8 @@ public class ReduceDecimalsRule
    * Expands a decimal arithmetic expression.
    */
   private static class BinaryArithmeticExpander extends RexExpander {
-    RelDataType typeA;
-    RelDataType typeB;
+    @MonotonicNonNull RelDataType typeA;
+    @MonotonicNonNull RelDataType typeB;
     int scaleA;
     int scaleB;
 
@@ -933,8 +937,8 @@ public class ReduceDecimalsRule
 
       if (builder.getTypeFactory().getTypeSystem().shouldUseDoubleMultiplication(
           builder.getTypeFactory(),
-          typeA,
-          typeB)) {
+          requireNonNull(typeA, "typeA"),
+          requireNonNull(typeB, "typeB"))) {
         // Approximate implementation:
         // cast (a as double) * cast (b as double)
         //     / 10^divisor
@@ -973,8 +977,8 @@ public class ReduceDecimalsRule
     }
 
     private RexNode expandMod(RexCall call, List<RexNode> operands) {
-      assert SqlTypeUtil.isExactNumeric(typeA);
-      assert SqlTypeUtil.isExactNumeric(typeB);
+      assert SqlTypeUtil.isExactNumeric(requireNonNull(typeA, "typeA"));
+      assert SqlTypeUtil.isExactNumeric(requireNonNull(typeB, "typeB"));
       if (scaleA != 0 || scaleB != 0) {
         throw RESOURCE.argumentMustHaveScaleZero(call.getOperator().getName())
             .ex();

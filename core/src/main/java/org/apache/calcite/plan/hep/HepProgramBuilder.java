@@ -23,7 +23,8 @@ import org.apache.calcite.plan.RelOptRule;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * HepProgramBuilder creates instances of {@link HepProgram}.
@@ -112,7 +113,7 @@ public class HepProgramBuilder {
   public HepProgramBuilder addRuleInstance(RelOptRule rule) {
     HepInstruction.RuleInstance instruction =
         new HepInstruction.RuleInstance();
-    instruction.rule = Objects.requireNonNull(rule);
+    instruction.rule = requireNonNull(rule);
     instructions.add(instruction);
     return this;
   }
@@ -162,7 +163,7 @@ public class HepProgramBuilder {
     assert group != null;
     HepInstruction.EndGroup instruction = new HepInstruction.EndGroup();
     instructions.add(instruction);
-    group.endGroup = instruction;
+    requireNonNull(group, "group").endGroup = instruction;
     group = null;
     return this;
   }

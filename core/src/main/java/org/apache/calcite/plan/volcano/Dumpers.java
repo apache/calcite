@@ -38,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Utility class to dump state of <code>VolcanoPlanner</code>.
  */
@@ -140,6 +142,10 @@ class Dumpers {
                 planner.getSubset(
                     input,
                     input.getTraitSet());
+            if (inputSubset == null) {
+              pw.append("no subset found for input ").print(input.getId());
+              continue;
+            }
             RelSet inputSet = inputSubset.set;
             if (input instanceof RelSubset) {
               final Iterator<RelNode> rels =
@@ -191,7 +197,12 @@ class Dumpers {
         // Note: rel traitset could be different from its subset.traitset
         // It can happen due to RelTraitset#simplify
         // If the traits are different, we want to keep them on a graph
-        String traits = "." + planner.getSubset(rel).getTraitSet().toString();
+        RelSubset relSubset = planner.getSubset(rel);
+        if (relSubset == null) {
+          pw.append("no subset found for rel");
+          continue;
+        }
+        String traits = "." + relSubset.getTraitSet().toString();
         String title = rel.toString().replace(traits, "");
         if (title.endsWith(")")) {
           int openParen = title.indexOf('(');
@@ -208,7 +219,6 @@ class Dumpers {
             title
                 + "\nrows=" + mq.getRowCount(rel) + ", cost="
                 + planner.getCost(rel, mq), false);
-        RelSubset relSubset = planner.getSubset(rel);
         if (!(rel instanceof AbstractConverter)) {
           nonEmptySubsets.add(relSubset);
         }
@@ -249,7 +259,11 @@ class Dumpers {
       }
 
       for (RelSubset subset : subsetPoset) {
-        for (RelSubset parent : subsetPoset.getChildren(subset)) {
+        List<RelSubset> children = subsetPoset.getChildren(subset);
+        if (children == null) {
+          continue;
+        }
+        for (RelSubset parent : children) {
           pw.print("\t\tsubset");
           pw.print(subset.getId());
           pw.print(" -> subset");
@@ -263,11 +277,15 @@ class Dumpers {
     // Note: it is important that all the links are declared AFTER declaration of the nodes
     // Otherwise Graphviz creates nodes implicitly, and puts them into a wrong cluster
     pw.print("\troot -> subset");
-    pw.print(planner.root.getId());
+    pw.print(requireNonNull(planner.root, "planner.root").getId());
     pw.println(";");
     for (RelSet set : ordering.immutableSortedCopy(planner.allSets)) {
       for (RelNode rel : set.rels) {
         RelSubset relSubset = planner.getSubset(rel);
+        if (relSubset == null) {
+          pw.append("no subset found for rel ").print(rel.getId());
+          continue;
+        }
         pw.print("\tsubset");
         pw.print(relSubset.getId());
         pw.print(" -> rel");

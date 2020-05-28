@@ -23,6 +23,8 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
 /**
@@ -69,11 +71,13 @@ public class SqlUpdate extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
         sourceExpressionList, condition, alias);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -106,6 +110,7 @@ public class SqlUpdate extends SqlCall {
   }
 
   /** Returns the alias for the target table of this UPDATE. */
+  @Pure
   public SqlIdentifier getAlias() {
     return alias;
   }
@@ -155,6 +160,7 @@ public class SqlUpdate extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
@@ -171,6 +177,7 @@ public class SqlUpdate extends SqlCall {
       sourceExp.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
+    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);

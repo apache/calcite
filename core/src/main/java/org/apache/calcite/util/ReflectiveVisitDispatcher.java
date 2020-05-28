@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -32,7 +33,8 @@ import java.util.List;
  * @param <E> Argument type
  * @param <R> Return type
  */
-public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor, E> {
+public interface ReflectiveVisitDispatcher<R extends ReflectiveVisitor,
+    E extends Object> {
   //~ Methods ----------------------------------------------------------------
 
   /**

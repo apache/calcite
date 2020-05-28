@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan.volcano;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rules.SubstitutionRule;
 import org.apache.calcite.util.trace.CalciteTrace;
 
@@ -110,6 +111,9 @@ class IterativeRuleQueue extends RuleQueue {
       dumpRuleQueue(matchList);
 
       match = matchList.poll();
+      if (match == null) {
+        return null;
+      }
 
       if (skipMatch(match)) {
         LOGGER.debug("Skip match: {}", match);
@@ -158,7 +162,10 @@ class IterativeRuleQueue extends RuleQueue {
       planner.dump(pw);
       pw.flush();
       LOGGER.trace(sw.toString());
-      planner.getRoot().getCluster().invalidateMetadataQuery();
+      RelNode root = planner.getRoot();
+      if (root != null) {
+        root.getCluster().invalidateMetadataQuery();
+      }
     }
   }
 

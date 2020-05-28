@@ -37,6 +37,8 @@ import com.google.common.collect.ImmutableMap;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Relational expression that converts an enumerable input to interpretable
  * calling convention.
@@ -70,7 +72,8 @@ public class EnumerableBindable extends ConverterImpl implements BindableRel {
   @Override public Node implement(final InterpreterImplementor implementor) {
     return () -> {
       final Sink sink =
-          implementor.relSinks.get(EnumerableBindable.this).get(0);
+          requireNonNull(implementor.relSinks.get(EnumerableBindable.this),
+              () -> "relSinks.get is null for " + EnumerableBindable.this).get(0);
       final Enumerable<Object[]> enumerable = bind(implementor.dataContext);
       final Enumerator<Object[]> enumerator = enumerable.enumerator();
       while (enumerator.moveNext()) {

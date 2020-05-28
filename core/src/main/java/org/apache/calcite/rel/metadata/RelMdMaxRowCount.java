@@ -147,7 +147,7 @@ public class RelMdMaxRowCount
     if (rel.getGroupType() == Aggregate.Group.SIMPLE) {
       final RelOptPredicateList predicateList =
           mq.getPulledUpPredicates(rel.getInput());
-      if (predicateList != null
+      if (!RelOptPredicateList.isEmpty(predicateList)
           && allGroupKeysAreConstant(rel, predicateList)) {
         return 1D;
       }

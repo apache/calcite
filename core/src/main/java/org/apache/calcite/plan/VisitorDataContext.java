@@ -75,12 +75,12 @@ public class VisitorDataContext implements DataContext {
 
   public static DataContext of(RelDataType rowType, RexNode rex) {
     final int size = rowType.getFieldList().size();
-    final Object[] values = new Object[size];
     final List<RexNode> operands = ((RexCall) rex).getOperands();
     final RexNode firstOperand = operands.get(0);
     final RexNode secondOperand = operands.get(1);
     final Pair<Integer, ?> value = getValue(firstOperand, secondOperand);
     if (value != null) {
+      final Object[] values = new Object[size];
       int index = value.getKey();
       values[index] = value.getValue();
       return new VisitorDataContext(values);
@@ -90,10 +90,10 @@ public class VisitorDataContext implements DataContext {
   }
 
   public static DataContext of(RelDataType rowType,
-      List<Pair<RexInputRef, RexNode>> usageList) {
+      List<? extends Pair<RexInputRef, ? extends RexNode>> usageList) {
     final int size = rowType.getFieldList().size();
     final Object[] values = new Object[size];
-    for (Pair<RexInputRef, RexNode> elem : usageList) {
+    for (Pair<RexInputRef, ? extends RexNode> elem : usageList) {
       Pair<Integer, ?> value = getValue(elem.getKey(), elem.getValue());
       if (value == null) {
         LOGGER.warn("{} is not handled for {} for checking implication",
@@ -106,7 +106,8 @@ public class VisitorDataContext implements DataContext {
     return new VisitorDataContext(values);
   }
 
-  public static Pair<Integer, ?> getValue(RexNode inputRef, RexNode literal) {
+  public static Pair<Integer, ? extends Object> getValue(
+      RexNode inputRef, RexNode literal) {
     inputRef = inputRef == null ? null : RexUtil.removeCast(inputRef);
     literal = literal == null ? null : RexUtil.removeCast(literal);
 
@@ -147,12 +148,13 @@ public class VisitorDataContext implements DataContext {
         return Pair.of(index, rexLiteral.getValueAs(String.class));
       default:
         // TODO: Support few more supported cases
+        Comparable value = rexLiteral.getValue();
         LOGGER.warn("{} for value of class {} is being handled in default way",
-            type.getSqlTypeName(), rexLiteral.getValue().getClass());
-        if (rexLiteral.getValue() instanceof NlsString) {
-          return Pair.of(index, ((NlsString) rexLiteral.getValue()).getValue());
+            type.getSqlTypeName(), value == null ? null : value.getClass());
+        if (value instanceof NlsString) {
+          return Pair.of(index, ((NlsString) value).getValue());
         } else {
-          return Pair.of(index, rexLiteral.getValue());
+          return Pair.of(index, value);
         }
       }
     }

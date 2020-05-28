@@ -176,6 +176,10 @@ public abstract class Sources {
       this.urlGenerated = true;
     }
 
+    private File fileNonNull() {
+      return Objects.requireNonNull(file, "file");
+    }
+
     private static File urlToFile(URL url) {
       if (!"file".equals(url.getProtocol())) {
         return null;
@@ -227,7 +231,7 @@ public abstract class Sources {
     }
 
     @Override public String toString() {
-      return (urlGenerated ? file : url).toString();
+      return (urlGenerated ? fileNonNull() : url).toString();
     }
 
     @Override public URL url() {
@@ -286,7 +290,7 @@ public abstract class Sources {
         final String s = Sources.trimOrNull(url.toExternalForm(), suffix);
         return s == null ? null : Sources.url(s);
       } else {
-        final String s = Sources.trimOrNull(file.getPath(), suffix);
+        final String s = Sources.trimOrNull(fileNonNull().getPath(), suffix);
         return s == null ? null : of(new File(s));
       }
     }
@@ -320,8 +324,8 @@ public abstract class Sources {
     @Override public Source relative(Source parent) {
       if (isFile(parent)) {
         if (isFile(this)
-            && file.getPath().startsWith(parent.file().getPath())) {
-          String rest = file.getPath().substring(parent.file().getPath().length());
+            && fileNonNull().getPath().startsWith(parent.file().getPath())) {
+          String rest = fileNonNull().getPath().substring(parent.file().getPath().length());
           if (rest.startsWith(File.separator)) {
             return Sources.file(null, rest.substring(File.separator.length()));
           }

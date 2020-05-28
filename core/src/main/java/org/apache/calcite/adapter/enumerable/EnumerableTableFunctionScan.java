@@ -106,12 +106,13 @@ public class EnumerableTableFunctionScan extends TableFunctionScan
     BlockBuilder bb = new BlockBuilder();
     // Non-array user-specified types are not supported yet
     final JavaRowFormat format;
-    if (getElementType() == null) {
+    Type elementType = getElementType();
+    if (elementType == null) {
       format = JavaRowFormat.ARRAY;
-    } else if (rowType.getFieldCount() == 1 && isQueryable()) {
+    } else if (getRowType().getFieldCount() == 1 && isQueryable()) {
       format = JavaRowFormat.SCALAR;
-    } else if (getElementType() instanceof Class
-        && Object[].class.isAssignableFrom((Class) getElementType())) {
+    } else if (elementType instanceof Class
+        && Object[].class.isAssignableFrom((Class<?>) elementType)) {
       format = JavaRowFormat.ARRAY;
     } else {
       format = JavaRowFormat.CUSTOM;

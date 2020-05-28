@@ -23,13 +23,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Utilities for {@link RelOptTable.ViewExpander} and
  * {@link RelOptTable.ToRelContext}.
  */
-@Nonnull
 public abstract class ViewExpanders {
   private ViewExpanders() {}
 

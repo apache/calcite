@@ -78,7 +78,7 @@ public final class LogicalWindow extends Window {
   @Override public LogicalWindow copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
     return new LogicalWindow(getCluster(), traitSet, sole(inputs), constants,
-      rowType, groups);
+      getRowType(), groups);
   }
 
   /**

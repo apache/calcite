@@ -450,7 +450,8 @@ public final class CalciteSystemProperty<T> {
 
   private final T value;
 
-  private CalciteSystemProperty(String key, Function<String, T> valueParser) {
+  private CalciteSystemProperty(String key,
+      Function<? super String, ? extends T> valueParser) {
     this.value = valueParser.apply(PROPERTIES.getProperty(key));
   }
 

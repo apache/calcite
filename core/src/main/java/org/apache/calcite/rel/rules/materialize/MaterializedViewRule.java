@@ -77,6 +77,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that converts a {@link org.apache.calcite.rel.core.Project}
  * followed by {@link org.apache.calcite.rel.core.Aggregate} or an
@@ -326,7 +330,9 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
               // Copy origin
               RelTableRef queryTableRef = queryToViewTableMapping.inverse().get(
                   e.getKey().getTableRef());
-              RexTableInputRef queryColumnRef = RexTableInputRef.of(queryTableRef,
+              RexTableInputRef queryColumnRef = RexTableInputRef.of(
+                  requireNonNull(queryTableRef,
+                      () -> "queryTableRef is null for tableRef " + e.getKey().getTableRef()),
                   e.getKey().getIndex(), e.getKey().getType());
               // Add to query equivalence classes and table mapping
               currQEC.addEquivalenceClass(queryColumnRef, e.getValue());
@@ -488,10 +494,12 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    *
    * <p>Rules implementing the method should follow different approaches depending on the
    * operators they rewrite.
+   * @return ViewPartialRewriting, or null if the rewrite can't be done
    */
   protected abstract ViewPartialRewriting compensateViewPartial(
       RelBuilder relBuilder, RexBuilder rexBuilder, RelMetadataQuery mq, RelNode input,
-      Project topProject, RelNode node, Set<RelTableRef> queryTableRefs, EquivalenceClasses queryEC,
+      Project topProject, RelNode node, Set<RelTableRef> queryTableRefs,
+      EquivalenceClasses queryEC,
       Project topViewProject, RelNode viewNode, Set<RelTableRef> viewTableRefs);
 
   /**
@@ -540,7 +548,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
    * <p>The method will return a pair of nodes: the new top project on the left and
    * the new node on the right.
    */
-  protected abstract Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(RelBuilder builder,
+  protected abstract Pair<RelNode, RelNode> pushFilterToOriginalViewPlan(
+      RelBuilder builder,
       RelNode topViewProject, RelNode viewNode, RexNode cond);
 
 
@@ -740,7 +749,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
                 RexTableInputRef.of(parentTRef, pair.target, uniqueKeyColumnType);
             if (!foreignKeyColumnType.isNullable()
                 && sourceEC.getEquivalenceClassesMap().containsKey(uniqueKeyColumnRef)
-                && sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef)
+                && castNonNull(sourceEC.getEquivalenceClassesMap().get(uniqueKeyColumnRef))
                     .contains(foreignKeyColumnRef)) {
               equiColumns.put(foreignKeyColumnRef, uniqueKeyColumnRef);
             } else {
@@ -754,7 +763,7 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
             if (edge == null) {
               edge = graph.addEdge(tRef, parentTRef);
             }
-            edge.equiColumns.putAll(equiColumns);
+            castNonNull(edge).equiColumns.putAll(equiColumns);
           }
         }
       }
@@ -1358,7 +1367,8 @@ public abstract class MaterializedViewRule<C extends MaterializedViewRule.Config
     private final Project newTopViewProject;
     private final RelNode newViewNode;
 
-    private ViewPartialRewriting(RelNode newView, Project newTopViewProject, RelNode newViewNode) {
+    private ViewPartialRewriting(RelNode newView, Project newTopViewProject,
+        RelNode newViewNode) {
       this.newView = newView;
       this.newTopViewProject = newTopViewProject;
       this.newViewNode = newViewNode;

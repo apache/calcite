@@ -45,6 +45,8 @@ import org.slf4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that folds projections and filters into an underlying
  * {@link org.apache.calcite.rel.logical.LogicalValues}.
@@ -144,6 +146,7 @@ public class ValuesReduceRule
         reducibleExps.add(c);
       }
       if (projectExprs != null) {
+        requireNonNull(project, "project");
         int k = -1;
         for (RexNode projectExpr : projectExprs) {
           ++k;
@@ -209,7 +212,7 @@ public class ValuesReduceRule
     if (changeCount > 0) {
       final RelDataType rowType;
       if (projectExprs != null) {
-        rowType = project.getRowType();
+        rowType = requireNonNull(project, "project").getRowType();
       } else {
         rowType = values.getRowType();
       }
@@ -238,6 +241,7 @@ public class ValuesReduceRule
     private List<RexLiteral> literalList;
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
+      requireNonNull(literalList, "literalList");
       return literalList.get(inputRef.getIndex());
     }
   }

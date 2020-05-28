@@ -43,6 +43,7 @@ import org.apache.calcite.util.Util;
 
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -84,10 +85,8 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       RelDataType type = SqlTypeUtil.deriveType(callBinding, operand.e);
       if (operand.i == 0) {
         firstType = type;
-      } else {
-        if (!SqlTypeUtil.sameNamedType(firstType, type)) {
-          return false;
-        }
+      } else if (!SqlTypeUtil.sameNamedType(castNonNull(firstType), type)) {
+        return false;
       }
     }
     return true;
@@ -179,7 +178,7 @@ public class SqlLiteralChainOperator extends SqlSpecialOperator {
       } else {
         // print without prefix
         if (rand.getTypeName() == SqlTypeName.BINARY) {
-          BitString bs = (BitString) rand.getValue();
+          BitString bs = rand.getValueAs(BitString.class);
           writer.literal("'" + bs.toHexString() + "'");
         } else {
           writer.literal("'" + rand.toValue() + "'");

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+
 /**
  * Extension to {@link Bindable} that returns rows that are arrays of objects.
  *

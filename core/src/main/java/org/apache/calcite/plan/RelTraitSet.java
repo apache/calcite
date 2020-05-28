@@ -234,7 +234,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
   /** If a given multiple trait is enabled, replaces it by calling the given
    * function. */
   public <T extends RelMultipleTrait> RelTraitSet replaceIfs(RelTraitDef<T> def,
-      Supplier<List<T>> traitSupplier) {
+      Supplier<? extends List<T>> traitSupplier) {
     int index = findIndex(def);
     if (index < 0) {
       return this; // trait is not enabled; ignore it
@@ -248,7 +248,7 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
 
   /** If a given trait is enabled, replaces it by calling the given function. */
   public <T extends RelTrait> RelTraitSet replaceIf(RelTraitDef<T> def,
-      Supplier<T> traitSupplier) {
+      Supplier<? extends T> traitSupplier) {
     int index = findIndex(def);
     if (index < 0) {
       return this; // trait is not enabled; ignore it
@@ -372,8 +372,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * {@link RelDistributionTraitDef#INSTANCE} is not registered
    * in this traitSet.
    */
+  @SuppressWarnings("unchecked")
   public <T extends RelDistribution> T getDistribution() {
-    //noinspection unchecked
     return (T) getTrait(RelDistributionTraitDef.INSTANCE);
   }
 
@@ -383,8 +383,8 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    * {@link RelCollationTraitDef#INSTANCE} is not registered
    * in this traitSet.
    */
+  @SuppressWarnings("unchecked")
   public <T extends RelCollation> T getCollation() {
-    //noinspection unchecked
     return (T) getTrait(RelCollationTraitDef.INSTANCE);
   }
 
@@ -407,7 +407,9 @@ public final class RelTraitSet extends AbstractList<RelTrait> {
    */
   public <T extends RelTrait> T canonize(T trait) {
     if (trait == null) {
-      return null;
+      // Return "trait" makes the input type to be the same as the output type,
+      // so checkerframework is happy
+      return trait;
     }
 
     if (trait instanceof RelCompositeTrait) {

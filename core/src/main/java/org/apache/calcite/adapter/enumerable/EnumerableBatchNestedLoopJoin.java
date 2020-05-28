@@ -131,6 +131,9 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
     Double restartCount = mq.getRowCount(getLeft()) / variablesSet.size();
 
     RelOptCost rightCost = planner.getCost(getRight(), mq);
+    if (rightCost == null) {
+      return null;
+    }
     RelOptCost rescanCost =
         rightCost.multiplyBy(Math.max(1.0, restartCount - 1));
 

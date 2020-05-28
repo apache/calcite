@@ -75,7 +75,9 @@ public abstract class ReflectiveSqlOperatorTable implements SqlOperatorTable {
         } else if (
             SqlOperator.class.isAssignableFrom(field.getType())) {
           SqlOperator op = (SqlOperator) field.get(this);
-          register(op);
+          if (op != null) {
+            register(op);
+          }
         }
       } catch (IllegalArgumentException | IllegalAccessException e) {
         throw Util.throwAsRuntime(Util.causeOrSelf(e));

@@ -85,7 +85,11 @@ public class RelMdTableReferences
   }
 
   public Set<RelTableRef> getTableReferences(RelSubset rel, RelMetadataQuery mq) {
-    return mq.getTableReferences(Util.first(rel.getBest(), rel.getOriginal()));
+    RelNode bestOrOriginal = Util.first(rel.getBest(), rel.getOriginal());
+    if (bestOrOriginal == null) {
+      return null;
+    }
+    return mq.getTableReferences(bestOrOriginal);
   }
 
   /**

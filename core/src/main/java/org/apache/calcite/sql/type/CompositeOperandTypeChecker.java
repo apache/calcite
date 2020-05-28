@@ -31,9 +31,9 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
@@ -97,10 +97,10 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   CompositeOperandTypeChecker(
       Composition composition,
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
-      @Nullable String allowedSignatures,
-      @Nullable SqlOperandCountRange range) {
-    this.allowedRules = Objects.requireNonNull(allowedRules);
-    this.composition = Objects.requireNonNull(composition);
+      String allowedSignatures,
+      SqlOperandCountRange range) {
+    this.allowedRules = requireNonNull(allowedRules);
+    this.composition = requireNonNull(composition);
     this.allowedSignatures = allowedSignatures;
     this.range = range;
     assert (range != null) == (composition == Composition.REPEAT);
@@ -151,7 +151,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public SqlOperandCountRange getOperandCountRange() {
     switch (composition) {
     case REPEAT:
-      return range;
+      return requireNonNull(range, "range");
     case SEQUENCE:
       return SqlOperandCountRanges.of(allowedRules.size());
     case AND:
@@ -266,7 +266,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   private boolean check(SqlCallBinding callBinding) {
     switch (composition) {
     case REPEAT:
-      if (!range.isValidCount(callBinding.getOperandCount())) {
+      if (!requireNonNull(range, "range").isValidCount(callBinding.getOperandCount())) {
         return false;
       }
       for (int operand : Util.range(callBinding.getOperandCount())) {
@@ -377,7 +377,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return false;
   }
 
-  @Nullable @Override public SqlOperandTypeInference typeInference() {
+  @Override public SqlOperandTypeInference typeInference() {
     if (composition == Composition.REPEAT) {
       if (Iterables.getOnlyElement(allowedRules) instanceof SqlOperandTypeInference) {
         final SqlOperandTypeInference rule =

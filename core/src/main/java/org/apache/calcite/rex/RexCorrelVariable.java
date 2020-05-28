@@ -58,7 +58,7 @@ public class RexCorrelVariable extends RexVariable {
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof RexCorrelVariable
-        && digest.equals(((RexCorrelVariable) obj).digest)
+        && Objects.equals(digest, ((RexCorrelVariable) obj).digest)
         && type.equals(((RexCorrelVariable) obj).type)
         && id.equals(((RexCorrelVariable) obj).id);
   }

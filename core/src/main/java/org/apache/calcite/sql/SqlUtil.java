@@ -32,6 +32,7 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -51,6 +52,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
@@ -66,8 +69,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -81,9 +82,9 @@ public abstract class SqlUtil {
    *
    * <p>If {@code node1} is null, returns {@code node2}.
    * Flattens if either node is an AND. */
-  public static @Nonnull SqlNode andExpressions(
-      @Nullable SqlNode node1,
-      @Nonnull SqlNode node2) {
+  public static SqlNode andExpressions(
+      SqlNode node1,
+      SqlNode node2) {
     if (node1 == null) {
       return node2;
     }
@@ -115,7 +116,9 @@ public abstract class SqlUtil {
   public static SqlNode getFromNode(
       SqlSelect query,
       int ordinal) {
-    ArrayList<SqlNode> list = flatten(query.getFrom());
+    SqlNode from = query.getFrom();
+    assert from != null : "from must not be null for " + query;
+    ArrayList<SqlNode> list = flatten(from);
     return list.get(ordinal);
   }
 
@@ -178,7 +181,7 @@ public abstract class SqlUtil {
         return false;
       }
     }
-    if (allowCast) {
+    if (allowCast && node != null) {
       if (node.getKind() == SqlKind.CAST) {
         SqlCall call = (SqlCall) node;
         if (isNullLiteral(call.operand(0), false)) {
@@ -628,14 +631,16 @@ public abstract class SqlUtil {
     return (Iterator) Iterators.filter(
         Iterators.filter(routines, SqlFunction.class),
         function -> {
-          if (Objects.requireNonNull(function).getOperandTypeChecker() == null
-              || !function.getOperandTypeChecker().isFixedParameters()) {
+          SqlOperandTypeChecker operandTypeChecker =
+              Objects.requireNonNull(function, "function").getOperandTypeChecker();
+          if (operandTypeChecker == null
+              || !operandTypeChecker.isFixedParameters()) {
             // no parameter information for builtins; keep for now,
             // the type coerce will not work here.
             return true;
           }
-          final SqlOperandMetadata operandMetadata =
-              (SqlOperandMetadata) function.getOperandTypeChecker();
+          final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
+          @SuppressWarnings("assignment.type.incompatible")
           final List<RelDataType> paramTypes =
               operandMetadata.paramTypes(typeFactory);
           final List<RelDataType> permutedArgTypes;
@@ -656,6 +661,7 @@ public abstract class SqlUtil {
             final RelDataType argType = p.right;
             final RelDataType paramType = p.left;
             if (argType != null
+                && paramType != null
                 && !SqlTypeUtil.canCastFrom(paramType, argType, coerce)) {
               return false;
             }
@@ -679,12 +685,9 @@ public abstract class SqlUtil {
       }
       map.put(i, argName.i);
     }
-    return Functions.generate(paramNames.size(), index -> {
-      if (map.containsKey(index)) {
-        return argTypes.get(map.get(index));
-      } else {
-        return null;
-      }
+    return Functions.<RelDataType>generate(paramNames.size(), index -> {
+      Integer argIndex = map.get(index);
+      return argIndex != null ? argTypes.get(argIndex) : null;
     });
   }
 
@@ -715,11 +718,11 @@ public abstract class SqlUtil {
       if (bestMatch != null) {
         sqlFunctions = sqlFunctions.stream()
             .filter(function -> {
-              if (!function.getOperandTypeChecker().isFixedParameters()) {
+              SqlOperandTypeChecker operandTypeChecker = function.getOperandTypeChecker();
+              if (operandTypeChecker == null || !operandTypeChecker.isFixedParameters()) {
                 return false;
               }
-              final SqlOperandMetadata operandMetadata =
-                  (SqlOperandMetadata) function.getOperandTypeChecker();
+              final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
               final List<String> paramNames = operandMetadata.paramNames();
               final List<RelDataType> paramTypes =
                   operandMetadata.paramTypes(typeFactory);
@@ -741,11 +744,11 @@ public abstract class SqlUtil {
       List<String> argNames, RelDataTypePrecedenceList precList) {
     RelDataType bestMatch = null;
     for (SqlFunction function : sqlFunctions) {
-      if (!function.getOperandTypeChecker().isFixedParameters()) {
+      SqlOperandTypeChecker operandTypeChecker = function.getOperandTypeChecker();
+      if (operandTypeChecker == null || !operandTypeChecker.isFixedParameters()) {
         continue;
       }
-      final SqlOperandMetadata operandMetadata =
-          (SqlOperandMetadata) function.getOperandTypeChecker();
+      final SqlOperandMetadata operandMetadata = (SqlOperandMetadata) operandTypeChecker;
       final List<RelDataType> paramTypes =
           operandMetadata.paramTypes(typeFactory);
       final List<String> paramNames = operandMetadata.paramNames();
@@ -782,6 +785,7 @@ public abstract class SqlUtil {
       }
       final SqlNodeList fields = select.getSelectList();
 
+      assert fields != null : "fields must not be null in " + select;
       // Range check the index to avoid index out of range.  This
       // could be expanded to actually check to see if the select
       // list is a "*"
@@ -847,7 +851,7 @@ public abstract class SqlUtil {
         if (i > 0) {
           ret.append(", ");
         }
-        final String t = typeList.get(i).toString().toUpperCase(Locale.ROOT);
+        final String t = String.valueOf(typeList.get(i)).toUpperCase(Locale.ROOT);
         ret.append("<").append(t).append(">");
       }
       ret.append(")'");
@@ -856,7 +860,7 @@ public abstract class SqlUtil {
       values[0] = opName;
       ret.append("'");
       for (int i = 0; i < typeList.size(); i++) {
-        final String t = typeList.get(i).toString().toUpperCase(Locale.ROOT);
+        final String t = String.valueOf(typeList.get(i)).toUpperCase(Locale.ROOT);
         values[i + 1] = "<" + t + ">";
       }
       ret.append(new MessageFormat(template, Locale.ROOT).format(values));
@@ -1021,8 +1025,8 @@ public abstract class SqlUtil {
   }
 
   /** If a node is "AS", returns the underlying expression; otherwise returns
-   * the node. */
-  public static SqlNode stripAs(SqlNode node) {
+   * the node. Returns null if and only if the node is null. */
+  public static @PolyNull SqlNode stripAs(@PolyNull SqlNode node) {
     if (node != null && node.getKind() == SqlKind.AS) {
       return ((SqlCall) node).operand(0);
     }
@@ -1056,7 +1060,9 @@ public abstract class SqlUtil {
       throw new AssertionError("not found: " + predicate + " in " + root);
     } catch (Util.FoundOne e) {
       //noinspection unchecked
-      return (ImmutableList<SqlNode>) e.getNode();
+      return (ImmutableList<SqlNode>) Objects.requireNonNull(
+          e.getNode(),
+          "Genealogist result");
     }
   }
 
@@ -1070,7 +1076,8 @@ public abstract class SqlUtil {
    * @param sqlHints       The sql hints nodes
    * @return the {@code RelHint} list
    */
-  public static List<RelHint> getRelHint(HintStrategyTable hintStrategies, SqlNodeList sqlHints) {
+  public static List<RelHint> getRelHint(HintStrategyTable hintStrategies,
+      SqlNodeList sqlHints) {
     if (sqlHints == null || sqlHints.size() == 0) {
       return ImmutableList.of();
     }

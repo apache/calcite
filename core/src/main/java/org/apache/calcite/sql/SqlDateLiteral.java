@@ -22,6 +22,8 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 
+import java.util.Objects;
+
 /**
  * A SQL literal representing a DATE value, such as <code>DATE
  * '2004-10-22'</code>.
@@ -39,11 +41,11 @@ public class SqlDateLiteral extends SqlAbstractDateTimeLiteral {
 
   /** Converts this literal to a {@link DateString}. */
   protected DateString getDate() {
-    return (DateString) value;
+    return (DateString) Objects.requireNonNull(value, "value");
   }
 
   @Override public SqlDateLiteral clone(SqlParserPos pos) {
-    return new SqlDateLiteral((DateString) value, pos);
+    return new SqlDateLiteral(getDate(), pos);
   }
 
   @Override public String toString() {

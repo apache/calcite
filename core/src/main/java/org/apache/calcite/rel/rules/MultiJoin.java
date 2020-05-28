@@ -91,9 +91,9 @@ public final class MultiJoin extends AbstractRelNode {
       RexNode joinFilter,
       RelDataType rowType,
       boolean isFullOuterJoin,
-      List<RexNode> outerJoinConditions,
+      List<? extends RexNode> outerJoinConditions,
       List<JoinRelType> joinTypes,
-      List<ImmutableBitSet> projFields,
+      List<? extends ImmutableBitSet> projFields,
       ImmutableMap<Integer, ImmutableIntList> joinFieldRefCountsMap,
       RexNode postJoinFilter) {
     super(cluster, cluster.traitSetOf(Convention.NONE));
@@ -149,15 +149,17 @@ public final class MultiJoin extends AbstractRelNode {
     List<String> projFieldObjects = new ArrayList<>();
     for (int i = 0; i < inputs.size(); i++) {
       joinTypeNames.add(joinTypes.get(i).name());
-      if (outerJoinConditions.get(i) == null) {
+      RexNode outerJoinCondition = outerJoinConditions.get(i);
+      if (outerJoinCondition == null) {
         outerJoinConds.add("NULL");
       } else {
-        outerJoinConds.add(outerJoinConditions.get(i).toString());
+        outerJoinConds.add(outerJoinCondition.toString());
       }
-      if (projFields.get(i) == null) {
+      ImmutableBitSet projField = projFields.get(i);
+      if (projField == null) {
         projFieldObjects.add("ALL");
       } else {
-        projFieldObjects.add(projFields.get(i).toString());
+        projFieldObjects.add(projField.toString());
       }
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+
 /**
  * Utilities for converting SQL {@code LIKE} and {@code SIMILAR} operators
  * to regular expressions.

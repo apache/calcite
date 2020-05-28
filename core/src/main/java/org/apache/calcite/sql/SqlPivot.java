@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 
 /**
  * Parse tree node that represents a PIVOT applied to a table reference
@@ -66,7 +65,7 @@ public class SqlPivot extends SqlCall {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override @Nonnull public SqlOperator getOperator() {
+  @Override public SqlOperator getOperator() {
     return OPERATOR;
   }
 
@@ -74,6 +73,7 @@ public class SqlPivot extends SqlCall {
     return ImmutableNullableList.of(query, aggList, axisList, inList);
   }
 
+  @SuppressWarnings("nullness")
   @Override public void setOperand(int i, SqlNode operand) {
     // Only 'query' is mutable. (It is required for validation.)
     switch (i) {

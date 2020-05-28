@@ -30,7 +30,6 @@ import org.apache.calcite.rex.RexNode;
 import com.alibaba.innodb.java.reader.schema.TableDef;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Implementation of a {@link org.apache.calcite.rel.core.Filter}
@@ -39,12 +38,12 @@ import javax.annotation.Nullable;
 public class InnodbFilter extends Filter implements InnodbRel {
   private final TableDef tableDef;
   public final IndexCondition indexCondition;
-  private final @Nullable String forceIndexName;
+  private final String forceIndexName;
 
   /** Creates an InnodbFilter; but use {@link #create} if possible. */
   private InnodbFilter(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition, IndexCondition indexCondition,
-      TableDef tableDef, @Nullable String forceIndexName) {
+      TableDef tableDef, String forceIndexName) {
     super(cluster, traitSet, input, condition);
 
     this.tableDef = Objects.requireNonNull(tableDef);
@@ -58,7 +57,7 @@ public class InnodbFilter extends Filter implements InnodbRel {
   /** Creates an InnodbFilter. */
   public static InnodbFilter create(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RexNode condition, IndexCondition indexCondition,
-      TableDef tableDef, @Nullable String forceIndexName) {
+      TableDef tableDef, String forceIndexName) {
     return new InnodbFilter(cluster, traitSet, input, condition, indexCondition,
         tableDef, forceIndexName);
   }

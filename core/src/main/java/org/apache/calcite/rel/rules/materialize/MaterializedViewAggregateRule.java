@@ -20,6 +20,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.hep.HepPlanner;
+import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
@@ -75,6 +76,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /** Materialized view rewriting for aggregate.
  *
@@ -134,12 +137,20 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         extraTableRefs.add(tRef);
       }
     }
-    Collection<RelNode> tableScanNodes = mq.getNodeTypes(node).get(TableScan.class);
+    Multimap<Class<? extends RelNode>, RelNode> nodeTypes = mq.getNodeTypes(node);
+    if (nodeTypes == null) {
+      return null;
+    }
+    Collection<RelNode> tableScanNodes = nodeTypes.get(TableScan.class);
+    if (tableScanNodes == null) {
+      return null;
+    }
     List<RelNode> newRels = new ArrayList<>();
     for (RelTableRef tRef : extraTableRefs) {
       int i = 0;
       for (RelNode relNode : tableScanNodes) {
-        if (tRef.getQualifiedName().equals(relNode.getTable().getQualifiedName())) {
+        TableScan scan = (TableScan) relNode;
+        if (tRef.getQualifiedName().equals(scan.getTable().getQualifiedName())) {
           if (tRef.getEntityNumber() == i++) {
             newRels.add(relNode);
             break;
@@ -243,9 +254,9 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // depending on the planner strategy.
     RelNode newAggregateInput = aggregate.getInput(0);
     RelNode target = aggregate.getInput(0);
-    if (config.unionRewritingPullProgram() != null) {
-      final HepPlanner tmpPlanner =
-          new HepPlanner(config.unionRewritingPullProgram());
+    HepProgram unionRewritingPullProgram = config.unionRewritingPullProgram();
+    if (unionRewritingPullProgram != null) {
+      final HepPlanner tmpPlanner = new HepPlanner(unionRewritingPullProgram);
       tmpPlanner.setRoot(newAggregateInput);
       newAggregateInput = tmpPlanner.findBestExp();
       target = newAggregateInput.getInput(0);
@@ -255,23 +266,25 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
     // are contained in the query.
     List<RexNode> queryExprs = extractReferences(rexBuilder, target);
     if (!compensationColumnsEquiPred.isAlwaysTrue()) {
-      compensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
+      RexNode newCompensationColumnsEquiPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, queryEC, false,
           compensationColumnsEquiPred);
-      if (compensationColumnsEquiPred == null) {
+      if (newCompensationColumnsEquiPred == null) {
         // Skip it
         return null;
       }
+      compensationColumnsEquiPred = newCompensationColumnsEquiPred;
     }
     // For the rest, we use the query equivalence classes
     if (!otherCompensationPred.isAlwaysTrue()) {
-      otherCompensationPred = rewriteExpression(rexBuilder, mq,
+      RexNode newOtherCompensationPred = rewriteExpression(rexBuilder, mq,
           target, target, queryExprs, queryToViewTableMapping, viewEC, true,
           otherCompensationPred);
-      if (otherCompensationPred == null) {
+      if (newOtherCompensationPred == null) {
         // Skip it
         return null;
       }
+      otherCompensationPred = newOtherCompensationPred;
     }
     final RexNode queryCompensationPred = RexUtil.not(
         RexUtil.composeConjunction(rexBuilder,
@@ -549,8 +562,11 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
           additionalViewExprs.add(
               new RexInputRef(targetIdx, targetNode.getType()));
           // We need to create the rollup expression
-          inputViewExprs.add(
-              shuttleReferences(rexBuilder, targetNode, exprsLineage));
+          RexNode rollupExpression = requireNonNull(
+              shuttleReferences(rexBuilder, targetNode, exprsLineage),
+              () -> "shuttleReferences produced null for targetNode=" + targetNode
+                  + ", exprsLineage=" + exprsLineage);
+          inputViewExprs.add(rollupExpression);
           added = true;
         } else {
           // This expression should be referenced directly
@@ -898,7 +914,7 @@ public abstract class MaterializedViewAggregateRule<C extends MaterializedViewAg
         topNode = topNode.getInput(0);
       }
     }
-    return Pair.of(resultTopViewProject, resultViewNode);
+    return Pair.of(resultTopViewProject, requireNonNull(resultViewNode, "resultViewNode"));
   }
 
   /** Rule configuration. */

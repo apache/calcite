@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util;
 
+
 import java.nio.ByteOrder;
 import java.text.NumberFormat;
 import java.util.Locale;

@@ -46,6 +46,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.Values} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableValues extends Values implements EnumerableRel {
@@ -71,7 +73,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
     assert inputs.isEmpty();
-    return new EnumerableValues(getCluster(), rowType, tuples, traitSet);
+    return new EnumerableValues(getCluster(), getRowType(), tuples, traitSet);
   }
 
   @Override public RelNode passThrough(final RelTraitSet required) {
@@ -93,7 +95,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
         }
       }
       // Check whether the tuples are sorted by required collations.
-      if (!ordering.isOrdered(tuples)) {
+      if (!requireNonNull(ordering, "ordering").isOrdered(tuples)) {
         return null;
       }
     }
@@ -126,7 +128,7 @@ public class EnumerableValues extends Values implements EnumerableRel {
     final Type rowClass = physType.getJavaRowType();
 
     final List<Expression> expressions = new ArrayList<>();
-    final List<RelDataTypeField> fields = rowType.getFieldList();
+    final List<RelDataTypeField> fields = getRowType().getFieldList();
     for (List<RexLiteral> tuple : tuples) {
       final List<Expression> literals = new ArrayList<>();
       for (Pair<RelDataTypeField, RexLiteral> pair

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 /**
  * <p>Analogous to LINQ's System.Linq.Expressions.ExpressionType.</p>
  */

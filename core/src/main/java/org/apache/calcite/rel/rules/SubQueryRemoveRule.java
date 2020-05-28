@@ -202,13 +202,13 @@ public class SubQueryRemoveRule
               builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
-              builder.call(RelOptUtil.op(op.comparisonKind, null),
+              builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
           builder.call(SqlStdOperatorTable.GREATER_THAN,
               builder.field("q", "c"), builder.field("q", "d")),
           literalUnknown,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
+          builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
     } else {
       // for correlated case queries such as
@@ -251,13 +251,13 @@ public class SubQueryRemoveRule
               builder.literal(0)),
           literalFalse,
           builder.call(SqlStdOperatorTable.IS_TRUE,
-              builder.call(RelOptUtil.op(op.comparisonKind, null),
+              builder.call(RexUtil.op(op.comparisonKind),
                   e.operands.get(0), builder.field("q", "m"))),
           literalTrue,
           builder.call(SqlStdOperatorTable.GREATER_THAN,
               builder.field("q", "c"), builder.field("q", "d")),
           literalUnknown,
-          builder.call(RelOptUtil.op(op.comparisonKind, null),
+          builder.call(RexUtil.op(op.comparisonKind),
               e.operands.get(0), builder.field("q", "m")));
     }
 

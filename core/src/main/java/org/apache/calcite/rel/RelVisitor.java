@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel;
 
+
 /**
  * A <code>RelVisitor</code> is a Visitor role in the
  * {@link org.apache.calcite.util.Glossary#VISITOR_PATTERN visitor pattern} and

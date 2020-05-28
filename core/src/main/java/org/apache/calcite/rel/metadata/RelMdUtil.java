@@ -48,11 +48,15 @@ import org.apache.calcite.util.Util;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.apache.calcite.util.NumberUtil.multiply;
 
 /**
  * RelMdUtil provides utility methods used by the metadata provider methods.
@@ -102,7 +106,9 @@ public class RelMdUtil {
     RexCall call = (RexCall) artificialSelectivityFuncNode;
     assert call.getOperator() == ARTIFICIAL_SELECTIVITY_FUNC;
     RexNode operand = call.getOperands().get(0);
-    return ((RexLiteral) operand).getValueAs(Double.class);
+    @SuppressWarnings("unboxing.of.nullable")
+    double doubleValue = ((RexLiteral) operand).getValueAs(Double.class);
+    return doubleValue;
   }
 
   /**
@@ -284,18 +290,21 @@ public class RelMdUtil {
    * between 1 and 100, you'll most likely end up with fewer than 100 distinct
    * values, because you'll pick some values more than once.
    *
-   * The implementation is an unbiased estimation of the number of distinct values
-   * by performing a number of selections (with replacement) from a universe set.
+   * <p>The implementation is an unbiased estimation of the number of distinct
+   * values by performing a number of selections (with replacement) from a
+   * universe set.
    *
-   * @param domainSize size of the universe set.
-   * @param numSelected the number of selections.
-   * @return the expected number of distinct values.
+   * @param domainSize Size of the universe set
+   * @param numSelected The number of selections
+   *
+   * @return the expected number of distinct values, or null if either argument
+   * is null
    */
-  public static Double numDistinctVals(
-      Double domainSize,
-      Double numSelected) {
+  public static @PolyNull Double numDistinctVals(
+      @PolyNull Double domainSize,
+      @PolyNull Double numSelected) {
     if ((domainSize == null) || (numSelected == null)) {
-      return null;
+      return domainSize;
     }
 
     // Cap the input sizes at MAX_VALUE to ensure that the calculations
@@ -538,7 +547,7 @@ public class RelMdUtil {
         groupKey, leftMask, rightMask, left.getRowType().getFieldCount());
 
     Double population =
-        NumberUtil.multiply(
+        multiply(
             mq.getPopulationSize(left, leftMask.build()),
             mq.getPopulationSize(right, rightMask.build()));
 
@@ -663,12 +672,12 @@ public class RelMdUtil {
     }
 
     if (useMaxNdv) {
-      distRowCount = Math.max(
+      distRowCount = NumberUtil.max(
           mq.getDistinctRowCount(left, leftMask.build(), leftPred),
           mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     } else {
       distRowCount =
-        NumberUtil.multiply(
+        multiply(
             mq.getDistinctRowCount(left, leftMask.build(), leftPred),
             mq.getDistinctRowCount(right, rightMask.build(), rightPred));
     }
@@ -709,11 +718,13 @@ public class RelMdUtil {
       RexNode semiJoinSelectivity =
           RelMdUtil.makeSemiJoinSelectivityRexNode(mq, join);
       Double selectivity = mq.getSelectivity(join.getLeft(), semiJoinSelectivity);
-      return NumberUtil.multiply(
-          join.getJoinType() == JoinRelType.SEMI
-              ? selectivity
-              : NumberUtil.subtract(1D, selectivity), // ANTI join
-          mq.getRowCount(join.getLeft()));
+      if (selectivity == null) {
+        return null;
+      }
+      return (join.getJoinType() == JoinRelType.SEMI
+          ? selectivity
+          : 1D - selectivity) // ANTI join
+          * mq.getRowCount(join.getLeft());
     }
     // Row count estimates of 0 will be rounded up to 1.
     // So, use maxRowCount where the product is very small.
@@ -763,8 +774,10 @@ public class RelMdUtil {
 
   public static double estimateFilteredRows(RelNode child, RexNode condition,
       RelMetadataQuery mq) {
-    return mq.getRowCount(child)
-        * mq.getSelectivity(child, condition);
+    @SuppressWarnings("unboxing.of.nullable")
+    double result = multiply(mq.getRowCount(child),
+        mq.getSelectivity(child, condition));
+    return result;
   }
 
   /** Returns a point on a line.
@@ -844,7 +857,7 @@ public class RelMdUtil {
         distinctRowCount = Math.max(card0, card1);
       } else if (call.isA(ImmutableList.of(SqlKind.TIMES, SqlKind.DIVIDE))) {
         distinctRowCount =
-            NumberUtil.multiply(
+            multiply(
                 cardOfProjExpr(mq, rel, call.getOperands().get(0)),
                 cardOfProjExpr(mq, rel, call.getOperands().get(1)));
 
@@ -908,13 +921,15 @@ public class RelMdUtil {
   }
 
   /**
-   * Validate the {@code result} represents a percentage number,
-   * e.g. the value interval is [0.0, 1.0].
+   * Validates whether a value represents a percentage number
+   * (that is, a value in the interval [0.0, 1.0]) and returns the value.
    *
-   * @return true if the {@code result} is a percentage number
-   * @throws AssertionError if the validation fails
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, not in range 0 to 1,
+   * and assertions are enabled.
    */
-  public static Double validatePercentage(Double result) {
+  public static @PolyNull Double validatePercentage(@PolyNull Double result) {
     assert isPercentage(result, true);
     return result;
   }
@@ -942,10 +957,15 @@ public class RelMdUtil {
    * division expression.  Also, cap the value at the max double value
    * to avoid calculations using infinity.
    *
+   * <p>Returns null if and only if {@code result} is null.
+   *
+   * <p>Throws if {@code result} is not null, is negative,
+   * and assertions are enabled.
+   *
    * @return the corrected value from the {@code result}
    * @throws AssertionError if the {@code result} is negative
    */
-  public static Double validateResult(Double result) {
+  public static @PolyNull Double validateResult(@PolyNull Double result) {
     if (result == null) {
       return null;
     }

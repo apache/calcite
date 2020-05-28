@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.metadata;
 
-import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPredicateList;
@@ -73,12 +72,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility to infer Predicates that are applicable above a RelNode.
@@ -605,10 +605,7 @@ public class RelMdPredicates
       // Only process equivalences found in the join conditions. Processing
       // Equivalences from the left or right side infer predicates that are
       // already present in the Tree below the join.
-      RexBuilder rexBuilder = joinRel.getCluster().getRexBuilder();
-      List<RexNode> exprs =
-          RelOptUtil.conjunctions(
-              compose(rexBuilder, ImmutableList.of(joinRel.getCondition())));
+      List<RexNode> exprs = RelOptUtil.conjunctions(joinRel.getCondition());
 
       final EquivalenceFinder eF = new EquivalenceFinder();
       exprs.forEach(input -> input.accept(eF));
@@ -737,6 +734,9 @@ public class RelMdPredicates
           // some duplicates in in result pulledUpPredicates
           RexNode simplifiedTarget =
               simplify.simplifyFilterPredicates(RelOptUtil.conjunctions(tr));
+          if (simplifiedTarget == null) {
+            simplifiedTarget = joinRel.getCluster().getRexBuilder().makeLiteral(false);
+          }
           if (checkTarget(inferringFields, allExprs, tr)
               && checkTarget(inferringFields, allExprs, simplifiedTarget)) {
             inferredPredicates.add(simplifiedTarget);
@@ -747,7 +747,8 @@ public class RelMdPredicates
     }
 
     Iterable<Mapping> mappings(final RexNode predicate) {
-      final ImmutableBitSet fields = exprFields.get(predicate);
+      final ImmutableBitSet fields = requireNonNull(exprFields.get(predicate),
+          () -> "exprFields.get(predicate) is null for " + predicate);
       if (fields.cardinality() == 0) {
         return Collections.emptyList();
       }
@@ -763,16 +764,13 @@ public class RelMdPredicates
 
     @SuppressWarnings("JdkObsolete")
     private void markAsEquivalent(int p1, int p2) {
-      BitSet b = equivalence.get(p1);
+      BitSet b = requireNonNull(equivalence.get(p1),
+          () -> "equivalence.get(p1) for " + p1);
       b.set(p2);
 
-      b = equivalence.get(p2);
+      b = requireNonNull(equivalence.get(p2),
+          () -> "equivalence.get(p2) for " + p2);
       b.set(p1);
-    }
-
-    @Nonnull RexNode compose(RexBuilder rexBuilder, Iterable<RexNode> exprs) {
-      exprs = Linq4j.asEnumerable(exprs).where(Objects::nonNull);
-      return RexUtil.composeConjunction(rexBuilder, exprs);
     }
 
     /**
@@ -846,7 +844,8 @@ public class RelMdPredicates
         for (int j = 0, i = fields.nextSetBit(0); i >= 0; i = fields
             .nextSetBit(i + 1), j++) {
           columns[j] = i;
-          columnSets[j] = equivalence.get(i);
+          columnSets[j] = requireNonNull(equivalence.get(i),
+              "equivalence.get(i) is null for " + i + ", " + equivalence);
           iterationIdx[j] = 0;
         }
         firstCall = true;
@@ -863,6 +862,9 @@ public class RelMdPredicates
       }
 
       @Override public Mapping next() {
+        if (nextMapping == null) {
+          throw new NoSuchElementException();
+        }
         return nextMapping;
       }
 
@@ -877,12 +879,12 @@ public class RelMdPredicates
             nextMapping = null;
           } else {
             int tmp = columnSets[level].nextSetBit(0);
-            nextMapping.set(columns[level], tmp);
+            requireNonNull(nextMapping, "nextMapping").set(columns[level], tmp);
             iterationIdx[level] = tmp + 1;
             computeNextMapping(level - 1);
           }
         } else {
-          nextMapping.set(columns[level], t);
+          requireNonNull(nextMapping, "nextMapping").set(columns[level], t);
           iterationIdx[level] = t + 1;
         }
       }

@@ -53,6 +53,7 @@ public class SqlWith extends SqlCall {
     return ImmutableList.of(withList, body);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -107,6 +108,7 @@ public class SqlWith extends SqlCall {
     }
 
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(SqlLiteral functionQualifier,
         SqlParserPos pos, SqlNode... operands) {
       return new SqlWith(pos, (SqlNodeList) operands[0], operands[1]);

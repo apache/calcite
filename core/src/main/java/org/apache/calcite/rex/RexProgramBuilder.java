@@ -28,7 +28,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Workspace for constructing a {@link RexProgram}.
@@ -65,10 +66,11 @@ public class RexProgramBuilder {
   /**
    * Creates a program-builder.
    */
+  @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(RelDataType inputRowType, RexBuilder rexBuilder,
       RexSimplify simplify) {
-    this.inputRowType = Objects.requireNonNull(inputRowType);
-    this.rexBuilder = Objects.requireNonNull(rexBuilder);
+    this.inputRowType = requireNonNull(inputRowType);
+    this.rexBuilder = requireNonNull(rexBuilder);
     this.simplify = simplify; // may be null
     this.validating = assertionsAreEnabled();
 
@@ -93,6 +95,7 @@ public class RexProgramBuilder {
    * @param normalize      Whether to normalize
    * @param simplify       Simplifier, or null to not simplify
    */
+  @SuppressWarnings("method.invocation.invalid")
   private RexProgramBuilder(
       RexBuilder rexBuilder,
       final RelDataType inputRowType,
@@ -267,14 +270,15 @@ public class RexProgramBuilder {
    */
   public void addCondition(RexNode expr) {
     assert expr != null;
+    RexLocalRef conditionRef = this.conditionRef;
     if (conditionRef == null) {
-      conditionRef = registerInput(expr);
+      this.conditionRef = conditionRef = registerInput(expr);
     } else {
       // AND the new condition with the existing condition.
       // If the new condition is identical to the existing condition, skip it.
       RexLocalRef ref = registerInput(expr);
       if (!ref.equals(conditionRef)) {
-        conditionRef =
+        this.conditionRef =
             registerInput(
                 rexBuilder.makeCall(
                     SqlStdOperatorTable.AND,
@@ -345,7 +349,7 @@ public class RexProgramBuilder {
 
       // Add expression to list, and return a new reference to it.
       ref = addExpr(expr);
-      exprMap.put(key, ref);
+      exprMap.put(requireNonNull(key, "key"), ref);
     } else {
       if (force) {
         // Add expression to list, but return the previous ref.

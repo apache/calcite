@@ -60,7 +60,7 @@ public class GitCommitsTableFunction {
           @Override public Enumerator<Object[]> enumerator() {
             final Enumerator<String> e = enumerable.enumerator();
             return new Enumerator<Object[]>() {
-              private Object[] objects;
+              private Object [] objects;
               private final StringBuilder b = new StringBuilder();
 
               @Override public Object[] current() {

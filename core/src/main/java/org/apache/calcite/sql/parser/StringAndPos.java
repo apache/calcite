@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.sql.parser;
 
+
 /**
  * Contains a string, the offset of a token within the string, and a parser
  * position containing the beginning and end line number.

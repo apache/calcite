@@ -25,6 +25,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * A postfix unary operator.
  */
@@ -79,7 +81,7 @@ public class SqlPostfixOperator extends SqlOperator {
             validator.getTypeFactory()
                 .createTypeWithCharsetAndCollation(
                     type,
-                    type.getCharset(),
+                    castNonNull(type.getCharset()),
                     collation);
       }
     }

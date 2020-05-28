@@ -28,8 +28,11 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A <code>SqlIdentifier</code> is an identifier, possibly compound.
@@ -246,11 +249,12 @@ public class SqlIdentifier extends SqlNode {
         ImmutableList.<String>builder().addAll(this.names).add(name).build();
     final ImmutableList<SqlParserPos> componentPositions;
     final SqlParserPos pos2;
-    if (this.componentPositions != null) {
+    ImmutableList<SqlParserPos> thisComponentPositions = this.componentPositions;
+    if (thisComponentPositions != null) {
       final ImmutableList.Builder<SqlParserPos> builder =
           ImmutableList.builder();
       componentPositions =
-          builder.addAll(this.componentPositions).add(pos).build();
+          builder.addAll(thisComponentPositions).add(pos).build();
       pos2 = SqlParserPos.sum(builder.add(this.pos).build());
     } else {
       componentPositions = null;
@@ -320,6 +324,7 @@ public class SqlIdentifier extends SqlNode {
     return visitor.visit(this);
   }
 
+  @Pure
   public SqlCollation getCollation() {
     return collation;
   }
@@ -374,6 +379,7 @@ public class SqlIdentifier extends SqlNode {
       return SqlMonotonicity.NOT_MONOTONIC;
     }
 
+    Objects.requireNonNull(scope, "scope");
     // First check for builtin functions which don't have parentheses,
     // like "LOCALTIME".
     final SqlValidator validator = scope.getValidator();
@@ -382,6 +388,7 @@ public class SqlIdentifier extends SqlNode {
       return call.getMonotonicity(scope);
     }
     final SqlQualified qualified = scope.fullyQualify(this);
+    assert qualified.namespace != null : "namespace must not be null in " + qualified;
     final SqlIdentifier fqId = qualified.identifier;
     return qualified.namespace.resolve().getMonotonicity(Util.last(fqId.names));
   }

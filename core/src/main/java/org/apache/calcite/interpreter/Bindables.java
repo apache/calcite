@@ -266,8 +266,9 @@ public class Bindables {
         RelMetadataQuery mq) {
       boolean noPushing = filters.isEmpty()
               && projects.size() == table.getRowType().getFieldCount();
-      if (noPushing) {
-        return super.computeSelfCost(planner, mq);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (noPushing || cost == null) {
+        return cost;
       }
       // Cost factor for pushing filters
       double f = filters.isEmpty() ? 1d : 0.5d;
@@ -279,14 +280,13 @@ public class Bindables {
 
       // Multiply the cost by a factor that makes a scan more attractive if
       // filters and projects are pushed to the table scan
-      return super.computeSelfCost(planner, mq)
-          .multiplyBy(f * p * 0.01d);
+      return cost.multiplyBy(f * p * 0.01d);
     }
 
     public static boolean canHandle(RelOptTable table) {
-      return table.unwrap(ScannableTable.class) != null
-          || table.unwrap(FilterableTable.class) != null
-          || table.unwrap(ProjectableFilterableTable.class) != null;
+      return table.maybeUnwrap(ScannableTable.class).isPresent()
+          || table.maybeUnwrap(FilterableTable.class).isPresent()
+          || table.maybeUnwrap(ProjectableFilterableTable.class).isPresent();
     }
 
     @Override public Enumerable<Object[]> bind(DataContext dataContext) {
@@ -674,7 +674,7 @@ public class Bindables {
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       assert inputs.isEmpty();
-      return new BindableValues(getCluster(), rowType, tuples, traitSet);
+      return new BindableValues(getCluster(), getRowType(), tuples, traitSet);
     }
 
     @Override public Class<Object[]> getElementType() {
@@ -818,13 +818,16 @@ public class Bindables {
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
       return new BindableWindow(getCluster(), traitSet, sole(inputs),
-          constants, rowType, groups);
+          constants, getRowType(), groups);
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
         RelMetadataQuery mq) {
-      return super.computeSelfCost(planner, mq)
-          .multiplyBy(BindableConvention.COST_MULTIPLIER);
+      RelOptCost cost = super.computeSelfCost(planner, mq);
+      if (cost == null) {
+        return null;
+      }
+      return cost.multiplyBy(BindableConvention.COST_MULTIPLIER);
     }
 
     @Override public Class<Object[]> getElementType() {
@@ -886,7 +889,7 @@ public class Bindables {
     }
 
     @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-      return new BindableMatch(getCluster(), traitSet, inputs.get(0), rowType,
+      return new BindableMatch(getCluster(), traitSet, inputs.get(0), getRowType(),
           pattern, strictStart, strictEnd, patternDefinitions, measures, after,
           subsets, allRows, partitionKeys, orderKeys, interval);
     }

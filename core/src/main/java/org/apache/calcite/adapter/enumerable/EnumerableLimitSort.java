@@ -127,7 +127,8 @@ public class EnumerableLimitSort extends Sort implements EnumerableRel {
     return implementor.result(physType, builder.toBlock());
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     final double rowCount = mq.getRowCount(this.input).doubleValue();
     double toSort = getValue(this.fetch, rowCount);
     if (this.offset != null) {

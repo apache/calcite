@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.util.graph;
 
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,7 @@ public interface DirectedGraph<V, E> {
 
   boolean removeEdge(V vertex, V targetVertex);
 
-  Set<V> vertexSet();
+  Set<? extends V> vertexSet();
 
   /** Removes from this graph all vertices that are in {@code collection},
    * and the edges into and out of those vertices. */

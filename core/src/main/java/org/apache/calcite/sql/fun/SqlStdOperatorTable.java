@@ -71,7 +71,13 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.sql.SqlOperatorTable} containing
@@ -84,7 +90,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * The standard operator table.
    */
-  private static SqlStdOperatorTable instance;
+  private static @MonotonicNonNull SqlStdOperatorTable instance;
 
   //-------------------------------------------------------------
   //                   SET OPERATORS
@@ -932,7 +938,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
   /**
    * <code>SUM</code> aggregate function.
    */
-  public static final SqlAggFunction SUM = new SqlSumAggFunction(null);
+  public static final SqlAggFunction SUM = new SqlSumAggFunction(castNonNull(null));
 
   /**
    * <code>COUNT</code> aggregate function.
@@ -1015,7 +1021,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * <code>SINGLE_VALUE</code> aggregate function.
    */
   public static final SqlAggFunction SINGLE_VALUE =
-      new SqlSingleValueAggFunction(null);
+      new SqlSingleValueAggFunction(castNonNull(null));
 
   /**
    * <code>AVG</code> aggregate function.
@@ -1115,7 +1121,7 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
    * aggregate versions of MIN/MAX
    */
   public static final SqlAggFunction HISTOGRAM_AGG =
-      new SqlHistogramAggFunction(null);
+      new SqlHistogramAggFunction(castNonNull(null));
 
   /**
    * <code>HISTOGRAM_MIN</code> window aggregate function.
@@ -2505,7 +2511,8 @@ public class SqlStdOperatorTable extends ReflectiveSqlOperatorTable {
     final SqlOperator op = call.getOperator();
     if (op instanceof SqlGroupedWindowFunction
         && op.isGroupAuxiliary()) {
-      return copy(call, ((SqlGroupedWindowFunction) op).groupFunction);
+      SqlGroupedWindowFunction groupFunction = ((SqlGroupedWindowFunction) op).groupFunction;
+      return copy(call, requireNonNull(groupFunction, "groupFunction"));
     }
     return null;
   }

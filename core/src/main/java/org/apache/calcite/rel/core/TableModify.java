@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -37,8 +38,11 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 
 import com.google.common.base.Preconditions;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import java.util.List;
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that modifies a table.
@@ -77,7 +81,7 @@ public abstract class TableModify extends SingleRel {
   private final Operation operation;
   private final List<String> updateColumnList;
   private final List<RexNode> sourceExpressionList;
-  private RelDataType inputRowType;
+  private @MonotonicNonNull RelDataType inputRowType;
   private final boolean flattened;
 
   //~ Constructors -----------------------------------------------------------
@@ -119,20 +123,21 @@ public abstract class TableModify extends SingleRel {
     this.updateColumnList = updateColumnList;
     this.sourceExpressionList = sourceExpressionList;
     if (operation == Operation.UPDATE) {
-      Objects.requireNonNull(updateColumnList);
-      Objects.requireNonNull(sourceExpressionList);
+      requireNonNull(updateColumnList);
+      requireNonNull(sourceExpressionList);
       Preconditions.checkArgument(sourceExpressionList.size()
           == updateColumnList.size());
     } else {
       if (operation == Operation.MERGE) {
-        Objects.requireNonNull(updateColumnList);
+        requireNonNull(updateColumnList);
       } else {
         Preconditions.checkArgument(updateColumnList == null);
       }
       Preconditions.checkArgument(sourceExpressionList == null);
     }
-    if (table.getRelOptSchema() != null) {
-      cluster.getPlanner().registerSchema(table.getRelOptSchema());
+    RelOptSchema relOptSchema = table.getRelOptSchema();
+    if (relOptSchema != null) {
+      cluster.getPlanner().registerSchema(relOptSchema);
     }
     this.flattened = flattened;
   }
@@ -144,9 +149,11 @@ public abstract class TableModify extends SingleRel {
     this(input.getCluster(),
         input.getTraitSet(),
         input.getTable("table"),
-        (Prepare.CatalogReader) input.getTable("table").getRelOptSchema(),
+        (Prepare.CatalogReader) requireNonNull(
+            input.getTable("table").getRelOptSchema(),
+            "relOptSchema"),
         input.getInput(),
-        input.getEnum("operation", Operation.class),
+        requireNonNull(input.getEnum("operation", Operation.class), "operation"),
         input.getStringList("updateColumnList"),
         input.getExpressionList("sourceExpressionList"),
         input.getBoolean("flattened", false));
@@ -210,12 +217,14 @@ public abstract class TableModify extends SingleRel {
     final RelDataType rowType = table.getRowType();
     switch (operation) {
     case UPDATE:
+      assert updateColumnList != null : "updateColumnList must not be null for " + operation;
       inputRowType =
           typeFactory.createJoinType(rowType,
               getCatalogReader().createTypeFromProjection(rowType,
                   updateColumnList));
       break;
     case MERGE:
+      assert updateColumnList != null : "updateColumnList must not be null for " + operation;
       inputRowType =
           typeFactory.createJoinType(
               typeFactory.createJoinType(rowType, rowType),

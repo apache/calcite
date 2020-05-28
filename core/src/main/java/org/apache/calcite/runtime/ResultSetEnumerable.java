@@ -54,6 +54,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.sql.DataSource;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Executes a SQL statement and returns the result as an {@link Enumerable}.
  *
@@ -200,6 +202,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   private static void setDynamicParam(PreparedStatement preparedStatement,
       int i, Object value) throws SQLException {
     if (value == null) {
+      // TODO: use proper type instead of ANY
       preparedStatement.setObject(i, null, SqlType.ANY.id);
     } else if (value instanceof Timestamp) {
       preparedStatement.setTimestamp(i, (Timestamp) value);
@@ -270,6 +273,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         return new ResultSetEnumerator<>(resultSet, rowBuilderFactory);
       } else {
         Integer updateCount = statement.getUpdateCount();
+        //noinspection unchecked
         return Linq4j.singletonEnumerator((T) updateCount);
       }
     } catch (SQLException e) {
@@ -287,7 +291,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       connection = dataSource.getConnection();
       preparedStatement = connection.prepareStatement(sql);
       setTimeoutIfPossible(preparedStatement);
-      preparedStatementEnricher.enrich(preparedStatement);
+      castNonNull(preparedStatementEnricher).enrich(preparedStatement);
       if (preparedStatement.execute()) {
         final ResultSet resultSet = preparedStatement.getResultSet();
         preparedStatement = null;
@@ -295,6 +299,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
         return new ResultSetEnumerator<>(resultSet, rowBuilderFactory);
       } else {
         Integer updateCount = preparedStatement.getUpdateCount();
+        //noinspection unchecked
         return Linq4j.singletonEnumerator((T) updateCount);
       }
     } catch (SQLException e) {
@@ -306,7 +311,8 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
   }
 
   private void setTimeoutIfPossible(Statement statement) throws SQLException {
-    if (timeout == 0) {
+    Long queryStart = this.queryStart;
+    if (timeout == 0 || queryStart == null) {
       return;
     }
     long now = System.currentTimeMillis();
@@ -363,13 +369,17 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
       this.rowBuilder = rowBuilderFactory.apply(resultSet);
     }
 
+    private ResultSet resultSet() {
+      return castNonNull(resultSet);
+    }
+
     @Override public T current() {
       return rowBuilder.apply();
     }
 
     @Override public boolean moveNext() {
       try {
-        return resultSet.next();
+        return resultSet().next();
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }
@@ -377,7 +387,7 @@ public class ResultSetEnumerable<T> extends AbstractEnumerable<T> {
 
     @Override public void reset() {
       try {
-        resultSet.beforeFirst();
+        resultSet().beforeFirst();
       } catch (SQLException e) {
         throw new RuntimeException(e);
       }

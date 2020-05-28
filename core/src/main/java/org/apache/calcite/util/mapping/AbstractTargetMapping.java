@@ -59,6 +59,7 @@ public abstract class AbstractTargetMapping
     return MappingType.PARTIAL_FUNCTION;
   }
 
+  @SuppressWarnings("method.invocation.invalid")
   @Override public Iterator<IntPair> iterator() {
     return new Iterator<IntPair>() {
       int source = -1;

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 
 import java.util.Collections;
 import java.util.List;
@@ -220,6 +221,7 @@ public abstract class Join extends BiRel implements Hintable {
   }
 
   @API(since = "1.24", status = API.Status.INTERNAL)
+  @EnsuresNonNullIf(expression = "#1", result = true)
   protected boolean deepEquals0(Object obj) {
     if (this == obj) {
       return true;

@@ -29,6 +29,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Definition of the MAP constructor,
  * <code>MAP [&lt;key&gt;, &lt;value&gt;, ...]</code>.
@@ -44,13 +46,10 @@ public class SqlMapValueConstructor extends SqlMultisetValueConstructor {
     Pair<RelDataType, RelDataType> type =
         getComponentTypes(
             opBinding.getTypeFactory(), opBinding.collectOperandTypes());
-    if (null == type) {
-      return null;
-    }
     return SqlTypeUtil.createMapType(
         opBinding.getTypeFactory(),
-        type.left,
-        type.right,
+        requireNonNull(type.left, "inferred key type"),
+        requireNonNull(type.right, "inferred value type"),
         false);
   }
 

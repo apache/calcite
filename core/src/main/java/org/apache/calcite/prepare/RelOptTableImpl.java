@@ -63,9 +63,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.AbstractList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link org.apache.calcite.plan.RelOptTable}.
@@ -94,7 +95,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       Function<Class, Expression> expressionFunction,
       Double rowCount) {
     this.schema = schema;
-    this.rowType = Objects.requireNonNull(rowType);
+    this.rowType = requireNonNull(rowType);
     this.names = ImmutableList.copyOf(names);
     this.table = table; // may be null
     this.expressionFunction = expressionFunction; // may be null
@@ -186,7 +187,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
     return new RelOptTableImpl(schema, rowType, names, table, null, null);
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     }
@@ -199,7 +200,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
         return t;
       }
     }
-    if (clazz == CalciteSchema.class) {
+    if (clazz == CalciteSchema.class && schema != null) {
       return clazz.cast(
           Schemas.subSchema(((CalciteCatalogReader) schema).rootSchema,
               Util.skipLast(getQualifiedName())));
@@ -215,9 +216,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   @Override protected RelOptTable extend(Table extendedTable) {
+    RelOptSchema schema = requireNonNull(getRelOptSchema(), "relOptSchema");
     final RelDataType extendedRowType =
-        extendedTable.getRowType(getRelOptSchema().getTypeFactory());
-    return new RelOptTableImpl(getRelOptSchema(), extendedRowType, getQualifiedName(),
+        extendedTable.getRowType(schema.getTypeFactory());
+    return new RelOptTableImpl(schema, extendedRowType, getQualifiedName(),
         extendedTable, expressionFunction, getRowCount());
   }
 
@@ -271,7 +273,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       final RelOptTable relOptTable =
           new RelOptTableImpl(this.schema, b.build(), this.names, this.table,
               this.expressionFunction, this.rowCount) {
-            @Override public <T> T unwrap(Class<T> clazz) {
+            @Override public <T extends Object> T unwrap(Class<T> clazz) {
               if (clazz.isAssignableFrom(InitializerExpressionFactory.class)) {
                 return clazz.cast(NullInitializerExpressionFactory.INSTANCE);
               }
@@ -309,7 +311,10 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   @Override public List<ImmutableBitSet> getKeys() {
-    return table.getStatistic().getKeys();
+    if (table != null) {
+      return table.getStatistic().getKeys();
+    }
+    return ImmutableList.of();
   }
 
   @Override public List<RelReferentialConstraint> getReferentialConstraints() {
@@ -341,9 +346,12 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
   }
 
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
+    if (table == null) {
+      return SqlMonotonicity.NOT_MONOTONIC;
+    }
     List<RelCollation> collations = table.getStatistic().getCollations();
     if (collations == null) {
-      return null;
+      return SqlMonotonicity.NOT_MONOTONIC;
     }
     for (RelCollation collation : collations) {
       final RelFieldCollation fieldCollation =
@@ -405,7 +413,8 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return rowType;
     }
     final RelDataTypeFactory.Builder builder =
-        table.getRelOptSchema().getTypeFactory().builder();
+        requireNonNull(table.getRelOptSchema(),
+            () -> "relOptSchema for table " + table).getTypeFactory().builder();
     for (RelDataTypeField field : rowType.getFieldList()) {
       if (strategies.get(field.getIndex()) != ColumnStrategy.VIRTUAL) {
         builder.add(field);
@@ -479,7 +488,7 @@ public class RelOptTableImpl extends Prepare.AbstractPreparingTable {
       return schema.isMutable();
     }
 
-    @Override public <T> T unwrap(Class<T> clazz) {
+    @Override public <T extends Object> T unwrap(Class<T> clazz) {
       return null;
     }
 

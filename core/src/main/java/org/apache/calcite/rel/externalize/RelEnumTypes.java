@@ -33,6 +33,8 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 
 import com.google.common.collect.ImmutableMap;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /** Registry of {@link Enum} classes that can be serialized to JSON.
  *
  * <p>Suppose you want to serialize the value
@@ -76,7 +78,7 @@ public abstract class RelEnumTypes {
 
   private static void register(ImmutableMap.Builder<String, Enum<?>> builder,
       Class<? extends Enum> aClass) {
-    for (Enum enumConstant : aClass.getEnumConstants()) {
+    for (Enum enumConstant : castNonNull(aClass.getEnumConstants())) {
       builder.put(enumConstant.name(), enumConstant);
     }
   }

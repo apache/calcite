@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.schema;
 
+
 import java.util.List;
 
 /**
@@ -32,5 +33,5 @@ public interface TableMacro extends Function {
    * @param arguments Arguments
    * @return Table
    */
-  TranslatableTable apply(List<Object> arguments);
+  TranslatableTable apply(List<? extends Object> arguments);
 }

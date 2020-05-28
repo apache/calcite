@@ -19,7 +19,6 @@ package org.apache.calcite.rel;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Definition of the ordering of one field of a {@link RelNode} whose
@@ -126,7 +125,7 @@ public class RelFieldCollation {
 
     /** Returns the null direction if not specified. Consistent with Oracle,
      * NULLS are sorted as if they were positive infinity. */
-    public @Nonnull NullDirection defaultNullDirection() {
+    public NullDirection defaultNullDirection() {
       switch (this) {
       case ASCENDING:
       case STRICTLY_ASCENDING:
@@ -156,7 +155,7 @@ public class RelFieldCollation {
      *
      * @return reverse of the input direction
      */
-    @Nonnull public Direction reverse() {
+    public Direction reverse() {
       switch (this) {
       case ASCENDING:
         return DESCENDING;
@@ -172,7 +171,7 @@ public class RelFieldCollation {
     }
 
     /** Removes strictness. */
-    @Nonnull public Direction lax() {
+    public Direction lax() {
       switch (this) {
       case STRICTLY_ASCENDING:
         return ASCENDING;

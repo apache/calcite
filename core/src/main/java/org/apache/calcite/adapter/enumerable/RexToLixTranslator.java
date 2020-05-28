@@ -72,7 +72,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.calcite.sql.fun.SqlLibraryOperators.TRANSLATE3;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.CASE;
@@ -82,6 +81,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.PREV;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SEARCH;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.SUBSTRING;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Translates {@link org.apache.calcite.rex.RexNode REX expressions} to
@@ -156,12 +157,12 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       SqlConformance conformance,
       Function1<String, InputGetter> correlates) {
     this.program = program; // may be null
-    this.typeFactory = Objects.requireNonNull(typeFactory);
-    this.conformance = Objects.requireNonNull(conformance);
-    this.root = Objects.requireNonNull(root);
+    this.typeFactory = requireNonNull(typeFactory);
+    this.conformance = requireNonNull(conformance);
+    this.root = requireNonNull(root);
     this.inputGetter = inputGetter;
-    this.list = Objects.requireNonNull(list);
-    this.builder = Objects.requireNonNull(builder);
+    this.list = requireNonNull(list);
+    this.builder = requireNonNull(builder);
     this.correlates = correlates; // may be null
   }
 
@@ -467,7 +468,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             Expressions.call(
                 BuiltInMethod.INTERVAL_YEAR_MONTH_TO_STRING.method,
                 operand,
-                Expressions.constant(interval.timeUnitRange)));
+                Expressions.constant(requireNonNull(interval, "interval").timeUnitRange)));
         break;
       case INTERVAL_DAY:
       case INTERVAL_DAY_HOUR:
@@ -484,7 +485,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             Expressions.call(
                 BuiltInMethod.INTERVAL_DAY_TIME_TO_STRING.method,
                 operand,
-                Expressions.constant(interval.timeUnitRange),
+                Expressions.constant(requireNonNull(interval, "interval").timeUnitRange),
                 Expressions.constant(
                     interval.getFractionalSecondPrecision(
                         typeFactory.getTypeSystem()))));
@@ -576,7 +577,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     case INTERVAL_MINUTE:
     case INTERVAL_MINUTE_SECOND:
     case INTERVAL_SECOND:
-      switch (sourceType.getSqlTypeName().getFamily()) {
+      switch (requireNonNull(sourceType.getSqlTypeName().getFamily(),
+          () -> "null SqlTypeFamily for " + sourceType + ", SqlTypeName "
+              + sourceType.getSqlTypeName())) {
       case NUMERIC:
         final BigDecimal multiplier = targetType.getSqlTypeName().getEndUnit().multiplier;
         final BigDecimal divider = BigDecimal.ONE;
@@ -689,7 +692,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   public RexNode deref(RexNode expr) {
     if (expr instanceof RexLocalRef) {
       RexLocalRef ref = (RexLocalRef) expr;
-      final RexNode e2 = program.getExprList().get(ref.getIndex());
+      final RexNode e2 = requireNonNull(program, "program")
+          .getExprList().get(ref.getIndex());
       assert ref.getType().equals(e2.getType());
       return e2;
     } else {
@@ -743,7 +747,9 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       }
       assert javaClass == BigDecimal.class;
       return Expressions.new_(BigDecimal.class,
-          Expressions.constant(bd.toString()));
+          Expressions.constant(
+              requireNonNull(bd,
+                  () -> "value for " + literal).toString()));
     case DATE:
     case TIME:
     case TIME_WITH_LOCAL_TIME_ZONE:
@@ -780,12 +786,14 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
               literal.getValueAs(byte[].class),
               byte[].class));
     case GEOMETRY:
-      final Geometries.Geom geom = literal.getValueAs(Geometries.Geom.class);
+      final Geometries.Geom geom = requireNonNull(literal.getValueAs(Geometries.Geom.class),
+          () -> "getValueAs(Geometries.Geom) for " + literal);
       final String wkt = GeoFunctions.ST_AsWKT(geom);
       return Expressions.call(null, BuiltInMethod.ST_GEOM_FROM_TEXT.method,
           Expressions.constant(wkt));
     case SYMBOL:
-      value2 = literal.getValueAs(Enum.class);
+      value2 = requireNonNull(literal.getValueAs(Enum.class),
+          () -> "getValueAs(Enum.class) for " + literal);
       javaClass = value2.getClass();
       break;
     default:
@@ -887,7 +895,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   public static Expression translateCondition(RexProgram program,
       JavaTypeFactory typeFactory, BlockBuilder list, InputGetter inputGetter,
       Function1<String, InputGetter> correlates, SqlConformance conformance) {
-    if (program.getCondition() == null) {
+    RexLocalRef condition = program.getCondition();
+    if (condition == null) {
       return RexImpTable.TRUE_EXPR;
     }
     final ParameterExpression root = DataContext.ROOT;
@@ -896,7 +905,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
             new RexBuilder(typeFactory), conformance, null);
     translator = translator.setCorrelates(correlates);
     return translator.translate(
-        program.getCondition(),
+        condition,
         RexImpTable.NullAs.FALSE);
   }
 
@@ -933,7 +942,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
       RelDataType sourceType,
       RelDataType targetType,
       Expression operand) {
-    switch (targetType.getSqlTypeName().getFamily()) {
+    switch (requireNonNull(targetType.getSqlTypeName().getFamily(),
+        () -> "SqlTypeFamily for " + targetType)) {
     case NUMERIC:
       switch (sourceType.getSqlTypeName()) {
       case INTERVAL_YEAR:
@@ -985,7 +995,7 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     }
     // Generate one line of code to get the input, e.g.,
     // "final Employee current =(Employee) inputEnumerator.current();"
-    final Expression valueExpression = inputGetter.field(
+    final Expression valueExpression = requireNonNull(inputGetter, "inputGetter").field(
         list, inputRef.getIndex(), currentStorageType);
 
     // Generate one line of code for the value of RexInputRef, e.g.,
@@ -1166,7 +1176,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
     final RexNode offset = call.getOperands().get(1);
     final Expression offs = Expressions.multiply(translate(offset),
             Expressions.constant(-1));
-    ((EnumerableMatch.PrevInputGetter) inputGetter).setOffset(offs);
+    requireNonNull((EnumerableMatch.PrevInputGetter) inputGetter, "inputGetter")
+        .setOffset(offs);
     return node.accept(this);
   }
 
@@ -1406,7 +1417,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   Expression getLiteral(Expression literalVariable) {
-    return literalMap.get(literalVariable);
+    return requireNonNull(literalMap.get(literalVariable),
+        () -> "literalMap.get(literalVariable) for " + literalVariable);
   }
 
   /** Returns the value of a literal. */
@@ -1422,7 +1434,8 @@ public class RexToLixTranslator implements RexVisitor<RexToLixTranslator.Result>
   }
 
   List<Result> getCallOperandResult(RexCall call) {
-    return callOperandResultMap.get(call);
+    return requireNonNull(callOperandResultMap.get(call),
+        () -> "callOperandResultMap.get(call) for " + call);
   }
 
   /** Translates a field of an input to an expression. */

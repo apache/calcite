@@ -494,7 +494,7 @@ public class FrameworksTest {
     }
 
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        int[] projects) {
+        int [] projects) {
       throw new UnsupportedOperationException();
     }
 

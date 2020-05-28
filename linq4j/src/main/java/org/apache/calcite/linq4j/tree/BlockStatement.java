@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+
 import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +40,10 @@ public class BlockStatement extends Statement {
     assert distinctVariables(true);
   }
 
-  private boolean distinctVariables(boolean fail) {
+  private boolean distinctVariables(
+      @UnderInitialization(BlockStatement.class) BlockStatement this,
+      boolean fail
+  ) {
     Set<String> names = new HashSet<>();
     for (Statement statement : statements) {
       if (statement instanceof DeclarationStatement) {

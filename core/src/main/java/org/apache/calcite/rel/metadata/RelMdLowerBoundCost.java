@@ -63,7 +63,7 @@ public class RelMdLowerBoundCost implements MetadataHandler<LowerBoundCost> {
     }
 
     RelOptCost selfCost = mq.getNonCumulativeCost(node);
-    if (selfCost.isInfinite()) {
+    if (selfCost != null && selfCost.isInfinite()) {
       selfCost = null;
     }
     for (RelNode input : node.getInputs()) {

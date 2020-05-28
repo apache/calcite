@@ -29,6 +29,7 @@ public class LatticeRootNode extends LatticeNode {
   public final ImmutableList<LatticeNode> descendants;
   final ImmutableList<Path> paths;
 
+  @SuppressWarnings("method.invocation.invalid")
   LatticeRootNode(LatticeSpace space, MutableNode mutableNode) {
     super(space, null, mutableNode);
 

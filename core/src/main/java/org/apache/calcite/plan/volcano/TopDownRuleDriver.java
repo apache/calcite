@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Predicate;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A rule driver that applies rules in a Top-Down manner.
  * By ensuring rule applying orders, there could be ways for
@@ -59,7 +61,7 @@ class TopDownRuleDriver implements RuleDriver {
   /**
    * All tasks waiting for execution.
    */
-  private Stack<Task> tasks = new Stack<>(); // TODO: replace with Deque
+  private final Stack<Task> tasks = new Stack<>(); // TODO: replace with Deque
 
   /**
    * A task that is currently applying and may generate new RelNode.
@@ -73,7 +75,7 @@ class TopDownRuleDriver implements RuleDriver {
    * or {@link org.apache.calcite.rel.PhysicalNode#derive}. These nodes will not take part
    * in another passThrough or derive.
    */
-  private Set<RelNode> passThroughCache = new HashSet<>();
+  private final Set<RelNode> passThroughCache = new HashSet<>();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -88,7 +90,10 @@ class TopDownRuleDriver implements RuleDriver {
     TaskDescriptor description = new TaskDescriptor();
 
     // Starting from the root's OptimizeGroup task.
-    tasks.push(new OptimizeGroup(planner.root, planner.infCost));
+    tasks.push(
+        new OptimizeGroup(
+            requireNonNull(planner.root, "planner.root"),
+            planner.infCost));
 
     // Ensure materialized view roots get explored.
     // Note that implementation rules or enforcement rules are not applied
@@ -110,7 +115,8 @@ class TopDownRuleDriver implements RuleDriver {
   private void exploreMaterializationRoots() {
     for (RelSubset extraRoot : planner.explorationRoots) {
       RelSet rootSet = VolcanoPlanner.equivRoot(extraRoot.set);
-      if (rootSet == planner.root.set) {
+      RelSubset root = requireNonNull(planner.root, "planner.root");
+      if (rootSet == root.set) {
         continue;
       }
       for (RelNode rel : extraRoot.set.rels) {
@@ -162,7 +168,9 @@ class TopDownRuleDriver implements RuleDriver {
       if (subset.resetTaskState() || explored) {
         Collection<RelNode> parentRels = subset.getParentRels();
         for (RelNode parentRel : parentRels) {
-          clearProcessed(planner.getSet(parentRel));
+          RelSet parentRelSet =
+              requireNonNull(planner.getSet(parentRel), () -> "no set found for " + parentRel);
+          clearProcessed(parentRelSet);
         }
         if (subset == planner.root) {
           tasks.push(new OptimizeGroup(subset, planner.infCost));
@@ -184,7 +192,7 @@ class TopDownRuleDriver implements RuleDriver {
     }
 
     // Extra callback from each task.
-    if (!applying.onProduce(node)) {
+    if (!requireNonNull(applying, "applying").onProduce(node)) {
       return;
     }
 
@@ -233,6 +241,7 @@ class TopDownRuleDriver implements RuleDriver {
     } else {
       boolean optimizing = subset.set.subsets.stream()
           .anyMatch(s -> s.taskState == RelSubset.OptimizeState.OPTIMIZING);
+      GeneratorTask applying = requireNonNull(this.applying, "this.applying");
       tasks.push(
           new OptimizeMExpr(node, applying.group(),
               applying.exploring() && !optimizing));
@@ -589,7 +598,9 @@ class TopDownRuleDriver implements RuleDriver {
     VolcanoRuleMatch match = ruleQueue.popMatch(
         Pair.of(rel,
             m -> m.getRule() instanceof ConverterRule
-                && m.getRule().getOutTrait().satisfies(group.getTraitSet().getConvention())));
+                && ((ConverterRule) m.getRule()).getOutTrait().satisfies(
+                    requireNonNull(group.getTraitSet().getConvention(),
+                        () -> "convention for " + group))));
     if (match != null) {
       tasks.add(new ApplyRule(match, group, false));
     }
@@ -690,14 +701,14 @@ class TopDownRuleDriver implements RuleDriver {
           if (upperForInput.isInfinite()) {
             upperForInput = planner.upperBoundForInputs(mExpr, upperBound);
           }
-          lowerBounds = new ArrayList<>(childCount);
+          List<RelOptCost> lowerBounds = this.lowerBounds = new ArrayList<>(childCount);
           for (RelNode input : mExpr.getInputs()) {
             RelOptCost lb = planner.getLowerBound(input);
             lowerBounds.add(lb);
             lowerBoundSum = lowerBoundSum == null ? lb : lowerBoundSum.plus(lb);
           }
         }
-        if (upperForInput.isLt(lowerBoundSum)) {
+        if (upperForInput.isLt(requireNonNull(lowerBoundSum, "lowerBoundSum"))) {
           LOGGER.debug(
               "Skip O_INPUT because of lower bound. LB = {}, UP = {}",
               lowerBoundSum, upperForInput);
@@ -731,8 +742,8 @@ class TopDownRuleDriver implements RuleDriver {
           // UB(one input)
           //  = UB(current subset) - Parent's NonCumulativeCost - LB(other inputs)
           //  = UB(current subset) - Parent's NonCumulativeCost - LB(all inputs) + LB(current input)
-          upper = upperForInput.minus(lowerBoundSum)
-              .plus(lowerBounds.get(processingChild));
+          upper = upperForInput.minus(requireNonNull(lowerBoundSum, "lowerBoundSum"))
+              .plus(requireNonNull(lowerBounds, "lowerBounds").get(processingChild));
         }
         if (input.taskState != null && upper.isLe(input.upperBound)) {
           LOGGER.debug("Failed to optimize because of upper bound. LB = {}, UP = {}",
@@ -799,11 +810,13 @@ class TopDownRuleDriver implements RuleDriver {
       }
 
       // Update the context.
-      if (context.lowerBoundSum != null && context.lowerBoundSum != planner.infCost) {
-        context.lowerBoundSum = context.
-            lowerBoundSum.minus(context.lowerBounds.get(i));
-        context.lowerBoundSum = context.lowerBoundSum.plus(winner);
-        context.lowerBounds.set(i, winner);
+      RelOptCost lowerBoundSum = context.lowerBoundSum;
+      if (lowerBoundSum != null && lowerBoundSum != planner.infCost) {
+        List<RelOptCost> lowerBounds = requireNonNull(context.lowerBounds, "context.lowerBounds");
+        lowerBoundSum = lowerBoundSum.minus(lowerBounds.get(i));
+        lowerBoundSum = lowerBoundSum.plus(winner);
+        context.lowerBoundSum = lowerBoundSum;
+        lowerBounds.set(i, winner);
       }
     }
   }
@@ -923,7 +936,7 @@ class TopDownRuleDriver implements RuleDriver {
                 subset.disableEnforcing();
               }
               RelSubset relSubset = planner.register(newRel, rel);
-              assert relSubset.set == planner.getSubset(rel).set;
+              assert relSubset.set == planner.getSubsetNonNull(rel).set;
             }
           }
         }

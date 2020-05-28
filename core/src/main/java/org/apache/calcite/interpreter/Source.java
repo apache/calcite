@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.interpreter;
 
+
 /**
  * Source of rows.
  *

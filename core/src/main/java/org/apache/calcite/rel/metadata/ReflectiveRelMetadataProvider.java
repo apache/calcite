@@ -262,8 +262,9 @@ public class ReflectiveRelMetadataProvider
           }
         }
       }
-      if (RelNode.class.isAssignableFrom(relClass.getSuperclass())) {
-        relClass = (Class<RelNode>) relClass.getSuperclass();
+      Class<?> superclass = relClass.getSuperclass();
+      if (superclass != null && RelNode.class.isAssignableFrom(superclass)) {
+        relClass = (Class<RelNode>) superclass;
       } else {
         return null;
       }

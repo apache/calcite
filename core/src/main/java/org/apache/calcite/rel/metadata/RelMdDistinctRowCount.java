@@ -203,9 +203,8 @@ public class RelMdDistinctRowCount
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
       for (int column : groupKey) {
         final RexLiteral literal = tuple.get(column);
-        values.add(literal.isNull()
-            ? NullSentinel.INSTANCE
-            : literal.getValueAs(Comparable.class));
+        Comparable value = literal.getValueAs(Comparable.class);
+        values.add(value == null ? NullSentinel.INSTANCE : value);
       }
       set.add(ImmutableList.copyOf(values));
       values.clear();

@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.rel.metadata;
 
+
 /** Placeholder for null values. */
 public enum NullSentinel {
   /** Placeholder for a null value. */

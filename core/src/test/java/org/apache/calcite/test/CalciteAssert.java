@@ -111,8 +111,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import static org.apache.calcite.test.Matchers.compose;
@@ -265,7 +263,7 @@ public class CalciteAssert {
 
   static Consumer<Throwable> checkValidationException(final String expected) {
     return new Consumer<Throwable>() {
-      @Override public void accept(@Nullable Throwable throwable) {
+      @Override public void accept(Throwable throwable) {
         assertNotNull(throwable, "Nothing was thrown");
 
         Exception exception = containsCorrectException(throwable);
@@ -1736,7 +1734,7 @@ public class CalciteAssert {
       return planContains(checkUpdateCount(count), JavaSql.fromSql(expected));
     }
 
-    @Nonnull private AssertQuery planContains(Consumer<Integer> checkUpdate,
+    private AssertQuery planContains(Consumer<Integer> checkUpdate,
         JavaSql expected) {
       ensurePlan(checkUpdate);
       if (expected.sql != null) {
@@ -2190,7 +2188,7 @@ public class CalciteAssert {
       return unwrap(java);
     }
 
-    static @Nonnull List<String> unwrap(String java) {
+    static List<String> unwrap(String java) {
       final List<String> sqlList = new ArrayList<>();
       final StringBuilder b = new StringBuilder();
       hLoop:

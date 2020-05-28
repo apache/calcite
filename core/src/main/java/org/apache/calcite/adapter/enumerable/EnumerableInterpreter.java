@@ -75,7 +75,11 @@ public class EnumerableInterpreter extends SingleRel
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {
-    return super.computeSelfCost(planner, mq).multiplyBy(factor);
+    RelOptCost cost = super.computeSelfCost(planner, mq);
+    if (cost == null) {
+      return null;
+    }
+    return cost.multiplyBy(factor);
   }
 
   @Override public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {

@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  *  A <code>SqlTableRef</code> is a node of a parse tree which represents
  *  a table reference.
@@ -42,7 +44,9 @@ public class SqlTableRef extends SqlCall {
         @Override public SqlCall createCall(
             SqlLiteral functionQualifier,
             SqlParserPos pos, SqlNode... operands) {
-          return new SqlTableRef(pos, (SqlIdentifier) operands[0], (SqlNodeList) operands[1]);
+          return new SqlTableRef(pos,
+              (SqlIdentifier) requireNonNull(operands[0], "tableName"),
+              (SqlNodeList) requireNonNull(operands[1], "hints"));
         }
       };
 

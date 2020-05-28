@@ -203,8 +203,8 @@ public abstract class Linq4j {
    * @param <E> Element type
    * @return Enumerator
    */
-  public static <F, E> Enumerator<E> transform(Enumerator<F> enumerator,
-      final Function1<F, E> func) {
+  public static <F, E> Enumerator<E> transform(Enumerator<? extends F> enumerator,
+      final Function1<? super F, ? extends E> func) {
     return new TransformedEnumerator<F, E>(enumerator) {
       @Override protected E transform(F from) {
         return func.apply(from);
@@ -423,7 +423,7 @@ public abstract class Linq4j {
   }
 
   /** Closes an iterator, if it can be closed. */
-  private static <T> void closeIterator(Iterator<T> iterator) {
+  private static <T> void closeIterator(Iterator<? extends T> iterator) {
     if (iterator instanceof AutoCloseable) {
       try {
         ((AutoCloseable) iterator).close();
@@ -458,7 +458,7 @@ public abstract class Linq4j {
     }
 
     @Override public boolean moveNext() {
-      if (iterator.hasNext()) {
+      if (Objects.requireNonNull(iterator, "iterator").hasNext()) {
         current = iterator.next();
         return true;
       }
@@ -564,6 +564,7 @@ public abstract class Linq4j {
       return getCollection().size();
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public boolean contains(T element) {
       return getCollection().contains(element);
     }

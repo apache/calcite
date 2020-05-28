@@ -304,6 +304,8 @@ import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UNARY_PLUS;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.UPPER;
 import static org.apache.calcite.sql.fun.SqlStdOperatorTable.USER;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Contains implementations of Rex operators as Java code.
  */
@@ -333,6 +335,7 @@ public class RexImpTable {
   private final Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>
       tvfImplementorMap = new HashMap<>();
 
+  @SuppressWarnings("method.invocation.invalid")
   RexImpTable() {
     defineMethod(ROW, BuiltInMethod.ARRAY.method, NullPolicy.NONE);
     defineMethod(UPPER, BuiltInMethod.UPPER.method, NullPolicy.STRICT);
@@ -922,7 +925,7 @@ public class RexImpTable {
         switch (this) {
         case NOT_POSSIBLE:
           return EnumUtils.convert(x,
-              Primitive.ofBox(x.getType()).primitiveClass);
+              Primitive.unbox(x.getType()));
         default:
           break;
         }
@@ -949,8 +952,8 @@ public class RexImpTable {
   }
 
   static Expression getDefaultValue(Type type) {
-    if (Primitive.is(type)) {
-      Primitive p = Primitive.of(type);
+    Primitive p = Primitive.of(type);
+    if (p != null) {
       return Expressions.constant(p.defaultValue, type);
     }
     return Expressions.constant(null, type);
@@ -1386,7 +1389,10 @@ public class RexImpTable {
         AggResultContext result) {
       List<Expression> acc = result.accumulator();
       return Expressions.call(
-          afi.isStatic ? null : acc.get(1), afi.resultMethod, acc.get(0));
+          afi.isStatic ? null : acc.get(1),
+          requireNonNull(afi.resultMethod,
+              () -> "resultMethod is null. Does " + afi.declaringClass + " declare result method?"),
+          acc.get(0));
     }
   }
 
@@ -1400,8 +1406,9 @@ public class RexImpTable {
         new Object() {
           int curentPosition; // position in for-win-agg-loop
           int startIndex;     // index of start of window
-          Comparable[] rows;  // accessed via WinAggAddContext.compareRows
-          {
+          Comparable [] rows;  // accessed via WinAggAddContext.compareRows
+          @SuppressWarnings("nullness")
+          void sample() {
             if (curentPosition > startIndex) {
               if (rows[curentPosition - 1].compareTo(rows[curentPosition])
                   > 0) {
@@ -1921,7 +1928,8 @@ public class RexImpTable {
           preFloor = false;
         }
         final TimeUnitRange timeUnitRange =
-            (TimeUnitRange) translator.getLiteralValue(argValueList.get(1));
+            (TimeUnitRange) requireNonNull(translator.getLiteralValue(argValueList.get(1)),
+            "timeUnitRange");
         switch (timeUnitRange) {
         case YEAR:
         case QUARTER:
@@ -2261,7 +2269,7 @@ public class RexImpTable {
         final RexCall call, final List<Expression> argValueList) {
       final TimeUnitRange timeUnitRange =
           (TimeUnitRange) translator.getLiteralValue(argValueList.get(0));
-      final TimeUnit unit = timeUnitRange.startUnit;
+      final TimeUnit unit = requireNonNull(timeUnitRange, "timeUnitRange").startUnit;
       Expression operand = argValueList.get(1);
       final SqlTypeName sqlTypeName =
           call.operands.get(1).getType().getSqlTypeName();
@@ -2481,10 +2489,10 @@ public class RexImpTable {
     private RelDataType nullifyType(JavaTypeFactory typeFactory,
         final RelDataType type, final boolean nullable) {
       if (type instanceof RelDataTypeFactoryImpl.JavaType) {
-        final Primitive primitive = Primitive.ofBox(
-            ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass());
-        if (primitive != null) {
-          return typeFactory.createJavaType(primitive.primitiveClass);
+        Class<?> javaClass = ((RelDataTypeFactoryImpl.JavaType) type).getJavaClass();
+        final Class<?> primitive = Primitive.unbox(javaClass);
+        if (primitive != javaClass) {
+          return typeFactory.createJavaType(primitive);
         }
       }
       return typeFactory.createTypeWithNullability(type, nullable);
@@ -2818,7 +2826,7 @@ public class RexImpTable {
 
       // Just take the last one, if exists
       if ("*".equals(alpha)) {
-        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(i);
+        setInputGetterIndex(translator, i);
         // Important, unbox the node / expression to avoid NullAs.NOT_POSSIBLE
         final RexPatternFieldRef ref = (RexPatternFieldRef) node;
         final RexPatternFieldRef newRef =
@@ -2827,11 +2835,11 @@ public class RexImpTable {
                 translator.typeFactory.createTypeWithNullability(ref.getType(),
                     true));
         final Expression expression = translator.translate(newRef, NullAs.NULL);
-        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(null);
+        setInputGetterIndex(translator, null);
         return expression;
       } else {
         // Alpha != "*" so we have to search for a specific one to find and use that, if found
-        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(
+        setInputGetterIndex(translator,
             Expressions.call(BuiltInMethod.MATCH_UTILS_LAST_WITH_SYMBOL.method,
                 Expressions.constant(alpha), rows, symbols, i));
 
@@ -2843,9 +2851,14 @@ public class RexImpTable {
                 translator.typeFactory.createTypeWithNullability(ref.getType(),
                     true));
         final Expression expression = translator.translate(newRef, NullAs.NULL);
-        ((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter).setIndex(null);
+        setInputGetterIndex(translator, null);
         return expression;
       }
+    }
+
+    private void setInputGetterIndex(RexToLixTranslator translator, Expression o) {
+      requireNonNull((EnumerableMatch.PassedRowsInputGetter) translator.inputGetter,
+          "inputGetter").setIndex(o);
     }
   }
 
@@ -3108,7 +3121,8 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      return null;
+      throw new IllegalStateException("This implementSafe should not be called,"
+          + " please call implement(...)");
     }
   }
 
@@ -3164,7 +3178,8 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      return null;
+      throw new IllegalStateException("This implementSafe should not be called,"
+          + " please call implement(...)");
     }
   }
 
@@ -3248,7 +3263,6 @@ public class RexImpTable {
   /** Implementor for the {@code RAND_INTEGER} function. */
   private static class RandIntegerImplementor extends AbstractRexCallImplementor {
     private final AbstractRexCallImplementor[] implementors = {
-        null,
         new ReflectiveImplementor(BuiltInMethod.RAND_INTEGER.method, nullPolicy),
         new ReflectiveImplementor(BuiltInMethod.RAND_INTEGER_SEED.method, nullPolicy)
     };
@@ -3263,7 +3277,7 @@ public class RexImpTable {
 
     @Override Expression implementSafe(final RexToLixTranslator translator,
         final RexCall call, final List<Expression> argValueList) {
-      return implementors[call.getOperands().size()]
+      return implementors[call.getOperands().size() - 1]
           .implementSafe(translator, call, argValueList);
     }
   }

@@ -123,7 +123,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
   public RelFieldTrimmer(SqlValidator validator, RelBuilder relBuilder) {
     Util.discard(validator); // may be useful one day
     this.relBuilder = relBuilder;
-    this.trimFieldsDispatcher =
+    @SuppressWarnings("argument.type.incompatible")
+    ReflectUtil.MethodDispatcher<TrimResult> dispatcher =
         ReflectUtil.createMethodDispatcher(
             TrimResult.class,
             this,
@@ -131,6 +132,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             RelNode.class,
             ImmutableBitSet.class,
             Set.class);
+    this.trimFieldsDispatcher = dispatcher;
   }
 
   @Deprecated // to be removed before 2.0
@@ -530,7 +532,8 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * @param originalRelNode Source RelNode for hint propagation (or null if no propagation needed)
    * @return Dummy project
    */
-  protected TrimResult dummyProject(int fieldCount, RelNode input, RelNode originalRelNode) {
+  protected TrimResult dummyProject(int fieldCount, RelNode input,
+      RelNode originalRelNode) {
     final RelOptCluster cluster = input.getCluster();
     final Mapping mapping =
         Mappings.create(MappingType.INVERSE_SURJECTION, fieldCount, 1);

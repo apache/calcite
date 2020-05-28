@@ -62,10 +62,12 @@ public class SqlDelete extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, condition, alias);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -126,10 +128,12 @@ public class SqlDelete extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
     }
+    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);

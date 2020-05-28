@@ -28,11 +28,11 @@ public class SqlAdvisorHint {
   /** Fully qualified object name as string. */
   public final String id;
   /** Fully qualified object name as array of names. */
-  public final String[] names;
+  public final String [] names;
   /** One of {@link org.apache.calcite.sql.validate.SqlMonikerType}. */
   public final String type;
 
-  public SqlAdvisorHint(String id, String[] names, String type) {
+  public SqlAdvisorHint(String id, String [] names, String type) {
     this.id = id;
     this.names = names;
     this.type = type;

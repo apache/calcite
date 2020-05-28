@@ -104,7 +104,9 @@ class TableNamespace extends AbstractNamespace {
       final RelOptTable relOptTable =
           ((RelOptTable) table).extend(extendedFields);
       final SqlValidatorTable validatorTable =
-          relOptTable.unwrap(SqlValidatorTable.class);
+          Objects.requireNonNull(
+            relOptTable.unwrap(SqlValidatorTable.class),
+            () -> "cant unwrap SqlValidatorTable from " + relOptTable);
       return new TableNamespace(validator, validatorTable, ImmutableList.of());
     }
     return new TableNamespace(validator, table, extendedFields);
@@ -115,7 +117,9 @@ class TableNamespace extends AbstractNamespace {
    * columns of the underlying table.
    */
   private RelDataType getBaseRowType() {
-    final Table schemaTable = table.unwrap(Table.class);
+    final Table schemaTable = Objects.requireNonNull(
+        table.unwrap(Table.class),
+        () -> "can't unwrap Table from " + table);
     if (schemaTable instanceof ModifiableViewTable) {
       final Table underlying =
           ((ModifiableViewTable) schemaTable).unwrap(Table.class);

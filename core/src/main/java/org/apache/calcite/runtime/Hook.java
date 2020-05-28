@@ -27,6 +27,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Collection of hooks that can be set by observers and are executed at various
  * parts of the query preparation process.
@@ -151,7 +153,7 @@ public enum Hook {
   /** Adds a handler for this thread. */
   public <T> Closeable addThread(final Consumer<T> handler) {
     //noinspection unchecked
-    threadHandlers.get().add((Consumer<Object>) handler);
+    castNonNull(threadHandlers.get()).add((Consumer<Object>) handler);
     return () -> removeThread(handler);
   }
 
@@ -166,7 +168,7 @@ public enum Hook {
 
   /** Removes a thread handler from this Hook. */
   private boolean removeThread(Consumer handler) {
-    return threadHandlers.get().remove(handler);
+    return castNonNull(threadHandlers.get()).remove(handler);
   }
 
   // CHECKSTYLE: IGNORE 1
@@ -194,7 +196,7 @@ public enum Hook {
     for (Consumer<Object> handler : handlers) {
       handler.accept(arg);
     }
-    for (Consumer<Object> handler : threadHandlers.get()) {
+    for (Consumer<Object> handler : castNonNull(threadHandlers.get())) {
       handler.accept(arg);
     }
   }

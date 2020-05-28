@@ -37,7 +37,9 @@ public class AutomatonBuilder {
   private final Map<String, Integer> symbolIds = new HashMap<>();
   private final List<State> stateList = new ArrayList<>();
   private final List<Transition> transitionList = new ArrayList<>();
+  @SuppressWarnings("method.invocation.invalid")
   private final State startState = createState();
+  @SuppressWarnings("method.invocation.invalid")
   private final State endState = createState();
 
   /** Adds a pattern as a start-to-end transition. */

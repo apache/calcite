@@ -19,7 +19,7 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.util.Util;
 
-import java.util.Objects;
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
 
 /**
  * Enumeration of possible syntactic types of {@link SqlOperator operators}.
@@ -162,6 +162,7 @@ public enum SqlSyntax {
   };
 
   /** Syntax to treat this syntax as equivalent to when resolving operators. */
+  @NotOnlyInitialized
   public final SqlSyntax family;
 
   SqlSyntax() {
@@ -169,7 +170,7 @@ public enum SqlSyntax {
   }
 
   SqlSyntax(SqlSyntax family) {
-    this.family = Objects.requireNonNull(family == null ? this : family);
+    this.family = family == null ? this : family;
   }
 
   /**

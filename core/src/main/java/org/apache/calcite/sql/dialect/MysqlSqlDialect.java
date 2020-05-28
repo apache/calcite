@@ -46,8 +46,6 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-import static org.apache.calcite.sql.type.SqlTypeName.TIMESTAMP;
-
 /**
  * A <code>SqlDialect</code> implementation for the MySQL database.
  */
@@ -236,7 +234,7 @@ public class MysqlSqlDialect extends SqlDialect {
    */
   private void unparseFloor(SqlWriter writer, SqlCall call) {
     SqlLiteral node = call.operand(1);
-    TimeUnitRange unit = (TimeUnitRange) node.getValue();
+    TimeUnitRange unit = node.getValueAs(TimeUnitRange.class);
 
     if (unit == TimeUnitRange.WEEK) {
       writer.print("STR_TO_DATE");

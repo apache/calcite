@@ -29,6 +29,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Parameter type-checking strategy where all operand types except last one must be the same.
  */
@@ -51,17 +53,20 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
       SqlCallBinding callBinding) {
+    if (throwOnFailure && callBinding == null) {
+      throw new IllegalArgumentException(
+          "callBinding must be non-null in case throwOnFailure=true");
+    }
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
     }
-    assert !(throwOnFailure && (callBinding == null));
     RelDataType[] types = new RelDataType[nOperandsActual];
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());
     for (int i : operandList) {
       if (operatorBinding.isOperandNull(i, false)) {
-        if (callBinding.isTypeCoercionEnabled()) {
+        if (requireNonNull(callBinding, "callBinding").isTypeCoercionEnabled()) {
           types[i] = operatorBinding.getTypeFactory()
               .createSqlType(SqlTypeName.NULL);
         } else if (throwOnFailure) {
@@ -85,7 +90,7 @@ public class SameOperandTypeExceptLastOperandChecker extends SameOperandTypeChec
           // REVIEW jvs 5-June-2005: Why don't we use
           // newValidationSignatureError() here?  It gives more
           // specific diagnostics.
-          throw callBinding.newValidationError(
+          throw requireNonNull(callBinding, "callBinding").newValidationError(
               RESOURCE.needSameTypeParameter());
         }
       }

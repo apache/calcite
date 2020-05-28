@@ -22,6 +22,8 @@ import org.apache.calcite.util.UnmodifiableArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Implementation of {@link SqlCall} that keeps its operands in an array.
  */
@@ -75,13 +77,14 @@ public class SqlBasicCall extends SqlCall {
     return operands;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(operands); // not immutable, but quick
   }
 
   @SuppressWarnings("unchecked")
   @Override public <S extends SqlNode> S operand(int i) {
-    return (S) operands[i];
+    return (S) castNonNull(operands[i]);
   }
 
   @Override public int operandCount() {

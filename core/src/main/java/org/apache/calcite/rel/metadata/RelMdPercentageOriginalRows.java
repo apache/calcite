@@ -26,6 +26,8 @@ import org.apache.calcite.util.BuiltInMethod;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.List;
 
 /**
@@ -157,9 +159,16 @@ public class RelMdPercentageOriginalRows
   // Ditto for getNonCumulativeCost
   public RelOptCost getCumulativeCost(RelNode rel, RelMetadataQuery mq) {
     RelOptCost cost = mq.getNonCumulativeCost(rel);
+    if (cost == null) {
+      return null;
+    }
     List<RelNode> inputs = rel.getInputs();
     for (RelNode input : inputs) {
-      cost = cost.plus(mq.getCumulativeCost(input));
+      RelOptCost inputCost = mq.getCumulativeCost(input);
+      if (inputCost == null) {
+        return null;
+      }
+      cost = cost.plus(inputCost);
     }
     return cost;
   }
@@ -174,9 +183,9 @@ public class RelMdPercentageOriginalRows
     return rel.computeSelfCost(rel.getCluster().getPlanner(), mq);
   }
 
-  private static Double quotientForPercentage(
-      Double numerator,
-      Double denominator) {
+  private static @PolyNull Double quotientForPercentage(
+      @PolyNull Double numerator,
+      @PolyNull Double denominator) {
     if ((numerator == null) || (denominator == null)) {
       return null;
     }

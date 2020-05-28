@@ -336,11 +336,15 @@ public class RexImplicationChecker {
       final SqlKind fKind = firstUsageList.get(0).getKey().getKind();
       final SqlKind sKind = secondUsageList.get(0).getKey().getKind();
       final SqlKind fKind2 =
-          (firstUsageList.size() == 2) ? firstUsageList.get(1).getKey().getKind() : null;
+          firstLen == 2 ? firstUsageList.get(1).getKey().getKind() : null;
       final SqlKind sKind2 =
-          (secondUsageList.size() == 2) ? secondUsageList.get(1).getKey().getKind() : null;
+          secondLen == 2 ? secondUsageList.get(1).getKey().getKind() : null;
 
+      // Note: arguments to isEquivalentOp are never null, however checker-framework's
+      // dataflow is not strong enough, so the first parameter is marked as nullable
+      //noinspection ConstantConditions
       if (firstLen == 2 && secondLen == 2
+          && fKind2 != null && sKind2 != null
           && !(isEquivalentOp(fKind, sKind) && isEquivalentOp(fKind2, sKind2))
           && !(isEquivalentOp(fKind, sKind2) && isEquivalentOp(fKind2, sKind))) {
         return false;
@@ -356,7 +360,8 @@ public class RexImplicationChecker {
         // x > 30 and x < 40 implies x < 70
         // But disallow cases like
         // x > 30 and x > 40 implies x < 70
-        if (!isOppositeOp(fKind, fKind2) && !isSupportedUnaryOperators(sKind)
+        //noinspection ConstantConditions
+        if (fKind2 != null && !isOppositeOp(fKind, fKind2) && !isSupportedUnaryOperators(sKind)
             && !(isEquivalentOp(fKind, fKind2) && isEquivalentOp(fKind, sKind))) {
           return false;
         }

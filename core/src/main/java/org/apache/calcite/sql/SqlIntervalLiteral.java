@@ -22,6 +22,8 @@ import org.apache.calcite.util.Litmus;
 
 import java.util.Objects;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * A SQL literal representing a time interval.
  *
@@ -77,7 +79,7 @@ public class SqlIntervalLiteral extends SqlLiteral {
 
   @SuppressWarnings("deprecation")
   @Override public int signum() {
-    return ((IntervalValue) value).signum();
+    return ((IntervalValue) castNonNull(value)).signum();
   }
 
   //~ Inner Classes ----------------------------------------------------------

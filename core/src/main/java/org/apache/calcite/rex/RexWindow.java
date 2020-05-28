@@ -67,6 +67,7 @@ public class RexWindow {
    * "ROWS BETWEEN 5 PRECEDING AND CURRENT ROW" is printed as
    * "ROWS 5 PRECEDING".
    */
+  @SuppressWarnings("method.invocation.invalid")
   RexWindow(
       List<RexNode> partitionKeys,
       List<RexFieldCollation> orderKeys,

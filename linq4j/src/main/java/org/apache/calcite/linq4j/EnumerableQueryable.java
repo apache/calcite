@@ -177,7 +177,8 @@ class EnumerableQueryable<T> extends DefaultEnumerable<T>
 
   // .............
 
-  @Override public T aggregate(FunctionExpression<Function2<T, T, T>> selector) {
+  @Override public T aggregate(
+      FunctionExpression<Function2<T, T, T>> selector) {
     return EnumerableDefaults.aggregate(getThis(), selector.getFunction());
   }
 

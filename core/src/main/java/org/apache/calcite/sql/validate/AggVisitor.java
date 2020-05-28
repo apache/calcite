@@ -29,7 +29,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /** Visitor that can find aggregate and windowed aggregate functions.
  *
@@ -58,7 +57,7 @@ abstract class AggVisitor extends SqlBasicVisitor<Void> {
    * @param nameMatcher Whether to match the agg function names case-sensitively
    */
   AggVisitor(SqlOperatorTable opTab, boolean over, boolean aggregate,
-      boolean group, @Nullable AggFinder delegate, SqlNameMatcher nameMatcher) {
+      boolean group, AggFinder delegate, SqlNameMatcher nameMatcher) {
     this.group = group;
     this.over = over;
     this.aggregate = aggregate;

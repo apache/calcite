@@ -28,6 +28,8 @@ import org.apache.calcite.util.Util;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * SqlTypeFactoryImpl provides a default implementation of
  * {@link RelDataTypeFactory} which supports SQL types.
@@ -127,8 +129,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
       Charset charset,
       SqlCollation collation) {
     assert SqlTypeUtil.inCharFamily(type) : type;
-    assert charset != null;
-    assert collation != null;
+    requireNonNull(charset, "charset");
+    requireNonNull(collation, "collation");
     RelDataType newType;
     if (type instanceof BasicSqlType) {
       BasicSqlType sqlType = (BasicSqlType) type;
@@ -365,7 +367,7 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
               createTypeWithCharsetAndCollation(
                   resultType,
                   charset,
-                  collation0 != null ? collation0 : collation);
+                  collation0 != null ? collation0 : requireNonNull(collation, "collation"));
         }
       } else if (SqlTypeUtil.isExactNumeric(type)) {
         if (SqlTypeUtil.isExactNumeric(resultType)) {
@@ -511,7 +513,8 @@ public class SqlTypeFactoryImpl extends RelDataTypeFactoryImpl {
 
   private RelDataType copyIntervalType(RelDataType type, boolean nullable) {
     return new IntervalSqlType(typeSystem,
-        type.getIntervalQualifier(),
+        requireNonNull(type.getIntervalQualifier(),
+            () -> "type.getIntervalQualifier() for " + type),
         nullable);
   }
 

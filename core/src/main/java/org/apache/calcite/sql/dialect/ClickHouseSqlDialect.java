@@ -36,7 +36,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.RelToSqlConverterUtil;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for the ClickHouse database.
@@ -130,7 +130,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
 
   @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
       SqlNode fetch) {
-    Preconditions.checkArgument(fetch != null);
+    requireNonNull(fetch, "fetch");
 
     writer.newlineAndIndent();
     final SqlWriter.Frame frame =
@@ -191,7 +191,7 @@ public class ClickHouseSqlDialect extends SqlDialect {
    */
   private void unparseFloor(SqlWriter writer, SqlCall call) {
     final SqlLiteral timeUnitNode = call.operand(1);
-    TimeUnitRange unit = (TimeUnitRange) timeUnitNode.getValue();
+    TimeUnitRange unit = timeUnitNode.getValueAs(TimeUnitRange.class);
 
     String funName;
     switch (unit) {

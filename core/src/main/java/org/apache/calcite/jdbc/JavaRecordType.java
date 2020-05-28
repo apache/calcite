@@ -40,7 +40,7 @@ public class JavaRecordType extends RelRecordType {
   @Override public boolean equals(Object obj) {
     return this == obj
         || obj instanceof JavaRecordType
-        && fieldList.equals(((JavaRecordType) obj).fieldList)
+        && Objects.equals(fieldList, ((JavaRecordType) obj).fieldList)
         && clazz == ((JavaRecordType) obj).clazz;
   }
 

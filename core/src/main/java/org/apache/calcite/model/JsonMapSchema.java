@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,6 +48,15 @@ public class JsonMapSchema extends JsonSchema {
    * <p>The list may be empty.
    */
   public final List<JsonFunction> functions = new ArrayList<>();
+
+  @JsonCreator
+  public JsonMapSchema(
+      @JsonProperty(value = "name", required = true) String name,
+      @JsonProperty("path") List<Object> path,
+      @JsonProperty("cache") Boolean cache,
+      @JsonProperty("autoLattice") Boolean autoLattice) {
+    super(name, path, cache, autoLattice);
+  }
 
   @Override public void accept(ModelHandler handler) {
     handler.visit(this);

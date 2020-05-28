@@ -55,7 +55,10 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.profile.ProfilerImpl.CompositeCollector.OF;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link Profiler} that only investigates "interesting"
@@ -199,7 +202,7 @@ public class ProfilerImpl implements Profiler {
       }
 
       for (Space s : singletonSpaces) {
-        for (ImmutableBitSet dependent : s.dependents) {
+        for (ImmutableBitSet dependent : requireNonNull(s, "s").dependents) {
           functionalDependencies.add(
               new FunctionalDependency(toColumns(dependent),
                   Iterables.getOnlyElement(s.columns)));
@@ -290,7 +293,7 @@ public class ProfilerImpl implements Profiler {
       for (final List<Comparable> row : rows) {
         ++rowCount;
         for (Space space : spaces) {
-          space.collector.add(row);
+          castNonNull(space.collector).add(row);
         }
       }
 
@@ -300,7 +303,10 @@ public class ProfilerImpl implements Profiler {
       // and [x, y] => [a] is a functional dependency but not interesting,
       // and [x, y, z] is not an interesting distribution.
       for (Space space : spaces) {
-        space.collector.finish();
+        Collector collector = space.collector;
+        if (collector != null) {
+          collector.finish();
+        }
         space.collector = null;
 //        results.add(space);
 
@@ -316,7 +322,7 @@ public class ProfilerImpl implements Profiler {
             for (int i : s.columnOrdinals) {
               final Space s1 = singletonSpaces.get(i);
               final ImmutableBitSet rest = s.columnOrdinals.clear(i);
-              for (ImmutableBitSet dependent : s1.dependents) {
+              for (ImmutableBitSet dependent : requireNonNull(s1, "s1").dependents) {
                 if (rest.contains(dependent)) {
                   // The "key" of this functional dependency is not minimal.
                   // For instance, if we know that
@@ -332,7 +338,7 @@ public class ProfilerImpl implements Profiler {
             }
             for (int dependent : dependents) {
               final Space s1 = singletonSpaces.get(dependent);
-              for (ImmutableBitSet d : s1.dependents) {
+              for (ImmutableBitSet d : requireNonNull(s1, "s1").dependents) {
                 if (s.columnOrdinals.contains(d)) {
                   ++nonMinimal;
                   continue dependents;
@@ -341,7 +347,8 @@ public class ProfilerImpl implements Profiler {
             }
             space.dependencies.or(dependents.toBitSet());
             for (int d : dependents) {
-              singletonSpaces.get(d).dependents.add(s.columnOrdinals);
+              Space spaceD = requireNonNull(singletonSpaces.get(d), "singletonSpaces.get(d)");
+              spaceD.dependents.add(s.columnOrdinals);
             }
           }
         }
@@ -412,7 +419,9 @@ public class ProfilerImpl implements Profiler {
         return rowCount;
       default:
         double c = rowCount;
-        for (ImmutableBitSet bitSet : keyPoset.getParents(columns, true)) {
+        List<ImmutableBitSet> parents = requireNonNull(keyPoset.getParents(columns, true),
+            () -> "keyPoset.getParents(columns, true) is null for " + columns);
+        for (ImmutableBitSet bitSet : parents) {
           if (bitSet.isEmpty()) {
             // If the parent is the empty group (i.e. "GROUP BY ()", the grand
             // total) we cannot improve on the estimate.
@@ -420,12 +429,14 @@ public class ProfilerImpl implements Profiler {
           }
           final Distribution d1 = distributions.get(bitSet);
           final double c2 = cardinality(rowCount, columns.except(bitSet));
-          final double d = Lattice.getRowCount(rowCount, d1.cardinality, c2);
+          final double d = Lattice.getRowCount(rowCount, requireNonNull(d1, "d1").cardinality, c2);
           c = Math.min(c, d);
         }
-        for (ImmutableBitSet bitSet : keyPoset.getChildren(columns, true)) {
+        List<ImmutableBitSet> children = requireNonNull(keyPoset.getChildren(columns, true),
+            () -> "keyPoset.getChildren(columns, true) is null for " + columns);
+        for (ImmutableBitSet bitSet : children) {
           final Distribution d1 = distributions.get(bitSet);
-          c = Math.min(c, d1.cardinality);
+          c = Math.min(c, requireNonNull(d1, "d1").cardinality);
         }
         return c;
       }
@@ -433,8 +444,9 @@ public class ProfilerImpl implements Profiler {
 
 
     private ImmutableSortedSet<Column> toColumns(Iterable<Integer> ordinals) {
+      //noinspection Convert2MethodRef
       return ImmutableSortedSet.copyOf(
-          Util.transform(ordinals, columns::get));
+          Util.transform(ordinals, idx -> columns.get(idx)));
     }
   }
 
@@ -771,7 +783,7 @@ public class ProfilerImpl implements Profiler {
 
     boolean offer(double d) {
       boolean b;
-      if (count++ < warmUpCount || d > priorityQueue.peek()) {
+      if (count++ < warmUpCount || d > castNonNull(priorityQueue.peek())) {
         if (priorityQueue.size() >= size) {
           priorityQueue.remove(deque.pop());
         }

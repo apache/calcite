@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+
 import java.util.Arrays;
 
 /**
@@ -30,7 +31,7 @@ public class MemoryFactory<E> {
   // Index:      0   1   2   3   4
   // Idea       -2  -1   0  +1  +2
   ModularInteger offset;
-  private Object[] values;
+  private final Object[] values;
 
   public MemoryFactory(int history, int future) {
     this.history = history;

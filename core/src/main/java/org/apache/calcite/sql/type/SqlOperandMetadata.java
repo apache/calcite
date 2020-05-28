@@ -20,7 +20,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Extension to {@link SqlOperandTypeChecker} that also provides
@@ -31,7 +30,6 @@ import javax.annotation.Nonnull;
  *
  * @see OperandTypes
  */
-@Nonnull
 public interface SqlOperandMetadata extends SqlOperandTypeChecker {
   //~ Methods ----------------------------------------------------------------
 

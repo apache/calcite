@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -270,7 +271,7 @@ public class SqlTypeCoercionRule implements SqlTypeMappingRule {
 
   /** Returns an instance. */
   public static SqlTypeCoercionRule instance() {
-    return THREAD_PROVIDERS.get();
+    return Objects.requireNonNull(THREAD_PROVIDERS.get(), "threadProviders");
   }
 
   /** Returns an instance with specified type mappings. */

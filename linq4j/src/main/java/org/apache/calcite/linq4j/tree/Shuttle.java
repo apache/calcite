@@ -16,8 +16,11 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+
 import java.util.List;
 import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Extension to {@link Visitor} that returns a mutated tree.
@@ -134,9 +137,11 @@ public class Shuttle {
 
   public Expression visit(FunctionExpression functionExpression,
       BlockStatement body) {
-    return functionExpression.body.equals(body)
+    return Objects.equals(body, functionExpression.body)
         ? functionExpression
-        : Expressions.lambda(body, functionExpression.parameterList);
+        : Expressions.lambda(
+            requireNonNull(body, "body"),
+            functionExpression.parameterList);
   }
 
   public Shuttle preVisit(BinaryExpression binaryExpression) {

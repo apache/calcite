@@ -55,6 +55,10 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.calcite.linq4j.tree.Types.toClass;
+
+import static java.util.Objects.requireNonNull;
+
 /** Implementation of {@link org.apache.calcite.rel.core.TableScan} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
 public class EnumerableTableScan
@@ -185,7 +189,7 @@ public class EnumerableTableScan
   }
 
   public static JavaRowFormat deduceFormat(RelOptTable table) {
-    final Class elementType = deduceElementType(table.unwrap(Table.class));
+    final Class elementType = deduceElementType(table.unwrapOrThrow(Table.class));
     return elementType == Object[].class
         ? JavaRowFormat.ARRAY
         : JavaRowFormat.CUSTOM;
@@ -206,7 +210,7 @@ public class EnumerableTableScan
   private Expression toEnumerable(Expression expression) {
     final Type type = expression.getType();
     if (Types.isArray(type)) {
-      if (Types.toClass(type).getComponentType().isPrimitive()) {
+      if (requireNonNull(toClass(type).getComponentType()).isPrimitive()) {
         expression =
             Expressions.call(BuiltInMethod.AS_LIST.method, expression);
       }
@@ -235,7 +239,7 @@ public class EnumerableTableScan
       return Expressions.call(BuiltInMethod.SLICE0.method, expression);
     }
     JavaRowFormat oldFormat = format();
-    if (physType.getFormat() == oldFormat && !hasCollectionField(rowType)) {
+    if (physType.getFormat() == oldFormat && !hasCollectionField(getRowType())) {
       return expression;
     }
     final ParameterExpression row_ =
@@ -260,7 +264,8 @@ public class EnumerableTableScan
     switch (relFieldType.getSqlTypeName()) {
     case ARRAY:
     case MULTISET:
-      final RelDataType fieldType = relFieldType.getComponentType();
+      final RelDataType fieldType = requireNonNull(relFieldType.getComponentType(),
+          () -> "relFieldType.getComponentType() for " + relFieldType);
       if (fieldType.isStruct()) {
         // We can't represent a multiset or array as a List<Employee>, because
         // the consumer does not know the element type.

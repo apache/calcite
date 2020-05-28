@@ -26,10 +26,14 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.annotation.Nonnull;
+import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * A <code>SqlCall</code> is a call to an {@link SqlOperator operator}.
@@ -69,13 +73,31 @@ public abstract class SqlCall extends SqlNode {
     return getOperator().getKind();
   }
 
-  public abstract @Nonnull SqlOperator getOperator();
+  @Pure
+  public abstract SqlOperator getOperator();
 
-  public abstract @Nonnull List<SqlNode> getOperandList();
+  /**
+   * Returns the list of operands. The set and order of operands is call-specific.
+   * <p>Note: the proper type would be {@code List<SqlNode>}, however,
+   * it would trigger too many changes to the current codebase.</p>
+   * @return the list of call operands, never null, the operands can be null
+   */
+  public abstract List</*Nullable*/ SqlNode> getOperandList();
 
+  /**
+   * Returns i-th operand (0-based).
+   * <p>Note: the result might be null, so the proper signature would be
+   * {@code <S extends SqlNode>}, however, it would trigger to many changes to the current
+   * codebase.</p>
+   * @param i operand index (0-based)
+   * @param <S> type of the result
+   * @return i-th operand (0-based), the result might be null
+   */
   @SuppressWarnings("unchecked")
-  public <S extends SqlNode> S operand(int i) {
-    return (S) getOperandList().get(i);
+  public <S extends /*Nullable*/ SqlNode> S operand(int i) {
+    // Note: in general, null elements exist in the list, however, the code
+    // assumes operand(..) is non-nullable, so we add a cast here
+    return (S) castNonNull(getOperandList().get(i));
   }
 
   public int operandCount() {
@@ -168,7 +190,9 @@ public abstract class SqlCall extends SqlNode {
       SqlValidatorScope scope) {
     List<String> signatureList = new ArrayList<>();
     for (final SqlNode operand : getOperandList()) {
-      final RelDataType argType = validator.deriveType(scope, operand);
+      final RelDataType argType = validator.deriveType(
+          Objects.requireNonNull(scope, "scope"),
+          operand);
       if (null == argType) {
         continue;
       }
@@ -178,6 +202,7 @@ public abstract class SqlCall extends SqlNode {
   }
 
   @Override public SqlMonotonicity getMonotonicity(SqlValidatorScope scope) {
+    Objects.requireNonNull(scope, "scope");
     // Delegate to operator.
     final SqlCallBinding binding =
         new SqlCallBinding(scope.getValidator(), scope, this);
@@ -205,6 +230,7 @@ public abstract class SqlCall extends SqlNode {
     return false;
   }
 
+  @Pure
   public SqlLiteral getFunctionQuantifier() {
     return null;
   }

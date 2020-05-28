@@ -56,7 +56,7 @@ public enum CsvFieldType {
   }
 
   CsvFieldType(Primitive primitive) {
-    this(primitive.boxClass, primitive.primitiveName);
+    this(primitive.getBoxClass(), primitive.getPrimitiveName());
   }
 
   CsvFieldType(Class clazz, String simpleName) {

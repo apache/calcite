@@ -35,8 +35,12 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -148,11 +152,13 @@ public class SqlWindow extends SqlCall {
     return SqlKind.WINDOW;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(declName, refName, partitionList, orderList,
         isRows, lowerBound, upperBound, allowPartial);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -260,6 +266,7 @@ public class SqlWindow extends SqlCall {
     this.isRows = isRows;
   }
 
+  @Pure
   public boolean isRows() {
     return isRows.booleanValue();
   }
@@ -329,7 +336,7 @@ public class SqlWindow extends SqlCall {
     if (Bound.CURRENT_ROW == lowerLitType) {
       if (null != upperOp) {
         if (upperOp == PRECEDING_OPERATOR) {
-          throw validator.newValidationError(upperBound,
+          throw validator.newValidationError(castNonNull(upperBound),
               RESOURCE.currentRowPrecedingError());
         }
       }
@@ -337,12 +344,12 @@ public class SqlWindow extends SqlCall {
       if (lowerOp == FOLLOWING_OPERATOR) {
         if (null != upperOp) {
           if (upperOp == PRECEDING_OPERATOR) {
-            throw validator.newValidationError(upperBound,
+            throw validator.newValidationError(castNonNull(upperBound),
                 RESOURCE.followingBeforePrecedingError());
           }
         } else if (null != upperLitType) {
           if (Bound.CURRENT_ROW == upperLitType) {
-            throw validator.newValidationError(upperBound,
+            throw validator.newValidationError(castNonNull(upperBound),
                 RESOURCE.currentRowFollowingError());
           }
         }
@@ -516,6 +523,7 @@ public class SqlWindow extends SqlCall {
    * (for example, a window of size 1 hour which has only 45 minutes of data
    * in it) will appear to windowed aggregate functions to be empty.
    */
+  @EnsuresNonNullIf(expression = "allowPartial", result = false)
   public boolean isAllowPartial() {
     // Default (and standard behavior) is to allow partial windows.
     return allowPartial == null
@@ -640,7 +648,7 @@ public class SqlWindow extends SqlCall {
     }
 
     if (!isRows() && !isAllowPartial()) {
-      throw validator.newValidationError(allowPartial,
+      throw validator.newValidationError(castNonNull(allowPartial),
           RESOURCE.cannotUseDisallowPartialWithRange());
     }
   }
@@ -677,7 +685,7 @@ public class SqlWindow extends SqlCall {
           final SqlNumericLiteral boundLiteral =
               (SqlNumericLiteral) boundVal;
           if (!boundLiteral.isExact()
-              || (boundLiteral.getScale() != 0)
+              || (boundLiteral.getScale() != null && boundLiteral.getScale() != 0)
               || (0 > boundLiteral.longValue(true))) {
             // true == throw if not exact (we just tested that - right?)
             throw validator.newValidationError(boundVal,
@@ -808,6 +816,7 @@ public class SqlWindow extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
         SqlLiteral functionQualifier,
         SqlParserPos pos,
@@ -873,24 +882,26 @@ public class SqlWindow extends SqlCall {
         window.orderList.unparse(writer, 0, 0);
         writer.endList(orderFrame);
       }
-      if (window.lowerBound == null) {
+      SqlNode lowerBound = window.lowerBound;
+      SqlNode upperBound = window.upperBound;
+      if (lowerBound == null) {
         // No ROWS or RANGE clause
-      } else if (window.upperBound == null) {
+      } else if (upperBound == null) {
         if (window.isRows()) {
           writer.sep("ROWS");
         } else {
           writer.sep("RANGE");
         }
-        window.lowerBound.unparse(writer, 0, 0);
+        lowerBound.unparse(writer, 0, 0);
       } else {
         if (window.isRows()) {
           writer.sep("ROWS BETWEEN");
         } else {
           writer.sep("RANGE BETWEEN");
         }
-        window.lowerBound.unparse(writer, 0, 0);
+        lowerBound.unparse(writer, 0, 0);
         writer.keyword("AND");
-        window.upperBound.unparse(writer, 0, 0);
+        upperBound.unparse(writer, 0, 0);
       }
 
       // ALLOW PARTIAL/DISALLOW PARTIAL

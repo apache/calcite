@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RelMdUniqueKeys supplies a default implementation of
  * {@link RelMetadataQuery#getUniqueKeys} for the standard logical algebra.
@@ -155,7 +157,10 @@ public class RelMdUniqueKeys
 
       Iterable<List<ImmutableBitSet>> product = Linq4j.product(
           Util.transform(colMask,
-              in -> Util.filter(mapInToOutPos.get(in).powerSet(), bs -> !bs.isEmpty())));
+              in -> Util.filter(
+                  requireNonNull(mapInToOutPos.get(in),
+                      () -> "no entry for column " + in + " in mapInToOutPos: " + mapInToOutPos)
+                      .powerSet(), bs -> !bs.isEmpty())));
 
       resultBuilder.addAll(Util.transform(product, ImmutableBitSet::union));
     }
@@ -304,6 +309,9 @@ public class RelMdUniqueKeys
   public Set<ImmutableBitSet> getUniqueKeys(TableScan rel, RelMetadataQuery mq,
       boolean ignoreNulls) {
     final List<ImmutableBitSet> keys = rel.getTable().getKeys();
+    if (keys == null) {
+      return null;
+    }
     for (ImmutableBitSet key : keys) {
       assert rel.getTable().isKey(key);
     }

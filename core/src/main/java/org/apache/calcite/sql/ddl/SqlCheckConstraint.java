@@ -52,6 +52,7 @@ public class SqlCheckConstraint extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, expression);
   }

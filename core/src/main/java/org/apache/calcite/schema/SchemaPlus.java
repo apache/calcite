@@ -78,7 +78,7 @@ public interface SchemaPlus extends Schema {
   @Override boolean isMutable();
 
   /** Returns an underlying object. */
-  <T> T unwrap(Class<T> clazz);
+  <T extends Object> T unwrap(Class<T> clazz);
 
   void setPath(ImmutableList<ImmutableList<String>> path);
 

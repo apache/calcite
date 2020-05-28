@@ -23,8 +23,11 @@ import com.google.common.collect.ImmutableList;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Predicate;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parser that takes a collection of tokens (atoms and operators)
@@ -93,23 +96,31 @@ public class PrecedenceClimbingParser {
       }
       final Token t;
       switch (op.type) {
-      case POSTFIX:
-        t = call(op, ImmutableList.of(op.previous));
-        replace(t, op.previous.previous, op.next);
+      case POSTFIX: {
+        Token previous = requireNonNull(op.previous, () -> "previous of " + op);
+        t = call(op, ImmutableList.of(previous));
+        replace(t, previous.previous, op.next);
         break;
-      case PREFIX:
-        t = call(op, ImmutableList.of(op.next));
-        replace(t, op.previous, op.next.next);
+      }
+      case PREFIX: {
+        Token next = requireNonNull(op.next, () -> "next of " + op);
+        t = call(op, ImmutableList.of(next));
+        replace(t, op.previous, next.next);
         break;
-      case INFIX:
-        t = call(op, ImmutableList.of(op.previous, op.next));
-        replace(t, op.previous.previous, op.next.next);
+      }
+      case INFIX: {
+        Token previous = requireNonNull(op.previous, () -> "previous of " + op);
+        Token next = requireNonNull(op.next, () -> "next of " + op);
+        t = call(op, ImmutableList.of(previous, next));
+        replace(t, previous.previous, next.next);
         break;
-      case SPECIAL:
+      }
+      case SPECIAL: {
         Result r = ((SpecialOp) op).special.apply(this, (SpecialOp) op);
-        Objects.requireNonNull(r);
+        requireNonNull(r);
         replace(r.replacement, r.first.previous, r.last.next);
         break;
+      }
       default:
         throw new AssertionError();
       }
@@ -223,8 +234,16 @@ public class PrecedenceClimbingParser {
       this.right = right;
     }
 
+    /**
+     * Returns {@code o}.
+     * @return o
+     */
+    public Object o() {
+      return o;
+    }
+
     @Override public String toString() {
-      return o.toString();
+      return String.valueOf(o);
     }
 
     protected StringBuilder print(StringBuilder b) {
@@ -242,8 +261,12 @@ public class PrecedenceClimbingParser {
       super(type, o, left, right);
     }
 
+    @Override public Object o() {
+      return castNonNull(super.o());
+    }
+
     @Override public Token copy() {
-      return new Op(type, o, left, right);
+      return new Op(type, o(), left, right);
     }
   }
 
@@ -257,7 +280,7 @@ public class PrecedenceClimbingParser {
     }
 
     @Override public Token copy() {
-      return new SpecialOp(o, left, right, special);
+      return new SpecialOp(o(), left, right, special);
     }
   }
 
@@ -315,7 +338,7 @@ public class PrecedenceClimbingParser {
 
     private StringBuilder printOp(StringBuilder b, boolean leftSpace,
         boolean rightSpace) {
-      String s = op.o.toString();
+      String s = String.valueOf(op.o);
       if (leftSpace) {
         b.append(' ');
       }

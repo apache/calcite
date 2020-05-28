@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A <code>SqlDialect</code> implementation for the Sybase database.
  */
@@ -48,6 +50,7 @@ public class SybaseSqlDialect extends SqlDialect {
     // Note that "fetch" is ignored.
     writer.keyword("TOP");
     writer.keyword("(");
+    requireNonNull(fetch, "fetch");
     fetch.unparse(writer, -1, -1);
     writer.keyword(")");
   }

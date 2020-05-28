@@ -21,9 +21,10 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Converts Calcite n-ary operators to Druid expressions, for example

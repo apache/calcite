@@ -80,6 +80,7 @@ public class RelOptLattice {
     final MaterializationService service = MaterializationService.instance();
     boolean create = lattice.auto && config.createMaterializations();
     final CalciteSchema schema = starRelOptTable.unwrap(CalciteSchema.class);
+    assert schema != null : "Can't get CalciteSchema from " + starRelOptTable;
     return service.defineTile(lattice, groupSet, measureList, schema, create,
         false);
   }

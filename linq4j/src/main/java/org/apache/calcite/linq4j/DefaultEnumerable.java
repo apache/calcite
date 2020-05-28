@@ -33,6 +33,8 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Comparator;
@@ -93,8 +95,8 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.aggregate(getThis(), func);
   }
 
-  @Override public <TAccumulate> TAccumulate aggregate(TAccumulate seed,
-      Function2<TAccumulate, T, TAccumulate> func) {
+  @Override public <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
+      Function2<@PolyNull TAccumulate, T, @PolyNull TAccumulate> func) {
     return EnumerableDefaults.aggregate(getThis(), seed, func);
   }
 
@@ -195,7 +197,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.defaultIfEmpty(getThis());
   }
 
-  @Override public Enumerable<T>  defaultIfEmpty(T value) {
+  @Override public Enumerable<@PolyNull T> defaultIfEmpty(@PolyNull T value) {
     return EnumerableDefaults.defaultIfEmpty(getThis(), value);
   }
 
@@ -444,6 +446,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.longCount(getThis(), predicate);
   }
 
+  @SuppressWarnings("unchecked")
   @Override public T max() {
     return (T) EnumerableDefaults.max((Enumerable) getThis());
   }
@@ -493,6 +496,7 @@ public abstract class DefaultEnumerable<T> implements OrderedEnumerable<T> {
     return EnumerableDefaults.max(getThis(), selector);
   }
 
+  @SuppressWarnings("unchecked")
   @Override public T min() {
     return (T) EnumerableDefaults.min((Enumerable) getThis());
   }

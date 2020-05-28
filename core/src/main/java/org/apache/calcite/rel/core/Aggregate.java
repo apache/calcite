@@ -141,6 +141,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
    * @param groupSets List of all grouping sets; null for just {@code groupSet}
    * @param aggCalls Collection of calls to aggregate functions
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Aggregate(
       RelOptCluster cluster,
       RelTraitSet traitSet,
@@ -204,7 +205,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
     return true;
   }
 
-  private boolean isPredicate(RelNode input, int index) {
+  private static boolean isPredicate(RelNode input, int index) {
     final RelDataType type =
         input.getRowType().getFieldList().get(index).getType();
     return type.getSqlTypeName() == SqlTypeName.BOOLEAN
@@ -525,6 +526,7 @@ public abstract class Aggregate extends SingleRel implements Hintable {
         }
         g = bitSet;
       }
+      assert g != null : "groupSet must not be empty";
       assert g.isEmpty();
       return true;
     }

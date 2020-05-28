@@ -587,7 +587,7 @@ public class ScannableTableTest {
     }
 
     public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters,
-        final int[] projects) {
+        final int [] projects) {
       final Pair<Integer, Object> filter = getFilter(cooperative, filters);
       return new AbstractEnumerable<Object[]>() {
         public Enumerator<Object[]> enumerator() {

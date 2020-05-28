@@ -49,6 +49,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of table that reads rows from column stores, one per column.
  * Column store formats are chosen based on the type and distribution of the
@@ -101,11 +103,6 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
         return content.enumerator();
       }
     };
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> Pair<Object, T> toPair(Object dataSet) {
-    return (Pair<Object, T>) dataSet;
   }
 
   /** How a column's values are represented. */
@@ -243,7 +240,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
 
     /** Converts a value set into a compact representation. If
      * {@code sources} is not null, permutes. */
-    Object freeze(ColumnLoader.ValueSet valueSet, int[] sources);
+    Object freeze(ColumnLoader.ValueSet valueSet, int [] sources);
 
     Object getObject(Object dataSet, int ordinal);
     int getInt(Object dataSet, int ordinal);
@@ -277,7 +274,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.OBJECT_ARRAY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       // We assume the values have been canonized.
       final List<Comparable> list = permuteList(valueSet.values, sources);
       return list.toArray(new Comparable[0]);
@@ -298,7 +295,8 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     @Override public int getInt(Object dataSet, int ordinal) {
-      return ((Number) getObject(dataSet, ordinal)).intValue();
+      Number value = (Number) getObject(dataSet, ordinal);
+      return requireNonNull(value, "value").intValue();
     }
 
     @Override public int size(Object dataSet) {
@@ -334,7 +332,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.PRIMITIVE_ARRAY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       //noinspection unchecked
       return primitive.toArray2(
           permuteList((List) valueSet.values, sources));
@@ -375,7 +373,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.PRIMITIVE_DICTIONARY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       throw new UnsupportedOperationException(); // TODO:
     }
 
@@ -423,12 +421,17 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.OBJECT_DICTIONARY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       final int n = valueSet.map.keySet().size();
       int extra = valueSet.containsNull ? 1 : 0;
+      @SuppressWarnings("all")
       Comparable[] codeValues =
           valueSet.map.keySet().toArray(new Comparable[n + extra]);
-      Arrays.sort(codeValues, 0, n);
+      // codeValues[0..n] is non-null since valueSet.map.keySet is non-null
+      // There might be null at the very end, however, it won't participate in Arrays.sort
+      @SuppressWarnings("assignment.type.incompatible")
+      Comparable[] nonNullCodeValues = codeValues;
+      Arrays.sort(nonNullCodeValues, 0, n);
       ColumnLoader.ValueSet codeValueSet =
           new ColumnLoader.ValueSet(int.class);
       final List<Comparable> list = permuteList(valueSet.values, sources);
@@ -446,25 +449,30 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return Pair.of(codes, codeValues);
     }
 
+    private static Pair<Object, Comparable[]> unfreeze(Object value) {
+      return (Pair<Object, Comparable[]>) value;
+    }
+
     @Override public Object permute(Object dataSet, int[] sources) {
-      final Pair<Object, Comparable[]> pair = toPair(dataSet);
+      final Pair<Object, Comparable[]> pair = unfreeze(dataSet);
       Object codes = pair.left;
       Comparable[] codeValues = pair.right;
       return Pair.of(representation.permute(codes, sources), codeValues);
     }
 
     @Override public Object getObject(Object dataSet, int ordinal) {
-      final Pair<Object, Comparable[]> pair = toPair(dataSet);
+      final Pair<Object, Comparable[]> pair = unfreeze(dataSet);
       int code = representation.getInt(pair.left, ordinal);
       return pair.right[code];
     }
 
     @Override public int getInt(Object dataSet, int ordinal) {
-      return ((Number) getObject(dataSet, ordinal)).intValue();
+      Number value = (Number) getObject(dataSet, ordinal);
+      return requireNonNull(value, "value").intValue();
     }
 
     @Override public int size(Object dataSet) {
-      final Pair<Object, Comparable[]> pair = toPair(dataSet);
+      final Pair<Object, Comparable[]> pair = unfreeze(dataSet);
       return representation.size(pair.left);
     }
 
@@ -486,7 +494,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.STRING_DICTIONARY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       throw new UnsupportedOperationException(); // TODO:
     }
 
@@ -524,7 +532,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.BYTE_STRING_DICTIONARY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       throw new UnsupportedOperationException(); // TODO:
     }
 
@@ -565,9 +573,13 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.CONSTANT;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       final int size = valueSet.values.size();
       return Pair.of(size == 0 ? null : valueSet.values.get(0), size);
+    }
+
+    private static Pair<Object, Integer> unfreeze(Object value) {
+      return (Pair<Object, Integer>) value;
     }
 
     @Override public Object permute(Object dataSet, int[] sources) {
@@ -575,22 +587,22 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
     }
 
     @Override public Object getObject(Object dataSet, int ordinal) {
-      Pair<Object, Integer> pair = toPair(dataSet);
+      Pair<Object, Integer> pair = unfreeze(dataSet);
       return pair.left;
     }
 
     @Override public int getInt(Object dataSet, int ordinal) {
-      Pair<Object, Integer> pair = toPair(dataSet);
-      return ((Number) pair.left).intValue();
+      Number value = (Number) getObject(dataSet, ordinal);
+      return requireNonNull(value, "value").intValue();
     }
 
     @Override public int size(Object dataSet) {
-      Pair<Object, Integer> pair = toPair(dataSet);
+      Pair<Object, Integer> pair = unfreeze(dataSet);
       return pair.right;
     }
 
     @Override public String toString(Object dataSet) {
-      Pair<Object, Integer> pair = toPair(dataSet);
+      Pair<Object, Integer> pair = unfreeze(dataSet);
       return Collections.nCopies(pair.right, pair.left).toString();
     }
   }
@@ -626,7 +638,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
       return RepresentationType.BIT_SLICED_PRIMITIVE_ARRAY;
     }
 
-    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int[] sources) {
+    @Override public Object freeze(ColumnLoader.ValueSet valueSet, int [] sources) {
       final int chunksPerWord = 64 / bitCount;
       final List<Comparable> valueList =
           permuteList(valueSet.values, sources);
@@ -783,7 +795,7 @@ class ArrayTable extends AbstractQueryableTable implements ScannableTable {
   }
 
   private static <E> List<E> permuteList(
-      final List<E> list, final int[] sources) {
+      final List<E> list, final int [] sources) {
     if (sources == null) {
       return list;
     }

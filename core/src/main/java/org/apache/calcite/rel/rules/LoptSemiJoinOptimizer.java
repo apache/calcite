@@ -50,6 +50,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implements the logic for determining the optimal
  * semi-joins to be used in processing joins in a query.
@@ -78,7 +80,7 @@ public class LoptSemiJoinOptimizer {
    * corresponds to the dimension table and a SemiJoin that captures all
    * the necessary semijoin data between that fact and dimension table
    */
-  private Map<Integer, Map<Integer, LogicalJoin>> possibleSemiJoins;
+  private final Map<Integer, Map<Integer, LogicalJoin>> possibleSemiJoins = new HashMap<>();
 
   private final Ordering<Integer> factorCostOrdering =
       Ordering.from(new FactorCostComparator());
@@ -112,7 +114,7 @@ public class LoptSemiJoinOptimizer {
    * @param multiJoin join factors being optimized
    */
   public void makePossibleSemiJoins(LoptMultiJoin multiJoin) {
-    possibleSemiJoins = new HashMap<>();
+    possibleSemiJoins.clear();
 
     // semijoins can't be used with any type of outer join, including full
     if (multiJoin.getMultiJoinRel().isFullOuterJoin()) {
@@ -243,7 +245,7 @@ public class LoptSemiJoinOptimizer {
       int dimIdx) {
     // create a SemiJoin with the semi-join condition and keys
     RexNode semiJoinCondition =
-        RexUtil.composeConjunction(rexBuilder, joinFilters, true);
+        RexUtil.composeConjunction(rexBuilder, joinFilters);
 
     int leftAdjustment = 0;
     for (int i = 0; i < factIdx; i++) {
@@ -321,7 +323,8 @@ public class LoptSemiJoinOptimizer {
               multiJoin.getNumFieldsInJoinFactor(factIdx),
               semiJoinCondition);
     }
-    return LogicalJoin.create(factRel, dimRel, ImmutableList.of(), semiJoinCondition,
+    return LogicalJoin.create(factRel, dimRel, ImmutableList.of(),
+        requireNonNull(semiJoinCondition, "semiJoinCondition"),
         ImmutableSet.of(), JoinRelType.SEMI);
   }
 
@@ -432,7 +435,7 @@ public class LoptSemiJoinOptimizer {
           assert table == theTable;
         }
       }
-      if (!removeKey) {
+      if (colOrigin != null && !removeKey) {
         actualLeftKeys.add(colOrigin.getOriginColumnOrdinal());
         keyIdx++;
       } else {
@@ -578,7 +581,9 @@ public class LoptSemiJoinOptimizer {
       // already created for each factor so any chaining of filters will
       // be accounted for
       if (bestDimIdx != -1) {
-        LogicalJoin semiJoin = possibleDimensions.get(bestDimIdx);
+        int bestDimIdxFinal = bestDimIdx;
+        LogicalJoin semiJoin = requireNonNull(possibleDimensions.get(bestDimIdxFinal),
+            () -> "possibleDimensions.get(" + bestDimIdxFinal + ") is null");
         LogicalJoin chosenSemiJoin =
             LogicalJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],

@@ -41,12 +41,17 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableSet;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.dataflow.qual.Pure;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class for every relational expression ({@link RelNode}).
@@ -62,7 +67,7 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Cached type of this relational expression.
    */
-  protected RelDataType rowType;
+  protected @MonotonicNonNull RelDataType rowType;
 
   /**
    * The digest that uniquely identifies the node.
@@ -118,8 +123,11 @@ public abstract class AbstractRelNode implements RelNode {
     return cluster;
   }
 
-  @Override public final Convention getConvention() {
-    return traitSet.getTrait(ConventionTraitDef.INSTANCE);
+  @Pure
+  @Override public final Convention getConvention(
+      @UnknownInitialization AbstractRelNode this
+  ) {
+    return traitSet == null ? null : traitSet.getTrait(ConventionTraitDef.INSTANCE);
   }
 
   @Override public RelTraitSet getTraitSet() {
@@ -247,7 +255,7 @@ public abstract class AbstractRelNode implements RelNode {
    * Each node should call {@code super.explainTerms}, then call the
    * {@link org.apache.calcite.rel.externalize.RelWriterImpl#input(String, RelNode)}
    * and
-   * {@link org.apache.calcite.rel.externalize.RelWriterImpl#item(String, Object)}
+   * {@link RelWriter#item(String, Object)}
    * methods for each input and attribute.
    *
    * @param pw Plan writer
@@ -345,12 +353,12 @@ public abstract class AbstractRelNode implements RelNode {
    * @return Whether the 2 RelNodes are equivalent or have the same digest.
    * @see #deepHashCode()
    */
-  @Override @API(since = "1.25", status = API.Status.MAINTAINED)
-  public boolean deepEquals(Object obj) {
+  @API(since = "1.25", status = API.Status.MAINTAINED)
+  @Override public boolean deepEquals(Object obj) {
     if (this == obj) {
       return true;
     }
-    if (this.getClass() != obj.getClass()) {
+    if (obj == null || this.getClass() != obj.getClass()) {
       return false;
     }
     AbstractRelNode that = (AbstractRelNode) obj;
@@ -379,7 +387,7 @@ public abstract class AbstractRelNode implements RelNode {
   /**
    * Compute hash code for RelNode digest.
    *
-   * @see #deepEquals(Object)
+   * @see RelNode#deepEquals(Object)
    */
   @API(since = "1.25", status = API.Status.MAINTAINED)
   @Override public int deepHashCode() {
@@ -444,7 +452,7 @@ public abstract class AbstractRelNode implements RelNode {
     @Override public String toString() {
       RelDigestWriter rdw = new RelDigestWriter();
       explain(rdw);
-      return rdw.digest;
+      return requireNonNull(rdw.digest, "digest");
     }
   }
 
@@ -462,7 +470,8 @@ public abstract class AbstractRelNode implements RelNode {
 
     String digest = null;
 
-    @Override public void explain(final RelNode rel, final List<Pair<String, Object>> valueList) {
+    @Override public void explain(final RelNode rel,
+        final List<Pair<String, Object>> valueList) {
       throw new IllegalStateException("Should not be called for computing digest");
     }
 

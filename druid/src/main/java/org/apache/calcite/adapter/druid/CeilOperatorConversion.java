@@ -26,8 +26,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.TimeZone;
-import javax.annotation.Nullable;
 
 /**
  * DruidSqlOperatorConverter implementation that handles Ceil operations

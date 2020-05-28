@@ -72,6 +72,7 @@ public class SqlKeyConstraint extends SqlCall {
     return UNIQUE;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList);
   }

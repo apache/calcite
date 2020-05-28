@@ -44,10 +44,12 @@ public class SqlWithItem extends SqlCall {
     return SqlKind.WITH_ITEM;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList, query);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -96,6 +98,7 @@ public class SqlWithItem extends SqlCall {
       withItem.query.unparse(writer, 10, 10);
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(SqlLiteral functionQualifier,
         SqlParserPos pos, SqlNode... operands) {
       assert functionQualifier == null;

@@ -58,6 +58,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * API for a service that prepares statements for execution.
  */
@@ -172,7 +176,9 @@ public interface CalcitePrepare {
         final Class<?> clazz =
             Class.forName("org.apache.calcite.adapter.spark.SparkHandlerImpl");
         Method method = clazz.getMethod("instance");
-        return (CalcitePrepare.SparkHandler) method.invoke(null);
+        return (CalcitePrepare.SparkHandler) requireNonNull(
+            method.invoke(null),
+            () -> "non-null SparkHandler expected from " + method);
       } catch (ClassNotFoundException e) {
         return new TrivialSparkHandler();
       } catch (IllegalAccessException
@@ -184,7 +190,7 @@ public interface CalcitePrepare {
     }
 
     public static void push(Context context) {
-      final Deque<Context> stack = THREAD_CONTEXT_STACK.get();
+      final Deque<Context> stack = castNonNull(THREAD_CONTEXT_STACK.get());
       final List<String> path = context.getObjectPath();
       if (path != null) {
         for (Context context1 : stack) {
@@ -198,11 +204,11 @@ public interface CalcitePrepare {
     }
 
     public static Context peek() {
-      return THREAD_CONTEXT_STACK.get().peek();
+      return castNonNull(castNonNull(THREAD_CONTEXT_STACK.get()).peek());
     }
 
     public static void pop(Context context) {
-      Context x = THREAD_CONTEXT_STACK.get().pop();
+      Context x = castNonNull(THREAD_CONTEXT_STACK.get()).pop();
       assert x == context;
     }
 
@@ -328,7 +334,7 @@ public interface CalcitePrepare {
         long maxRowCount, Bindable<T> bindable) {
       this(sql, parameterList, internalParameters, rowType, columns,
           cursorFactory, rootSchema, collationList, maxRowCount, bindable,
-          null);
+          castNonNull(null));
     }
 
     public CalciteSignature(String sql,
@@ -352,7 +358,7 @@ public interface CalcitePrepare {
     }
 
     public Enumerable<T> enumerable(DataContext dataContext) {
-      Enumerable<T> enumerable = bindable.bind(dataContext);
+      Enumerable<T> enumerable = castNonNull(bindable).bind(dataContext);
       if (maxRowCount >= 0) {
         // Apply limit. In JDBC 0 means "no limit". But for us, -1 means
         // "no limit", and 0 is a valid limit.

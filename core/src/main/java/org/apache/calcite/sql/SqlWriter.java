@@ -19,6 +19,8 @@ package org.apache.calcite.sql;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlString;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.function.Consumer;
 
 /**
@@ -334,6 +336,7 @@ public interface SqlWriter {
    * convert to upper or lower case. Does not add quotation marks. Adds
    * preceding whitespace if necessary.
    */
+  @Pure
   void literal(String s);
 
   /**
@@ -341,11 +344,13 @@ public interface SqlWriter {
    * contain a space. For example, <code>keyword("SELECT")</code>, <code>
    * keyword("CHARACTER SET")</code>.
    */
+  @Pure
   void keyword(String s);
 
   /**
    * Prints a string, preceded by whitespace if necessary.
    */
+  @Pure
   void print(String s);
 
   /**
@@ -353,6 +358,7 @@ public interface SqlWriter {
    *
    * @param x Integer
    */
+  @Pure
   void print(int x);
 
   /**
@@ -424,6 +430,7 @@ public interface SqlWriter {
    *
    * @see #endFunCall(Frame)
    */
+  @Pure
   Frame startFunCall(String funName);
 
   /**
@@ -432,11 +439,13 @@ public interface SqlWriter {
    * @param frame Frame
    * @see #startFunCall(String)
    */
+  @Pure
   void endFunCall(Frame frame);
 
   /**
    * Starts a list.
    */
+  @Pure
   Frame startList(String open, String close);
 
   /**
@@ -445,6 +454,7 @@ public interface SqlWriter {
    * @param frameType Type of list. For example, a SELECT list will be
    * governed according to SELECT-list formatting preferences.
    */
+  @Pure
   Frame startList(FrameTypeEnum frameType);
 
   /**
@@ -456,6 +466,7 @@ public interface SqlWriter {
    *                  string.
    * @param close     String to close the list
    */
+  @Pure
   Frame startList(FrameType frameType, String open, String close);
 
   /**
@@ -463,11 +474,13 @@ public interface SqlWriter {
    *
    * @param frame The frame which was created by {@link #startList}.
    */
+  @Pure
   void endList(Frame frame);
 
   /**
    * Writes a list.
    */
+  @Pure
   SqlWriter list(FrameTypeEnum frameType, Consumer<SqlWriter> action);
 
   /**
@@ -476,6 +489,7 @@ public interface SqlWriter {
    * {@link SqlStdOperatorTable#OR OR}, or
    * {@link #COMMA COMMA}).
    */
+  @Pure
   SqlWriter list(FrameTypeEnum frameType, SqlBinaryOperator sepOp,
       SqlNodeList list);
 
@@ -485,6 +499,7 @@ public interface SqlWriter {
    *
    * @param sep List separator, typically ",".
    */
+  @Pure
   void sep(String sep);
 
   /**
@@ -493,11 +508,13 @@ public interface SqlWriter {
    * @param sep        List separator, typically ","
    * @param printFirst Whether to print the first occurrence of the separator
    */
+  @Pure
   void sep(String sep, boolean printFirst);
 
   /**
    * Sets whether whitespace is needed before the next token.
    */
+  @Pure
   void setNeedWhitespace(boolean needWhitespace);
 
   /**

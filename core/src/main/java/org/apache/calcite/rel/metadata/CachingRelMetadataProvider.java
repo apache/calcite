@@ -29,7 +29,10 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of the {@link RelMetadataProvider}
@@ -67,7 +70,9 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     // TODO jvs 30-Mar-2006: Use meta-metadata to decide which metadata
     // query results can stay fresh until the next Ice Age.
     return (rel, mq) -> {
-      final Metadata metadata = function.bind(rel, mq);
+      final Metadata metadata = requireNonNull(function.bind(rel, mq),
+          () -> "metadata must not be null, relClass=" + relClass
+              + ", metadataClass=" + metadataClass);
       return metadataClass.cast(
           Proxy.newProxyInstance(metadataClass.getClassLoader(),
               new Class[]{metadataClass},
@@ -100,7 +105,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
     private final Metadata metadata;
 
     CachingInvocationHandler(Metadata metadata) {
-      this.metadata = Objects.requireNonNull(metadata);
+      this.metadata = requireNonNull(metadata);
     }
 
     @Override public Object invoke(Object proxy, Method method, Object[] args)
@@ -138,7 +143,7 @@ public class CachingRelMetadataProvider implements RelMetadataProvider {
         }
         return result;
       } catch (InvocationTargetException e) {
-        throw e.getCause();
+        throw castNonNull(e.getCause());
       }
     }
   }

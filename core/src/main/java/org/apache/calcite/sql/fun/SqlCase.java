@@ -100,10 +100,12 @@ public class SqlCase extends SqlCall {
     return SqlStdOperatorTable.CASE;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return UnmodifiableArrayList.of(value, whenList, thenList, elseExpr);
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:

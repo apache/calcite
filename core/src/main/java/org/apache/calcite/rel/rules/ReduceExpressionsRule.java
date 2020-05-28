@@ -576,12 +576,12 @@ public abstract class ReduceExpressionsRule<C extends ReduceExpressionsRule.Conf
         }
 
         final ImmutableBitSet.Builder keyBuilder = ImmutableBitSet.builder();
-        group.keys.asList().stream()
-            .filter(key ->
-                !predicates.constantMap.containsKey(
-                    rexBuilder.makeInputRef(window.getInput(), key)))
-            .collect(Collectors.toList())
-            .forEach(keyBuilder::set);
+        for (Integer key : group.keys) {
+          if (!predicates.constantMap.containsKey(
+              rexBuilder.makeInputRef(window.getInput(), key))) {
+            keyBuilder.set(key);
+          }
+        }
         final ImmutableBitSet keys = keyBuilder.build();
         reduced |= keys.cardinality() != group.keys.cardinality();
 

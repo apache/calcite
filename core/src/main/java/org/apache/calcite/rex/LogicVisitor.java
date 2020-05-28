@@ -26,6 +26,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  */
@@ -94,7 +96,7 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
       logic = Logic.UNKNOWN_AS_TRUE;
       break;
     case NOT:
-      logic = logic.negate2();
+      logic = requireNonNull(logic, "logic").negate2();
       break;
     case CASE:
       logic = Logic.TRUE_FALSE_UNKNOWN;
@@ -102,7 +104,7 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
     default:
       break;
     }
-    switch (logic) {
+    switch (requireNonNull(logic, "logic")) {
     case TRUE:
       switch (call.getKind()) {
       case AND:
@@ -122,7 +124,7 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
 
   @Override protected Logic end(RexNode node, Logic arg) {
     if (node.equals(seek)) {
-      logicCollection.add(arg);
+      logicCollection.add(requireNonNull(arg, "arg"));
     }
     return arg;
   }
@@ -131,7 +133,8 @@ public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
     return end(over, arg);
   }
 
-  @Override public Logic visitFieldAccess(RexFieldAccess fieldAccess, Logic arg) {
+  @Override public Logic visitFieldAccess(RexFieldAccess fieldAccess,
+      Logic arg) {
     return end(fieldAccess, arg);
   }
 

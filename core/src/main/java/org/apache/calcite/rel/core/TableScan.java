@@ -19,6 +19,7 @@ package org.apache.calcite.rel.core;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.AbstractRelNode;
@@ -66,8 +67,9 @@ public abstract class TableScan
       List<RelHint> hints, RelOptTable table) {
     super(cluster, traitSet);
     this.table = table;
-    if (table.getRelOptSchema() != null) {
-      cluster.getPlanner().registerSchema(table.getRelOptSchema());
+    RelOptSchema relOptSchema = table.getRelOptSchema();
+    if (relOptSchema != null) {
+      cluster.getPlanner().registerSchema(relOptSchema);
     }
     this.hints = ImmutableList.copyOf(hints);
   }

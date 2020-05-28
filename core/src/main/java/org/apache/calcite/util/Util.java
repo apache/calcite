@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -106,7 +108,8 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Miscellaneous utility functions.
@@ -798,7 +801,7 @@ public class Util {
     case -1:
       return "";
     case 0:
-      return list.get(0).toString();
+      return String.valueOf(list.get(0));
     default:
       break;
     }
@@ -1501,18 +1504,18 @@ public class Util {
           + tzString);
     }
     int j = 0;
-    int startMode = Integer.valueOf(matcher.group(++j));
-    int startMonth = Integer.valueOf(matcher.group(++j));
-    int startDay = Integer.valueOf(matcher.group(++j));
-    int startDayOfWeek = Integer.valueOf(matcher.group(++j));
-    int startTime = Integer.valueOf(matcher.group(++j));
-    int startTimeMode = Integer.valueOf(matcher.group(++j));
-    int endMode = Integer.valueOf(matcher.group(++j));
-    int endMonth = Integer.valueOf(matcher.group(++j));
-    int endDay = Integer.valueOf(matcher.group(++j));
-    int endDayOfWeek = Integer.valueOf(matcher.group(++j));
-    int endTime = Integer.valueOf(matcher.group(++j));
-    int endTimeMode = Integer.valueOf(matcher.group(++j));
+    int startMode = groupAsInt(matcher, ++j);
+    int startMonth = groupAsInt(matcher, ++j);
+    int startDay = groupAsInt(matcher, ++j);
+    int startDayOfWeek = groupAsInt(matcher, ++j);
+    int startTime = groupAsInt(matcher, ++j);
+    int startTimeMode = groupAsInt(matcher, ++j);
+    int endMode = groupAsInt(matcher, ++j);
+    int endMonth = groupAsInt(matcher, ++j);
+    int endDay = groupAsInt(matcher, ++j);
+    int endDayOfWeek = groupAsInt(matcher, ++j);
+    int endTime = groupAsInt(matcher, ++j);
+    int endTimeMode = groupAsInt(matcher, ++j);
     appendPosixDaylightTransition(
         tz,
         buf,
@@ -1536,6 +1539,13 @@ public class Util {
         verbose,
         true);
     return buf.toString();
+  }
+
+  private static int groupAsInt(Matcher matcher, int index) {
+    String value = Objects.requireNonNull(
+        matcher.group(index),
+        () -> "no group for index " + index + ", matcher " + matcher);
+    return Integer.parseInt(value);
   }
 
   /**
@@ -1715,21 +1725,24 @@ public class Util {
    * Converts a iterator whose members are automatically down-cast to a given
    * type.
    *
-   * <p>If a member of the backing iterator is not an instanceof <code>
-   * E</code>, {@link Iterator#next()}) will throw a
+   * <p>If a member of the backing iterator is not an instance of {@code E},
+   * {@link Iterator#next()}) will throw a
    * {@link ClassCastException}.
    *
    * <p>All modifications are automatically written to the backing iterator.
    * Not synchronized.
    *
-   * @param iter  Backing iterator.
-   * @param clazz Class to cast to.
+   * <p>If the backing iterator has not-nullable elements,
+   * the returned iterator has not-nullable elements.
+   *
+   * @param iter  Backing iterator
+   * @param clazz Class to cast to
    * @return An iterator whose members are of the desired type.
    */
-  public static <E> Iterator<E> cast(
-      final Iterator<?> iter,
+  public static <E extends @PolyNull Object> Iterator<E> cast(
+      final Iterator<? extends @PolyNull Object> iter,
       final Class<E> clazz) {
-    return transform(iter, clazz::cast);
+    return transform(iter, x -> clazz.cast(castNonNull(x)));
   }
 
   /**
@@ -1997,11 +2010,11 @@ public class Util {
   /** Returns the first value if it is not null,
    * otherwise the second value.
    *
-   * <p>The result may be null.
+   * <p>The result may be null only if the second argument is not null.
    *
    * <p>Equivalent to the Elvis operator ({@code ?:}) of languages such as
    * Groovy or PHP. */
-  public static <T> T first(T v0, T v1) {
+  public static <T extends Object> @PolyNull T first(T v0, @PolyNull T v1) {
     return v0 != null ? v0 : v1;
   }
 
@@ -2199,7 +2212,7 @@ public class Util {
     final Iterator<E> iterator = list.iterator();
     final E first = iterator.next();
     while (iterator.hasNext()) {
-      if (!first.equals(iterator.next())) {
+      if (!Objects.equals(first, iterator.next())) {
         return false;
       }
     }
@@ -2403,6 +2416,7 @@ public class Util {
           }
         };
     return new AbstractMap<K, V>() {
+      @SuppressWarnings("override.return.invalid")
       @Override public Set<Entry<K, V>> entrySet() {
         return entrySet;
       }
@@ -2587,7 +2601,7 @@ public class Util {
   }
 
   /** Transforms a iterator, applying a function to each element. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <F, T> Iterable<T> transform(Iterable<? extends F> iterable,
       java.util.function.Function<? super F, ? extends T> function) {
     // FluentIterable provides toString
@@ -2599,14 +2613,14 @@ public class Util {
   }
 
   /** Transforms an iterator. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <F, T> Iterator<T> transform(Iterator<? extends F> iterator,
       java.util.function.Function<? super F, ? extends T> function) {
     return new TransformingIterator<>(iterator, function);
   }
 
   /** Filters an iterable. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <E> Iterable<E> filter(Iterable<? extends E> iterable,
       Predicate<? super E> predicate) {
     // FluentIterable provides toString
@@ -2618,7 +2632,7 @@ public class Util {
   }
 
   /** Filters an iterator. */
-  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
   public static <E> Iterator<E> filter(Iterator<? extends E> iterator,
       Predicate<? super E> predicate) {
     return new FilteringIterator<>(iterator, predicate);
@@ -2699,6 +2713,7 @@ public class Util {
       this.node = node;
     }
 
+    @Pure
     public Object getNode() {
       return node;
     }
@@ -2743,7 +2758,7 @@ public class Util {
       return list.size();
     }
 
-    @Override @Nonnull public Iterator<T> iterator() {
+    @Override public Iterator<T> iterator() {
       return listIterator();
     }
   }
@@ -2775,7 +2790,9 @@ public class Util {
         Predicate<? super T> predicate) {
       this.iterator = iterator;
       this.predicate = predicate;
-      current = moveNext();
+      @SuppressWarnings("method.invocation.invalid")
+      T current = moveNext();
+      this.current = current;
     }
 
     @Override public boolean hasNext() {

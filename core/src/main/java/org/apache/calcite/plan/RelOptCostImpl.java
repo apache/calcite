@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.plan;
 
+
 /**
  * RelOptCostImpl provides a default implementation for the {@link RelOptCost}
  * interface. It it defined in terms of a single scalar quantity; somewhat

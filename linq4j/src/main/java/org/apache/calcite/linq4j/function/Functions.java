@@ -16,6 +16,10 @@
  */
 package org.apache.calcite.linq4j.function;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.framework.qual.DefaultQualifier;
+import org.checkerframework.framework.qual.TypeUseLocation;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -75,7 +79,8 @@ public abstract class Functions {
   private static final EqualityComparer<Object[]> ARRAY_COMPARER =
       new ArrayEqualityComparer();
 
-  private static final Function1 CONSTANT_NULL_FUNCTION1 = s -> null;
+  private static final Function1 CONSTANT_NULL_FUNCTION1 =
+      (Function1<Object, Object>) s -> null;
 
   private static final Function1 TO_STRING_FUNCTION1 =
       (Function1<Object, String>) Object::toString;
@@ -525,7 +530,7 @@ public abstract class Functions {
     }
 
     @Override public int hashCode(T t) {
-      return t == null ? 0x789d : selector.apply(t).hashCode();
+      return t == null ? 0x789d : Objects.hashCode(selector.apply(t));
     }
   }
 
@@ -620,7 +625,13 @@ public abstract class Functions {
       return null;
     }
 
-    static final Ignore INSTANCE = new Ignore();
+    @DefaultQualifier(
+        value = Nullable.class,
+        locations = {
+        TypeUseLocation.LOWER_BOUND,
+        TypeUseLocation.UPPER_BOUND,
+    })
+    static final Ignore INSTANCE = new Ignore<>();
   }
 
   /** List that generates each element using a function.

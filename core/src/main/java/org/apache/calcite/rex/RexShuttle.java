@@ -18,6 +18,8 @@ package org.apache.calcite.rex;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,7 +131,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    *               was modified
    * @return Array of visited expressions
    */
-  protected RexNode[] visitArray(RexNode[] exprs, boolean[] update) {
+  protected RexNode[] visitArray(RexNode[] exprs, boolean [] update) {
     RexNode[] clonedOperands = new RexNode[exprs.length];
     for (int i = 0; i < exprs.length; i++) {
       RexNode operand = exprs[i];
@@ -152,7 +154,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * @return Array of visited expressions
    */
   protected List<RexNode> visitList(
-      List<? extends RexNode> exprs, boolean[] update) {
+      List<? extends RexNode> exprs, boolean [] update) {
     ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
     for (RexNode operand : exprs) {
       RexNode clonedOperand = operand.accept(this);
@@ -174,7 +176,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * @return Array of visited field collations
    */
   protected List<RexFieldCollation> visitFieldCollations(
-      List<RexFieldCollation> collations, boolean[] update) {
+      List<RexFieldCollation> collations, boolean [] update) {
     ImmutableList.Builder<RexFieldCollation> clonedOperands =
         ImmutableList.builder();
     for (RexFieldCollation collation : collations) {
@@ -247,10 +249,12 @@ public class RexShuttle implements RexVisitor<RexNode> {
   /**
    * Applies this shuttle to each expression in a list and returns the
    * resulting list. Does not modify the initial list.
+   *
+   * <p>Returns null if and only if {@code exprList} is null.
    */
-  public final <T extends RexNode> List<T> apply(List<T> exprList) {
+  public final <T extends RexNode> @PolyNull List<T> apply(@PolyNull List<T> exprList) {
     if (exprList == null) {
-      return null;
+      return exprList;
     }
     final List<T> list2 = new ArrayList<>(exprList);
     if (mutate(list2)) {
@@ -264,7 +268,7 @@ public class RexShuttle implements RexVisitor<RexNode> {
    * Applies this shuttle to an expression, or returns null if the expression
    * is null.
    */
-  public final RexNode apply(RexNode expr) {
-    return (expr == null) ? null : expr.accept(this);
+  public final @PolyNull RexNode apply(@PolyNull RexNode expr) {
+    return (expr == null) ? expr : expr.accept(this);
   }
 }

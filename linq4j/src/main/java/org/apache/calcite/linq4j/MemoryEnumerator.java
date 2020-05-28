@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.linq4j;
 
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

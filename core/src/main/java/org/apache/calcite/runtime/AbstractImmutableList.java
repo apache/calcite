@@ -16,11 +16,13 @@
  */
 package org.apache.calcite.runtime;
 
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Base class for lists whose contents are constant after creation.
@@ -30,11 +32,11 @@ import javax.annotation.Nonnull;
 abstract class AbstractImmutableList<E> implements List<E> {
   protected abstract List<E> toList();
 
-  @Override @Nonnull public Iterator<E> iterator() {
+  @Override public Iterator<E> iterator() {
     return toList().iterator();
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator() {
+  @Override public ListIterator<E> listIterator() {
     return toList().listIterator();
   }
 
@@ -46,19 +48,19 @@ abstract class AbstractImmutableList<E> implements List<E> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean addAll(@Nonnull Collection<? extends E> c) {
+  @Override public boolean addAll(Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean addAll(int index, @Nonnull Collection<? extends E> c) {
+  @Override public boolean addAll(int index, Collection<? extends E> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean removeAll(@Nonnull Collection<?> c) {
+  @Override public boolean removeAll(Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public boolean retainAll(@Nonnull Collection<?> c) {
+  @Override public boolean retainAll(Collection<?> c) {
     throw new UnsupportedOperationException();
   }
 
@@ -78,19 +80,19 @@ abstract class AbstractImmutableList<E> implements List<E> {
     throw new UnsupportedOperationException();
   }
 
-  @Override @Nonnull public ListIterator<E> listIterator(int index) {
+  @Override public ListIterator<E> listIterator(int index) {
     return toList().listIterator(index);
   }
 
-  @Override @Nonnull public List<E> subList(int fromIndex, int toIndex) {
+  @Override public List<E> subList(int fromIndex, int toIndex) {
     return toList().subList(fromIndex, toIndex);
   }
 
   @Override public boolean contains(Object o) {
-    return indexOf(o) >= 0;
+    return indexOf(castNonNull(o)) >= 0;
   }
 
-  @Override public boolean containsAll(@Nonnull Collection<?> c) {
+  @Override public boolean containsAll(Collection<?> c) {
     for (Object o : c) {
       if (!contains(o)) {
         return false;

@@ -50,7 +50,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlDialect</code> implementation for Google BigQuery's "Standard SQL"
@@ -121,7 +122,7 @@ public class BigQuerySqlDialect extends SqlDialect {
     return false;
   }
 
-  @Override public @Nonnull SqlParser.Config configureParser(
+  @Override public SqlParser.Config configureParser(
       SqlParser.Config configBuilder) {
     return super.configureParser(configBuilder)
         .withCharLiteralStyles(Lex.BIG_QUERY.charLiteralStyles);
@@ -189,13 +190,12 @@ public class BigQuerySqlDialect extends SqlDialect {
     if (interval.getSign() == -1) {
       writer.print("-");
     }
-    Long intervalValueInLong;
     try {
-      intervalValueInLong = Long.parseLong(literal.getValue().toString());
+      Long.parseLong(interval.getIntervalLiteral());
     } catch (NumberFormatException e) {
       throw new RuntimeException("Only INT64 is supported as the interval value for BigQuery.");
     }
-    writer.literal(intervalValueInLong.toString());
+    writer.literal(interval.getIntervalLiteral());
     unparseSqlIntervalQualifier(writer, interval.getIntervalQualifier(),
             RelDataTypeSystem.DEFAULT);
   }
@@ -237,7 +237,8 @@ public class BigQuerySqlDialect extends SqlDialect {
     // If the trimmed character is a non-space character, add it to the target SQL.
     // eg: TRIM(BOTH 'A' from 'ABCD'
     // Output Query: TRIM('ABC', 'A')
-    if (!valueToTrim.toValue().matches("\\s+")) {
+    String value = requireNonNull(valueToTrim.toValue(), "valueToTrim.toValue()");
+    if (!value.matches("\\s+")) {
       writer.literal(",");
       call.operand(1).unparse(writer, leftPrec, rightPrec);
     }

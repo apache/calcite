@@ -26,7 +26,8 @@ public class SqlAdvisorHint2 extends SqlAdvisorHint {
   /** Replacement string. */
   public final String replacement;
 
-  public SqlAdvisorHint2(String id, String[] names, String type, String replacement) {
+  public SqlAdvisorHint2(String id, String [] names, String type,
+      String replacement) {
     super(id, names, type);
     this.replacement = replacement;
   }

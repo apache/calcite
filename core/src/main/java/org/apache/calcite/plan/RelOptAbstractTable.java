@@ -86,7 +86,7 @@ public abstract class RelOptAbstractTable implements RelOptTable {
     return RelDistributions.BROADCAST_DISTRIBUTED;
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     return clazz.isInstance(this)
         ? clazz.cast(this)
         : null;

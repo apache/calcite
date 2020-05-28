@@ -22,7 +22,6 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * Represents a hint strategy entry of {@link HintStrategyTable}.
@@ -79,7 +78,6 @@ public class HintStrategy {
   /** Builder for {@link HintStrategy}. */
   public static class Builder {
     private final HintPredicate predicate;
-    @Nullable
     private HintOptionChecker optionChecker;
     private ImmutableSet<RelOptRule> excludedRules;
     private ImmutableSet<ConverterRule> converterRules;

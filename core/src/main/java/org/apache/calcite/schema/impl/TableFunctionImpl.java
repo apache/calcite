@@ -45,6 +45,8 @@ import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Implementation of {@link org.apache.calcite.schema.TableFunction} based on a
  * method.
@@ -93,11 +95,11 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+      List<? extends Object> arguments) {
     return apply(arguments).getRowType(typeFactory);
   }
 
-  @Override public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<? extends Object> arguments) {
     final Table table = apply(arguments);
     if (table instanceof QueryableTable) {
       QueryableTable queryableTable = (QueryableTable) table;
@@ -140,7 +142,7 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
         }, NullPolicy.NONE, false);
   }
 
-  private Table apply(List<Object> arguments) {
+  private Table apply(List<? extends Object> arguments) {
     try {
       Object o = null;
       if (!Modifier.isStatic(method.getModifiers())) {
@@ -148,9 +150,9 @@ public class TableFunctionImpl extends ReflectiveFunctionBase implements
             method.getDeclaringClass().getConstructor();
         o = constructor.newInstance();
       }
-      //noinspection unchecked
-      final Object table = method.invoke(o, arguments.toArray());
-      return (Table) table;
+      return (Table) requireNonNull(
+          method.invoke(o, arguments.toArray()),
+          () -> "got null from " + method + " with arguments " + arguments);
     } catch (IllegalArgumentException e) {
       throw RESOURCE.illegalArgumentForTableFunctionCall(
           method.toString(),

@@ -18,6 +18,8 @@ package org.apache.calcite.linq4j;
 
 import org.apache.calcite.linq4j.function.Function2;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -81,6 +83,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     return map.isEmpty();
   }
 
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   @Override public boolean containsKey(Object key) {
     return map.containsKey(key);
   }
@@ -96,6 +99,7 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     return list == null ? null : Linq4j.asEnumerable(list);
   }
 
+  @SuppressWarnings("contracts.postcondition.not.satisfied")
   @Override public Enumerable<V> put(K key, Enumerable<V> value) {
     final List<V> list = map.put(key, value.toList());
     return list == null ? null : Linq4j.asEnumerable(list);
@@ -116,7 +120,8 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     map.clear();
   }
 
-  @Override public Set<K> keySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<@KeyFor("this") K> keySet() {
     return map.keySet();
   }
 
@@ -147,8 +152,9 @@ class LookupImpl<K, V> extends AbstractEnumerable<Grouping<K, V>>
     };
   }
 
-  @Override public Set<Entry<K, Enumerable<V>>> entrySet() {
-    final Set<Entry<K, List<V>>> entries = map.entrySet();
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<Entry<@KeyFor({"this"}) K, Enumerable<V>>> entrySet() {
+    final Set<Entry<@KeyFor("map") K, List<V>>> entries = map.entrySet();
     return new AbstractSet<Entry<K, Enumerable<V>>>() {
       @Override public Iterator<Entry<K, Enumerable<V>>> iterator() {
         final Iterator<Entry<K, List<V>>> iterator = entries.iterator();

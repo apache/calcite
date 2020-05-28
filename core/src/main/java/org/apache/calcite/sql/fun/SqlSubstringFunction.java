@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Definition of the "SUBSTRING" builtin SQL function.
@@ -163,8 +164,7 @@ public class SqlSubstringFunction extends SqlFunction {
       if (mono0 != null
           && mono0 != SqlMonotonicity.NOT_MONOTONIC
           && call.getOperandMonotonicity(1) == SqlMonotonicity.CONSTANT
-          && call.getOperandLiteralValue(1, BigDecimal.class)
-              .equals(BigDecimal.ZERO)
+          && Objects.equals(call.getOperandLiteralValue(1, BigDecimal.class), BigDecimal.ZERO)
           && call.getOperandMonotonicity(2) == SqlMonotonicity.CONSTANT) {
         return mono0.unstrict();
       }

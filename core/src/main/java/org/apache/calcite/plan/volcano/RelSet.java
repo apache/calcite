@@ -32,6 +32,7 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -39,6 +40,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>RelSet</code> is an equivalence-set of expressions; that is, a set of
@@ -68,8 +73,8 @@ class RelSet {
    * Set to the superseding set when this is found to be equivalent to another
    * set.
    */
-  RelSet equivalentSet;
-  RelNode rel;
+  @MonotonicNonNull RelSet equivalentSet;
+  @MonotonicNonNull RelNode rel;
 
   /**
    * Exploring state of current RelSet.
@@ -203,6 +208,7 @@ class RelSet {
       if (from == to
           || to.isEnforceDisabled()
           || useAbstractConverter
+              && from.getConvention() != null
               && !from.getConvention().useAbstractConvertersForConversion(
                   from.getTraitSet(), to.getTraitSet())) {
         continue;
@@ -238,7 +244,10 @@ class RelSet {
           enforcer = new AbstractConverter(
               cluster, from, null, to.getTraitSet());
         } else {
-          enforcer = subset.getConvention().enforce(from, to.getTraitSet());
+          Convention convention = requireNonNull(
+              subset.getConvention(),
+              () -> "convention is null for " + subset);
+          enforcer = convention.enforce(from, to.getTraitSet());
         }
 
         if (enforcer != null) {
@@ -287,13 +296,17 @@ class RelSet {
   }
 
   private void postEquivalenceEvent(VolcanoPlanner planner, RelNode rel) {
+    RelOptListener listener = planner.getListener();
+    if (listener == null) {
+      return;
+    }
     RelOptListener.RelEquivalenceEvent event =
         new RelOptListener.RelEquivalenceEvent(
             planner,
             rel,
             "equivalence class " + id,
             false);
-    planner.getListener().relEquivalenceFound(event);
+    listener.relEquivalenceFound(event);
   }
 
   /**
@@ -349,7 +362,7 @@ class RelSet {
     assert otherSet.equivalentSet == null;
     LOGGER.trace("Merge set#{} into set#{}", otherSet.id, id);
     otherSet.equivalentSet = this;
-    RelOptCluster cluster = rel.getCluster();
+    RelOptCluster cluster = castNonNull(rel).getCluster();
 
     // remove from table
     boolean existed = planner.allSets.remove(otherSet);
@@ -381,7 +394,7 @@ class RelSet {
       }
 
       // collect RelSubset instances, whose best should be changed
-      if (otherSubset.bestCost.isLt(subset.bestCost)) {
+      if (otherSubset.bestCost.isLt(subset.bestCost) && otherSubset.best != null) {
         changedRels.add(otherSubset.best);
       }
     }

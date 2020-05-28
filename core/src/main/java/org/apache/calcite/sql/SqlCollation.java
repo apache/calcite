@@ -22,6 +22,9 @@ import org.apache.calcite.util.Glossary;
 import org.apache.calcite.util.SerializableCharset;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.text.Collator;
@@ -132,8 +135,10 @@ public class SqlCollation implements Serializable {
     return collationName.hashCode();
   }
 
-  protected String generateCollationName(Charset charset) {
-    return charset.name().toUpperCase(Locale.ROOT) + "$" + locale.toString() + "$" + strength;
+  protected String generateCollationName(
+      @UnderInitialization SqlCollation this,
+      Charset charset) {
+    return charset.name().toUpperCase(Locale.ROOT) + "$" + String.valueOf(locale) + "$" + strength;
   }
 
   /**
@@ -305,6 +310,7 @@ public class SqlCollation implements Serializable {
    * collation, or {@code null} if no specific {@link Collator} is needed, in
    * which case {@link String#compareTo} will be used.
    */
+  @Pure
   public Collator getCollator() {
     return null;
   }

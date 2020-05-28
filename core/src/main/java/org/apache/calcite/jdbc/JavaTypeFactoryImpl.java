@@ -47,8 +47,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link JavaTypeFactory}.
@@ -115,7 +116,9 @@ public class JavaTypeFactoryImpl
     if (type instanceof SyntheticRecordType) {
       final SyntheticRecordType syntheticRecordType =
           (SyntheticRecordType) type;
-      return syntheticRecordType.relType;
+      return requireNonNull(
+          syntheticRecordType.relType,
+          () -> "relType for " + syntheticRecordType);
     }
     if (type instanceof Types.ArrayType) {
       final Types.ArrayType arrayType = (Types.ArrayType) type;
@@ -141,7 +144,7 @@ public class JavaTypeFactoryImpl
     case PRIMITIVE:
       return createJavaType(clazz);
     case BOX:
-      return createJavaType(Primitive.ofBox(clazz).boxClass);
+      return createJavaType(Primitive.box(clazz));
     default:
       break;
     }
@@ -238,7 +241,7 @@ public class JavaTypeFactoryImpl
     default:
       break;
     }
-    return null;
+    return Object.class;
   }
 
   @Override public RelDataType toSql(RelDataType type) {
@@ -397,9 +400,9 @@ public class JavaTypeFactoryImpl
         Type type,
         boolean nullable,
         int modifiers) {
-      this.syntheticType = Objects.requireNonNull(syntheticType);
-      this.name = Objects.requireNonNull(name);
-      this.type = Objects.requireNonNull(type);
+      this.syntheticType = requireNonNull(syntheticType);
+      this.name = requireNonNull(name);
+      this.type = requireNonNull(type);
       this.nullable = nullable;
       this.modifiers = modifiers;
       assert !(nullable && Primitive.is(type))

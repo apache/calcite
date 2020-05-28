@@ -16,18 +16,49 @@
  */
 package org.apache.calcite.runtime;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
 import java.security.PrivilegedAction;
-import java.text.*;
-import java.util.*;
+import java.text.DateFormat;
+import java.text.Format;
+import java.text.MessageFormat;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.Properties;
+import java.util.PropertyResourceBundle;
+import java.util.ResourceBundle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Defining wrapper classes around resources that allow the compiler to check
@@ -137,8 +168,7 @@ public class Resources {
         new InvocationHandler() {
           final Map<String, Object> cache = new ConcurrentHashMap<>();
 
-          @Override
-          public Object invoke(Object proxy, Method method, Object[] args)
+          @Override public Object invoke(Object proxy, Method method, Object [] args)
               throws Throwable {
             if (args == null || args.length == 0) {
               Object o = cache.get(method.getName());
@@ -151,7 +181,7 @@ public class Resources {
             return create(method, args);
           }
 
-          private Object create(Method method, Object[] args)
+          private Object create(Method method, Object [] args)
               throws NoSuchMethodException, InstantiationException,
               IllegalAccessException, InvocationTargetException {
             if (method.equals(BuiltinMethod.OBJECT_TO_STRING.method)) {
@@ -214,6 +244,7 @@ public class Resources {
         }
         try {
           Inst inst = (Inst) method.invoke(o, args);
+          assert inst != null : "got null from " + method;
           inst.validate(validations);
         } catch (IllegalAccessException e) {
           throw new RuntimeException("in " + method, e);
@@ -251,6 +282,7 @@ public class Resources {
     protected final Method method;
     protected final String key;
 
+    @SuppressWarnings("method.invocation.invalid")
     public Element(Method method) {
       this.method = method;
       this.key = deriveKey();
@@ -333,7 +365,9 @@ public class Resources {
           }
           break;
         case EVEN_QUOTES:
-          String message = method.getAnnotation(BaseMessage.class).value();
+          String message = requireNonNull(
+              method.getAnnotation(BaseMessage.class),
+              () -> "@BaseMessage is missing for resource '" + method.getName() + "'").value();
           if (countQuotesIn(message) % 2 == 1) {
             throw new AssertionError("resource '" + method.getName()
                 + "' should have even number of quotes");
@@ -417,7 +451,9 @@ public class Resources {
       } catch (MissingResourceException e) {
         // Resource is not in the bundle. (It is probably missing from the
         // .properties file.) Fall back to the base message.
-        return method.getAnnotation(BaseMessage.class).value();
+        return requireNonNull(
+            method.getAnnotation(BaseMessage.class),
+            () -> "@BaseMessage is missing for resource '" + method.getName() + "'").value();
       }
     }
 
@@ -515,16 +551,17 @@ public class Resources {
               "Unable to find superclass ExInstWithCause for " + type);
         }
         if (type instanceof Class) {
-          type = ((Class) type).getGenericSuperclass();
-          if (type == null) {
+          Type superclass = ((Class) type).getGenericSuperclass();
+          if (superclass == null) {
             throw new IllegalStateException(
                 "Unable to find superclass ExInstWithCause for " + type0);
           }
+          type = superclass;
         }
       }
     }
 
-    protected void validateException(Callable<Exception> exSupplier) {
+    protected void validateException(Callable<? extends Exception> exSupplier) {
       Throwable cause = null;
       try {
         //noinspection ThrowableResultOfMethodCallIgnored
@@ -583,6 +620,17 @@ public class Resources {
       this.hasDefault = resource != null;
     }
 
+    @RequiresNonNull("method")
+    protected final Default getDefault(
+        @UnderInitialization Prop this
+    ) {
+      if (hasDefault) {
+        return castNonNull(method.getAnnotation(Default.class));
+      } else {
+        return null;
+      }
+    }
+
     public boolean isSet() {
       return accessor.isSet(this);
     }
@@ -612,8 +660,8 @@ public class Resources {
 
     public IntProp(PropertyAccessor accessor, Method method) {
       super(accessor, method);
-      if (hasDefault) {
-        final Default resource = method.getAnnotation(Default.class);
+      final Default resource = getDefault();
+      if (resource != null) {
         defaultValue = Integer.parseInt(resource.value(), 10);
       } else {
         defaultValue = 0;
@@ -643,8 +691,8 @@ public class Resources {
 
     public BooleanProp(PropertyAccessor accessor, Method method) {
       super(accessor, method);
-      if (hasDefault) {
-        final Default resource = method.getAnnotation(Default.class);
+      final Default resource = getDefault();
+      if (resource != null) {
         defaultValue = Boolean.parseBoolean(resource.value());
       } else {
         defaultValue = false;
@@ -674,8 +722,8 @@ public class Resources {
 
     public DoubleProp(PropertyAccessor accessor, Method method) {
       super(accessor, method);
-      if (hasDefault) {
-        final Default resource = method.getAnnotation(Default.class);
+      final Default resource = getDefault();
+      if (resource != null) {
         defaultValue = Double.parseDouble(resource.value());
       } else {
         defaultValue = 0d;
@@ -705,8 +753,8 @@ public class Resources {
 
     public StringProp(PropertyAccessor accessor, Method method) {
       super(accessor, method);
-      if (hasDefault) {
-        final Default resource = method.getAnnotation(Default.class);
+      final Default resource = getDefault();
+      if (resource != null) {
         defaultValue = resource.value();
       } else {
         defaultValue = null;
@@ -719,8 +767,10 @@ public class Resources {
     }
 
     /** Returns the value of this String property, returning the given default
-     * value if the property is not set. */
-    public String get(String defaultValue) {
+     * value if the property is not set.
+     *
+     * <p>If {@code defaultValue} is not null, never returns null. */
+    public @PolyNull String get(@PolyNull String defaultValue) {
       return accessor.stringValue(this, defaultValue);
     }
 
@@ -745,7 +795,7 @@ public class Resources {
     int intValue(IntProp p);
     int intValue(IntProp p, int defaultValue);
     String stringValue(StringProp p);
-    String stringValue(StringProp p, String defaultValue);
+    @PolyNull String stringValue(StringProp p, @PolyNull String defaultValue);
     boolean booleanValue(BooleanProp p);
     boolean booleanValue(BooleanProp p, boolean defaultValue);
     double doubleValue(DoubleProp p);
@@ -770,13 +820,12 @@ public class Resources {
       return defaultValue;
     }
 
-    @Override
-    public String stringValue(StringProp p) {
+    @Override public String stringValue(StringProp p) {
       return p.defaultValue();
     }
 
-    @Override
-    public String stringValue(StringProp p, String defaultValue) {
+    @Override public @PolyNull String stringValue(StringProp p,
+        @PolyNull String defaultValue) {
       return defaultValue;
     }
 
@@ -887,7 +936,7 @@ public class Resources {
    * load the properties file based upon the name of the class.
    */
   public abstract static class ShadowResourceBundle extends ResourceBundle {
-    private PropertyResourceBundle bundle;
+    private final PropertyResourceBundle bundle;
 
     /**
      * Creates a <code>ShadowResourceBundle</code>, and reads resources from
@@ -1076,8 +1125,7 @@ public class Resources {
       return s == null ? defaultValue : Integer.parseInt(s, 10);
     }
 
-    @Override
-    public String stringValue(StringProp p) {
+    @Override public String stringValue(StringProp p) {
       final String s = properties.getProperty(p.key);
       if (s != null) {
         return s;
@@ -1086,8 +1134,8 @@ public class Resources {
       return p.defaultValue;
     }
 
-    @Override
-    public String stringValue(StringProp p, String defaultValue) {
+    @Override public @PolyNull String stringValue(StringProp p,
+        @PolyNull String defaultValue) {
       final String s = properties.getProperty(p.key);
       return s == null ? defaultValue : s;
     }

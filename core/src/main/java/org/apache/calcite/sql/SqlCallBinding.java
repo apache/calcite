@@ -177,8 +177,9 @@ public class SqlCallBinding extends SqlOperatorBinding {
   /** Returns the operands to a call permuted into the same order as the
    * formal parameters of the function. */
   private List<SqlNode> permutedOperands(final SqlCall call) {
-    final SqlOperandMetadata operandMetadata =
-        (SqlOperandMetadata) call.getOperator().getOperandTypeChecker();
+    final SqlOperandMetadata operandMetadata = requireNonNull(
+        (SqlOperandMetadata) call.getOperator().getOperandTypeChecker(),
+        () -> "operandTypeChecker is null for " + call + ", operator " + call.getOperator());
     final List<String> paramNames = operandMetadata.paramNames();
     final List<SqlNode> permuted = new ArrayList<>();
     final SqlNameMatcher nameMatcher =
@@ -263,7 +264,8 @@ public class SqlCallBinding extends SqlOperatorBinding {
     throw new AssertionError();
   }
 
-  @Override public <T> T getOperandLiteralValue(int ordinal, Class<T> clazz) {
+  @Override public <T extends Object> T getOperandLiteralValue(int ordinal,
+      Class<T> clazz) {
     final SqlNode node = operand(ordinal);
     return valueAs(node, clazz);
   }
@@ -284,7 +286,7 @@ public class SqlCallBinding extends SqlOperatorBinding {
     return EnumUtils.evaluate(o2, clazz);
   }
 
-  private <T> T valueAs(SqlNode node, Class<T> clazz) {
+  private <T extends Object> T valueAs(SqlNode node, Class<T> clazz) {
     final SqlLiteral literal;
     switch (node.getKind()) {
     case ARRAY_VALUE_CONSTRUCTOR:

@@ -66,8 +66,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility methods concerning row-expressions.
@@ -76,7 +78,7 @@ public class RexUtil {
 
   /** Executor for a bit of constant reduction. The user can pass in another executor. */
   public static final RexExecutor EXECUTOR =
-      new RexExecutorImpl(Schemas.createDataContext(null, null));
+      new RexExecutorImpl(Schemas.createDataContext(castNonNull(null), null));
 
   private RexUtil() {
   }
@@ -468,8 +470,11 @@ public class RexUtil {
       RelDataTypeFactory typeFactory) {
     final SqlTypeName name1 = type1.getSqlTypeName();
     final SqlTypeName name2 = type2.getSqlTypeName();
-    if (name1.getFamily() == name2.getFamily()) {
-      switch (name1.getFamily()) {
+    final RelDataType type1Final = type1;
+    SqlTypeFamily family = requireNonNull(name1.getFamily(),
+        () -> "SqlTypeFamily is null for type " + type1Final + ", SqlTypeName " + name1);
+    if (family == name2.getFamily()) {
+      switch (family) {
       case NUMERIC:
         if (SqlTypeUtil.isExactNumeric(type1)
             && SqlTypeUtil.isExactNumeric(type2)) {
@@ -566,14 +571,14 @@ public class RexUtil {
 
   /** Expands all the calls to {@link SqlStdOperatorTable#SEARCH} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
-      @Nullable RexProgram program, RexNode node) {
+      RexProgram program, RexNode node) {
     return expandSearch(rexBuilder, program, node, -1);
   }
 
   /** Expands calls to {@link SqlStdOperatorTable#SEARCH}
    * whose complexity is greater than {@code maxComplexity} in an expression. */
   public static RexNode expandSearch(RexBuilder rexBuilder,
-       @Nullable RexProgram program, RexNode node, int maxComplexity) {
+       RexProgram program, RexNode node, int maxComplexity) {
     return node.accept(searchShuttle(rexBuilder, program, maxComplexity));
   }
 
@@ -630,7 +635,8 @@ public class RexUtil {
 
   private static RexNode deref(RexProgram program, RexNode node) {
     while (node instanceof RexLocalRef) {
-      node = program.getExprList().get(((RexLocalRef) node).index);
+      node = requireNonNull(program, "program")
+          .getExprList().get(((RexLocalRef) node).index);
     }
     return node;
   }
@@ -1089,7 +1095,7 @@ public class RexUtil {
   public static RelDataType createStructType(
       RelDataTypeFactory typeFactory,
       final List<? extends RexNode> exprs,
-      List<String> names,
+      List<? extends String> names,
       SqlValidatorUtil.Suggester suggester) {
     if (names != null && suggester != null) {
       names = SqlValidatorUtil.uniquify(names, suggester,
@@ -1195,10 +1201,10 @@ public class RexUtil {
 
   /** As {@link #composeConjunction(RexBuilder, Iterable, boolean)} but never
    * returns null. */
-  public static @Nonnull RexNode composeConjunction(RexBuilder rexBuilder,
+  public static RexNode composeConjunction(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
     final RexNode e = composeConjunction(rexBuilder, nodes, false);
-    return Objects.requireNonNull(e);
+    return requireNonNull(e);
   }
 
   /**
@@ -1269,10 +1275,10 @@ public class RexUtil {
    * Removes expressions that always evaluate to FALSE.
    * Flattens expressions that are ORs.
    */
-  @Nonnull public static RexNode composeDisjunction(RexBuilder rexBuilder,
+  public static RexNode composeDisjunction(RexBuilder rexBuilder,
       Iterable<? extends RexNode> nodes) {
     final RexNode e = composeDisjunction(rexBuilder, nodes, false);
-    return Objects.requireNonNull(e);
+    return requireNonNull(e);
   }
 
   /**
@@ -1955,7 +1961,8 @@ public class RexUtil {
         ImmutableList.of(e));
   }
 
-  static SqlOperator op(SqlKind kind) {
+  @API(since = "1.27.0", status = API.Status.EXPERIMENTAL)
+  public static SqlOperator op(SqlKind kind) {
     switch (kind) {
     case IS_FALSE:
       return SqlStdOperatorTable.IS_FALSE;
@@ -2084,7 +2091,7 @@ public class RexUtil {
    *       returns "x = 10 AND NOT (y = 30)"
    * </ul>
    */
-  public static @Nonnull RexNode andNot(final RexBuilder rexBuilder, RexNode e,
+  public static RexNode andNot(final RexBuilder rexBuilder, RexNode e,
       Iterable<? extends RexNode> notTerms) {
     // If "e" is of the form "x = literal", remove all "x = otherLiteral"
     // terms from notTerms.
@@ -2215,8 +2222,10 @@ public class RexUtil {
         new RexShuttle() {
           @Override public RexNode visitTableInputRef(RexTableInputRef inputRef) {
             if (tableMapping != null) {
+              RexTableInputRef inputRefFinal = inputRef;
               inputRef = RexTableInputRef.of(
-                  tableMapping.get(inputRef.getTableRef()),
+                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());
             }
@@ -2239,7 +2248,7 @@ public class RexUtil {
    * {@link RexTableInputRef} using the contents in the second map.
    */
   public static RexNode swapColumnTableReferences(final RexBuilder rexBuilder,
-      final RexNode node, final Map<RexTableInputRef, Set<RexTableInputRef>> ec,
+      final RexNode node, final Map<RexTableInputRef, ? extends Set<RexTableInputRef>> ec,
       final Map<RelTableRef, RelTableRef> tableMapping) {
     RexShuttle visitor =
         new RexShuttle() {
@@ -2251,8 +2260,10 @@ public class RexUtil {
               }
             }
             if (tableMapping != null) {
+              RexTableInputRef inputRefFinal = inputRef;
               inputRef = RexTableInputRef.of(
-                  tableMapping.get(inputRef.getTableRef()),
+                  requireNonNull(tableMapping.get(inputRef.getTableRef()),
+                      () -> "tableMapping.get(...) for " + inputRefFinal.getTableRef()),
                   inputRef.getIndex(),
                   inputRef.getType());
             }
@@ -2302,7 +2313,9 @@ public class RexUtil {
     }
 
     protected RexNode lookup(RexNode expr) {
-      return map.get(expr);
+      return requireNonNull(
+          map.get(expr),
+          () -> "missing normalization for expression " + expr);
     }
 
     @Override public RexNode visitInputRef(RexInputRef inputRef) {
@@ -2938,10 +2951,10 @@ public class RexUtil {
 
     RangeToRex(RexNode ref, List<RexNode> list, RexBuilder rexBuilder,
         RelDataType type) {
-      this.ref = Objects.requireNonNull(ref);
-      this.list = Objects.requireNonNull(list);
-      this.rexBuilder = Objects.requireNonNull(rexBuilder);
-      this.type = Objects.requireNonNull(type);
+      this.ref = requireNonNull(ref);
+      this.list = requireNonNull(list);
+      this.rexBuilder = requireNonNull(rexBuilder);
+      this.type = requireNonNull(type);
     }
 
     private void addAnd(RexNode... nodes) {
@@ -3038,7 +3051,7 @@ public class RexUtil {
         final RexNode ref = call.operands.get(0);
         final RexLiteral literal =
             (RexLiteral) deref(program, call.operands.get(1));
-        final Sarg sarg = literal.getValueAs(Sarg.class);
+        final Sarg sarg = requireNonNull(literal.getValueAs(Sarg.class), "Sarg");
         if (maxComplexity < 0 || sarg.complexity() < maxComplexity) {
           return sargRef(rexBuilder, ref, sarg, literal.getType());
         }

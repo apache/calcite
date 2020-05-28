@@ -28,6 +28,8 @@ import com.google.common.collect.Multimap;
 
 import java.lang.reflect.Method;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * HepRelMetadataProvider implements the {@link RelMetadataProvider} interface
  * by combining metadata from the rels inside of a {@link HepRelVertex}.
@@ -53,9 +55,12 @@ class HepRelMetadataProvider implements RelMetadataProvider {
       HepRelVertex vertex = (HepRelVertex) rel;
       final RelNode rel2 = vertex.getCurrentRel();
       UnboundMetadata<M> function =
-          rel.getCluster().getMetadataProvider().apply(rel2.getClass(),
-              metadataClass);
-      return function.bind(rel2, mq);
+          requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider")
+              .apply(rel2.getClass(), metadataClass);
+      return requireNonNull(
+          function,
+          () -> "no metadata provider for class " + metadataClass)
+          .bind(rel2, mq);
     };
   }
 

@@ -61,7 +61,8 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 
-  @Override public BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
+  @Override public BiFunction<
+      InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
     return null;
   }
 

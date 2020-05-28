@@ -24,6 +24,8 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.
  *
@@ -44,7 +46,7 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
   //~ Methods ----------------------------------------------------------------
 
   @Override public final SqlNode visit(SqlCall call) {
-    SqlValidatorScope oldScope = scopes.peek();
+    SqlValidatorScope oldScope = getScope();
     SqlValidatorScope newScope = oldScope.getOperandScope(call);
     scopes.push(newScope);
     SqlNode result = visitScoped(call);
@@ -64,6 +66,6 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
    * Returns the current scope.
    */
   protected SqlValidatorScope getScope() {
-    return scopes.peek();
+    return requireNonNull(scopes.peek(), "scopes.peek()");
   }
 }

@@ -34,13 +34,15 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Result of compiling code generated from a {@link RexNode} expression.
  */
 public class RexExecutable {
   private static final String GENERATED_CLASS_NAME = "Reducer";
 
-  private final Function1<DataContext, Object[]> compiledFunction;
+  private final Function1<DataContext, Object []> compiledFunction;
   private final String code;
   private DataContext dataContext;
 
@@ -49,7 +51,7 @@ public class RexExecutable {
     this.compiledFunction = compile(code, reason);
   }
 
-  private static Function1<DataContext, Object[]> compile(String code,
+  private static Function1<DataContext, Object []> compile(String code,
       Object reason) {
     try {
       final ClassBodyEvaluator cbe = new ClassBodyEvaluator();
@@ -60,7 +62,7 @@ public class RexExecutable {
       cbe.cook(new Scanner(null, new StringReader(code)));
       Class c = cbe.getClazz();
       //noinspection unchecked
-      final Constructor<Function1<DataContext, Object[]>> constructor =
+      final Constructor<Function1<DataContext, Object []>> constructor =
           c.getConstructor();
       return constructor.newInstance();
     } catch (CompileException | IOException | InstantiationException
@@ -78,12 +80,17 @@ public class RexExecutable {
       List<RexNode> reducedValues) {
     Object[] values;
     try {
-      values = compiledFunction.apply(dataContext);
-      assert values.length == constExps.size();
-      final List<Object> valueList = Arrays.asList(values);
-      for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
-        reducedValues.add(
-            rexBuilder.makeLiteral(value.right, value.left.getType(), true));
+      values = execute();
+      if (values == null) {
+        reducedValues.addAll(constExps);
+        values = new Object[constExps.size()];
+      } else {
+        assert values.length == constExps.size();
+        final List<Object> valueList = Arrays.asList(values);
+        for (Pair<RexNode, Object> value : Pair.zip(constExps, valueList)) {
+          reducedValues.add(
+              rexBuilder.makeLiteral(value.right, value.left.getType(), true));
+        }
       }
     } catch (RuntimeException e) {
       // One or more of the expressions failed.
@@ -94,12 +101,12 @@ public class RexExecutable {
     Hook.EXPRESSION_REDUCER.run(Pair.of(code, values));
   }
 
-  public Function1<DataContext, Object[]> getFunction() {
+  public Function1<DataContext, Object []> getFunction() {
     return compiledFunction;
   }
 
-  public Object[] execute() {
-    return compiledFunction.apply(dataContext);
+  public Object [] execute() {
+    return compiledFunction.apply(requireNonNull(dataContext, "dataContext"));
   }
 
   public String getSource() {

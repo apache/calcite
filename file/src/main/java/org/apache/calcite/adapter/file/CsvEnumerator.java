@@ -39,6 +39,8 @@ import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /** Enumerator that reads from a CSV file.
  *
  * @param <E> Row type
@@ -70,7 +72,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   public CsvEnumerator(Source source, AtomicBoolean cancelFlag, boolean stream,
-      String[] filterValues, RowConverter<E> rowConverter) {
+      String [] filterValues, RowConverter<E> rowConverter) {
     this.cancelFlag = cancelFlag;
     this.rowConverter = rowConverter;
     this.filterValues = filterValues == null ? null
@@ -170,7 +172,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
   }
 
   @Override public E current() {
-    return current;
+    return castNonNull(current);
   }
 
   @Override public boolean moveNext() {
@@ -241,7 +243,7 @@ public class CsvEnumerator<E> implements Enumerator<E> {
 
     @SuppressWarnings("JdkObsolete")
     protected Object convert(CsvFieldType fieldType, String string) {
-      if (fieldType == null) {
+      if (fieldType == null || string == null) {
         return string;
       }
       switch (fieldType) {

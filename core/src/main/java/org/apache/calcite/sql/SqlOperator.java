@@ -39,12 +39,17 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <code>SqlOperator</code> is a type of node in a SQL parse tree (it is NOT a
@@ -214,6 +219,7 @@ public abstract class SqlOperator {
     return new SqlIdentifier(getName(), SqlParserPos.ZERO);
   }
 
+  @Pure
   public SqlKind getKind() {
     return kind;
   }
@@ -413,7 +419,6 @@ public abstract class SqlOperator {
     writer.list(SqlWriter.FrameTypeEnum.SIMPLE, sepOp, nodeList);
   }
 
-  // override Object
   @Override public boolean equals(Object obj) {
     if (!(obj instanceof SqlOperator)) {
       return false;
@@ -590,7 +595,7 @@ public abstract class SqlOperator {
             argTypes, null, null, getSyntax(), getKind(),
             validator.getCatalogReader().nameMatcher(), false);
 
-    ((SqlBasicCall) call).setOperator(sqlOperator);
+    ((SqlBasicCall) call).setOperator(castNonNull(sqlOperator));
     RelDataType type = call.getOperator().validateOperands(validator, scope, call);
 
     // Validate and determine coercibility and resulting collation
@@ -801,9 +806,9 @@ public abstract class SqlOperator {
    * example) can be replaced by a specified name.
    */
   public String getAllowedSignatures(String opNameToUse) {
-    assert operandTypeChecker != null
-        : "If you see this, assign operandTypeChecker a value "
-        + "or override this function";
+    requireNonNull(operandTypeChecker,
+        "If you see this, assign operandTypeChecker a value "
+        + "or override this function");
     return operandTypeChecker.getAllowedSignatures(this, opNameToUse)
         .trim();
   }
@@ -832,6 +837,7 @@ public abstract class SqlOperator {
    * @return whether this operator is an analytic function (aggregate function
    * or window function)
    */
+  @Pure
   public boolean isAggregator() {
     return false;
   }
@@ -956,6 +962,7 @@ public abstract class SqlOperator {
    *
    * @see Strong
    */
+  @Pure
   public Supplier<Strong.Policy> getStrongPolicyInference() {
     return null;
   }

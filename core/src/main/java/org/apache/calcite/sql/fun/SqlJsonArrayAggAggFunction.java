@@ -85,7 +85,8 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     return createCall_(functionQualifier, pos, valueExpr);
   }
 
-  private SqlCall createCall_(SqlLiteral functionQualifier, SqlParserPos pos, SqlNode valueExpr) {
+  private SqlCall createCall_(SqlLiteral functionQualifier, SqlParserPos pos,
+      SqlNode valueExpr) {
     return super.createCall(functionQualifier, pos, valueExpr);
   }
 

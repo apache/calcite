@@ -38,8 +38,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility methods for expressions, including a lot of factory methods.
@@ -501,14 +502,6 @@ public abstract class Expressions {
     return makeTernary(ExpressionType.Conditional, test, ifTrue, ifFalse);
   }
 
-  private static Type box(Type type) {
-    Primitive primitive = Primitive.of(type);
-    if (primitive != null) {
-      return primitive.boxClass;
-    }
-    return type;
-  }
-
   /** Returns whether an expression always evaluates to null. */
   public static boolean isConstantNull(Expression e) {
     return e instanceof ConstantExpression
@@ -542,18 +535,10 @@ public abstract class Expressions {
    * arrays.</p>
    */
   public static ConstantExpression constant(Object value) {
-    Class type;
     if (value == null) {
       return ConstantUntypedNull.INSTANCE;
-    } else {
-      final Class clazz = value.getClass();
-      final Primitive primitive = Primitive.ofBox(clazz);
-      if (primitive != null) {
-        type = primitive.primitiveClass;
-      } else {
-        type = clazz;
-      }
     }
+    Class<?> type = Primitive.unbox(value.getClass());
     return new ConstantExpression(type, value);
   }
 
@@ -564,10 +549,10 @@ public abstract class Expressions {
   public static ConstantExpression constant(Object value, Type type) {
     if (value != null && type instanceof Class) {
       // Fix up value so that it matches type.
-      Class clazz = (Class) type;
+      Class<?> clazz = (Class<?>) type;
       Primitive primitive = Primitive.ofBoxOr(clazz);
       if (primitive != null) {
-        clazz = primitive.boxClass;
+        clazz = requireNonNull(primitive.boxClass, "boxClass");
       }
       if ((clazz == Float.class || clazz == Double.class)
           && value instanceof BigDecimal) {
@@ -993,8 +978,8 @@ public abstract class Expressions {
    * block with if and else statements:
    * <code>if (test) stmt1 [ else if (test2) stmt2 ]... [ else stmtN ]</code>.
    */
-  public static ConditionalStatement ifThenElse(Iterable<? extends Node>
-                                                    nodes) {
+  public static ConditionalStatement ifThenElse(
+      Iterable<? extends Node> nodes) {
     List<Node> list = toList(nodes);
     assert list.size() >= 2 : "At least one test and one statement is required";
     return new ConditionalStatement(list);
@@ -1434,7 +1419,7 @@ public abstract class Expressions {
   /** Returns an expression to box the value of a primitive expression.
    * E.g. {@code box(e, Primitive.INT)} returns {@code Integer.valueOf(e)}. */
   public static Expression box(Expression expression, Primitive primitive) {
-    return call(primitive.boxClass, "valueOf", expression);
+    return call(requireNonNull(primitive.boxClass), "valueOf", expression);
   }
 
   /** Converts e.g. "anInteger" to "Integer.valueOf(anInteger)". */
@@ -1450,7 +1435,7 @@ public abstract class Expressions {
    * E.g. {@code unbox(e, Primitive.INT)} returns {@code e.intValue()}.
    * It is assumed that e is of the right box type (or {@link Number})."Value */
   public static Expression unbox(Expression expression, Primitive primitive) {
-    return call(expression, primitive.primitiveName + "Value");
+    return call(expression, requireNonNull(primitive.primitiveName) + "Value");
   }
 
   /** Converts e.g. "anInteger" to "anInteger.intValue()". */
@@ -1518,12 +1503,12 @@ public abstract class Expressions {
     switch (ternaryType) {
     case Conditional:
       if (e1 instanceof ConstantUntypedNull) {
-        type = box(e2.getType());
+        type = Primitive.box(e2.getType());
         if (e1.getType() != type) {
           e1 = constant(null, type);
         }
       } else if (e2 instanceof ConstantUntypedNull) {
-        type = box(e1.getType());
+        type = Primitive.box(e1.getType());
         if (e2.getType() != type) {
           e2 = constant(null, type);
         }
@@ -1894,7 +1879,8 @@ public abstract class Expressions {
    * negation operation.
    */
   public static UnaryExpression negate(Expression expression, Method method) {
-    return makeUnary(ExpressionType.Negate, expression, null, method);
+    // TODO: use method
+    return negate(expression);
   }
 
   /**
@@ -1912,7 +1898,8 @@ public abstract class Expressions {
    */
   public static UnaryExpression negateChecked(Expression expression,
       Method method) {
-    return makeUnary(ExpressionType.NegateChecked, expression, null, method);
+    throw new UnsupportedOperationException("not implemented");
+    //return makeUnary(ExpressionType.NegateChecked, expression, null, method);
   }
 
   /**
@@ -1963,7 +1950,7 @@ public abstract class Expressions {
       Iterable<? extends Expression> arguments,
       Iterable<? extends MemberDeclaration> memberDeclarations) {
     return new NewExpression(type, toList(arguments),
-        toList(memberDeclarations));
+        memberDeclarations == null ? null : toList(memberDeclarations));
   }
 
   /**
@@ -2098,7 +2085,8 @@ public abstract class Expressions {
    * operation. The implementing method can be specified.
    */
   public static UnaryExpression not(Expression expression, Method method) {
-    return makeUnary(ExpressionType.Not, expression, null, method);
+    // TODO: use method
+    return not(expression);
   }
 
   /**
@@ -2693,6 +2681,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * without a default case.
    */
+  @SuppressWarnings("nullness")
   public static SwitchStatement switch_(Expression switchValue,
       SwitchCase... cases) {
     return switch_(switchValue, null, null, toList(cases));
@@ -2702,6 +2691,7 @@ public abstract class Expressions {
    * Creates a SwitchExpression that represents a switch statement
    * that has a default case.
    */
+  @SuppressWarnings("nullness")
   public static SwitchStatement switch_(Expression switchValue,
       Expression defaultBody, SwitchCase... cases) {
     return switch_(switchValue, defaultBody, null, toList(cases));
@@ -3051,7 +3041,7 @@ public abstract class Expressions {
    * Evaluates an expression and returns the result.
    */
   public static Object evaluate(Node node) {
-    Objects.requireNonNull(node);
+    requireNonNull(node);
     final Evaluator evaluator = new Evaluator();
     return ((AbstractNode) node).evaluate(evaluator);
   }
@@ -3079,10 +3069,8 @@ public abstract class Expressions {
     }
   }
 
+  /** Converts an Iterable to a List. */
   private static <T> List<T> toList(Iterable<? extends T> iterable) {
-    if (iterable == null) {
-      return null;
-    }
     if (iterable instanceof List) {
       return (List<T>) iterable;
     }
@@ -3106,20 +3094,6 @@ public abstract class Expressions {
       return (Collection<T>) iterable;
     }
     return toList(iterable);
-  }
-
-  static <T extends Expression> Expression accept(T node, Shuttle shuttle) {
-    if (node == null) {
-      return null;
-    }
-    return node.accept(shuttle);
-  }
-
-  static <T extends Statement> Statement accept(T node, Shuttle shuttle) {
-    if (node == null) {
-      return null;
-    }
-    return node.accept(shuttle);
   }
 
   static List<Statement> acceptStatements(List<Statement> statements,
@@ -3168,7 +3142,7 @@ public abstract class Expressions {
 
   static List<DeclarationStatement> acceptDeclarations(
       List<DeclarationStatement> declarations, Shuttle shuttle) {
-    if (declarations == null || declarations.isEmpty()) {
+    if (declarations.isEmpty()) {
       return declarations; // short cut
     }
     final List<DeclarationStatement> declarations1 = new ArrayList<>();
@@ -3180,7 +3154,7 @@ public abstract class Expressions {
 
   static List<MemberDeclaration> acceptMemberDeclarations(
       List<MemberDeclaration> memberDeclarations, Shuttle shuttle) {
-    if (memberDeclarations == null || memberDeclarations.isEmpty()) {
+    if (memberDeclarations.isEmpty()) {
       return memberDeclarations; // short cut
     }
     final List<MemberDeclaration> memberDeclarations1 = new ArrayList<>();
@@ -3202,7 +3176,8 @@ public abstract class Expressions {
     return expressions1;
   }
 
-  static <R> R acceptNodes(List<? extends Node> nodes, Visitor<R> visitor) {
+  static <R> R acceptNodes(List<? extends Node> nodes,
+      Visitor<R> visitor) {
     R r = null;
     if (nodes != null) {
       for (Node node : nodes) {

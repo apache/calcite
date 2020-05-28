@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Helpers for {@link SqlNameMatcher}.
  */
@@ -165,7 +167,7 @@ public class SqlNameMatchers {
     }
 
     @Override public List<String> bestMatch() {
-      return matchedNames;
+      return requireNonNull(matchedNames, "matchedNames");
     }
   }
 }

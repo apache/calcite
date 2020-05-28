@@ -347,7 +347,7 @@ public class DeterministicCodeOptimizer extends ClassDeclarationFinder {
    */
   protected boolean allMethodsDeterministic(Class klass) {
     return DETERMINISTIC_CLASSES.contains(klass)
-        || klass.getCanonicalName().equals("org.apache.calcite.avatica.util.DateTimeUtils")
+        || "org.apache.calcite.avatica.util.DateTimeUtils".equals(klass.getCanonicalName())
         || klass.isAnnotationPresent(Deterministic.class);
   }
 

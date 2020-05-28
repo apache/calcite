@@ -19,6 +19,7 @@ package org.apache.calcite.adapter.csv;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.file.CsvEnumerator;
 import org.apache.calcite.adapter.file.CsvFieldType;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -34,6 +35,8 @@ import org.apache.calcite.util.Source;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Table based on a CSV file that can implement simple filtering.
@@ -53,7 +56,8 @@ public class CsvFilterableTable extends CsvTable
   }
 
   @Override public Enumerable<Object[]> scan(DataContext root, List<RexNode> filters) {
-    final List<CsvFieldType> fieldTypes = getFieldTypes(root.getTypeFactory());
+    JavaTypeFactory typeFactory = requireNonNull(root.getTypeFactory(), "typeFactory");
+    final List<CsvFieldType> fieldTypes = getFieldTypes(typeFactory);
     final String[] filterValues = new String[fieldTypes.size()];
     filters.removeIf(filter -> addFilter(filter, filterValues));
     final List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());

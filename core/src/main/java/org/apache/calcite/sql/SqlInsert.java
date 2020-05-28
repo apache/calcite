@@ -21,6 +21,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
 
 /**
@@ -30,7 +32,9 @@ import java.util.List;
 public class SqlInsert extends SqlCall {
   public static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("INSERT", SqlKind.INSERT) {
-        @Override public SqlCall createCall(SqlLiteral functionQualifier, SqlParserPos pos,
+        @SuppressWarnings("argument.type.incompatible")
+        @Override public SqlCall createCall(SqlLiteral functionQualifier,
+            SqlParserPos pos,
             SqlNode... operands) {
           return new SqlInsert(
               pos,
@@ -71,6 +75,7 @@ public class SqlInsert extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(keywords, targetTable, source, columnList);
   }
@@ -84,6 +89,7 @@ public class SqlInsert extends SqlCall {
     return getModifierNode(SqlInsertKeyword.UPSERT) != null;
   }
 
+  @SuppressWarnings("assignment.type.incompatible")
   @Override public void setOperand(int i, SqlNode operand) {
     switch (i) {
     case 0:
@@ -126,6 +132,7 @@ public class SqlInsert extends SqlCall {
    * Returns the list of target column names, or null for all columns in the
    * target table.
    */
+  @Pure
   public SqlNodeList getTargetColumnList() {
     return columnList;
   }

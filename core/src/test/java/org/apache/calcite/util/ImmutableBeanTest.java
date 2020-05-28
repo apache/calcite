@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -574,12 +573,12 @@ class ImmutableBeanTest {
 
     /** Property is required because it has 'Nonnull' annotation. */
     @ImmutableBeans.Property
-    @Nonnull String getNonnullString();
+    String getNonnullString();
     Bean2 withNonnullString(String s);
 
     @ImmutableBeans.Property
     @ImmutableBeans.StringDefault("abc")
-    @Nonnull String getStringWithDefault();
+    String getStringWithDefault();
     Bean2 withStringWithDefault(String s);
 
     @ImmutableBeans.Property
@@ -589,7 +588,7 @@ class ImmutableBeanTest {
 
     @ImmutableBeans.Property
     @ImmutableBeans.EnumDefault("RED")
-    @Nonnull Color getColorWithDefault();
+    Color getColorWithDefault();
     Bean2 withColorWithDefault(Color color);
 
     @ImmutableBeans.Property

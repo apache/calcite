@@ -70,7 +70,7 @@ public class SqlJsonValueFunction extends SqlFunction {
    * Returns new operand list with type specification removed.
    */
   public static List<SqlNode> removeTypeSpecOperands(SqlCall call) {
-    SqlNode[] operands = call.getOperandList().toArray(SqlNode.EMPTY_ARRAY);
+    SqlNode[] operands = call.getOperandList().toArray(new SqlNode[0]);
     if (hasExplicitTypeSpec(operands)) {
       operands[2] = null;
       operands[3] = null;

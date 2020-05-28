@@ -16,6 +16,7 @@
  */
 package org.apache.calcite.runtime;
 
+
 import java.text.Collator;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -216,12 +217,14 @@ public class Utilities {
                 : v0.compareTo(v1);
   }
 
-  public static int compare(Comparable v0, Comparable v1, Comparator comparator) {
+  public static int compare(Comparable v0, Comparable v1,
+      Comparator comparator) {
     //noinspection unchecked
     return comparator.compare(v0, v1);
   }
 
-  public static int compareNullsFirst(Comparable v0, Comparable v1, Comparator comparator) {
+  public static int compareNullsFirst(Comparable v0, Comparable v1,
+      Comparator comparator) {
     //noinspection unchecked
     return v0 == v1 ? 0
         : v0 == null ? -1
@@ -229,7 +232,8 @@ public class Utilities {
                 : comparator.compare(v0, v1);
   }
 
-  public static int compareNullsLast(Comparable v0, Comparable v1, Comparator comparator) {
+  public static int compareNullsLast(Comparable v0, Comparable v1,
+      Comparator comparator) {
     //noinspection unchecked
     return v0 == v1 ? 0
         : v0 == null ? 1

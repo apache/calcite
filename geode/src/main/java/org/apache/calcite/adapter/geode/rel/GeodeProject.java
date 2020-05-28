@@ -53,7 +53,8 @@ public class GeodeProject extends Project implements GeodeRel {
     return new GeodeProject(getCluster(), traitSet, input, projects, rowType);
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     return super.computeSelfCost(planner, mq).multiplyBy(0.1);
   }
 

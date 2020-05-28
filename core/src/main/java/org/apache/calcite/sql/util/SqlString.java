@@ -20,6 +20,8 @@ import org.apache.calcite.sql.SqlDialect;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 /**
  * String that represents a kocher SQL statement, expression, or fragment.
  *
@@ -48,7 +50,8 @@ public class SqlString {
    * @param sql text
    * @param dynamicParameters indices
    */
-  public SqlString(SqlDialect dialect, String sql, ImmutableList<Integer> dynamicParameters) {
+  public SqlString(SqlDialect dialect, String sql,
+      ImmutableList<Integer> dynamicParameters) {
     this.dialect = dialect;
     this.sql = sql;
     this.dynamicParameters = dynamicParameters;
@@ -92,6 +95,7 @@ public class SqlString {
    *
    * @return indices of dynamic parameters
    */
+  @Pure
   public ImmutableList<Integer> getDynamicParameters() {
     return dynamicParameters;
   }

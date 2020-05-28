@@ -28,6 +28,8 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Family of calling conventions that return results as an
  * {@link org.apache.calcite.linq4j.Enumerable}.
@@ -59,6 +61,8 @@ public enum EnumerableConvention implements Convention {
       rel = ConventionTraitDef.INSTANCE.convert(
           input.getCluster().getPlanner(),
           input, INSTANCE, true);
+      requireNonNull(rel,
+          () -> "Unable to convert input to " + INSTANCE + ", input = " + input);
     }
     RelCollation collation = required.getCollation();
     if (collation != null && collation != RelCollations.EMPTY) {

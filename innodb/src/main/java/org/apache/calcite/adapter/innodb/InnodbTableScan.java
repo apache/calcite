@@ -38,7 +38,6 @@ import com.alibaba.innodb.java.reader.schema.KeyMeta;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
 
 /**
  * Relational expression representing a scan of an InnoDB data source.
@@ -47,7 +46,7 @@ public class InnodbTableScan extends TableScan implements InnodbRel {
   final InnodbTable innodbTable;
   final RelDataType projectRowType;
   /** Force to use one specific index from hint. */
-  private final @Nullable String forceIndexName;
+  private final String forceIndexName;
   /** This contains index to scan table and optional condition. */
   private final IndexCondition indexCondition;
 

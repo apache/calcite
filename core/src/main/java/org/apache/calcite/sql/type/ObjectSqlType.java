@@ -84,7 +84,7 @@ public class ObjectSqlType extends AbstractSqlType {
   @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // TODO jvs 10-Feb-2005:  proper quoting; dump attributes withDetail?
     sb.append("ObjectSqlType(");
-    sb.append(sqlIdentifier.toString());
+    sb.append(sqlIdentifier);
     sb.append(")");
   }
 }

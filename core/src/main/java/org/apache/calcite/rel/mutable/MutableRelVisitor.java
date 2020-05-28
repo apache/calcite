@@ -16,17 +16,18 @@
  */
 package org.apache.calcite.rel.mutable;
 
+
 /** Visitor over {@link MutableRel}. */
 public class MutableRelVisitor {
-  private MutableRel root;
 
   public void visit(MutableRel node) {
-    node.childrenAccept(this);
+    if (node != null) {
+      node.childrenAccept(this);
+    }
   }
 
   public MutableRel go(MutableRel p) {
-    this.root = p;
     visit(p);
-    return root;
+    return p;
   }
 }

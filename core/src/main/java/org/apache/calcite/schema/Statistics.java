@@ -37,7 +37,7 @@ public class Statistics {
       };
 
   /** Returns a statistic with a given set of referential constraints. */
-  public static Statistic of(final List<RelReferentialConstraint> referentialConstraints) {
+  public static Statistic of(List<RelReferentialConstraint> referentialConstraints) {
     return of(null, null,
         referentialConstraints, null);
   }

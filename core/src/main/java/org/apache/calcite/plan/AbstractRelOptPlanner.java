@@ -28,6 +28,9 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.text.NumberFormat;
@@ -40,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -65,9 +69,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   protected final RelOptCostFactory costFactory;
 
-  private MulticastRelOptListener listener;
+  private @MonotonicNonNull MulticastRelOptListener listener;
 
-  private RuleAttemptsListener ruleAttemptsListener;
+  private @MonotonicNonNull RuleAttemptsListener ruleAttemptsListener;
 
   private Pattern ruleDescExclusionFilter;
 
@@ -89,16 +93,16 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
       Context context) {
-    assert costFactory != null;
-    this.costFactory = costFactory;
+    this.costFactory = Objects.requireNonNull(costFactory);
     if (context == null) {
       context = Contexts.empty();
     }
     this.context = context;
 
-    final CancelFlag cancelFlag = context.unwrap(CancelFlag.class);
-    this.cancelFlag = cancelFlag != null ? cancelFlag.atomicBoolean
-        : new AtomicBoolean();
+    this.cancelFlag =
+        context.maybeUnwrap(CancelFlag.class)
+            .map(flag -> flag.atomicBoolean)
+            .orElseGet(AtomicBoolean::new);
 
     // Add abstract RelNode classes. No RelNodes will ever be registered with
     // these types, but some operands may use them.
@@ -229,8 +233,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    if (conventions.add(node.getConvention())) {
-      node.getConvention().register(this);
+    Convention convention = node.getConvention();
+    if (convention != null && conventions.add(convention)) {
+      convention.register(this);
     }
   }
 
@@ -247,13 +252,15 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return mq.getCumulativeCost(rel);
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public RelOptCost getCost(RelNode rel) {
+  @SuppressWarnings("deprecation")
+  @Override public RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
 
-  @Override public void addListener(RelOptListener newListener) {
+  @Override public void addListener(
+      @UnknownInitialization AbstractRelOptPlanner this,
+      RelOptListener newListener) {
     if (listener == null) {
       listener = new MulticastRelOptListener();
     }
@@ -425,6 +432,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
+  @Pure
   public RelOptListener getListener() {
     return listener;
   }

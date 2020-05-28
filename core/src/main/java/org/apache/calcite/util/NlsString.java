@@ -27,6 +27,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
@@ -36,7 +38,6 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 import static org.apache.calcite.util.Static.RESOURCE;
 
@@ -53,7 +54,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
           .softValues()
           .build(
               new CacheLoader<Pair<ByteString, Charset>, String>() {
-                @Override public String load(@Nonnull Pair<ByteString, Charset> key) {
+                @Override public String load(Pair<ByteString, Charset> key) {
                   final Charset charset = key.right;
                   final CharsetDecoder decoder = charset.newDecoder();
                   final byte[] bytes = key.left.getBytes();
@@ -128,15 +129,19 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
       throw new IllegalArgumentException("Specify stringValue or bytesValue");
     }
     if (bytesValue != null) {
-      if (charsetName == null) {
+      if (charset == null) {
         throw new IllegalArgumentException("Bytes value requires charset");
       }
       SqlUtil.validateCharset(bytesValue, charset);
     } else {
+      //noinspection ConstantConditions
+      assert stringValue != null : "stringValue must not be null";
       // Java string can be malformed if LATIN1 is required.
       if (this.charsetName != null
           && (this.charsetName.equals("LATIN1")
           || this.charsetName.equals("ISO-8859-1"))) {
+        //noinspection ConstantConditions
+        assert charset != null : "charset must not be null";
         if (!charset.newEncoder().canEncode(stringValue)) {
           throw RESOURCE.charsetEncoding(stringValue, charset.name()).ex();
         }
@@ -177,21 +182,25 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
     return getValue().compareTo(other.getValue());
   }
 
+  @Pure
   public String getCharsetName() {
     return charsetName;
   }
 
+  @Pure
   public Charset getCharset() {
     return charset;
   }
 
+  @Pure
   public SqlCollation getCollation() {
     return collation;
   }
 
   public String getValue() {
     if (stringValue == null) {
-      assert bytesValue != null;
+      assert bytesValue != null : "bytesValue must not be null";
+      assert charset != null : "charset must not be null";
       return DECODE_MAP.getUnchecked(Pair.of(bytesValue, charset));
     }
     return stringValue;
@@ -296,6 +305,7 @@ public class NlsString implements Comparable<NlsString>, Cloneable {
   }
 
   /** Returns the value as a {@link ByteString}. */
+  @Pure
   public ByteString getValueBytes() {
     return bytesValue;
   }

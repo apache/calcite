@@ -19,6 +19,8 @@ package org.apache.calcite.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.KeyFor;
+
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -68,6 +70,7 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return true;
   }
 
+  @SuppressWarnings("contracts.conditional.postcondition.not.satisfied")
   @Override public boolean containsKey(Object key) {
     for (Map<K, V> map : maps) {
       if (map.containsKey(key)) {
@@ -116,7 +119,8 @@ public class CompositeMap<K, V> implements Map<K, V> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Set<K> keySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<@KeyFor("this") K> keySet() {
     final Set<K> keys = new LinkedHashSet<>();
     for (Map<K, V> map : maps) {
       keys.addAll(map.keySet());
@@ -141,7 +145,8 @@ public class CompositeMap<K, V> implements Map<K, V> {
     return combinedMap().values();
   }
 
-  @Override public Set<Entry<K, V>> entrySet() {
+  @SuppressWarnings("return.type.incompatible")
+  @Override public Set<Entry<@KeyFor("this") K, V>> entrySet() {
     return combinedMap().entrySet();
   }
 }

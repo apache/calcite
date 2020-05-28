@@ -368,9 +368,8 @@ public class RelMdColumnUniqueness
     for (ImmutableList<RexLiteral> tuple : rel.tuples) {
       for (int column : columns) {
         final RexLiteral literal = tuple.get(column);
-        values.add(literal.isNull()
-            ? NullSentinel.INSTANCE
-            : literal.getValueAs(Comparable.class));
+        Comparable value = literal.getValueAs(Comparable.class);
+        values.add(value == null ? NullSentinel.INSTANCE : value);
       }
       if (!set.add(ImmutableList.copyOf(values))) {
         return false;
@@ -463,8 +462,8 @@ public class RelMdColumnUniqueness
   private static ImmutableBitSet decorateWithConstantColumnsFromPredicates(
       ImmutableBitSet checkingColumns, RelNode rel, RelMetadataQuery mq) {
     final RelOptPredicateList predicates = mq.getPulledUpPredicates(rel);
-    if (predicates != null) {
-      final Set<Integer> constantIndexes = new HashSet();
+    if (!RelOptPredicateList.isEmpty(predicates)) {
+      final Set<Integer> constantIndexes = new HashSet<>();
       predicates.constantMap.keySet().forEach(rex -> {
         if (rex instanceof RexInputRef) {
           constantIndexes.add(((RexInputRef) rex).getIndex());

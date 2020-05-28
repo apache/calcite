@@ -35,6 +35,8 @@ import org.apache.calcite.sql.validate.SqlValidator;
 
 import java.util.Locale;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The <code>JSON_ARRAY</code> function.
  */
@@ -99,7 +101,8 @@ public class SqlJsonArrayFunction extends SqlFunction {
     writer.endFunCall(frame);
   }
 
+  @SuppressWarnings("unchecked")
   private <E extends Enum<E>> E getEnumValue(SqlNode operand) {
-    return (E) ((SqlLiteral) operand).getValue();
+    return (E) requireNonNull(((SqlLiteral) operand).getValue(), "operand.value");
   }
 }

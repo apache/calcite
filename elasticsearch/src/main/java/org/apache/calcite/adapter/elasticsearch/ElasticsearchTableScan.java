@@ -71,7 +71,8 @@ public class ElasticsearchTableScan extends TableScan implements ElasticsearchRe
     return projectRowType != null ? projectRowType : super.deriveRowType();
   }
 
-  @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+  @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
+      RelMetadataQuery mq) {
     final float f = projectRowType == null ? 1f : (float) projectRowType.getFieldCount() / 100f;
     return super.computeSelfCost(planner, mq).multiplyBy(.1 * f);
   }

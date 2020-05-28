@@ -213,7 +213,7 @@ public class ProjectFilterTransposeRule
     }
 
     @Override protected List<RexNode> visitList(List<? extends RexNode> exprs,
-        boolean[] update) {
+        boolean [] update) {
       ImmutableList.Builder<RexNode> clonedOperands = ImmutableList.builder();
       for (RexNode operand : exprs) {
         RexNode clonedOperand = visit(operand);

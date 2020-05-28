@@ -76,11 +76,11 @@ public class SqlAdvisorGetHintsFunction
   }
 
   @Override public RelDataType getRowType(RelDataTypeFactory typeFactory,
-      List<Object> arguments) {
+      List<? extends Object> arguments) {
     return typeFactory.createJavaType(SqlAdvisorHint.class);
   }
 
-  @Override public Type getElementType(List<Object> arguments) {
+  @Override public Type getElementType(List<? extends Object> arguments) {
     return SqlAdvisorHint.class;
   }
 
@@ -101,7 +101,7 @@ public class SqlAdvisorGetHintsFunction
    */
   public static Enumerable<SqlAdvisorHint> getCompletionHints(
       final SqlAdvisor advisor, final String sql, final int pos) {
-    final String[] replaced = {null};
+    final String[] replaced = new String[1];
     final List<SqlMoniker> hints = advisor.getCompletionHints(sql,
         pos, replaced);
     final List<SqlAdvisorHint> res = new ArrayList<>(hints.size() + 1);

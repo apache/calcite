@@ -93,6 +93,7 @@ public class SqlSnapshot extends SqlCall {
       return SqlSyntax.SPECIAL;
     }
 
+    @SuppressWarnings("argument.type.incompatible")
     @Override public SqlCall createCall(
         SqlLiteral functionQualifier,
         SqlParserPos pos,

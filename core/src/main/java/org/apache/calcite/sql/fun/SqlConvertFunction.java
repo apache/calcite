@@ -60,7 +60,6 @@ public class SqlConvertFunction extends SqlFunction {
     default:
       break;
     }
-    assert false;
-    return null;
+    throw new IllegalStateException("operandsCount should be 2, got " + operandsCount);
   }
 }

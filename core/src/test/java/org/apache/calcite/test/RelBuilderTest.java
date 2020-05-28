@@ -2889,7 +2889,7 @@ public class RelBuilderTest {
       fail("expected error, got " + root);
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
-          is("All values of field 'b' are null; cannot deduce type"));
+          is("All values of field 'b' (field index 1) are null; cannot deduce type"));
     }
   }
 
