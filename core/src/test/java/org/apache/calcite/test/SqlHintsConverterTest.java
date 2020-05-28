@@ -66,6 +66,7 @@ import org.apache.calcite.tools.RuleSets;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -580,7 +581,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
     @Override public void visit(
         RelNode node,
         int ordinal,
-        RelNode parent) {
+        @Nullable RelNode parent) {
       if (clazz.isInstance(node)) {
         Hintable rel = (Hintable) node;
         assertThat(rel.getHints().size(), is(1));

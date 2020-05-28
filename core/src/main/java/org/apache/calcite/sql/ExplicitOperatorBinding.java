@@ -23,6 +23,8 @@ import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -33,7 +35,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   //~ Instance fields --------------------------------------------------------
 
   private final List<RelDataType> types;
-  private final SqlOperatorBinding delegate;
+  private final @Nullable SqlOperatorBinding delegate;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -55,7 +57,7 @@ public class ExplicitOperatorBinding extends SqlOperatorBinding {
   }
 
   private ExplicitOperatorBinding(
-      SqlOperatorBinding delegate,
+      @Nullable SqlOperatorBinding delegate,
       RelDataTypeFactory typeFactory,
       SqlOperator operator,
       List<RelDataType> types) {

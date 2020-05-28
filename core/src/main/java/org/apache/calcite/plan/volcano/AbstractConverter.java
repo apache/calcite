@@ -30,6 +30,8 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -51,7 +53,7 @@ public class AbstractConverter extends ConverterImpl {
   public AbstractConverter(
       RelOptCluster cluster,
       RelSubset rel,
-      RelTraitDef traitDef,
+      @Nullable RelTraitDef traitDef,
       RelTraitSet traits) {
     super(cluster, traitDef, traits, rel);
     assert traits.allSimple();

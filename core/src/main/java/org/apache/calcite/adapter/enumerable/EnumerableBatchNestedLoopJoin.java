@@ -42,6 +42,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -90,13 +92,13 @@ public class EnumerableBatchNestedLoopJoin extends Join implements EnumerableRel
         joinType);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     return EnumerableTraitsUtils.passThroughTraitsForJoin(
         required, joinType, getLeft().getRowType().getFieldCount(), traitSet);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     return EnumerableTraitsUtils.deriveTraitsForJoin(
         childTraits, childId, joinType, traitSet, right.getTraitSet());

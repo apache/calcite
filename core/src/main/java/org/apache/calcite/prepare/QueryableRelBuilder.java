@@ -50,9 +50,16 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link QueryableFactory}
@@ -78,7 +85,7 @@ import java.util.List;
  */
 class QueryableRelBuilder<T> implements QueryableFactory<T> {
   private final LixToRelTranslator translator;
-  private RelNode rel;
+  private @Nullable RelNode rel;
 
   QueryableRelBuilder(LixToRelTranslator translator) {
     this.translator = translator;
@@ -88,7 +95,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     if (queryable instanceof QueryableDefaults.Replayable) {
       //noinspection unchecked
       ((QueryableDefaults.Replayable) queryable).replay(this);
-      return rel;
+      return requireNonNull(rel, "rel");
     }
     if (queryable instanceof AbstractTableQueryable) {
       final AbstractTableQueryable tableQueryable =
@@ -107,7 +114,10 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
         return LogicalTableScan.create(translator.cluster, relOptTable, ImmutableList.of());
       }
     }
-    return translator.translate(queryable.getExpression());
+    return translator.translate(
+        requireNonNull(
+            queryable.getExpression(),
+            () -> "null expression from " + queryable));
   }
 
   /** Sets the output of this event. */
@@ -127,7 +137,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
 
   @Override public T aggregate(
       Queryable<T> source,
-      FunctionExpression<Function2<T, T, T>> selector) {
+      FunctionExpression<Function2<@Nullable T, T, T>> selector) {
     throw new UnsupportedOperationException();
   }
 
@@ -239,11 +249,11 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Queryable<T> defaultIfEmpty(Queryable<T> source) {
+  @Override public Queryable<@Nullable T> defaultIfEmpty(Queryable<T> source) {
     throw new UnsupportedOperationException();
   }
 
-  @Override public Queryable<T> defaultIfEmpty(Queryable<T> source, T value) {
+  @Override public Queryable<@PolyNull T> defaultIfEmpty(Queryable<T> source, @PolyNull T value) {
     throw new UnsupportedOperationException();
   }
 
@@ -539,7 +549,7 @@ class QueryableRelBuilder<T> implements QueryableFactory<T> {
     List<RexNode> nodes = translator.toRexList(selector, child);
     setRel(
         LogicalProject.create(child, ImmutableList.of(), nodes, (List<String>)  null));
-    return null;
+    return castNonNull(null);
   }
 
   @Override public <TResult> Queryable<TResult> selectN(

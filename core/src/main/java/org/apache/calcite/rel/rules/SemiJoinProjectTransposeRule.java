@@ -40,6 +40,8 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Planner rule that pushes
  * a {@link Join#isSemiJoin semi-join} down in a tree past
@@ -171,7 +173,8 @@ public class SemiJoinProjectTransposeRule
             rexBuilder);
 
     return mergedProgram.expandLocalRef(
-        mergedProgram.getCondition());
+        requireNonNull(mergedProgram.getCondition(),
+            () -> "mergedProgram.getCondition() for " + mergedProgram));
   }
 
   /** Rule configuration. */

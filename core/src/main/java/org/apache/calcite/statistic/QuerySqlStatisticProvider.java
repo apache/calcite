@@ -39,11 +39,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of {@link SqlStatisticProvider} that generates and executes
@@ -76,12 +77,12 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
    * @param sqlConsumer Called when each SQL statement is generated
    */
   public QuerySqlStatisticProvider(Consumer<String> sqlConsumer) {
-    this.sqlConsumer = Objects.requireNonNull(sqlConsumer);
+    this.sqlConsumer = requireNonNull(sqlConsumer);
   }
 
   @Override public double tableCardinality(RelOptTable table) {
-    final SqlDialect dialect = table.unwrap(SqlDialect.class);
-    final DataSource dataSource = table.unwrap(DataSource.class);
+    final SqlDialect dialect = table.unwrapOrThrow(SqlDialect.class);
+    final DataSource dataSource = table.unwrapOrThrow(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // Generate:
@@ -109,8 +110,8 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
 
   @Override public boolean isForeignKey(RelOptTable fromTable, List<Integer> fromColumns,
       RelOptTable toTable, List<Integer> toColumns) {
-    final SqlDialect dialect = fromTable.unwrap(SqlDialect.class);
-    final DataSource dataSource = fromTable.unwrap(DataSource.class);
+    final SqlDialect dialect = fromTable.unwrapOrThrow(SqlDialect.class);
+    final DataSource dataSource = fromTable.unwrapOrThrow(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // EMP(DEPTNO) is a foreign key to DEPT(DEPTNO) if the following
@@ -153,8 +154,8 @@ public class QuerySqlStatisticProvider implements SqlStatisticProvider {
   }
 
   @Override public boolean isKey(RelOptTable table, List<Integer> columns) {
-    final SqlDialect dialect = table.unwrap(SqlDialect.class);
-    final DataSource dataSource = table.unwrap(DataSource.class);
+    final SqlDialect dialect = table.unwrapOrThrow(SqlDialect.class);
+    final DataSource dataSource = table.unwrapOrThrow(DataSource.class);
     return withBuilder(
         (cluster, relOptSchema, relBuilder) -> {
           // The collection of columns ['DEPTNO'] is a key for 'EMP' if the

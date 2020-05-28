@@ -62,19 +62,24 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Reader;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /** Implementation of {@link org.apache.calcite.tools.Planner}. */
 public class PlannerImpl implements Planner, ViewExpander {
   private final SqlOperatorTable operatorTable;
   private final ImmutableList<Program> programs;
-  private final RelOptCostFactory costFactory;
+  private final @Nullable RelOptCostFactory costFactory;
   private final Context context;
   private final CalciteConnectionConfig connectionConfig;
 
   /** Holds the trait definitions to be registered with planner. May be null. */
-  private final ImmutableList<RelTraitDef> traitDefs;
+  private final @Nullable ImmutableList<RelTraitDef> traitDefs;
 
   private final SqlParser.Config parserConfig;
   private final SqlValidator.Config sqlValidatorConfig;
@@ -88,20 +93,18 @@ public class PlannerImpl implements Planner, ViewExpander {
   private boolean open;
 
   // set in STATE_2_READY
-  private SchemaPlus defaultSchema;
-  private JavaTypeFactory typeFactory;
-  private RelOptPlanner planner;
-  private RexExecutor executor;
+  private @Nullable SchemaPlus defaultSchema;
+  private @Nullable JavaTypeFactory typeFactory;
+  private @Nullable RelOptPlanner planner;
+  private @Nullable RexExecutor executor;
 
   // set in STATE_4_VALIDATE
-  private SqlValidator validator;
-  private SqlNode validatedSqlNode;
-
-  // set in STATE_5_CONVERT
-  private RelRoot root;
+  private @Nullable SqlValidator validator;
+  private @Nullable SqlNode validatedSqlNode;
 
   /** Creates a planner. Not a public API; call
    * {@link org.apache.calcite.tools.Frameworks#getPlanner} instead. */
+  @SuppressWarnings("method.invocation.invalid")
   public PlannerImpl(FrameworkConfig config) {
     this.costFactory = config.getCostFactory();
     this.defaultSchema = config.getDefaultSchema();
@@ -115,12 +118,13 @@ public class PlannerImpl implements Planner, ViewExpander {
     this.convertletTable = config.getConvertletTable();
     this.executor = config.getExecutor();
     this.context = config.getContext();
-    this.connectionConfig = connConfig();
+    this.connectionConfig = connConfig(context, parserConfig);
     reset();
   }
 
   /** Gets a user-defined config and appends default connection values. */
-  private CalciteConnectionConfig connConfig() {
+  private static CalciteConnectionConfig connConfig(Context context,
+      SqlParser.Config parserConfig) {
     CalciteConnectionConfigImpl config = Util.first(
         context.unwrap(CalciteConnectionConfigImpl.class),
         CalciteConnectionConfig.DEFAULT);
@@ -148,7 +152,7 @@ public class PlannerImpl implements Planner, ViewExpander {
   }
 
   @Override public RelTraitSet getEmptyTraitSet() {
-    return planner.emptyTraitSet();
+    return requireNonNull(planner, "planner").emptyTraitSet();
   }
 
   @Override public void close() {
@@ -177,7 +181,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         connectionConfig.typeSystem(RelDataTypeSystem.class,
             RelDataTypeSystem.DEFAULT);
     typeFactory = new JavaTypeFactoryImpl(typeSystem);
-    planner = new VolcanoPlanner(costFactory, context);
+    RelOptPlanner planner = this.planner = new VolcanoPlanner(costFactory, context);
     RelOptUtil.registerDefaultRules(planner,
         connectionConfig.materializationsEnabled(),
         Hook.ENABLE_BINDABLE.get(false));
@@ -215,6 +219,7 @@ public class PlannerImpl implements Planner, ViewExpander {
     return sqlNode;
   }
 
+  @EnsuresNonNull("validator")
   @Override public SqlNode validate(SqlNode sqlNode) throws ValidationException {
     ensure(State.STATE_3_PARSED);
     this.validator = createSqlValidator(createCatalogReader());
@@ -242,15 +247,18 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   @Override public RelRoot rel(SqlNode sql) {
     ensure(State.STATE_4_VALIDATED);
-    assert validatedSqlNode != null;
+    SqlNode validatedSqlNode = requireNonNull(this.validatedSqlNode,
+        "validatedSqlNode is null. Need to call #validate() first");
     final RexBuilder rexBuilder = createRexBuilder();
-    final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
+    final RelOptCluster cluster = RelOptCluster.create(
+        requireNonNull(planner, "planner"),
+        rexBuilder);
     final SqlToRelConverter.Config config =
         sqlToRelConverterConfig.withTrimUnusedFields(false);
     final SqlToRelConverter sqlToRelConverter =
         new SqlToRelConverter(this, validator,
             createCatalogReader(), cluster, convertletTable, config);
-    root =
+    RelRoot root =
         sqlToRelConverter.convertQuery(validatedSqlNode, false, true);
     root = root.withRel(sqlToRelConverter.flattenTypes(root.rel, true));
     final RelBuilder relBuilder =
@@ -270,16 +278,18 @@ public class PlannerImpl implements Planner, ViewExpander {
     }
 
     @Override public RelRoot expandView(RelDataType rowType, String queryString,
-        List<String> schemaPath, List<String> viewPath) {
+        List<String> schemaPath, @Nullable List<String> viewPath) {
       return PlannerImpl.this.expandView(rowType, queryString, schemaPath,
           viewPath);
     }
   }
 
   @Override public RelRoot expandView(RelDataType rowType, String queryString,
-      List<String> schemaPath, List<String> viewPath) {
+      List<String> schemaPath, @Nullable List<String> viewPath) {
+    RelOptPlanner planner = this.planner;
     if (planner == null) {
       ready();
+      planner = requireNonNull(this.planner, "planner");
     }
     SqlParser parser = SqlParser.create(queryString, parserConfig);
     SqlNode sqlNode;
@@ -313,12 +323,13 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   // CalciteCatalogReader is stateless; no need to store one
   private CalciteCatalogReader createCatalogReader() {
+    SchemaPlus defaultSchema = requireNonNull(this.defaultSchema, "defaultSchema");
     final SchemaPlus rootSchema = rootSchema(defaultSchema);
 
     return new CalciteCatalogReader(
         CalciteSchema.from(rootSchema),
         CalciteSchema.from(defaultSchema).path(null),
-        typeFactory, connectionConfig);
+        getTypeFactory(), connectionConfig);
   }
 
   private SqlValidator createSqlValidator(CalciteCatalogReader catalogReader) {
@@ -326,7 +337,7 @@ public class PlannerImpl implements Planner, ViewExpander {
         SqlOperatorTables.chain(operatorTable, catalogReader);
     return new CalciteSqlValidator(opTab,
         catalogReader,
-        typeFactory,
+        getTypeFactory(),
         sqlValidatorConfig
             .withDefaultNullCollation(connectionConfig.defaultNullCollation())
             .withLenientOperatorLookup(connectionConfig.lenientOperatorLookup())
@@ -336,20 +347,21 @@ public class PlannerImpl implements Planner, ViewExpander {
 
   private static SchemaPlus rootSchema(SchemaPlus schema) {
     for (;;) {
-      if (schema.getParentSchema() == null) {
+      SchemaPlus parentSchema = schema.getParentSchema();
+      if (parentSchema == null) {
         return schema;
       }
-      schema = schema.getParentSchema();
+      schema = parentSchema;
     }
   }
 
   // RexBuilder is stateless; no need to store one
   private RexBuilder createRexBuilder() {
-    return new RexBuilder(typeFactory);
+    return new RexBuilder(getTypeFactory());
   }
 
   @Override public JavaTypeFactory getTypeFactory() {
-    return typeFactory;
+    return requireNonNull(typeFactory, "typeFactory");
   }
 
   @Override public RelNode transform(int ruleSetIndex, RelTraitSet requiredOutputTraits,
@@ -357,10 +369,11 @@ public class PlannerImpl implements Planner, ViewExpander {
     ensure(State.STATE_5_CONVERTED);
     rel.getCluster().setMetadataProvider(
         new CachingRelMetadataProvider(
-            rel.getCluster().getMetadataProvider(),
+            requireNonNull(rel.getCluster().getMetadataProvider(), "metadataProvider"),
             rel.getCluster().getPlanner()));
     Program program = programs.get(ruleSetIndex);
-    return program.run(planner, rel, requiredOutputTraits, ImmutableList.of(),
+    return program.run(requireNonNull(planner, "planner"),
+        rel, requiredOutputTraits, ImmutableList.of(),
         ImmutableList.of());
   }
 

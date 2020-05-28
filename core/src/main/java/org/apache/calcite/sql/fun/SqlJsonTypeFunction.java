@@ -29,6 +29,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlValidator;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * The <code>JSON_TYPE</code> function.
  */
@@ -45,7 +47,7 @@ public class SqlJsonTypeFunction extends SqlFunction {
   }
 
   @Override protected void checkOperandCount(SqlValidator validator,
-      SqlOperandTypeChecker argType, SqlCall call) {
+      @Nullable SqlOperandTypeChecker argType, SqlCall call) {
     assert call.operandCount() == 1;
   }
 }

@@ -18,6 +18,8 @@ package org.apache.calcite.schema.impl;
 
 import org.apache.calcite.schema.SchemaVersion;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Implementation of SchemaVersion that uses a long value as representation. */
 public class LongSchemaVersion implements SchemaVersion {
   private final long value;
@@ -36,7 +38,7 @@ public class LongSchemaVersion implements SchemaVersion {
     return this.value < ((LongSchemaVersion) other).value;
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

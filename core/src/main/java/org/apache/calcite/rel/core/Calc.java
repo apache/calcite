@@ -43,6 +43,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -66,6 +68,7 @@ public abstract class Calc extends SingleRel implements Hintable {
    * @param child Input relation
    * @param program Calc program
    */
+  @SuppressWarnings("method.invocation.invalid")
   protected Calc(
       RelOptCluster cluster,
       RelTraitSet traits,
@@ -136,7 +139,7 @@ public abstract class Calc extends SingleRel implements Hintable {
     return RexOver.containsOver(program);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     if (!RelOptUtil.equal(
         "program's input type",
         program.getInputRowType(),
@@ -204,7 +207,7 @@ public abstract class Calc extends SingleRel implements Hintable {
         RexUtil.createStructType(
             rexBuilder.getTypeFactory(),
             projects,
-            this.rowType.getFieldNames(),
+            getRowType().getFieldNames(),
             null);
     final RexProgram newProgram =
         RexProgramBuilder.create(

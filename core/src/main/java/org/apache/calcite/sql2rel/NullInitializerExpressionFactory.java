@@ -23,6 +23,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.sql.SqlFunction;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -61,7 +63,8 @@ public class NullInitializerExpressionFactory implements InitializerExpressionFa
     return context.getRexBuilder().makeNullLiteral(fieldType);
   }
 
-  @Override public BiFunction<InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
+  @Override public @Nullable BiFunction<
+      InitializerContext, RelNode, RelNode> postExpressionConversionHook() {
     return null;
   }
 

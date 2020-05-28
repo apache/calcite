@@ -25,6 +25,8 @@ import org.apache.calcite.sql.advise.SqlAdvisor;
 
 import com.google.common.base.CaseFormat;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Modifier;
@@ -42,17 +44,17 @@ public interface DataContext {
   /**
    * Returns a sub-schema with a given name, or null.
    */
-  SchemaPlus getRootSchema();
+  @Nullable SchemaPlus getRootSchema();
 
   /**
    * Returns the type factory.
    */
-  JavaTypeFactory getTypeFactory();
+  @Nullable JavaTypeFactory getTypeFactory();
 
   /**
    * Returns the query provider.
    */
-  QueryProvider getQueryProvider();
+  @Nullable QueryProvider getQueryProvider();
 
   /**
    * Returns a context variable.
@@ -62,7 +64,7 @@ public interface DataContext {
    *
    * @param name Name of variable
    */
-  Object get(String name);
+  @Nullable Object get(String name);
 
   /** Variable that may be asked for in a call to {@link DataContext#get}. */
   enum Variable {

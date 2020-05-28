@@ -32,6 +32,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ImmutableIntList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +61,7 @@ public abstract class SemiJoinRule
     super(config);
   }
 
-  protected void perform(RelOptRuleCall call, Project project,
+  protected void perform(RelOptRuleCall call, @Nullable Project project,
       Join join, RelNode left, Aggregate aggregate) {
     final RelOptCluster cluster = join.getCluster();
     final RexBuilder rexBuilder = cluster.getRexBuilder();

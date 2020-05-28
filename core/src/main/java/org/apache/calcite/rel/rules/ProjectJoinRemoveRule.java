@@ -101,8 +101,9 @@ public class ProjectJoinRemoveRule
     joinKeys.forEach(columns::set);
 
     final RelMetadataQuery mq = call.getMetadataQuery();
-    if (!mq.areColumnsUnique(isLeftJoin ? join.getRight() : join.getLeft(),
-        columns.build())) {
+    if (!Boolean.TRUE.equals(
+        mq.areColumnsUnique(isLeftJoin ? join.getRight() : join.getLeft(),
+        columns.build()))) {
       return;
     }
 

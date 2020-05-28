@@ -26,6 +26,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -37,11 +39,11 @@ public class SqlCheckConstraint extends SqlCall {
   private static final SqlSpecialOperator OPERATOR =
       new SqlSpecialOperator("CHECK", SqlKind.CHECK);
 
-  private final SqlIdentifier name;
+  private final @Nullable SqlIdentifier name;
   private final SqlNode expression;
 
   /** Creates a SqlCheckConstraint; use {@link SqlDdlNodes#check}. */
-  SqlCheckConstraint(SqlParserPos pos, SqlIdentifier name,
+  SqlCheckConstraint(SqlParserPos pos, @Nullable SqlIdentifier name,
       SqlNode expression) {
     super(pos);
     this.name = name; // may be null
@@ -52,6 +54,7 @@ public class SqlCheckConstraint extends SqlCall {
     return OPERATOR;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, expression);
   }

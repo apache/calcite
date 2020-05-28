@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -45,7 +47,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /** Utilities for creating immutable beans. */
 public class ImmutableBeans {
@@ -59,7 +62,7 @@ public class ImmutableBeans {
           .weakKeys()
           .softValues()
           .build(new CacheLoader<Class, Def>() {
-            @Override public Def load(@Nonnull Class key) {
+            @Override public Def load(Class key) {
               //noinspection unchecked
               return makeDef(key);
             }
@@ -68,19 +71,19 @@ public class ImmutableBeans {
   private ImmutableBeans() {}
 
   /** Creates an immutable bean that implements a given interface. */
-  public static <T> T create(Class<T> beanClass) {
+  public static <T extends Object> T create(Class<T> beanClass) {
     return create_(beanClass, ImmutableMap.of());
   }
 
   /** Creates a bean of a given class whose contents are the same as this bean.
    *
    * <p>You typically use this to downcast a bean to a sub-class. */
-  public static <T> T copy(Class<T> beanClass, @Nonnull Object o) {
+  public static <T extends Object> T copy(Class<T> beanClass, Object o) {
     final BeanImpl<?> bean = (BeanImpl) Proxy.getInvocationHandler(o);
     return create_(beanClass, bean.map);
   }
 
-  private static <T> T create_(Class<T> beanClass,
+  private static <T extends Object> T create_(Class<T> beanClass,
       ImmutableMap<String, Object> valueMap) {
     if (!beanClass.isInterface()) {
       throw new IllegalArgumentException("must be interface");
@@ -98,7 +101,7 @@ public class ImmutableBeans {
     }
   }
 
-  private static <T> Def<T> makeDef(Class<T> beanClass) {
+  private static <T extends Object> Def<T> makeDef(Class<T> beanClass) {
     final ImmutableSortedMap.Builder<String, Class> propertyNameBuilder =
         ImmutableSortedMap.naturalOrder();
     final ImmutableMap.Builder<Method, Handler<T>> handlers =
@@ -115,7 +118,8 @@ public class ImmutableBeans {
       if (property == null) {
         continue;
       }
-      final boolean hasNonnull = hasAnnotation(method, "javax.annotation.Nonnull");
+      final boolean hasNonnull =
+          hasAnnotation(method, "org.checkerframework.checker.nullness.qual.NonNull");
       final Mode mode;
       final Object defaultValue = getDefault(method);
       final String methodName = method.getName();
@@ -336,7 +340,7 @@ public class ImmutableBeans {
 
   /** Looks for an annotation by class name.
    * Useful if you don't want to depend on the class
-   * (e.g. "javax.annotation.Nonnull") at compile time. */
+   * (e.g. "org.checkerframework.checker.nullness.qual.NonNull") at compile time. */
   private static boolean hasAnnotation(Method method, String className) {
     for (Annotation annotation : method.getDeclaredAnnotations()) {
       if (annotation.annotationType().getName().equals(className)) {
@@ -346,7 +350,7 @@ public class ImmutableBeans {
     return false;
   }
 
-  private static Object getDefault(Method method) {
+  private static @Nullable Object getDefault(Method method) {
     Object defaultValue = null;
     final IntDefault intDefault = method.getAnnotation(IntDefault.class);
     if (intDefault != null) {
@@ -370,7 +374,7 @@ public class ImmutableBeans {
     return defaultValue;
   }
 
-  private static Object convertDefault(Object defaultValue, String propertyName,
+  private static @Nullable Object convertDefault(@Nullable Object defaultValue, String propertyName,
       Class<?> propertyType) {
     if (propertyType.equals(SqlConformance.class)) {
       // Workaround for SqlConformance because it is actually not a Enum.
@@ -379,7 +383,8 @@ public class ImmutableBeans {
     if (defaultValue == null || !propertyType.isEnum()) {
       return defaultValue;
     }
-    for (Object enumConstant : propertyType.getEnumConstants()) {
+    // checkerframework does not infer "isEnum" here, so castNonNull
+    for (Object enumConstant : castNonNull(propertyType.getEnumConstants())) {
       if (((Enum) enumConstant).name().equals(defaultValue)) {
         return enumConstant;
       }
@@ -406,8 +411,8 @@ public class ImmutableBeans {
   /** Handler for a particular method call; called with "this" and arguments.
    *
    * @param <T> Bean type */
-  private interface Handler<T> {
-    Object apply(BeanImpl<T> bean, Object[] args);
+  private interface Handler<T extends Object> {
+    @Nullable Object apply(BeanImpl<T> bean, @Nullable Object[] args);
   }
 
   /** Property of a bean. Apply this annotation to the "get" method. */
@@ -467,7 +472,7 @@ public class ImmutableBeans {
    * so that it can retrieve calls from a reflective proxy.
    *
    * @param <T> Bean type */
-  private static class BeanImpl<T> implements InvocationHandler {
+  private static class BeanImpl<T extends Object> implements InvocationHandler {
     private final Def<T> def;
     private final ImmutableMap<String, Object> map;
 
@@ -476,7 +481,7 @@ public class ImmutableBeans {
       this.map = Objects.requireNonNull(map);
     }
 
-    @Override public Object invoke(Object proxy, Method method, Object[] args) {
+    @Override public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) {
       final Handler handler = def.handlers.get(method);
       if (handler == null) {
         throw new IllegalArgumentException("no handler for method " + method);
@@ -501,7 +506,7 @@ public class ImmutableBeans {
   /** Definition of a bean. Consists of its class and handlers.
    *
    * @param <T> Class of bean */
-  private static class Def<T> {
+  private static class Def<T extends Object> {
     private final Class<T> beanClass;
     private final ImmutableMap<Method, Handler<T>> handlers;
 

@@ -20,6 +20,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /** Definition of a particular combination of dimensions and measures of a
@@ -45,7 +47,7 @@ public class TileKey {
     return Objects.hash(lattice, dimensions);
   }
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return obj == this
         || obj instanceof TileKey
         && lattice == ((TileKey) obj).lattice

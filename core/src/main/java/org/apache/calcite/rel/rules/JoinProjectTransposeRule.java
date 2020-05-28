@@ -42,9 +42,13 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that matches a
@@ -243,7 +247,8 @@ public class JoinProjectTransposeRule
     // ProjectRels
     final RexNode newCondition =
         mergedProgram.expandLocalRef(
-            mergedProgram.getCondition());
+            requireNonNull(mergedProgram.getCondition(),
+                () -> "mergedProgram.getCondition() for " + mergedProgram));
     final Join newJoin =
         join.copy(join.getTraitSet(), newCondition,
             leftJoinChild, rightJoinChild, join.getJoinType(),
@@ -331,7 +336,7 @@ public class JoinProjectTransposeRule
    * @param projects           Projection expressions &amp; names to be created
    */
   protected void createProjectExprs(
-      Project project,
+      @Nullable Project project,
       RelNode joinChild,
       int adjustmentAmount,
       RexBuilder rexBuilder,

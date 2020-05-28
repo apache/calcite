@@ -18,6 +18,8 @@ package org.apache.calcite.rel.metadata;
 
 import org.apache.calcite.plan.RelOptTable;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * RelColumnOrigin is a data structure describing one of the origins of an
  * output column produced by a relational expression.
@@ -70,7 +72,7 @@ public class RelColumnOrigin {
   }
 
   // override Object
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     if (!(obj instanceof RelColumnOrigin)) {
       return false;
     }

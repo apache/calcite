@@ -23,7 +23,11 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.util.List;
+
 
 /**
  * A <code>SqlUpdate</code> is a node of a parse tree which represents an UPDATE
@@ -36,9 +40,9 @@ public class SqlUpdate extends SqlCall {
   SqlNode targetTable;
   SqlNodeList targetColumnList;
   SqlNodeList sourceExpressionList;
-  SqlNode condition;
-  SqlSelect sourceSelect;
-  SqlIdentifier alias;
+  @Nullable SqlNode condition;
+  @Nullable SqlSelect sourceSelect;
+  @Nullable SqlIdentifier alias;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -46,9 +50,9 @@ public class SqlUpdate extends SqlCall {
       SqlNode targetTable,
       SqlNodeList targetColumnList,
       SqlNodeList sourceExpressionList,
-      SqlNode condition,
-      SqlSelect sourceSelect,
-      SqlIdentifier alias) {
+      @Nullable SqlNode condition,
+      @Nullable SqlSelect sourceSelect,
+      @Nullable SqlIdentifier alias) {
     super(pos);
     this.targetTable = targetTable;
     this.targetColumnList = targetColumnList;
@@ -69,12 +73,14 @@ public class SqlUpdate extends SqlCall {
     return OPERATOR;
   }
 
-  @Override public List<SqlNode> getOperandList() {
+  @SuppressWarnings("nullness")
+  @Override public List<@Nullable SqlNode> getOperandList() {
     return ImmutableNullableList.of(targetTable, targetColumnList,
         sourceExpressionList, condition, alias);
   }
 
-  @Override public void setOperand(int i, SqlNode operand) {
+  @SuppressWarnings("assignment.type.incompatible")
+  @Override public void setOperand(int i, @Nullable SqlNode operand) {
     switch (i) {
     case 0:
       assert operand instanceof SqlIdentifier;
@@ -106,7 +112,8 @@ public class SqlUpdate extends SqlCall {
   }
 
   /** Returns the alias for the target table of this UPDATE. */
-  public SqlIdentifier getAlias() {
+  @Pure
+  public @Nullable SqlIdentifier getAlias() {
     return alias;
   }
 
@@ -130,7 +137,7 @@ public class SqlUpdate extends SqlCall {
    * @return the condition expression for the data to be updated, or null for
    * all rows in the table
    */
-  public SqlNode getCondition() {
+  public @Nullable SqlNode getCondition() {
     return condition;
   }
 
@@ -141,7 +148,7 @@ public class SqlUpdate extends SqlCall {
    *
    * @return the source SELECT for the data to be updated
    */
-  public SqlSelect getSourceSelect() {
+  public @Nullable SqlSelect getSourceSelect() {
     return sourceSelect;
   }
 
@@ -155,6 +162,7 @@ public class SqlUpdate extends SqlCall {
     final int opLeft = getOperator().getLeftPrec();
     final int opRight = getOperator().getRightPrec();
     targetTable.unparse(writer, opLeft, opRight);
+    SqlIdentifier alias = this.alias;
     if (alias != null) {
       writer.keyword("AS");
       alias.unparse(writer, opLeft, opRight);
@@ -171,6 +179,7 @@ public class SqlUpdate extends SqlCall {
       sourceExp.unparse(writer, opLeft, opRight);
     }
     writer.endList(setFrame);
+    SqlNode condition = this.condition;
     if (condition != null) {
       writer.sep("WHERE");
       condition.unparse(writer, opLeft, opRight);

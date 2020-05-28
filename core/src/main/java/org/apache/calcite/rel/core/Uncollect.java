@@ -69,6 +69,7 @@ public class Uncollect extends SingleRel {
   /** Creates an Uncollect.
    *
    * <p>Use {@link #create} unless you know what you're doing. */
+  @SuppressWarnings("method.invocation.invalid")
   public Uncollect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input,
       boolean withOrdinality, List<String> itemAliases) {
     super(cluster, traitSet, input);
@@ -162,8 +163,9 @@ public class Uncollect extends SingleRel {
     for (int i = 0; i < fields.size(); i++) {
       RelDataTypeField field = fields.get(i);
       if (field.getType() instanceof MapSqlType) {
-        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, field.getType().getKeyType());
-        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, field.getType().getValueType());
+        MapSqlType mapType = (MapSqlType) field.getType();
+        builder.add(SqlUnnestOperator.MAP_KEY_COLUMN_NAME, mapType.getKeyType());
+        builder.add(SqlUnnestOperator.MAP_VALUE_COLUMN_NAME, mapType.getValueType());
       } else {
         RelDataType ret = field.getType().getComponentType();
         assert null != ret;

@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -23,6 +25,8 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Utility functions for working with numbers.
@@ -86,7 +90,7 @@ public class NumberUtil {
     return BIG_INT_MIN_UNSCALED[precision];
   }
 
-  public static BigDecimal rescaleBigDecimal(BigDecimal bd, int scale) {
+  public static @PolyNull BigDecimal rescaleBigDecimal(@PolyNull BigDecimal bd, int scale) {
     if (bd != null) {
       bd = bd.setScale(scale, RoundingMode.HALF_UP);
     }
@@ -98,9 +102,9 @@ public class NumberUtil {
     return rescaleBigDecimal(bd, scale);
   }
 
-  public static BigDecimal toBigDecimal(Number number) {
+  public static @PolyNull BigDecimal toBigDecimal(@PolyNull Number number) {
     if (number == null) {
-      return null;
+      return castNonNull(null);
     }
     if (number instanceof BigDecimal) {
       return (BigDecimal) number;
@@ -135,15 +139,15 @@ public class NumberUtil {
     }
   }
 
-  public static Double add(Double a, Double b) {
+  public static @PolyNull Double add(@PolyNull Double a, @PolyNull Double b) {
     if ((a == null) || (b == null)) {
-      return null;
+      return castNonNull(null);
     }
 
     return a + b;
   }
 
-  public static Double subtract(Double a, Double b) {
+  public static @PolyNull Double subtract(@PolyNull Double a, @PolyNull Double b) {
     if ((a == null) || (b == null)) {
       return null;
     }
@@ -151,24 +155,24 @@ public class NumberUtil {
     return a - b;
   }
 
-  public static Double divide(Double a, Double b) {
+  public static @PolyNull Double divide(@PolyNull Double a, @PolyNull Double b) {
     if ((a == null) || (b == null) || (b == 0D)) {
-      return null;
+      return castNonNull(null);
     }
 
     return a / b;
   }
 
-  public static Double multiply(Double a, Double b) {
+  public static @PolyNull Double multiply(@PolyNull Double a, @PolyNull Double b) {
     if ((a == null) || (b == null)) {
-      return null;
+      return castNonNull(null);
     }
 
     return a * b;
   }
 
   /** Like {@link Math#min} but null safe. */
-  public static Double min(Double a, Double b) {
+  public static @PolyNull Double min(@PolyNull Double a, @PolyNull Double b) {
     if (a == null) {
       return b;
     } else if (b == null) {
@@ -176,5 +180,19 @@ public class NumberUtil {
     } else {
       return Math.min(a, b);
     }
+  }
+
+  /**
+   * Maximum of the input values or null if any of the inputs is null.
+   *
+   * @param a first value
+   * @param b second value
+   * @return maximum of the input values or null if any of the inputs is null
+   */
+  public static @PolyNull Double max(@PolyNull Double a, @PolyNull Double b) {
+    if ((a == null) || (b == null)) {
+      return castNonNull(null);
+    }
+    return Math.max(a, b);
   }
 }

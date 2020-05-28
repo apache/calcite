@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
@@ -27,6 +30,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Enumeration of Java's primitive types.
@@ -54,35 +59,35 @@ public enum Primitive {
   VOID(Void.TYPE, Void.class, 3, null, null, null, null, null, -1),
   OTHER(null, null, 4, null, null, null, null, null, -1);
 
-  public final Class primitiveClass;
-  public final Class boxClass;
-  public final String primitiveName; // e.g. "int"
-  public final String boxName;
+  public final @Nullable Class primitiveClass;
+  public final @Nullable Class boxClass;
+  public final @Nullable String primitiveName; // e.g. "int"
+  public final @Nullable String boxName;
   private final int family;
 
   /** The default value of this primitive class. This is the value
    * taken by uninitialized fields, for instance; 0 for {@code int}, false for
    * {@code boolean}, etc. */
   @SuppressWarnings("ImmutableEnumChecker")
-  public final Object defaultValue;
+  public final @Nullable Object defaultValue;
 
   /** The minimum value of this primitive class. */
   @SuppressWarnings("ImmutableEnumChecker")
-  public final Object min;
+  public final @Nullable Object min;
 
   /** The largest value that is less than zero. Null if not applicable for this
    * type. */
   @SuppressWarnings("ImmutableEnumChecker")
-  public final Object maxNegative;
+  public final @Nullable Object maxNegative;
 
   /** The smallest value that is greater than zero. Null if not applicable for
    * this type. */
   @SuppressWarnings("ImmutableEnumChecker")
-  public final Object minPositive;
+  public final @Nullable Object minPositive;
 
   /** The maximum value of this primitive class. */
   @SuppressWarnings("ImmutableEnumChecker")
-  public final Object max;
+  public final @Nullable Object max;
 
   /** The size of a value of this type, in bits. Null if not applicable for this
    * type. */
@@ -103,9 +108,9 @@ public enum Primitive {
     }
   }
 
-  Primitive(Class primitiveClass, Class boxClass, int family,
-      Object defaultValue, Object min, Object maxNegative, Object minPositive,
-      Object max, int size) {
+  Primitive(@Nullable Class primitiveClass, @Nullable Class boxClass, int family,
+      @Nullable Object defaultValue, @Nullable Object min, @Nullable Object maxNegative,
+      @Nullable Object minPositive, @Nullable Object max, int size) {
     this.primitiveClass = primitiveClass;
     this.family = family;
     this.primitiveName =
@@ -128,7 +133,7 @@ public enum Primitive {
    * <code>of(Long.class)</code> and <code>of(String.class)</code> return
    * {@code null}.
    */
-  public static Primitive of(Type type) {
+  public static @Nullable Primitive of(Type type) {
     //noinspection SuspiciousMethodCalls
     return PRIMITIVE_MAP.get(type);
   }
@@ -139,7 +144,7 @@ public enum Primitive {
    * <p>For example, <code>ofBox(java.util.Long.class)</code>
    * returns {@link #LONG}.
    */
-  public static Primitive ofBox(Type type) {
+  public static @Nullable Primitive ofBox(Type type) {
     //noinspection SuspiciousMethodCalls
     return BOX_MAP.get(type);
   }
@@ -150,7 +155,7 @@ public enum Primitive {
    * <p>For example, <code>ofBoxOr(Long.class)</code> and
    * <code>ofBoxOr(long.class)</code> both return {@link #LONG}.
    */
-  public static Primitive ofBoxOr(Type type) {
+  public static @Nullable Primitive ofBoxOr(Type type) {
     Primitive primitive = of(type);
     if (primitive == null) {
       primitive = ofBox(type);
@@ -221,7 +226,7 @@ public enum Primitive {
    */
   public static Type box(Type type) {
     Primitive primitive = of(type);
-    return primitive == null ? type : primitive.boxClass;
+    return primitive == null ? type : requireNonNull(primitive.boxClass);
   }
 
   /**
@@ -230,7 +235,7 @@ public enum Primitive {
    */
   public static Class box(Class type) {
     Primitive primitive = of(type);
-    return primitive == null ? type : primitive.boxClass;
+    return primitive == null ? type : requireNonNull(primitive.boxClass);
   }
 
   /**
@@ -239,7 +244,7 @@ public enum Primitive {
    */
   public static Type unbox(Type type) {
     Primitive primitive = ofBox(type);
-    return primitive == null ? type : primitive.primitiveClass;
+    return primitive == null ? type : requireNonNull(primitive.primitiveClass);
   }
 
   /**
@@ -248,7 +253,28 @@ public enum Primitive {
    */
   public static Class unbox(Class type) {
     Primitive primitive = ofBox(type);
-    return primitive == null ? type : primitive.primitiveClass;
+    return primitive == null ? type : requireNonNull(primitive.primitiveClass);
+  }
+
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public Class<?> getPrimitiveClass() {
+    return requireNonNull(primitiveClass, () -> "no primitiveClass for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public Class<?> getBoxClass() {
+    return requireNonNull(boxClass, () -> "no boxClass for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public String getPrimitiveName() {
+    return requireNonNull(primitiveName, () -> "no primitiveName for " + this);
+  }
+
+  @API(since = "1.27", status = API.Status.EXPERIMENTAL)
+  public String getBoxName() {
+    return requireNonNull(boxName, () -> "no boxName for " + this);
   }
 
   /**
@@ -701,7 +727,7 @@ public enum Primitive {
   /**
    * Gets an item from an array.
    */
-  public Object arrayItem(Object dataSet, int ordinal) {
+  public @Nullable Object arrayItem(Object dataSet, int ordinal) {
     // Plain old Array.get doesn't cut it when you have an array of
     // Integer values but you want to read Short values. Array.getShort
     // does the right thing.
@@ -732,6 +758,7 @@ public enum Primitive {
   /**
    * Reads value from a source into an array.
    */
+  @SuppressWarnings("argument.type.incompatible")
   public void arrayItem(Source source, Object dataSet, int ordinal) {
     switch (this) {
     case DOUBLE:
@@ -809,7 +836,7 @@ public enum Primitive {
    * @param resultSet Result set
    * @param i Ordinal of column (1-based, per JDBC)
    */
-  public Object jdbcGet(ResultSet resultSet, int i) throws SQLException {
+  public @Nullable Object jdbcGet(ResultSet resultSet, int i) throws SQLException {
     switch (this) {
     case BOOLEAN:
       return resultSet.getBoolean(i);
@@ -981,7 +1008,7 @@ public enum Primitive {
 
     void set(double v);
 
-    void set(Object v);
+    void set(@Nullable Object v);
   }
 
   /**
@@ -1004,7 +1031,7 @@ public enum Primitive {
 
     double getDouble();
 
-    Object getObject();
+    @Nullable Object getObject();
   }
 
   /** Whether a type is primitive (e.g. {@code int}),

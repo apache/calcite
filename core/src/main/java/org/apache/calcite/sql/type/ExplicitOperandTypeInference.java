@@ -50,6 +50,7 @@ public class ExplicitOperandTypeInference implements SqlOperandTypeInference {
       // Don't make a fuss, just give up.
       return;
     }
-    paramTypes.toArray(operandTypes);
+    @SuppressWarnings("all")
+    RelDataType[] unused = paramTypes.toArray(operandTypes);
   }
 }

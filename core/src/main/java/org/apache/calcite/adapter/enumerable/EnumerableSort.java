@@ -28,7 +28,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.BuiltInMethod;
 import org.apache.calcite.util.Pair;
 
-import com.google.common.base.Preconditions;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Implementation of {@link org.apache.calcite.rel.core.Sort} in
  * {@link org.apache.calcite.adapter.enumerable.EnumerableConvention enumerable calling convention}. */
@@ -39,17 +39,17 @@ public class EnumerableSort extends Sort implements EnumerableRel {
    * <p>Use {@link #create} unless you know what you're doing.
    */
   public EnumerableSort(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RelCollation collation, RexNode offset, RexNode fetch) {
+      RelNode input, RelCollation collation, @Nullable RexNode offset, @Nullable RexNode fetch) {
     super(cluster, traitSet, input, collation, offset, fetch);
     assert getConvention() instanceof EnumerableConvention;
     assert getConvention() == input.getConvention();
-    Preconditions.checkArgument(fetch == null);
-    Preconditions.checkArgument(offset == null);
+    assert fetch == null : "fetch must be null";
+    assert offset == null : "offset must be null";
   }
 
   /** Creates an EnumerableSort. */
   public static EnumerableSort create(RelNode child, RelCollation collation,
-      RexNode offset, RexNode fetch) {
+      @Nullable RexNode offset, @Nullable RexNode fetch) {
     final RelOptCluster cluster = child.getCluster();
     final RelTraitSet traitSet =
         cluster.traitSetOf(EnumerableConvention.INSTANCE)
@@ -62,8 +62,8 @@ public class EnumerableSort extends Sort implements EnumerableRel {
       RelTraitSet traitSet,
       RelNode newInput,
       RelCollation newCollation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     return new EnumerableSort(getCluster(), traitSet, newInput, newCollation,
         offset, fetch);
   }

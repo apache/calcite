@@ -21,6 +21,9 @@ import org.apache.calcite.util.ImmutableNullableList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Space-efficient, comparable, immutable lists.
@@ -244,7 +249,7 @@ public class FlatLists {
   }
 
   /** Returns a list that consists of a given list plus an element. */
-  public static <E> List<E> append(List<E> list, E e) {
+  public static <E extends Object> List<E> append(List<E> list, E e) {
     if (list instanceof AbstractFlatList) {
       //noinspection unchecked
       return ((AbstractFlatList) list).append(e);
@@ -256,13 +261,14 @@ public class FlatLists {
 
   /** Returns a list that consists of a given list plus an element, guaranteed
    * to be an {@link ImmutableList}. */
-  public static <E> ImmutableList<E> append(ImmutableList<E> list, E e) {
+  public static <E extends Object> ImmutableList<E> append(ImmutableList<E> list, E e) {
     return ImmutableList.<E>builder().addAll(list).add(e).build();
   }
 
   /** Returns a map that consists of a given map plus an (key, value),
    * guaranteed to be an {@link ImmutableMap}. */
-  public static <K, V> ImmutableMap<K, V> append(Map<K, V> map, K k, V v) {
+  public static <K extends Object, V extends Object> ImmutableMap<K, V> append(
+      Map<K, V> map, K k, V v) {
     final ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
     builder.put(k, v);
     map.forEach((k2, v2) -> {
@@ -332,7 +338,7 @@ public class FlatLists {
       return Collections.singletonList(t0).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -351,7 +357,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -364,7 +370,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -377,9 +383,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 1) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 1) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 1, a.getClass());
       }
@@ -387,8 +393,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0};
+    @Override public @PolyNull Object[] toArray(Flat1List<@PolyNull T> this) {
+      return new Object[]{castNonNull(t0)};
     }
 
     @Override public int compareTo(List o) {
@@ -448,7 +454,7 @@ public class FlatLists {
       return Arrays.asList(t0, t1).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -471,7 +477,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -490,7 +496,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t1 == null) {
           return 1;
@@ -509,9 +515,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 2) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 2) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 2, a.getClass());
       }
@@ -520,8 +526,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0, t1};
+    @Override public @PolyNull Object[] toArray(Flat2List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1)};
     }
 
     @Override public int compareTo(List o) {
@@ -585,7 +591,7 @@ public class FlatLists {
       return Arrays.asList(t0, t1, t2).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -608,7 +614,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -633,7 +639,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t2 == null) {
           return 2;
@@ -658,9 +664,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 3) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 3) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 3, a.getClass());
       }
@@ -670,8 +676,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0, t1, t2};
+    @Override public @PolyNull Object[] toArray(Flat3List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2)};
     }
 
     @Override public int compareTo(List o) {
@@ -739,7 +745,7 @@ public class FlatLists {
       return Arrays.asList(t0, t1, t2, t3).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -764,7 +770,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -795,7 +801,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t3 == null) {
           return 3;
@@ -826,9 +832,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 4) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 4) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 4, a.getClass());
       }
@@ -839,8 +845,8 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0, t1, t2, t3};
+    @Override public @PolyNull Object[] toArray(Flat4List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2), castNonNull(t3)};
     }
 
     @Override public int compareTo(List o) {
@@ -912,7 +918,7 @@ public class FlatLists {
       return Arrays.asList(t0, t1, t2, t3, t4).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -939,7 +945,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -976,7 +982,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t4 == null) {
           return 4;
@@ -1013,9 +1019,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 5) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 5) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 5, a.getClass());
       }
@@ -1027,8 +1033,9 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0, t1, t2, t3, t4};
+    @Override public @PolyNull Object[] toArray(Flat5List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2), castNonNull(t3),
+          castNonNull(t4)};
     }
 
     @Override public int compareTo(List o) {
@@ -1105,7 +1112,7 @@ public class FlatLists {
       return Arrays.asList(t0, t1, t2, t3, t4, t5).iterator();
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }
@@ -1134,7 +1141,7 @@ public class FlatLists {
       return h;
     }
 
-    @Override public int indexOf(Object o) {
+    @Override public int indexOf(@Nullable Object o) {
       if (o == null) {
         if (t0 == null) {
           return 0;
@@ -1177,7 +1184,7 @@ public class FlatLists {
       return -1;
     }
 
-    @Override public int lastIndexOf(Object o) {
+    @Override public int lastIndexOf(@Nullable Object o) {
       if (o == null) {
         if (t5 == null) {
           return 5;
@@ -1220,9 +1227,9 @@ public class FlatLists {
       return -1;
     }
 
-    @Override @SuppressWarnings({"unchecked" })
-    public <T2> T2[] toArray(T2[] a) {
-      if (a.length < 6) {
+    @SuppressWarnings({"unchecked" })
+    @Override public <T2> @Nullable T2[] toArray(T2 @Nullable [] a) {
+      if (castNonNull(a).length < 6) {
         // Make a new array of a's runtime type, but my contents:
         return (T2[]) Arrays.copyOf(toArray(), 6, a.getClass());
       }
@@ -1235,8 +1242,9 @@ public class FlatLists {
       return a;
     }
 
-    @Override public Object[] toArray() {
-      return new Object[] {t0, t1, t2, t3, t4, t5};
+    @Override public @PolyNull Object[] toArray(Flat6List<@PolyNull T> this) {
+      return new Object[] {castNonNull(t0), castNonNull(t1), castNonNull(t2), castNonNull(t3),
+          castNonNull(t4), castNonNull(t5)};
     }
 
     @Override public int compareTo(List o) {
@@ -1265,7 +1273,7 @@ public class FlatLists {
       return 1; // same as Collections.emptyList()
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return o == this
           || o instanceof List && ((List) o).isEmpty();
     }

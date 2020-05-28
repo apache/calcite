@@ -33,6 +33,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -44,8 +46,8 @@ public abstract class Sort extends SingleRel {
   //~ Instance fields --------------------------------------------------------
 
   public final RelCollation collation;
-  public final RexNode offset;
-  public final RexNode fetch;
+  public final @Nullable RexNode offset;
+  public final @Nullable RexNode fetch;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -81,8 +83,8 @@ public abstract class Sort extends SingleRel {
       RelTraitSet traits,
       RelNode child,
       RelCollation collation,
-      RexNode offset,
-      RexNode fetch) {
+      @Nullable RexNode offset,
+      @Nullable RexNode fetch) {
     super(cluster, traits, child);
     this.collation = collation;
     this.offset = offset;
@@ -118,7 +120,7 @@ public abstract class Sort extends SingleRel {
   }
 
   public abstract Sort copy(RelTraitSet traitSet, RelNode newInput,
-      RelCollation newCollation, RexNode offset, RexNode fetch);
+      RelCollation newCollation, @Nullable RexNode offset, @Nullable RexNode fetch);
 
   @Override public RelOptCost computeSelfCost(RelOptPlanner planner,
       RelMetadataQuery mq) {

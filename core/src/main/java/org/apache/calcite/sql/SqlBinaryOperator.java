@@ -28,10 +28,14 @@ import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Litmus;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * <code>SqlBinaryOperator</code> is a binary operator.
@@ -55,9 +59,9 @@ public class SqlBinaryOperator extends SqlOperator {
       SqlKind kind,
       int prec,
       boolean leftAssoc,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -74,7 +78,7 @@ public class SqlBinaryOperator extends SqlOperator {
     return SqlSyntax.BINARY;
   }
 
-  @Override public String getSignatureTemplate(final int operandsCount) {
+  @Override public @Nullable String getSignatureTemplate(final int operandsCount) {
     Util.discard(operandsCount);
 
     // op0 opname op1
@@ -135,7 +139,7 @@ public class SqlBinaryOperator extends SqlOperator {
                 .createTypeWithCharsetAndCollation(
                     type,
                     type.getCharset(),
-                    resultCol);
+                    requireNonNull(resultCol));
       }
     }
     return type;
@@ -159,9 +163,6 @@ public class SqlBinaryOperator extends SqlOperator {
 
       final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
       final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
-      if (mono0 == null || mono1 == null) {
-        return null;
-      }
       if (mono1 == SqlMonotonicity.CONSTANT) {
         if (call.isOperandLiteral(1, false)) {
           BigDecimal value = call.getOperandLiteralValue(1, BigDecimal.class);

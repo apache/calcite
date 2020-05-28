@@ -112,6 +112,8 @@ import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -134,6 +136,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import javax.sql.DataSource;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Built-in methods.
@@ -638,10 +642,11 @@ public enum BuiltInMethod {
     MAP = builder.build();
   }
 
-  BuiltInMethod(Method method, Constructor constructor, Field field) {
-    this.method = method;
-    this.constructor = constructor;
-    this.field = field;
+  BuiltInMethod(@Nullable Method method, @Nullable Constructor constructor, @Nullable Field field) {
+    // TODO: split enum in three different ones
+    this.method = castNonNull(method);
+    this.constructor = castNonNull(constructor);
+    this.field = castNonNull(field);
   }
 
   /** Defines a method. */
@@ -661,6 +666,6 @@ public enum BuiltInMethod {
   }
 
   public String getMethodName() {
-    return method.getName();
+    return castNonNull(method).getName();
   }
 }

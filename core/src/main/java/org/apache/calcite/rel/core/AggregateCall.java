@@ -30,6 +30,8 @@ import org.apache.calcite.util.mapping.Mappings;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -46,7 +48,7 @@ public class AggregateCall {
   private final boolean approximate;
   private final boolean ignoreNulls;
   public final RelDataType type;
-  public final String name;
+  public final @Nullable String name;
 
   // We considered using ImmutableIntList but we would not save much memory:
   // since all values are small, ImmutableList uses cached Integer values.
@@ -92,7 +94,7 @@ public class AggregateCall {
    */
   private AggregateCall(SqlAggFunction aggFunction, boolean distinct,
       boolean approximate, boolean ignoreNulls, List<Integer> argList,
-      int filterArg, RelCollation collation, RelDataType type, String name) {
+      int filterArg, RelCollation collation, RelDataType type, @Nullable String name) {
     this.type = Objects.requireNonNull(type);
     this.name = name;
     this.aggFunction = Objects.requireNonNull(aggFunction);
@@ -113,7 +115,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int groupCount, RelNode input,
-      RelDataType type, String name) {
+      @Nullable RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, false, false, argList, -1,
         RelCollations.EMPTY, groupCount, input, type, name);
   }
@@ -121,7 +123,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int filterArg, int groupCount,
-      RelNode input, RelDataType type, String name) {
+      RelNode input, @Nullable RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, false, false, argList, filterArg,
         RelCollations.EMPTY, groupCount, input, type, name);
   }
@@ -130,7 +132,7 @@ public class AggregateCall {
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, List<Integer> argList,
       int filterArg, int groupCount,
-      RelNode input, RelDataType type, String name) {
+      RelNode input, @Nullable RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, approximate, false, argList,
         filterArg, RelCollations.EMPTY, groupCount, input, type, name);
   }
@@ -139,7 +141,7 @@ public class AggregateCall {
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, List<Integer> argList,
       int filterArg, RelCollation collation, int groupCount,
-      RelNode input, RelDataType type, String name) {
+      RelNode input, @Nullable RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, approximate, false, argList, filterArg,
         collation, groupCount, input, type, name);
   }
@@ -149,7 +151,7 @@ public class AggregateCall {
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
       int groupCount,
-      RelNode input, RelDataType type, String name) {
+      RelNode input, @Nullable RelDataType type, @Nullable String name) {
     if (type == null) {
       final RelDataTypeFactory typeFactory =
           input.getCluster().getTypeFactory();
@@ -167,7 +169,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, List<Integer> argList, int filterArg, RelDataType type,
-      String name) {
+      @Nullable String name) {
     return create(aggFunction, distinct, false, false, argList, filterArg,
         RelCollations.EMPTY, type, name);
   }
@@ -175,7 +177,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, List<Integer> argList,
-      int filterArg, RelDataType type, String name) {
+      int filterArg, RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, approximate, false, argList, filterArg,
         RelCollations.EMPTY, type, name);
   }
@@ -183,7 +185,7 @@ public class AggregateCall {
   @Deprecated // to be removed before 2.0
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, List<Integer> argList,
-      int filterArg, RelCollation collation, RelDataType type, String name) {
+      int filterArg, RelCollation collation, RelDataType type, @Nullable String name) {
     return create(aggFunction, distinct, approximate, false, argList, filterArg,
         collation, type, name);
   }
@@ -192,7 +194,7 @@ public class AggregateCall {
   public static AggregateCall create(SqlAggFunction aggFunction,
       boolean distinct, boolean approximate, boolean ignoreNulls,
       List<Integer> argList, int filterArg, RelCollation collation,
-      RelDataType type, String name) {
+      RelDataType type, @Nullable String name) {
     final boolean distinct2 = distinct
         && (aggFunction.getDistinctOptionality() != Optionality.IGNORED);
     return new AggregateCall(aggFunction, distinct2, approximate, ignoreNulls,
@@ -272,7 +274,7 @@ public class AggregateCall {
    *
    * @return name
    */
-  public String getName() {
+  public @Nullable String getName() {
     return name;
   }
 
@@ -281,7 +283,7 @@ public class AggregateCall {
    *
    * @param name New name (may be null)
    */
-  public AggregateCall rename(String name) {
+  public AggregateCall rename(@Nullable String name) {
     if (Objects.equals(this.name, name)) {
       return this;
     }
@@ -326,7 +328,7 @@ public class AggregateCall {
     return filterArg >= 0;
   }
 
-  @Override public boolean equals(Object o) {
+  @Override public boolean equals(@Nullable Object o) {
     if (!(o instanceof AggregateCall)) {
       return false;
     }

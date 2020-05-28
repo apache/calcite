@@ -94,7 +94,7 @@ public class AggregateProjectPullUpConstantsRule
     final RelMetadataQuery mq = call.getMetadataQuery();
     final RelOptPredicateList predicates =
         mq.getPulledUpPredicates(aggregate.getInput());
-    if (predicates == null) {
+    if (RelOptPredicateList.isEmpty(predicates)) {
       return;
     }
     final NavigableMap<Integer, RexNode> map = new TreeMap<>();
@@ -151,14 +151,15 @@ public class AggregateProjectPullUpConstantsRule
         expr = relBuilder.field(i - map.size());
       } else {
         int pos = aggregate.getGroupSet().nth(i);
-        if (map.containsKey(pos)) {
+        RexNode rexNode = map.get(pos);
+        if (rexNode != null) {
           // Re-generate the constant expression in the project.
           RelDataType originalType =
               aggregate.getRowType().getFieldList().get(projects.size()).getType();
-          if (!originalType.equals(map.get(pos).getType())) {
-            expr = rexBuilder.makeCast(originalType, map.get(pos), true);
+          if (!originalType.equals(rexNode.getType())) {
+            expr = rexBuilder.makeCast(originalType, rexNode, true);
           } else {
-            expr = map.get(pos);
+            expr = rexNode;
           }
         } else {
           // Project the aggregation expression, in its original

@@ -33,6 +33,10 @@ import org.apache.calcite.linq4j.function.NullableLongFunction1;
 import org.apache.calcite.linq4j.function.Predicate1;
 import org.apache.calcite.linq4j.function.Predicate2;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.checkerframework.framework.qual.Covariant;
+
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Comparator;
@@ -44,6 +48,7 @@ import java.util.Map;
  *
  * @param <TSource> Element type
  */
+@Covariant(0)
 public interface ExtendedEnumerable<TSource> {
 
   /**
@@ -55,21 +60,21 @@ public interface ExtendedEnumerable<TSource> {
    * @param func Operation
    * @param <R> Return type
    */
-  <R> R foreach(Function1<TSource, R> func);
+  <R> @Nullable R foreach(Function1<TSource, R> func);
 
   /**
    * Applies an accumulator function over a
    * sequence.
    */
-  TSource aggregate(Function2<TSource, TSource, TSource> func);
+  @Nullable TSource aggregate(Function2<@Nullable TSource, TSource, TSource> func);
 
   /**
    * Applies an accumulator function over a
    * sequence. The specified seed value is used as the initial
    * accumulator value.
    */
-  <TAccumulate> TAccumulate aggregate(TAccumulate seed,
-      Function2<TAccumulate, TSource, TAccumulate> func);
+  <TAccumulate> @PolyNull TAccumulate aggregate(@PolyNull TAccumulate seed,
+      Function2<@PolyNull TAccumulate, TSource, @PolyNull TAccumulate> func);
 
   /**
    * Applies an accumulator function over a
@@ -263,14 +268,14 @@ public interface ExtendedEnumerable<TSource> {
    * the type parameter's default value in a singleton collection if
    * the sequence is empty.
    */
-  Enumerable<TSource> defaultIfEmpty();
+  Enumerable<@Nullable TSource> defaultIfEmpty();
 
   /**
    * Returns the elements of the specified sequence or
    * the specified value in a singleton collection if the sequence
    * is empty.
    */
-  Enumerable<TSource> defaultIfEmpty(TSource value);
+  Enumerable<@PolyNull TSource> defaultIfEmpty(@PolyNull TSource value);
 
   /**
    * Returns distinct elements from a sequence by using
@@ -295,7 +300,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence or a default value if the index is out of
    * range.
    */
-  TSource elementAtOrDefault(int index);
+  @Nullable TSource elementAtOrDefault(int index);
 
   /**
    * Produces the set difference of two sequences by
@@ -344,14 +349,14 @@ public interface ExtendedEnumerable<TSource> {
    * Returns the first element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  TSource firstOrDefault();
+  @Nullable TSource firstOrDefault();
 
   /**
    * Returns the first element of the sequence that
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  TSource firstOrDefault(Predicate1<TSource> predicate);
+  @Nullable TSource firstOrDefault(Predicate1<TSource> predicate);
 
   /**
    * Groups the elements of a sequence according to a
@@ -644,14 +649,14 @@ public interface ExtendedEnumerable<TSource> {
    * Returns the last element of a sequence, or a
    * default value if the sequence contains no elements.
    */
-  TSource lastOrDefault();
+  @Nullable TSource lastOrDefault();
 
   /**
    * Returns the last element of a sequence that
    * satisfies a condition or a default value if no such element is
    * found.
    */
-  TSource lastOrDefault(Predicate1<TSource> predicate);
+  @Nullable TSource lastOrDefault(Predicate1<TSource> predicate);
 
   /**
    * Returns an long that represents the total number
@@ -669,20 +674,20 @@ public interface ExtendedEnumerable<TSource> {
    * Returns the maximum value in a generic
    * sequence.
    */
-  TSource max();
+  @Nullable TSource max();
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the maximum Decimal value.
    */
-  BigDecimal max(BigDecimalFunction1<TSource> selector);
+  @Nullable BigDecimal max(BigDecimalFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the maximum nullable Decimal
    * value.
    */
-  BigDecimal max(NullableBigDecimalFunction1<TSource> selector);
+  @Nullable BigDecimal max(NullableBigDecimalFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -695,7 +700,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the maximum nullable Double
    * value.
    */
-  Double max(NullableDoubleFunction1<TSource> selector);
+  @Nullable Double max(NullableDoubleFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -708,7 +713,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the maximum nullable int value. (Defined
    * by Enumerable.)
    */
-  Integer max(NullableIntegerFunction1<TSource> selector);
+  @Nullable Integer max(NullableIntegerFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -721,7 +726,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the maximum nullable long value. (Defined
    * by Enumerable.)
    */
-  Long max(NullableLongFunction1<TSource> selector);
+  @Nullable Long max(NullableLongFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -734,34 +739,34 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the maximum nullable Float
    * value.
    */
-  Float max(NullableFloatFunction1<TSource> selector);
+  @Nullable Float max(NullableFloatFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
    * generic sequence and returns the maximum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult max(
+  <TResult extends Comparable<TResult>> @Nullable TResult max(
       Function1<TSource, TResult> selector);
 
   /**
    * Returns the minimum value in a generic
    * sequence.
    */
-  TSource min();
+  @Nullable TSource min();
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the minimum Decimal value.
    */
-  BigDecimal min(BigDecimalFunction1<TSource> selector);
+  @Nullable BigDecimal min(BigDecimalFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
    * sequence and returns the minimum nullable Decimal
    * value.
    */
-  BigDecimal min(NullableBigDecimalFunction1<TSource> selector);
+  @Nullable BigDecimal min(NullableBigDecimalFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -774,7 +779,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the minimum nullable Double
    * value.
    */
-  Double min(NullableDoubleFunction1<TSource> selector);
+  @Nullable Double min(NullableDoubleFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -787,7 +792,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the minimum nullable int value. (Defined
    * by Enumerable.)
    */
-  Integer min(NullableIntegerFunction1<TSource> selector);
+  @Nullable Integer min(NullableIntegerFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -800,7 +805,7 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the minimum nullable long value. (Defined
    * by Enumerable.)
    */
-  Long min(NullableLongFunction1<TSource> selector);
+  @Nullable Long min(NullableLongFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
@@ -813,14 +818,14 @@ public interface ExtendedEnumerable<TSource> {
    * sequence and returns the minimum nullable Float
    * value.
    */
-  Float min(NullableFloatFunction1<TSource> selector);
+  @Nullable Float min(NullableFloatFunction1<TSource> selector);
 
   /**
    * Invokes a transform function on each element of a
    * generic sequence and returns the minimum resulting
    * value.
    */
-  <TResult extends Comparable<TResult>> TResult min(
+  <TResult extends Comparable<TResult>> @Nullable TResult min(
       Function1<TSource, TResult> selector);
 
   /**
@@ -956,7 +961,7 @@ public interface ExtendedEnumerable<TSource> {
    * exception if there is more than one element in the
    * sequence.
    */
-  TSource singleOrDefault();
+  @Nullable TSource singleOrDefault();
 
   /**
    * Returns the only element of a sequence that
@@ -964,7 +969,7 @@ public interface ExtendedEnumerable<TSource> {
    * element exists; this method throws an exception if more than
    * one element satisfies the condition.
    */
-  TSource singleOrDefault(Predicate1<TSource> predicate);
+  @Nullable TSource singleOrDefault(Predicate1<TSource> predicate);
 
   /**
    * Bypasses a specified number of elements in a

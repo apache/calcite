@@ -18,6 +18,7 @@ package org.apache.calcite.util.javac;
 
 import org.apache.calcite.config.CalciteSystemProperty;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.codehaus.janino.JavaSourceClassLoader;
 import org.codehaus.janino.util.ClassFile;
 import org.codehaus.janino.util.resource.MapResourceFinder;
@@ -30,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * <code>JaninoCompiler</code> implements the {@link JavaCompiler} interface by
  * calling <a href="http://www.janino.net">Janino</a>.
@@ -40,7 +43,7 @@ public class JaninoCompiler implements JavaCompiler {
   public JaninoCompilerArgs args = new JaninoCompilerArgs();
 
   // REVIEW jvs 28-June-2004:  pool this instance?  Is it thread-safe?
-  private AccountingClassLoader classLoader;
+  private @Nullable AccountingClassLoader classLoader;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -57,9 +60,9 @@ public class JaninoCompiler implements JavaCompiler {
     // class and its callers to specify all code to compile in one
     // go, we could probably just use a single AccountingClassLoader.
 
-    assert args.destdir != null;
-    assert args.fullClassName != null;
-    assert args.source != null;
+    String destdir = requireNonNull(args.destdir, "args.destdir");
+    String fullClassName = requireNonNull(args.fullClassName, "args.fullClassName");
+    String source = requireNonNull(args.source, "args.source");
 
     ClassLoader parentClassLoader = args.getClassLoader();
     if (classLoader != null) {
@@ -68,24 +71,24 @@ public class JaninoCompiler implements JavaCompiler {
 
     Map<String, byte[]> sourceMap = new HashMap<>();
     sourceMap.put(
-        ClassFile.getSourceResourceName(args.fullClassName),
-        args.source.getBytes(StandardCharsets.UTF_8));
+        ClassFile.getSourceResourceName(fullClassName),
+        source.getBytes(StandardCharsets.UTF_8));
     MapResourceFinder sourceFinder = new MapResourceFinder(sourceMap);
 
-    classLoader =
+    AccountingClassLoader classLoader = this.classLoader =
         new AccountingClassLoader(
             parentClassLoader,
             sourceFinder,
             null,
-            args.destdir == null ? null : new File(args.destdir));
+            destdir == null ? null : new File(destdir));
     if (CalciteSystemProperty.DEBUG.value()) {
       // Add line numbers to the generated janino class
       classLoader.setDebuggingInfo(true, true, true);
     }
     try {
-      classLoader.loadClass(args.fullClassName);
+      classLoader.loadClass(fullClassName);
     } catch (ClassNotFoundException ex) {
-      throw new RuntimeException("while compiling " + args.fullClassName, ex);
+      throw new RuntimeException("while compiling " + fullClassName, ex);
     }
   }
 
@@ -96,12 +99,16 @@ public class JaninoCompiler implements JavaCompiler {
 
   // implement JavaCompiler
   @Override public ClassLoader getClassLoader() {
-    return classLoader;
+    return getAccountingClassLoader();
+  }
+
+  private AccountingClassLoader getAccountingClassLoader() {
+    return requireNonNull(classLoader, "classLoader is null. Need to call #compile()");
   }
 
   // implement JavaCompiler
   @Override public int getTotalByteCodeSize() {
-    return classLoader.getTotalByteCodeSize();
+    return getAccountingClassLoader().getTotalByteCodeSize();
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -110,9 +117,9 @@ public class JaninoCompiler implements JavaCompiler {
    * Arguments to an invocation of the Janino compiler.
    */
   public static class JaninoCompilerArgs extends JavaCompilerArgs {
-    String destdir;
-    String fullClassName;
-    String source;
+    @Nullable String destdir;
+    @Nullable String fullClassName;
+    @Nullable String source;
 
     public JaninoCompilerArgs() {
     }
@@ -141,14 +148,14 @@ public class JaninoCompiler implements JavaCompiler {
    * bytecode length of the classes it has compiled.
    */
   private static class AccountingClassLoader extends JavaSourceClassLoader {
-    private final File destDir;
+    private final @Nullable File destDir;
     private int nBytes;
 
     AccountingClassLoader(
         ClassLoader parentClassLoader,
         ResourceFinder sourceFinder,
-        String optionalCharacterEncoding,
-        File destDir) {
+        @Nullable String optionalCharacterEncoding,
+        @Nullable File destDir) {
       super(
           parentClassLoader,
           sourceFinder,
@@ -160,7 +167,7 @@ public class JaninoCompiler implements JavaCompiler {
       return nBytes;
     }
 
-    @Override public Map<String, byte[]> generateBytecodes(String name)
+    @Override public @Nullable Map<String, byte[]> generateBytecodes(String name)
         throws ClassNotFoundException {
       final Map<String, byte[]> map = super.generateBytecodes(name);
       if (map == null) {

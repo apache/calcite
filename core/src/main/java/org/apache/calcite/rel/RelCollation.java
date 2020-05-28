@@ -20,7 +20,6 @@ import org.apache.calcite.plan.RelMultipleTrait;
 import org.apache.calcite.util.ImmutableIntList;
 
 import java.util.List;
-import javax.annotation.Nonnull;
 
 /**
  * Description of the physical ordering of a relational expression.
@@ -34,12 +33,12 @@ public interface RelCollation extends RelMultipleTrait {
   /**
    * Returns the ordinals and directions of the columns in this ordering.
    */
-  @Nonnull List<RelFieldCollation> getFieldCollations();
+  List<RelFieldCollation> getFieldCollations();
 
   /**
    * Returns the ordinals of the key columns.
    */
-  default @Nonnull ImmutableIntList getKeys() {
+  default ImmutableIntList getKeys() {
     final List<RelFieldCollation> collations = getFieldCollations();
     final int size = collations.size();
     final int[] keys = new int[size];

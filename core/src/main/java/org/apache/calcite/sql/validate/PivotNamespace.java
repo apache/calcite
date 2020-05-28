@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlPivot;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace for a {@code PIVOT} clause.
  */
@@ -35,7 +37,7 @@ public class PivotNamespace extends AbstractNamespace {
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validatePivot(pivot);
-    return rowType;
+    return requireNonNull(rowType, "rowType");
   }
 
   @Override public SqlPivot getNode() {

@@ -25,6 +25,8 @@ import org.apache.calcite.schema.TableFactory;
 import org.apache.calcite.util.Source;
 import org.apache.calcite.util.Sources;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.File;
 import java.util.Map;
 
@@ -41,7 +43,7 @@ public class CsvTableFactory implements TableFactory<CsvTable> {
   }
 
   @Override public CsvTable create(SchemaPlus schema, String name,
-      Map<String, Object> operand, RelDataType rowType) {
+      Map<String, Object> operand, @Nullable RelDataType rowType) {
     String fileName = (String) operand.get("file");
     final File base =
         (File) operand.get(ModelHandler.ExtraOperand.BASE_DIRECTORY.camelName);

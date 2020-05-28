@@ -35,6 +35,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A scope which delegates all requests to its parent scope. Use this as a base
@@ -124,7 +128,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
       final String name = names.get(0);
       final RelDataTypeField field0 = nameMatcher.field(rowType, name);
       if (field0 != null) {
-        final SqlValidatorNamespace ns2 = ns.lookupChild(field0.getName());
+        final SqlValidatorNamespace ns2 = requireNonNull(
+            ns.lookupChild(field0.getName()),
+            () -> "field " + field0.getName() + " is not found in " + ns);
         final Step path2 = path.plus(rowType, field0.getIndex(),
             field0.getName(), StructKind.FULLY_QUALIFIED);
         resolveInNamespace(ns2, nullable, names.subList(1, names.size()),
@@ -137,7 +143,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           case PEEK_FIELDS_NO_EXPAND:
             final Step path2 = path.plus(rowType, field.getIndex(),
                 field.getName(), field.getType().getStructKind());
-            final SqlValidatorNamespace ns2 = ns.lookupChild(field.getName());
+            final SqlValidatorNamespace ns2 = requireNonNull(
+                ns.lookupChild(field.getName()),
+                () -> "field " + field.getName() + " is not found in " + ns);
             resolveInNamespace(ns2, nullable, names, nameMatcher, path2,
                 resolved);
             break;
@@ -188,7 +196,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.findQualifyingTableNames(columnName, ctx, nameMatcher);
   }
 
-  @Override public RelDataType resolveColumn(String name, SqlNode ctx) {
+  @Override public @Nullable RelDataType resolveColumn(String name, SqlNode ctx) {
     return parent.resolveColumn(name, ctx);
   }
 
@@ -196,8 +204,8 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.nullifyType(node, type);
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public SqlValidatorNamespace getTableNamespace(List<String> names) {
+  @SuppressWarnings("deprecation")
+  @Override public @Nullable SqlValidatorNamespace getTableNamespace(List<String> names) {
     return parent.getTableNamespace(names);
   }
 
@@ -251,6 +259,9 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               final RelDataTypeField field =
                   liberalMatcher.field(entry.namespace.getRowType(),
                       columnName);
+              if (field == null) {
+                continue;
+              }
               list.add(field.getName());
             }
             Collections.sort(list);
@@ -394,7 +405,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
           identifier = identifier.setName(i - 1, alias);
         }
       }
-      if (fromPath.stepCount() > 1) {
+      if (requireNonNull(fromPath, "fromPath").stepCount() > 1) {
         assert fromRowType != null;
         for (Step p : fromPath.steps()) {
           fromRowType = fromRowType.getFieldList().get(p.i).getType();
@@ -483,7 +494,10 @@ public abstract class DelegatingScope implements SqlValidatorScope {
               identifier, RESOURCE.columnNotFound(name));
         }
         final RelDataTypeField field0 =
-            step.rowType.getFieldList().get(step.i);
+            requireNonNull(
+                step.rowType,
+                () -> "rowType of step " + step.name
+            ).getFieldList().get(step.i);
         final String fieldName = field0.getName();
         switch (step.kind) {
         case PEEK_FIELDS:
@@ -533,7 +547,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     // be valid in the parent scope.
   }
 
-  @Override public SqlWindow lookupWindow(String name) {
+  @Override public @Nullable SqlWindow lookupWindow(String name) {
     return parent.lookupWindow(name);
   }
 
@@ -541,7 +555,7 @@ public abstract class DelegatingScope implements SqlValidatorScope {
     return parent.getMonotonicity(expr);
   }
 
-  @Override public SqlNodeList getOrderList() {
+  @Override public @Nullable SqlNodeList getOrderList() {
     return parent.getOrderList();
   }
 

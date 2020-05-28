@@ -40,10 +40,16 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Point;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+
+import static org.apache.calcite.rex.RexLiteral.value;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Collection of planner rules that convert
@@ -93,7 +99,7 @@ public abstract class SpatialRules {
       FilterHilbertRule.Config.DEFAULT.toRule();
 
   /** Returns a geometry if an expression is constant, null otherwise. */
-  private static Geometries.Geom constantGeom(RexNode e) {
+  private static Geometries.@Nullable Geom constantGeom(RexNode e) {
     switch (e.getKind()) {
     case CAST:
       return constantGeom(((RexCall) e).getOperands().get(0));
@@ -130,6 +136,9 @@ public abstract class SpatialRules {
       //   (r.longitude - d, r.latitude - d, r.longitude + d, r.latitude + d)
       final RelOptPredicateList predicates =
           call.getMetadataQuery().getAllPredicates(filter.getInput());
+      if (predicates == null) {
+        return;
+      }
       int changeCount = 0;
       for (RexNode predicate : predicates.pulledUpPredicates) {
         final RelBuilder builder = call.builder();
@@ -183,7 +192,7 @@ public abstract class SpatialRules {
      *
      * @return List containing rewritten predicate and original, or null
      */
-    static List<RexNode> replaceSpatial(RexNode conjunction, RelBuilder builder,
+    static @Nullable List<RexNode> replaceSpatial(RexNode conjunction, RelBuilder builder,
         RexInputRef ref, RexCall hilbert) {
       final RexNode op0;
       final RexNode op1;
@@ -196,8 +205,9 @@ public abstract class SpatialRules {
         op1 = within.operands.get(1);
         final Geometries.Geom g1 = constantGeom(op1);
         if (RexUtil.isLiteral(within.operands.get(2), true)) {
-          final Number distance =
-              (Number) RexLiteral.value(within.operands.get(2));
+          final Number distance = requireNonNull(
+              (Number) value(within.operands.get(2)),
+              () -> "distance for " + within);
           switch (Double.compare(distance.doubleValue(), 0D)) {
           case -1: // negative distance
             return ImmutableList.of(builder.getRexBuilder().makeLiteral(false));

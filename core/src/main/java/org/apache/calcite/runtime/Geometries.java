@@ -33,6 +33,8 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.util.Objects;
 
 /**
@@ -53,7 +55,7 @@ public class Geometries {
     return new UnsupportedOperationException();
   }
 
-  protected static Geom bind(Geometry geometry, int srid) {
+  protected static @PolyNull Geom bind(@PolyNull Geometry geometry, int srid) {
     if (geometry == null) {
       return null;
     }

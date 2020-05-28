@@ -27,6 +27,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -41,11 +43,11 @@ public class SqlKeyConstraint extends SqlCall {
   protected static final SqlSpecialOperator PRIMARY =
       new SqlSpecialOperator("PRIMARY KEY", SqlKind.PRIMARY_KEY);
 
-  private final SqlIdentifier name;
+  private final @Nullable SqlIdentifier name;
   private final SqlNodeList columnList;
 
   /** Creates a SqlKeyConstraint. */
-  SqlKeyConstraint(SqlParserPos pos, SqlIdentifier name,
+  SqlKeyConstraint(SqlParserPos pos, @Nullable SqlIdentifier name,
       SqlNodeList columnList) {
     super(pos);
     this.name = name;
@@ -72,6 +74,7 @@ public class SqlKeyConstraint extends SqlCall {
     return UNIQUE;
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, columnList);
   }

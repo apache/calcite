@@ -28,6 +28,8 @@ import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.util.ImmutableNullableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -36,21 +38,22 @@ import java.util.Objects;
  */
 public class SqlCreateType extends SqlCreate {
   public final SqlIdentifier name;
-  public final SqlNodeList attributeDefs;
-  public final SqlDataTypeSpec dataType;
+  public final @Nullable SqlNodeList attributeDefs;
+  public final @Nullable SqlDataTypeSpec dataType;
 
   private static final SqlOperator OPERATOR =
       new SqlSpecialOperator("CREATE TYPE", SqlKind.CREATE_TYPE);
 
   /** Creates a SqlCreateType. */
   SqlCreateType(SqlParserPos pos, boolean replace, SqlIdentifier name,
-      SqlNodeList attributeDefs, SqlDataTypeSpec dataType) {
+      @Nullable SqlNodeList attributeDefs, @Nullable SqlDataTypeSpec dataType) {
     super(OPERATOR, pos, replace, false);
     this.name = Objects.requireNonNull(name);
     this.attributeDefs = attributeDefs; // may be null
     this.dataType = dataType; // may be null
   }
 
+  @SuppressWarnings("nullness")
   @Override public List<SqlNode> getOperandList() {
     return ImmutableNullableList.of(name, attributeDefs);
   }

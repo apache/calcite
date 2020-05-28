@@ -45,6 +45,10 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Objects;
@@ -86,7 +90,7 @@ public abstract class Window extends SingleRel {
     this.groups = ImmutableList.copyOf(groups);
   }
 
-  @Override public boolean isValid(Litmus litmus, Context context) {
+  @Override public boolean isValid(Litmus litmus, @Nullable Context context) {
     // In the window specifications, an aggregate call such as
     // 'SUM(RexInputRef #10)' refers to expression #10 of inputProgram.
     // (Not its projections.)
@@ -243,7 +247,10 @@ public abstract class Window extends SingleRel {
       return digest;
     }
 
-    private String computeString() {
+    @RequiresNonNull({"keys", "orderKeys", "lowerBound", "upperBound", "aggCalls"})
+    private String computeString(
+        @UnderInitialization Group this
+    ) {
       final StringBuilder buf = new StringBuilder("window(");
       final int i = buf.length();
       if (!keys.isEmpty()) {
@@ -287,7 +294,7 @@ public abstract class Window extends SingleRel {
       return buf.toString();
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override public boolean equals(@Nullable Object obj) {
       return this == obj
           || obj instanceof Group
           && this.digest.equals(((Group) obj).digest);
@@ -394,7 +401,7 @@ public abstract class Window extends SingleRel {
       this.ignoreNulls = ignoreNulls;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       if (this == o) {
         return true;
       }

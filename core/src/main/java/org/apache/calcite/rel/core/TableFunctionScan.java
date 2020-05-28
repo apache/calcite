@@ -32,10 +32,14 @@ import org.apache.calcite.rex.RexShuttle;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Relational expression that calls a table-valued function.
@@ -51,11 +55,11 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   private final RexNode rexCall;
 
-  private final Type elementType;
+  private final @Nullable Type elementType;
 
   private ImmutableList<RelNode> inputs;
 
-  protected final ImmutableSet<RelColumnMapping> columnMappings;
+  protected final @Nullable ImmutableSet<RelColumnMapping> columnMappings;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -76,9 +80,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings) {
+      @Nullable Set<RelColumnMapping> columnMappings) {
     super(cluster, traitSet);
     this.rexCall = rexCall;
     this.elementType = elementType;
@@ -94,7 +98,8 @@ public abstract class TableFunctionScan extends AbstractRelNode {
   protected TableFunctionScan(RelInput input) {
     this(
         input.getCluster(), input.getTraitSet(), input.getInputs(),
-        input.getExpression("invocation"), (Type) input.get("elementType"),
+        requireNonNull(input.getExpression("invocation"), "invocation"),
+        (Type) input.get("elementType"),
         input.getRowType("rowType"),
         ImmutableSet.of());
   }
@@ -103,7 +108,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
 
   @Override public final TableFunctionScan copy(RelTraitSet traitSet,
       List<RelNode> inputs) {
-    return copy(traitSet, inputs, rexCall, elementType, rowType,
+    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
         columnMappings);
   }
 
@@ -125,9 +130,9 @@ public abstract class TableFunctionScan extends AbstractRelNode {
       RelTraitSet traitSet,
       List<RelNode> inputs,
       RexNode rexCall,
-      Type elementType,
+      @Nullable Type elementType,
       RelDataType rowType,
-      Set<RelColumnMapping> columnMappings);
+      @Nullable Set<RelColumnMapping> columnMappings);
 
   @Override public List<RelNode> getInputs() {
     return inputs;
@@ -138,7 +143,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
     if (rexCall == this.rexCall) {
       return this;
     }
-    return copy(traitSet, inputs, rexCall, elementType, rowType,
+    return copy(traitSet, inputs, rexCall, elementType, getRowType(),
         columnMappings);
   }
 
@@ -201,7 +206,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    * @return set of mappings known for this table function, or null if unknown
    * (not the same as empty!)
    */
-  public Set<RelColumnMapping> getColumnMappings() {
+  public @Nullable Set<RelColumnMapping> getColumnMappings() {
     return columnMappings;
   }
 
@@ -210,7 +215,7 @@ public abstract class TableFunctionScan extends AbstractRelNode {
    *
    * @return element type of the collection that will implement this table
    */
-  public Type getElementType() {
+  public @Nullable Type getElementType() {
     return elementType;
   }
 }

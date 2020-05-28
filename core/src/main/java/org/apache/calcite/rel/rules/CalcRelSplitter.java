@@ -46,6 +46,7 @@ import org.apache.calcite.util.graph.TopologicalOrderIterator;
 import com.google.common.base.Preconditions;
 import com.google.common.primitives.Ints;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 
 import java.io.PrintWriter;
@@ -468,7 +469,7 @@ public abstract class CalcRelSplitter {
    * @param ordinal Integer to search for
    * @return Cohort that contains the integer, or null if not found
    */
-  private static Set<Integer> findCohort(
+  private static @Nullable Set<Integer> findCohort(
       List<Set<Integer>> cohorts,
       int ordinal) {
     for (Set<Integer> cohort : cohorts) {
@@ -521,7 +522,7 @@ public abstract class CalcRelSplitter {
       int[] inputExprOrdinals,
       final int[] projectExprOrdinals,
       int conditionExprOrdinal,
-      RelDataType outputRowType) {
+      @Nullable RelDataType outputRowType) {
     // Build a list of expressions to form the calc.
     List<RexNode> exprs = new ArrayList<>();
 
@@ -972,7 +973,8 @@ public abstract class CalcRelSplitter {
           continue;
         }
         currentLevel = exprLevels[i];
-        exprs[i].accept(this);
+        @SuppressWarnings("argument.type.incompatible")
+        final Void unused = exprs[i].accept(this);
       }
     }
 

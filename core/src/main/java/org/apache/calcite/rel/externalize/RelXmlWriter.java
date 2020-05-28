@@ -21,9 +21,12 @@ import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.XmlOutput;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Callback for a relational expression to dump in XML format.
@@ -51,7 +54,7 @@ public class RelXmlWriter extends RelWriterImpl {
 
   @Override protected void explain_(
       RelNode rel,
-      List<Pair<String, Object>> values) {
+      List<Pair<String, @Nullable Object>> values) {
     if (generic) {
       explainGeneric(rel, values);
     } else {
@@ -88,7 +91,7 @@ public class RelXmlWriter extends RelWriterImpl {
    */
   private void explainGeneric(
       RelNode rel,
-      List<Pair<String, Object>> values) {
+      List<Pair<String, @Nullable Object>> values) {
     String relType = rel.getRelTypeName();
     xmlOutput.beginBeginTag("RelNode");
     xmlOutput.attribute("type", relType);
@@ -96,7 +99,7 @@ public class RelXmlWriter extends RelWriterImpl {
     xmlOutput.endBeginTag("RelNode");
 
     final List<RelNode> inputs = new ArrayList<>();
-    for (Pair<String, Object> pair : values) {
+    for (Pair<String, @Nullable Object> pair : values) {
       if (pair.right instanceof RelNode) {
         inputs.add((RelNode) pair.right);
         continue;
@@ -136,18 +139,18 @@ public class RelXmlWriter extends RelWriterImpl {
    */
   private void explainSpecific(
       RelNode rel,
-      List<Pair<String, Object>> values) {
+      List<Pair<String, @Nullable Object>> values) {
     String tagName = rel.getRelTypeName();
     xmlOutput.beginBeginTag(tagName);
     xmlOutput.attribute("id", rel.getId() + "");
 
-    for (Pair<String, Object> value : values) {
+    for (Pair<String, @Nullable Object> value : values) {
       if (value.right instanceof RelNode) {
         continue;
       }
       xmlOutput.attribute(
           value.left,
-          value.right.toString());
+          Objects.toString(value.right));
     }
     xmlOutput.endBeginTag(tagName);
     spacer.add(2);

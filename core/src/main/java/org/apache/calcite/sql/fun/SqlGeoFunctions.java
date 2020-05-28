@@ -37,6 +37,8 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Geometry;
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 
 /**
@@ -101,7 +103,7 @@ public class SqlGeoFunctions {
           .build();
     }
 
-    @Override public Enumerable<Object[]> scan(DataContext root) {
+    @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
       if (geom != null && deltaX != null && deltaY != null) {
         final Geometry geometry = geom.g();
         final Envelope envelope = new Envelope();
@@ -128,7 +130,7 @@ public class SqlGeoFunctions {
     }
 
     @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-        SqlNode parent, CalciteConnectionConfig config) {
+        @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
       return false;
     }
   }

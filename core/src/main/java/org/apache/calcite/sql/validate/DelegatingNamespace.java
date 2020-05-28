@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -48,7 +50,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     return namespace.getValidator();
   }
 
-  @Override public SqlValidatorTable getTable() {
+  @Override public @Nullable SqlValidatorTable getTable() {
     return namespace.getTable();
   }
 
@@ -72,15 +74,15 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
     namespace.validate(targetRowType);
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return namespace.getNode();
   }
 
-  @Override public SqlNode getEnclosingNode() {
+  @Override public @Nullable SqlNode getEnclosingNode() {
     return namespace.getEnclosingNode();
   }
 
-  @Override public SqlValidatorNamespace lookupChild(
+  @Override public @Nullable SqlValidatorNamespace lookupChild(
       String name) {
     return namespace.lookupChild(name);
   }
@@ -101,7 +103,7 @@ public abstract class DelegatingNamespace implements SqlValidatorNamespace {
   @Override public void makeNullable() {
   }
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> T unwrap(Class<T> clazz) {
     if (clazz.isInstance(this)) {
       return clazz.cast(this);
     } else {

@@ -21,6 +21,8 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelReferentialConstraint;
 import org.apache.calcite.util.ImmutableBitSet;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -32,7 +34,7 @@ import java.util.List;
  */
 public interface Statistic {
   /** Returns the approximate number of rows in the table. */
-  default Double getRowCount() {
+  default @Nullable Double getRowCount() {
     return null;
   }
 
@@ -44,23 +46,23 @@ public interface Statistic {
   }
 
   /** Returns a list of unique keys, or null if no key exist. */
-  default List<ImmutableBitSet> getKeys() {
+  default @Nullable List<ImmutableBitSet> getKeys() {
     return null;
   }
 
   /** Returns the collection of referential constraints (foreign-keys)
    * for this table. */
-  default List<RelReferentialConstraint> getReferentialConstraints() {
+  default @Nullable List<RelReferentialConstraint> getReferentialConstraints() {
     return null;
   }
 
   /** Returns the collections of columns on which this table is sorted. */
-  default List<RelCollation> getCollations() {
+  default @Nullable List<RelCollation> getCollations() {
     return null;
   }
 
   /** Returns the distribution of the data in this table. */
-  default RelDistribution getDistribution()  {
+  default @Nullable RelDistribution getDistribution()  {
     return null;
   }
 }

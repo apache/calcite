@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
-import javax.annotation.Nonnull;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -312,7 +311,7 @@ class RexProgramFuzzyTest extends RexProgramBuilderBase {
     }
   }
 
-  @Nonnull private String unknownAsString(RexUnknownAs unknownAs) {
+  private String unknownAsString(RexUnknownAs unknownAs) {
     switch (unknownAs) {
     case UNKNOWN:
     default:

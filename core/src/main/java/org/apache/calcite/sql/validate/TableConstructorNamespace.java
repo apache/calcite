@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -65,7 +67,7 @@ public class TableConstructorNamespace extends AbstractNamespace {
     return tableConstructorRowType;
   }
 
-  @Override public SqlNode getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return values;
   }
 

@@ -22,6 +22,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Table.
  *
@@ -79,5 +81,5 @@ public interface Table {
    * @return true iff the given aggregate call is valid
    */
   boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-      SqlNode parent, CalciteConnectionConfig config);
+      @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config);
 }

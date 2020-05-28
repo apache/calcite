@@ -55,8 +55,7 @@ public class SqlFloorFunction extends SqlMonotonicUnaryFunction {
 
   @Override public SqlMonotonicity getMonotonicity(SqlOperatorBinding call) {
     // Monotonic iff its first argument is, but not strict.
-    SqlMonotonicity monotonicity = call.getOperandMonotonicity(0);
-    return monotonicity == null ? null : monotonicity.unstrict();
+    return call.getOperandMonotonicity(0).unstrict();
   }
 
   @Override public void unparse(SqlWriter writer, SqlCall call, int leftPrec,

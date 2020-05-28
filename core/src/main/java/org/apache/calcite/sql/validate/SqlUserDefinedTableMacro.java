@@ -35,6 +35,8 @@ import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +54,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
   public SqlUserDefinedTableMacro(SqlIdentifier opName,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker, List<RelDataType> paramTypes,
+      @Nullable SqlOperandTypeChecker operandTypeChecker, List<RelDataType> paramTypes,
       TableMacro tableMacro) {
     this(opName, SqlKind.OTHER_FUNCTION, returnTypeInference,
         operandTypeInference,
@@ -65,7 +67,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
   public SqlUserDefinedTableMacro(SqlIdentifier opName, SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
       SqlOperandTypeInference operandTypeInference,
-      SqlOperandMetadata operandMetadata,
+      @Nullable SqlOperandMetadata operandMetadata,
       TableMacro tableMacro) {
     super(Util.last(opName.names), opName, kind,
         returnTypeInference, operandTypeInference, operandMetadata,
@@ -73,8 +75,8 @@ public class SqlUserDefinedTableMacro extends SqlFunction
     this.tableMacro = tableMacro;
   }
 
-  @Override public SqlOperandMetadata getOperandTypeChecker() {
-    return (SqlOperandMetadata) super.getOperandTypeChecker();
+  @Override public @Nullable SqlOperandMetadata getOperandTypeChecker() {
+    return (@Nullable SqlOperandMetadata) super.getOperandTypeChecker();
   }
 
   @SuppressWarnings("deprecation")
@@ -84,7 +86,7 @@ public class SqlUserDefinedTableMacro extends SqlFunction
 
   /** Returns the table in this UDF, or null if there is no table. */
   public TranslatableTable getTable(SqlOperatorBinding callBinding) {
-    List<Object> arguments =
+    List<@Nullable Object> arguments =
         convertArguments(callBinding, tableMacro, getNameAsId(), true);
     return tableMacro.apply(arguments);
   }
@@ -99,10 +101,10 @@ public class SqlUserDefinedTableMacro extends SqlFunction
    * @param failOnNonLiteral true when conversion should fail on non-literal
    * @return converted list of arguments
    */
-  static List<Object> convertArguments(SqlOperatorBinding callBinding,
+  static List<@Nullable Object> convertArguments(SqlOperatorBinding callBinding,
       Function function, SqlIdentifier opName, boolean failOnNonLiteral) {
     RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
-    List<Object> arguments = new ArrayList<>(callBinding.getOperandCount());
+    List<@Nullable Object> arguments = new ArrayList<>(callBinding.getOperandCount());
     Ord.forEach(function.getParameters(), (parameter, i) -> {
       final RelDataType type = parameter.getType(typeFactory);
       final Object value;

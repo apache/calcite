@@ -23,6 +23,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,7 +75,7 @@ public interface PhysicalNode extends RelNode {
    * Pass required traitset from parent node to child nodes,
    * returns new node after traits is passed down.
    */
-  default RelNode passThrough(RelTraitSet required) {
+  default @Nullable RelNode passThrough(RelTraitSet required) {
     Pair<RelTraitSet, List<RelTraitSet>> p = passThroughTraits(required);
     if (p == null) {
       return null;
@@ -95,7 +97,7 @@ public interface PhysicalNode extends RelNode {
    * <p>Pair.left: the new traitset
    * <p>Pair.right: the list of required traitsets for child nodes
    */
-  default Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  default @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
     throw new RuntimeException(getClass().getName()
         + "#passThroughTraits() is not implemented.");
@@ -105,7 +107,7 @@ public interface PhysicalNode extends RelNode {
    * Derive traitset from child node, returns new node after
    * traits derivation.
    */
-  default RelNode derive(RelTraitSet childTraits, int childId) {
+  default @Nullable RelNode derive(RelTraitSet childTraits, int childId) {
     Pair<RelTraitSet, List<RelTraitSet>> p = deriveTraits(childTraits, childId);
     if (p == null) {
       return null;
@@ -128,7 +130,7 @@ public interface PhysicalNode extends RelNode {
    * <p>Pair.left: the new traitset
    * <p>Pair.right: the list of required traitsets for child nodes
    */
-  default Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  default @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {
     throw new RuntimeException(getClass().getName()
         + "#deriveTraits() is not implemented.");

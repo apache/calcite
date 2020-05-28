@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlWriter;
 
+
 /**
  * Common base for the <code>CONVERT</code> and <code>TRANSLATE</code>
  * functions.
@@ -60,7 +61,6 @@ public class SqlConvertFunction extends SqlFunction {
     default:
       break;
     }
-    assert false;
-    return null;
+    throw new IllegalStateException("operandsCount should be 2, got " + operandsCount);
   }
 }

@@ -16,7 +16,13 @@
  */
 package org.apache.calcite.util.graph;
 
+
 import com.google.common.collect.Ordering;
+
+import org.apiguardian.api.API;
+import org.checkerframework.checker.initialization.qual.NotOnlyInitialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
 /**
  * Default implementation of {@link DirectedGraph}.
  *
@@ -38,10 +46,10 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     implements DirectedGraph<V, E> {
   final Set<E> edges = new LinkedHashSet<>();
   final Map<V, VertexInfo<V, E>> vertexMap = new LinkedHashMap<>();
-  final EdgeFactory<V, E> edgeFactory;
+  final @NotOnlyInitialized EdgeFactory<V, E> edgeFactory;
 
   /** Creates a graph. */
-  public DefaultDirectedGraph(EdgeFactory<V, E> edgeFactory) {
+  public DefaultDirectedGraph(@UnknownInitialization EdgeFactory<V, E> edgeFactory) {
     this.edgeFactory = edgeFactory;
   }
 
@@ -74,7 +82,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   private String toString(Ordering<V> vertexOrdering,
       Ordering<E> edgeOrdering) {
     return "graph("
-        + "vertices: " + vertexOrdering.sortedCopy(vertexMap.keySet())
+        + "vertices: " + vertexOrdering.sortedCopy((Set<V>) vertexMap.keySet())
         + ", edges: " + edgeOrdering.sortedCopy(edges) + ")";
   }
 
@@ -87,19 +95,23 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  @Override public Set<E> edgeSet() {
-    return Collections.unmodifiableSet(edges);
-  }
-
-  @Override public E addEdge(V vertex, V targetVertex) {
+  @API(since = "1.26", status = API.Status.EXPERIMENTAL)
+  protected final VertexInfo<V, E> getVertex(V vertex) {
+    @SuppressWarnings("argument.type.incompatible")
     final VertexInfo<V, E> info = vertexMap.get(vertex);
     if (info == null) {
       throw new IllegalArgumentException("no vertex " + vertex);
     }
-    final VertexInfo<V, E> targetInfo = vertexMap.get(targetVertex);
-    if (targetInfo == null) {
-      throw new IllegalArgumentException("no vertex " + targetVertex);
-    }
+    return info;
+  }
+
+  @Override public Set<E> edgeSet() {
+    return Collections.unmodifiableSet(edges);
+  }
+
+  @Override public @Nullable E addEdge(V vertex, V targetVertex) {
+    final VertexInfo<V, E> info = getVertex(vertex);
+    final VertexInfo<V, E> targetInfo = getVertex(targetVertex);
     final E edge = edgeFactory.createEdge(vertex, targetVertex);
     if (edges.add(edge)) {
       info.outEdges.add(edge);
@@ -110,9 +122,9 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
   }
 
-  @Override public E getEdge(V source, V target) {
+  @Override public @Nullable E getEdge(V source, V target) {
     // REVIEW: could instead use edges.get(new DefaultEdge(source, target))
-    final VertexInfo<V, E> info = vertexMap.get(source);
+    final VertexInfo<V, E> info = getVertex(source);
     for (E outEdge : info.outEdges) {
       if (outEdge.target.equals(target)) {
         return outEdge;
@@ -123,7 +135,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
   @Override public boolean removeEdge(V source, V target) {
     // remove out edges
-    final List<E> outEdges = vertexMap.get(source).outEdges;
+    final List<E> outEdges = getVertex(source).outEdges;
     boolean outRemoved = false;
     for (int i = 0, size = outEdges.size(); i < size; i++) {
       E edge = outEdges.get(i);
@@ -136,7 +148,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     }
 
     // remove in edges
-    final List<E> inEdges = vertexMap.get(target).inEdges;
+    final List<E> inEdges = getVertex(target).inEdges;
     boolean inRemoved = false;
     for (int i = 0, size = inEdges.size(); i < size; i++) {
       E edge = inEdges.get(i);
@@ -150,7 +162,9 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
     return outRemoved;
   }
 
+  @SuppressWarnings("return.type.incompatible")
   @Override public Set<V> vertexSet() {
+    // Set<V extends @KeyFor("this.vertexMap") Object> -> Set<V>
     return vertexMap.keySet();
   }
 
@@ -175,6 +189,7 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
    * if {@code collection} is a small fraction of the set of vertices. */
   private void removeMinorityVertices(Collection<V> collection) {
     for (V v : collection) {
+      @SuppressWarnings("argument.type.incompatible") // nullable keys are supported by .get
       final VertexInfo<V, E> info = vertexMap.get(v);
       if (info == null) {
         continue;
@@ -182,15 +197,17 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
 
       // remove all edges pointing to v
       for (E edge : info.inEdges) {
+        @SuppressWarnings("unchecked")
         final V source = (V) edge.source;
-        final VertexInfo<V, E> sourceInfo = vertexMap.get(source);
+        final VertexInfo<V, E> sourceInfo = getVertex(source);
         sourceInfo.outEdges.removeIf(e -> e.target.equals(v));
       }
 
       // remove all edges starting from v
       for (E edge : info.outEdges) {
+        @SuppressWarnings("unchecked")
         final V target = (V) edge.target;
-        final VertexInfo<V, E> targetInfo = vertexMap.get(target);
+        final VertexInfo<V, E> targetInfo = getVertex(target);
         targetInfo.inEdges.removeIf(e -> e.source.equals(v));
       }
     }
@@ -203,17 +220,17 @@ public class DefaultDirectedGraph<V, E extends DefaultEdge>
   private void removeMajorityVertices(Set<V> vertexSet) {
     vertexMap.keySet().removeAll(vertexSet);
     for (VertexInfo<V, E> info : vertexMap.values()) {
-      info.outEdges.removeIf(e -> vertexSet.contains((V) e.target));
-      info.inEdges.removeIf(e -> vertexSet.contains((V) e.source));
+      info.outEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.target)));
+      info.inEdges.removeIf(e -> vertexSet.contains(castNonNull((V) e.source)));
     }
   }
 
   @Override public List<E> getOutwardEdges(V source) {
-    return vertexMap.get(source).outEdges;
+    return getVertex(source).outEdges;
   }
 
   @Override public List<E> getInwardEdges(V target) {
-    return vertexMap.get(target).inEdges;
+    return getVertex(target).inEdges;
   }
 
   final V source(E edge) {

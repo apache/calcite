@@ -22,6 +22,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -37,14 +39,14 @@ public class Statistics {
       };
 
   /** Returns a statistic with a given set of referential constraints. */
-  public static Statistic of(final List<RelReferentialConstraint> referentialConstraints) {
+  public static Statistic of(@Nullable List<RelReferentialConstraint> referentialConstraints) {
     return of(null, null,
         referentialConstraints, null);
   }
 
   /** Returns a statistic with a given row count and set of unique keys. */
   public static Statistic of(final double rowCount,
-      final List<ImmutableBitSet> keys) {
+      final @Nullable List<ImmutableBitSet> keys) {
     return of(rowCount, keys, null,
         null);
   }
@@ -52,17 +54,17 @@ public class Statistics {
   /** Returns a statistic with a given row count, set of unique keys,
    * and collations. */
   public static Statistic of(final double rowCount,
-      final List<ImmutableBitSet> keys,
-      final List<RelCollation> collations) {
+      final @Nullable List<ImmutableBitSet> keys,
+      final @Nullable List<RelCollation> collations) {
     return of(rowCount, keys, null, collations);
   }
 
   /** Returns a statistic with a given row count, set of unique keys,
    * referential constraints, and collations. */
-  public static Statistic of(final Double rowCount,
-      final List<ImmutableBitSet> keys,
-      final List<RelReferentialConstraint> referentialConstraints,
-      final List<RelCollation> collations) {
+  public static Statistic of(final @Nullable Double rowCount,
+      final @Nullable List<ImmutableBitSet> keys,
+      final @Nullable List<RelReferentialConstraint> referentialConstraints,
+      final @Nullable List<RelCollation> collations) {
     List<ImmutableBitSet> keysCopy = keys == null ? ImmutableList.of() : ImmutableList.copyOf(keys);
     List<RelReferentialConstraint> referentialConstraintsCopy =
         referentialConstraints == null ? null : ImmutableList.copyOf(referentialConstraints);
@@ -70,7 +72,7 @@ public class Statistics {
         collations == null ? null : ImmutableList.copyOf(collations);
 
     return new Statistic() {
-      @Override public Double getRowCount() {
+      @Override public @Nullable Double getRowCount() {
         return rowCount;
       }
 
@@ -83,15 +85,15 @@ public class Statistics {
         return false;
       }
 
-      @Override public List<ImmutableBitSet> getKeys() {
+      @Override public @Nullable List<ImmutableBitSet> getKeys() {
         return keysCopy;
       }
 
-      @Override public List<RelReferentialConstraint> getReferentialConstraints() {
+      @Override public @Nullable List<RelReferentialConstraint> getReferentialConstraints() {
         return referentialConstraintsCopy;
       }
 
-      @Override public List<RelCollation> getCollations() {
+      @Override public @Nullable List<RelCollation> getCollations() {
         return collationsCopy;
       }
     };

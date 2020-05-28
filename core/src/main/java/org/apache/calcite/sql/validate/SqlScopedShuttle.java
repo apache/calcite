@@ -21,8 +21,12 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlShuttle;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Refinement to {@link SqlShuttle} which maintains a stack of scopes.
@@ -43,8 +47,8 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public final SqlNode visit(SqlCall call) {
-    SqlValidatorScope oldScope = scopes.peek();
+  @Override public final @Nullable SqlNode visit(SqlCall call) {
+    SqlValidatorScope oldScope = getScope();
     SqlValidatorScope newScope = oldScope.getOperandScope(call);
     scopes.push(newScope);
     SqlNode result = visitScoped(call);
@@ -56,7 +60,7 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
    * Visits an operator call. If the call has entered a new scope, the base
    * class will have already modified the scope.
    */
-  protected SqlNode visitScoped(SqlCall call) {
+  protected @Nullable SqlNode visitScoped(SqlCall call) {
     return super.visit(call);
   }
 
@@ -64,6 +68,6 @@ public abstract class SqlScopedShuttle extends SqlShuttle {
    * Returns the current scope.
    */
   protected SqlValidatorScope getScope() {
-    return scopes.peek();
+    return requireNonNull(scopes.peek(), "scopes.peek()");
   }
 }

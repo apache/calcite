@@ -173,7 +173,7 @@ public abstract class RelOptMaterializations {
       RelNode root, RelOptMaterialization materialization) {
     // First, if the materialization is in terms of a star table, rewrite
     // the query in terms of the star table.
-    if (materialization.starTable != null) {
+    if (materialization.starRelOptTable != null) {
       RelNode newRoot = RelOptMaterialization.tryUseStar(root,
           materialization.starRelOptTable);
       if (newRoot != null) {

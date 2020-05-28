@@ -22,6 +22,8 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.PhysicalNode;
 import org.apache.calcite.util.Pair;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -34,12 +36,12 @@ public interface EnumerableRel
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override default Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override default @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       RelTraitSet required) {
     return null;
   }
 
-  @Override default Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override default @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       RelTraitSet childTraits, int childId) {
     return null;
   }

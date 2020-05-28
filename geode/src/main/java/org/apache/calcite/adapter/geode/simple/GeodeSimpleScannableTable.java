@@ -27,6 +27,8 @@ import org.apache.calcite.schema.impl.AbstractTable;
 
 import org.apache.geode.cache.client.ClientCache;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.apache.calcite.adapter.geode.util.GeodeUtils.convertToRowValues;
 
 /**
@@ -55,11 +57,11 @@ public class GeodeSimpleScannableTable extends AbstractTable implements Scannabl
     return relDataType;
   }
 
-  @Override public Enumerable<Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<Object[]>() {
-      @Override public Enumerator<Object[]> enumerator() {
-        return new GeodeSimpleEnumerator<Object[]>(clientCache, regionName) {
-          @Override public Object[] convert(Object obj) {
+  @Override public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return new GeodeSimpleEnumerator<@Nullable Object[]>(clientCache, regionName) {
+          @Override public @Nullable Object[] convert(Object obj) {
             Object values = convertToRowValues(relDataType.getFieldList(), obj);
             if (values instanceof Object[]) {
               return (Object[]) values;

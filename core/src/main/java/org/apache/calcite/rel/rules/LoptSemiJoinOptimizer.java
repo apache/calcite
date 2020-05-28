@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -49,6 +51,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implements the logic for determining the optimal
@@ -78,7 +82,7 @@ public class LoptSemiJoinOptimizer {
    * corresponds to the dimension table and a SemiJoin that captures all
    * the necessary semijoin data between that fact and dimension table
    */
-  private Map<Integer, Map<Integer, LogicalJoin>> possibleSemiJoins;
+  private final Map<Integer, Map<Integer, LogicalJoin>> possibleSemiJoins = new HashMap<>();
 
   private final Ordering<Integer> factorCostOrdering =
       Ordering.from(new FactorCostComparator());
@@ -112,7 +116,7 @@ public class LoptSemiJoinOptimizer {
    * @param multiJoin join factors being optimized
    */
   public void makePossibleSemiJoins(LoptMultiJoin multiJoin) {
-    possibleSemiJoins = new HashMap<>();
+    possibleSemiJoins.clear();
 
     // semijoins can't be used with any type of outer join, including full
     if (multiJoin.getMultiJoinRel().isFullOuterJoin()) {
@@ -236,14 +240,14 @@ public class LoptSemiJoinOptimizer {
    * @return SemiJoin containing information regarding the semijoin that
    * can be used to filter the fact table
    */
-  private LogicalJoin findSemiJoinIndexByCost(
+  private @Nullable LogicalJoin findSemiJoinIndexByCost(
       LoptMultiJoin multiJoin,
       List<RexNode> joinFilters,
       int factIdx,
       int dimIdx) {
     // create a SemiJoin with the semi-join condition and keys
     RexNode semiJoinCondition =
-        RexUtil.composeConjunction(rexBuilder, joinFilters, true);
+        RexUtil.composeConjunction(rexBuilder, joinFilters);
 
     int leftAdjustment = 0;
     for (int i = 0; i < factIdx; i++) {
@@ -321,7 +325,8 @@ public class LoptSemiJoinOptimizer {
               multiJoin.getNumFieldsInJoinFactor(factIdx),
               semiJoinCondition);
     }
-    return LogicalJoin.create(factRel, dimRel, ImmutableList.of(), semiJoinCondition,
+    return LogicalJoin.create(factRel, dimRel, ImmutableList.of(),
+        requireNonNull(semiJoinCondition, "semiJoinCondition"),
         ImmutableSet.of(), JoinRelType.SEMI);
   }
 
@@ -399,7 +404,7 @@ public class LoptSemiJoinOptimizer {
    * @return the underlying fact table if the semijoin keys are valid;
    * otherwise null
    */
-  private LcsTable validateKeys(
+  private @Nullable LcsTable validateKeys(
       RelNode factRel,
       List<Integer> leftKeys,
       List<Integer> rightKeys,
@@ -432,7 +437,7 @@ public class LoptSemiJoinOptimizer {
           assert table == theTable;
         }
       }
-      if (!removeKey) {
+      if (colOrigin != null && !removeKey) {
         actualLeftKeys.add(colOrigin.getOriginColumnOrdinal());
         keyIdx++;
       } else {
@@ -464,7 +469,7 @@ public class LoptSemiJoinOptimizer {
    * @return modified expression with filters that don't reference specified
    * keys removed
    */
-  private RexNode removeExtraFilters(
+  private @Nullable RexNode removeExtraFilters(
       List<Integer> keys,
       int nFields,
       RexNode condition) {
@@ -578,7 +583,9 @@ public class LoptSemiJoinOptimizer {
       // already created for each factor so any chaining of filters will
       // be accounted for
       if (bestDimIdx != -1) {
-        LogicalJoin semiJoin = possibleDimensions.get(bestDimIdx);
+        int bestDimIdxFinal = bestDimIdx;
+        LogicalJoin semiJoin = requireNonNull(possibleDimensions.get(bestDimIdxFinal),
+            () -> "possibleDimensions.get(" + bestDimIdxFinal + ") is null");
         LogicalJoin chosenSemiJoin =
             LogicalJoin.create(factRel,
                 chosenSemiJoins[bestDimIdx],
@@ -772,7 +779,7 @@ public class LoptSemiJoinOptimizer {
    * @param dimIdx index corresponding to dimension table
    */
   private void removePossibleSemiJoin(
-      Map<Integer, LogicalJoin> possibleDimensions,
+      @Nullable Map<Integer, LogicalJoin> possibleDimensions,
       Integer factIdx,
       Integer dimIdx) {
     // dimension table may not have a corresponding semijoin if it
@@ -829,7 +836,7 @@ public class LoptSemiJoinOptimizer {
   private static class LcsIndexOptimizer {
     LcsIndexOptimizer(LcsTableScan rel) {}
 
-    public FemLocalIndex findSemiJoinIndexByCost(RelNode dimRel,
+    public @Nullable FemLocalIndex findSemiJoinIndexByCost(RelNode dimRel,
         List<Integer> actualLeftKeys, List<Integer> rightKeys,
         List<Integer> bestKeyOrder) {
       return null;

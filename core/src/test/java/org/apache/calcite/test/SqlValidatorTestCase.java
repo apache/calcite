@@ -45,7 +45,6 @@ import org.junit.platform.commons.support.AnnotationSupport;
 import java.nio.charset.Charset;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-import javax.annotation.Nonnull;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -324,7 +323,7 @@ public class SqlValidatorTestCase {
     /**
      * Checks that a SQL expression gives a particular error.
      */
-    Sql fails(@Nonnull String expected) {
+    Sql fails(String expected) {
       Objects.requireNonNull(expected);
       tester.assertExceptionIsThrown(toSql(true), expected);
       return this;

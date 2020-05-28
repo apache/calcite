@@ -34,6 +34,8 @@ import org.apache.calcite.util.ImmutableBitSet;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,7 +60,7 @@ public class StdinTableFunction {
           final BufferedReader br = new BufferedReader(in);
           @Override public Enumerator<Object[]> enumerator() {
             return new Enumerator<Object[]>() {
-              String line;
+              @Nullable String line;
               int i;
 
               @Override public Object[] current() {
@@ -114,7 +116,7 @@ public class StdinTableFunction {
       }
 
       @Override public boolean rolledUpColumnValidInsideAgg(String column, SqlCall call,
-          SqlNode parent, CalciteConnectionConfig config) {
+          @Nullable SqlNode parent, @Nullable CalciteConnectionConfig config) {
         return true;
       }
     };

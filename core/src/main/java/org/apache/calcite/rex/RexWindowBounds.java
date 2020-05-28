@@ -22,6 +22,8 @@ import org.apache.calcite.sql.SqlWindow;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -50,7 +52,7 @@ public final class RexWindowBounds {
    * @param rexNode offset value when bound is not UNBOUNDED/CURRENT ROW
    * @return window bound
    */
-  public static RexWindowBound create(SqlNode node, RexNode rexNode) {
+  public static RexWindowBound create(SqlNode node, @Nullable RexNode rexNode) {
     if (SqlWindow.isUnboundedPreceding(node)) {
       return UNBOUNDED_PRECEDING;
     }
@@ -60,6 +62,7 @@ public final class RexWindowBounds {
     if (SqlWindow.isCurrentRow(node)) {
       return CURRENT_ROW;
     }
+    assert rexNode != null : "offset value cannot be null for bounded window";
     return new RexBoundedWindowBound((RexCall) rexNode);
   }
 
@@ -105,7 +108,7 @@ public final class RexWindowBounds {
       return preceding ? 0 : 2;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof RexUnboundedWindowBound
           && preceding == ((RexUnboundedWindowBound) o).preceding;
@@ -132,7 +135,7 @@ public final class RexWindowBounds {
       return 1;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof RexCurrentRowWindowBound;
     }
@@ -187,7 +190,7 @@ public final class RexWindowBounds {
       return offset + " " + sqlKind;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override public boolean equals(@Nullable Object o) {
       return this == o
           || o instanceof RexBoundedWindowBound
           && offset.equals(((RexBoundedWindowBound) o).offset)

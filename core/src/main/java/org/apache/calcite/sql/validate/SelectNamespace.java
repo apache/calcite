@@ -21,6 +21,10 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Namespace offered by a sub-query.
  *
@@ -52,13 +56,13 @@ public class SelectNamespace extends AbstractNamespace {
   //~ Methods ----------------------------------------------------------------
 
   // implement SqlValidatorNamespace, overriding return type
-  @Override public SqlSelect getNode() {
+  @Override public @Nullable SqlNode getNode() {
     return select;
   }
 
   @Override public RelDataType validateImpl(RelDataType targetRowType) {
     validator.validateSelect(select, targetRowType);
-    return rowType;
+    return requireNonNull(rowType, "rowType");
   }
 
   @Override public boolean supportsModality(SqlModality modality) {
@@ -68,9 +72,12 @@ public class SelectNamespace extends AbstractNamespace {
   @Override public SqlMonotonicity getMonotonicity(String columnName) {
     final RelDataType rowType = this.getRowTypeSansSystemColumns();
     final int field = SqlTypeUtil.findField(rowType, columnName);
-    final SqlNode selectItem =
-        validator.getRawSelectScope(select)
-            .getExpandedSelectList().get(field);
+    SelectScope selectScope = requireNonNull(
+        validator.getRawSelectScope(select),
+        () -> "rawSelectScope for " + select);
+    final SqlNode selectItem = requireNonNull(
+        selectScope.getExpandedSelectList(),
+        () -> "expandedSelectList for selectScope of " + select).get(field);
     return validator.getSelectScope(select).getMonotonicity(selectItem);
   }
 }

@@ -27,13 +27,15 @@ import org.apache.calcite.util.Util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * This class allows multiple existing {@link SqlOperandTypeChecker} rules to be
@@ -74,7 +76,7 @@ import javax.annotation.Nullable;
  * AND composition, only the first rule is used for signature generation.
  */
 public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
-  private final SqlOperandCountRange range;
+  private final @Nullable SqlOperandCountRange range;
   //~ Enums ------------------------------------------------------------------
 
   /** How operands are composed. */
@@ -86,7 +88,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
 
   protected final ImmutableList<? extends SqlOperandTypeChecker> allowedRules;
   protected final Composition composition;
-  private final String allowedSignatures;
+  private final @Nullable String allowedSignatures;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -99,8 +101,8 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
       ImmutableList<? extends SqlOperandTypeChecker> allowedRules,
       @Nullable String allowedSignatures,
       @Nullable SqlOperandCountRange range) {
-    this.allowedRules = Objects.requireNonNull(allowedRules);
-    this.composition = Objects.requireNonNull(composition);
+    this.allowedRules = requireNonNull(allowedRules);
+    this.composition = requireNonNull(composition);
     this.allowedSignatures = allowedSignatures;
     this.range = range;
     assert (range != null) == (composition == Composition.REPEAT);
@@ -151,7 +153,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   @Override public SqlOperandCountRange getOperandCountRange() {
     switch (composition) {
     case REPEAT:
-      return range;
+      return requireNonNull(range, "range");
     case SEQUENCE:
       return SqlOperandCountRanges.of(allowedRules.size());
     case AND:
@@ -266,7 +268,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
   private boolean check(SqlCallBinding callBinding) {
     switch (composition) {
     case REPEAT:
-      if (!range.isValidCount(callBinding.getOperandCount())) {
+      if (!requireNonNull(range, "range").isValidCount(callBinding.getOperandCount())) {
         return false;
       }
       for (int operand : Util.range(callBinding.getOperandCount())) {
@@ -377,7 +379,7 @@ public class CompositeOperandTypeChecker implements SqlOperandTypeChecker {
     return false;
   }
 
-  @Nullable @Override public SqlOperandTypeInference typeInference() {
+  @Override public @Nullable SqlOperandTypeInference typeInference() {
     if (composition == Composition.REPEAT) {
       if (Iterables.getOnlyElement(allowedRules) instanceof SqlOperandTypeInference) {
         final SqlOperandTypeInference rule =

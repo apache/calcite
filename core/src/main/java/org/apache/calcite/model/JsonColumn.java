@@ -16,6 +16,11 @@
  */
 package org.apache.calcite.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * JSON object representing a column.
  *
@@ -28,7 +33,12 @@ public class JsonColumn {
    *
    * <p>Required, and must be unique within the table.
    */
-  public String name;
+  public final String name;
+
+  @JsonCreator
+  public JsonColumn(@JsonProperty(value = "name", required = true) String name) {
+    this.name = requireNonNull(name, "name");
+  }
 
   public void accept(ModelHandler handler) {
     handler.visit(this);

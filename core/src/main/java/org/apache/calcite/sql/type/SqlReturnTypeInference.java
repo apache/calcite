@@ -20,6 +20,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlOperatorBinding;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Strategy interface to infer the type of an operator call from the type of the
  * operands.
@@ -42,7 +44,7 @@ public interface SqlReturnTypeInference {
    * @param opBinding description of operator binding
    * @return inferred type; may be null
    */
-  RelDataType inferReturnType(
+  @Nullable RelDataType inferReturnType(
       SqlOperatorBinding opBinding);
 
   /** Returns a return-type inference that applies this rule then a

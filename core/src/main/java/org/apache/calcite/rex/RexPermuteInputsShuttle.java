@@ -22,6 +22,8 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -100,7 +102,7 @@ public class RexPermuteInputsShuttle extends RexShuttle {
     return super.visitCall(call);
   }
 
-  private static int lookup(List<RelDataTypeField> fields, String name) {
+  private static int lookup(List<RelDataTypeField> fields, @Nullable String name) {
     for (int i = 0; i < fields.size(); i++) {
       final RelDataTypeField field = fields.get(i);
       if (field.getName().equals(name)) {

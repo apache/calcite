@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.ByteOrder;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -118,7 +120,7 @@ public class ConversionUtil {
   /**
    * Converts a string into a BOOLEAN.
    */
-  public static Boolean toBoolean(String str) {
+  public static @Nullable Boolean toBoolean(@Nullable String str) {
     if (str == null) {
       return null;
     }

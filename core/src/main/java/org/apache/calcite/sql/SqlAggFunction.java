@@ -27,9 +27,10 @@ import org.apache.calcite.sql.validate.SqlValidator;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
 
 /**
  * Abstract base class for the definition of an aggregate function: an operator
@@ -50,8 +51,8 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
       String name,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     // We leave sqlIdentifier as null to indicate that this is a builtin.
     this(name, null, kind, returnTypeInference, operandTypeInference,
@@ -63,11 +64,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType) {
     this(name, sqlIdentifier, kind, returnTypeInference, operandTypeInference,
         operandTypeChecker, funcType, false, false,
@@ -77,11 +78,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
   @Deprecated // to be removed before 2.0
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver) {
@@ -96,11 +97,11 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * a built-in function it will be null. */
   protected SqlAggFunction(
       String name,
-      SqlIdentifier sqlIdentifier,
+      @Nullable SqlIdentifier sqlIdentifier,
       SqlKind kind,
       SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker,
       SqlFunctionCategory funcType,
       boolean requiresOrder,
       boolean requiresOver,
@@ -114,7 +115,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public <T> T unwrap(Class<T> clazz) {
+  @Override public <T extends Object> @Nullable T unwrap(Class<T> clazz) {
     return clazz.isInstance(this) ? clazz.cast(this) : null;
   }
 
@@ -162,7 +163,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * and {@code AGG(x)} is valid.
    * </ul>
    */
-  public @Nonnull Optionality requiresGroupOrder() {
+  public Optionality requiresGroupOrder() {
     return requiresGroupOrder;
   }
 
@@ -182,7 +183,7 @@ public abstract class SqlAggFunction extends SqlFunction implements Context {
    * {@link Optionality#IGNORED} to indicate this. For such functions,
    * Calcite will probably remove {@code DISTINCT} while optimizing the query.
    */
-  public @Nonnull Optionality getDistinctOptionality() {
+  public Optionality getDistinctOptionality() {
     return Optionality.OPTIONAL;
   }
 

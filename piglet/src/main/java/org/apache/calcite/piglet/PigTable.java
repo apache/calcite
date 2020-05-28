@@ -31,6 +31,8 @@ import org.apache.calcite.schema.impl.AbstractTable;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -68,7 +70,7 @@ public class PigTable extends AbstractTable implements ScannableTable {
     return DUMMY_STATISTICS;
   }
 
-  @Override public Enumerable<Object[]> scan(final DataContext root) {
+  @Override public Enumerable<@Nullable Object[]> scan(final DataContext root) {
     return null;
   }
 }

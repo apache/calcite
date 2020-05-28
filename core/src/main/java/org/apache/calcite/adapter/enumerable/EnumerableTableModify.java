@@ -32,6 +32,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ModifiableTable;
 import org.apache.calcite.util.BuiltInMethod;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -44,8 +46,8 @@ public class EnumerableTableModify extends TableModify
     implements EnumerableRel {
   public EnumerableTableModify(RelOptCluster cluster, RelTraitSet traits,
       RelOptTable table, Prepare.CatalogReader catalogReader, RelNode child,
-      Operation operation, List<String> updateColumnList,
-      List<RexNode> sourceExpressionList, boolean flattened) {
+      Operation operation, @Nullable List<String> updateColumnList,
+      @Nullable List<RexNode> sourceExpressionList, boolean flattened) {
     super(cluster, traits, table, catalogReader, child, operation,
         updateColumnList, sourceExpressionList, flattened);
     assert child.getConvention() instanceof EnumerableConvention;

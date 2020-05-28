@@ -16,8 +16,8 @@
  */
 package org.apache.calcite.adapter.druid;
 
+
 import java.util.Locale;
-import javax.annotation.Nonnull;
 
 /**
  * A strategy by which Druid rolls up rows into sub-totals based on their
@@ -49,5 +49,5 @@ public interface Granularity extends DruidJson {
     public final String lowerName = name().toLowerCase(Locale.ROOT);
   }
 
-  @Nonnull Type getType();
+  Type getType();
 }

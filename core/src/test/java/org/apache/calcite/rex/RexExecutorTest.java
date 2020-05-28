@@ -42,6 +42,7 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 
@@ -402,15 +403,15 @@ class RexExecutorTest {
       throw new RuntimeException("Unsupported");
     }
 
-    public JavaTypeFactory getTypeFactory() {
+    public @Nullable JavaTypeFactory getTypeFactory() {
       throw new RuntimeException("Unsupported");
     }
 
-    public QueryProvider getQueryProvider() {
+    public @Nullable QueryProvider getQueryProvider() {
       throw new RuntimeException("Unsupported");
     }
 
-    public Object get(String name) {
+    public @Nullable Object get(String name) {
       if (this.name.equals(name)) {
         return value;
       } else {

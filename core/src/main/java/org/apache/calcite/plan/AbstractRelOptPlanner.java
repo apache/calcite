@@ -28,6 +28,10 @@ import org.apache.calcite.util.trace.CalciteTrace;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 import org.slf4j.Logger;
 
 import java.text.NumberFormat;
@@ -65,11 +69,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
 
   protected final RelOptCostFactory costFactory;
 
-  private MulticastRelOptListener listener;
+  private @MonotonicNonNull MulticastRelOptListener listener;
 
-  private RuleAttemptsListener ruleAttemptsListener;
+  private @MonotonicNonNull RuleAttemptsListener ruleAttemptsListener;
 
-  private Pattern ruleDescExclusionFilter;
+  private @Nullable Pattern ruleDescExclusionFilter;
 
   protected final AtomicBoolean cancelFlag;
 
@@ -80,7 +84,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
   /** External context. Never null. */
   protected final Context context;
 
-  private RexExecutor executor;
+  private @Nullable RexExecutor executor;
 
   //~ Constructors -----------------------------------------------------------
 
@@ -88,7 +92,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * Creates an AbstractRelOptPlanner.
    */
   protected AbstractRelOptPlanner(RelOptCostFactory costFactory,
-      Context context) {
+      @Nullable Context context) {
     assert costFactory != null;
     this.costFactory = costFactory;
     if (context == null) {
@@ -174,11 +178,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
    * @param description Description
    * @return Rule with given description, or null if not found
    */
-  protected RelOptRule getRuleByDescription(String description) {
+  protected @Nullable RelOptRule getRuleByDescription(String description) {
     return mapDescToRule.get(description);
   }
 
-  @Override public void setRuleDescExclusionFilter(Pattern exclusionFilter) {
+  @Override public void setRuleDescExclusionFilter(@Nullable Pattern exclusionFilter) {
     ruleDescExclusionFilter = exclusionFilter;
   }
 
@@ -209,7 +213,7 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     // ignore - this planner does not support lattices
   }
 
-  @Override public RelOptLattice getLattice(RelOptTable table) {
+  @Override public @Nullable RelOptLattice getLattice(RelOptTable table) {
     // this planner does not support lattices
     return null;
   }
@@ -229,8 +233,9 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     if (classes.add(clazz)) {
       onNewClass(node);
     }
-    if (conventions.add(node.getConvention())) {
-      node.getConvention().register(this);
+    Convention convention = node.getConvention();
+    if (convention != null && conventions.add(convention)) {
+      convention.register(this);
     }
   }
 
@@ -243,17 +248,19 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return RelTraitSet.createEmpty();
   }
 
-  @Override public RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
+  @Override public @Nullable RelOptCost getCost(RelNode rel, RelMetadataQuery mq) {
     return mq.getCumulativeCost(rel);
   }
 
-  @Override @SuppressWarnings("deprecation")
-  public RelOptCost getCost(RelNode rel) {
+  @SuppressWarnings("deprecation")
+  @Override public @Nullable RelOptCost getCost(RelNode rel) {
     final RelMetadataQuery mq = rel.getCluster().getMetadataQuery();
     return getCost(rel, mq);
   }
 
-  @Override public void addListener(RelOptListener newListener) {
+  @Override public void addListener(
+      @UnknownInitialization AbstractRelOptPlanner this,
+      RelOptListener newListener) {
     if (listener == null) {
       listener = new MulticastRelOptListener();
     }
@@ -273,11 +280,11 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     return ImmutableList.of();
   }
 
-  @Override public void setExecutor(RexExecutor executor) {
+  @Override public void setExecutor(@Nullable RexExecutor executor) {
     this.executor = executor;
   }
 
-  @Override public RexExecutor getExecutor() {
+  @Override public @Nullable RexExecutor getExecutor() {
     return executor;
   }
 
@@ -425,7 +432,8 @@ public abstract class AbstractRelOptPlanner implements RelOptPlanner {
     }
   }
 
-  public RelOptListener getListener() {
+  @Pure
+  public @Nullable RelOptListener getListener() {
     return listener;
   }
 

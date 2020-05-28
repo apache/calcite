@@ -117,7 +117,7 @@ public class ProjectJoinJoinRemoveRule
     final ImmutableBitSet.Builder columns = ImmutableBitSet.builder();
     rightChildKeys.forEach(columns::set);
     final RelMetadataQuery mq = call.getMetadataQuery();
-    if (!mq.areColumnsUnique(bottomJoin.getRight(), columns.build())) {
+    if (!Boolean.TRUE.equals(mq.areColumnsUnique(bottomJoin.getRight(), columns.build()))) {
       return;
     }
 

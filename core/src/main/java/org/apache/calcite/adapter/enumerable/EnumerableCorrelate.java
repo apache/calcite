@@ -37,6 +37,8 @@ import org.apache.calcite.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -84,7 +86,7 @@ public class EnumerableCorrelate extends Correlate
         traitSet, left, right, correlationId, requiredColumns, joinType);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     // EnumerableCorrelate traits passdown shall only pass through collation to left input.
     // This is because for EnumerableCorrelate always uses left input as the outer loop,
@@ -93,7 +95,7 @@ public class EnumerableCorrelate extends Correlate
         required, joinType, left.getRowType().getFieldCount(), getTraitSet());
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     // should only derive traits (limited to collation for now) from left input.
     return EnumerableTraitsUtils.deriveTraitsForJoin(

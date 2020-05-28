@@ -16,6 +16,8 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.Collections;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import javax.annotation.Nonnull;
 
 /**
  * Pair of objects.
@@ -38,7 +39,8 @@ import javax.annotation.Nonnull;
  * @param <T1> Left-hand type
  * @param <T2> Right-hand type
  */
-public class Pair<T1, T2>
+@SuppressWarnings("type.argument.type.incompatible")
+public class Pair<T1 extends @Nullable Object, T2 extends @Nullable Object>
     implements Comparable<Pair<T1, T2>>, Map.Entry<T1, T2>, Serializable {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -81,13 +83,13 @@ public class Pair<T1, T2>
   }
 
   /** Creates a {@code Pair} from a {@link java.util.Map.Entry}. */
-  public static <K, V> Pair<K, V> of(Map.Entry<K, V> entry) {
+  public static <K, V> Pair<K, V> of(Map.Entry<? extends K, ? extends V> entry) {
     return of(entry.getKey(), entry.getValue());
   }
 
   //~ Methods ----------------------------------------------------------------
 
-  @Override public boolean equals(Object obj) {
+  @Override public boolean equals(@Nullable Object obj) {
     return this == obj
         || (obj instanceof Pair)
         && Objects.equals(this.left, ((Pair) obj).left)
@@ -104,7 +106,7 @@ public class Pair<T1, T2>
     return keyHash ^ valueHash;
   }
 
-  @Override public int compareTo(@Nonnull Pair<T1, T2> that) {
+  @Override public int compareTo(Pair<T1, T2> that) {
     //noinspection unchecked
     int c = NULLS_FIRST_COMPARATOR.compare(this.left, that.left);
     if (c == 0) {
@@ -142,9 +144,9 @@ public class Pair<T1, T2>
    * @param pairs Collection of Pair objects
    * @return map with the same contents as the collection
    */
-  public static <K, V> Map<K, V> toMap(Iterable<Pair<K, V>> pairs) {
+  public static <K, V> Map<K, V> toMap(Iterable<? extends Pair<? extends K, ? extends V>> pairs) {
     final Map<K, V> map = new HashMap<>();
-    for (Pair<K, V> pair : pairs) {
+    for (Pair<? extends K, ? extends V> pair : pairs) {
       map.put(pair.left, pair.right);
     }
     return map;
@@ -160,7 +162,7 @@ public class Pair<T1, T2>
    * @return List of pairs
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
-  public static <K, V> List<Pair<K, V>> zip(List<K> ks, List<V> vs) {
+  public static <K, V> List<Pair<K, V>> zip(List<? extends K> ks, List<? extends V> vs) {
     return zip(ks, vs, false);
   }
 
@@ -177,8 +179,8 @@ public class Pair<T1, T2>
    * @see org.apache.calcite.linq4j.Ord#zip(java.util.List)
    */
   public static <K, V> List<Pair<K, V>> zip(
-      final List<K> ks,
-      final List<V> vs,
+      final List<? extends K> ks,
+      final List<? extends V> vs,
       boolean strict) {
     final int size;
     if (strict) {
@@ -269,7 +271,7 @@ public class Pair<T1, T2>
   public static <K, V> void forEach(
       final Iterable<? extends K> ks,
       final Iterable<? extends V> vs,
-      BiConsumer<K, V> consumer) {
+      BiConsumer<? super K, ? super V> consumer) {
     final Iterator<? extends K> leftIterator = ks.iterator();
     final Iterator<? extends V> rightIterator = vs.iterator();
     while (leftIterator.hasNext() && rightIterator.hasNext()) {
@@ -289,7 +291,7 @@ public class Pair<T1, T2>
    */
   public static <K, V> void forEach(
       final Iterable<? extends Map.Entry<? extends K, ? extends V>> entries,
-      BiConsumer<K, V> consumer) {
+      BiConsumer<? super K, ? super V> consumer) {
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
       consumer.accept(entry.getKey(), entry.getValue());
     }
@@ -340,9 +342,9 @@ public class Pair<T1, T2>
    * @param <T> Element type
    * @return Iterable over adjacent element pairs
    */
-  public static <T> Iterable<Pair<T, T>> adjacents(final Iterable<T> iterable) {
+  public static <T> Iterable<Pair<T, T>> adjacents(final Iterable<? extends T> iterable) {
     return () -> {
-      final Iterator<T> iterator = iterable.iterator();
+      final Iterator<? extends T> iterator = iterable.iterator();
       if (!iterator.hasNext()) {
         return Collections.emptyIterator();
       }
@@ -360,9 +362,9 @@ public class Pair<T1, T2>
    * @param <T> Element type
    * @return Iterable over pairs of the first element and all other elements
    */
-  public static <T> Iterable<Pair<T, T>> firstAnd(final Iterable<T> iterable) {
+  public static <T> Iterable<Pair<T, T>> firstAnd(final Iterable<? extends T> iterable) {
     return () -> {
-      final Iterator<T> iterator = iterable.iterator();
+      final Iterator<? extends T> iterator = iterable.iterator();
       if (!iterator.hasNext()) {
         return Collections.emptyIterator();
       }
@@ -376,10 +378,10 @@ public class Pair<T1, T2>
    *
    * @param <E> Element type */
   private static class FirstAndIterator<E> implements Iterator<Pair<E, E>> {
-    private final Iterator<E> iterator;
+    private final Iterator<? extends E> iterator;
     private final E first;
 
-    FirstAndIterator(Iterator<E> iterator, E first) {
+    FirstAndIterator(Iterator<? extends E> iterator, E first) {
       this.iterator = Objects.requireNonNull(iterator);
       this.first = first;
     }
@@ -431,10 +433,10 @@ public class Pair<T1, T2>
    * @param <E> Element type */
   private static class AdjacentIterator<E> implements Iterator<Pair<E, E>> {
     private final E first;
-    private final Iterator<E> iterator;
+    private final Iterator<? extends E> iterator;
     E previous;
 
-    AdjacentIterator(Iterator<E> iterator) {
+    AdjacentIterator(Iterator<? extends E> iterator) {
       this.iterator = Objects.requireNonNull(iterator);
       this.first = iterator.next();
       previous = first;
@@ -467,11 +469,11 @@ public class Pair<T1, T2>
    *
    * @see MutableZipList */
   private static class ZipList<K, V> extends AbstractList<Pair<K, V>> {
-    private final List<K> ks;
-    private final List<V> vs;
+    private final List<? extends K> ks;
+    private final List<? extends V> vs;
     private final int size;
 
-    ZipList(List<K> ks, List<V> vs, int size) {
+    ZipList(List<? extends K> ks, List<? extends V> vs, int size) {
       this.ks = ks;
       this.vs = vs;
       this.size = size;

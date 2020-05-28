@@ -41,6 +41,7 @@ import org.apache.calcite.util.mapping.IntPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -370,7 +371,7 @@ public class MaterializationTest {
       return names;
     }
 
-    @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode node, int ordinal, @Nullable RelNode parent) {
       if (node instanceof TableScan) {
         RelOptTable table = node.getTable();
         List<String> qName = table.getQualifiedName();

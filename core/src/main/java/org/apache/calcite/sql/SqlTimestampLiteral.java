@@ -22,6 +22,8 @@ import org.apache.calcite.util.TimestampString;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Objects;
+
 /**
  * A SQL literal representing a TIMESTAMP value, for example <code>TIMESTAMP
  * '1969-07-21 03:15 GMT'</code>.
@@ -40,7 +42,9 @@ public class SqlTimestampLiteral extends SqlAbstractDateTimeLiteral {
   //~ Methods ----------------------------------------------------------------
 
   @Override public SqlTimestampLiteral clone(SqlParserPos pos) {
-    return new SqlTimestampLiteral((TimestampString) value, precision,
+    return new SqlTimestampLiteral(
+        (TimestampString) Objects.requireNonNull(value, "value"),
+        precision,
         hasTimeZone, pos);
   }
 

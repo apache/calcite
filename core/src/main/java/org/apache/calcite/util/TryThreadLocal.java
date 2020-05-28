@@ -16,12 +16,14 @@
  */
 package org.apache.calcite.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Thread-local variable that returns a handle that can be closed.
  *
  * @param <T> Value type
  */
-public class TryThreadLocal<T> extends ThreadLocal<T> {
+public class TryThreadLocal<@Nullable T> extends ThreadLocal<T> {
   private final T initialValue;
 
   /** Creates a TryThreadLocal.

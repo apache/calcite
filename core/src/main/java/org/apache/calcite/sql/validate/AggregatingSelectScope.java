@@ -32,9 +32,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMultiset;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static org.apache.calcite.sql.SqlUtil.stripAs;
@@ -54,8 +57,9 @@ public class AggregatingSelectScope
   private final boolean distinct;
 
   /** Use while resolving. */
-  private SqlValidatorUtil.GroupAnalyzer groupAnalyzer;
+  private SqlValidatorUtil.@Nullable GroupAnalyzer groupAnalyzer;
 
+  @SuppressWarnings("methodref.receiver.bound.invalid")
   public final Supplier<Resolved> resolved =
       Suppliers.memoize(this::resolve)::get;
 
@@ -84,7 +88,8 @@ public class AggregatingSelectScope
 
   private Resolved resolve() {
     assert groupAnalyzer == null : "resolve already in progress";
-    groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    SqlValidatorUtil.GroupAnalyzer groupAnalyzer = new SqlValidatorUtil.GroupAnalyzer();
+    this.groupAnalyzer = groupAnalyzer;
     try {
       final ImmutableList.Builder<ImmutableList<ImmutableBitSet>> builder =
           ImmutableList.builder();
@@ -109,7 +114,7 @@ public class AggregatingSelectScope
       return new Resolved(groupAnalyzer.extraExprs, groupAnalyzer.groupExprs,
           flatGroupSets, groupAnalyzer.groupExprProjection);
     } finally {
-      groupAnalyzer = null;
+      this.groupAnalyzer = null;
     }
   }
 
@@ -133,11 +138,15 @@ public class AggregatingSelectScope
       // OrderExpressionExpander.
       ImmutableList.Builder<SqlNode> groupExprs = ImmutableList.builder();
       final SelectScope selectScope = (SelectScope) parent;
-      for (SqlNode selectItem : selectScope.getExpandedSelectList()) {
+      List<SqlNode> expandedSelectList = Objects.requireNonNull(
+          selectScope.getExpandedSelectList(),
+          () -> "expandedSelectList for " + selectScope);
+      for (SqlNode selectItem : expandedSelectList) {
         groupExprs.add(stripAs(selectItem));
       }
       return Pair.of(ImmutableList.of(), groupExprs.build());
     } else if (select.getGroup() != null) {
+      SqlValidatorUtil.GroupAnalyzer groupAnalyzer = this.groupAnalyzer;
       if (groupAnalyzer != null) {
         // we are in the middle of resolving
         return Pair.of(ImmutableList.of(),

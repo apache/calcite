@@ -26,6 +26,8 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 import java.util.Set;
 
@@ -65,7 +67,8 @@ public class EnumerableRelFactories {
   private static class ProjectFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.ProjectFactory {
     @Override public RelNode createProject(RelNode input, List<RelHint> hints,
-                          List<? extends RexNode> childExprs, List<String> fieldNames) {
+        List<? extends RexNode> childExprs,
+        @Nullable List<? extends @Nullable String> fieldNames) {
       final RelDataType rowType =
           RexUtil.createStructType(input.getCluster().getTypeFactory(), childExprs,
               fieldNames, SqlValidatorUtil.F_SUGGESTER);
@@ -92,7 +95,7 @@ public class EnumerableRelFactories {
   private static class SortFactoryImpl
       implements org.apache.calcite.rel.core.RelFactories.SortFactory {
     @Override public RelNode createSort(RelNode input, RelCollation collation,
-                              RexNode offset, RexNode fetch) {
+        @Nullable RexNode offset, @Nullable RexNode fetch) {
       return EnumerableSort.create(input, collation, offset, fetch);
     }
   }

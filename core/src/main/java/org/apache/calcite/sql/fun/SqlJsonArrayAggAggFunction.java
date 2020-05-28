@@ -35,6 +35,8 @@ import org.apache.calcite.sql.validate.SqlValidatorImpl;
 import org.apache.calcite.sql.validate.SqlValidatorScope;
 import org.apache.calcite.util.Optionality;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Objects;
 
 /**
@@ -70,8 +72,8 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     return validateOperands(validator, scope, call);
   }
 
-  @Override public SqlCall createCall(SqlLiteral functionQualifier,
-      SqlParserPos pos, SqlNode... operands) {
+  @Override public SqlCall createCall(@Nullable SqlLiteral functionQualifier,
+      SqlParserPos pos, @Nullable SqlNode... operands) {
     assert operands.length == 1 || operands.length == 2;
     final SqlNode valueExpr = operands[0];
     if (operands.length == 2) {
@@ -85,7 +87,8 @@ public class SqlJsonArrayAggAggFunction extends SqlAggFunction {
     return createCall_(functionQualifier, pos, valueExpr);
   }
 
-  private SqlCall createCall_(SqlLiteral functionQualifier, SqlParserPos pos, SqlNode valueExpr) {
+  private SqlCall createCall_(@Nullable SqlLiteral functionQualifier, SqlParserPos pos,
+      @Nullable SqlNode valueExpr) {
     return super.createCall(functionQualifier, pos, valueExpr);
   }
 

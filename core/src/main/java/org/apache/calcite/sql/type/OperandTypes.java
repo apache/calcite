@@ -341,7 +341,7 @@ public abstract class OperandTypes {
           }
 
           final SqlLiteral arg = (SqlLiteral) node;
-          final BigDecimal value = (BigDecimal) arg.getValue();
+          final BigDecimal value = arg.getValueAs(BigDecimal.class);
           if (value.compareTo(BigDecimal.ZERO) < 0
               || hasFractionalPart(value)) {
             if (throwOnFailure) {

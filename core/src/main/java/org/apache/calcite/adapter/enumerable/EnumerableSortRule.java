@@ -21,6 +21,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.core.Sort;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Rule to convert an {@link org.apache.calcite.rel.core.Sort} to an
  * {@link EnumerableSort}.
@@ -39,7 +41,7 @@ class EnumerableSortRule extends ConverterRule {
     super(config);
   }
 
-  @Override public RelNode convert(RelNode rel) {
+  @Override public @Nullable RelNode convert(RelNode rel) {
     final Sort sort = (Sort) rel;
     if (sort.offset != null || sort.fetch != null) {
       return null;

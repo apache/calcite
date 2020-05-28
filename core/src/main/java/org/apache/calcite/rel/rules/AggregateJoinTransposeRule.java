@@ -48,14 +48,17 @@ import org.apache.calcite.util.mapping.Mappings;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.TreeMap;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Planner rule that pushes an
@@ -247,7 +250,7 @@ public class AggregateJoinTransposeRule
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
           final SqlAggFunction aggregation = aggCall.e.getAggregation();
           final SqlSplittableAggFunction splitter =
-              Objects.requireNonNull(
+              requireNonNull(
                   aggregation.unwrap(SqlSplittableAggFunction.class));
           if (!aggCall.e.getArgList().isEmpty()
               && fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
@@ -280,7 +283,7 @@ public class AggregateJoinTransposeRule
         for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
           final SqlAggFunction aggregation = aggCall.e.getAggregation();
           final SqlSplittableAggFunction splitter =
-              Objects.requireNonNull(
+              requireNonNull(
                   aggregation.unwrap(SqlSplittableAggFunction.class));
           final AggregateCall call1;
           if (fieldSet.contains(ImmutableBitSet.of(aggCall.e.getArgList()))) {
@@ -321,21 +324,22 @@ public class AggregateJoinTransposeRule
         RexUtil.apply(mapping, join.getCondition());
 
     // Create new join
-    relBuilder.push(sides.get(0).newInput)
-        .push(sides.get(1).newInput)
+    RelNode side0 = requireNonNull(sides.get(0).newInput, "sides.get(0).newInput");
+    relBuilder.push(side0)
+        .push(requireNonNull(sides.get(1).newInput, "sides.get(1).newInput"))
         .join(join.getJoinType(), newCondition);
 
     // Aggregate above to sum up the sub-totals
     final List<AggregateCall> newAggCalls = new ArrayList<>();
     final int groupCount = aggregate.getGroupCount();
-    final int newLeftWidth = sides.get(0).newInput.getRowType().getFieldCount();
+    final int newLeftWidth = side0.getRowType().getFieldCount();
     final List<RexNode> projects =
         new ArrayList<>(
             rexBuilder.identityProjects(relBuilder.peek().getRowType()));
     for (Ord<AggregateCall> aggCall : Ord.zip(aggregate.getAggCallList())) {
       final SqlAggFunction aggregation = aggCall.e.getAggregation();
       final SqlSplittableAggFunction splitter =
-          Objects.requireNonNull(
+          requireNonNull(
               aggregation.unwrap(SqlSplittableAggFunction.class));
       final Integer leftSubTotal = sides.get(0).split.get(aggCall.i);
       final Integer rightSubTotal = sides.get(1).split.get(aggCall.i);
@@ -449,7 +453,7 @@ public class AggregateJoinTransposeRule
   /** Work space for an input to a join. */
   private static class Side {
     final Map<Integer, Integer> split = new HashMap<>();
-    RelNode newInput;
+    @Nullable RelNode newInput;
     boolean aggregate;
   }
 

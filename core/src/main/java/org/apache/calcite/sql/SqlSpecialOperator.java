@@ -23,6 +23,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.util.PrecedenceClimbingParser;
 import org.apache.calcite.util.Util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.function.Predicate;
 
 /**
@@ -49,9 +51,9 @@ public class SqlSpecialOperator extends SqlOperator {
       SqlKind kind,
       int prec,
       boolean leftAssoc,
-      SqlReturnTypeInference returnTypeInference,
-      SqlOperandTypeInference operandTypeInference,
-      SqlOperandTypeChecker operandTypeChecker) {
+      @Nullable SqlReturnTypeInference returnTypeInference,
+      @Nullable SqlOperandTypeInference operandTypeInference,
+      @Nullable SqlOperandTypeChecker operandTypeChecker) {
     super(
         name,
         kind,
@@ -97,8 +99,8 @@ public class SqlSpecialOperator extends SqlOperator {
     SqlOperator op(int i);
     SqlParserPos pos(int i);
     boolean isOp(int i);
-    SqlNode node(int i);
-    void replaceSublist(int start, int end, SqlNode e);
+    @Nullable SqlNode node(int i);
+    void replaceSublist(int start, int end, @Nullable SqlNode e);
 
     /** Creates a parser whose token sequence is a copy of a subset of this
      * token sequence. */

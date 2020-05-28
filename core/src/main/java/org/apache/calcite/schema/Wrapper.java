@@ -16,11 +16,25 @@
  */
 package org.apache.calcite.schema;
 
+import org.apiguardian.api.API;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * Mix-in interface that allows you to find sub-objects.
  */
 public interface Wrapper {
   /** Finds an instance of an interface implemented by this object,
    * or returns null if this object does not support that interface. */
-  <C> C unwrap(Class<C> aClass);
+  <C extends Object> @Nullable C unwrap(Class<C> aClass);
+
+  /** Finds an instance of an interface implemented by this object,
+   * or throws NullPointerException if this object does not support
+   * that interface. */
+  @API(since = "1.27", status = API.Status.INTERNAL)
+  default <C extends Object> C unwrapOrThrow(Class<C> aClass) {
+    return requireNonNull(unwrap(aClass),
+        () -> "Can't unwrap " + aClass + " from " + this);
+  }
 }

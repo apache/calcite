@@ -42,6 +42,8 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
@@ -103,13 +105,13 @@ public class EnumerableHashJoin extends Join implements EnumerableRel {
         condition, variablesSet, joinType);
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> passThroughTraits(
       final RelTraitSet required) {
     return EnumerableTraitsUtils.passThroughTraitsForJoin(
         required, joinType, left.getRowType().getFieldCount(), getTraitSet());
   }
 
-  @Override public Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
+  @Override public @Nullable Pair<RelTraitSet, List<RelTraitSet>> deriveTraits(
       final RelTraitSet childTraits, final int childId) {
     // should only derive traits (limited to collation for now) from left join input.
     return EnumerableTraitsUtils.deriveTraitsForJoin(

@@ -36,6 +36,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.ImmutableBeans;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -84,13 +86,13 @@ public class JoinCommuteRule
   //~ Methods ----------------------------------------------------------------
 
   @Deprecated // to be removed before 2.0
-  public static RelNode swap(Join join) {
+  public static @Nullable RelNode swap(Join join) {
     return swap(join, false,
         RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
 
   @Deprecated // to be removed before 2.0
-  public static RelNode swap(Join join, boolean swapOuterJoins) {
+  public static @Nullable RelNode swap(Join join, boolean swapOuterJoins) {
     return swap(join, swapOuterJoins,
         RelFactories.LOGICAL_BUILDER.create(join.getCluster(), null));
   }
@@ -105,7 +107,7 @@ public class JoinCommuteRule
    * @param relBuilder        Builder for relational expressions
    * @return swapped join if swapping possible; else null
    */
-  public static RelNode swap(Join join, boolean swapOuterJoins,
+  public static @Nullable RelNode swap(Join join, boolean swapOuterJoins,
       RelBuilder relBuilder) {
     final JoinRelType joinType = join.getJoinType();
     if (!swapOuterJoins && joinType != JoinRelType.INNER) {

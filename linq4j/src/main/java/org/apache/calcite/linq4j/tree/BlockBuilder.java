@@ -16,6 +16,9 @@
  */
 package org.apache.calcite.linq4j.tree;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
+
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -25,6 +28,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Builder for {@link BlockStatement}.
@@ -41,7 +46,7 @@ public class BlockBuilder {
       new HashMap<>();
 
   private final boolean optimizing;
-  private final BlockBuilder parent;
+  private final @Nullable BlockBuilder parent;
 
   private static final Shuttle OPTIMIZE_SHUTTLE = new OptimizeShuttle();
 
@@ -66,7 +71,7 @@ public class BlockBuilder {
    *
    * @param optimizing Whether to eliminate common sub-expressions
    */
-  public BlockBuilder(boolean optimizing, BlockBuilder parent) {
+  public BlockBuilder(boolean optimizing, @Nullable BlockBuilder parent) {
     this.optimizing = optimizing;
     this.parent = parent;
   }
@@ -153,7 +158,8 @@ public class BlockBuilder {
           result = ((DeclarationStatement) statement).parameter;
         } else if (statement instanceof GotoStatement) {
           statements.remove(statements.size() - 1);
-          result = append_(name, ((GotoStatement) statement).expression,
+          result = append_(name,
+              requireNonNull(((GotoStatement) statement).expression, "expression"),
               optimize);
           if (isSimpleExpression(result)) {
             // already simple; no need to declare a variable or
@@ -169,7 +175,7 @@ public class BlockBuilder {
         }
       }
     }
-    return result;
+    return requireNonNull(result, () -> "empty result when appending name=" + name + ", " + block);
   }
 
   /**
@@ -184,7 +190,7 @@ public class BlockBuilder {
   /**
    * Appends an expression to a list of statements, if it is not null.
    */
-  public Expression appendIfNotNull(String name, Expression expression) {
+  public @PolyNull Expression appendIfNotNull(String name, @PolyNull Expression expression) {
     if (expression == null) {
       return null;
     }
@@ -233,7 +239,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return true when given expression is safe to always inline
    */
-  protected boolean isSimpleExpression(Expression expr) {
+  protected boolean isSimpleExpression(@Nullable Expression expr) {
     if (expr instanceof ParameterExpression
         || expr instanceof ConstantExpression) {
       return true;
@@ -285,7 +291,7 @@ public class BlockBuilder {
    * @param expr expression to test
    * @return existing ParameterExpression or null
    */
-  public DeclarationStatement getComputedExpression(Expression expr) {
+  public @Nullable DeclarationStatement getComputedExpression(Expression expr) {
     if (parent != null) {
       DeclarationStatement decl = parent.getComputedExpression(expr);
       if (decl != null) {

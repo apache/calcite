@@ -58,10 +58,6 @@ public class SqlMonotonicBinaryOperator extends SqlBinaryOperator {
     final SqlMonotonicity mono0 = call.getOperandMonotonicity(0);
     final SqlMonotonicity mono1 = call.getOperandMonotonicity(1);
 
-    // unknown <op> unknown --> unknown
-    if (mono0 == null || mono1 == null) {
-      return null;
-    }
     // constant <op> constant --> constant
     if ((mono1 == SqlMonotonicity.CONSTANT)
         && (mono0 == SqlMonotonicity.CONSTANT)) {

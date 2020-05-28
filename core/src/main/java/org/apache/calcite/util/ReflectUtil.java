@@ -21,6 +21,9 @@ import org.apache.calcite.linq4j.tree.Primitive;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -31,6 +34,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
 
 /**
  * Static utilities for Java reflection.
@@ -100,7 +105,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferReadMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return primitiveToByteBufferReadMethod.get(clazz);
+    return castNonNull(primitiveToByteBufferReadMethod.get(clazz));
   }
 
   /**
@@ -112,7 +117,7 @@ public abstract class ReflectUtil {
    */
   public static Method getByteBufferWriteMethod(Class clazz) {
     assert clazz.isPrimitive();
-    return primitiveToByteBufferWriteMethod.get(clazz);
+    return castNonNull(primitiveToByteBufferWriteMethod.get(clazz));
   }
 
   /**
@@ -124,7 +129,7 @@ public abstract class ReflectUtil {
    */
   public static Class getBoxingClass(Class primitiveClass) {
     assert primitiveClass.isPrimitive();
-    return primitiveToBoxingMap.get(primitiveClass);
+    return castNonNull(primitiveToBoxingMap.get(primitiveClass));
   }
 
   /**
@@ -279,7 +284,7 @@ public abstract class ReflectUtil {
    * @param visitMethodName name of visit method
    * @return method found, or null if none found
    */
-  public static Method lookupVisitMethod(
+  public static @Nullable Method lookupVisitMethod(
       Class<?> visitorClass,
       Class<?> visiteeClass,
       String visitMethodName) {
@@ -303,7 +308,7 @@ public abstract class ReflectUtil {
    * @return method found, or null if none found
    * @see #createDispatcher(Class, Class)
    */
-  public static Method lookupVisitMethod(
+  public static @Nullable Method lookupVisitMethod(
       Class<?> visitorClass,
       Class<?> visiteeClass,
       String visitMethodName,
@@ -311,8 +316,7 @@ public abstract class ReflectUtil {
     // Prepare an array to re-use in recursive calls.  The first argument
     // will have the visitee class substituted into it.
     Class<?>[] paramTypes = new Class[1 + additionalParameterTypes.size()];
-    int iParam = 0;
-    paramTypes[iParam++] = null;
+    int iParam = 1;
     for (Class<?> paramType : additionalParameterTypes) {
       paramTypes[iParam++] = paramType;
     }
@@ -321,7 +325,7 @@ public abstract class ReflectUtil {
     // the original visiteeClass has a diamond-shaped interface inheritance
     // graph. (This is common, for example, in JMI.) The idea is to avoid
     // iterating over a single interface's method more than once in a call.
-    Map<Class<?>, Method> cache = new HashMap<>();
+    Map<Class<?>, @Nullable Method> cache = new HashMap<>();
 
     return lookupVisitMethod(
         visitorClass,
@@ -331,12 +335,12 @@ public abstract class ReflectUtil {
         cache);
   }
 
-  private static Method lookupVisitMethod(
+  private static @Nullable Method lookupVisitMethod(
       final Class<?> visitorClass,
       final Class<?> visiteeClass,
       final String visitMethodName,
       final Class<?>[] paramTypes,
-      final Map<Class<?>, Method> cache) {
+      final Map<Class<?>, @Nullable Method> cache) {
     // Use containsKey since the result for a Class might be null.
     if (cache.containsKey(visiteeClass)) {
       return cache.get(visiteeClass);
@@ -411,15 +415,16 @@ public abstract class ReflectUtil {
    * @param visiteeBaseClazz Visitee base class
    * @return cache of methods
    */
-  public static <R extends ReflectiveVisitor, E> ReflectiveVisitDispatcher<R, E> createDispatcher(
+  public static <R extends ReflectiveVisitor,
+      E extends @NonNull Object> ReflectiveVisitDispatcher<R, E> createDispatcher(
       final Class<R> visitorBaseClazz,
       final Class<E> visiteeBaseClazz) {
     assert ReflectiveVisitor.class.isAssignableFrom(visitorBaseClazz);
     assert Object.class.isAssignableFrom(visiteeBaseClazz);
     return new ReflectiveVisitDispatcher<R, E>() {
-      final Map<List<Object>, Method> map = new HashMap<>();
+      final Map<List<Object>, @Nullable Method> map = new HashMap<>();
 
-      @Override public Method lookupVisitMethod(
+      @Override public @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName) {
@@ -430,7 +435,7 @@ public abstract class ReflectUtil {
             Collections.emptyList());
       }
 
-      @Override public Method lookupVisitMethod(
+      @Override public @Nullable Method lookupVisitMethod(
           Class<? extends R> visitorClass,
           Class<? extends E> visiteeClass,
           String visitMethodName,
@@ -505,7 +510,7 @@ public abstract class ReflectUtil {
    * @param arg0Clazz       Base type of argument zero
    * @param otherArgClasses Types of remaining arguments
    */
-  public static <E, T> MethodDispatcher<T> createMethodDispatcher(
+  public static <E extends @NonNull Object, T> MethodDispatcher<T> createMethodDispatcher(
       final Class<T> returnClazz,
       final ReflectiveVisitor visitor,
       final String methodName,
@@ -519,10 +524,12 @@ public abstract class ReflectUtil {
         createDispatcher(
             (Class<ReflectiveVisitor>) visitor.getClass(), arg0Clazz);
     return new MethodDispatcher<T>() {
-      @Override public T invoke(Object... args) {
-        Method method = lookupMethod(args[0]);
+      @Override public T invoke(@Nullable Object... args) {
+        Method method = lookupMethod(castNonNull(args[0]));
         try {
-          final Object o = method.invoke(visitor, args);
+          // castNonNull is here because method.invoke can return null, and we don't know if
+          // T is nullable
+          final Object o = castNonNull(method.invoke(visitor, args));
           return returnClazz.cast(o);
         } catch (IllegalAccessException e) {
           throw new RuntimeException("While invoking method '" + method + "'",
@@ -651,6 +658,6 @@ public abstract class ReflectUtil {
      * @param args Arguments to method
      * @return Return value of method
      */
-    T invoke(Object... args);
+    T invoke(@Nullable Object... args);
   }
 }

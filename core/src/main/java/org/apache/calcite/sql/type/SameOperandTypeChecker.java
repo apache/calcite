@@ -27,10 +27,14 @@ import org.apache.calcite.util.Util;
 
 import com.google.common.collect.ImmutableList;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Collections;
 import java.util.List;
 
 import static org.apache.calcite.util.Static.RESOURCE;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Parameter type-checking strategy where all operand types must be the same.
@@ -75,12 +79,15 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
   protected boolean checkOperandTypesImpl(
       SqlOperatorBinding operatorBinding,
       boolean throwOnFailure,
-      SqlCallBinding callBinding) {
+      @Nullable SqlCallBinding callBinding) {
+    if (throwOnFailure && callBinding == null) {
+      throw new IllegalArgumentException(
+          "callBinding must be non-null in case throwOnFailure=true");
+    }
     int nOperandsActual = nOperands;
     if (nOperandsActual == -1) {
       nOperandsActual = operatorBinding.getOperandCount();
     }
-    assert !(throwOnFailure && (callBinding == null));
     RelDataType[] types = new RelDataType[nOperandsActual];
     final List<Integer> operandList =
         getOperandList(operatorBinding.getOperandCount());
@@ -98,7 +105,7 @@ public class SameOperandTypeChecker implements SqlSingleOperandTypeChecker {
           // REVIEW jvs 5-June-2005: Why don't we use
           // newValidationSignatureError() here?  It gives more
           // specific diagnostics.
-          throw callBinding.newValidationError(
+          throw requireNonNull(callBinding, "callBinding").newValidationError(
               RESOURCE.needSameTypeParameter());
         }
       }
