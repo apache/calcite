@@ -268,8 +268,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
 
   private SqlNode top;
 
-  private NullCollation nullCollation = NullCollation.HIGH;
-
   // TODO jvs 11-Dec-2008:  make this local to performUnconditionalRewrites
   // if it's OK to expand the signature of that method.
   private boolean validatingSqlMerge;
@@ -318,23 +316,6 @@ public class SqlValidatorImpl implements SqlValidatorWithHints {
     if (config.typeCoercionRules() != null) {
       SqlTypeCoercionRule.THREAD_PROVIDERS.set(config.typeCoercionRules());
     }
-  }
-
-  /**
-   * Creates a validator.
-   *
-   * @param opTab         Operator table
-   * @param catalogReader Catalog reader
-   * @param typeFactory   Type factory
-   * @param conformance   Compatibility mode
-   */
-  @Deprecated // to be removed before 1.24
-  protected SqlValidatorImpl(
-      SqlOperatorTable opTab,
-      SqlValidatorCatalogReader catalogReader,
-      RelDataTypeFactory typeFactory,
-      SqlConformance conformance) {
-    this(opTab, catalogReader, typeFactory, Config.DEFAULT.withSqlConformance(conformance));
   }
 
   //~ Methods ----------------------------------------------------------------

@@ -107,7 +107,7 @@ public abstract class AbstractMaterializedViewTest {
     if (substitutes.stream().noneMatch(sub -> checker.apply(RelOptUtil.toString(sub)))) {
       StringBuilder substituteMessages = new StringBuilder();
       for (RelNode sub: substitutes) {
-        substituteMessages.append(RelOptUtil.toString(sub) + "\n");
+        substituteMessages.append(RelOptUtil.toString(sub)).append("\n");
       }
       throw new AssertionError("Materialized view failed to be matched by optmized results:\n"
           + substituteMessages.toString());
@@ -127,50 +127,48 @@ public abstract class AbstractMaterializedViewTest {
     final StringBuilder errMsgBuilder = new StringBuilder();
     errMsgBuilder.append("Optmization succeeds out of expectation: ");
     for (RelNode res: results) {
-      errMsgBuilder.append(RelOptUtil.toString(res) + "\n");
+      errMsgBuilder.append(RelOptUtil.toString(res)).append("\n");
     }
     throw new AssertionError(errMsgBuilder.toString());
   }
 
   private TestConfig build(Sql sql) {
     assert sql != null;
-    final TestConfig result =
-        Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
-          cluster.getPlanner().setExecutor(
-              new RexExecutorImpl(Schemas.createDataContext(null, null)));
-          try {
-            final SchemaPlus defaultSchema;
-            if (sql.getDefaultSchemaSpec() == null) {
-              defaultSchema = rootSchema.add("hr",
-                  new ReflectiveSchema(new MaterializationTest.HrFKUKSchema()));
-            } else {
-              defaultSchema = CalciteAssert.addSchema(rootSchema, sql.getDefaultSchemaSpec());
-            }
-            final RelNode queryRel = toRel(cluster, rootSchema, defaultSchema, sql.getQuery());
-            final List<RelOptMaterialization> mvs = new ArrayList<>();
-            final RelBuilder relBuilder =
-                RelFactories.LOGICAL_BUILDER.create(cluster, relOptSchema);
-            final MaterializationService.DefaultTableFactory tableFactory =
-                new MaterializationService.DefaultTableFactory();
-            for (Pair<String, String> pair: sql.getMaterializations()) {
-              final RelNode mvRel = toRel(cluster, rootSchema, defaultSchema, pair.left);
-              final Table table = tableFactory.createTable(CalciteSchema.from(rootSchema),
-                  pair.left, ImmutableList.of(defaultSchema.getName()));
-              defaultSchema.add(pair.right, table);
-              relBuilder.scan(defaultSchema.getName(), pair.right);
-              final LogicalTableScan logicalScan = (LogicalTableScan) relBuilder.build();
-              final EnumerableTableScan replacement =
-                  EnumerableTableScan.create(cluster, logicalScan.getTable());
-              mvs.add(
-                  new RelOptMaterialization(replacement, mvRel, null,
-                      ImmutableList.of(defaultSchema.getName(), pair.right)));
-            }
-            return new TestConfig(defaultSchema.getName(), queryRel, mvs);
-          } catch (Exception e) {
-            throw TestUtil.rethrow(e);
-          }
-        });
-    return result;
+    return Frameworks.withPlanner((cluster, relOptSchema, rootSchema) -> {
+      cluster.getPlanner().setExecutor(
+          new RexExecutorImpl(Schemas.createDataContext(null, null)));
+      try {
+        final SchemaPlus defaultSchema;
+        if (sql.getDefaultSchemaSpec() == null) {
+          defaultSchema = rootSchema.add("hr",
+              new ReflectiveSchema(new MaterializationTest.HrFKUKSchema()));
+        } else {
+          defaultSchema = CalciteAssert.addSchema(rootSchema, sql.getDefaultSchemaSpec());
+        }
+        final RelNode queryRel = toRel(cluster, rootSchema, defaultSchema, sql.getQuery());
+        final List<RelOptMaterialization> mvs = new ArrayList<>();
+        final RelBuilder relBuilder =
+            RelFactories.LOGICAL_BUILDER.create(cluster, relOptSchema);
+        final MaterializationService.DefaultTableFactory tableFactory =
+            new MaterializationService.DefaultTableFactory();
+        for (Pair<String, String> pair: sql.getMaterializations()) {
+          final RelNode mvRel = toRel(cluster, rootSchema, defaultSchema, pair.left);
+          final Table table = tableFactory.createTable(CalciteSchema.from(rootSchema),
+              pair.left, ImmutableList.of(defaultSchema.getName()));
+          defaultSchema.add(pair.right, table);
+          relBuilder.scan(defaultSchema.getName(), pair.right);
+          final LogicalTableScan logicalScan = (LogicalTableScan) relBuilder.build();
+          final EnumerableTableScan replacement =
+              EnumerableTableScan.create(cluster, logicalScan.getTable());
+          mvs.add(
+              new RelOptMaterialization(replacement, mvRel, null,
+                  ImmutableList.of(defaultSchema.getName(), pair.right)));
+        }
+        return new TestConfig(defaultSchema.getName(), queryRel, mvs);
+      } catch (Exception e) {
+        throw TestUtil.rethrow(e);
+      }
+    });
   }
 
   private RelNode toRel(RelOptCluster cluster, SchemaPlus rootSchema,
@@ -199,17 +197,17 @@ public abstract class AbstractMaterializedViewTest {
   }
 
   /** Validator for testing. */
-  private class ValidatorForTest extends SqlValidatorImpl {
+  private static class ValidatorForTest extends SqlValidatorImpl {
     ValidatorForTest(SqlOperatorTable opTab, SqlValidatorCatalogReader catalogReader,
         RelDataTypeFactory typeFactory, SqlConformance conformance) {
-      super(opTab, catalogReader, typeFactory, conformance);
+      super(opTab, catalogReader, typeFactory, Config.DEFAULT.withSqlConformance(conformance));
     }
   }
 
   /**
    * Processed testing definition.
    */
-  protected class TestConfig {
+  protected static class TestConfig {
     public final String defaultSchema;
     public final RelNode queryRel;
     public final List<RelOptMaterialization> materializations;

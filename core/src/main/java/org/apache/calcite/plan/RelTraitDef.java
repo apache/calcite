@@ -139,24 +139,6 @@ public abstract class RelTraitDef<T extends RelTrait> {
       T toTrait);
 
   /**
-   * Tests whether the given RelTrait can be converted to another RelTrait.
-   *
-   * @param planner   the planner requesting the conversion test
-   * @param fromTrait the RelTrait to convert from
-   * @param toTrait   the RelTrait to convert to
-   * @param fromRel   the RelNode to convert from (with fromTrait)
-   * @return true if fromTrait can be converted to toTrait
-   */
-  @Deprecated // to be removed before 1.24
-  public boolean canConvert(
-      RelOptPlanner planner,
-      T fromTrait,
-      T toTrait,
-      RelNode fromRel) {
-    return canConvert(planner, fromTrait, toTrait);
-  }
-
-  /**
    * Provides notification of the registration of a particular
    * {@link ConverterRule} with a {@link RelOptPlanner}. The default
    * implementation does nothing.

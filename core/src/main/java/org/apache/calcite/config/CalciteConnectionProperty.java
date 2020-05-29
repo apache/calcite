@@ -21,16 +21,15 @@ import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.model.JsonSchema;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
-import org.apache.calcite.util.Bug;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 
 import static org.apache.calcite.avatica.ConnectionConfigImpl.PropEnv;
+import static org.apache.calcite.avatica.ConnectionConfigImpl.parse;
 
 /**
  * Properties that may be specified on the JDBC connect string.
@@ -222,27 +221,6 @@ public enum CalciteConnectionProperty implements ConnectionProperty {
   }
 
   public PropEnv wrap(Properties properties) {
-    return new PropEnv(parse2(properties, NAME_TO_PROPS), this);
+    return new PropEnv(parse(properties, NAME_TO_PROPS), this);
   }
-
-  /** Fixed version of
-   * {@link org.apache.calcite.avatica.ConnectionConfigImpl#parse}
-   * until we upgrade Avatica. */
-  private static Map<ConnectionProperty, String> parse2(Properties properties,
-      Map<String, ? extends ConnectionProperty> nameToProps) {
-    Bug.upgrade("avatica-1.10");
-    final Map<ConnectionProperty, String> map = new LinkedHashMap<>();
-    for (String name : properties.stringPropertyNames()) {
-      final ConnectionProperty connectionProperty =
-          nameToProps.get(name.toUpperCase(Locale.ROOT));
-      if (connectionProperty == null) {
-        // For now, don't throw. It messes up sub-projects.
-        //throw new RuntimeException("Unknown property '" + name + "'");
-        continue;
-      }
-      map.put(connectionProperty, properties.getProperty(name));
-    }
-    return map;
-  }
-
 }

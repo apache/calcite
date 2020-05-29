@@ -84,7 +84,7 @@ public class SqlAdvisor {
    * @param validator Validator
    * @deprecated use {@link #SqlAdvisor(SqlValidatorWithHints, SqlParser.Config)}
    */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public SqlAdvisor(
       SqlValidatorWithHints validator) {
     this(validator, SqlParser.Config.DEFAULT);

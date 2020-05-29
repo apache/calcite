@@ -114,17 +114,6 @@ public interface SqlValidator {
   //~ Methods ----------------------------------------------------------------
 
   /**
-   * Returns the dialect of SQL (SQL:2003, etc.) this validator recognizes.
-   * Default is {@link SqlConformanceEnum#DEFAULT}.
-   *
-   * @return dialect of SQL this validator recognizes
-   *
-   * @deprecated Use {@link Config#sqlConformance}
-   */
-  @Deprecated // to be removed before 1.24
-  SqlConformance getConformance();
-
-  /**
    * Returns the catalog reader used by this validator.
    *
    * @return catalog reader
@@ -625,74 +614,6 @@ public interface SqlValidator {
   String getParentCursor(String columnListParamName);
 
   /**
-   * Enables or disables expansion of identifiers other than column
-   * references.
-   *
-   * @param expandIdentifiers new setting
-   *
-   * @deprecated Use {@link Config#withIdentifierExpansion}
-   */
-  @Deprecated // to be removed before 1.24
-  void setIdentifierExpansion(boolean expandIdentifiers);
-
-  /**
-   * Enables or disables expansion of column references. (Currently this does
-   * not apply to the ORDER BY clause; may be fixed in the future.)
-   *
-   * @param expandColumnReferences new setting
-   *
-   * @deprecated Use {@link Config#columnReferenceExpansion}
-   */
-  @Deprecated // to be removed before 1.24
-  void setColumnReferenceExpansion(boolean expandColumnReferences);
-
-  /**
-   * @return whether column reference expansion is enabled
-   *
-   * @deprecated  Use {@link Config#columnReferenceExpansion}
-   */
-  @Deprecated // to be removed before 1.24
-  boolean getColumnReferenceExpansion();
-
-  /**
-   * Sets how NULL values should be collated if an ORDER BY item does not
-   * contain NULLS FIRST or NULLS LAST.
-   *
-   * @deprecated Use {@link Config#defaultNullCollation}
-   */
-  @Deprecated // to be removed before 1.24
-  void setDefaultNullCollation(NullCollation nullCollation);
-
-  /**
-   * Returns how NULL values should be collated if an ORDER BY item does not
-   * contain NULLS FIRST or NULLS LAST.
-   *
-   * @deprecated Use {@link Config#defaultNullCollation}
-   */
-  @Deprecated // to be removed before 1.24
-  NullCollation getDefaultNullCollation();
-
-  /**
-   * Returns expansion of identifiers.
-   *
-   * @return whether this validator should expand identifiers
-   *
-   * @deprecated Use {@link Config#identifierExpansion}
-   */
-  @Deprecated // to be removed before 1.24
-  boolean shouldExpandIdentifiers();
-
-  /**
-   * Enables or disables rewrite of "macro-like" calls such as COALESCE.
-   *
-   * @param rewriteCalls new setting
-   *
-   * @deprecated Use {@link Config#callRewrite}
-   */
-  @Deprecated // to be removed before 1.24
-  void setCallRewrite(boolean rewriteCalls);
-
-  /**
    * Derives the type of a constructor.
    *
    * @param scope                 Scope
@@ -816,84 +737,8 @@ public interface SqlValidator {
 
   SqlValidatorScope getWithScope(SqlNode withItem);
 
-  /**
-   * Sets whether this validator should be lenient upon encountering an unknown
-   * function.
-   *
-   * @param lenient Whether to be lenient when encountering an unknown function
-   *
-   * @deprecated Use {@link Config#withLenientOperatorLookup}
-   */
-  @Deprecated // to be removed before 1.24
-  SqlValidator setLenientOperatorLookup(boolean lenient);
-
-  /** Returns whether this validator should be lenient upon encountering an
-   * unknown function.
-   *
-   * <p>If true, if a statement contains a call to a function that is not
-   * present in the operator table, or if the call does not have the required
-   * number or types of operands, the validator nevertheless regards the
-   * statement as valid. The type of the function call will be
-   * {@link #getUnknownType() UNKNOWN}.
-   *
-   * <p>If false (the default behavior), an unknown function call causes a
-   * validation error to be thrown.
-   *
-   * @deprecated Use {@link Config#lenientOperatorLookup}
-   */
-  @Deprecated // to be removed before 1.24
-  boolean isLenientOperatorLookup();
-
-  /**
-   * Sets enable or disable implicit type coercion when the validator does validation.
-   *
-   * @param enabled if enable the type coercion, default is true
-   *
-   * @see org.apache.calcite.sql.validate.implicit.TypeCoercionImpl TypeCoercionImpl
-   *
-   * @deprecated Use {@link Config#withTypeCoercionEnabled}
-   */
-  @Deprecated // to be removed before 1.24
-  SqlValidator setEnableTypeCoercion(boolean enabled);
-
-  /**
-   * Returns if this validator supports implicit type coercion.
-   *
-   * @deprecated Use {@link Config#typeCoercionEnabled}
-   */
-  @Deprecated // to be removed before 1.24
-  boolean isTypeCoercionEnabled();
-
-  /**
-   * Sets an instance of type coercion, you can customize the coercion rules to
-   * override the default ones defined in
-   * {@link org.apache.calcite.sql.validate.implicit.TypeCoercionImpl}.
-   *
-   * @param typeCoercion {@link TypeCoercion} instance
-   *
-   * @deprecated Use {@link Config#withTypeCoercionFactory}
-   */
-  @Deprecated // to be removed before 1.24
-  void setTypeCoercion(TypeCoercion typeCoercion);
-
   /** Get the type coercion instance. */
   TypeCoercion getTypeCoercion();
-
-  /**
-   * Sets the {@link SqlTypeCoercionRule} instance which defines the type conversion matrix
-   * for the explicit type coercion.
-   *
-   * <p>The {@code typeCoercionRules} setting should be thread safe.
-   * In the default implementation,
-   * the {@code typeCoercionRules} is set to a ThreadLocal variable.
-   *
-   * @param typeCoercionRules The {@link SqlTypeCoercionRule} instance, see its documentation
-   *                          for how to customize the rules.
-   *
-   * @deprecated Use {@link Config#withTypeCoercionRules}
-   */
-  @Deprecated // to be removed before 1.24
-  void setSqlTypeCoercionRules(SqlTypeCoercionRule typeCoercionRules);
 
   /** Returns the config of the validator. */
   Config config();

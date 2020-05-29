@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.IntFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,9 +81,9 @@ class FunctionTest {
 
   /** Unit test for {@link Functions#generate}. */
   @Test void testGenerate() {
-    final Function1<Integer, String> xx =
-        new Function1<Integer, String>() {
-          public String apply(Integer a0) {
+    final IntFunction<String> xx =
+        new IntFunction<String>() {
+          public String apply(int a0) {
             return a0 == 0 ? "0" : "x" + apply(a0 - 1);
           }
         };

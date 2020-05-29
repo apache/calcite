@@ -34,12 +34,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A collections of {@link HintStrategy}s.
+ * A collection of {@link HintStrategy}s.
  *
- * <p>Every supported hint should register a {@link HintPredicate}
- * into this collection. For example, {@link HintPredicates#JOIN} implies that this hint
- * would be propagated and attached to the {@link org.apache.calcite.rel.core.Join}
- * relational expressions.
+ * <p>Every hint must register a {@link HintStrategy} into the collection.
+ * With a hint strategies mapping, the hint strategy table is used as a tool
+ * to decide i) if the given hint was registered; ii) which hints are suitable for the rel with
+ * a given hints collection; iii) if the hint options are valid.
+ *
+ * <p>Once built, the hint strategy table is immutable during the planning phrase.
  *
  * <p>Match of hint name is case in-sensitive.
  *
@@ -49,7 +51,6 @@ public class HintStrategyTable {
   //~ Static fields/initializers ---------------------------------------------
 
   /** Empty strategies. */
-  // Need to replace the EMPTY with DEFAULT if we have any hint implementations.
   public static final HintStrategyTable EMPTY = new HintStrategyTable(
       Collections.emptyMap(), HintErrorLogger.INSTANCE);
 
@@ -163,11 +164,15 @@ public class HintStrategyTable {
       return new Key(name.toLowerCase(Locale.ROOT));
     }
 
-    @Override public boolean equals(Object obj) {
-      if (!(obj instanceof Key)) {
+    @Override public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      return Objects.equals(this.name, ((Key) obj).name);
+      Key key = (Key) o;
+      return name.equals(key.name);
     }
 
     @Override public int hashCode() {

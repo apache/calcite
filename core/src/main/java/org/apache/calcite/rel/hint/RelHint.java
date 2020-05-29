@@ -29,14 +29,29 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
- * Represents hint within a relation expression.
+ * Hint attached to a relation expression.
  *
- * <p>Every hint has a {@code inheritPath} (integers list) which records its propagate path
- * from the root node,
- * number `0` represents the hint is propagated from the first(left) child,
- * number `1` represents the hint is propagated from the second(right) child.
+ * <p>A hint can be used to:
  *
- * <p>Given a relational expression tree with initial attached hints:
+ * <ul>
+ *   <li>Enforce planner: there's no perfect planner, so it makes sense to implement hints to
+ *   allow user better control the execution. For instance, "never merge this subquery with others",
+ *   "treat those tables as leading ones" in the join ordering, etc.</li>
+ *   <li>Append meta data/statistics: Some statistics like “table index for scan” and
+ *   “skew info of some shuffle keys” are somewhat dynamic for the query, it would be very
+ *   convenient to config them with hints because our planning metadata from the planner is very
+ *   often not that accurate.</li>
+ *   <li>Operator resource constraints: For many cases, we would give a default resource
+ *   configuration for the execution operators, i.e. min parallelism or
+ *   managed memory (resource consuming UDF) or special resource requirement (GPU or SSD disk)
+ *   and so on, it would be very flexible to profile the resource with hints per query
+ *   (instead of the Job).</li>
+ * </ul>
+ *
+ * <p>In order to support hint override, each hint has a {@code inheritPath} (integers list) to
+ * record its propagate path from the root node, number `0` represents the hint was propagated
+ * along the first(left) child, number `1` represents the hint was propagated along the
+ * second(right) child. Given a relational expression tree with initial attached hints:
  *
  * <blockquote><pre>
  *            Filter (Hint1)
@@ -48,20 +63,21 @@ import javax.annotation.Nullable;
  *                    Scan2
  * </pre></blockquote>
  *
- * <p>The plan would have hints path as follows
- * (assumes each hint can be propagated to all child nodes):
- * <ul>
- *   <li>Filter would have hints {Hint1[]}</li>
- *   <li>Join would have hints {Hint1[0]}</li>
- *   <li>Scan would have hints {Hint1[0, 0]}</li>
- *   <li>Project would have hints {Hint1[0,1], Hint2[]}</li>
- *   <li>Scan2 would have hints {[Hint1[0, 1, 0], Hint2[0]}</li>
- * </ul>
+ * <p>The plan would have hints path as follows (assumes each hint can be propagated to all
+ * child nodes):
  *
- * <p>The {@code listOptions} and {@code kvOptions} are supposed to contain the same information,
+ * <blockquote><ul>
+ *   <li>Filter &#8594; {Hint1[]}</li>
+ *   <li>Join &#8594; {Hint1[0]}</li>
+ *   <li>Scan &#8594; {Hint1[0, 0]}</li>
+ *   <li>Project &#8594; {Hint1[0,1], Hint2[]}</li>
+ *   <li>Scan2 &#8594; {[Hint1[0, 1, 0], Hint2[0]}</li>
+ * </ul></blockquote>
+ *
+ * <p>{@code listOptions} and {@code kvOptions} are supposed to contain the same information,
  * they are mutually exclusive, that means, they can not both be non-empty.
  *
- * <p>The <code>RelHint</code> is immutable.
+ * <p>RelHint is immutable.
  */
 public class RelHint {
   //~ Instance fields --------------------------------------------------------
@@ -112,15 +128,18 @@ public class RelHint {
     return new RelHint(inheritPath, hintName, listOptions, kvOptions);
   }
 
-  @Override public boolean equals(Object obj) {
-    if (!(obj instanceof RelHint)) {
+  @Override public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final RelHint that = (RelHint) obj;
-    return this.hintName.equals(that.hintName)
-        && this.inheritPath.equals(that.inheritPath)
-        && Objects.equals(this.listOptions, that.listOptions)
-        && Objects.equals(this.kvOptions, that.kvOptions);
+    RelHint hint = (RelHint) o;
+    return inheritPath.equals(hint.inheritPath)
+        && hintName.equals(hint.hintName)
+        && Objects.equals(listOptions, hint.listOptions)
+        && Objects.equals(kvOptions, hint.kvOptions);
   }
 
   @Override public int hashCode() {

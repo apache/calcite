@@ -19,16 +19,11 @@ package org.apache.calcite.rel.hint;
 import org.apache.calcite.util.Litmus;
 
 /**
- * A {@code HintOptionChecker} checks if a {@link RelHint}'s options are valid.
+ * A {@code HintOptionChecker} validates the options of a {@link RelHint}.
  *
  * <p>Every hint would have a validation when converting to a {@link RelHint}, the
- * validation logic is as follows:
- *
- * <ul>
- *   <li>Checks whether the hint name was already registered</li>
- *   <li>If a {@code HintOptionChecker} was registered,
- *   use it to check the hint options</li>
- * </ul>
+ * validation logic is: i) checks whether the hint was already registered;
+ * ii) use the registered {@code HintOptionChecker} to check the hint options.
  *
  * <p>In {@link HintStrategyTable} the option checker is used for
  * hints registration as an optional parameter.
