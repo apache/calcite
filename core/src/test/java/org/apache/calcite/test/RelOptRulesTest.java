@@ -1665,6 +1665,38 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql).withRule(ProjectFilterTransposeRule.INSTANCE).check();
   }
 
+  /** Test case for
+   * <a href="https://issues.apache.org/jira/browse/CALCITE-3975">[CALCITE-3975]
+   * ProjectFilterTransposeRule should succeed for project that happens to
+   * reference all input columns</a>. */
+  @Test void testPushProjectPastFilter3() {
+    checkPushProjectPastFilter3(ProjectFilterTransposeRule.INSTANCE)
+        .checkUnchanged();
+  }
+
+  /** As {@link #testPushProjectPastFilter3()} but pushes down project and
+   * filter expressions whole. */
+  @Test void testPushProjectPastFilter3b() {
+    checkPushProjectPastFilter3(ProjectFilterTransposeRule.EXPRESSION_INSTANCE)
+        .check();
+  }
+
+  /** As {@link #testPushProjectPastFilter3()} but pushes down project
+   * expressions whole. */
+  @Test void testPushProjectPastFilter3c() {
+    checkPushProjectPastFilter3(ProjectFilterTransposeRule.PROJECT_EXPRESSION_INSTANCE)
+        .check();
+  }
+
+  private Sql checkPushProjectPastFilter3(ProjectFilterTransposeRule rule) {
+    final String sql = "select empno + deptno as x, ename, job, mgr,\n"
+        + "  hiredate, sal, comm, slacker\n"
+        + "from emp\n"
+        + "where sal = 10 * comm\n"
+        + "and upper(ename) = 'FOO'";
+    return sql(sql).withRule(rule);
+  }
+
   @Test void testPushProjectPastJoin() {
     final String sql = "select e.sal + b.comm from emp e inner join bonus b\n"
         + "on e.ename = b.ename and e.deptno = 10";
@@ -6715,6 +6747,10 @@ class RelOptRulesTest extends RelOptTestBase {
     sql(sql, false).check();
   }
 
+  // TODO: obsolete this method;
+  // move the code into a new method Sql.withTopDownPlanner() so that you can
+  // write sql.withTopDownPlanner();
+  // withTopDownPlanner should call Sql.withTester and should be documented.
   Sql sql(String sql, boolean topDown) {
     VolcanoPlanner planner = new VolcanoPlanner();
     planner.setTopDownOpt(topDown);
