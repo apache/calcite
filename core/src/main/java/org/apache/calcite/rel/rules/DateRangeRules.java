@@ -36,7 +36,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -249,8 +248,6 @@ public abstract class DateRangeRules {
         ImmutableSortedSet<TimeUnitRange> timeUnitRanges, String timeZone) {
       this.rexBuilder = Objects.requireNonNull(rexBuilder);
       this.timeUnit = Objects.requireNonNull(timeUnit);
-      Bug.upgrade("Change type to Map<RexNode, RangeSet<Calendar>> when"
-          + " [CALCITE-1367] is fixed");
       this.operandRanges = Objects.requireNonNull(operandRanges);
       this.timeUnitRanges = Objects.requireNonNull(timeUnitRanges);
       this.timeZone = timeZone;

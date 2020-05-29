@@ -1505,13 +1505,6 @@ public class CalciteAssert {
               hooks, null, checkUpdateCount(count), null));
     }
 
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed in 2.0
-    public final AssertQuery returns(
-        com.google.common.base.Function<ResultSet, Void> checker) {
-      return returns(sql, checker::apply);
-    }
-
     protected AssertQuery returns(String sql, Consumer<ResultSet> checker) {
       return withConnection(connection -> {
         if (consumer == null) {
@@ -1808,12 +1801,6 @@ public class CalciteAssert {
     public AssertQuery enableMaterializations(boolean enable) {
       this.materializationsEnabled = enable;
       return this;
-    }
-
-    @SuppressWarnings("Guava")
-    @Deprecated // to be removed in 2.0
-    public <T> AssertQuery withHook(Hook hook, Function<T, Void> handler) {
-      return withHook(hook, (Consumer<T>) handler::apply);
     }
 
     /** Adds a hook and a handler for that hook. Calcite will create a thread

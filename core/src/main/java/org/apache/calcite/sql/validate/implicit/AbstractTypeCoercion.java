@@ -349,7 +349,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       resultType = factory.leastRestrictive(ImmutableList.of(type1, type2));
     }
     // For numeric types: promote to highest type.
-    // i.e. SQL-SERVER/MYSQL supports numeric types cast from/to each other.
+    // i.e. MS-SQL/MYSQL supports numeric types cast from/to each other.
     if (SqlTypeUtil.isNumeric(type1) && SqlTypeUtil.isNumeric(type2)) {
       // For fixed precision decimals casts from(to) each other or other numeric types,
       // we let the operator decide the precision and scale of the result.
@@ -415,7 +415,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     // 1. Do not distinguish CHAR and VARCHAR, i.e. (INTEGER + CHAR(3))
     //    and (INTEGER + VARCHAR(5)) would both deduce VARCHAR type.
     // 2. VARCHAR has 65536 as default precision.
-    // 3. Following SQL-SERVER: BINARY or BOOLEAN can be casted to VARCHAR.
+    // 3. Following MS-SQL: BINARY or BOOLEAN can be casted to VARCHAR.
     if (SqlTypeUtil.isAtomic(type1) && SqlTypeUtil.isCharacter(type2)) {
       resultType = factory.createSqlType(SqlTypeName.VARCHAR);
     }
@@ -474,7 +474,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
       return SqlTypeUtil.getMaxPrecisionScaleDecimal(factory);
     }
 
-    // Keep sync with SQL-SERVER:
+    // Keep sync with MS-SQL:
     // 1. BINARY/VARBINARY can not cast to FLOAT/REAL/DOUBLE
     // because of precision loss,
     // 2. CHARACTER to TIMESTAMP need explicit cast because of TimeZone.
@@ -598,7 +598,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
   }
 
   /**
-   * Check if the types and families can have implicit type coercion.
+   * Checks if the types and families can have implicit type coercion.
    * We will check the type one by one, that means the 1th type and 1th family,
    * 2th type and 2th family, and the like.
    *
@@ -667,7 +667,7 @@ public abstract class AbstractTypeCoercion implements TypeCoercion {
     }
     // If the function accepts any NUMERIC type and the input is a STRING,
     // returns the expected type family's default type.
-    // REVIEW Danny 2018-05-22: same with SQL-SERVER and MYSQL.
+    // REVIEW Danny 2018-05-22: same with MS-SQL and MYSQL.
     if (SqlTypeUtil.isCharacter(in) && numericFamilies.contains(expected)) {
       return expected.getDefaultConcreteType(factory);
     }

@@ -19,7 +19,6 @@ package org.apache.calcite.jdbc;
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import com.google.common.collect.ImmutableList;
@@ -47,7 +46,7 @@ public class ContextSqlValidator extends SqlValidatorImpl {
    */
   public ContextSqlValidator(CalcitePrepare.Context context, boolean mutable) {
     super(SqlStdOperatorTable.instance(), getCatalogReader(context, mutable),
-        context.getTypeFactory(), SqlConformanceEnum.DEFAULT);
+        context.getTypeFactory(), Config.DEFAULT);
   }
 
   private static CalciteCatalogReader getCatalogReader(

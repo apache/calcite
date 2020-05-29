@@ -101,7 +101,7 @@ public class SqlSimpleParser {
    * @param hintToken Hint token
    * @deprecated
    */
-  @Deprecated
+  @Deprecated // to be removed before 2.0
   public SqlSimpleParser(String hintToken) {
     this(hintToken, SqlParser.Config.DEFAULT);
   }
@@ -275,7 +275,7 @@ public class SqlSimpleParser {
     private int pos;
     int start = 0;
 
-    @Deprecated
+    @Deprecated // to be removed before 2.0
     public Tokenizer(String sql, String hintToken) {
       this(sql, hintToken, Quoting.DOUBLE_QUOTE);
     }

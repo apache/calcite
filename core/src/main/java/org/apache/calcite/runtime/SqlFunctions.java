@@ -33,7 +33,6 @@ import org.apache.calcite.linq4j.function.Function1;
 import org.apache.calcite.linq4j.function.NonDeterministic;
 import org.apache.calcite.linq4j.tree.Primitive;
 import org.apache.calcite.runtime.FlatLists.ComparableList;
-import org.apache.calcite.util.Bug;
 import org.apache.calcite.util.NumberUtil;
 import org.apache.calcite.util.TimeWithTimeZoneString;
 import org.apache.calcite.util.TimestampWithTimeZoneString;
@@ -2165,14 +2164,7 @@ public class SqlFunctions {
       return 0;
     }
 
-    // ByteString doesn't have indexOf(ByteString, int) until avatica-1.9
-    // (see [CALCITE-1423]), so apply substring and find from there.
-    Bug.upgrade("in avatica-1.9, use ByteString.substring(ByteString, int)");
-    final int p = s.substring(from0).indexOf(seek);
-    if (p < 0) {
-      return 0;
-    }
-    return p + from;
+    return s.indexOf(seek, from0) + 1;
   }
 
   /** Helper for rounding. Truncate(12345, 1000) returns 12000. */

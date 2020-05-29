@@ -2031,7 +2031,7 @@ public class RexUtil {
    *
    * @deprecated Use {@link #not} */
   @SuppressWarnings("Guava")
-  @Deprecated // to be removed in 2.0
+  @Deprecated // to be removed before 2.0
   public static com.google.common.base.Function<RexNode, RexNode> notFn(
       final RexBuilder rexBuilder) {
     return e -> not(rexBuilder, e);

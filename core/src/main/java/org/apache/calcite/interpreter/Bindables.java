@@ -521,19 +521,6 @@ public class Bindables {
     }
   }
 
-  @Deprecated // Use BindableSetOpRule instead, to be removed before 1.24.0
-  public static class BindableUnionRule extends BindableSetOpRule {
-
-    /**
-     * Creates a BindableUnionRule.
-     *
-     * @param relBuilderFactory Builder for relational expressions
-     */
-    public BindableUnionRule(RelBuilderFactory relBuilderFactory) {
-      super(relBuilderFactory);
-    }
-  }
-
   /**
    * Rule to convert an {@link SetOp} to a {@link BindableUnion}
    * or {@link BindableIntersect} or {@link BindableMinus}.

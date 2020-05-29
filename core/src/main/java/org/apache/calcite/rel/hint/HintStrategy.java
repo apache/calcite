@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 /**
  * Represents a hint strategy entry of {@link HintStrategyTable}.
  *
- * <p>A {@code HintStrategy} includes:
+ * <p>A {@code HintStrategy} defines:
  *
  * <ul>
  *   <li>{@link HintPredicate}: tests whether a hint should apply to
@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  *
  * <p>The {@link HintPredicate} is required, all the other items are optional.
  *
- * <p>A {@link HintStrategy} is immutable.
+ * <p>{@link HintStrategy} is immutable.
  */
 public class HintStrategy {
   //~ Instance fields --------------------------------------------------------

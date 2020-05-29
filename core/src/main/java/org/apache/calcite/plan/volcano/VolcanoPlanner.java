@@ -855,14 +855,6 @@ public class VolcanoPlanner extends AbstractRelOptPlanner {
     return converted;
   }
 
-  @Deprecated // to be removed before 1.24
-  public void setImportance(RelNode rel, double importance) {
-    assert rel != null;
-    if (importance == 0d) {
-      prunedNodes.add(rel);
-    }
-  }
-
   @Override public void prune(RelNode rel) {
     prunedNodes.add(rel);
   }

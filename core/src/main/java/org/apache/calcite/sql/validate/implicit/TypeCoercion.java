@@ -97,11 +97,10 @@ public interface TypeCoercion {
    * Widen a SqlNode ith column type to target type, mainly used for set
    * operations like UNION, INTERSECT and EXCEPT.
    *
-   * @param scope       scope to query
+   * @param scope       Scope to query
    * @param query       SqlNode which have children nodes as columns
-   * @param columnIndex target column index
-   * @param targetType  target type to cast to
-   * @return true if we add any cast in successfully
+   * @param columnIndex Target column index
+   * @param targetType  Target type to cast to
    */
   boolean rowTypeCoercion(
       SqlValidatorScope scope,
@@ -116,14 +115,14 @@ public interface TypeCoercion {
    */
   boolean inOperationCoercion(SqlCallBinding binding);
 
-  /** Coerce operand of binary arithmetic expressions to Numeric type.*/
+  /** Coerces operand of binary arithmetic expressions to Numeric type.*/
   boolean binaryArithmeticCoercion(SqlCallBinding binding);
 
-  /** Coerce operands in binary comparison expressions. */
+  /** Coerces operands in binary comparison expressions. */
   boolean binaryComparisonCoercion(SqlCallBinding binding);
 
   /**
-   * Coerce CASE WHEN statement branches to one common type.
+   * Coerces CASE WHEN statement branches to one common type.
    *
    * <p>Rules: Find common type for all the then operands and else operands,
    * then try to coerce the then/else operands to the type if needed.
@@ -153,7 +152,6 @@ public interface TypeCoercion {
    * @param binding          Call binding
    * @param operandTypes     Types of the operands passed in
    * @param expectedFamilies Expected SqlTypeFamily list by user specified
-   * @return true if we successfully do any implicit cast
    */
   boolean builtinFunctionCoercion(
       SqlCallBinding binding,
@@ -165,13 +163,11 @@ public interface TypeCoercion {
    * with rules:
    *
    * <ol>
-   * <li>named param: find the desired type by the passed in operand's name
-   * <li>non-named param: find the desired type by formal parameter ordinal
+   * <li>Named param: find the desired type by the passed in operand's name
+   * <li>Non-named param: find the desired type by formal parameter ordinal
    * </ol>
    *
-   * <p>Try to make type coercion only of the desired type is found.
-   *
-   * @return true if any operands is coerced
+   * <p>Try to make type coercion only if the desired type is found.
    */
   boolean userDefinedFunctionCoercion(SqlValidatorScope scope, SqlCall call,
       SqlFunction function);
@@ -186,8 +182,6 @@ public interface TypeCoercion {
    * @param sourceRowType Source row type
    * @param targetRowType Target row type
    * @param query         The query, either an INSERT or UPDATE
-   *
-   * @return True if any type coercion happens
    */
   boolean querySourceCoercion(SqlValidatorScope scope,
       RelDataType sourceRowType, RelDataType targetRowType, SqlNode query);
