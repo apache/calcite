@@ -263,11 +263,8 @@ public final class LogicalWindow extends Window {
     // partitions may not match the order in which they occurred in the
     // original expression.
     // Add a project to permute them.
-    final List<RexNode> rexNodesWindow = new ArrayList<>();
-    for (RexNode rexNode : program.getExprList()) {
-      rexNodesWindow.add(rexNode.accept(shuttle));
-    }
-    final List<RexNode> refToWindow = toInputRefs(rexNodesWindow);
+    final List<RexNode> refToWindow =
+        toInputRefs(shuttle.visitList(program.getExprList()));
 
     final List<RexNode> projectList = new ArrayList<>();
     for (RexLocalRef inputRef : program.getProjectList()) {

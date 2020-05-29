@@ -97,6 +97,7 @@ import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -2374,8 +2375,12 @@ public class Util {
    * Returns a {@code Collector} that accumulates the input elements into a
    * Guava {@link ImmutableList} via a {@link ImmutableList.Builder}.
    *
-   * <p>It will be obsolete when we move to {@link Bug#upgrade Guava 21.0},
-   * which has {@code ImmutableList.toImmutableList()}.
+   * <p>It will be obsolete when we move to {@link Bug#upgrade Guava 28.0-jre}.
+   * Guava 21.0 introduced {@code ImmutableList.toImmutableList()}, but it had
+   * a {@link com.google.common.annotations.Beta} tag until 28.0-jre.
+   *
+   * <p>In {@link Bug#upgrade Guava 21.0}, change this method to call
+   * {@code ImmutableList.toImmutableList()}, ignoring the {@code @Beta} tag.
    *
    * @param <T> Type of the input elements
    *
@@ -2390,6 +2395,14 @@ public class Util {
           return t;
         },
         ImmutableList.Builder::build);
+  }
+
+  /** Returns an operator that applies {@code op1} and then {@code op2}.
+   *
+   * <p>As {@link Function#andThen(Function)} but for {@link UnaryOperator}. */
+  public static <X> UnaryOperator<X> andThen(UnaryOperator<X> op1,
+      UnaryOperator<X> op2) {
+    return op1.andThen(op2)::apply;
   }
 
   /** Transforms a list, applying a function to each element. */

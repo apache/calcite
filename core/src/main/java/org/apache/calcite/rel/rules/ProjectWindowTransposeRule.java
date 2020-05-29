@@ -173,10 +173,8 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
         window.constants, outputBuilder.build(), groups);
 
     // Modify the top LogicalProject
-    final List<RexNode> topProjExps = new ArrayList<>();
-    for (RexNode rexNode : project.getChildExps()) {
-      topProjExps.add(rexNode.accept(indexAdjustment));
-    }
+    final List<RexNode> topProjExps =
+        indexAdjustment.visitList(project.getChildExps());
 
     final LogicalProject newTopProj = project.copy(
         newLogicalWindow.getTraitSet(),
@@ -207,9 +205,7 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
     };
 
     // Reference in LogicalProject
-    for (RexNode rexNode : project.getChildExps()) {
-      rexNode.accept(referenceFinder);
-    }
+    referenceFinder.visitEach(project.getChildExps());
 
     // Reference in LogicalWindow
     for (Window.Group group : window.groups) {
@@ -228,9 +224,7 @@ public class ProjectWindowTransposeRule extends RelOptRule implements Transforma
       }
 
       // Reference in Window Functions
-      for (Window.RexWinAggCall rexWinAggCall : group.aggCalls) {
-        rexWinAggCall.accept(referenceFinder);
-      }
+      referenceFinder.visitEach(group.aggCalls);
     }
     return beReferred.build();
   }

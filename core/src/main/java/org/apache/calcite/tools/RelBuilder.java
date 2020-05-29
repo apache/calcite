@@ -1483,7 +1483,7 @@ public class RelBuilder {
    * <p>The default implementation returns {@code true};
    * sub-classes may disable merge by overriding to return {@code false}. */
   @Experimental
-  @Deprecated
+  @Deprecated // to be removed before 1.25
   protected boolean shouldMergeProject() {
     return true;
   }

@@ -111,9 +111,7 @@ public class RexProgramBuilder {
     // are normalizing, expressions will be registered if and when they are
     // first used.
     if (!normalize) {
-      for (RexNode expr : exprList) {
-        expr.accept(shuttle);
-      }
+      shuttle.visitEach(exprList);
     }
 
     final RexShuttle expander = new RexProgram.ExpansionShuttle(exprList);

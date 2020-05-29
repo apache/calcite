@@ -201,7 +201,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -5926,13 +5925,8 @@ public class SqlToRelConverter {
     /** Whether to push down join conditions; default true. */
     public ConfigBuilder withPushJoinCondition(boolean pushJoinCondition) {
       return withRelBuilderConfigTransform(
-          compose(relBuilderConfigTransform,
+          Util.andThen(relBuilderConfigTransform,
               c -> c.withPushJoinCondition(pushJoinCondition)));
-    }
-
-    private static <X> UnaryOperator<X> compose(Function<X, X> f1,
-        Function<X, X> f2) {
-      return x -> f2.apply(f1.apply(x));
     }
 
     @Deprecated // to be removed before 2.0

@@ -46,7 +46,7 @@ public class RexAnalyzer {
     this.e = e;
     final VariableCollector variableCollector = new VariableCollector();
     e.accept(variableCollector);
-    predicates.pulledUpPredicates.forEach(p -> p.accept(variableCollector));
+    variableCollector.visitEach(predicates.pulledUpPredicates);
     variables = ImmutableList.copyOf(variableCollector.builder);
     unsupportedCount = variableCollector.unsupportedCount;
   }

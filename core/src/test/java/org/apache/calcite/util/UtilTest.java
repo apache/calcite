@@ -90,6 +90,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.ObjIntConsumer;
+import java.util.function.UnaryOperator;
 
 import static org.apache.calcite.test.Matchers.isLinux;
 
@@ -2425,6 +2426,18 @@ class UtilTest {
     // left-hand side must be linux or will never match
     assertThat(isLinux("x\r\ny").matches("x\r\ny"), is(false));
     assertThat(isLinux("x\r\ny").matches("x\ny"), is(false));
+  }
+
+  /** Tests {@link Util#andThen(UnaryOperator, UnaryOperator)}. */
+  @Test void testAndThen() {
+    final UnaryOperator<Integer> inc = x -> x + 1;
+    final UnaryOperator<Integer> triple = x -> x * 3;
+    final UnaryOperator<Integer> tripleInc = Util.andThen(triple, inc);
+    final UnaryOperator<Integer> incTriple = Util.andThen(inc, triple);
+    final Function<Integer, Integer> incTripleFn = inc.andThen(triple);
+    assertThat(tripleInc.apply(2), is(7));
+    assertThat(incTriple.apply(2), is(9));
+    assertThat(incTripleFn.apply(2), is(9));
   }
 
   /** Tests {@link Util#transform(List, java.util.function.Function)}. */

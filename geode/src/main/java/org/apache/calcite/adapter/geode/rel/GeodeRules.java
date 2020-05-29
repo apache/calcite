@@ -99,7 +99,8 @@ public class GeodeRules {
     }
 
     @Override public String visitCall(RexCall call) {
-      final List<String> strings = visitList(call.operands);
+      final List<String> strings = new ArrayList<>();
+      visitList(call.operands, strings);
       if (call.getOperator() == SqlStdOperatorTable.ITEM) {
         final RexNode op1 = call.getOperands().get(1);
         if (op1 instanceof RexLiteral) {
@@ -116,14 +117,6 @@ public class GeodeRules {
 
     private String stripQuotes(String s) {
       return s.startsWith("'") && s.endsWith("'") ? s.substring(1, s.length() - 1) : s;
-    }
-
-    List<String> visitList(List<RexNode> list) {
-      final List<String> strings = new ArrayList<>();
-      for (RexNode node : list) {
-        strings.add(node.accept(this));
-      }
-      return strings;
     }
   }
 

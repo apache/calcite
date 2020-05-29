@@ -49,7 +49,6 @@ import org.apache.calcite.util.trace.CalciteTrace;
 import org.slf4j.Logger;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -233,14 +232,6 @@ public class MongoRules {
       return s.startsWith("'") && s.endsWith("'")
           ? s.substring(1, s.length() - 1)
           : s;
-    }
-
-    public List<String> visitList(List<RexNode> list) {
-      final List<String> strings = new ArrayList<>();
-      for (RexNode node : list) {
-        strings.add(node.accept(this));
-      }
-      return strings;
     }
   }
 

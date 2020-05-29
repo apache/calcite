@@ -58,9 +58,7 @@ public class RexVisitorImpl<R> implements RexVisitor<R> {
     for (RexFieldCollation orderKey : window.orderKeys) {
       orderKey.left.accept(this);
     }
-    for (RexNode partitionKey : window.partitionKeys) {
-      partitionKey.accept(this);
-    }
+    visitEach(window.partitionKeys);
     window.getLowerBound().accept(this);
     window.getUpperBound().accept(this);
     return r;

@@ -133,9 +133,9 @@ public class JoinAssociateRule extends RelOptRule implements TransformationRule 
             aCount + bCount + cCount,
             0, aCount, bCount,
             bCount, aCount + bCount, cCount);
-    final List<RexNode> newBottomList = new ArrayList<>();
-    new RexPermuteInputsShuttle(bottomMapping, relB, relC)
-        .visitList(bottom, newBottomList);
+    final List<RexNode> newBottomList =
+        new RexPermuteInputsShuttle(bottomMapping, relB, relC)
+            .visitList(bottom);
     RexNode newBottomCondition =
         RexUtil.composeConjunction(rexBuilder, newBottomList);
 

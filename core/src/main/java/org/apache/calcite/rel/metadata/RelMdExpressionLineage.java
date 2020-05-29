@@ -493,6 +493,6 @@ public class RelMdExpressionLineage
     final Set<RelDataTypeField> inputExtraFields = new LinkedHashSet<>();
     final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder(inputExtraFields);
     expr.accept(inputFinder);
-    return inputFinder.inputBitSet.build();
+    return inputFinder.build();
   }
 }

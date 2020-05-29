@@ -109,16 +109,15 @@ public abstract class ProjectTableScanRule extends RelOptRule {
     assert table.unwrap(ProjectableFilterableTable.class) != null;
 
     final List<Integer> selectedColumns = new ArrayList<>();
-    project.getProjects().forEach(proj -> {
-      proj.accept(new RexVisitorImpl<Void>(true) {
-        public Void visitInputRef(RexInputRef inputRef) {
-          if (!selectedColumns.contains(inputRef.getIndex())) {
-            selectedColumns.add(inputRef.getIndex());
-          }
-          return null;
+    final RexVisitorImpl<Void> visitor = new RexVisitorImpl<Void>(true) {
+      public Void visitInputRef(RexInputRef inputRef) {
+        if (!selectedColumns.contains(inputRef.getIndex())) {
+          selectedColumns.add(inputRef.getIndex());
         }
-      });
-    });
+        return null;
+      }
+    };
+    visitor.visitEach(project.getProjects());
 
     final List<RexNode> filtersPushDown;
     final List<Integer> projectsPushDown;
@@ -138,7 +137,7 @@ public abstract class ProjectTableScanRule extends RelOptRule {
     Mapping mapping =
         Mappings.target(selectedColumns, scan.getRowType().getFieldCount());
     final List<RexNode> newProjectRexNodes =
-        ImmutableList.copyOf(RexUtil.apply(mapping, project.getProjects()));
+        RexUtil.apply(mapping, project.getProjects());
 
     if (RexUtil.isIdentity(newProjectRexNodes, newScan.getRowType())) {
       call.transformTo(newScan);

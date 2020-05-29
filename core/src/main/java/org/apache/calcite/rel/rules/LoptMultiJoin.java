@@ -453,7 +453,7 @@ public class LoptMultiJoin {
   private ImmutableBitSet fieldBitmap(RexNode joinFilter) {
     final RelOptUtil.InputFinder inputFinder = new RelOptUtil.InputFinder();
     joinFilter.accept(inputFinder);
-    return inputFinder.inputBitSet.build();
+    return inputFinder.build();
   }
 
   /**

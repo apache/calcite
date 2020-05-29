@@ -101,9 +101,7 @@ public class PigToSqlAggregateRule extends RelOptRule {
       } else if (isMultisetProjection(call) && !ignoreMultisetProj) {
         pigAggCalls.add(call);
       }
-      for (RexNode operand : call.operands) {
-        operand.accept(this);
-      }
+      visitEach(call.operands);
       return null;
     }
 
