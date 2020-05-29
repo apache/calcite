@@ -29,12 +29,13 @@ import java.util.Set;
 /**
  * Visitor pattern for traversing a tree of {@link RexNode} objects.
  */
-public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
+public class LogicVisitor extends RexUnaryBiVisitor<Logic> {
   private final RexNode seek;
   private final Collection<Logic> logicCollection;
 
   /** Creates a LogicVisitor. */
   private LogicVisitor(RexNode seek, Collection<Logic> logicCollection) {
+    super(true);
     this.seek = seek;
     this.logicCollection = logicCollection;
   }
@@ -77,7 +78,7 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     Collections.replaceAll(logicList, Logic.FALSE, Logic.UNKNOWN_AS_TRUE);
   }
 
-  public Logic visitCall(RexCall call, Logic logic) {
+  @Override public Logic visitCall(RexCall call, Logic logic) {
     final Logic arg0 = logic;
     switch (call.getKind()) {
     case IS_NOT_NULL:
@@ -114,60 +115,27 @@ public class LogicVisitor implements RexBiVisitor<Logic, Logic> {
     return end(call, arg0);
   }
 
-  private Logic end(RexNode node, Logic arg) {
+  @Override protected Logic end(RexNode node, Logic arg) {
     if (node.equals(seek)) {
       logicCollection.add(arg);
     }
     return arg;
   }
 
-  public Logic visitInputRef(RexInputRef inputRef, Logic arg) {
-    return end(inputRef, arg);
-  }
-
-  public Logic visitLocalRef(RexLocalRef localRef, Logic arg) {
-    return end(localRef, arg);
-  }
-
-  public Logic visitLiteral(RexLiteral literal, Logic arg) {
-    return end(literal, arg);
-  }
-
-  public Logic visitOver(RexOver over, Logic arg) {
+  @Override public Logic visitOver(RexOver over, Logic arg) {
     return end(over, arg);
   }
 
-  public Logic visitCorrelVariable(RexCorrelVariable correlVariable,
-      Logic arg) {
-    return end(correlVariable, arg);
-  }
-
-  public Logic visitDynamicParam(RexDynamicParam dynamicParam, Logic arg) {
-    return end(dynamicParam, arg);
-  }
-
-  public Logic visitRangeRef(RexRangeRef rangeRef, Logic arg) {
-    return end(rangeRef, arg);
-  }
-
-  public Logic visitFieldAccess(RexFieldAccess fieldAccess, Logic arg) {
+  @Override public Logic visitFieldAccess(RexFieldAccess fieldAccess, Logic arg) {
     return end(fieldAccess, arg);
   }
 
-  public Logic visitSubQuery(RexSubQuery subQuery, Logic arg) {
+  @Override public Logic visitSubQuery(RexSubQuery subQuery, Logic arg) {
     if (!subQuery.getType().isNullable()) {
       if (arg == Logic.TRUE_FALSE_UNKNOWN) {
         arg = Logic.TRUE_FALSE;
       }
     }
     return end(subQuery, arg);
-  }
-
-  @Override public Logic visitTableInputRef(RexTableInputRef ref, Logic arg) {
-    return end(ref, arg);
-  }
-
-  @Override public Logic visitPatternFieldRef(RexPatternFieldRef ref, Logic arg) {
-    return end(ref, arg);
   }
 }

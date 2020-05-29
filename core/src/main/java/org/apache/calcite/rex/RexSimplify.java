@@ -1134,12 +1134,7 @@ public class RexSimplify {
       if (!safeOps.contains(call.getKind())) {
         return false;
       }
-      for (RexNode o : call.getOperands()) {
-        if (!o.accept(this)) {
-          return false;
-        }
-      }
-      return true;
+      return RexVisitorImpl.visitArrayAnd(this, call.operands);
     }
 
     @Override public Boolean visitOver(RexOver over) {

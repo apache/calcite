@@ -91,7 +91,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.stream.Collectors;
 
 // TODO jvs 10-Feb-2005:  factor out generic rewrite helper, with the
 // ability to map between old and new rels and field ordinals.  Also,
@@ -688,10 +687,8 @@ public class RelStructuredTypeFlattener implements ReflectiveVisitor {
             }
           }
         } else {
-          List<RexNode> newOperands = operands.stream()
-              .map(op -> op.accept(shuttle))
-              .collect(Collectors.toList());
-          newExp = rexBuilder.makeCall(exp.getType(), operator, newOperands);
+          newExp = rexBuilder.makeCall(exp.getType(), operator,
+              shuttle.visitList(operands));
           // flatten call result type
           flattenResultTypeOfRexCall(newExp, fieldName, flattenedExps);
         }

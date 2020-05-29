@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMap;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
@@ -136,10 +135,7 @@ public class RexInterpreter implements RexVisitor<Comparable> {
   }
 
   public Comparable visitCall(RexCall call) {
-    final List<Comparable> values = new ArrayList<>(call.operands.size());
-    for (RexNode operand : call.operands) {
-      values.add(operand.accept(this));
-    }
+    final List<Comparable> values = visitList(call.operands);
     switch (call.getKind()) {
     case IS_NOT_DISTINCT_FROM:
       if (containsNull(values)) {

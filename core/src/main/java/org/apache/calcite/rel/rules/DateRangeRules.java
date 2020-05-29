@@ -195,7 +195,7 @@ public abstract class DateRangeRules {
 
   /** Visitor that searches for calls to {@code EXTRACT}, {@code FLOOR} or
    * {@code CEIL}, building a list of distinct time units. */
-  private static class ExtractFinder extends RexVisitorImpl
+  private static class ExtractFinder extends RexVisitorImpl<Void>
       implements AutoCloseable {
     private final Set<TimeUnitRange> timeUnits =
         EnumSet.noneOf(TimeUnitRange.class);
@@ -208,7 +208,7 @@ public abstract class DateRangeRules {
       super(true);
     }
 
-    @Override public Object visitCall(RexCall call) {
+    @Override public Void visitCall(RexCall call) {
       switch (call.getKind()) {
       case EXTRACT:
         final RexLiteral operand = (RexLiteral) call.getOperands().get(0);

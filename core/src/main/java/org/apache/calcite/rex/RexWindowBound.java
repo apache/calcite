@@ -85,11 +85,24 @@ public abstract class RexWindowBound {
 
   /**
    * Transforms the bound via {@link org.apache.calcite.rex.RexVisitor}.
+   *
    * @param visitor visitor to accept
    * @param <R> return type of the visitor
    * @return transformed bound
    */
   public <R> RexWindowBound accept(RexVisitor<R> visitor) {
+    return this;
+  }
+
+  /**
+   * Transforms the bound via {@link org.apache.calcite.rex.RexBiVisitor}.
+   *
+   * @param visitor visitor to accept
+   * @param arg Payload
+   * @param <R> return type of the visitor
+   * @return transformed bound
+   */
+  public <R, P> RexWindowBound accept(RexBiVisitor<R, P> visitor, P arg) {
     return this;
   }
 

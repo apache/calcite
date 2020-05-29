@@ -1322,10 +1322,9 @@ public class RexUtil {
   /**
    * Applies a mapping to an iterable over expressions.
    */
-  public static Iterable<RexNode> apply(Mappings.TargetMapping mapping,
+  public static List<RexNode> apply(Mappings.TargetMapping mapping,
       Iterable<? extends RexNode> nodes) {
-    final RexPermuteInputsShuttle shuttle = RexPermuteInputsShuttle.of(mapping);
-    return Iterables.transform(nodes, e -> e.accept(shuttle));
+    return RexPermuteInputsShuttle.of(mapping).visitList(nodes);
   }
 
   /**
@@ -1646,8 +1645,8 @@ public class RexUtil {
   /**
    * Shifts every {@link RexInputRef} in an expression by {@code offset}.
    */
-  public static Iterable<RexNode> shift(Iterable<RexNode> nodes, int offset) {
-    return new RexShiftShuttle(offset).apply(nodes);
+  public static List<RexNode> shift(Iterable<RexNode> nodes, int offset) {
+    return new RexShiftShuttle(offset).visitList(nodes);
   }
 
   /**
@@ -2145,16 +2144,12 @@ public class RexUtil {
    */
   public static Set<RelTableRef> gatherTableReferences(final List<RexNode> nodes) {
     final Set<RelTableRef> occurrences = new HashSet<>();
-    RexVisitor<Void> visitor =
-        new RexVisitorImpl<Void>(true) {
-          @Override public Void visitTableInputRef(RexTableInputRef ref) {
-            occurrences.add(ref.getTableRef());
-            return super.visitTableInputRef(ref);
-          }
-        };
-    for (RexNode e : nodes) {
-      e.accept(visitor);
-    }
+    new RexVisitorImpl<Void>(true) {
+      @Override public Void visitTableInputRef(RexTableInputRef ref) {
+        occurrences.add(ref.getTableRef());
+        return super.visitTableInputRef(ref);
+      }
+    }.visitEach(nodes);
     return occurrences;
   }
 
@@ -2305,9 +2300,7 @@ public class RexUtil {
     }
 
     public Void visitCall(RexCall call) {
-      for (RexNode operand : call.operands) {
-        operand.accept(this);
-      }
+      visitEach(call.operands);
       return null;
     }
 

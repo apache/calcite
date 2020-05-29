@@ -270,7 +270,7 @@ public class RelMdColumnOrigins
   private Set<RelColumnOrigin> getMultipleColumns(RexNode rexNode, RelNode input,
       final RelMetadataQuery mq) {
     final Set<RelColumnOrigin> set = new HashSet<>();
-    RexVisitor visitor =
+    final RexVisitor<Void> visitor =
         new RexVisitorImpl<Void>(true) {
           public Void visitInputRef(RexInputRef inputRef) {
             Set<RelColumnOrigin> inputSet =

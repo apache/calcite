@@ -35,8 +35,6 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -108,7 +106,7 @@ public class UnionPullUpConstantsRule extends RelOptRule implements Transformati
     // Update top Project positions
     final Mappings.TargetMapping mapping =
         RelOptUtil.permutation(refs, union.getInput(0).getRowType()).inverse();
-    topChildExprs = ImmutableList.copyOf(RexUtil.apply(mapping, topChildExprs));
+    topChildExprs = RexUtil.apply(mapping, topChildExprs);
 
     // Create new Project-Union-Project sequences
     final RelBuilder relBuilder = call.builder();

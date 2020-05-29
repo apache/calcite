@@ -16,7 +16,6 @@
  */
 package org.apache.calcite.rel.rules;
 
-import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
@@ -28,6 +27,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalCalc;
 import org.apache.calcite.rel.logical.LogicalWindow;
+import org.apache.calcite.rex.RexBiVisitorImpl;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexFieldAccess;
@@ -36,7 +36,6 @@ import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexProgram;
-import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
@@ -362,15 +361,13 @@ public abstract class ProjectToWindowRule extends RelOptRule implements Transfor
         graph.addVertex(i);
       }
 
-      for (final Ord<RexNode> expr : Ord.zip(exprs)) {
-        expr.e.accept(
-            new RexVisitorImpl<Void>(true) {
-              public Void visitLocalRef(RexLocalRef localRef) {
-                graph.addEdge(localRef.getIndex(), expr.i);
-                return null;
-              }
-            });
-      }
+      new RexBiVisitorImpl<Void, Integer>(true) {
+        public Void visitLocalRef(RexLocalRef localRef, Integer i) {
+          graph.addEdge(localRef.getIndex(), i);
+          return null;
+        }
+      }.visitEachIndexed(exprs);
+
       assert graph.vertexSet().size() == exprs.size();
       return graph;
     }

@@ -166,16 +166,6 @@ public class RexShuttle implements RexVisitor<RexNode> {
   }
 
   /**
-   * Visits a list and writes the results to another list.
-   */
-  public void visitList(
-      List<? extends RexNode> exprs, List<RexNode> outExprs) {
-    for (RexNode expr : exprs) {
-      outExprs.add(expr.accept(this));
-    }
-  }
-
-  /**
    * Visits each of a list of field collations and returns a list of the
    * results.
    *
@@ -271,9 +261,8 @@ public class RexShuttle implements RexVisitor<RexNode> {
     }
   }
 
-  /**
-   * Applies this shuttle to each expression in an iterable.
-   */
+  /** @deprecated Use {@link RexVisitor#visitList(Iterable)} if possible. */
+  @Deprecated // to be removed before 1.25
   public final Iterable<RexNode> apply(Iterable<? extends RexNode> iterable) {
     return Iterables.transform(iterable,
         t -> t == null ? null : t.accept(RexShuttle.this));

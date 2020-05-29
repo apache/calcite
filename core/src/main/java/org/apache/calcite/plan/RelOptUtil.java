@@ -2751,7 +2751,7 @@ public abstract class RelOptUtil {
     final List<RexNode> filtersToRemove = new ArrayList<>();
     for (RexNode filter : filters) {
       final InputFinder inputFinder = InputFinder.analyze(filter);
-      final ImmutableBitSet inputBits = inputFinder.inputBitSet.build();
+      final ImmutableBitSet inputBits = inputFinder.build();
 
       // REVIEW - are there any expressions that need special handling
       // and therefore cannot be pushed?
@@ -2974,9 +2974,7 @@ public abstract class RelOptUtil {
    */
   public static List<RexNode> pushPastProject(List<? extends RexNode> nodes,
       Project project) {
-    final List<RexNode> list = new ArrayList<>();
-    pushShuttle(project).visitList(nodes, list);
-    return list;
+    return pushShuttle(project).visitList(nodes);
   }
 
   /** As {@link #pushPastProject}, but returns null if the resulting expressions
@@ -4244,17 +4242,33 @@ public abstract class RelOptUtil {
    * Visitor which builds a bitmap of the inputs used by an expression.
    */
   public static class InputFinder extends RexVisitorImpl<Void> {
+    /** @deprecated Being replaced by private field {@link #bitBuilder}.
+     * Use {@link #build}. */
+    @Deprecated // to be removed before 1.25
     public final ImmutableBitSet.Builder inputBitSet;
+
+    private final ImmutableBitSet.Builder bitBuilder;
     private final Set<RelDataTypeField> extraFields;
+
+    private InputFinder(Set<RelDataTypeField> extraFields,
+        ImmutableBitSet.Builder bitBuilder) {
+      super(true);
+      this.bitBuilder = bitBuilder;
+      this.inputBitSet = bitBuilder; // deprecated field mirrors private field
+      this.extraFields = extraFields;
+    }
 
     public InputFinder() {
       this(null);
     }
 
     public InputFinder(Set<RelDataTypeField> extraFields) {
-      super(true);
-      this.inputBitSet = ImmutableBitSet.builder();
-      this.extraFields = extraFields;
+      this(extraFields, ImmutableBitSet.builder());
+    }
+
+    public InputFinder(Set<RelDataTypeField> extraFields,
+        ImmutableBitSet initialBits) {
+      this(extraFields, initialBits.rebuild());
     }
 
     /** Returns an input finder that has analyzed a given expression. */
@@ -4268,7 +4282,7 @@ public abstract class RelOptUtil {
      * Returns a bit set describing the inputs used by an expression.
      */
     public static ImmutableBitSet bits(RexNode node) {
-      return analyze(node).inputBitSet.build();
+      return analyze(node).build();
     }
 
     /**
@@ -4278,11 +4292,19 @@ public abstract class RelOptUtil {
     public static ImmutableBitSet bits(List<RexNode> exprs, RexNode expr) {
       final InputFinder inputFinder = new InputFinder();
       RexUtil.apply(inputFinder, exprs, expr);
-      return inputFinder.inputBitSet.build();
+      return inputFinder.build();
+    }
+
+    /** Returns the bit set.
+     *
+     * <p>After calling this method, you cannot do any more visits or call this
+     * method again. */
+    public ImmutableBitSet build() {
+      return bitBuilder.build();
     }
 
     public Void visitInputRef(RexInputRef inputRef) {
-      inputBitSet.set(inputRef.getIndex());
+      bitBuilder.set(inputRef.getIndex());
       return null;
     }
 

@@ -43,7 +43,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 
 import java.util.AbstractList;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -181,14 +180,6 @@ class ElasticsearchRules {
       }
       throw new IllegalArgumentException("Translation of " + call
           + " is not supported by ElasticsearchProject");
-    }
-
-    List<String> visitList(List<RexNode> list) {
-      final List<String> strings = new ArrayList<>();
-      for (RexNode node: list) {
-        strings.add(node.accept(this));
-      }
-      return strings;
     }
   }
 

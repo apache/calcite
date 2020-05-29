@@ -414,10 +414,8 @@ public abstract class MaterializedViewAggregateRule extends MaterializedViewRule
       // We have a Project on top, gather only what is needed
       final RelOptUtil.InputFinder inputFinder =
           new RelOptUtil.InputFinder(new LinkedHashSet<>());
-      for (RexNode e : topProject.getChildExps()) {
-        e.accept(inputFinder);
-      }
-      references = inputFinder.inputBitSet.build();
+      inputFinder.visitEach(topProject.getChildExps());
+      references = inputFinder.build();
       for (int i = 0; i < queryAggregate.getGroupCount(); i++) {
         indexes.set(queryAggregate.getGroupSet().nth(i));
       }

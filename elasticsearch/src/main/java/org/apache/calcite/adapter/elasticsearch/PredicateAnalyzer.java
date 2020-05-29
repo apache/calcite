@@ -36,14 +36,12 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
-import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.boolQuery;
 import static org.apache.calcite.adapter.elasticsearch.QueryBuilders.existsQuery;
@@ -133,11 +131,8 @@ class PredicateAnalyzer {
       if (call.getOperator().getKind() == SqlKind.NOT) {
         RexNode child = call.getOperands().get(0);
         if (child.getKind() == SqlKind.LIKE) {
-          List<RexNode> operands = ((RexCall) child).getOperands()
-              .stream()
-              .map(rexNode -> rexNode.accept(NotLikeConverter.this))
-              .collect(Collectors.toList());
-          return rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE, operands);
+          return rexBuilder.makeCall(SqlStdOperatorTable.NOT_LIKE,
+              visitList(((RexCall) child).getOperands()));
         }
       }
       return super.visitCall(call);
@@ -246,11 +241,7 @@ class PredicateAnalyzer {
         }
       case FUNCTION:
         if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
-          List<Expression> operands = new ArrayList<>();
-          for (RexNode node : call.getOperands()) {
-            final Expression nodeExpr = node.accept(this);
-            operands.add(nodeExpr);
-          }
+          List<Expression> operands = visitList(call.getOperands());
           String query = convertQueryString(operands.subList(0, operands.size() - 1),
               operands.get(operands.size() - 1));
           return QueryExpression.create(new NamedFieldExpression()).queryString(query);

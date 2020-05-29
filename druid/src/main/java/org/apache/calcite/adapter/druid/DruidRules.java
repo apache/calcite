@@ -332,12 +332,11 @@ public class DruidRules {
       call.transformTo(newProject2);
     }
 
-    private static Pair<List<RexNode>, List<RexNode>> splitProjects(final RexBuilder rexBuilder,
-            final RelNode input, List<RexNode> nodes) {
-      final RelOptUtil.InputReferencedVisitor visitor = new RelOptUtil.InputReferencedVisitor();
-      for (RexNode node : nodes) {
-        node.accept(visitor);
-      }
+    private static Pair<List<RexNode>, List<RexNode>> splitProjects(
+        final RexBuilder rexBuilder, final RelNode input, List<RexNode> nodes) {
+      final RelOptUtil.InputReferencedVisitor visitor =
+          new RelOptUtil.InputReferencedVisitor();
+      visitor.visitEach(nodes);
       if (visitor.inputPosReferenced.size() == input.getRowType().getFieldCount()) {
         // All inputs are referenced
         return null;
@@ -350,17 +349,12 @@ public class DruidRules {
         belowNodes.add(node);
         belowTypes.add(node.getType());
       }
-      final List<RexNode> aboveNodes = new ArrayList<>();
-      for (RexNode node : nodes) {
-        aboveNodes.add(
-            node.accept(
-              new RexShuttle() {
-                @Override public RexNode visitInputRef(RexInputRef ref) {
-                  final int index = positions.indexOf(ref.getIndex());
-                  return rexBuilder.makeInputRef(belowTypes.get(index), index);
-                }
-              }));
-      }
+      final List<RexNode> aboveNodes = new RexShuttle() {
+        @Override public RexNode visitInputRef(RexInputRef ref) {
+          final int index = positions.indexOf(ref.getIndex());
+          return rexBuilder.makeInputRef(belowTypes.get(index), index);
+        }
+      }.visitList(nodes);
       return Pair.of(aboveNodes, belowNodes);
     }
   }
