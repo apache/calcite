@@ -27,8 +27,8 @@ import org.junit.jupiter.api.Test;
  */
 class TypeCoercionConverterTest extends SqlToRelTestBase {
 
-  @Override protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(TypeCoercionConverterTest.class);
+  TypeCoercionConverterTest(DiffRepository repository) {
+    super(repository);
   }
 
   @Override protected Tester createTester() {

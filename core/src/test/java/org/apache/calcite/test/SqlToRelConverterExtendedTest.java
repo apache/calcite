@@ -49,6 +49,11 @@ class SqlToRelConverterExtendedTest extends SqlToRelConverterTest {
     }
   }
 
+  SqlToRelConverterExtendedTest(
+      @DiffRepositoryName(SqlToRelConverterTest.class) DiffRepository repository) {
+    super(repository);
+  }
+
   public static void foo(RelNode rel) {
     // Convert rel tree to JSON.
     final RelJsonWriter writer = new RelJsonWriter();

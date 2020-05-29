@@ -96,10 +96,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Unit test for {@link org.apache.calcite.rel.hint.RelHint}.
  */
+
 class SqlHintsConverterTest extends SqlToRelTestBase {
 
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlHintsConverterTest.class);
+  SqlHintsConverterTest(DiffRepository repository) {
+    super(repository);
   }
 
   //~ Tests ------------------------------------------------------------------
@@ -503,7 +504,7 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
       super(operand(LogicalJoin.class, any()), "MockJoinRule");
     }
 
-    public void onMatch(RelOptRuleCall call) {
+    @Override public void onMatch(RelOptRuleCall call) {
       LogicalJoin join = call.rel(0);
       assertThat(1, is(join.getHints().size()));
       call.transformTo(
@@ -695,15 +696,15 @@ class SqlHintsConverterTest extends SqlToRelTestBase {
   private static class MockAppender extends AppenderSkeleton {
     public final List<LoggingEvent> loggingEvents = new ArrayList<>();
 
-    protected void append(org.apache.log4j.spi.LoggingEvent event) {
+    @Override protected void append(org.apache.log4j.spi.LoggingEvent event) {
       loggingEvents.add(event);
     }
 
-    public void close() {
+    @Override public void close() {
       // no-op
     }
 
-    public boolean requiresLayout() {
+    @Override public boolean requiresLayout() {
       return false;
     }
   }

@@ -78,8 +78,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit test for {@link org.apache.calcite.sql2rel.SqlToRelConverter}.
  */
 class SqlToRelConverterTest extends SqlToRelTestBase {
-  protected DiffRepository getDiffRepos() {
-    return DiffRepository.lookup(SqlToRelConverterTest.class);
+  SqlToRelConverterTest(DiffRepository repository) {
+    super(repository);
   }
 
   /** Sets the SQL statement for a test. */
@@ -3843,7 +3843,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
     int invalidCount;
     final Deque<RelNode> stack = new ArrayDeque<>();
 
-    public Set<CorrelationId> correlationIds() {
+    @Override public Set<CorrelationId> correlationIds() {
       final ImmutableSet.Builder<CorrelationId> builder =
           ImmutableSet.builder();
       for (RelNode r : stack) {
@@ -3852,7 +3852,7 @@ class SqlToRelConverterTest extends SqlToRelTestBase {
       return builder.build();
     }
 
-    public void visit(RelNode node, int ordinal, RelNode parent) {
+    @Override public void visit(RelNode node, int ordinal, RelNode parent) {
       try {
         stack.push(node);
         if (!node.isValid(Litmus.THROW, this)) {
