@@ -91,6 +91,7 @@ public class DruidRules {
       new DruidSortRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidSortProjectTransposeRule SORT_PROJECT_TRANSPOSE =
       new DruidSortProjectTransposeRule(RelFactories.LOGICAL_BUILDER);
+  @Deprecated // to be removed before 1.25
   public static final DruidProjectSortTransposeRule PROJECT_SORT_TRANSPOSE =
       new DruidProjectSortTransposeRule(RelFactories.LOGICAL_BUILDER);
   public static final DruidProjectFilterTransposeRule PROJECT_FILTER_TRANSPOSE =
@@ -119,7 +120,6 @@ public class DruidRules {
           AGGREGATE,
           FILTER_AGGREGATE_TRANSPOSE,
           FILTER_PROJECT_TRANSPOSE,
-          PROJECT_SORT_TRANSPOSE,
           SORT,
           SORT_PROJECT_TRANSPOSE,
           DRUID_HAVING_FILTER_RULE);
@@ -730,6 +730,7 @@ public class DruidRules {
    * {@link org.apache.calcite.rel.core.Sort}. Useful if after pushing Sort,
    * we could not push it inside DruidQuery.
    */
+  @Deprecated // to be removed before 1.25
   public static class DruidProjectSortTransposeRule
       extends ProjectSortTransposeRule {
 
